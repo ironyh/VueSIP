@@ -224,19 +224,14 @@ export class MediaManager {
           sdpMid: event.candidate.sdpMid,
           sdpMLineIndex: event.candidate.sdpMLineIndex,
         })
-
-        this.eventBus.emit({
-          type: 'media:ice:candidate',
-          payload: { candidate: event.candidate },
-          timestamp: new Date(),
+        ;(this.eventBus as any).emitSync('media:ice:candidate', {
+          // eslint-disable-line @typescript-eslint/no-explicit-any
+          candidate: event.candidate,
         })
       } else {
         logger.debug('ICE gathering complete (null candidate)')
         this.iceGatheringComplete = true
-        this.eventBus.emit({
-          type: 'media:ice:gathering:complete',
-          timestamp: new Date(),
-        })
+        ;(this.eventBus as any).emitSync('media:ice:gathering:complete', {}) // eslint-disable-line @typescript-eslint/no-explicit-any
       }
     }
 
@@ -244,12 +239,7 @@ export class MediaManager {
     pc.oniceconnectionstatechange = () => {
       const state = pc.iceConnectionState as IceConnectionState
       logger.info('ICE connection state changed', { state })
-
-      this.eventBus.emit({
-        type: 'media:ice:connection:state',
-        payload: { state },
-        timestamp: new Date(),
-      })
+      ;(this.eventBus as any).emitSync('media:ice:connection:state', { state }) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       // Handle connection failures
       if (state === 'failed' || state === 'disconnected') {
@@ -263,12 +253,7 @@ export class MediaManager {
     pc.onicegatheringstatechange = () => {
       const state = pc.iceGatheringState as IceGatheringState
       logger.info('ICE gathering state changed', { state })
-
-      this.eventBus.emit({
-        type: 'media:ice:gathering:state',
-        payload: { state },
-        timestamp: new Date(),
-      })
+      ;(this.eventBus as any).emitSync('media:ice:gathering:state', { state }) // eslint-disable-line @typescript-eslint/no-explicit-any
 
       if (state === 'complete') {
         this.iceGatheringComplete = true
@@ -286,25 +271,19 @@ export class MediaManager {
       // Set remote stream (take first stream)
       if (event.streams.length > 0) {
         this.remoteStream = event.streams[0]
-        this.eventBus.emit({
-          type: EventNames.MEDIA_STREAM_ADDED,
-          payload: {
-            stream: this.remoteStream,
-            track: event.track,
-            direction: 'remote',
-          },
-          timestamp: new Date(),
+        ;(this.eventBus as any).emitSync(EventNames.MEDIA_STREAM_ADDED, {
+          // eslint-disable-line @typescript-eslint/no-explicit-any
+          stream: this.remoteStream,
+          track: event.track,
+          direction: 'remote',
         })
       }
 
-      this.eventBus.emit({
-        type: EventNames.MEDIA_TRACK_ADDED,
-        payload: {
-          track: event.track,
-          streams: event.streams,
-          direction: 'remote',
-        },
-        timestamp: new Date(),
+      ;(this.eventBus as any).emitSync(EventNames.MEDIA_TRACK_ADDED, {
+        // eslint-disable-line @typescript-eslint/no-explicit-any
+        track: event.track,
+        streams: event.streams,
+        direction: 'remote',
       })
     }
 
@@ -329,10 +308,7 @@ export class MediaManager {
     // Negotiation needed
     pc.onnegotiationneeded = () => {
       logger.debug('Negotiation needed')
-      this.eventBus.emit({
-        type: 'media:negotiation:needed',
-        timestamp: new Date(),
-      })
+      ;(this.eventBus as any).emitSync('media:negotiation:needed', {}) // eslint-disable-line @typescript-eslint/no-explicit-any
     }
   }
 
@@ -358,11 +334,10 @@ export class MediaManager {
    */
   private handleConnectionFailure(state: IceConnectionState | string): void {
     logger.error('Connection failure', { state })
-
-    this.eventBus.emit({
-      type: 'media:connection:failed',
-      payload: { state, reason: 'ICE connection failed' },
-      timestamp: new Date(),
+    ;(this.eventBus as any).emitSync('media:connection:failed', {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
+      state,
+      reason: 'ICE connection failed',
     })
 
     // Stop intervals
@@ -488,10 +463,7 @@ export class MediaManager {
       if (!this.iceGatheringComplete) {
         logger.warn('ICE gathering timeout, proceeding anyway')
         this.iceGatheringComplete = true
-        this.eventBus.emit({
-          type: 'media:ice:gathering:timeout',
-          timestamp: new Date(),
-        })
+        ;(this.eventBus as any).emitSync('media:ice:gathering:timeout', {}) // eslint-disable-line @typescript-eslint/no-explicit-any
       }
     }, ICE_GATHERING_TIMEOUT)
   }
@@ -555,13 +527,10 @@ export class MediaManager {
       this.localStream = stream
 
       // Emit event
-      this.eventBus.emit({
-        type: EventNames.MEDIA_STREAM_ADDED,
-        payload: {
-          stream,
-          direction: 'local',
-        },
-        timestamp: new Date(),
+      ;(this.eventBus as any).emitSync(EventNames.MEDIA_STREAM_ADDED, {
+        // eslint-disable-line @typescript-eslint/no-explicit-any
+        stream,
+        direction: 'local',
       })
 
       return stream
@@ -607,11 +576,9 @@ export class MediaManager {
       senders.push(sender)
 
       // Setup DTMF sender for audio tracks
-      if (track.kind === 'audio' && !this.dtmfSender) {
+      if (track.kind === 'audio' && !this.dtmfSender && sender.dtmf) {
         this.dtmfSender = sender.dtmf
-        if (this.dtmfSender) {
-          logger.debug('DTMF sender initialized')
-        }
+        logger.debug('DTMF sender initialized')
       }
     })
 
@@ -654,14 +621,10 @@ export class MediaManager {
       logger.debug('Stopping track', { kind: track.kind, id: track.id })
       track.stop()
     })
-
-    this.eventBus.emit({
-      type: EventNames.MEDIA_STREAM_REMOVED,
-      payload: {
-        stream: this.localStream,
-        direction: 'local',
-      },
-      timestamp: new Date(),
+    ;(this.eventBus as any).emitSync(EventNames.MEDIA_STREAM_REMOVED, {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
+      stream: this.localStream,
+      direction: 'local',
     })
 
     this.localStream = undefined
@@ -911,11 +874,7 @@ export class MediaManager {
         timestamp: new Date(),
       }
 
-      this.eventBus.emit({
-        type: EventNames.MEDIA_DEVICE_CHANGED,
-        payload: event,
-        timestamp: new Date(),
-      })
+      this.eventBus.emitSync(EventNames.MEDIA_DEVICE_CHANGED, event)
     }
 
     navigator.mediaDevices.addEventListener('devicechange', this.deviceChangeListener)
@@ -1008,11 +967,7 @@ export class MediaManager {
     this.statsInterval = setInterval(async () => {
       try {
         const stats = await this.getStatistics()
-        this.eventBus.emit({
-          type: 'media:statistics',
-          payload: stats,
-          timestamp: new Date(),
-        })
+        ;(this.eventBus as any).emitSync('media:statistics', stats) // eslint-disable-line @typescript-eslint/no-explicit-any
       } catch (error) {
         logger.error('Failed to collect statistics', { error })
       }
@@ -1217,12 +1172,16 @@ export class MediaManager {
     // Add TURN servers
     if (config?.turnServers && config.turnServers.length > 0) {
       config.turnServers.forEach((turn) => {
-        iceServers.push({
+        const server: RTCIceServer = {
           urls: turn.urls,
           username: turn.username,
           credential: turn.credential,
-          credentialType: turn.credentialType,
-        })
+        }
+        // Only add credentialType if it's provided (not all browsers support it)
+        if (turn.credentialType) {
+          ;(server as any).credentialType = turn.credentialType // eslint-disable-line @typescript-eslint/no-explicit-any
+        }
+        iceServers.push(server)
       })
     }
 
