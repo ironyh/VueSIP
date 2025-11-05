@@ -187,12 +187,14 @@ During Phase 1 & 2 review, the following oversights were identified and correcte
   - Implement validateSipConfig function
   - Implement validateMediaConfig function
   - Return ValidationResult for each
+  - Additional validators: validateHost, validatePort
 
 - [x] Create src/utils/formatters.ts
   - Implement SIP URI formatting functions
   - Implement duration formatting (seconds to HH:MM:SS)
   - Implement phone number formatting
   - Implement date/time formatting for call history
+  - Additional formatters: formatBytes, formatBitrate, truncate
 
 - [x] Create src/utils/constants.ts
   - Define default SIP configuration values
@@ -201,6 +203,7 @@ During Phase 1 & 2 review, the following oversights were identified and correcte
   - Define retry configuration
   - Define supported codecs
   - Define User-Agent string format
+  - Additional constants: storage keys, call history limits, stats thresholds
 
 ### Phase 3 Implementation (2025-11-05)
 
