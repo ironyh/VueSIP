@@ -6,3 +6,4 @@
 export * from './EventBus'
 export * from './TransportManager'
 export * from './SipClient'
+export * from './CallSession'

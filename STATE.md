@@ -333,7 +333,7 @@ All implementations include:
 
 ### 4.4 Call Session Management
 
-- [ ] Create src/core/CallSession.ts
+- [x] Create src/core/CallSession.ts
   - Implement call session lifecycle management
   - Handle incoming call detection
   - Handle outgoing call initiation
@@ -342,19 +342,60 @@ All implementations include:
   - Implement call termination
   - Store call metadata
 
-- [ ] Implement call flow handling
+- [x] Implement call flow handling
   - Implement outgoing call flow (12 steps per spec)
   - Implement incoming call flow (10 steps per spec)
   - Implement call termination flow (7 steps per spec)
   - Handle provisional responses (100, 180, 183)
   - Handle final responses (2xx-6xx)
 
-- [ ] Test CallSession
+- [x] Test CallSession
   - Test call state transitions
   - Test timing calculations
   - Test metadata storage
   - Test error scenarios
   - Test concurrent calls
+
+### Phase 4.4 Implementation (2025-11-05)
+
+Phase 4.4 has been completed with the following implementations:
+
+**Call Session Management:**
+
+- ✅ `src/core/CallSession.ts` - Comprehensive call session management wrapper around JsSIP RTCSession with lifecycle management, state transitions, timing tracking, media stream handling, and call controls
+- ✅ `src/core/index.ts` - Updated to export CallSession
+- ✅ `tests/unit/CallSession.test.ts` - Comprehensive unit tests with mocked JsSIP RTCSession (53 test cases covering all call flows, controls, and edge cases)
+
+**Key Features Implemented:**
+
+- Full JsSIP RTCSession wrapper with type-safe TypeScript interfaces
+- Call session lifecycle management (outgoing/incoming/termination)
+- Outgoing call flow implementation (12 steps per specification)
+- Incoming call flow implementation (10 steps per specification)
+- Call termination flow implementation (7 steps per specification)
+- Provisional response handling (100 Trying, 180 Ringing, 183 Session Progress)
+- Final response handling (2xx-6xx status codes)
+- Call state transitions with event emission
+- Call timing tracking (start, answer, end, duration, ring duration)
+- Media stream management (local and remote)
+- Call controls:
+  - Hold/Unhold with local and remote support
+  - Mute/Unmute audio
+  - DTMF tone sending (RFC2833 and SIP INFO)
+- Call statistics collection via WebRTC getStats API
+- Event-driven architecture with EventBus integration
+- Proper resource cleanup on call termination
+- Termination cause mapping from JsSIP to application types
+- Media track management and cleanup
+
+All implementations include:
+
+- Full TypeScript type safety
+- Comprehensive JSDoc documentation
+- Unit tests with mocked dependencies (53 test cases, all passing)
+- Event emission for state changes
+- Error boundaries and proper cleanup
+- Support for custom call metadata
 
 ### 4.5 Media Management
 
