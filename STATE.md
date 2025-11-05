@@ -201,7 +201,7 @@ This document tracks the implementation progress of DailVue, a headless Vue.js c
 
 ### 4.1 Event System
 
-- [ ] Create src/core/EventBus.ts
+- [x] Create src/core/EventBus.ts
   - Implement type-safe event emitter
   - Support wildcard event listeners
   - Implement once() for one-time listeners
@@ -210,7 +210,7 @@ This document tracks the implementation progress of DailVue, a headless Vue.js c
   - Add async handler support
   - Implement waitFor() promise-based waiting
 
-- [ ] Test EventBus implementation
+- [x] Test EventBus implementation
   - Write unit tests for event emission
   - Test wildcard subscriptions
   - Test error handling
