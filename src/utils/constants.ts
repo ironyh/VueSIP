@@ -1,177 +1,164 @@
 /**
- * Constants and default values for DailVue
- * @packageDocumentation
+ * DailVue Constants
+ *
+ * Centralized constants and default values for the DailVue library.
+ * These constants are used throughout the library for SIP configuration,
+ * media settings, timeouts, and protocol defaults.
+ *
+ * @module utils/constants
  */
 
-import type { MediaConfiguration, ExtendedRTCConfiguration } from '@/types'
-
 /**
- * Library version
+ * Library version (should match package.json)
  */
 export const VERSION = '1.0.0'
 
 /**
- * Default SIP configuration values
+ * Default User-Agent string format
+ * Used in SIP headers to identify the client
  */
-export const DEFAULT_SIP_CONFIG = {
-  /** Default WebSocket connection timeout (ms) */
-  CONNECTION_TIMEOUT: 10000,
+export const USER_AGENT = `DailVue/${VERSION}`
 
-  /** Default maximum reconnection attempts */
-  MAX_RECONNECTION_ATTEMPTS: 5,
-
-  /** Default reconnection delay (ms) */
-  RECONNECTION_DELAY: 2000,
-
-  /** Default registration expiry (seconds) */
-  REGISTRATION_EXPIRES: 600,
-
-  /** Default registration retry interval (ms) */
-  REGISTRATION_RETRY_INTERVAL: 30000,
-
-  /** Default call timeout (ms) */
-  CALL_TIMEOUT: 60000,
-
-  /** Default maximum concurrent calls */
-  MAX_CONCURRENT_CALLS: 1,
-
-  /** Enable session timers by default */
-  SESSION_TIMERS: true,
-
-  /** Default session timers refresh method */
-  SESSION_TIMERS_REFRESH_METHOD: 'UPDATE' as const,
-
-  /** Auto-register on connection */
-  AUTO_REGISTER: true,
-} as const
+// ============================================================================
+// SIP Configuration Defaults
+// ============================================================================
 
 /**
- * Retry configuration
+ * Default SIP registration expiration time in seconds
+ * Standard value is 3600 (1 hour), but 600 (10 minutes) is more common for WebRTC
  */
-export const RETRY_CONFIG = {
-  /** Retry delays in milliseconds for exponential backoff */
-  DELAYS: [2000, 4000, 8000, 16000, 32000],
-
-  /** Maximum retry attempts */
-  MAX_ATTEMPTS: 5,
-
-  /** Jitter factor (0-1) for randomizing retry delays */
-  JITTER_FACTOR: 0.1,
-} as const
+export const DEFAULT_REGISTER_EXPIRES = 600
 
 /**
- * Timeout values (milliseconds)
+ * Default session timer expiration in seconds
+ * Used for session refresh via UPDATE or re-INVITE
  */
-export const TIMEOUTS = {
-  /** WebSocket connection timeout */
-  WS_CONNECTION: 10000,
-
-  /** SIP transaction timeout */
-  SIP_TRANSACTION: 32000,
-
-  /** Call setup timeout */
-  CALL_SETUP: 60000,
-
-  /** DTMF tone duration */
-  DTMF_DURATION: 100,
-
-  /** DTMF inter-tone gap */
-  DTMF_GAP: 70,
-
-  /** ICE gathering timeout */
-  ICE_GATHERING: 5000,
-
-  /** Media permission request timeout */
-  MEDIA_PERMISSION: 10000,
-
-  /** Keep-alive interval (OPTIONS ping) */
-  KEEP_ALIVE: 30000,
-} as const
+export const DEFAULT_SESSION_TIMERS = 90
 
 /**
- * Default media constraints
+ * Default timeout for no answer in seconds
+ * After this time, an unanswered call will be terminated
  */
-export const DEFAULT_MEDIA_CONSTRAINTS: MediaConfiguration = {
-  audio: {
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true,
-  },
-  video: false,
+export const DEFAULT_NO_ANSWER_TIMEOUT = 60
+
+/**
+ * Default WebSocket keep-alive ping interval in milliseconds
+ * Send OPTIONS or CRLF pings to keep connection alive
+ */
+export const DEFAULT_PING_INTERVAL = 30000 // 30 seconds
+
+/**
+ * Default maximum forwards header value
+ * Prevents infinite loops in SIP routing
+ */
+export const DEFAULT_MAX_FORWARDS = 70
+
+// ============================================================================
+// Media Configuration Defaults
+// ============================================================================
+
+/**
+ * Default audio constraints for getUserMedia
+ */
+export const DEFAULT_AUDIO_CONSTRAINTS = {
   echoCancellation: true,
   noiseSuppression: true,
   autoGainControl: true,
-  audioCodec: 'opus',
-  dataChannel: false,
-}
+  sampleRate: 48000,
+  channelCount: 1, // Mono for VoIP
+} as const
+
+/**
+ * Default video constraints for getUserMedia
+ */
+export const DEFAULT_VIDEO_CONSTRAINTS = {
+  width: { ideal: 640 },
+  height: { ideal: 480 },
+  frameRate: { ideal: 30 },
+  facingMode: 'user',
+} as const
+
+/**
+ * Default media stream constraints
+ */
+export const DEFAULT_MEDIA_CONSTRAINTS = {
+  audio: DEFAULT_AUDIO_CONSTRAINTS,
+  video: false, // Audio-only by default
+} as const
+
+// ============================================================================
+// Timeout Values (in milliseconds)
+// ============================================================================
+
+/**
+ * Reconnection delays for exponential backoff (in milliseconds)
+ * Used when connection fails: 2s, 4s, 8s, 16s, 32s
+ */
+export const RECONNECTION_DELAYS = [2000, 4000, 8000, 16000, 32000] as const
+
+/**
+ * Maximum number of reconnection attempts
+ */
+export const MAX_RETRY_ATTEMPTS = 5
+
+/**
+ * ICE gathering timeout in milliseconds
+ * If ICE candidates aren't gathered within this time, proceed anyway
+ */
+export const ICE_GATHERING_TIMEOUT = 5000
+
+/**
+ * Default DTMF tone duration in milliseconds
+ */
+export const DEFAULT_DTMF_DURATION = 100
+
+/**
+ * Default inter-tone gap for DTMF sequences in milliseconds
+ */
+export const DEFAULT_DTMF_INTER_TONE_GAP = 70
+
+/**
+ * Statistics collection interval in milliseconds
+ * How often to collect RTCPeerConnection statistics
+ */
+export const STATS_COLLECTION_INTERVAL = 1000
+
+/**
+ * Audio level detection update interval in milliseconds
+ */
+export const AUDIO_LEVEL_INTERVAL = 100
+
+// ============================================================================
+// Supported Codecs
+// ============================================================================
 
 /**
  * Supported audio codecs in order of preference
  */
-export const AUDIO_CODECS = {
-  OPUS: 'opus',
-  PCMU: 'pcmu',
-  PCMA: 'pcma',
-  G722: 'g722',
-} as const
+export const AUDIO_CODECS = [
+  'opus', // Preferred: 48 kHz, variable bitrate
+  'G722', // Wideband: 16 kHz
+  'PCMU', // G.711 µ-law: 8 kHz
+  'PCMA', // G.711 A-law: 8 kHz
+] as const
 
 /**
  * Supported video codecs in order of preference
  */
-export const VIDEO_CODECS = {
-  VP8: 'vp8',
-  VP9: 'vp9',
-  H264: 'h264',
-} as const
-
-/**
- * Codec MIME types
- */
-export const CODEC_MIME_TYPES = {
-  // Audio
-  OPUS: 'audio/opus',
-  PCMU: 'audio/PCMU',
-  PCMA: 'audio/PCMA',
-  G722: 'audio/G722',
-
-  // Video
-  VP8: 'video/VP8',
-  VP9: 'video/VP9',
-  H264: 'video/H264',
-} as const
-
-/**
- * Default STUN servers
- */
-export const DEFAULT_STUN_SERVERS = [
-  'stun:stun.l.google.com:19302',
-  'stun:stun1.l.google.com:19302',
+export const VIDEO_CODECS = [
+  'VP8', // Required by WebRTC spec
+  'VP9', // Better quality than VP8
+  'H264', // Most widely supported, preferred if available
 ] as const
 
-/**
- * Default RTC configuration
- */
-export const DEFAULT_RTC_CONFIG: ExtendedRTCConfiguration = {
-  iceServers: [
-    {
-      urls: DEFAULT_STUN_SERVERS as unknown as string[],
-    },
-  ],
-  iceTransportPolicy: 'all',
-  bundlePolicy: 'balanced',
-  rtcpMuxPolicy: 'require',
-  iceCandidatePoolSize: 0,
-}
+// ============================================================================
+// SIP Status Codes
+// ============================================================================
 
 /**
- * User-Agent string format
+ * Common SIP response codes
  */
-export const USER_AGENT = `DailVue/${VERSION}` as const
-
-/**
- * SIP response codes
- */
-export const SIP_RESPONSE_CODES = {
+export const SIP_STATUS_CODES = {
   // Provisional 1xx
   TRYING: 100,
   RINGING: 180,
@@ -179,8 +166,10 @@ export const SIP_RESPONSE_CODES = {
 
   // Success 2xx
   OK: 200,
+  ACCEPTED: 202,
 
   // Redirection 3xx
+  MULTIPLE_CHOICES: 300,
   MOVED_PERMANENTLY: 301,
   MOVED_TEMPORARILY: 302,
 
@@ -189,204 +178,248 @@ export const SIP_RESPONSE_CODES = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
-  PROXY_AUTH_REQUIRED: 407,
+  METHOD_NOT_ALLOWED: 405,
   REQUEST_TIMEOUT: 408,
+  GONE: 410,
+  REQUEST_ENTITY_TOO_LARGE: 413,
+  UNSUPPORTED_MEDIA_TYPE: 415,
+  UNSUPPORTED_URI_SCHEME: 416,
+  BAD_EXTENSION: 420,
+  EXTENSION_REQUIRED: 421,
+  INTERVAL_TOO_BRIEF: 423,
   TEMPORARILY_UNAVAILABLE: 480,
+  CALL_TRANSACTION_DOES_NOT_EXIST: 481,
+  LOOP_DETECTED: 482,
+  TOO_MANY_HOPS: 483,
+  ADDRESS_INCOMPLETE: 484,
+  AMBIGUOUS: 485,
   BUSY_HERE: 486,
   REQUEST_TERMINATED: 487,
+  NOT_ACCEPTABLE_HERE: 488,
+  BAD_EVENT: 489,
+  REQUEST_PENDING: 491,
+  UNDECIPHERABLE: 493,
 
   // Server Error 5xx
-  INTERNAL_ERROR: 500,
+  SERVER_INTERNAL_ERROR: 500,
   NOT_IMPLEMENTED: 501,
+  BAD_GATEWAY: 502,
   SERVICE_UNAVAILABLE: 503,
+  SERVER_TIMEOUT: 504,
+  VERSION_NOT_SUPPORTED: 505,
+  MESSAGE_TOO_LARGE: 513,
 
   // Global Failure 6xx
   BUSY_EVERYWHERE: 600,
   DECLINE: 603,
+  DOES_NOT_EXIST_ANYWHERE: 604,
+  NOT_ACCEPTABLE: 606,
 } as const
 
-/**
- * SIP headers
- */
-export const SIP_HEADERS = {
-  USER_AGENT: 'User-Agent',
-  CONTENT_TYPE: 'Content-Type',
-  ALLOW: 'Allow',
-  SUPPORTED: 'Supported',
-  REQUIRE: 'Require',
-  CONTACT: 'Contact',
-  FROM: 'From',
-  TO: 'To',
-  VIA: 'Via',
-  CALL_ID: 'Call-ID',
-  CSEQ: 'CSeq',
-} as const
+// ============================================================================
+// Event Names
+// ============================================================================
 
 /**
- * Event names used internally
+ * Standard event names used throughout the library
  */
-export const INTERNAL_EVENTS = {
-  // Transport events
-  TRANSPORT_CONNECTED: 'transport:connected',
-  TRANSPORT_DISCONNECTED: 'transport:disconnected',
-  TRANSPORT_ERROR: 'transport:error',
+export const EVENTS = {
+  // Connection events
+  CONNECTION_CONNECTING: 'connection:connecting',
+  CONNECTION_CONNECTED: 'connection:connected',
+  CONNECTION_DISCONNECTED: 'connection:disconnected',
+  CONNECTION_FAILED: 'connection:failed',
+  CONNECTION_RECONNECTING: 'connection:reconnecting',
 
   // Registration events
-  REGISTRATION_SENT: 'registration:sent',
-  REGISTRATION_SUCCESS: 'registration:success',
+  REGISTRATION_REGISTERING: 'registration:registering',
+  REGISTRATION_REGISTERED: 'registration:registered',
+  REGISTRATION_UNREGISTERED: 'registration:unregistered',
   REGISTRATION_FAILED: 'registration:failed',
+  REGISTRATION_EXPIRING: 'registration:expiring',
 
   // Call events
-  CALL_CREATED: 'call:created',
-  CALL_DESTROYED: 'call:destroyed',
+  CALL_INCOMING: 'call:incoming',
+  CALL_OUTGOING: 'call:outgoing',
+  CALL_RINGING: 'call:ringing',
+  CALL_PROGRESS: 'call:progress',
+  CALL_ACCEPTED: 'call:accepted',
+  CALL_ANSWERED: 'call:answered',
+  CALL_HELD: 'call:held',
+  CALL_UNHELD: 'call:unheld',
+  CALL_MUTED: 'call:muted',
+  CALL_UNMUTED: 'call:unmuted',
+  CALL_TERMINATED: 'call:terminated',
+  CALL_FAILED: 'call:failed',
 
   // Media events
-  MEDIA_ACQUIRED: 'media:acquired',
-  MEDIA_RELEASED: 'media:released',
+  MEDIA_DEVICE_CHANGED: 'media:deviceChanged',
+  MEDIA_DEVICE_ADDED: 'media:deviceAdded',
+  MEDIA_DEVICE_REMOVED: 'media:deviceRemoved',
+  MEDIA_STREAM_ADDED: 'media:streamAdded',
+  MEDIA_STREAM_REMOVED: 'media:streamRemoved',
+  MEDIA_TRACK_ADDED: 'media:trackAdded',
+  MEDIA_TRACK_REMOVED: 'media:trackRemoved',
+
+  // Transfer events
+  TRANSFER_INITIATED: 'transfer:initiated',
+  TRANSFER_ACCEPTED: 'transfer:accepted',
+  TRANSFER_REJECTED: 'transfer:rejected',
+  TRANSFER_COMPLETED: 'transfer:completed',
+  TRANSFER_FAILED: 'transfer:failed',
+
+  // DTMF events
+  DTMF_TONE_SENT: 'dtmf:toneSent',
+  DTMF_SEQUENCE_STARTED: 'dtmf:sequenceStarted',
+  DTMF_SEQUENCE_COMPLETED: 'dtmf:sequenceCompleted',
+  DTMF_FAILED: 'dtmf:failed',
+
+  // Error events
+  ERROR: 'error',
 } as const
 
+// ============================================================================
+// Storage Keys
+// ============================================================================
+
 /**
- * Storage keys for persistence
+ * LocalStorage key prefix for DailVue
+ * All keys are namespaced to avoid conflicts
+ */
+export const STORAGE_PREFIX = 'dailvue:'
+
+/**
+ * Storage version for migration support
+ */
+export const STORAGE_VERSION = 'v1'
+
+/**
+ * Storage keys for persisted data
  */
 export const STORAGE_KEYS = {
-  PREFIX: 'dailvue',
-  VERSION: 'v1',
-
-  // Specific keys
-  CONFIG: 'dailvue:v1:config',
-  CREDENTIALS: 'dailvue:v1:credentials',
-  PREFERENCES: 'dailvue:v1:preferences',
-  DEVICES: 'dailvue:v1:devices',
-  HISTORY: 'dailvue:v1:history',
+  CONFIG: `${STORAGE_PREFIX}${STORAGE_VERSION}:config`,
+  CREDENTIALS: `${STORAGE_PREFIX}${STORAGE_VERSION}:credentials`,
+  DEVICE_PREFERENCES: `${STORAGE_PREFIX}${STORAGE_VERSION}:devices`,
+  USER_PREFERENCES: `${STORAGE_PREFIX}${STORAGE_VERSION}:preferences`,
+  CALL_HISTORY: `${STORAGE_PREFIX}${STORAGE_VERSION}:history`,
 } as const
+
+// ============================================================================
+// Performance Targets
+// ============================================================================
 
 /**
- * IndexedDB configuration for call history
+ * Performance targets and limits
  */
-export const INDEXEDDB_CONFIG = {
-  DATABASE_NAME: 'dailvue',
-  VERSION: 1,
-  STORES: {
-    CALL_HISTORY: 'callHistory',
-    MESSAGES: 'messages',
-    RECORDINGS: 'recordings',
-  },
+export const PERFORMANCE = {
+  /** Maximum bundle size in bytes (minified) */
+  MAX_BUNDLE_SIZE: 150 * 1024, // 150 KB
+
+  /** Maximum bundle size in bytes (gzipped) */
+  MAX_BUNDLE_SIZE_GZIPPED: 50 * 1024, // 50 KB
+
+  /** Target call setup time in milliseconds */
+  TARGET_CALL_SETUP_TIME: 2000, // 2 seconds
+
+  /** Maximum state update latency in milliseconds */
+  MAX_STATE_UPDATE_LATENCY: 50, // 50ms
+
+  /** Maximum event propagation time in milliseconds */
+  MAX_EVENT_PROPAGATION_TIME: 10, // 10ms
+
+  /** Maximum memory per call in bytes */
+  MAX_MEMORY_PER_CALL: 50 * 1024 * 1024, // 50 MB
+
+  /** Target CPU usage during call (percentage) */
+  TARGET_CPU_USAGE: 15, // 15%
+
+  /** Default maximum concurrent calls */
+  DEFAULT_MAX_CONCURRENT_CALLS: 5,
+
+  /** Default maximum call history entries */
+  DEFAULT_MAX_HISTORY_ENTRIES: 1000,
 } as const
+
+// ============================================================================
+// Regular Expressions
+// ============================================================================
 
 /**
- * Maximum limits
+ * Regular expression for SIP URI validation
+ * Matches: sip:user@domain or sips:user@domain
  */
-export const LIMITS = {
-  /** Maximum call history entries to keep */
-  MAX_HISTORY_ENTRIES: 1000,
-
-  /** Maximum message history entries */
-  MAX_MESSAGE_ENTRIES: 1000,
-
-  /** Maximum concurrent calls */
-  MAX_CONCURRENT_CALLS: 5,
-
-  /** Maximum DTMF tone sequence length */
-  MAX_DTMF_SEQUENCE_LENGTH: 32,
-
-  /** Maximum file size for recordings (bytes) */
-  MAX_RECORDING_SIZE: 100 * 1024 * 1024, // 100 MB
-} as const
+export const SIP_URI_REGEX = /^sips?:([a-zA-Z0-9._+-]+)@([a-zA-Z0-9.-]+)(?::(\d+))?/
 
 /**
- * Feature flags
+ * Regular expression for E.164 phone number format
+ * Matches: +[country code][number]
  */
-export const FEATURES = {
-  /** Enable video calls */
-  VIDEO: true,
-
-  /** Enable call recording */
-  RECORDING: true,
-
-  /** Enable call transfer */
-  TRANSFER: true,
-
-  /** Enable presence */
-  PRESENCE: true,
-
-  /** Enable messaging */
-  MESSAGING: true,
-
-  /** Enable conference calls */
-  CONFERENCE: true,
-
-  /** Enable call history */
-  HISTORY: true,
-} as const
+export const E164_PHONE_REGEX = /^\+[1-9]\d{1,14}$/
 
 /**
- * Regular expressions
+ * Regular expression for WebSocket URL validation
+ * Matches: ws:// or wss://
  */
-export const REGEX = {
-  /** SIP URI pattern */
-  SIP_URI:
-    /^(sip|sips):([a-zA-Z0-9\-_.!~*'()&=+$,;?/])+@([a-zA-Z0-9\-_.]+\.)*[a-zA-Z0-9\-_.]+(:[\d]+)?(;[^\s]*)?$/,
+export const WEBSOCKET_URL_REGEX = /^wss?:\/\/.+/
 
-  /** WebSocket URI pattern */
-  WS_URI: /^(ws|wss):\/\/([a-zA-Z0-9\-_.]+\.)*[a-zA-Z0-9\-_.]+(:[\d]+)?(\/[^\s]*)?$/,
-
-  /** Phone number pattern (E.164) */
-  PHONE_E164: /^\+?[1-9]\d{6,14}$/,
-
-  /** Email pattern */
-  EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-
-  /** DTMF digits */
-  DTMF: /^[0-9A-D*#]+$/,
-} as const
+// ============================================================================
+// Type Guards and Helpers
+// ============================================================================
 
 /**
- * DTMF tones mapping
+ * Valid DTMF tones
  */
-export const DTMF_TONES = {
-  '0': { frequency: [941, 1336] },
-  '1': { frequency: [697, 1209] },
-  '2': { frequency: [697, 1336] },
-  '3': { frequency: [697, 1477] },
-  '4': { frequency: [770, 1209] },
-  '5': { frequency: [770, 1336] },
-  '6': { frequency: [770, 1477] },
-  '7': { frequency: [852, 1209] },
-  '8': { frequency: [852, 1336] },
-  '9': { frequency: [852, 1477] },
-  '*': { frequency: [941, 1209] },
-  '#': { frequency: [941, 1477] },
-  A: { frequency: [697, 1633] },
-  B: { frequency: [770, 1633] },
-  C: { frequency: [852, 1633] },
-  D: { frequency: [941, 1633] },
-} as const
+export const DTMF_TONES = [
+  '0',
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '*',
+  '#',
+  'A',
+  'B',
+  'C',
+  'D',
+] as const
 
 /**
- * Error messages
+ * Valid log levels
  */
-export const ERROR_MESSAGES = {
-  // Connection errors
-  CONNECTION_FAILED: 'Failed to connect to SIP server',
-  CONNECTION_TIMEOUT: 'Connection timeout',
-  CONNECTION_CLOSED: 'Connection closed',
+export const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const
 
-  // Registration errors
-  REGISTRATION_FAILED: 'SIP registration failed',
-  AUTHENTICATION_FAILED: 'Authentication failed',
+/**
+ * Valid call states
+ */
+export const CALL_STATES = [
+  'idle',
+  'calling',
+  'ringing',
+  'answering',
+  'active',
+  'holding',
+  'held',
+  'terminating',
+  'terminated',
+] as const
 
-  // Call errors
-  CALL_FAILED: 'Call failed',
-  CALL_REJECTED: 'Call rejected',
-  CALL_TIMEOUT: 'Call timeout',
-  MEDIA_FAILED: 'Failed to acquire media',
+/**
+ * Valid connection states
+ */
+export const CONNECTION_STATES = ['disconnected', 'connecting', 'connected', 'error'] as const
 
-  // Media errors
-  MEDIA_PERMISSION_DENIED: 'Media permission denied',
-  MEDIA_DEVICE_NOT_FOUND: 'Media device not found',
-
-  // General errors
-  INVALID_CONFIG: 'Invalid configuration',
-  INVALID_STATE: 'Invalid state',
-  NOT_IMPLEMENTED: 'Not implemented',
-} as const
+/**
+ * Valid registration states
+ */
+export const REGISTRATION_STATES = [
+  'unregistered',
+  'registering',
+  'registered',
+  'unregistering',
+  'failed',
+] as const
