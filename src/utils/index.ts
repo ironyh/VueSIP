@@ -17,3 +17,6 @@ export * from './formatters'
 
 // Re-export logger
 export * from './logger'
+
+// Re-export encryption utilities
+export * from './encryption'
