@@ -333,7 +333,7 @@ All implementations include:
 
 ### 4.4 Call Session Management
 
-- [ ] Create src/core/CallSession.ts
+- [x] Create src/core/CallSession.ts
   - Implement call session lifecycle management
   - Handle incoming call detection
   - Handle outgoing call initiation
@@ -342,19 +342,92 @@ All implementations include:
   - Implement call termination
   - Store call metadata
 
-- [ ] Implement call flow handling
+- [x] Implement call flow handling
   - Implement outgoing call flow (12 steps per spec)
   - Implement incoming call flow (10 steps per spec)
   - Implement call termination flow (7 steps per spec)
   - Handle provisional responses (100, 180, 183)
   - Handle final responses (2xx-6xx)
 
-- [ ] Test CallSession
+- [x] Test CallSession
   - Test call state transitions
   - Test timing calculations
   - Test metadata storage
   - Test error scenarios
   - Test concurrent calls
+
+### Phase 4.4 Implementation (2025-11-05)
+
+Phase 4.4 has been completed with the following implementations:
+
+### Phase 4.4 Review and Fixes (2025-11-05)
+
+After comprehensive code review, the following critical issues were identified and fixed:
+
+**Bugs Fixed:**
+
+1. ✅ **Data Exposure Bug** - Fixed `toInterface()` returning direct reference to internal `_data` object instead of copy
+2. ✅ **Duration Calculation** - Added validation to prevent negative durations from clock skew (endTime > answerTime check)
+3. ✅ **Media Track Duplication** - Added duplicate track detection before adding to streams to prevent memory leaks
+
+**Missing Features Added:** 4. ✅ **reject() Method** - Added proper call rejection with SIP status codes (486 Busy, 603 Decline, 480 Unavailable) 5. ✅ **Input Validation** - Added SIP URI format validation in constructor 6. ✅ **Operation Locking** - Added `isHoldPending` flag to prevent race conditions during hold/unhold operations 7. ✅ **DTMF Queue** - Implemented proper DTMF tone queuing system with:
+
+- Sequential tone sending with proper inter-tone gaps
+- Support for tone sequences (e.g., "123#")
+- Tone validation (0-9, A-D, \*, #)
+- Queue clearing capability
+- Default timing (100ms duration, 70ms gap per RFC 2833)
+
+**Test Coverage:**
+
+- All 53 existing tests updated and passing
+- Tests updated for new DTMF queue behavior
+- Tests updated for new URI validation
+
+**Production Readiness Improvements:**
+
+- Critical security issue fixed (data exposure)
+- Race conditions prevented (hold/unhold locking)
+- Input validation added (URI format)
+- Memory leaks prevented (track duplication)
+- Missing functionality implemented (reject, DTMF queue)
+
+**Call Session Management:**
+
+- ✅ `src/core/CallSession.ts` - Comprehensive call session management wrapper around JsSIP RTCSession with lifecycle management, state transitions, timing tracking, media stream handling, and call controls
+- ✅ `src/core/index.ts` - Updated to export CallSession
+- ✅ `tests/unit/CallSession.test.ts` - Comprehensive unit tests with mocked JsSIP RTCSession (53 test cases covering all call flows, controls, and edge cases)
+
+**Key Features Implemented:**
+
+- Full JsSIP RTCSession wrapper with type-safe TypeScript interfaces
+- Call session lifecycle management (outgoing/incoming/termination)
+- Outgoing call flow implementation (12 steps per specification)
+- Incoming call flow implementation (10 steps per specification)
+- Call termination flow implementation (7 steps per specification)
+- Provisional response handling (100 Trying, 180 Ringing, 183 Session Progress)
+- Final response handling (2xx-6xx status codes)
+- Call state transitions with event emission
+- Call timing tracking (start, answer, end, duration, ring duration)
+- Media stream management (local and remote)
+- Call controls:
+  - Hold/Unhold with local and remote support
+  - Mute/Unmute audio
+  - DTMF tone sending (RFC2833 and SIP INFO)
+- Call statistics collection via WebRTC getStats API
+- Event-driven architecture with EventBus integration
+- Proper resource cleanup on call termination
+- Termination cause mapping from JsSIP to application types
+- Media track management and cleanup
+
+All implementations include:
+
+- Full TypeScript type safety
+- Comprehensive JSDoc documentation
+- Unit tests with mocked dependencies (53 test cases, all passing)
+- Event emission for state changes
+- Error boundaries and proper cleanup
+- Support for custom call metadata
 
 ### 4.5 Media Management
 
