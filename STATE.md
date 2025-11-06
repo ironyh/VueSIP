@@ -789,12 +789,16 @@ All implementations include:
   - Handle registration failures with retry
   - Emit registration events
 
-- [~] Test useSipRegistration (tests needed)
+- [x] Test useSipRegistration - 49 tests (all passing) ✅
   - Test registration flow
   - Test unregistration flow
   - Test refresh mechanism
   - Test retry logic
   - Test expiry handling
+  - Test auto-refresh logic
+  - Test store synchronization
+  - Test lifecycle cleanup
+  - Test edge cases
 
 ### 6.3 Call Session Composable
 
@@ -1067,11 +1071,13 @@ Phase 6 (Core Composables) has been substantially completed with the following i
 - useSipClient - 48 tests (all passing)
 - useCallSession - 71 tests (all passing)
 - useDTMF - 51 tests (all passing)
-- useMediaDevices - 59 tests (all passing) ⭐ _Just completed!_
+- useMediaDevices - 59 tests (all passing)
+- useSipRegistration - 49 tests (all passing) ⭐ _Just completed!_
+
+**Total: 278 tests across 5 composables**
 
 ❌ **No Tests (Need Test Files):**
 
-- useSipRegistration - No test file exists
 - useCallControls - No test file exists
 - useCallHistory - No test file exists
 - usePresence - No test file exists
@@ -1082,7 +1088,7 @@ Phase 6 (Core Composables) has been substantially completed with the following i
 
 1. ~~Add tests for useDTMF (already has 15 tests, expand to comprehensive)~~ ✅ **DONE!**
 2. ~~Add tests for useMediaDevices (only has 2 tests, needs much more)~~ ✅ **DONE!**
-3. Create test file for useSipRegistration (critical composable)
+3. ~~Create test file for useSipRegistration (critical composable)~~ ✅ **DONE!**
 4. Create test files for remaining composables
 
 **Next Steps:**
