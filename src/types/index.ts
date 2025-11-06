@@ -74,3 +74,6 @@ export * from './storage.types'
 
 // Provider types
 export * from './provider.types'
+
+// Plugin types
+export * from './plugin.types'
