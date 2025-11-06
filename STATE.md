@@ -820,13 +820,21 @@ All implementations include:
   - Update streams reactively
   - Clean up streams on hangup
 
-- [~] Test useCallSession (tests needed)
-  - Test outgoing call flow
-  - Test incoming call flow
-  - Test call controls (hold, mute)
-  - Test DTMF sending
-  - Test statistics collection
-  - Test cleanup
+- [x] Test useCallSession - Comprehensive test suite completed (2025-11-06)
+  - ✅ 71 tests total (all passing)
+  - ✅ Input validation (empty URI, whitespace, invalid format, SIP client checks)
+  - ✅ Concurrent operation guards (makeCall, answer, hangup)
+  - ✅ reject() method (default/custom status codes, error handling)
+  - ✅ hold/unhold/toggleHold methods (all functionality and error cases)
+  - ✅ mute/unmute/toggleMute methods (audio controls)
+  - ✅ sendDTMF method (tones with/without options)
+  - ✅ getStats and clearSession methods
+  - ✅ All reactive state properties (callId, direction, URIs, streams, timing, etc.)
+  - ✅ Duration tracking behavior (starts/stops on state changes)
+  - ✅ Media cleanup on answer failure
+  - ✅ Different call options (audio-only, video)
+  - ✅ Lifecycle cleanup (onUnmounted)
+  - ✅ Call store integration
 
 ### 6.4 Media Devices Composable
 
@@ -1039,11 +1047,39 @@ Phase 6 (Core Composables) has been substantially completed with the following i
 - ⚠️ High priority issues documented (8 items) - Planned for Phase 6.11
 - 📋 Medium/Low priority issues documented (19 items) - Future work
 
+**Testing Status Summary (2025-11-06):**
+
+✅ **Fully Tested (Comprehensive):**
+
+- useSipClient - 48 tests (all passing)
+- useCallSession - 71 tests (all passing) - Just completed!
+
+⚠️ **Partially Tested (Need More Tests):**
+
+- useDTMF - 15 tests (needs comprehensive coverage)
+- useMediaDevices - 2 tests (needs comprehensive coverage)
+
+❌ **No Tests (Need Test Files):**
+
+- useSipRegistration - No test file exists
+- useCallControls - No test file exists
+- useCallHistory - No test file exists
+- usePresence - No test file exists
+- useMessaging - No test file exists
+- useConference - No test file exists
+
+**Priority Recommendations:**
+
+1. Add tests for useDTMF (already has 15 tests, expand to comprehensive)
+2. Add tests for useMediaDevices (only has 2 tests, needs much more)
+3. Create test file for useSipRegistration (critical composable)
+4. Create test files for remaining composables
+
 **Next Steps:**
 
 - Phase 6.11: Code Quality Improvements (High Priority)
 - Phase 7: Provider Components
-- Comprehensive test suite for composables
+- Comprehensive test suite for composables (see testing status above)
 - E2E testing
 - Documentation updates
 
@@ -1709,6 +1745,7 @@ Phase 9 (Library Entry Point) has been successfully completed with a comprehensi
   - Logs initialization info with version
 
 **VueSipOptions Interface:**
+
 - debug: boolean (enable debug mode)
 - logLevel: LogLevel (set logging level)
 - sipConfig: Global SIP configuration
@@ -1717,13 +1754,16 @@ Phase 9 (Library Entry Point) has been successfully completed with a comprehensi
 - logger: Custom logger instance
 
 **Version & Metadata:**
+
 - ✅ version: '1.0.0'
 - ✅ metadata object with name, version, description, author, license, repository, homepage, bugs
 
 **Default Export:**
+
 - ✅ Default export object with version, metadata, createVueSip, install
 
 **Type Augmentation:**
+
 - ✅ ComponentCustomProperties augmented to include $vuesip property
 
 **Documentation:**
@@ -1762,17 +1802,20 @@ Phase 9 (Library Entry Point) has been successfully completed with a comprehensi
 **Usage Patterns Supported:**
 
 1. **Direct Composable Usage** (no plugin):
+
    ```typescript
    import { useSipClient, useCallSession } from 'vuesip'
    ```
 
 2. **Vue Plugin Usage**:
+
    ```typescript
    import { createVueSip } from 'vuesip'
    app.use(createVueSip({ debug: true }))
    ```
 
 3. **Provider Components**:
+
    ```vue
    <SipClientProvider :config="sipConfig">
      <YourApp />
