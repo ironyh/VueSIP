@@ -22,6 +22,19 @@ const logger = createLogger('useSipClient')
 const eventBusInstanceCounts = new WeakMap<EventBus, number>()
 
 /**
+ * Typed event payloads for SIP events
+ * Provides compile-time type safety for event data
+ */
+interface SipEventPayloads {
+  'sip:connected': void
+  'sip:disconnected': { error?: string }
+  'sip:registered': { uri: string; expires?: number }
+  'sip:unregistered': void
+  'sip:registration_failed': { cause: string }
+  'sip:registration_expiring': void
+}
+
+/**
  * SIP Client composable return type
  */
 export interface UseSipClientReturn {
@@ -146,6 +159,8 @@ export function useSipClient(
     autoCleanup?: boolean
     /** Reconnect delay in milliseconds (default: 1000) */
     reconnectDelay?: number
+    /** Connection timeout in milliseconds (default: 30000) */
+    connectionTimeout?: number
   }
 ): UseSipClientReturn {
   // ============================================================================
@@ -157,6 +172,7 @@ export function useSipClient(
     autoConnect = false,
     autoCleanup = true,
     reconnectDelay = 1000,
+    connectionTimeout = 30000,
   } = options ?? {}
 
   // Track EventBus instance usage for conflict detection
@@ -177,8 +193,6 @@ export function useSipClient(
   const sipClient = ref<SipClient | null>(null)
   const error = ref<Error | null>(null)
   const isDisconnecting = ref(false)
-  // Store event listener IDs for cleanup
-  const listenerIds = ref<string[]>([])
 
   // ============================================================================
   // Initialize Configuration
@@ -237,80 +251,73 @@ export function useSipClient(
    * @returns Cleanup function to remove all listeners
    */
   function setupEventListeners(): () => void {
-    // Store listener IDs for cleanup
-    const ids: string[] = []
+    // Store event name + ID pairs for robust cleanup
+    const listeners: Array<{ event: string; id: string }> = []
 
     // Connection events
-    ids.push(
-      eventBus.on('sip:connected', () => {
+    listeners.push({
+      event: 'sip:connected',
+      id: eventBus.on('sip:connected', () => {
         logger.debug('SIP client connected')
         error.value = null
-      })
-    )
+      }),
+    })
 
-    ids.push(
-      eventBus.on('sip:disconnected', (data: unknown) => {
+    listeners.push({
+      event: 'sip:disconnected',
+      id: eventBus.on('sip:disconnected', (data: unknown) => {
         logger.debug('SIP client disconnected', data)
-        if (data && typeof data === 'object' && 'error' in data) {
-          error.value = new Error(String(data.error))
+        const payload = data as SipEventPayloads['sip:disconnected'] | undefined
+        if (payload?.error) {
+          error.value = new Error(payload.error)
         }
-      })
-    )
+      }),
+    })
 
     // Registration events
-    ids.push(
-      eventBus.on('sip:registered', (data: unknown) => {
+    listeners.push({
+      event: 'sip:registered',
+      id: eventBus.on('sip:registered', (data: unknown) => {
         logger.info('SIP registered', data)
-        if (data && typeof data === 'object' && 'uri' in data) {
-          const uri = String(data.uri)
-          const expires = 'expires' in data ? Number(data.expires) : undefined
-          registrationStore.setRegistered(uri, expires)
+        const payload = data as SipEventPayloads['sip:registered']
+        if (payload?.uri) {
+          registrationStore.setRegistered(payload.uri, payload.expires)
         }
-      })
-    )
+      }),
+    })
 
-    ids.push(
-      eventBus.on('sip:unregistered', (data: unknown) => {
-        logger.info('SIP unregistered', data)
+    listeners.push({
+      event: 'sip:unregistered',
+      id: eventBus.on('sip:unregistered', () => {
+        logger.info('SIP unregistered')
         registrationStore.setUnregistered()
-      })
-    )
+      }),
+    })
 
-    ids.push(
-      eventBus.on('sip:registration_failed', (data: unknown) => {
+    listeners.push({
+      event: 'sip:registration_failed',
+      id: eventBus.on('sip:registration_failed', (data: unknown) => {
         logger.error('SIP registration failed', data)
-        const errorMsg =
-          data && typeof data === 'object' && 'cause' in data
-            ? String(data.cause)
-            : 'Registration failed'
+        const payload = data as SipEventPayloads['sip:registration_failed'] | undefined
+        const errorMsg = payload?.cause ?? 'Registration failed'
         registrationStore.setRegistrationFailed(errorMsg)
         error.value = new Error(errorMsg)
-      })
-    )
+      }),
+    })
 
-    ids.push(
-      eventBus.on('sip:registration_expiring', () => {
+    listeners.push({
+      event: 'sip:registration_expiring',
+      id: eventBus.on('sip:registration_expiring', () => {
         logger.debug('SIP registration expiring, auto-refresh')
         // Auto-refresh will be handled by the SIP client
-      })
-    )
-
-    // Store IDs for external access
-    listenerIds.value = ids
+      }),
+    })
 
     // Return cleanup function
     return () => {
-      logger.debug(`Cleaning up ${ids.length} event listeners`)
-      ids.forEach((id, index) => {
-        const eventNames = [
-          'sip:connected',
-          'sip:disconnected',
-          'sip:registered',
-          'sip:unregistered',
-          'sip:registration_failed',
-          'sip:registration_expiring',
-        ]
-        eventBus.off(eventNames[index], id)
+      logger.debug(`Cleaning up ${listeners.length} event listeners`)
+      listeners.forEach(({ event, id }) => {
+        eventBus.off(event, id)
       })
 
       // Decrement instance count for this EventBus
@@ -349,9 +356,18 @@ export function useSipClient(
         sipClient.value = new SipClient(config, eventBus)
       }
 
-      // Start the client
+      // Start the client with timeout
       logger.info('Starting SIP client')
-      await sipClient.value.start()
+
+      const connectPromise = sipClient.value.start()
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error(`Connection timeout after ${connectionTimeout}ms`)),
+          connectionTimeout
+        )
+      })
+
+      await Promise.race([connectPromise, timeoutPromise])
 
       logger.info('SIP client connected successfully')
     } catch (err) {
@@ -378,7 +394,8 @@ export function useSipClient(
       logger.info('Disconnecting SIP client')
       await sipClient.value.stop()
 
-      // Clear client instance
+      // Properly destroy client to clean up all resources
+      sipClient.value.destroy()
       sipClient.value = null
       registrationStore.setUnregistered()
 
@@ -387,6 +404,17 @@ export function useSipClient(
       const errorMsg = err instanceof Error ? err.message : 'Disconnect failed'
       logger.error('Failed to disconnect', err)
       error.value = err instanceof Error ? err : new Error(errorMsg)
+
+      // Still attempt cleanup even if stop() failed
+      try {
+        if (sipClient.value) {
+          sipClient.value.destroy()
+          sipClient.value = null
+        }
+      } catch (cleanupErr) {
+        logger.error('Cleanup failed during error handling', cleanupErr)
+      }
+
       throw err
     } finally {
       isDisconnecting.value = false
@@ -564,16 +592,19 @@ export function useSipClient(
   // ============================================================================
 
   return {
-    // Reactive state (readonly to prevent external mutation)
-    isConnected: readonly(isConnected) as ComputedRef<boolean>,
-    isRegistered: readonly(isRegistered) as ComputedRef<boolean>,
-    connectionState: readonly(connectionState) as ComputedRef<ConnectionState>,
-    registrationState: readonly(registrationState) as ComputedRef<RegistrationState>,
-    registeredUri: readonly(registeredUri) as ComputedRef<string | null>,
-    error: readonly(error) as Ref<Error | null>,
-    isConnecting: readonly(isConnecting) as ComputedRef<boolean>,
-    isDisconnecting: readonly(isDisconnecting) as Ref<boolean>,
-    isStarted: readonly(isStarted) as ComputedRef<boolean>,
+    // Reactive state
+    // Note: Computed refs are already readonly by nature, no wrapper needed
+    isConnected,
+    isRegistered,
+    connectionState,
+    registrationState,
+    registeredUri,
+    isConnecting,
+    isStarted,
+
+    // Refs need readonly wrapper to prevent external mutation
+    error: readonly(error),
+    isDisconnecting: readonly(isDisconnecting),
 
     // Methods
     connect,
