@@ -284,6 +284,33 @@ describe('useConference', () => {
         'sip:alice@example.com'
       )
     })
+
+    it('should allow adding same participant multiple times with different IDs', async () => {
+      const { createConference, addParticipant, participantCount, participants } =
+        useConference(sipClientRef)
+
+      await createConference()
+      const firstId = await addParticipant('sip:alice@example.com', 'Alice')
+      const secondId = await addParticipant('sip:alice@example.com', 'Alice')
+
+      expect(firstId).not.toBe(secondId)
+      expect(participantCount.value).toBe(3) // Local + Alice + Alice
+      expect(participants.value.filter((p) => p.uri === 'sip:alice@example.com')).toHaveLength(2)
+    })
+
+    it('should set joinedAt timestamp for new participants', async () => {
+      const { createConference, addParticipant, participants } = useConference(sipClientRef)
+
+      const beforeTime = new Date()
+      await createConference()
+      await addParticipant('sip:alice@example.com')
+      const afterTime = new Date()
+
+      const alice = participants.value.find((p) => p.uri === 'sip:alice@example.com')
+      expect(alice?.joinedAt).toBeInstanceOf(Date)
+      expect(alice!.joinedAt.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime())
+      expect(alice!.joinedAt.getTime()).toBeLessThanOrEqual(afterTime.getTime())
+    })
   })
 
   // ============================================================================
@@ -540,6 +567,33 @@ describe('useConference', () => {
 
       expect(endingEvents).toHaveLength(1)
       expect(endedEvents).toHaveLength(1)
+    })
+
+    it('should set startedAt timestamp on conference creation', async () => {
+      const { createConference, conference } = useConference(sipClientRef)
+
+      const beforeTime = new Date()
+      await createConference()
+      const afterTime = new Date()
+
+      expect(conference.value?.startedAt).toBeInstanceOf(Date)
+      expect(conference.value!.startedAt!.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime())
+      expect(conference.value!.startedAt!.getTime()).toBeLessThanOrEqual(afterTime.getTime())
+    })
+
+    it('should set endedAt timestamp on conference end', async () => {
+      const { createConference, endConference, conference } = useConference(sipClientRef)
+
+      await createConference()
+      expect(conference.value?.endedAt).toBeUndefined()
+
+      const beforeEnd = new Date()
+      await endConference()
+      const afterEnd = new Date()
+
+      expect(conference.value?.endedAt).toBeInstanceOf(Date)
+      expect(conference.value!.endedAt!.getTime()).toBeGreaterThanOrEqual(beforeEnd.getTime())
+      expect(conference.value!.endedAt!.getTime()).toBeLessThanOrEqual(afterEnd.getTime())
     })
   })
 
@@ -910,6 +964,38 @@ describe('useConference', () => {
       await vi.advanceTimersByTimeAsync(CONFERENCE_CONSTANTS.AUDIO_LEVEL_INTERVAL * 10)
 
       expect(mockSipClient.getConferenceAudioLevels).not.toHaveBeenCalled()
+    })
+
+    it('should handle missing getConferenceAudioLevels method gracefully', async () => {
+      // Remove the method to simulate older SIP client
+      delete mockSipClient.getConferenceAudioLevels
+
+      const { createConference, participants } = useConference(ref(mockSipClient))
+
+      await createConference()
+
+      // Should not throw when advancing time
+      await expect(
+        vi.advanceTimersByTimeAsync(CONFERENCE_CONSTANTS.AUDIO_LEVEL_INTERVAL)
+      ).resolves.not.toThrow()
+
+      // Participants should exist without audio levels
+      expect(participants.value).toHaveLength(1)
+    })
+
+    it('should handle null audio levels gracefully', async () => {
+      mockSipClient.getConferenceAudioLevels.mockReturnValue(null)
+
+      const { createConference, addParticipant, participants } = useConference(sipClientRef)
+
+      await createConference()
+      await addParticipant('sip:alice@example.com')
+
+      await vi.advanceTimersByTimeAsync(CONFERENCE_CONSTANTS.AUDIO_LEVEL_INTERVAL)
+
+      // Participants should not have audio levels
+      const alice = participants.value.find((p) => p.uri === 'sip:alice@example.com')
+      expect(alice?.audioLevel).toBeUndefined()
     })
   })
 
