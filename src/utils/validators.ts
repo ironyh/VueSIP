@@ -7,13 +7,14 @@
  * @module utils/validators
  */
 
-import type { SipClientConfig, MediaConfiguration } from '../types/config.types'
+import type { SipClientConfig, MediaConfiguration, ValidationResult } from '../types/config.types'
 import { SIP_URI_REGEX, E164_PHONE_REGEX, WEBSOCKET_URL_REGEX } from './constants'
 
 /**
- * Result of a validation operation
+ * Result of a simple validation operation (for helper validators)
+ * @internal
  */
-export interface ValidationResult {
+export interface SimpleValidationResult {
   /** Whether the input is valid */
   valid: boolean
   /** Error message if validation failed */
@@ -39,7 +40,7 @@ export interface ValidationResult {
  * }
  * ```
  */
-export function validateSipUri(uri: string): ValidationResult {
+export function validateSipUri(uri: string): SimpleValidationResult {
   if (!uri || typeof uri !== 'string') {
     return {
       valid: false,
@@ -128,7 +129,7 @@ export function validateSipUri(uri: string): ValidationResult {
  * }
  * ```
  */
-export function validatePhoneNumber(number: string): ValidationResult {
+export function validatePhoneNumber(number: string): SimpleValidationResult {
   if (!number || typeof number !== 'string') {
     return {
       valid: false,
@@ -175,122 +176,117 @@ export function validatePhoneNumber(number: string): ValidationResult {
  * @example
  * ```typescript
  * const config: SipClientConfig = {
- *   uri: 'sip:alice@example.com',
- *   password: 'secret',
- *   websocketServer: 'wss://sip.example.com:7443'
+ *   uri: 'wss://sip.example.com:7443',
+ *   sipUri: 'sip:alice@example.com',
+ *   password: 'secret'
  * }
  * const result = validateSipConfig(config)
  * ```
  */
 export function validateSipConfig(config: Partial<SipClientConfig>): ValidationResult {
+  const errors: string[] = []
+  const warnings: string[] = []
+
   if (!config || typeof config !== 'object') {
     return {
       valid: false,
-      error: 'Configuration must be an object',
-      normalized: null,
+      errors: ['Configuration must be an object'],
     }
   }
 
   // Check required fields
   if (!config.uri) {
-    return {
-      valid: false,
-      error: 'SIP URI is required',
-      normalized: null,
-    }
-  }
-
-  if (!config.password) {
-    return {
-      valid: false,
-      error: 'Password is required',
-      normalized: null,
-    }
-  }
-
-  if (!config.websocketServer) {
-    return {
-      valid: false,
-      error: 'WebSocket server URL is required',
-      normalized: null,
-    }
-  }
-
-  // Validate URI format
-  const uriResult = validateSipUri(config.uri)
-  if (!uriResult.valid) {
-    return {
-      valid: false,
-      error: `Invalid SIP URI: ${uriResult.error}`,
-      normalized: null,
-    }
-  }
-
-  // Validate WebSocket URL
-  const wsUrlResult = validateWebSocketUrl(config.websocketServer)
-  if (!wsUrlResult.valid) {
-    return {
-      valid: false,
-      error: `Invalid WebSocket URL: ${wsUrlResult.error}`,
-      normalized: null,
-    }
-  }
-
-  // Warn about insecure WebSocket in production (but don't fail validation)
-  if (config.websocketServer.startsWith('ws://') && process.env.NODE_ENV === 'production') {
-    console.warn(
-      'Warning: Using insecure WebSocket (ws://) in production. Use wss:// for secure connections.'
-    )
-  }
-
-  // Validate optional registerExpires
-  if (config.registerExpires !== undefined) {
-    if (typeof config.registerExpires !== 'number' || config.registerExpires < 60) {
-      return {
-        valid: false,
-        error: 'registerExpires must be a number >= 60 seconds',
-        normalized: null,
+    errors.push('WebSocket server URI (uri) is required')
+  } else {
+    // Validate WebSocket URL format
+    const wsUrlResult = validateWebSocketUrl(config.uri)
+    if (!wsUrlResult.valid) {
+      errors.push(`Invalid WebSocket URL: ${wsUrlResult.error}`)
+    } else {
+      // Warn about insecure WebSocket in production
+      if (config.uri.startsWith('ws://') && process.env.NODE_ENV === 'production') {
+        warnings.push(
+          'Using insecure WebSocket (ws://) in production. Use wss:// for secure connections.'
+        )
       }
     }
   }
 
-  // Validate optional sessionTimers
-  if (config.sessionTimers !== undefined) {
-    if (typeof config.sessionTimers !== 'boolean') {
-      return {
-        valid: false,
-        error: 'sessionTimers must be a boolean',
-        normalized: null,
+  if (!config.sipUri) {
+    errors.push('SIP user URI (sipUri) is required')
+  } else {
+    // Validate SIP URI format
+    const sipUriResult = validateSipUri(config.sipUri)
+    if (!sipUriResult.valid) {
+      errors.push(`Invalid SIP URI: ${sipUriResult.error}`)
+    }
+  }
+
+  if (!config.password && !config.ha1) {
+    errors.push('Either password or ha1 is required for authentication')
+  }
+
+  // Validate nested registration options
+  if (config.registrationOptions) {
+    if (config.registrationOptions.expires !== undefined) {
+      if (
+        typeof config.registrationOptions.expires !== 'number' ||
+        config.registrationOptions.expires < 60
+      ) {
+        errors.push('registrationOptions.expires must be a number >= 60 seconds')
+      }
+    }
+
+    if (config.registrationOptions.autoRegister !== undefined) {
+      if (typeof config.registrationOptions.autoRegister !== 'boolean') {
+        errors.push('registrationOptions.autoRegister must be a boolean')
       }
     }
   }
 
-  // Validate optional noAnswerTimeout
-  if (config.noAnswerTimeout !== undefined) {
-    if (typeof config.noAnswerTimeout !== 'number' || config.noAnswerTimeout < 10) {
-      return {
-        valid: false,
-        error: 'noAnswerTimeout must be a number >= 10 seconds',
-        normalized: null,
+  // Validate nested session options
+  if (config.sessionOptions) {
+    if (config.sessionOptions.sessionTimers !== undefined) {
+      if (typeof config.sessionOptions.sessionTimers !== 'boolean') {
+        errors.push('sessionOptions.sessionTimers must be a boolean')
+      }
+    }
+
+    if (config.sessionOptions.callTimeout !== undefined) {
+      if (
+        typeof config.sessionOptions.callTimeout !== 'number' ||
+        config.sessionOptions.callTimeout < 10000
+      ) {
+        errors.push('sessionOptions.callTimeout must be a number >= 10000 milliseconds')
+      }
+    }
+
+    if (config.sessionOptions.maxConcurrentCalls !== undefined) {
+      if (
+        typeof config.sessionOptions.maxConcurrentCalls !== 'number' ||
+        config.sessionOptions.maxConcurrentCalls < 1
+      ) {
+        errors.push('sessionOptions.maxConcurrentCalls must be a number >= 1')
       }
     }
   }
 
-  // Validate optional iceTransportPolicy
-  if (config.iceTransportPolicy !== undefined) {
-    if (config.iceTransportPolicy !== 'all' && config.iceTransportPolicy !== 'relay') {
-      return {
-        valid: false,
-        error: 'iceTransportPolicy must be "all" or "relay"',
-        normalized: null,
+  // Validate nested RTC configuration
+  if (config.rtcConfiguration) {
+    if (config.rtcConfiguration.iceTransportPolicy !== undefined) {
+      if (
+        config.rtcConfiguration.iceTransportPolicy !== 'all' &&
+        config.rtcConfiguration.iceTransportPolicy !== 'relay'
+      ) {
+        errors.push('rtcConfiguration.iceTransportPolicy must be "all" or "relay"')
       }
     }
   }
 
   return {
-    valid: true,
-    error: null,
-    normalized: null,
+    valid: errors.length === 0,
+    errors: errors.length > 0 ? errors : undefined,
+    warnings: warnings.length > 0 ? warnings : undefined,
   }
 }
 
@@ -305,150 +301,74 @@ export function validateSipConfig(config: Partial<SipClientConfig>): ValidationR
  * @example
  * ```typescript
  * const config: MediaConfiguration = {
- *   audio: { enabled: true, echoCancellation: true },
- *   video: { enabled: false }
+ *   audio: true,
+ *   video: false,
+ *   echoCancellation: true,
+ *   noiseSuppression: true
  * }
  * const result = validateMediaConfig(config)
  * ```
  */
 export function validateMediaConfig(config: Partial<MediaConfiguration>): ValidationResult {
+  const errors: string[] = []
+
   if (!config || typeof config !== 'object') {
     return {
       valid: false,
-      error: 'Media configuration must be an object',
-      normalized: null,
+      errors: ['Media configuration must be an object'],
     }
   }
 
-  // Validate audio configuration if present
-  if (config.audio) {
-    if (typeof config.audio !== 'object') {
-      return {
-        valid: false,
-        error: 'Audio configuration must be an object',
-        normalized: null,
-      }
-    }
-
-    if (config.audio.enabled !== undefined && typeof config.audio.enabled !== 'boolean') {
-      return {
-        valid: false,
-        error: 'audio.enabled must be a boolean',
-        normalized: null,
-      }
-    }
-
-    if (
-      config.audio.echoCancellation !== undefined &&
-      typeof config.audio.echoCancellation !== 'boolean'
-    ) {
-      return {
-        valid: false,
-        error: 'audio.echoCancellation must be a boolean',
-        normalized: null,
-      }
-    }
-
-    if (
-      config.audio.noiseSuppression !== undefined &&
-      typeof config.audio.noiseSuppression !== 'boolean'
-    ) {
-      return {
-        valid: false,
-        error: 'audio.noiseSuppression must be a boolean',
-        normalized: null,
-      }
-    }
-
-    if (
-      config.audio.autoGainControl !== undefined &&
-      typeof config.audio.autoGainControl !== 'boolean'
-    ) {
-      return {
-        valid: false,
-        error: 'audio.autoGainControl must be a boolean',
-        normalized: null,
-      }
-    }
-
-    if (config.audio.deviceId !== undefined && config.audio.deviceId !== null) {
-      if (typeof config.audio.deviceId !== 'string') {
-        return {
-          valid: false,
-          error: 'audio.deviceId must be a string',
-          normalized: null,
-        }
-      }
+  // Validate audio - can be boolean or MediaTrackConstraints
+  if (config.audio !== undefined) {
+    if (typeof config.audio !== 'boolean' && typeof config.audio !== 'object') {
+      errors.push('audio must be a boolean or MediaTrackConstraints object')
     }
   }
 
-  // Validate video configuration if present
-  if (config.video) {
-    if (typeof config.video !== 'object') {
-      return {
-        valid: false,
-        error: 'Video configuration must be an object',
-        normalized: null,
-      }
+  // Validate video - can be boolean or MediaTrackConstraints
+  if (config.video !== undefined) {
+    if (typeof config.video !== 'boolean' && typeof config.video !== 'object') {
+      errors.push('video must be a boolean or MediaTrackConstraints object')
     }
+  }
 
-    if (config.video.enabled !== undefined && typeof config.video.enabled !== 'boolean') {
-      return {
-        valid: false,
-        error: 'video.enabled must be a boolean',
-        normalized: null,
-      }
-    }
+  // Validate top-level boolean properties
+  if (config.echoCancellation !== undefined && typeof config.echoCancellation !== 'boolean') {
+    errors.push('echoCancellation must be a boolean')
+  }
 
-    if (config.video.width !== undefined && typeof config.video.width !== 'number') {
-      return {
-        valid: false,
-        error: 'video.width must be a number',
-        normalized: null,
-      }
-    }
+  if (config.noiseSuppression !== undefined && typeof config.noiseSuppression !== 'boolean') {
+    errors.push('noiseSuppression must be a boolean')
+  }
 
-    if (config.video.height !== undefined && typeof config.video.height !== 'number') {
-      return {
-        valid: false,
-        error: 'video.height must be a number',
-        normalized: null,
-      }
-    }
+  if (config.autoGainControl !== undefined && typeof config.autoGainControl !== 'boolean') {
+    errors.push('autoGainControl must be a boolean')
+  }
 
-    if (config.video.frameRate !== undefined && typeof config.video.frameRate !== 'number') {
-      return {
-        valid: false,
-        error: 'video.frameRate must be a number',
-        normalized: null,
-      }
+  // Validate codec properties
+  if (config.audioCodec !== undefined) {
+    const validAudioCodecs = ['opus', 'pcmu', 'pcma', 'g722']
+    if (!validAudioCodecs.includes(config.audioCodec)) {
+      errors.push(`audioCodec must be one of: ${validAudioCodecs.join(', ')}`)
     }
+  }
 
-    if (config.video.facingMode !== undefined) {
-      if (config.video.facingMode !== 'user' && config.video.facingMode !== 'environment') {
-        return {
-          valid: false,
-          error: 'video.facingMode must be "user" or "environment"',
-          normalized: null,
-        }
-      }
+  if (config.videoCodec !== undefined) {
+    const validVideoCodecs = ['vp8', 'vp9', 'h264']
+    if (!validVideoCodecs.includes(config.videoCodec)) {
+      errors.push(`videoCodec must be one of: ${validVideoCodecs.join(', ')}`)
     }
+  }
 
-    if (config.video.deviceId !== undefined && config.video.deviceId !== null) {
-      if (typeof config.video.deviceId !== 'string') {
-        return {
-          valid: false,
-          error: 'video.deviceId must be a string',
-          normalized: null,
-        }
-      }
-    }
+  // Validate dataChannel
+  if (config.dataChannel !== undefined && typeof config.dataChannel !== 'boolean') {
+    errors.push('dataChannel must be a boolean')
   }
 
   return {
-    valid: true,
-    error: null,
-    normalized: null,
+    valid: errors.length === 0,
+    errors: errors.length > 0 ? errors : undefined,
   }
 }
 
@@ -465,7 +385,7 @@ export function validateMediaConfig(config: Partial<MediaConfiguration>): Valida
  * const result = validateWebSocketUrl('wss://sip.example.com:7443')
  * ```
  */
-export function validateWebSocketUrl(url: string): ValidationResult {
+export function validateWebSocketUrl(url: string): SimpleValidationResult {
   if (!url || typeof url !== 'string') {
     return {
       valid: false,
@@ -539,7 +459,7 @@ export function validateWebSocketUrl(url: string): ValidationResult {
  * const result = validateDtmfTone('1')
  * ```
  */
-export function validateDtmfTone(tone: string): ValidationResult {
+export function validateDtmfTone(tone: string): SimpleValidationResult {
   if (!tone || typeof tone !== 'string') {
     return {
       valid: false,
@@ -604,7 +524,7 @@ export function validateDtmfTone(tone: string): ValidationResult {
  * const result = validateDtmfSequence('1234*#')
  * ```
  */
-export function validateDtmfSequence(sequence: string): ValidationResult {
+export function validateDtmfSequence(sequence: string): SimpleValidationResult {
   if (!sequence || typeof sequence !== 'string') {
     return {
       valid: false,

@@ -126,108 +126,128 @@ describe('validators', () => {
   describe('validateSipConfig', () => {
     it('should validate complete config', () => {
       const config = {
-        uri: 'sip:alice@example.com',
+        uri: 'wss://sip.example.com:7443',
+        sipUri: 'sip:alice@example.com',
         password: 'secret123',
-        websocketServer: 'wss://sip.example.com:7443',
       }
       const result = validateSipConfig(config)
       expect(result.valid).toBe(true)
     })
 
-    it('should reject missing URI', () => {
+    it('should reject missing WebSocket URI', () => {
       const config = {
-        password: 'secret123',
-        websocketServer: 'wss://sip.example.com:7443',
-      }
-      const result = validateSipConfig(config)
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('URI is required')
-    })
-
-    it('should reject missing password', () => {
-      const config = {
-        uri: 'sip:alice@example.com',
-        websocketServer: 'wss://sip.example.com:7443',
-      }
-      const result = validateSipConfig(config)
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('Password is required')
-    })
-
-    it('should reject missing WebSocket server', () => {
-      const config = {
-        uri: 'sip:alice@example.com',
+        sipUri: 'sip:alice@example.com',
         password: 'secret123',
       }
       const result = validateSipConfig(config)
       expect(result.valid).toBe(false)
-      expect(result.error).toContain('WebSocket server')
+      expect(result.errors).toBeDefined()
+      expect(result.errors![0]).toContain('WebSocket server URI')
     })
 
-    it('should reject invalid URI', () => {
+    it('should reject missing SIP URI', () => {
       const config = {
-        uri: 'invalid-uri',
+        uri: 'wss://sip.example.com:7443',
         password: 'secret123',
-        websocketServer: 'wss://sip.example.com:7443',
       }
       const result = validateSipConfig(config)
       expect(result.valid).toBe(false)
-      expect(result.error).toContain('Invalid SIP URI')
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.join(' ')).toContain('SIP user URI')
+    })
+
+    it('should reject missing password and ha1', () => {
+      const config = {
+        uri: 'wss://sip.example.com:7443',
+        sipUri: 'sip:alice@example.com',
+      }
+      const result = validateSipConfig(config)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.join(' ')).toContain('password or ha1')
+    })
+
+    it('should reject invalid SIP URI', () => {
+      const config = {
+        uri: 'wss://sip.example.com:7443',
+        sipUri: 'invalid-uri',
+        password: 'secret123',
+      }
+      const result = validateSipConfig(config)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.join(' ')).toContain('Invalid SIP URI')
     })
 
     it('should reject invalid WebSocket URL', () => {
       const config = {
-        uri: 'sip:alice@example.com',
+        uri: 'http://example.com',
+        sipUri: 'sip:alice@example.com',
         password: 'secret123',
-        websocketServer: 'http://example.com',
       }
       const result = validateSipConfig(config)
       expect(result.valid).toBe(false)
-      expect(result.error).toContain('WebSocket URL')
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.join(' ')).toContain('WebSocket URL')
     })
 
-    it('should reject invalid registerExpires', () => {
+    it('should reject invalid registrationOptions.expires', () => {
       const config = {
-        uri: 'sip:alice@example.com',
+        uri: 'wss://sip.example.com:7443',
+        sipUri: 'sip:alice@example.com',
         password: 'secret123',
-        websocketServer: 'wss://sip.example.com:7443',
-        registerExpires: 30,
+        registrationOptions: {
+          expires: 30,
+        },
       }
       const result = validateSipConfig(config)
       expect(result.valid).toBe(false)
-      expect(result.error).toContain('registerExpires')
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.join(' ')).toContain('registrationOptions.expires')
     })
 
-    it('should accept valid registerExpires', () => {
+    it('should accept valid registrationOptions.expires', () => {
       const config = {
-        uri: 'sip:alice@example.com',
+        uri: 'wss://sip.example.com:7443',
+        sipUri: 'sip:alice@example.com',
         password: 'secret123',
-        websocketServer: 'wss://sip.example.com:7443',
-        registerExpires: 600,
+        registrationOptions: {
+          expires: 600,
+        },
       }
       const result = validateSipConfig(config)
       expect(result.valid).toBe(true)
     })
 
-    it('should reject invalid iceTransportPolicy', () => {
+    it('should reject invalid rtcConfiguration.iceTransportPolicy', () => {
       const config = {
-        uri: 'sip:alice@example.com',
+        uri: 'wss://sip.example.com:7443',
+        sipUri: 'sip:alice@example.com',
         password: 'secret123',
-        websocketServer: 'wss://sip.example.com:7443',
-        // @ts-expect-error - Testing invalid value
-        iceTransportPolicy: 'invalid',
+        rtcConfiguration: {
+          // @ts-expect-error - Testing invalid value
+          iceTransportPolicy: 'invalid',
+        },
       }
       const result = validateSipConfig(config)
       expect(result.valid).toBe(false)
-      expect(result.error).toContain('iceTransportPolicy')
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.join(' ')).toContain('iceTransportPolicy')
     })
   })
 
   describe('validateMediaConfig', () => {
-    it('should validate complete audio config', () => {
+    it('should validate audio as boolean', () => {
+      const config = {
+        audio: true,
+      }
+      const result = validateMediaConfig(config)
+      expect(result.valid).toBe(true)
+    })
+
+    it('should validate audio as MediaTrackConstraints', () => {
       const config = {
         audio: {
-          enabled: true,
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
@@ -238,10 +258,17 @@ describe('validators', () => {
       expect(result.valid).toBe(true)
     })
 
-    it('should validate complete video config', () => {
+    it('should validate video as boolean', () => {
+      const config = {
+        video: false,
+      }
+      const result = validateMediaConfig(config)
+      expect(result.valid).toBe(true)
+    })
+
+    it('should validate video as MediaTrackConstraints', () => {
       const config = {
         video: {
-          enabled: true,
           width: 640,
           height: 480,
           frameRate: 30,
@@ -253,42 +280,68 @@ describe('validators', () => {
       expect(result.valid).toBe(true)
     })
 
-    it('should reject invalid audio.enabled type', () => {
+    it('should validate top-level echoCancellation', () => {
       const config = {
-        audio: {
-          // @ts-expect-error - Testing invalid type
-          enabled: 'yes',
-        },
+        audio: true,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
       }
       const result = validateMediaConfig(config)
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('boolean')
+      expect(result.valid).toBe(true)
     })
 
-    it('should reject invalid video.width type', () => {
+    it('should validate audioCodec', () => {
       const config = {
-        video: {
-          enabled: true,
-          // @ts-expect-error - Testing invalid type
-          width: '640',
-        },
+        audio: true,
+        audioCodec: 'opus' as const,
       }
       const result = validateMediaConfig(config)
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('width')
+      expect(result.valid).toBe(true)
     })
 
-    it('should reject invalid video.facingMode', () => {
+    it('should reject invalid audioCodec', () => {
       const config = {
-        video: {
-          enabled: true,
-          // @ts-expect-error - Testing invalid value
-          facingMode: 'front',
-        },
+        audio: true,
+        // @ts-expect-error - Testing invalid value
+        audioCodec: 'invalid',
       }
       const result = validateMediaConfig(config)
       expect(result.valid).toBe(false)
-      expect(result.error).toContain('facingMode')
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.join(' ')).toContain('audioCodec')
+    })
+
+    it('should validate videoCodec', () => {
+      const config = {
+        video: true,
+        videoCodec: 'vp8' as const,
+      }
+      const result = validateMediaConfig(config)
+      expect(result.valid).toBe(true)
+    })
+
+    it('should reject invalid videoCodec', () => {
+      const config = {
+        video: true,
+        // @ts-expect-error - Testing invalid value
+        videoCodec: 'invalid',
+      }
+      const result = validateMediaConfig(config)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.join(' ')).toContain('videoCodec')
+    })
+
+    it('should reject invalid audio type', () => {
+      const config = {
+        // @ts-expect-error - Testing invalid type
+        audio: 'yes',
+      }
+      const result = validateMediaConfig(config)
+      expect(result.valid).toBe(false)
+      expect(result.errors).toBeDefined()
+      expect(result.errors!.join(' ')).toContain('audio must be')
     })
 
     it('should accept empty config', () => {
@@ -300,6 +353,7 @@ describe('validators', () => {
       // @ts-expect-error - Testing invalid type
       const result = validateMediaConfig('invalid')
       expect(result.valid).toBe(false)
+      expect(result.errors).toBeDefined()
     })
   })
 

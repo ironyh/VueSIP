@@ -71,3 +71,6 @@ export * from './history.types'
 
 // Storage types
 export * from './storage.types'
+
+// Provider types
+export * from './provider.types'
