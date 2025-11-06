@@ -196,16 +196,33 @@ export function waitForEvent(
   timeout: number = 5000
 ): Promise<any> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      eventBus.off(eventName, handler)
-      reject(new Error(`Timeout waiting for event: ${eventName}`))
-    }, timeout)
+    let timerId: ReturnType<typeof setTimeout> | null = null
+    let handler: ((data: any) => void) | null = null
 
-    const handler = (data: any) => {
-      clearTimeout(timer)
+    // Define handler first
+    handler = (data: any) => {
+      if (timerId !== null) {
+        clearTimeout(timerId)
+        timerId = null
+      }
+      if (handler !== null) {
+        eventBus.off(eventName, handler)
+        handler = null
+      }
       resolve(data)
     }
 
+    // Set up timeout
+    timerId = setTimeout(() => {
+      timerId = null
+      if (handler !== null) {
+        eventBus.off(eventName, handler)
+        handler = null
+      }
+      reject(new Error(`Timeout waiting for event: ${eventName}`))
+    }, timeout)
+
+    // Register event listener
     eventBus.once(eventName, handler)
   })
 }

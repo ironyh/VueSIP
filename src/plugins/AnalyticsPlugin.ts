@@ -81,12 +81,30 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
   }
 
   /**
-   * Generate a unique session ID
+   * Generate a unique session ID using cryptographically secure random values
+   * @returns A unique session ID
    */
   private generateSessionId(): string {
+    // Use crypto.randomUUID if available (modern browsers)
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return `session-${crypto.randomUUID()}`
+    }
+
+    // Fallback: Use Web Crypto API with getRandomValues
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const array = new Uint32Array(4)
+      crypto.getRandomValues(array)
+      const hex = Array.from(array)
+        .map((num) => num.toString(16).padStart(8, '0'))
+        .join('')
+      return `session-${Date.now()}-${hex}`
+    }
+
+    // Final fallback for non-browser environments (testing)
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 15)
     const random2 = Math.random().toString(36).substring(2, 15)
+    logger.warn('Using non-cryptographic session ID generation - crypto API not available')
     return `session-${timestamp}-${random}${random2}`
   }
 
@@ -97,30 +115,44 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
    * @param config - Plugin configuration
    */
   async install(context: PluginContext, config?: AnalyticsPluginConfig): Promise<void> {
-    this.config = { ...DEFAULT_CONFIG, ...config }
+    try {
+      this.config = { ...DEFAULT_CONFIG, ...config }
 
-    // Validate configuration
-    if (!this.config.endpoint && this.config.enabled) {
-      logger.warn('Analytics plugin enabled but no endpoint configured')
+      // Validate configuration
+      if (!this.config.endpoint && this.config.enabled) {
+        logger.warn('Analytics plugin enabled but no endpoint configured')
+      }
+
+      logger.info('Installing analytics plugin')
+
+      // Register event listeners
+      this.registerEventListeners(context)
+
+      // Start batch timer if batching is enabled
+      if (this.config.batchEvents) {
+        this.startBatchTimer()
+      }
+
+      // Track plugin installation
+      this.trackEvent('plugin:installed', {
+        plugin: this.metadata.name,
+        version: this.metadata.version,
+      })
+
+      logger.info('Analytics plugin installed')
+    } catch (error) {
+      // Cleanup timer if installation fails
+      this.stopBatchTimer()
+
+      // Remove any registered event listeners
+      for (const cleanup of this.cleanupFunctions) {
+        cleanup()
+      }
+      this.cleanupFunctions = []
+
+      logger.error('Failed to install analytics plugin', error)
+      throw error
     }
-
-    logger.info('Installing analytics plugin')
-
-    // Register event listeners
-    this.registerEventListeners(context)
-
-    // Start batch timer if batching is enabled
-    if (this.config.batchEvents) {
-      this.startBatchTimer()
-    }
-
-    // Track plugin installation
-    this.trackEvent('plugin:installed', {
-      plugin: this.metadata.name,
-      version: this.metadata.version,
-    })
-
-    logger.info('Analytics plugin installed')
   }
 
   /**

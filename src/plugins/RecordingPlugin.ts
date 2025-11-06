@@ -369,9 +369,14 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
       throw new Error(`No active recording for call ${callId}`)
     }
 
+    // Only pause if currently recording
     if (recorder.state === 'recording') {
       recorder.pause()
       logger.debug(`Recording paused: ${callId}`)
+    } else if (recorder.state === 'paused') {
+      logger.debug(`Recording already paused for call ${callId}, ignoring`)
+    } else {
+      logger.warn(`Cannot pause recording in state: ${recorder.state} for call ${callId}`)
     }
   }
 
@@ -386,9 +391,14 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
       throw new Error(`No active recording for call ${callId}`)
     }
 
+    // Only resume if currently paused
     if (recorder.state === 'paused') {
       recorder.resume()
       logger.debug(`Recording resumed: ${callId}`)
+    } else if (recorder.state === 'recording') {
+      logger.debug(`Recording already active for call ${callId}, ignoring`)
+    } else {
+      logger.warn(`Cannot resume recording in state: ${recorder.state} for call ${callId}`)
     }
   }
 
@@ -483,6 +493,20 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['recordings'], 'readwrite')
       const store = transaction.objectStore('recordings')
+
+      // Handle transaction abort
+      transaction.onabort = () => {
+        const error = transaction.error
+        logger.error('Transaction aborted', error)
+        reject(new Error(`Transaction aborted: ${error?.message || 'Unknown reason'}`))
+      }
+
+      // Handle transaction error
+      transaction.onerror = () => {
+        const error = transaction.error
+        logger.error('Transaction error', error)
+        reject(new Error(`Transaction failed: ${error?.message || 'Unknown error'}`))
+      }
 
       const request = store.add(recording)
 
@@ -617,6 +641,11 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
     const recording = this.recordings.get(recordingId)
     if (!recording || !recording.blob) {
       throw new Error(`Recording not found or has no blob: ${recordingId}`)
+    }
+
+    // Check if running in browser environment
+    if (typeof document === 'undefined' || !document.body) {
+      throw new Error('Download is only supported in browser environments with DOM access')
     }
 
     const url = URL.createObjectURL(recording.blob)
