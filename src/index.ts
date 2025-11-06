@@ -1,4 +1,13 @@
-// Export all composables
+/**
+ * VueSip - A headless Vue.js component library for SIP/VoIP applications
+ * @packageDocumentation
+ */
+
+// ============================================================================
+// Composables
+// ============================================================================
+
+// Basic composables
 export { useSipConnection } from './composables/useSipConnection'
 export type { UseSipConnectionReturn } from './composables/useSipConnection'
 
@@ -11,38 +20,44 @@ export type { UseSipDtmfReturn } from './composables/useSipDtmf'
 export { useAudioDevices } from './composables/useAudioDevices'
 export type { UseAudioDevicesReturn } from './composables/useAudioDevices'
 
-// Export types
-export type { 
-  SipConfig, 
-  CallSession, 
-  CallState, 
-  AudioDevice, 
-  SipError 
-} from './types'
-/**
- * VueSip - A headless Vue.js component library for SIP/VoIP applications
- * @packageDocumentation
- */
+// Advanced composables (Phase 6 - Improved)
+export { useSipRegistration } from './composables/useSipRegistration'
+export type { UseSipRegistrationReturn, RegistrationOptions, RegistrationStatistics } from './composables/useSipRegistration'
 
-// Core exports
-// export * from './core'
+export { useCallHistory } from './composables/useCallHistory'
+export type { UseCallHistoryReturn } from './composables/useCallHistory'
 
-// Composables
-// export * from './composables'
+export { useCallControls } from './composables/useCallControls'
+export type { UseCallControlsReturn, ActiveTransfer } from './composables/useCallControls'
 
+export { usePresence } from './composables/usePresence'
+export type { UsePresenceReturn } from './composables/usePresence'
+
+export { useMessaging } from './composables/useMessaging'
+export type { UseMessagingReturn, Conversation } from './composables/useMessaging'
+
+export { useConference } from './composables/useConference'
+export type { UseConferenceReturn } from './composables/useConference'
+
+// Composable utilities
+export type { ExtendedSipClient, ExtendedCallSession } from './composables/types'
+export { hasSipClientMethod, hasCallSessionMethod } from './composables/types'
+
+// ============================================================================
 // Types
-// export * from './types'
+// ============================================================================
 
-// Providers
-// export * from './providers'
-
-// Plugins
-// export * from './plugins'
-
-// Utils
-// export * from './utils'
-
+export type {
+  SipConfig,
+  CallSession,
+  CallState,
+  AudioDevice,
+  SipError
+} from './types'
+// ============================================================================
 // Version
+// ============================================================================
+
 export const version = '1.0.0'
 
 // Library initialization
