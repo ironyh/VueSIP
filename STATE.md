@@ -743,7 +743,7 @@ All implementations include:
 
 ### 6.2 Registration Composable
 
-- [ ] Create src/composables/useSipRegistration.ts
+- [x] Create src/composables/useSipRegistration.ts
   - Expose registration state
   - Track registration expiry
   - Track retry count
@@ -816,7 +816,7 @@ All implementations include:
 
 ### 6.5 Call Controls Composable
 
-- [ ] Create src/composables/useCallControls.ts
+- [x] Create src/composables/useCallControls.ts
   - Expose transfer state
   - Track conference participants
   - Implement blindTransfer()
@@ -827,7 +827,7 @@ All implementations include:
   - Implement forward()
   - Emit transfer and conference events
 
-- [ ] Implement transfer logic
+- [x] Implement transfer logic
   - Handle REFER SIP method
   - Track transfer state machine
   - Handle transfer notifications
@@ -841,7 +841,7 @@ All implementations include:
 
 ### 6.6 Call History Composable
 
-- [ ] Create src/composables/useCallHistory.ts
+- [x] Create src/composables/useCallHistory.ts
   - Expose call history array
   - Expose filtered history
   - Track total and missed call counts
@@ -853,7 +853,7 @@ All implementations include:
   - Auto-add entries on call end
   - Persist to IndexedDB
 
-- [ ] Implement filtering and search
+- [x] Implement filtering and search
   - Support direction filter
   - Support status filter
   - Support date range filter
@@ -890,7 +890,7 @@ All implementations include:
 
 ### 6.8 Presence Composable
 
-- [ ] Create src/composables/usePresence.ts
+- [x] Create src/composables/usePresence.ts
   - Track current presence status
   - Track subscriptions
   - Track watched users map
@@ -909,7 +909,7 @@ All implementations include:
 
 ### 6.9 Messaging Composable
 
-- [ ] Create src/composables/useMessaging.ts
+- [x] Create src/composables/useMessaging.ts
   - Store messages array
   - Track unread count
   - Track composing indicators
@@ -929,7 +929,7 @@ All implementations include:
 
 ### 6.10 Conference Composable
 
-- [ ] Create src/composables/useConference.ts
+- [x] Create src/composables/useConference.ts
   - Track conference state
   - Track participants array
   - Track local participant
