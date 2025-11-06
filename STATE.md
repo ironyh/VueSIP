@@ -932,12 +932,20 @@ All implementations include:
   - Configure duration and inter-tone gap
   - Emit DTMF events
 
-- [~] Test useDTMF (tests needed)
-  - Test single tone sending
-  - Test tone sequence
-  - Test queue management
-  - Test both transport types
-  - Test timing configuration
+- [x] Test useDTMF - Comprehensive test suite completed (2025-11-06)
+  - ✅ 51 tests total (all passing)
+  - ✅ Queue size limiting (single tones and sequences)
+  - ✅ LRU eviction order
+  - ✅ Valid/invalid tone validation (0-9, \*, #, A-D)
+  - ✅ sendTone() method (success, error handling, state updates)
+  - ✅ sendToneSequence() method (sequences, callbacks, cancellation)
+  - ✅ Callbacks (onToneSent, onComplete, onError)
+  - ✅ stopSending() method (queue clearing, cancellation)
+  - ✅ resetStats() method (counter and state reset)
+  - ✅ Computed properties (queueSize, isQueueEmpty)
+  - ✅ processQueue() method (empty queue, error handling)
+  - ✅ State tracking (isSending, lastSentTone, lastResult, tonesSentCount)
+  - ✅ Edge cases (null session, empty sequences, rapid calls)
 
 ### 6.8 Presence Composable
 
@@ -1052,11 +1060,11 @@ Phase 6 (Core Composables) has been substantially completed with the following i
 ✅ **Fully Tested (Comprehensive):**
 
 - useSipClient - 48 tests (all passing)
-- useCallSession - 71 tests (all passing) - Just completed!
+- useCallSession - 71 tests (all passing)
+- useDTMF - 51 tests (all passing) ⭐ _Just completed!_
 
 ⚠️ **Partially Tested (Need More Tests):**
 
-- useDTMF - 15 tests (needs comprehensive coverage)
 - useMediaDevices - 2 tests (needs comprehensive coverage)
 
 ❌ **No Tests (Need Test Files):**
@@ -1070,7 +1078,7 @@ Phase 6 (Core Composables) has been substantially completed with the following i
 
 **Priority Recommendations:**
 
-1. Add tests for useDTMF (already has 15 tests, expand to comprehensive)
+1. ~~Add tests for useDTMF (already has 15 tests, expand to comprehensive)~~ ✅ **DONE!**
 2. Add tests for useMediaDevices (only has 2 tests, needs much more)
 3. Create test file for useSipRegistration (critical composable)
 4. Create test files for remaining composables
