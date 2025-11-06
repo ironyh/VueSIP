@@ -161,6 +161,9 @@ export function useMediaDevices(
   const isEnumerating = ref(false)
   const lastError = ref<Error | null>(null)
 
+  // Critical fix: Sync flag to prevent infinite loops in bidirectional sync
+  const isUpdatingFromStore = ref(false)
+
   // Sync store state with local refs for reactivity
   const selectedAudioInputId = ref<string | null>(deviceStore.selectedAudioInputId)
   const selectedAudioOutputId = ref<string | null>(deviceStore.selectedAudioOutputId)
@@ -205,10 +208,11 @@ export function useMediaDevices(
   const totalDevices = computed(() => allDevices.value.length)
 
   // ============================================================================
-  // Store Synchronization
+  // Store Synchronization (Critical Fix: Prevent race conditions)
   // ============================================================================
 
   // Watch store changes and sync local state
+  // Critical fix: Use flag to prevent infinite loops
   watch(
     () => ({
       audioInputId: deviceStore.selectedAudioInputId,
@@ -216,30 +220,50 @@ export function useMediaDevices(
       videoInputId: deviceStore.selectedVideoInputId,
     }),
     (newState) => {
-      selectedAudioInputId.value = newState.audioInputId
-      selectedAudioOutputId.value = newState.audioOutputId
-      selectedVideoInputId.value = newState.videoInputId
+      if (!isUpdatingFromStore.value) {
+        isUpdatingFromStore.value = true
+        selectedAudioInputId.value = newState.audioInputId
+        selectedAudioOutputId.value = newState.audioOutputId
+        selectedVideoInputId.value = newState.videoInputId
+        // Reset flag in next tick to allow updates
+        Promise.resolve().then(() => {
+          isUpdatingFromStore.value = false
+        })
+      }
     }
   )
 
   // Watch local selections and update store
-  watch(selectedAudioInputId, (newId) => {
-    if (newId) {
-      deviceStore.setSelectedAudioInput(newId)
-    }
-  })
+  // Critical fix: Allow null values and prevent loops
+  watch(
+    selectedAudioInputId,
+    (newId) => {
+      if (!isUpdatingFromStore.value) {
+        deviceStore.setSelectedAudioInput(newId)
+      }
+    },
+    { flush: 'sync' }
+  )
 
-  watch(selectedAudioOutputId, (newId) => {
-    if (newId) {
-      deviceStore.setSelectedAudioOutput(newId)
-    }
-  })
+  watch(
+    selectedAudioOutputId,
+    (newId) => {
+      if (!isUpdatingFromStore.value) {
+        deviceStore.setSelectedAudioOutput(newId)
+      }
+    },
+    { flush: 'sync' }
+  )
 
-  watch(selectedVideoInputId, (newId) => {
-    if (newId) {
-      deviceStore.setSelectedVideoInput(newId)
-    }
-  })
+  watch(
+    selectedVideoInputId,
+    (newId) => {
+      if (!isUpdatingFromStore.value) {
+        deviceStore.setSelectedVideoInput(newId)
+      }
+    },
+    { flush: 'sync' }
+  )
 
   // ============================================================================
   // Device Enumeration

@@ -264,6 +264,9 @@ export function useCallSession(
       throw new Error(error)
     }
 
+    let mediaAcquired = false
+    let localStreamBeforeCall: MediaStream | null = null
+
     try {
       log.info(`Making call to ${target}`)
 
@@ -275,6 +278,9 @@ export function useCallSession(
         const { audio = true, video = false } = options
         log.debug(`Acquiring local media (audio: ${audio}, video: ${video})`)
         await mediaManager.value.getUserMedia({ audio, video })
+        mediaAcquired = true
+        // Store reference to local stream for cleanup if call fails
+        localStreamBeforeCall = mediaManager.value.getLocalStream() || null
       }
 
       // Initiate call via SIP client
@@ -301,6 +307,15 @@ export function useCallSession(
 
       log.info(`Call initiated: ${newSession.id}`)
     } catch (error) {
+      // Critical fix: Cleanup media if acquired but call failed
+      if (mediaAcquired && localStreamBeforeCall) {
+        log.debug('Cleaning up acquired media after call failure')
+        localStreamBeforeCall.getTracks().forEach((track) => {
+          track.stop()
+          log.debug(`Stopped track: ${track.kind}`)
+        })
+      }
+
       log.error('Failed to make call:', error)
       throw error
     }
@@ -319,6 +334,9 @@ export function useCallSession(
       throw new Error(error)
     }
 
+    let mediaAcquired = false
+    let localStreamBeforeAnswer: MediaStream | null = null
+
     try {
       log.info(`Answering call: ${session.value.id}`)
 
@@ -327,6 +345,9 @@ export function useCallSession(
         const { audio = true, video = false } = options
         log.debug(`Acquiring local media (audio: ${audio}, video: ${video})`)
         await mediaManager.value.getUserMedia({ audio, video })
+        mediaAcquired = true
+        // Store reference to local stream for cleanup if answer fails
+        localStreamBeforeAnswer = mediaManager.value.getLocalStream() || null
       }
 
       // Answer via session
@@ -337,6 +358,15 @@ export function useCallSession(
 
       log.info('Call answered')
     } catch (error) {
+      // Critical fix: Cleanup media if acquired but answer failed
+      if (mediaAcquired && localStreamBeforeAnswer) {
+        log.debug('Cleaning up acquired media after answer failure')
+        localStreamBeforeAnswer.getTracks().forEach((track) => {
+          track.stop()
+          log.debug(`Stopped track: ${track.kind}`)
+        })
+      }
+
       log.error('Failed to answer call:', error)
       throw error
     }
