@@ -119,9 +119,8 @@ describe('useSipClient', () => {
 
     // Create test configuration
     testConfig = {
-      uri: 'sip:testuser@example.com', // SIP URI
-      websocketServer: 'wss://sip.example.com:7443', // WebSocket server
-      sipUri: 'sip:testuser@example.com', // Keep for backward compatibility
+      uri: 'wss://sip.example.com:7443', // WebSocket server URL
+      sipUri: 'sip:testuser@example.com', // SIP user URI
       password: 'testpassword',
       displayName: 'Test User',
       authorizationUsername: 'testuser',
