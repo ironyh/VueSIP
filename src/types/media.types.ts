@@ -29,6 +29,11 @@ export interface MediaDevice {
 }
 
 /**
+ * Audio device (alias for MediaDevice for backward compatibility)
+ */
+export type AudioDevice = MediaDevice
+
+/**
  * Permission status for media devices
  */
 export enum PermissionStatus {

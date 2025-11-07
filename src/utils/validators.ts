@@ -17,10 +17,28 @@ import { SIP_URI_REGEX, E164_PHONE_REGEX, WEBSOCKET_URL_REGEX } from './constant
 export interface SimpleValidationResult {
   /** Whether the input is valid */
   valid: boolean
+  /** Alias for valid (backward compatibility) */
+  isValid?: boolean
   /** Error message if validation failed */
   error: string | null
+  /** Errors array (backward compatibility - same as error but in array form) */
+  errors?: string[]
   /** Normalized/cleaned version of the input if valid */
   normalized: string | null
+}
+
+/**
+ * Helper to create a validation result with backward compatibility properties
+ * @internal
+ */
+function createValidationResult(valid: boolean, error: string | null, normalized: string | null): SimpleValidationResult {
+  return {
+    valid,
+    isValid: valid, // backward compatibility
+    error,
+    errors: error ? [error] : [], // backward compatibility
+    normalized,
+  }
 }
 
 /**
