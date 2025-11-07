@@ -1289,4 +1289,20 @@ export class MediaManager {
     this.devices = []
     this.remoteStream = undefined
   }
+
+  /**
+   * Set available devices (Phase 11+)
+   * @param devices - Devices to set
+   */
+  setDevices(_devices: MediaDeviceInfo[]): void {
+    throw new Error('setDevices not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Test a specific device (Phase 11+)
+   * @param deviceId - Device ID to test
+   */
+  async testDevice(_deviceId: string): Promise<{ success: boolean; audioLevel?: number }> {
+    throw new Error('testDevice not yet implemented (Phase 11+)')
+  }
 }
