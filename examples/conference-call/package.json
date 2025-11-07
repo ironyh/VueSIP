@@ -1,0 +1,22 @@
+{
+  "name": "vuesip-conference-call-example",
+  "version": "1.0.0",
+  "description": "VueSip Conference Call Example - Multi-party conference calling demonstration",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vuesip": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "typescript": "~5.4.0",
+    "vite": "^5.0.0",
+    "vue-tsc": "^2.0.0"
+  }
+}

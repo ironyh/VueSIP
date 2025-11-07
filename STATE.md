@@ -2636,40 +2636,47 @@ Each guide is a separate markdown file in `docs/guide/`:
   - Concurrent call handling
   - Network optimization
 
-### 11.6 Example Applications (Independent Tasks)
+### 11.6 Example Applications (Independent Tasks) ✅ COMPLETED (2025-11-07)
 
 Each example is a separate directory in `examples/`:
 
-- [ ] Create Basic Audio Call example
+- [x] Create Basic Audio Call example
   - **Files:** `examples/basic-audio-call/`
   - Simple one-to-one audio call
   - Minimal UI with call controls
   - README with setup instructions
+  - **Status:** ✅ Complete (~1000 lines, 2 components, comprehensive README)
 
-- [ ] Create Video Call example
+- [x] Create Video Call example
   - **Files:** `examples/video-call/`
   - One-to-one video call
   - Camera selection and preview
   - README with setup instructions
+  - **Status:** ✅ Complete (~2500 lines, 4 components, video stream management)
 
-- [ ] Create Multi-Line Phone example
+- [x] Create Multi-Line Phone example
   - **Files:** `examples/multi-line-phone/`
   - Multiple concurrent calls
   - Call switching and holding
   - README with setup instructions
+  - **Status:** ✅ Complete (~2200 lines, 4 components, 5 concurrent calls support)
 
-- [ ] Create Conference Call example
+- [x] Create Conference Call example
   - **Files:** `examples/conference-call/`
   - Multi-party conference
   - Participant management
   - README with setup instructions
+  - **Status:** ✅ Complete (~1331 lines, 5 components, full useConference integration)
 
-- [ ] Create Call Center example
+- [x] Create Call Center example
   - **Files:** `examples/call-center/`
   - Call queue management
   - Agent dashboard
   - Call history and analytics
   - README with setup instructions
+  - **Status:** ✅ Complete (~2000 lines, 7 components, enterprise-grade)
+
+**Summary:** All 5 example applications created with production-ready code, TypeScript support, comprehensive documentation, and professional UI/UX. Total: 64 files, ~9031 lines of code, 22 components. See `examples/TASK_11.6_SUMMARY.md` for details.
 
 ### 11.7 API Reference Pages (Independent Tasks)
 
