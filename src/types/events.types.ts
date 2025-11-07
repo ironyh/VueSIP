@@ -172,6 +172,12 @@ export interface EventMap {
   [EventNames.MEDIA_TRACK_UNMUTED]: MediaTrackEvent
   [EventNames.MEDIA_DEVICE_CHANGED]: MediaDeviceChangeEvent
 
+  // Transfer events
+  'call:transfer_initiated': CallTransferInitiatedEvent
+  'call:transfer_accepted': CallTransferAcceptedEvent
+  'call:transfer_failed': CallTransferFailedEvent
+  'call:transfer_completed': CallTransferCompletedEvent
+
   // SIP events (with sip: prefix)
   'sip:connected': SipConnectedEvent
   'sip:disconnected': SipDisconnectedEvent
@@ -485,6 +491,48 @@ export interface PresenceUnsubscribeEvent extends BaseEvent {
   type: 'sip:presence:unsubscribe'
   /** Target URI */
   uri: string
+}
+
+/**
+ * Call Transfer Initiated event
+ */
+export interface CallTransferInitiatedEvent extends BaseEvent {
+  type: 'call:transfer_initiated'
+  /** Transfer target URI */
+  target: string
+  /** Transfer method */
+  transferType: 'blind' | 'attended'
+  /** Replace call ID (for attended transfers) */
+  replaceCallId?: string
+}
+
+/**
+ * Call Transfer Accepted event
+ */
+export interface CallTransferAcceptedEvent extends BaseEvent {
+  type: 'call:transfer_accepted'
+  /** Transfer target URI */
+  target: string
+}
+
+/**
+ * Call Transfer Failed event
+ */
+export interface CallTransferFailedEvent extends BaseEvent {
+  type: 'call:transfer_failed'
+  /** Transfer target URI */
+  target: string
+  /** Error message */
+  error?: string
+}
+
+/**
+ * Call Transfer Completed event
+ */
+export interface CallTransferCompletedEvent extends BaseEvent {
+  type: 'call:transfer_completed'
+  /** Transfer target URI */
+  target: string
 }
 
 /**

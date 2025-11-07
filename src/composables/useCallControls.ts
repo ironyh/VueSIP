@@ -18,7 +18,7 @@ import {
 } from '../types/transfer.types'
 import { createLogger } from '../utils/logger'
 import { TRANSFER_CONSTANTS } from './constants'
-import { type ExtendedCallSession, hasCallSessionMethod } from './types'
+import { type ExtendedCallSession } from './types'
 
 const log = createLogger('useCallControls')
 
@@ -234,15 +234,8 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
         throw new Error(`Call ${callId} not found`)
       }
 
-      // Check if transfer method exists
-      if (!hasCallSessionMethod(call, 'transfer')) {
-        throw new Error(
-          'CallSession.transfer() is not implemented. ' +
-            'Blind transfer requires CallSession API updates.'
-        )
-      }
-
-      await call.transfer!(targetUri, extraHeaders)
+      // Perform blind transfer
+      await call.transfer(targetUri, extraHeaders)
 
       updateTransferState(TransferState.Completed)
       log.info(`Blind transfer completed successfully`)
@@ -369,10 +362,7 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
       }
 
       // Perform attended transfer (REFER with Replaces header)
-      if (!hasCallSessionMethod(call, 'attendedTransfer')) {
-        throw new Error('CallSession.attendedTransfer() is not implemented')
-      }
-      await call.attendedTransfer!(activeTransfer.value.target, consultationCall.value.id)
+      await call.attendedTransfer(activeTransfer.value.target, consultationCall.value.id)
 
       updateTransferState(TransferState.Completed)
       log.info('Attended transfer completed successfully')
