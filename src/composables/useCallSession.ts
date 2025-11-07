@@ -336,10 +336,8 @@ export function useCallSession(
       }
 
       // Initiate call via SIP client
-      // Note: SipClient.call() should return the CallSession instance
-      // Using type assertion as call() method is not in SipClient interface yet
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const newSession = await (sipClient.value as any).call(target, {
+      // call() method now properly returns CallSession instance
+      const newSession = await sipClient.value.call(target, {
         mediaConstraints: {
           audio: options.audio ?? true,
           video: options.video ?? false,

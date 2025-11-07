@@ -4,6 +4,10 @@
 // @ts-expect-error - sip.js not installed yet, will support both libraries
 import { Session } from 'sip.js'
 import type { Ref } from 'vue'
+import type {
+  SessionDescriptionHandler,
+  RTCRtpSenderWithDTMF,
+} from '@/types/media.types'
 
 export interface UseSipDtmfReturn {
   sendDtmf: (digit: string) => Promise<void>
@@ -23,14 +27,14 @@ export function useSipDtmf(currentSession: Ref<Session | null>): UseSipDtmfRetur
 
     try {
       // Send DTMF via RTP if available
-      const sdh = currentSession.value.sessionDescriptionHandler as any
+      const sdh = currentSession.value.sessionDescriptionHandler as SessionDescriptionHandler
       const pc = sdh?.peerConnection
       if (pc) {
         const senders = pc.getSenders()
         const audioSender = senders.find((sender: RTCRtpSender) => sender.track?.kind === 'audio')
 
         if (audioSender && 'dtmf' in audioSender) {
-          const dtmfSender = (audioSender as any).dtmf
+          const dtmfSender = (audioSender as RTCRtpSenderWithDTMF).dtmf
           if (dtmfSender) {
             dtmfSender.insertDTMF(digit, 160, 70)
           }

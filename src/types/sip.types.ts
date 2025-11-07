@@ -238,3 +238,19 @@ export interface SipMessageOptions {
     failed?: (response: any) => void
   }
 }
+
+/**
+ * Registration options
+ */
+export interface RegisterOptions {
+  /** Registration expiry time in seconds */
+  expires?: number
+  /** Extra SIP headers to include in REGISTER request */
+  extraHeaders?: string[]
+  /** Extra contact URI parameters */
+  extraContactUriParams?: string[]
+  /** Instance ID for multiple registrations */
+  instanceId?: string
+  /** Registration refresh interval */
+  refreshInterval?: number
+}

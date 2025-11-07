@@ -55,3 +55,54 @@ export function hasCallSessionMethod<K extends keyof ExtendedCallSession>(
 ): session is ExtendedCallSession & Required<Pick<ExtendedCallSession, K>> {
   return session && typeof session[method] === 'function'
 }
+
+/**
+ * Extended SipClient interface with all methods
+ * This extends the base SipClient to include all available methods
+ */
+export interface ExtendedSipClient {
+  /**
+   * Start the SIP client and connect to server
+   */
+  start(): Promise<void>
+
+  /**
+   * Stop the SIP client
+   */
+  stop(): Promise<void>
+
+  /**
+   * Register with the SIP server
+   */
+  register(): Promise<void>
+
+  /**
+   * Unregister from the SIP server
+   */
+  unregister(): Promise<void>
+
+  /**
+   * Make an outgoing call and return CallSession instance
+   */
+  call(target: string, options?: any): Promise<CallSession>
+
+  /**
+   * Make an outgoing call and return call ID (backward compatible)
+   */
+  makeCall(target: string, options?: any): Promise<string>
+
+  /**
+   * Get an active call by ID
+   */
+  getActiveCall(callId: string): CallSession | undefined
+
+  /**
+   * Check if client is connected
+   */
+  readonly isConnected: boolean
+
+  /**
+   * Check if client is registered
+   */
+  readonly isRegistered: boolean
+}

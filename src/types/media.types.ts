@@ -288,3 +288,41 @@ export interface ExtendedMediaStreamConstraints extends MediaStreamConstraints {
   /** Auto gain control */
   autoGainControl?: boolean
 }
+
+/**
+ * DTMF Sender interface
+ * Represents the DTMF sender for sending dual-tone multi-frequency signaling
+ */
+export interface DTMFSender {
+  /**
+   * Insert DTMF tones into the audio stream
+   * @param tones - String of DTMF tones to send (0-9, A-D, *, #)
+   * @param duration - Duration of each tone in milliseconds (default: 100)
+   * @param interToneGap - Gap between tones in milliseconds (default: 70)
+   */
+  insertDTMF(tones: string, duration?: number, interToneGap?: number): void
+
+  /** Tone buffer containing queued DTMF tones */
+  readonly toneBuffer: string
+
+  /** Event handler called when a tone starts playing */
+  ontonechange?: ((event: RTCDTMFToneChangeEvent) => void) | null
+}
+
+/**
+ * RTCRtpSender with DTMF support
+ * Extends RTCRtpSender with the dtmf property for DTMF signaling
+ */
+export interface RTCRtpSenderWithDTMF extends RTCRtpSender {
+  /** DTMF sender for this RTP sender */
+  readonly dtmf: DTMFSender | null
+}
+
+/**
+ * Session Description Handler interface
+ * Represents the internal session description handler from JsSIP
+ */
+export interface SessionDescriptionHandler {
+  /** The peer connection used by this session */
+  peerConnection?: RTCPeerConnection
+}
