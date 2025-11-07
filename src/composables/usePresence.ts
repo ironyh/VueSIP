@@ -163,7 +163,7 @@ export function usePresence(sipClient: Ref<SipClient | null>): UsePresenceReturn
    */
   const setStatus = async (
     state: PresenceState,
-    options: PresencePublishOptions = {}
+    options: Omit<PresencePublishOptions, 'state'> = {}
   ): Promise<void> => {
     if (!sipClient.value) {
       throw new Error('SIP client not initialized')

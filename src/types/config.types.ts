@@ -8,7 +8,7 @@
  */
 export interface TurnServerConfig {
   /** TURN server URLs (e.g., 'turn:turn.example.com:3478') */
-  urls: string | string[]
+  urls: string | readonly string[]
   /** Username for TURN server authentication */
   username?: string
   /** Credential for TURN server authentication */
@@ -73,9 +73,9 @@ export interface UserPreferences {
  */
 export interface ExtendedRTCConfiguration extends RTCConfiguration {
   /** STUN server URLs */
-  stunServers?: string[]
+  stunServers?: readonly string[]
   /** TURN server configurations */
-  turnServers?: TurnServerConfig[]
+  turnServers?: readonly TurnServerConfig[]
   /** ICE transport policy */
   iceTransportPolicy?: RTCIceTransportPolicy
   /** Bundle policy */

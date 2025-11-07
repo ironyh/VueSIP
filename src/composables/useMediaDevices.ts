@@ -100,7 +100,7 @@ export interface UseMediaDevicesReturn {
   /** Get device by ID */
   getDeviceById: (deviceId: string) => MediaDevice | undefined
   /** Get devices by kind */
-  getDevicesByKind: (kind: MediaDeviceKind) => MediaDevice[]
+  getDevicesByKind: (kind: MediaDeviceKind) => readonly MediaDevice[]
   /** Start device change monitoring */
   startDeviceChangeMonitoring: () => void
   /** Stop device change monitoring */
@@ -658,7 +658,7 @@ export function useMediaDevices(
    * @param kind - Device kind
    * @returns Array of devices
    */
-  const getDevicesByKind = (kind: MediaDeviceKind): MediaDevice[] => {
+  const getDevicesByKind = (kind: MediaDeviceKind): readonly MediaDevice[] => {
     switch (kind) {
       case MediaDeviceKind.AudioInput:
         return audioInputDevices.value

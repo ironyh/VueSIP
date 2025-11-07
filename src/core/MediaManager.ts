@@ -1160,7 +1160,7 @@ export class MediaManager {
     // Add STUN servers
     if (config?.stunServers && config.stunServers.length > 0) {
       iceServers.push({
-        urls: config.stunServers,
+        urls: [...config.stunServers],
       })
     } else {
       // Default STUN servers
@@ -1173,7 +1173,7 @@ export class MediaManager {
     if (config?.turnServers && config.turnServers.length > 0) {
       config.turnServers.forEach((turn) => {
         const server: RTCIceServer = {
-          urls: turn.urls,
+          urls: typeof turn.urls === 'string' ? turn.urls : [...turn.urls],
           username: turn.username,
           credential: turn.credential,
         }
