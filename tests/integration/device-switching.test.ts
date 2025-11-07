@@ -15,59 +15,76 @@ import { CallSession } from '../../src/core/CallSession'
 import { EventBus } from '../../src/core/EventBus'
 import { createMockSipServer, type MockRTCSession } from '../helpers/MockSipServer'
 
+/**
+ * Helper function to create mock media devices
+ */
+function createMockDevice(
+  deviceId: string,
+  kind: MediaDeviceKind,
+  label: string,
+  groupId: string
+): MediaDeviceInfo {
+  return {
+    deviceId,
+    kind,
+    label,
+    groupId,
+    toJSON: () => ({}),
+  } as MediaDeviceInfo
+}
+
+/**
+ * Helper function to setup mock navigator.mediaDevices
+ */
+function setupMockMediaDevices(devices: MediaDeviceInfo[]): void {
+  global.navigator.mediaDevices = {
+    getUserMedia: vi.fn().mockResolvedValue({
+      id: 'mock-stream',
+      active: true,
+      getTracks: vi.fn().mockReturnValue([
+        {
+          kind: 'audio',
+          id: 'audio-track-1',
+          enabled: true,
+          stop: vi.fn(),
+          getSettings: vi.fn().mockReturnValue({ deviceId: 'audioinput1' }),
+        },
+      ]),
+      getAudioTracks: vi.fn().mockReturnValue([
+        {
+          kind: 'audio',
+          id: 'audio-track-1',
+          enabled: true,
+          stop: vi.fn(),
+          getSettings: vi.fn().mockReturnValue({ deviceId: 'audioinput1' }),
+        },
+      ]),
+      getVideoTracks: vi.fn().mockReturnValue([]),
+    }),
+    enumerateDevices: vi.fn().mockResolvedValue(devices),
+    getSupportedConstraints: vi.fn().mockReturnValue({
+      deviceId: true,
+      echoCancellation: true,
+      noiseSuppression: true,
+    }),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  } as never
+}
+
 describe('Device Switching Integration Tests', () => {
   let eventBus: EventBus
   let mediaManager: MediaManager
   let mockSipServer: ReturnType<typeof createMockSipServer>
 
   // Mock media devices
-  const mockAudioInputDevice1 = {
-    deviceId: 'audioinput1',
-    kind: 'audioinput' as MediaDeviceKind,
-    label: 'Microphone 1',
-    groupId: 'group1',
-    toJSON: () => ({}),
-  }
-
-  const mockAudioInputDevice2 = {
-    deviceId: 'audioinput2',
-    kind: 'audioinput' as MediaDeviceKind,
-    label: 'Microphone 2',
-    groupId: 'group2',
-    toJSON: () => ({}),
-  }
-
-  const mockAudioOutputDevice1 = {
-    deviceId: 'audiooutput1',
-    kind: 'audiooutput' as MediaDeviceKind,
-    label: 'Speaker 1',
-    groupId: 'group1',
-    toJSON: () => ({}),
-  }
-
-  const mockAudioOutputDevice2 = {
-    deviceId: 'audiooutput2',
-    kind: 'audiooutput' as MediaDeviceKind,
-    label: 'Speaker 2',
-    groupId: 'group2',
-    toJSON: () => ({}),
-  }
-
-  const mockVideoDevice1 = {
-    deviceId: 'videoinput1',
-    kind: 'videoinput' as MediaDeviceKind,
-    label: 'Camera 1',
-    groupId: 'group1',
-    toJSON: () => ({}),
-  }
-
-  const mockVideoDevice2 = {
-    deviceId: 'videoinput2',
-    kind: 'videoinput' as MediaDeviceKind,
-    label: 'Camera 2',
-    groupId: 'group2',
-    toJSON: () => ({}),
-  }
+  const mockAudioInputDevice1 = createMockDevice('audioinput1', 'audioinput', 'Microphone 1', 'group1')
+  const mockAudioInputDevice2 = createMockDevice('audioinput2', 'audioinput', 'Microphone 2', 'group2')
+  const mockAudioOutputDevice1 = createMockDevice('audiooutput1', 'audiooutput', 'Speaker 1', 'group1')
+  const mockAudioOutputDevice2 = createMockDevice('audiooutput2', 'audiooutput', 'Speaker 2', 'group2')
+  const mockVideoDevice1 = createMockDevice('videoinput1', 'videoinput', 'Camera 1', 'group1')
+  const mockVideoDevice2 = createMockDevice('videoinput2', 'videoinput', 'Camera 2', 'group2')
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -77,47 +94,14 @@ describe('Device Switching Integration Tests', () => {
     mockSipServer = createMockSipServer({ autoAcceptCalls: true })
 
     // Setup navigator.mediaDevices with multiple devices
-    global.navigator.mediaDevices = {
-      getUserMedia: vi.fn().mockResolvedValue({
-        id: 'mock-stream',
-        active: true,
-        getTracks: vi.fn().mockReturnValue([
-          {
-            kind: 'audio',
-            id: 'audio-track-1',
-            enabled: true,
-            stop: vi.fn(),
-            getSettings: vi.fn().mockReturnValue({ deviceId: 'audioinput1' }),
-          },
-        ]),
-        getAudioTracks: vi.fn().mockReturnValue([
-          {
-            kind: 'audio',
-            id: 'audio-track-1',
-            enabled: true,
-            stop: vi.fn(),
-            getSettings: vi.fn().mockReturnValue({ deviceId: 'audioinput1' }),
-          },
-        ]),
-        getVideoTracks: vi.fn().mockReturnValue([]),
-      }),
-      enumerateDevices: vi.fn().mockResolvedValue([
-        mockAudioInputDevice1,
-        mockAudioInputDevice2,
-        mockAudioOutputDevice1,
-        mockAudioOutputDevice2,
-        mockVideoDevice1,
-        mockVideoDevice2,
-      ]),
-      getSupportedConstraints: vi.fn().mockReturnValue({
-        deviceId: true,
-        echoCancellation: true,
-        noiseSuppression: true,
-      }),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    } as any
+    setupMockMediaDevices([
+      mockAudioInputDevice1,
+      mockAudioInputDevice2,
+      mockAudioOutputDevice1,
+      mockAudioOutputDevice2,
+      mockVideoDevice1,
+      mockVideoDevice2,
+    ])
   })
 
   afterEach(() => {
@@ -155,6 +139,9 @@ describe('Device Switching Integration Tests', () => {
       // Note: callSession is created for demonstration but not actively used in this test
       expect(callSession).toBeDefined()
 
+      // Get tracks from stream1 before switching
+      const stream1Tracks = stream1.getTracks()
+
       // Switch to device 2
       const stream2 = await mediaManager.getUserMedia({
         audio: { deviceId: { exact: 'audioinput2' } },
@@ -164,9 +151,14 @@ describe('Device Switching Integration Tests', () => {
       expect(stream2).toBeDefined()
       expect(stream2.id).not.toBe(stream1.id)
 
-      // Old stream should be stopped
-      const oldTracks = stream1.getTracks()
-      // Note: In real scenario, old tracks would be stopped
+      // Verify old stream tracks were stopped
+      stream1Tracks.forEach((track) => {
+        expect(track.stop).toHaveBeenCalled()
+      })
+
+      // Verify new stream has active tracks
+      const stream2Tracks = stream2.getTracks()
+      expect(stream2Tracks.length).toBeGreaterThan(0)
     })
 
     it('should handle audio input device failure during call', async () => {

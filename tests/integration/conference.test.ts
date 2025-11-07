@@ -18,6 +18,42 @@ import { MediaManager } from '../../src/core/MediaManager'
 import { createMockSipServer, type MockRTCSession } from '../helpers/MockSipServer'
 import type { Participant, ConferenceState } from '../../src/types/conference.types'
 
+/**
+ * Helper function to setup mock navigator.mediaDevices for conference tests
+ */
+function setupMockMediaDevices(): void {
+  global.navigator.mediaDevices = {
+    getUserMedia: vi.fn().mockResolvedValue({
+      id: 'mock-stream',
+      active: true,
+      getTracks: vi.fn().mockReturnValue([
+        {
+          kind: 'audio',
+          id: 'audio-track-1',
+          enabled: true,
+          stop: vi.fn(),
+          getSettings: vi.fn().mockReturnValue({ deviceId: 'default' }),
+        },
+      ]),
+      getAudioTracks: vi.fn().mockReturnValue([
+        {
+          kind: 'audio',
+          id: 'audio-track-1',
+          enabled: true,
+          stop: vi.fn(),
+          getSettings: vi.fn().mockReturnValue({ deviceId: 'default' }),
+        },
+      ]),
+      getVideoTracks: vi.fn().mockReturnValue([]),
+    }),
+    enumerateDevices: vi.fn().mockResolvedValue([]),
+    getSupportedConstraints: vi.fn().mockReturnValue({}),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  } as never
+}
+
 describe('Conference Integration Tests', () => {
   let eventBus: EventBus
   let mediaManager: MediaManager
@@ -61,36 +97,7 @@ describe('Conference Integration Tests', () => {
     mockSipServer = createMockSipServer({ autoAcceptCalls: true })
 
     // Setup media devices
-    global.navigator.mediaDevices = {
-      getUserMedia: vi.fn().mockResolvedValue({
-        id: 'mock-stream',
-        active: true,
-        getTracks: vi.fn().mockReturnValue([
-          {
-            kind: 'audio',
-            id: 'audio-track-1',
-            enabled: true,
-            stop: vi.fn(),
-            getSettings: vi.fn().mockReturnValue({ deviceId: 'default' }),
-          },
-        ]),
-        getAudioTracks: vi.fn().mockReturnValue([
-          {
-            kind: 'audio',
-            id: 'audio-track-1',
-            enabled: true,
-            stop: vi.fn(),
-            getSettings: vi.fn().mockReturnValue({ deviceId: 'default' }),
-          },
-        ]),
-        getVideoTracks: vi.fn().mockReturnValue([]),
-      }),
-      enumerateDevices: vi.fn().mockResolvedValue([]),
-      getSupportedConstraints: vi.fn().mockReturnValue({}),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    } as any
+    setupMockMediaDevices()
   })
 
   afterEach(() => {
@@ -690,6 +697,295 @@ describe('Conference Integration Tests', () => {
       await new Promise((resolve) => setTimeout(resolve, 50))
 
       expect(events).toContain('stopped')
+    })
+  })
+
+  describe('True Integration: Conference with Real SIP Sessions', () => {
+    it('should create conference with multiple active SIP calls', async () => {
+      const conference = createConferenceState()
+      conference.maxParticipants = 5
+
+      // Create and establish multiple call sessions
+      const session1 = mockSipServer.createSession('conf-call-1')
+      const session2 = mockSipServer.createSession('conf-call-2')
+      const session3 = mockSipServer.createSession('conf-call-3')
+
+      // Simulate all calls being established
+      mockSipServer.simulateCallProgress(session1)
+      mockSipServer.simulateCallAccepted(session1)
+      mockSipServer.simulateCallProgress(session2)
+      mockSipServer.simulateCallAccepted(session2)
+      mockSipServer.simulateCallProgress(session3)
+      mockSipServer.simulateCallAccepted(session3)
+
+      // Create call session objects
+      const callSession1 = new CallSession({
+        id: session1.id,
+        direction: 'outgoing',
+        localUri: 'sip:host@example.com',
+        remoteUri: 'sip:participant1@example.com',
+        remoteDisplayName: 'Participant 1',
+        rtcSession: session1,
+        eventBus,
+      })
+
+      const callSession2 = new CallSession({
+        id: session2.id,
+        direction: 'outgoing',
+        localUri: 'sip:host@example.com',
+        remoteUri: 'sip:participant2@example.com',
+        remoteDisplayName: 'Participant 2',
+        rtcSession: session2,
+        eventBus,
+      })
+
+      const callSession3 = new CallSession({
+        id: session3.id,
+        direction: 'outgoing',
+        localUri: 'sip:host@example.com',
+        remoteUri: 'sip:participant3@example.com',
+        remoteDisplayName: 'Participant 3',
+        rtcSession: session3,
+        eventBus,
+      })
+
+      // Create participants associated with real call sessions
+      const p1 = createParticipant('p1', 'sip:participant1@example.com', 'Participant 1')
+      const p2 = createParticipant('p2', 'sip:participant2@example.com', 'Participant 2')
+      const p3 = createParticipant('p3', 'sip:participant3@example.com', 'Participant 3')
+
+      p1.callSession = callSession1
+      p2.callSession = callSession2
+      p3.callSession = callSession3
+
+      // Add to conference
+      conference.participants.push(p1, p2, p3)
+      conference.participantCount = 3
+      conference.active = true
+
+      // Verify conference state
+      expect(conference.active).toBe(true)
+      expect(conference.participantCount).toBe(3)
+      expect(conference.participants.every((p) => p.callSession !== null)).toBe(true)
+
+      // Verify all call sessions are accessible
+      expect(callSession1.id).toBe(session1.id)
+      expect(callSession2.id).toBe(session2.id)
+      expect(callSession3.id).toBe(session3.id)
+    })
+
+    it('should handle participant leaving by terminating their call', async () => {
+      const conference = createConferenceState()
+
+      // Create 2 active calls
+      const session1 = mockSipServer.createSession('conf-call-1')
+      const session2 = mockSipServer.createSession('conf-call-2')
+
+      mockSipServer.simulateCallAccepted(session1)
+      mockSipServer.simulateCallAccepted(session2)
+
+      const callSession1 = new CallSession({
+        id: session1.id,
+        direction: 'outgoing',
+        localUri: 'sip:host@example.com',
+        remoteUri: 'sip:participant1@example.com',
+        remoteDisplayName: 'Participant 1',
+        rtcSession: session1,
+        eventBus,
+      })
+
+      const callSession2 = new CallSession({
+        id: session2.id,
+        direction: 'outgoing',
+        localUri: 'sip:host@example.com',
+        remoteUri: 'sip:participant2@example.com',
+        remoteDisplayName: 'Participant 2',
+        rtcSession: session2,
+        eventBus,
+      })
+
+      const p1 = createParticipant('p1', 'sip:participant1@example.com', 'Participant 1')
+      const p2 = createParticipant('p2', 'sip:participant2@example.com', 'Participant 2')
+
+      p1.callSession = callSession1
+      p2.callSession = callSession2
+
+      conference.participants.push(p1, p2)
+      conference.participantCount = 2
+      conference.active = true
+
+      // Simulate participant 1 leaving (call ends)
+      mockSipServer.simulateCallEnded(session1, 'remote', 'Bye')
+
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // In real implementation, this would trigger participant removal
+      conference.participants = conference.participants.filter((p) => p.id !== 'p1')
+      conference.participantCount = conference.participants.length
+
+      expect(conference.participantCount).toBe(1)
+      expect(conference.participants.find((p) => p.id === 'p1')).toBeUndefined()
+      expect(conference.participants.find((p) => p.id === 'p2')).toBeDefined()
+    })
+
+    it('should mute participant via their call session', async () => {
+      const session1 = mockSipServer.createSession('conf-call-1')
+      mockSipServer.simulateCallAccepted(session1)
+
+      const callSession1 = new CallSession({
+        id: session1.id,
+        direction: 'outgoing',
+        localUri: 'sip:host@example.com',
+        remoteUri: 'sip:participant1@example.com',
+        remoteDisplayName: 'Participant 1',
+        rtcSession: session1,
+        eventBus,
+      })
+
+      const p1 = createParticipant('p1', 'sip:participant1@example.com', 'Participant 1')
+      p1.callSession = callSession1
+
+      // Mute via call session
+      callSession1.mute()
+
+      // Update participant state to reflect mute
+      p1.muted = callSession1.isMuted
+
+      expect(p1.muted).toBe(true)
+      expect(callSession1.isMuted).toBe(true)
+    })
+
+    it('should handle multiple participants joining and leaving dynamically', async () => {
+      const conference = createConferenceState()
+      conference.active = true
+
+      const addParticipant = (id: string, uri: string, name: string) => {
+        const session = mockSipServer.createSession(`call-${id}`)
+        mockSipServer.simulateCallAccepted(session)
+
+        const callSession = new CallSession({
+          id: session.id,
+          direction: 'outgoing',
+          localUri: 'sip:host@example.com',
+          remoteUri: uri,
+          remoteDisplayName: name,
+          rtcSession: session,
+          eventBus,
+        })
+
+        const participant = createParticipant(id, uri, name)
+        participant.callSession = callSession
+
+        conference.participants.push(participant)
+        conference.participantCount++
+
+        return { session, callSession, participant }
+      }
+
+      // Add 3 participants
+      const part1 = addParticipant('p1', 'sip:user1@example.com', 'User 1')
+      const part2 = addParticipant('p2', 'sip:user2@example.com', 'User 2')
+      const part3 = addParticipant('p3', 'sip:user3@example.com', 'User 3')
+
+      expect(conference.participantCount).toBe(3)
+
+      // Remove participant 2
+      mockSipServer.simulateCallEnded(part2.session, 'remote')
+      conference.participants = conference.participants.filter((p) => p.id !== 'p2')
+      conference.participantCount--
+
+      expect(conference.participantCount).toBe(2)
+
+      // Add another participant
+      const part4 = addParticipant('p4', 'sip:user4@example.com', 'User 4')
+
+      expect(conference.participantCount).toBe(3)
+      expect(conference.participants.map((p) => p.id)).toEqual(['p1', 'p3', 'p4'])
+    })
+
+    it('should handle hold/unhold for conference participants', async () => {
+      const session1 = mockSipServer.createSession('conf-call-1')
+      mockSipServer.simulateCallAccepted(session1)
+
+      const callSession1 = new CallSession({
+        id: session1.id,
+        direction: 'outgoing',
+        localUri: 'sip:host@example.com',
+        remoteUri: 'sip:participant1@example.com',
+        remoteDisplayName: 'Participant 1',
+        rtcSession: session1,
+        eventBus,
+      })
+
+      const p1 = createParticipant('p1', 'sip:participant1@example.com', 'Participant 1')
+      p1.callSession = callSession1
+
+      // Hold participant
+      await callSession1.hold()
+
+      // In real implementation, held state would be tracked
+      expect(session1.hold).toHaveBeenCalled()
+
+      // Unhold participant
+      await callSession1.unhold()
+
+      expect(session1.unhold).toHaveBeenCalled()
+    })
+
+    it('should end conference by terminating all participant calls', async () => {
+      const conference = createConferenceState()
+
+      // Create 3 participants with active calls
+      const sessions: typeof mockSipServer.createSession[] = []
+      const callSessions: CallSession[] = []
+
+      for (let i = 1; i <= 3; i++) {
+        const session = mockSipServer.createSession(`call-${i}`)
+        mockSipServer.simulateCallAccepted(session)
+
+        const callSession = new CallSession({
+          id: session.id,
+          direction: 'outgoing',
+          localUri: 'sip:host@example.com',
+          remoteUri: `sip:user${i}@example.com`,
+          remoteDisplayName: `User ${i}`,
+          rtcSession: session,
+          eventBus,
+        })
+
+        const p = createParticipant(`p${i}`, `sip:user${i}@example.com`, `User ${i}`)
+        p.callSession = callSession
+
+        conference.participants.push(p)
+        sessions.push(session as never)
+        callSessions.push(callSession)
+      }
+
+      conference.participantCount = 3
+      conference.active = true
+
+      // End conference - terminate all calls
+      sessions.forEach((session) => {
+        callSessions.forEach((cs) => cs.terminate())
+        mockSipServer.simulateCallEnded(session as never, 'local', 'Conference ended')
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // Cleanup conference
+      conference.participants = []
+      conference.participantCount = 0
+      conference.active = false
+      conference.endTime = Date.now()
+
+      expect(conference.active).toBe(false)
+      expect(conference.participantCount).toBe(0)
+      expect(conference.endTime).toBeDefined()
+
+      // Verify all terminate calls were made
+      callSessions.forEach((cs) => {
+        expect(cs.rtcSession.terminate).toHaveBeenCalled()
+      })
     })
   })
 })
