@@ -739,6 +739,29 @@ export class SipClient {
   async unsubscribePresence(_uri: string): Promise<void> {
     throw new Error('Presence functionality not yet implemented (Phase 11+)')
   }
+
+  // ============================================================================
+  // Call Management Methods (Phase 11+)
+  // ============================================================================
+
+  /**
+   * Get an active call session by ID
+   * @param callId - Call ID to retrieve
+   * @returns Call session or undefined if not found
+   */
+  getActiveCall(_callId: string): any {
+    throw new Error('Call management functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Make an outgoing call
+   * @param target - Target SIP URI
+   * @param options - Call options
+   * @returns Promise resolving to call ID
+   */
+  async makeCall(_target: string, _options?: any): Promise<string> {
+    throw new Error('Call management functionality not yet implemented (Phase 11+)')
+  }
 }
 
 /**
