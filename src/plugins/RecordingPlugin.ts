@@ -464,14 +464,13 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    *
    * @example Complete cleanup including IndexedDB
    * ```typescript
-   * const dbName = plugin.config.dbName || 'vuesip-recordings'
-   *
    * // Uninstall plugin
    * await plugin.uninstall(context)
    *
    * // Delete database to remove all persisted recordings
+   * // Note: Use the same database name that was used during plugin initialization
    * await new Promise((resolve, reject) => {
-   *   const request = indexedDB.deleteDatabase(dbName)
+   *   const request = indexedDB.deleteDatabase('vuesip-recordings')
    *   request.onsuccess = resolve
    *   request.onerror = reject
    * })
@@ -638,6 +637,8 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    *   - Database corruption or version conflicts
    *   - User denying storage permissions
    *
+   * @internal
+   *
    * @remarks
    * ## Database Schema
    * The method creates a single object store named 'recordings' with the following structure:
@@ -664,8 +665,6 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * ## Storage Limits
    * IndexedDB storage is subject to browser quotas. The database stores binary Blob data which can
    * consume significant space. See the `maxRecordings` configuration option to control storage usage.
-   *
-   * @internal
    */
   private async initIndexedDB(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -738,7 +737,7 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * Each registered event handler is paired with a cleanup function that:
    * - Unsubscribes the handler from the event bus
    * - Is stored in `this.cleanupFunctions` array
-   * - Gets executed during plugin destruction via `destroy()` method
+   * - Gets executed during plugin destruction via `uninstall()` method
    * - Prevents memory leaks and ensures proper resource cleanup
    *
    * ## Error Handling Strategy
@@ -1185,20 +1184,8 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * if (recording) {
    *   await plugin.stopRecording(callId)
    *
-   *   // Wait for finalization using callback
-   *   await new Promise(resolve => {
-   *     const originalCallback = plugin.config.onRecordingStop
-   *     plugin.updateConfig(context, {
-   *       onRecordingStop: (rec) => {
-   *         originalCallback(rec)
-   *         if (rec.id === recording.id) {
-   *           resolve()
-   *         }
-   *       }
-   *     })
-   *   })
-   *
-   *   // Download the recording
+   *   // Recording is now finalized and ready to download
+   *   // The stopRecording() promise resolves after finalization is complete
    *   plugin.downloadRecording(recording.id)
    * }
    * ```
@@ -1246,6 +1233,12 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * - **'recording'**: Pause is executed successfully
    * - **'paused'**: Logs debug message, no action taken (idempotent)
    * - **'inactive'** or other: Logs warning, no action taken
+   *
+   * **Important**: This method only affects the MediaRecorder state (recording/paused/inactive).
+   * The `RecordingData.state` property does NOT change during pause/resume operations.
+   * `RecordingData.state` only tracks the recording lifecycle: starting → recording → stopped/failed.
+   * To check if a recording is paused, you must access the MediaRecorder instance directly
+   * (which is not exposed by the public API).
    *
    * ## Duration Tracking
    * Important: The recorded duration calculated when stopping includes paused time.
@@ -1391,6 +1384,12 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * - **'paused'**: Resume is executed successfully
    * - **'recording'**: Logs debug message, no action taken (idempotent)
    * - **'inactive'** or other: Logs warning, no action taken
+   *
+   * **Important**: This method only affects the MediaRecorder state (recording/paused/inactive).
+   * The `RecordingData.state` property does NOT change during pause/resume operations.
+   * `RecordingData.state` only tracks the recording lifecycle: starting → recording → stopped/failed.
+   * To check if a recording is paused, you must access the MediaRecorder instance directly
+   * (which is not exposed by the public API).
    *
    * ## Data Continuity
    * After resuming:
@@ -1851,6 +1850,8 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    *
    * @returns void - This method performs memory cleanup as a side effect and does not return a value
    *
+   * @internal
+   *
    * @remarks
    * ## Memory Management Strategy
    * The plugin maintains a dual-storage approach:
@@ -1897,8 +1898,6 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * - Mobile devices with limited RAM
    * - Long-running applications with many sequential recordings
    * - Video recordings which are much larger than audio-only
-   *
-   * @internal
    */
   private clearRecordingBlob(recordingId: string): void {
     const recording = this.recordings.get(recordingId)
@@ -2286,6 +2285,8 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * @throws {Error} For other IndexedDB errors with message:
    *   "Failed to save recording to IndexedDB: {error message}"
    *
+   * @internal
+   *
    * @remarks
    * ## Transaction Management
    * The method uses a readwrite transaction on the 'recordings' object store:
@@ -2350,8 +2351,6 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * - Subject to browser storage eviction policies (LRU, storage pressure)
    * - Can be cleared by user via browser settings
    * - Not synchronized across devices or browser profiles
-   *
-   * @internal
    */
   private async saveRecording(recording: RecordingData): Promise<void> {
     if (!this.db) {
@@ -2436,6 +2435,8 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * @throws {Error} If counting recordings fails with message: "Failed to count recordings"
    * @throws {Error} If deleting recordings fails with message: "Failed to delete old recordings"
    *
+   * @internal
+   *
    * @remarks
    * ## Deletion Algorithm
    * The method uses a two-phase approach to manage storage:
@@ -2508,7 +2509,7 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * - **Blocking**: Non-blocking (async), uses IndexedDB worker thread
    *
    * ## Configuration Dependencies
-   * - `config.maxRecordings`: Maximum number of recordings to retain (default: 100)
+   * - `config.maxRecordings`: Maximum number of recordings to retain (default: 50)
    * - `config.autoDeleteOld`: Controls whether this method is called automatically
    *
    * ## Typical Usage Scenarios
@@ -2520,8 +2521,6 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * - Logs debug message with deletion count on success
    * - Logs debug message when skipping due to concurrent deletion
    * - Errors are logged by callers (this method only throws)
-   *
-   * @internal
    */
   private async deleteOldRecordings(): Promise<void> {
     if (!this.db) {
@@ -2604,6 +2603,8 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    *   returns true for. Returns `null` if no formats in the list are supported (rare - indicates
    *   MediaRecorder API is not functional or severely limited browser)
    *
+   * @internal
+   *
    * @remarks
    * ## Fallback Priority Chain
    * The method tests formats in this order:
@@ -2665,8 +2666,6 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * 2. Position earlier in array for higher priority
    * 3. Consider browser support matrix
    * 4. Test across target browsers
-   *
-   * @internal
    */
   private getSupportedMimeType(preferred?: string): string | null {
     const mimeTypes = [
@@ -2702,6 +2701,8 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    *   - Modern browsers: `'recording-{uuid}'` (e.g., 'recording-550e8400-e29b-41d4-a716-446655440000')
    *   - Older browsers: `'recording-{timestamp}-{hex}'` (e.g., 'recording-1699564800000-a3f5e9c1...')
    *   - Test environments: `'recording-{timestamp}-{base36}'` (e.g., 'recording-1699564800000-k9x4m2p')
+   *
+   * @internal
    *
    * @remarks
    * ## Three-Tier Fallback Strategy
@@ -2803,8 +2804,6 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * - **Memory**: Minimal (single string allocation)
    * - **Synchronous**: All tiers execute synchronously
    * - **Overhead**: Negligible compared to recording operations
-   *
-   * @internal
    */
   private generateRecordingId(): string {
     // Use crypto.randomUUID if available (modern browsers)
@@ -2870,25 +2869,18 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * ## Filename Generation
    * If no filename is provided, the default format is:
    * ```
-   * recording-{callId}-{startTime}.{extension}
+   * recording-{callId}-{startTime}.webm
    * ```
    * Example: `recording-call-123-1699564800000.webm`
    *
-   * Extension is determined from MIME type:
-   * - 'audio/webm' or 'video/webm' → .webm
-   * - 'audio/ogg' → .ogg
-   * - 'audio/mp4' or 'video/mp4' → .mp4
-   * - Unknown → .webm (fallback)
+   * The filename extension is always `.webm` regardless of the actual MIME type of the recording.
+   * If you need a different extension, provide a custom filename parameter.
    *
    * ## Memory Requirements
    * - Recording blob must be in memory (not cleared)
-   * - If blob was cleared after IndexedDB save, retrieve it first:
-   *   ```typescript
-   *   const recording = await getFromIndexedDB(recordingId)
-   *   // Temporarily restore blob to memory
-   *   plugin.recordings.set(recordingId, recording)
-   *   plugin.downloadRecording(recordingId)
-   *   ```
+   * - If blob was cleared after IndexedDB save, you must retrieve the recording from
+   *   IndexedDB and download it manually using standard browser APIs (createObjectURL, etc.)
+   * - Best practice: Call `downloadRecording()` before the blob is cleared from memory
    *
    * ## Security Considerations
    * - Creates temporary object URL that is immediately revoked
@@ -3006,7 +2998,7 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    *     return
    *   }
    *
-   *   // Blob not in memory, retrieve from IndexedDB
+   *   // Blob not in memory, retrieve from IndexedDB and download manually
    *   console.log('Retrieving from IndexedDB...')
    *   const db = await new Promise<IDBDatabase>((resolve, reject) => {
    *     const request = indexedDB.open('vuesip-recordings', 1)
@@ -3021,12 +3013,15 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    *   request.onsuccess = () => {
    *     const storedRecording = request.result
    *     if (storedRecording && storedRecording.blob) {
-   *       // Temporarily restore to memory
-   *       plugin.recordings.set(recordingId, storedRecording)
-   *       // Download
-   *       plugin.downloadRecording(recordingId)
-   *       // Clear from memory again
-   *       plugin.recordings.get(recordingId)!.blob = undefined
+   *       // Download manually using browser APIs
+   *       const url = URL.createObjectURL(storedRecording.blob)
+   *       const a = document.createElement('a')
+   *       a.href = url
+   *       a.download = `recording-${storedRecording.callId}-${storedRecording.startTime}.webm`
+   *       document.body.appendChild(a)
+   *       a.click()
+   *       document.body.removeChild(a)
+   *       URL.revokeObjectURL(url)
    *     } else {
    *       console.error('Recording not found in IndexedDB')
    *     }
