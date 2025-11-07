@@ -6,10 +6,7 @@
 
 import JsSIP, { type UA, type UAConfiguration, type Socket } from 'jssip'
 import type { EventBus } from './EventBus'
-import type {
-  SipClientConfig,
-  ValidationResult,
-} from '@/types/config.types'
+import type { SipClientConfig, ValidationResult } from '@/types/config.types'
 import type {
   RegistrationState,
   ConnectionState,
@@ -346,9 +343,7 @@ export class SipClient {
     const config = this.config
 
     // Build sockets configuration
-    const sockets: Socket[] = [
-      new JsSIP.WebSocketInterface(config.uri) as Socket,
-    ]
+    const sockets: Socket[] = [new JsSIP.WebSocketInterface(config.uri) as Socket]
 
     // Build authentication credentials
     const authConfig: Partial<UAConfiguration> = {}
@@ -416,7 +411,7 @@ export class SipClient {
       })
     })
 
-    this.ua.on('connecting', (e: any) => {
+    this.ua.on('connecting', (_e: any) => {
       logger.debug('UA connecting')
       this.updateConnectionState('connecting')
     })
@@ -592,6 +587,70 @@ export class SipClient {
   private extractUsername(sipUri: string): string {
     const match = sipUri.match(/sips?:([^@]+)@/)
     return match ? match[1] : ''
+  }
+
+  /**
+   * Create a conference (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  async createConference(_options?: any): Promise<any> {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Join a conference (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  async joinConference(_conferenceId: string): Promise<void> {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Invite participant to conference (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  async inviteToConference(_participant: any): Promise<void> {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Remove participant from conference (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  async removeFromConference(_participantId: string): Promise<void> {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Mute conference participant (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  async muteParticipant(_participantId: string): Promise<void> {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Unmute conference participant (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  async unmuteParticipant(_participantId: string): Promise<void> {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * End a conference (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  async endConference(_conferenceId: string): Promise<void> {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Start conference recording (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  async startConferenceRecording(_conferenceId: string): Promise<void> {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
   }
 
   /**
