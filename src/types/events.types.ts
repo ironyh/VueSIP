@@ -287,6 +287,10 @@ export interface SipNewSessionEvent extends BaseEvent {
   session: any
   /** Session originator */
   originator: 'local' | 'remote'
+  /** SIP request object */
+  request?: any
+  /** Call ID */
+  callId: string
 }
 
 /**
@@ -298,6 +302,14 @@ export interface SipNewMessageEvent extends BaseEvent {
   message: any
   /** Message originator */
   originator: 'local' | 'remote'
+  /** SIP request object */
+  request?: any
+  /** Sender URI */
+  from: string
+  /** Message content */
+  content: string
+  /** Content type */
+  contentType?: string
 }
 
 /**
@@ -451,6 +463,8 @@ export interface PresencePublishEvent extends BaseEvent {
   presence: PresencePublishOptions
   /** PIDF XML body */
   body: string
+  /** Extra SIP headers */
+  extraHeaders?: string[]
 }
 
 /**
