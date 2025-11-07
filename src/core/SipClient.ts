@@ -322,10 +322,10 @@ export class SipClient {
       }
 
       // Unregister using JsSIP
-      this.ua.unregister()
+      this.ua!.unregister()
 
       // Listen for unregistration events
-      this.ua.once('unregistered', onSuccess)
+      this.ua!.once('unregistered', onSuccess)
       // Note: JsSIP doesn't emit 'unregistrationFailed', but handle it anyway
       setTimeout(() => {
         if (this.state.registrationState === 'unregistering') {
@@ -398,7 +398,7 @@ export class SipClient {
       this.eventBus.emitSync('sip:connected', {
         timestamp: new Date(),
         transport: e.socket?.url,
-      })
+      } as any)
     })
 
     this.ua.on('disconnected', (e: any) => {
@@ -407,7 +407,7 @@ export class SipClient {
       this.eventBus.emitSync('sip:disconnected', {
         timestamp: new Date(),
         error: e.error,
-      })
+      } as any)
     })
 
     this.ua.on('connecting', (_e: any) => {
@@ -425,7 +425,7 @@ export class SipClient {
         timestamp: new Date(),
         uri: this.config.sipUri,
         expires: e.response?.getHeader('Expires'),
-      })
+      } as any)
     })
 
     this.ua.on('unregistered', (e: any) => {
@@ -435,7 +435,7 @@ export class SipClient {
       this.eventBus.emitSync('sip:unregistered', {
         timestamp: new Date(),
         cause: e.cause,
-      })
+      } as any)
     })
 
     this.ua.on('registrationFailed', (e: any) => {
@@ -445,14 +445,14 @@ export class SipClient {
         timestamp: new Date(),
         cause: e.cause,
         response: e.response,
-      })
+      } as any)
     })
 
     this.ua.on('registrationExpiring', () => {
       logger.debug('Registration expiring, refreshing')
       this.eventBus.emitSync('sip:registration_expiring', {
         timestamp: new Date(),
-      })
+      } as any)
     })
 
     // Call events (will be handled by CallSession)
@@ -463,7 +463,7 @@ export class SipClient {
         session: e.session,
         originator: e.originator,
         request: e.request,
-      })
+      } as any)
     })
 
     // Message events
@@ -474,7 +474,7 @@ export class SipClient {
         message: e.message,
         originator: e.originator,
         request: e.request,
-      })
+      } as any)
     })
 
     // SIP events
@@ -484,7 +484,7 @@ export class SipClient {
         timestamp: new Date(),
         event: e.event,
         request: e.request,
-      })
+      } as any)
     })
   }
 
@@ -585,7 +585,7 @@ export class SipClient {
    */
   private extractUsername(sipUri: string): string {
     const match = sipUri.match(/sips?:([^@]+)@/)
-    return match ? match[1] : ''
+    return match ? match[1]! : ''
   }
 
   /**
