@@ -28,20 +28,6 @@ export interface SimpleValidationResult {
 }
 
 /**
- * Helper to create a validation result with backward compatibility properties
- * @internal
- */
-function createValidationResult(valid: boolean, error: string | null, normalized: string | null): SimpleValidationResult {
-  return {
-    valid,
-    isValid: valid, // backward compatibility
-    error,
-    errors: error ? [error] : [], // backward compatibility
-    normalized,
-  }
-}
-
-/**
  * Validates a SIP URI
  *
  * Checks if the URI follows the format: sip:user@domain or sips:user@domain
@@ -563,6 +549,7 @@ export function validateDtmfSequence(sequence: string): SimpleValidationResult {
 
   for (let i = 0; i < sequence.length; i++) {
     const tone = sequence[i]
+    if (!tone) continue
     const result = validateDtmfTone(tone)
 
     if (!result.valid) {

@@ -12,6 +12,9 @@ import type { MediaManager } from '../core/MediaManager'
 import type { SipClientConfig } from './config.types'
 import type { RecordingState, RecordingOptions, RecordingData } from './media.types'
 
+// Re-export recording types for convenience
+export type { RecordingState, RecordingOptions, RecordingData }
+
 /**
  * Hook priority levels
  *
