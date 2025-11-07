@@ -40,28 +40,53 @@ export interface UseConferenceReturn {
   // Reactive State
   // ============================================================================
 
-  /** Current conference state object containing all conference data */
+  /**
+   * Current conference state object containing all conference data
+   * @remarks Null when no conference exists, populated after creating or joining
+   */
   conference: Ref<ConferenceStateInterface | null>
 
-  /** Current state of the conference (Idle, Creating, Active, etc.) */
+  /**
+   * Current state of the conference (Idle, Creating, Active, Ending, Ended, Failed)
+   * @remarks Returns Idle when no conference exists. Watch this for state transitions.
+   */
   state: ComputedRef<ConferenceState>
 
-  /** Array of all participants in the conference */
+  /**
+   * Array of all participants in the conference
+   * @remarks Empty array when no conference exists. Includes the local participant.
+   * Updates reactively as participants join/leave.
+   */
   participants: ComputedRef<Participant[]>
 
-  /** The local participant (self) in the conference */
+  /**
+   * The local participant (self) in the conference
+   * @remarks Null when no conference exists. Always has isSelf=true and isModerator=true.
+   */
   localParticipant: ComputedRef<Participant | null>
 
-  /** Total number of participants currently in the conference */
+  /**
+   * Total number of participants currently in the conference
+   * @remarks Returns 0 when no conference exists. Includes the local participant in the count.
+   */
   participantCount: ComputedRef<number>
 
-  /** Whether the conference is currently active */
+  /**
+   * Whether the conference is currently active
+   * @remarks True only when state is ConferenceState.Active
+   */
   isActive: ComputedRef<boolean>
 
-  /** Whether the conference is locked (no new participants allowed) */
+  /**
+   * Whether the conference is locked (no new participants allowed)
+   * @remarks Returns false when no conference exists. Locked conferences reject addParticipant calls.
+   */
   isLocked: ComputedRef<boolean>
 
-  /** Whether the conference is currently being recorded */
+  /**
+   * Whether the conference is currently being recorded
+   * @remarks Returns false when no conference exists or recording not started
+   */
   isRecording: ComputedRef<boolean>
 
   // ============================================================================
@@ -179,6 +204,31 @@ export interface UseConferenceReturn {
  * @returns Object containing conference state and control methods
  *
  * @throws {Error} Various errors can be thrown by the returned methods. See individual method documentation.
+ *
+ * ## Lifecycle and Cleanup
+ *
+ * - The composable automatically cleans up on component unmount (via onUnmounted)
+ * - Active conferences are ended automatically during cleanup
+ * - Audio level monitoring is stopped during cleanup
+ * - Event listeners are cleared during cleanup
+ * - You can manually call endConference() before unmount if needed
+ *
+ * ## Best Practices
+ *
+ * - Always check `isActive` before performing conference operations
+ * - Use the `onConferenceEvent` listener to react to participant changes
+ * - Lock conferences when you want to prevent new participants
+ * - Handle errors from all async methods appropriately
+ * - Clean up event listeners when no longer needed (call the unsubscribe function)
+ * - Consider the max participants limit when designing your UI
+ *
+ * ## Common Pitfalls
+ *
+ * - Don't create multiple conferences simultaneously - check `isActive` first
+ * - Don't call `removeParticipant` to leave - use `endConference` instead
+ * - Remember that `participantCount` includes yourself (the local participant)
+ * - Conference state transitions are asynchronous - watch the `state` property
+ * - Muting yourself vs muting others uses different underlying mechanisms
  *
  * @since 1.0.0
  *
@@ -392,15 +442,32 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    * Initializes a new conference session with the local participant as moderator.
    * Automatically starts audio level monitoring and sets up the conference infrastructure.
    *
+   * **Side Effects:**
+   * - Sets `conference.value` to the new conference state
+   * - Changes `state` to Creating, then Active
+   * - Adds local participant to the conference
+   * - Starts audio level monitoring (emits events every 100ms)
+   * - Emits a 'created' conference event
+   * - Calls sipClient.createConference() on the server
+   *
+   * **State Changes:**
+   * - `state`: Idle → Creating → Active
+   * - `isActive`: false → true
+   * - `participantCount`: 0 → 1 (includes self)
+   *
    * @param options - Conference configuration options
    * @param options.maxParticipants - Maximum number of participants allowed (default: 10)
    * @param options.locked - Whether the conference starts locked (default: false)
    * @param options.metadata - Additional metadata for the conference
-   * @returns Promise resolving to the conference ID
+   * @returns Promise resolving to the unique conference ID (use this for reference)
    *
-   * @throws {Error} If SIP client is not initialized
-   * @throws {Error} If a conference is already active
-   * @throws {Error} If conference creation on server fails
+   * @throws {Error} 'SIP client not initialized' - sipClient.value is null
+   * @throws {Error} 'A conference is already active' - Cannot create multiple conferences
+   * @throws {Error} If conference creation on server fails (network, permissions, etc.)
+   *
+   * @see {@link joinConference} - To join an existing conference instead of creating
+   * @see {@link endConference} - To terminate the conference
+   * @see {@link lockConference} - To lock the conference after creation
    *
    * @since 1.0.0
    *
@@ -494,15 +561,33 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    * Join an existing conference
    *
    * Connects to an existing conference using its SIP URI. Automatically
-   * starts audio level monitoring upon successful join.
+   * starts audio level monitoring upon successful join. Unlike createConference,
+   * this joins as a regular participant (not necessarily as moderator).
+   *
+   * **Side Effects:**
+   * - Sets `conference.value` to the new conference state
+   * - Changes `state` to Creating, then Active
+   * - Starts audio level monitoring
+   * - Calls sipClient.joinConference() on the server
+   * - Local participant may not have moderator privileges
+   *
+   * **State Changes:**
+   * - `state`: Idle → Creating → Active
+   * - `isActive`: false → true
+   * - Other participants' data will be populated by server
    *
    * @param conferenceUri - SIP URI of the conference to join (e.g., 'sip:conf123@server.com')
    * @param options - Optional conference configuration
    * @param options.maxParticipants - Maximum participants to expect (default: 10)
    * @returns Promise that resolves when successfully joined
    *
-   * @throws {Error} If SIP client is not initialized
-   * @throws {Error} If joining the conference fails on the server
+   * @throws {Error} 'SIP client not initialized' - sipClient.value is null
+   * @throws {Error} If the conference doesn't exist on the server
+   * @throws {Error} If the conference is locked and you're not invited
+   * @throws {Error} If joining fails due to network or server issues
+   *
+   * @see {@link createConference} - To create a new conference instead of joining
+   * @see {@link endConference} - To leave the conference
    *
    * @since 1.0.0
    *
@@ -567,16 +652,34 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    *
    * Invites a new participant to join the active conference. The participant
    * will be added to the conference and an event will be emitted when they
-   * successfully join.
+   * successfully join. The participant starts in 'Connecting' state and
+   * transitions to 'Connected' when the invitation succeeds.
+   *
+   * **Side Effects:**
+   * - Adds participant to `participants` array
+   * - Increments `participantCount`
+   * - Emits 'participant:joined' event
+   * - Sends SIP INVITE to the participant's URI
+   * - Participant state: Connecting → Connected
+   *
+   * **Timing:**
+   * - Returns immediately after participant is added locally
+   * - Server-side connection may still be in progress
+   * - Listen to events for actual connection status
    *
    * @param uri - SIP URI of the participant to invite (e.g., 'sip:user@domain.com')
    * @param displayName - Optional display name for the participant
-   * @returns Promise resolving to the unique participant ID
+   * @returns Promise resolving to the unique participant ID (save this for later operations)
    *
-   * @throws {Error} If no active conference exists
-   * @throws {Error} If the conference is locked
-   * @throws {Error} If the conference is at maximum capacity
-   * @throws {Error} If the invitation fails
+   * @throws {Error} 'No active conference' - Must create/join conference first
+   * @throws {Error} 'Conference is locked' - Call unlockConference first
+   * @throws {Error} 'Conference is full' - Maximum participants reached
+   * @throws {Error} If the participant URI is invalid
+   * @throws {Error} If the invitation fails (network, permissions, etc.)
+   *
+   * @see {@link removeParticipant} - To remove a participant
+   * @see {@link muteParticipant} - To mute a participant
+   * @see {@link lockConference} - To prevent new participants
    *
    * @since 1.0.0
    *
@@ -658,15 +761,30 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    *
    * Disconnects a participant from the conference. A 'participant:left' event
    * will be emitted. Cannot be used to remove yourself - use endConference() instead.
+   * The participant's call will be terminated gracefully.
+   *
+   * **Side Effects:**
+   * - Removes participant from `participants` array
+   * - Decrements `participantCount`
+   * - Sets participant state to Disconnected
+   * - Emits 'participant:left' event with optional reason
+   * - Sends SIP BYE to disconnect the participant
+   *
+   * **Important:**
+   * - Cannot remove yourself (isSelf=true) - use endConference instead
+   * - The reason parameter is included in the event for logging/UI purposes
    *
    * @param participantId - Unique ID of the participant to remove
    * @param reason - Optional reason for removal (e.g., 'Violating terms', 'Inactive')
    * @returns Promise that resolves when participant is removed
    *
-   * @throws {Error} If no active conference exists
-   * @throws {Error} If participant ID is not found
-   * @throws {Error} If attempting to remove yourself
+   * @throws {Error} 'No active conference' - Must have an active conference
+   * @throws {Error} 'Participant {id} not found' - Invalid participant ID
+   * @throws {Error} 'Cannot remove yourself, use endConference() instead' - Tried to remove self
    * @throws {Error} If removal fails on the server
+   *
+   * @see {@link addParticipant} - To add a participant
+   * @see {@link endConference} - To leave the conference yourself
    *
    * @since 1.0.0
    *
@@ -730,16 +848,28 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
   /**
    * Mute a participant
    *
-   * Mutes the audio of a specific participant in the conference. If the participant
-   * is yourself, uses the SIP client's local mute functionality. Emits a
-   * 'participant:updated' event when successful.
+   * Mutes the audio of a specific participant in the conference. This operation
+   * behaves differently depending on whether you're muting yourself or another participant.
+   *
+   * **Behavior:**
+   * - **Muting yourself (isSelf=true):** Uses local audio track muting (immediate)
+   * - **Muting others:** Sends command to server to mute their audio (requires permissions)
+   * - **Idempotent:** Safe to call if participant is already muted
+   *
+   * **Side Effects:**
+   * - Sets `participant.isMuted = true`
+   * - Emits 'participant:updated' event with changes
+   * - For self: Calls sipClient.muteAudio()
+   * - For others: Calls sipClient.muteParticipant()
    *
    * @param participantId - ID of the participant to mute
    * @returns Promise that resolves when participant is muted
    *
-   * @throws {Error} If no active conference exists
-   * @throws {Error} If participant ID is not found
-   * @throws {Error} If mute operation fails
+   * @throws {Error} 'No active conference' - Must have an active conference
+   * @throws {Error} 'Participant {id} not found' - Invalid participant ID
+   * @throws {Error} If mute operation fails (permissions, network, etc.)
+   *
+   * @see {@link unmuteParticipant} - To unmute a participant
    *
    * @since 1.0.0
    *
@@ -748,7 +878,7 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    * // Mute a specific participant
    * await muteParticipant('part-123-abc')
    *
-   * // Check if already muted (idempotent - won't error if already muted)
+   * // Safe to call even if already muted (idempotent)
    * await muteParticipant(participantId)
    * ```
    */
@@ -795,16 +925,28 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
   /**
    * Unmute a participant
    *
-   * Unmutes the audio of a specific participant in the conference. If the participant
-   * is yourself, uses the SIP client's local unmute functionality. Emits a
-   * 'participant:updated' event when successful.
+   * Unmutes the audio of a specific participant in the conference. This operation
+   * behaves differently depending on whether you're unmuting yourself or another participant.
+   *
+   * **Behavior:**
+   * - **Unmuting yourself (isSelf=true):** Uses local audio track unmuting (immediate)
+   * - **Unmuting others:** Sends command to server to unmute their audio (requires permissions)
+   * - **Idempotent:** Safe to call if participant is not muted
+   *
+   * **Side Effects:**
+   * - Sets `participant.isMuted = false`
+   * - Emits 'participant:updated' event with changes
+   * - For self: Calls sipClient.unmuteAudio()
+   * - For others: Calls sipClient.unmuteParticipant()
    *
    * @param participantId - ID of the participant to unmute
    * @returns Promise that resolves when participant is unmuted
    *
-   * @throws {Error} If no active conference exists
-   * @throws {Error} If participant ID is not found
-   * @throws {Error} If unmute operation fails
+   * @throws {Error} 'No active conference' - Must have an active conference
+   * @throws {Error} 'Participant {id} not found' - Invalid participant ID
+   * @throws {Error} If unmute operation fails (permissions, network, etc.)
+   *
+   * @see {@link muteParticipant} - To mute a participant
    *
    * @since 1.0.0
    *
@@ -872,10 +1014,34 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    * and cleans up resources. The conference state will transition to 'Ending'
    * then 'Ended'. Conference data is cleared after a short delay.
    *
+   * **Side Effects:**
+   * - Sets state to Ending, then Ended
+   * - Stops audio level monitoring
+   * - Disconnects all participants
+   * - Emits 'state:changed' events
+   * - Calls sipClient.endConference()
+   * - Clears `conference.value` after delay (for state transition visibility)
+   * - Sets `endedAt` timestamp
+   *
+   * **State Changes:**
+   * - `state`: Active → Ending → Ended
+   * - `isActive`: true → false
+   * - `conference`: populated → null (after delay)
+   * - `participants`: cleared
+   * - `participantCount`: drops to 0
+   *
+   * **Cleanup Timing:**
+   * - Audio monitoring stops immediately
+   * - Server-side conference ends immediately
+   * - Local state cleared after `CONFERENCE_CONSTANTS.STATE_TRANSITION_DELAY`
+   * - This delay allows UI to show "Ended" state before clearing
+   *
    * @returns Promise that resolves when the conference is ended
    *
-   * @throws {Error} If no active conference exists
+   * @throws {Error} 'No active conference' - Must have an active conference
    * @throws {Error} If ending the conference fails on the server
+   *
+   * @see {@link createConference} - To create a new conference after ending
    *
    * @since 1.0.0
    *
@@ -1009,10 +1175,31 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    * when recording begins. This is idempotent - calling it when already recording
    * has no effect. Recording data handling depends on SIP server implementation.
    *
+   * **Side Effects:**
+   * - Sets `isRecording` to true
+   * - Emits 'recording:started' event
+   * - Calls sipClient.startConferenceRecording()
+   * - Server begins capturing audio/video streams
+   *
+   * **Important Legal/Privacy Considerations:**
+   * - ⚠️ **Always notify participants before recording**
+   * - Check local laws regarding call recording consent
+   * - Some jurisdictions require all-party consent
+   * - Consider displaying a recording indicator in your UI
+   * - Recording files may contain sensitive information
+   *
+   * **Server Configuration:**
+   * - Recording location and format depend on server setup
+   * - Check server capabilities before enabling recording features
+   * - Ensure adequate storage is available on the server
+   *
    * @returns Promise that resolves when recording starts
    *
-   * @throws {Error} If no active conference exists
-   * @throws {Error} If starting recording fails on the server
+   * @throws {Error} 'No active conference' - Must have an active conference
+   * @throws {Error} If starting recording fails (permissions, storage, etc.)
+   * @throws {Error} If server doesn't support recording
+   *
+   * @see {@link stopRecording} - To stop the recording
    *
    * @since 1.0.0
    *
@@ -1022,8 +1209,8 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    * await startRecording()
    * console.log(`Recording: ${isRecording.value}`)
    *
-   * // Record important meetings
-   * if (conference.value?.metadata?.important) {
+   * // Record important meetings with consent
+   * if (allParticipantsConsented) {
    *   await startRecording()
    * }
    * ```
@@ -1064,10 +1251,24 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    * recording ends. This is idempotent - calling it when not recording has
    * no effect. The recording file location depends on SIP server configuration.
    *
-   * @returns Promise that resolves when recording stops
+   * **Side Effects:**
+   * - Sets `isRecording` to false
+   * - Emits 'recording:stopped' event
+   * - Calls sipClient.stopConferenceRecording()
+   * - Server finalizes and saves the recording file
    *
-   * @throws {Error} If no active conference exists
+   * **Post-Recording:**
+   * - Recording file location is determined by server configuration
+   * - File may require processing time before it's available
+   * - Check server logs or API for recording file location
+   * - Consider implementing a callback for recording completion
+   *
+   * @returns Promise that resolves when recording stops (file may still be processing)
+   *
+   * @throws {Error} 'No active conference' - Must have an active conference
    * @throws {Error} If stopping recording fails on the server
+   *
+   * @see {@link startRecording} - To start the recording
    *
    * @since 1.0.0
    *
@@ -1218,6 +1419,24 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    * and recording state changes. Returns an unsubscribe function to remove
    * the listener.
    *
+   * **Event Types:**
+   * - `'created'` - Conference was created
+   * - `'state:changed'` - Conference state changed (Creating, Active, Ending, Ended, Failed)
+   * - `'participant:joined'` - New participant joined the conference
+   * - `'participant:left'` - Participant left the conference
+   * - `'participant:updated'` - Participant properties changed (muted, on hold, etc.)
+   * - `'audio:level'` - Audio levels updated (emitted every 100ms when monitoring)
+   * - `'locked'` - Conference was locked
+   * - `'unlocked'` - Conference was unlocked
+   * - `'recording:started'` - Recording began
+   * - `'recording:stopped'` - Recording stopped
+   *
+   * **Event Handling:**
+   * - Multiple listeners can be registered
+   * - Listeners are called synchronously in registration order
+   * - Errors in one listener don't affect others
+   * - Always call the returned unsubscribe function to prevent memory leaks
+   *
    * @param callback - Function to call when conference events occur
    * @returns Unsubscribe function to remove this event listener
    *
@@ -1230,7 +1449,7 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
    *   console.log('Conference event:', event.type, event)
    * })
    *
-   * // Clean up when done
+   * // Clean up when done (important to prevent memory leaks!)
    * unsubscribe()
    * ```
    *
