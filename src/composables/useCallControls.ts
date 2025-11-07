@@ -18,7 +18,12 @@ import {
 } from '../types/transfer.types'
 import { createLogger } from '../utils/logger'
 import { TRANSFER_CONSTANTS } from './constants'
-import { type ExtendedSipClient, type ExtendedCallSession, hasSipClientMethod, hasCallSessionMethod } from './types'
+import {
+  type ExtendedSipClient,
+  type ExtendedCallSession,
+  hasSipClientMethod,
+  hasCallSessionMethod,
+} from './types'
 
 const log = createLogger('useCallControls')
 
@@ -161,7 +166,11 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
     if (error) {
       activeTransfer.value.error = error
     }
-    if (state === TransferState.Completed || state === TransferState.Failed || state === TransferState.Canceled) {
+    if (
+      state === TransferState.Completed ||
+      state === TransferState.Failed ||
+      state === TransferState.Canceled
+    ) {
       activeTransfer.value.completedAt = new Date()
     }
 
@@ -225,7 +234,7 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
 
       // Perform blind transfer via SIP client
       // Note: This requires CallSession to have a transfer method
-      const extendedClient = sipClient.value as ExtendedSipClient
+      const extendedClient = sipClient.value as unknown as ExtendedSipClient
       if (!hasSipClientMethod(extendedClient, 'getActiveCall')) {
         throw new Error(
           'SipClient.getActiveCall() is not implemented. ' +
@@ -279,10 +288,7 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
    * @returns Consultation call ID
    * @throws Error if SIP client not initialized or transfer fails
    */
-  const initiateAttendedTransfer = async (
-    callId: string,
-    targetUri: string
-  ): Promise<string> => {
+  const initiateAttendedTransfer = async (callId: string, targetUri: string): Promise<string> => {
     if (!sipClient.value) {
       throw new Error('SIP client not initialized')
     }
@@ -298,7 +304,7 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
       const transferId = `transfer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
       // Get original call
-      const extendedClient = sipClient.value as ExtendedSipClient
+      const extendedClient = sipClient.value as unknown as ExtendedSipClient
       if (!hasSipClientMethod(extendedClient, 'getActiveCall')) {
         throw new Error('SipClient.getActiveCall() is not implemented')
       }
@@ -325,7 +331,8 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
       })
 
       // Get consultation call session
-      consultationCall.value = (extendedClient.getActiveCall!(consultationCallId) as ExtendedCallSession) || null
+      consultationCall.value =
+        (extendedClient.getActiveCall!(consultationCallId) as ExtendedCallSession) || null
 
       activeTransfer.value = {
         id: transferId,
@@ -342,7 +349,8 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
       log.info(`Attended transfer initiated, consultation call: ${consultationCallId}`)
       return consultationCallId
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Attended transfer initiation failed'
+      const errorMessage =
+        error instanceof Error ? error.message : 'Attended transfer initiation failed'
       log.error('Attended transfer initiation failed:', errorMessage)
 
       if (activeTransfer.value) {
@@ -377,12 +385,14 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
     try {
       log.info('Completing attended transfer')
 
-      const extendedClient = sipClient.value as ExtendedSipClient
+      const extendedClient = sipClient.value as unknown as ExtendedSipClient
       if (!hasSipClientMethod(extendedClient, 'getActiveCall')) {
         throw new Error('SipClient.getActiveCall() is not implemented')
       }
 
-      const call = extendedClient.getActiveCall!(activeTransfer.value.callId) as ExtendedCallSession | undefined
+      const call = extendedClient.getActiveCall!(activeTransfer.value.callId) as
+        | ExtendedCallSession
+        | undefined
       if (!call) {
         throw new Error(`Call ${activeTransfer.value.callId} not found`)
       }
@@ -391,10 +401,7 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
       if (!hasCallSessionMethod(call, 'attendedTransfer')) {
         throw new Error('CallSession.attendedTransfer() is not implemented')
       }
-      await call.attendedTransfer!(
-        activeTransfer.value.target,
-        consultationCall.value.id
-      )
+      await call.attendedTransfer!(activeTransfer.value.target, consultationCall.value.id)
 
       updateTransferState(TransferState.Completed)
       log.info('Attended transfer completed successfully')
@@ -405,7 +412,8 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
         consultationCall.value = null
       }, TRANSFER_CONSTANTS.COMPLETION_DELAY)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Attended transfer completion failed'
+      const errorMessage =
+        error instanceof Error ? error.message : 'Attended transfer completion failed'
       log.error('Attended transfer completion failed:', errorMessage)
       updateTransferState(TransferState.Failed, errorMessage)
       throw error
@@ -444,9 +452,11 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
         }
 
         // Unhold original call
-        const extendedClient = sipClient.value as ExtendedSipClient
+        const extendedClient = sipClient.value as unknown as ExtendedSipClient
         if (hasSipClientMethod(extendedClient, 'getActiveCall')) {
-          const call = extendedClient.getActiveCall!(activeTransfer.value.callId) as ExtendedCallSession | undefined
+          const call = extendedClient.getActiveCall!(activeTransfer.value.callId) as
+            | ExtendedCallSession
+            | undefined
           if (call && hasCallSessionMethod(call, 'unhold')) {
             log.debug('Unholding original call')
             await call.unhold!()
