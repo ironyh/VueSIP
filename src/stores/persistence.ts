@@ -214,22 +214,17 @@ class StorePersistenceManager {
       adapter: this.localStorage,
       key: STORAGE_KEYS.DEVICE_PERMISSIONS,
       getState: () => ({
-        microphone: deviceStore.microphonePermission,
-        camera: deviceStore.cameraPermission,
-        speaker: deviceStore.speakerPermission,
+        audio: deviceStore.audioPermission,
+        video: deviceStore.videoPermission,
         lastUpdated: Date.now(),
       }),
       setState: (permissions) => {
-        deviceStore.updatePermissions(
-          permissions.microphone,
-          permissions.camera,
-          permissions.speaker
-        )
+        deviceStore.setAudioPermission(permissions.audio)
+        deviceStore.setVideoPermission(permissions.video)
       },
       watchSource: () => ({
-        microphone: deviceStore.microphonePermission,
-        camera: deviceStore.cameraPermission,
-        speaker: deviceStore.speakerPermission,
+        audio: deviceStore.audioPermission,
+        video: deviceStore.videoPermission,
       }),
       autoLoad: this.config.autoLoad,
       debounce: this.config.debounce,
@@ -249,14 +244,14 @@ class StorePersistenceManager {
     const historyPersistence = createPersistence({
       adapter: this.indexedDB,
       key: STORAGE_KEYS.CALL_HISTORY,
-      getState: () => callStore.history,
+      getState: () => callStore.callHistory,
       setState: (history) => {
         // Restore call history
-        history.forEach((entry) => {
+        history.forEach((entry: any) => {
           callStore.addToHistory(entry)
         })
       },
-      watchSource: () => callStore.history,
+      watchSource: () => callStore.callHistory,
       autoLoad: this.config.autoLoad,
       debounce: this.config.debounce,
     })
@@ -285,7 +280,10 @@ class StorePersistenceManager {
         // Registration state is restored but not automatically re-registered
         // The app should handle re-registration on startup
         if (data.registeredUri && data.expiryTime) {
-          registrationStore.markRegistered(data.registeredUri, data.expiryTime, data.retryCount)
+          const expiresSeconds = Math.floor((data.expiryTime.getTime() - Date.now()) / 1000)
+          if (expiresSeconds > 0) {
+            registrationStore.setRegistered(data.registeredUri, expiresSeconds)
+          }
         }
       },
       watchSource: () => ({
@@ -431,15 +429,15 @@ class StorePersistenceManager {
 
     return clearOldDataLRU(
       () =>
-        callStore.history.map((entry) => ({
+        callStore.callHistory.map((entry: any) => ({
           id: entry.id,
           timestamp: entry.startTime,
         })),
       (ids) => {
         ids.forEach((id) => {
-          const entry = callStore.history.find((e) => e.id === id)
+          const entry = callStore.callHistory.find((e: any) => e.id === id)
           if (entry) {
-            callStore.removeFromHistory(entry)
+            callStore.deleteHistoryEntry(id)
           }
         })
       },
