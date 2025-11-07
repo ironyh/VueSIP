@@ -305,7 +305,7 @@ export function useSipRegistration(
       log.info('Starting registration...')
 
       // Get URI - prefer from SipClient if available, fallback to store
-      const extendedClient = sipClient.value as ExtendedSipClient
+      const extendedClient = sipClient.value as unknown as ExtendedSipClient
       const uri = hasSipClientMethod(extendedClient, 'getConfig')
         ? extendedClient.getConfig!().uri
         : registeredUri.value || 'unknown'

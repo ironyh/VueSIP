@@ -703,7 +703,7 @@ export class SipClient {
    * Set incoming message handler
    * @param handler - Message handler function
    */
-  onIncomingMessage(_handler: (message: any) => void): void {
+  onIncomingMessage(_handler: (from: string, content: string, contentType?: string) => void): void {
     throw new Error('Messaging functionality not yet implemented (Phase 11+)')
   }
 
@@ -711,7 +711,7 @@ export class SipClient {
    * Set composing indicator handler
    * @param handler - Composing indicator handler function
    */
-  onComposingIndicator(_handler: (indicator: any) => void): void {
+  onComposingIndicator(_handler: (from: string, isComposing: boolean) => void): void {
     throw new Error('Messaging functionality not yet implemented (Phase 11+)')
   }
 
@@ -726,8 +726,9 @@ export class SipClient {
   /**
    * Subscribe to presence updates
    * @param uri - URI to subscribe to
+   * @param options - Subscription options
    */
-  async subscribePresence(_uri: string): Promise<void> {
+  async subscribePresence(_uri: string, _options?: any): Promise<void> {
     throw new Error('Presence functionality not yet implemented (Phase 11+)')
   }
 
