@@ -75,6 +75,7 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
       }
     } catch (err) {
       error.value = {
+        name: 'ConnectionError',
         code: -1,
         message: 'Failed to connect to SIP server',
         cause: err as Error,
@@ -100,6 +101,7 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
       isRegistered.value = false
     } catch (err) {
       error.value = {
+        name: 'SipError',
         code: -1,
         message: 'Failed to disconnect from SIP server',
         cause: err as Error,
@@ -121,6 +123,7 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
       await registerer.register()
     } catch (err) {
       error.value = {
+        name: 'SipError',
         code: -1,
         message: 'Failed to register with SIP server',
         cause: err as Error,
@@ -139,6 +142,7 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
       isRegistered.value = false
     } catch (err) {
       error.value = {
+        name: 'SipError',
         code: -1,
         message: 'Failed to unregister from SIP server',
         cause: err as Error,

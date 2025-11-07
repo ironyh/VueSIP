@@ -127,6 +127,8 @@ export interface DTMFOptions {
   interToneGap?: number
   /** Transport type */
   transportType?: 'RFC2833' | 'INFO'
+  /** Transport type (alias for transportType) */
+  transport?: 'RFC2833' | 'INFO'
 }
 
 /**

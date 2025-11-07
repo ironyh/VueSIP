@@ -634,6 +634,6 @@ export const deviceStore = {
         label: d.label,
         groupId: d.groupId,
       }))
-    state.lastEnumerationTime = Date.now()
+    state.lastEnumerationTime = new Date()
   },
 }
