@@ -182,30 +182,27 @@ class StorePersistenceManager {
       adapter: this.localStorage,
       key: 'device:selection',
       getState: () => ({
-        audioInput: deviceStore.selectedAudioInput?.deviceId,
-        audioOutput: deviceStore.selectedAudioOutput?.deviceId,
-        videoInput: deviceStore.selectedVideoInput?.deviceId,
+        audioInput: deviceStore.selectedAudioInputId,
+        audioOutput: deviceStore.selectedAudioOutputId,
+        videoInput: deviceStore.selectedVideoInputId,
       }),
       setState: (selection) => {
         // Device restoration happens after enumeration
         // Store the selection for later restoration
         if (selection.audioInput) {
-          const device = deviceStore.findDeviceById(selection.audioInput)
-          if (device) deviceStore.selectAudioInput(device)
+          deviceStore.selectAudioInput(selection.audioInput)
         }
         if (selection.audioOutput) {
-          const device = deviceStore.findDeviceById(selection.audioOutput)
-          if (device) deviceStore.selectAudioOutput(device)
+          deviceStore.selectAudioOutput(selection.audioOutput)
         }
         if (selection.videoInput) {
-          const device = deviceStore.findDeviceById(selection.videoInput)
-          if (device) deviceStore.selectVideoInput(device)
+          deviceStore.selectVideoInput(selection.videoInput)
         }
       },
       watchSource: () => ({
-        audioInput: deviceStore.selectedAudioInput?.deviceId,
-        audioOutput: deviceStore.selectedAudioOutput?.deviceId,
-        videoInput: deviceStore.selectedVideoInput?.deviceId,
+        audioInput: deviceStore.selectedAudioInputId,
+        audioOutput: deviceStore.selectedAudioOutputId,
+        videoInput: deviceStore.selectedVideoInputId,
       }),
       autoLoad: this.config.autoLoad,
       debounce: this.config.debounce,
