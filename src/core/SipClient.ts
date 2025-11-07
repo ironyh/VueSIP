@@ -592,7 +592,7 @@ export class SipClient {
    * Create a conference (Phase 11+ feature - stub implementation)
    * @todo Implement conference functionality in Phase 11
    */
-  async createConference(_options?: any): Promise<any> {
+  async createConference(_conferenceId: string, _options?: any): Promise<any> {
     throw new Error('Conference functionality not yet implemented (Phase 11+)')
   }
 
@@ -600,7 +600,7 @@ export class SipClient {
    * Join a conference (Phase 11+ feature - stub implementation)
    * @todo Implement conference functionality in Phase 11
    */
-  async joinConference(_conferenceId: string): Promise<void> {
+  async joinConference(_conferenceUri: string, _options?: any): Promise<void> {
     throw new Error('Conference functionality not yet implemented (Phase 11+)')
   }
 
@@ -608,7 +608,7 @@ export class SipClient {
    * Invite participant to conference (Phase 11+ feature - stub implementation)
    * @todo Implement conference functionality in Phase 11
    */
-  async inviteToConference(_participant: any): Promise<void> {
+  async inviteToConference(_conferenceId: string, _participantUri: string): Promise<void> {
     throw new Error('Conference functionality not yet implemented (Phase 11+)')
   }
 
@@ -616,7 +616,7 @@ export class SipClient {
    * Remove participant from conference (Phase 11+ feature - stub implementation)
    * @todo Implement conference functionality in Phase 11
    */
-  async removeFromConference(_participantId: string): Promise<void> {
+  async removeFromConference(_conferenceId: string, _participantId: string): Promise<void> {
     throw new Error('Conference functionality not yet implemented (Phase 11+)')
   }
 
@@ -624,7 +624,7 @@ export class SipClient {
    * Mute conference participant (Phase 11+ feature - stub implementation)
    * @todo Implement conference functionality in Phase 11
    */
-  async muteParticipant(_participantId: string): Promise<void> {
+  async muteParticipant(_conferenceId: string, _participantId: string): Promise<void> {
     throw new Error('Conference functionality not yet implemented (Phase 11+)')
   }
 
@@ -632,7 +632,7 @@ export class SipClient {
    * Unmute conference participant (Phase 11+ feature - stub implementation)
    * @todo Implement conference functionality in Phase 11
    */
-  async unmuteParticipant(_participantId: string): Promise<void> {
+  async unmuteParticipant(_conferenceId: string, _participantId: string): Promise<void> {
     throw new Error('Conference functionality not yet implemented (Phase 11+)')
   }
 
@@ -650,6 +650,38 @@ export class SipClient {
    */
   async startConferenceRecording(_conferenceId: string): Promise<void> {
     throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Stop conference recording (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  async stopConferenceRecording(_conferenceId: string): Promise<void> {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Get conference audio levels (Phase 11+ feature - stub implementation)
+   * @todo Implement conference functionality in Phase 11
+   */
+  getConferenceAudioLevels?(_conferenceId: string): Map<string, number> | undefined {
+    throw new Error('Conference functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Mute audio (Phase 11+ feature - stub implementation)
+   * @todo Implement audio control functionality
+   */
+  async muteAudio(): Promise<void> {
+    throw new Error('Audio control functionality not yet implemented (Phase 11+)')
+  }
+
+  /**
+   * Unmute audio (Phase 11+ feature - stub implementation)
+   * @todo Implement audio control functionality
+   */
+  async unmuteAudio(): Promise<void> {
+    throw new Error('Audio control functionality not yet implemented (Phase 11+)')
   }
 
   /**
