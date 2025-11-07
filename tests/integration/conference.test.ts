@@ -11,9 +11,6 @@
  * - Large conferences (10+ participants)
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { EventBus } from '../../src/core/EventBus'
 import { CallSession } from '../../src/core/CallSession'
@@ -37,7 +34,7 @@ describe('Conference Integration Tests', () => {
       videoEnabled: false,
       audioLevel: 0,
       isSpeaking: false,
-      callSession: null as any,
+      callSession: null,
     }
   }
 

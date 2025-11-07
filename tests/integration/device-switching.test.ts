@@ -9,9 +9,6 @@
  * - Device failure recovery
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { MediaManager } from '../../src/core/MediaManager'
 import { CallSession } from '../../src/core/CallSession'
@@ -22,7 +19,6 @@ describe('Device Switching Integration Tests', () => {
   let eventBus: EventBus
   let mediaManager: MediaManager
   let mockSipServer: ReturnType<typeof createMockSipServer>
-  let mockSession: MockRTCSession
 
   // Mock media devices
   const mockAudioInputDevice1 = {
@@ -79,7 +75,6 @@ describe('Device Switching Integration Tests', () => {
     eventBus = new EventBus()
     mediaManager = new MediaManager(eventBus)
     mockSipServer = createMockSipServer({ autoAcceptCalls: true })
-    mockSession = mockSipServer.createSession('test-call')
 
     // Setup navigator.mediaDevices with multiple devices
     global.navigator.mediaDevices = {
@@ -142,6 +137,10 @@ describe('Device Switching Integration Tests', () => {
       expect(stream1).toBeDefined()
       expect(mediaManager.hasActiveStream).toBe(true)
 
+      // Create mock session for call
+      const mockSession = mockSipServer.createSession('test-call')
+      mockSession.isEstablished.mockReturnValue(true)
+
       // Create call session
       const callSession = new CallSession({
         id: mockSession.id,
@@ -149,12 +148,12 @@ describe('Device Switching Integration Tests', () => {
         localUri: 'sip:user@example.com',
         remoteUri: 'sip:remote@example.com',
         remoteDisplayName: 'Remote User',
-        rtcSession: mockSession as any,
+        rtcSession: mockSession,
         eventBus,
       })
 
-      // Simulate established call
-      mockSession.isEstablished.mockReturnValue(true)
+      // Note: callSession is created for demonstration but not actively used in this test
+      expect(callSession).toBeDefined()
 
       // Switch to device 2
       const stream2 = await mediaManager.getUserMedia({

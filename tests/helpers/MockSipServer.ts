@@ -22,14 +22,25 @@ export interface MockSipServerConfig {
   networkLatency?: number
   /** Whether to simulate connection failures */
   simulateConnectionFailure?: boolean
-  /** Connection failure rate (0-1) */
-  connectionFailureRate?: number
   /** Whether to simulate registration failures */
   simulateRegistrationFailure?: boolean
-  /** Registration failure rate (0-1) */
-  registrationFailureRate?: number
   /** Custom response codes for testing */
   customResponseCodes?: Record<string, number>
+}
+
+/**
+ * Event handler function type
+ */
+export type EventHandler<T = unknown> = (data: T) => void
+
+/**
+ * Mock RTC Peer Connection
+ */
+export interface MockRTCPeerConnection {
+  getSenders: Mock<() => unknown[]>
+  getReceivers: Mock<() => unknown[]>
+  addEventListener: Mock<(type: string, listener: EventListener) => void>
+  removeEventListener: Mock<(type: string, listener: EventListener) => void>
 }
 
 /**
@@ -37,39 +48,39 @@ export interface MockSipServerConfig {
  */
 export interface MockRTCSession {
   id: string
-  connection: any
-  isInProgress: Mock
-  isEstablished: Mock
-  isEnded: Mock
-  answer: Mock
-  terminate: Mock
-  hold: Mock
-  unhold: Mock
-  renegotiate: Mock
-  refer: Mock
-  sendDTMF: Mock
-  on: Mock
-  off: Mock
-  _handlers: Record<string, Function[]>
+  connection: MockRTCPeerConnection
+  isInProgress: Mock<() => boolean>
+  isEstablished: Mock<() => boolean>
+  isEnded: Mock<() => boolean>
+  answer: Mock<() => void>
+  terminate: Mock<() => void>
+  hold: Mock<() => Promise<void>>
+  unhold: Mock<() => Promise<void>>
+  renegotiate: Mock<() => Promise<void>>
+  refer: Mock<(target: string) => void>
+  sendDTMF: Mock<(tone: string, options?: unknown) => void>
+  on: Mock<(event: string, handler: EventHandler) => void>
+  off: Mock<(event: string, handler: EventHandler) => void>
+  _handlers: Record<string, EventHandler[]>
 }
 
 /**
  * Mock SIP User Agent
  */
 export interface MockUA {
-  start: Mock
-  stop: Mock
-  register: Mock
-  unregister: Mock
-  call: Mock
-  sendMessage: Mock
-  isConnected: Mock
-  isRegistered: Mock
-  on: Mock
-  once: Mock
-  off: Mock
-  _handlers: Record<string, Function[]>
-  _onceHandlers: Record<string, Function[]>
+  start: Mock<() => void>
+  stop: Mock<() => void>
+  register: Mock<() => void>
+  unregister: Mock<() => void>
+  call: Mock<(target: string, options?: unknown) => MockRTCSession>
+  sendMessage: Mock<(target: string, body: string, options?: unknown) => void>
+  isConnected: Mock<() => boolean>
+  isRegistered: Mock<() => boolean>
+  on: Mock<(event: string, handler: EventHandler) => void>
+  once: Mock<(event: string, handler: EventHandler) => void>
+  off: Mock<(event: string, handler: EventHandler) => void>
+  _handlers: Record<string, EventHandler[]>
+  _onceHandlers: Record<string, EventHandler[]>
 }
 
 /**
@@ -80,6 +91,7 @@ export class MockSipServer {
   private mockUA: MockUA
   private activeSessions: Map<string, MockRTCSession>
   private sessionIdCounter = 0
+  private timeouts: NodeJS.Timeout[] = []
 
   constructor(config: MockSipServerConfig = {}) {
     this.config = {
@@ -88,14 +100,45 @@ export class MockSipServer {
       autoAcceptCalls: config.autoAcceptCalls ?? false,
       networkLatency: config.networkLatency ?? 10,
       simulateConnectionFailure: config.simulateConnectionFailure ?? false,
-      connectionFailureRate: config.connectionFailureRate ?? 0,
       simulateRegistrationFailure: config.simulateRegistrationFailure ?? false,
-      registrationFailureRate: config.registrationFailureRate ?? 0,
       customResponseCodes: config.customResponseCodes ?? {},
     }
 
     this.activeSessions = new Map()
     this.mockUA = this.createMockUA()
+  }
+
+  /**
+   * Create a tracked setTimeout that will be cleaned up on reset/destroy
+   */
+  private createTimeout(callback: () => void, delay: number): NodeJS.Timeout {
+    const timeout = setTimeout(callback, delay)
+    this.timeouts.push(timeout)
+    return timeout
+  }
+
+  /**
+   * Parse and validate a SIP URI
+   * @param uri - The SIP URI to parse (e.g., "sip:user@domain.com")
+   * @returns Parsed URI components
+   * @throws Error if URI format is invalid
+   */
+  private parseUri(uri: string): { user: string; host: string } {
+    if (!uri || typeof uri !== 'string') {
+      throw new Error(`Invalid SIP URI: must be a non-empty string, got ${typeof uri}`)
+    }
+
+    const match = uri.match(/^sip:([^@]+)@(.+)$/)
+    if (!match) {
+      throw new Error(
+        `Invalid SIP URI format: "${uri}". Expected format: "sip:user@domain.com"`
+      )
+    }
+
+    return {
+      user: match[1],
+      host: match[2],
+    }
   }
 
   /**
@@ -152,16 +195,18 @@ export class MockSipServer {
    */
   simulateIncomingCall(from: string, to: string): MockRTCSession {
     const session = this.createSession()
+    const fromUri = this.parseUri(from)
+    const toUri = this.parseUri(to)
 
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = this.mockUA._handlers['newRTCSession'] || []
       handlers.forEach((handler) => {
         handler({
           session,
           originator: 'remote',
           request: {
-            from: { uri: { user: from.split(':')[1]?.split('@')[0], host: from.split('@')[1] } },
-            to: { uri: { user: to.split(':')[1]?.split('@')[0], host: to.split('@')[1] } },
+            from: { uri: fromUri },
+            to: { uri: toUri },
           },
         })
       })
@@ -175,7 +220,7 @@ export class MockSipServer {
    */
   simulateCallProgress(session: MockRTCSession): void {
     session.isInProgress.mockReturnValue(true)
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = session._handlers['progress'] || []
       handlers.forEach((handler) => handler({ originator: 'remote' }))
     }, this.config.networkLatency)
@@ -188,7 +233,7 @@ export class MockSipServer {
     session.isEstablished.mockReturnValue(true)
     session.isInProgress.mockReturnValue(false)
 
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = session._handlers['accepted'] || []
       handlers.forEach((handler) => handler({ originator: 'remote' }))
     }, this.config.networkLatency)
@@ -198,7 +243,7 @@ export class MockSipServer {
    * Simulate call confirmation
    */
   simulateCallConfirmed(session: MockRTCSession): void {
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = session._handlers['confirmed'] || []
       handlers.forEach((handler) => handler())
     }, this.config.networkLatency)
@@ -211,7 +256,7 @@ export class MockSipServer {
     session.isEnded.mockReturnValue(true)
     session.isEstablished.mockReturnValue(false)
 
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = session._handlers['ended'] || []
       handlers.forEach((handler) => handler({ originator, cause }))
       this.activeSessions.delete(session.id)
@@ -222,7 +267,7 @@ export class MockSipServer {
    * Simulate hold event
    */
   simulateHold(session: MockRTCSession, originator: 'local' | 'remote' = 'remote'): void {
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = session._handlers['hold'] || []
       handlers.forEach((handler) => handler({ originator }))
     }, this.config.networkLatency)
@@ -232,7 +277,7 @@ export class MockSipServer {
    * Simulate unhold event
    */
   simulateUnhold(session: MockRTCSession, originator: 'local' | 'remote' = 'remote'): void {
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = session._handlers['unhold'] || []
       handlers.forEach((handler) => handler({ originator }))
     }, this.config.networkLatency)
@@ -244,7 +289,7 @@ export class MockSipServer {
   simulateDisconnect(code = 1006, reason = 'Connection lost'): void {
     this.mockUA.isConnected.mockReturnValue(false)
 
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = this.mockUA._handlers['disconnected'] || []
       handlers.forEach((handler) => handler({ code, reason }))
 
@@ -261,7 +306,7 @@ export class MockSipServer {
   simulateConnect(url = 'wss://sip.example.com'): void {
     this.mockUA.isConnected.mockReturnValue(true)
 
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = this.mockUA._onceHandlers['connected'] || []
       handlers.forEach((handler) => handler({ socket: { url } }))
       this.mockUA._onceHandlers['connected'] = []
@@ -277,7 +322,7 @@ export class MockSipServer {
   simulateRegistered(expires?: number): void {
     this.mockUA.isRegistered.mockReturnValue(true)
 
-    setTimeout(() => {
+    this.createTimeout(() => {
       const expiresValue = expires || this.config.registrationExpires
       const handlers = this.mockUA._onceHandlers['registered'] || []
       handlers.forEach((handler) => handler({
@@ -300,7 +345,7 @@ export class MockSipServer {
    * Simulate registration failure
    */
   simulateRegistrationFailed(cause = 'Authentication failed'): void {
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = this.mockUA._onceHandlers['registrationFailed'] || []
       handlers.forEach((handler) => handler({ cause }))
       this.mockUA._onceHandlers['registrationFailed'] = []
@@ -316,7 +361,7 @@ export class MockSipServer {
   simulateUnregistered(): void {
     this.mockUA.isRegistered.mockReturnValue(false)
 
-    setTimeout(() => {
+    this.createTimeout(() => {
       const handlers = this.mockUA._onceHandlers['unregistered'] || []
       handlers.forEach((handler) => handler())
       this.mockUA._onceHandlers['unregistered'] = []
@@ -345,10 +390,26 @@ export class MockSipServer {
    */
   reset(): void {
     this.clearSessions()
+    this.clearTimeouts()
     this.mockUA.isConnected.mockReturnValue(false)
     this.mockUA.isRegistered.mockReturnValue(false)
     this.mockUA._handlers = {}
     this.mockUA._onceHandlers = {}
+  }
+
+  /**
+   * Clear all pending timeouts
+   */
+  private clearTimeouts(): void {
+    this.timeouts.forEach(clearTimeout)
+    this.timeouts = []
+  }
+
+  /**
+   * Destroy the mock server and clean up all resources
+   */
+  destroy(): void {
+    this.reset()
   }
 
   /**
@@ -363,12 +424,12 @@ export class MockSipServer {
       stop: vi.fn(),
       register: vi.fn(),
       unregister: vi.fn(),
-      call: vi.fn((target: string, options: any) => {
+      call: vi.fn((target: string, options?: unknown) => {
         const session = this.createSession()
 
         if (this.config.autoAcceptCalls) {
           this.simulateCallProgress(session)
-          setTimeout(() => {
+          this.createTimeout(() => {
             this.simulateCallAccepted(session)
             this.simulateCallConfirmed(session)
           }, this.config.networkLatency * 2)
@@ -379,11 +440,11 @@ export class MockSipServer {
       sendMessage: vi.fn(),
       isConnected: vi.fn().mockReturnValue(false),
       isRegistered: vi.fn().mockReturnValue(false),
-      on: vi.fn((event: string, handler: Function) => {
+      on: vi.fn((event: string, handler: EventHandler) => {
         if (!handlers[event]) handlers[event] = []
         handlers[event].push(handler)
       }),
-      once: vi.fn((event: string, handler: Function) => {
+      once: vi.fn((event: string, handler: EventHandler) => {
         if (!onceHandlers[event]) onceHandlers[event] = []
         onceHandlers[event].push(handler)
 
@@ -396,7 +457,7 @@ export class MockSipServer {
           this.simulateRegistered()
         }
       }),
-      off: vi.fn((event: string, handler: Function) => {
+      off: vi.fn((event: string, handler: EventHandler) => {
         if (handlers[event]) {
           handlers[event] = handlers[event].filter((h) => h !== handler)
         }
