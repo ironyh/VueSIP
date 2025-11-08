@@ -2008,7 +2008,7 @@ function isValidLogLevel(level: string): level is LogLevel {
 
 ## Summary
 
-VueSip provides **38+ utility functions** organized into 6 categories:
+VueSip provides **43 utility functions** organized into 6 categories:
 
 | Category | Functions | Purpose |
 |----------|-----------|---------|
@@ -2016,8 +2016,8 @@ VueSip provides **38+ utility functions** organized into 6 categories:
 | **Formatting** | 14 functions | Format durations, URIs, dates, bytes, bitrates for display |
 | **Encryption** | 5 functions | Secure data encryption using Web Crypto API |
 | **Storage** | 8 functions | Manage storage quota and prevent quota errors |
-| **Logging** | 10+ functions | Configurable logging with namespaces and levels |
-| **Constants** | 100+ constants | SIP codes, events, defaults, regex patterns |
+| **Logging** | 9 functions | Configurable logging with namespaces and levels |
+| **Constants** | 148+ constants | SIP codes, events, defaults, regex patterns |
 
 All utilities are:
 - Fully typed with TypeScript

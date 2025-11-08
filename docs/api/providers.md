@@ -932,6 +932,17 @@ enum RegistrationState {
 }
 ```
 
+### DeviceTestOptions
+
+```typescript
+interface DeviceTestOptions {
+  /** Test duration in milliseconds (default: 2000) */
+  duration?: number
+  /** Audio level threshold for success (0-1, default: 0.01) */
+  audioLevelThreshold?: number
+}
+```
+
 ### PermissionStatus
 
 ```typescript

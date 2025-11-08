@@ -459,7 +459,9 @@ const {
   sendTone,
   sendToneSequence,
   isSending,
-  queuedTones
+  queuedTones,
+  queueToneSequence,
+  processQueue
 } = useDTMF(session)
 
 // Send single tone
@@ -915,19 +917,42 @@ All composables use centralized constants for configuration and magic numbers. T
 | `MAX_DURATION` | `6000` | Maximum allowed duration in milliseconds |
 | `MAX_QUEUE_SIZE` | `100` | Maximum DTMF queue size |
 
+#### TIMEOUTS
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `SHORT_DELAY` | `1000` | Short delay for UI updates in milliseconds |
+| `MEDIUM_DELAY` | `2000` | Medium delay for operations in milliseconds |
+| `LONG_DELAY` | `5000` | Long delay for cleanup in milliseconds |
+
+#### RETRY_CONFIG
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `calculateBackoff(attempt, baseDelay, maxDelay)` | function | Calculate exponential backoff delay |
+| `BACKOFF_MULTIPLIER` | `2` | Default exponential backoff multiplier |
+
 ### Usage Example
 
 ```typescript
 import {
   REGISTRATION_CONSTANTS,
   DTMF_CONSTANTS,
-  CONFERENCE_CONSTANTS
+  CONFERENCE_CONSTANTS,
+  TIMEOUTS,
+  RETRY_CONFIG
 } from '@/composables/constants'
 
 // Use in your code
 const expiryTime = REGISTRATION_CONSTANTS.DEFAULT_EXPIRES
 const toneDuration = DTMF_CONSTANTS.DEFAULT_DURATION
 const maxParticipants = CONFERENCE_CONSTANTS.DEFAULT_MAX_PARTICIPANTS
+
+// Timeouts
+const delay = TIMEOUTS.MEDIUM_DELAY
+
+// Retry logic
+const backoffDelay = RETRY_CONFIG.calculateBackoff(2, 1000, 30000)
 ```
 
 ---

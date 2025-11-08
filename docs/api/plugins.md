@@ -95,7 +95,7 @@ Called when the plugin is registered with the PluginManager. This is where you s
 ```typescript
 async install(context: PluginContext, config?: MyPluginConfig): Promise<void> {
   // Register hooks
-  context.hooks.register('callStarted', async (ctx, data) => {
+  context.hooks.register('afterCallStart', async (ctx, data) => {
     console.log('Call started:', data.callId)
   }, { priority: HookPriority.Normal }, this.metadata.name)
 
@@ -453,7 +453,7 @@ export class MyPlugin implements Plugin<MyPluginConfig> {
     this.config = { ...this.defaultConfig, ...config }
 
     // Register hooks
-    context.hooks.register('callStarted', async (ctx, data) => {
+    context.hooks.register('afterCallStart', async (ctx, data) => {
       // Handle call started
     }, {}, this.metadata.name)
 
