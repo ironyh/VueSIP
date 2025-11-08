@@ -68,8 +68,11 @@
         class="primary"
         :disabled="connecting"
         :aria-busy="connecting"
+        aria-label="Connect to SIP server"
       >
-        {{ connecting ? 'Connecting...' : 'Connect' }}
+        <span v-if="!connecting" aria-hidden="true">🔌</span>
+        <span v-else aria-hidden="true">⏳</span>
+        <span>{{ connecting ? 'Connecting...' : 'Connect' }}</span>
       </button>
 
       <p v-if="error" class="error-message" role="alert" aria-live="polite">{{ error }}</p>
@@ -78,22 +81,25 @@
     <!-- Connection Status -->
     <div v-else class="connection-status" role="status" aria-live="polite">
       <div style="margin-bottom: 1rem">
-        <span class="badge success" aria-label="Connection status">Connected</span>
+        <span class="badge success">
+          <span aria-hidden="true">✓</span>
+          <span>Connected</span>
+        </span>
         <span
           v-if="isRegistered"
           class="badge success"
           style="margin-left: 0.5rem"
-          aria-label="Registration status"
         >
-          Registered
+          <span aria-hidden="true">✓</span>
+          <span>Registered</span>
         </span>
         <span
           v-else
           class="badge warning"
           style="margin-left: 0.5rem"
-          aria-label="Registration status"
         >
-          Registering...
+          <span aria-hidden="true">⏳</span>
+          <span>Registering...</span>
         </span>
       </div>
 
@@ -103,7 +109,8 @@
       </div>
 
       <button @click="handleDisconnect" class="danger" aria-label="Disconnect from SIP server">
-        Disconnect
+        <span aria-hidden="true">🔌</span>
+        <span>Disconnect</span>
       </button>
     </div>
   </div>

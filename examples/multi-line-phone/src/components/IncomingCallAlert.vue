@@ -1,33 +1,53 @@
 <template>
-  <div class="incoming-call-alert">
+  <div
+    ref="alertRef"
+    class="incoming-call-alert"
+    role="alertdialog"
+    aria-labelledby="alert-title"
+    aria-describedby="alert-caller"
+    aria-modal="true"
+    aria-live="assertive"
+    @keydown="handleKeyboard"
+  >
     <div class="alert-content">
       <div class="alert-icon">
-        <div class="phone-ring">📞</div>
+        <div class="phone-ring" aria-label="Incoming call">
+          <span aria-hidden="true">📞</span>
+        </div>
       </div>
 
       <div class="alert-info">
-        <h3 class="alert-title">Incoming Call</h3>
+        <h3 id="alert-title" class="alert-title">Incoming Call</h3>
         <div class="alert-line">Line {{ lineNumber }}</div>
-        <div class="caller-info">
+        <div id="alert-caller" class="caller-info">
           <div class="caller-name">{{ displayName }}</div>
           <div class="caller-uri">{{ remoteUri }}</div>
         </div>
       </div>
 
       <div class="alert-actions">
-        <button @click="handleAnswer" class="btn-answer" title="Answer">
-          <span class="btn-icon">✓</span>
+        <button
+          ref="answerBtn"
+          @click="handleAnswer"
+          class="btn-answer"
+          :aria-label="`Answer call from ${displayName} on line ${lineNumber}. Press Enter to answer.`"
+        >
+          <span class="btn-icon" aria-hidden="true">✓</span>
           <span>Answer</span>
         </button>
-        <button @click="handleReject" class="btn-reject" title="Reject">
-          <span class="btn-icon">✕</span>
+        <button
+          @click="handleReject"
+          class="btn-reject"
+          :aria-label="`Reject call from ${displayName}. Press Escape to reject.`"
+        >
+          <span class="btn-icon" aria-hidden="true">✕</span>
           <span>Reject</span>
         </button>
       </div>
     </div>
 
     <!-- Audio for ringtone -->
-    <audio ref="ringtoneRef" loop autoplay>
+    <audio ref="ringtoneRef" loop autoplay aria-label="Ringtone">
       <!-- Using a simple tone generated via Web Audio API would be better -->
       <!-- For now, we'll just rely on the visual alert -->
     </audio>
@@ -54,6 +74,10 @@ const emit = defineEmits<{
 
 // Refs
 const ringtoneRef = ref<HTMLAudioElement | null>(null)
+const alertRef = ref<HTMLElement | null>(null)
+const answerBtn = ref<HTMLButtonElement | null>(null)
+let previousFocus: HTMLElement | null = null
+let focusTrap: HTMLElement[] = []
 
 // Computed
 const displayName = computed(() => {
@@ -78,20 +102,80 @@ function stopRingtone() {
   }
 }
 
+function handleKeyboard(e: KeyboardEvent) {
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    handleAnswer()
+  } else if (e.key === 'Escape') {
+    e.preventDefault()
+    handleReject()
+  }
+}
+
+function trapFocus(e: KeyboardEvent) {
+  if (e.key !== 'Tab') return
+
+  const firstElement = focusTrap[0]
+  const lastElement = focusTrap[focusTrap.length - 1]
+
+  if (e.shiftKey && document.activeElement === firstElement) {
+    e.preventDefault()
+    lastElement?.focus()
+  } else if (!e.shiftKey && document.activeElement === lastElement) {
+    e.preventDefault()
+    firstElement?.focus()
+  }
+}
+
 // Lifecycle
 onMounted(() => {
+  // Store previous focus
+  previousFocus = document.activeElement as HTMLElement
+
+  // Set up focus trap
+  const focusableElements = alertRef.value?.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  )
+  focusTrap = Array.from(focusableElements || []) as HTMLElement[]
+
+  // Move focus to first button
+  setTimeout(() => {
+    answerBtn.value?.focus()
+  }, 100)
+
+  // Trap focus within dialog
+  document.addEventListener('keydown', trapFocus)
+
   // Play system notification sound if available
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('Incoming Call', {
-      body: `Call from ${displayName.value}`,
-      icon: '/phone-icon.png',
-      tag: 'incoming-call',
+    try {
+      new Notification('Incoming Call', {
+        body: `Call from ${displayName.value} on line ${props.lineNumber}`,
+        icon: '/phone-icon.png',
+        tag: `incoming-call-${props.lineNumber}`,
+        requireInteraction: true,
+      })
+    } catch (error) {
+      console.warn('Notification failed:', error)
+    }
+  } else if ('Notification' in window && Notification.permission === 'default') {
+    // Request permission for future notifications
+    Notification.requestPermission().catch((error) => {
+      console.warn('Notification permission request failed:', error)
     })
   }
 })
 
 onUnmounted(() => {
+  document.removeEventListener('keydown', trapFocus)
   stopRingtone()
+
+  // Restore focus
+  if (previousFocus && typeof previousFocus.focus === 'function') {
+    setTimeout(() => {
+      previousFocus?.focus()
+    }, 0)
+  }
 })
 </script>
 
@@ -217,6 +301,11 @@ onUnmounted(() => {
   box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
 }
 
+.btn-answer:focus {
+  outline: 3px solid #28a745;
+  outline-offset: 2px;
+}
+
 .btn-answer:active {
   transform: translateY(0);
 }
@@ -231,8 +320,29 @@ onUnmounted(() => {
   box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
 }
 
+.btn-reject:focus {
+  outline: 3px solid #dc3545;
+  outline-offset: 2px;
+}
+
 .btn-reject:active {
   transform: translateY(0);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .incoming-call-alert {
+    animation: none;
+  }
+
+  .phone-ring {
+    animation: none;
+  }
+
+  .btn-answer,
+  .btn-reject {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Responsive */

@@ -1,75 +1,94 @@
 <template>
-  <div class="dialpad">
+  <form class="dialpad" role="region" aria-labelledby="dialpad-heading" @submit.prevent="handleCall">
     <div class="dialpad__header">
-      <h3>Make a Call</h3>
+      <h3 id="dialpad-heading">Make a Call</h3>
     </div>
 
     <!-- Number Display -->
     <div class="dialpad__display">
+      <label for="dialpad-input" class="sr-only">Phone number or SIP URI</label>
       <input
+        id="dialpad-input"
+        ref="dialpadInput"
         v-model="internalNumber"
         type="text"
         placeholder="Enter SIP URI or number"
         class="number-input"
         @keyup.enter="handleCall"
         :disabled="disabled"
+        aria-describedby="dialpad-hint"
       />
+      <div id="dialpad-hint" class="sr-only">
+        Enter a phone number or SIP URI, then press Enter or click Call button. You can also use your keyboard number keys to dial.
+      </div>
       <button
         v-if="internalNumber"
         @click="handleClear"
+        type="button"
         class="btn-clear"
-        title="Clear"
+        aria-label="Clear phone number"
       >
-        ×
+        <span aria-hidden="true">×</span>
       </button>
     </div>
 
     <!-- Dialpad Grid -->
-    <div class="dialpad__grid">
+    <div class="dialpad__grid" role="group" aria-label="Dialpad keys">
       <button
         v-for="key in dialpadKeys"
         :key="key.value"
         @click="handleKeyPress(key.value)"
+        type="button"
         class="dialpad-key"
         :class="{ 'dialpad-key--wide': key.wide }"
         :disabled="disabled"
+        :aria-label="`Dial ${key.digit}${key.letters ? ' ' + key.letters : ''}`"
+        :aria-keyshortcuts="key.value"
       >
         <span class="key-digit">{{ key.digit }}</span>
-        <span v-if="key.letters" class="key-letters">{{ key.letters }}</span>
+        <span v-if="key.letters" class="key-letters" aria-hidden="true">{{ key.letters }}</span>
       </button>
     </div>
 
     <!-- Call Button -->
     <button
+      type="submit"
       @click="handleCall"
       class="dialpad__call-btn"
       :disabled="disabled || !internalNumber.trim()"
+      aria-label="Make call"
     >
-      <span class="call-icon">📞</span>
+      <span class="call-icon" aria-hidden="true">📞</span>
       <span>Call</span>
     </button>
 
     <!-- Quick Dial (Optional) -->
     <div v-if="quickDial.length > 0" class="dialpad__quick-dial">
-      <h4>Quick Dial</h4>
-      <div class="quick-dial-list">
-        <button
+      <h4 id="quick-dial-heading">Quick Dial</h4>
+      <ul class="quick-dial-list" role="list" aria-labelledby="quick-dial-heading">
+        <li
           v-for="(contact, index) in quickDial"
           :key="index"
-          @click="handleQuickDial(contact.uri)"
-          class="quick-dial-btn"
-          :disabled="disabled"
+          role="listitem"
         >
-          <span class="contact-name">{{ contact.name }}</span>
-          <span class="contact-uri">{{ contact.uri }}</span>
-        </button>
-      </div>
+          <button
+            @click="handleQuickDial(contact.uri)"
+            type="button"
+            class="quick-dial-btn"
+            :disabled="disabled"
+            :aria-label="`Quick dial ${contact.name} at ${contact.uri}`"
+          >
+            <span class="contact-name">{{ contact.name }}</span>
+            <span class="contact-uri">{{ contact.uri }}</span>
+          </button>
+        </li>
+      </ul>
     </div>
-  </div>
+  </form>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 
 // Props
 interface Props {
@@ -90,6 +109,7 @@ const emit = defineEmits<{
 
 // Local state
 const internalNumber = ref(props.number)
+const dialpadInput = ref<HTMLInputElement | null>(null)
 
 // Dialpad keys configuration
 const dialpadKeys = [
@@ -134,6 +154,8 @@ function handleKeyPress(value: string) {
 function handleClear() {
   internalNumber.value = ''
   emit('update:number', internalNumber.value)
+  // Return focus to input
+  dialpadInput.value?.focus()
 }
 
 function handleCall() {
@@ -148,6 +170,30 @@ function handleQuickDial(uri: string) {
   handleCall()
 }
 
+// Keyboard event handler for number keys
+function handleKeyboardInput(e: KeyboardEvent) {
+  // Only handle if dialpad is active and not disabled
+  if (props.disabled) return
+
+  // Don't interfere if user is typing in input
+  if (document.activeElement?.tagName === 'INPUT') return
+
+  const key = e.key
+
+  // Handle number keys, *, #
+  if (/^[0-9*#]$/.test(key)) {
+    e.preventDefault()
+    handleKeyPress(key)
+  }
+
+  // Handle Backspace to delete
+  if (key === 'Backspace' && internalNumber.value) {
+    e.preventDefault()
+    internalNumber.value = internalNumber.value.slice(0, -1)
+    emit('update:number', internalNumber.value)
+  }
+}
+
 // Watch for external number changes
 watch(
   () => props.number,
@@ -159,6 +205,20 @@ watch(
 // Sync internal number with parent
 watch(internalNumber, (newValue) => {
   emit('update:number', newValue)
+})
+
+// Add keyboard event listener on mount
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyboardInput)
+
+  // Auto-focus the input when dialpad becomes visible
+  setTimeout(() => {
+    dialpadInput.value?.focus()
+  }, 100)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyboardInput)
 })
 </script>
 
@@ -198,6 +258,7 @@ watch(internalNumber, (newValue) => {
 .number-input:focus {
   outline: none;
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
 }
 
 .number-input:disabled {
@@ -229,6 +290,11 @@ watch(internalNumber, (newValue) => {
   background: #c82333;
 }
 
+.btn-clear:focus {
+  outline: 3px solid #dc3545;
+  outline-offset: 2px;
+}
+
 .dialpad__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -256,6 +322,11 @@ watch(internalNumber, (newValue) => {
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.dialpad-key:focus {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
 }
 
 .dialpad-key:active:not(:disabled) {
@@ -305,6 +376,11 @@ watch(internalNumber, (newValue) => {
   box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
 }
 
+.dialpad__call-btn:focus {
+  outline: 3px solid #28a745;
+  outline-offset: 2px;
+}
+
 .dialpad__call-btn:active:not(:disabled) {
   transform: translateY(0);
 }
@@ -335,9 +411,13 @@ watch(internalNumber, (newValue) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .quick-dial-btn {
+  width: 100%;
   padding: 12px;
   background: #f8f9fa;
   border: 2px solid #e9ecef;
@@ -355,6 +435,11 @@ watch(internalNumber, (newValue) => {
   border-color: #667eea;
 }
 
+.quick-dial-btn:focus {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+}
+
 .quick-dial-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -368,5 +453,27 @@ watch(internalNumber, (newValue) => {
 .contact-uri {
   font-size: 0.85em;
   color: #6c757d;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .dialpad-key,
+  .dialpad__call-btn,
+  .quick-dial-btn {
+    transition-duration: 0.01ms !important;
+  }
 }
 </style>

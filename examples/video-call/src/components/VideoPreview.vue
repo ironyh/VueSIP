@@ -1,5 +1,10 @@
 <template>
-  <div class="video-preview" :class="{ 'has-video': hasLocalVideo }">
+  <div
+    class="video-preview"
+    :class="{ 'has-video': hasLocalVideo }"
+    role="region"
+    aria-label="Local video preview"
+  >
     <!-- Video Element -->
     <video
       ref="videoElement"
@@ -7,46 +12,72 @@
       muted
       playsinline
       class="preview-video"
-      aria-label="Local video preview"
+      :aria-label="hasLocalVideo ? 'Your camera video feed showing your view' : 'Camera is off'"
+      :aria-hidden="!hasLocalVideo"
     ></video>
 
     <!-- No Video Placeholder -->
-    <div v-if="!hasLocalVideo" class="no-video-placeholder">
-      <span class="camera-icon">📷</span>
+    <div v-if="!hasLocalVideo" class="no-video-placeholder" aria-live="polite">
+      <span class="camera-icon" aria-hidden="true">📷</span>
       <span class="placeholder-text">Camera Off</span>
     </div>
 
     <!-- Camera Selector (only show when video is active) -->
-    <div v-if="hasLocalVideo && videoDevices.length > 1" class="camera-selector">
+    <div
+      v-if="hasLocalVideo && videoDevices.length > 1"
+      class="camera-selector"
+      role="region"
+      aria-label="Camera selection controls"
+    >
       <button
         @click="toggleCameraMenu"
         class="camera-button"
         :class="{ active: showCameraMenu }"
-        title="Switch Camera"
+        :aria-label="showCameraMenu ? 'Close camera menu' : 'Open camera selection menu'"
+        :aria-expanded="showCameraMenu"
+        aria-haspopup="true"
       >
-        <span class="icon">📹</span>
+        <span class="icon" aria-hidden="true">📹</span>
+        <span class="sr-only">Switch Camera</span>
       </button>
 
       <!-- Camera Menu -->
       <transition name="slide-up">
-        <div v-if="showCameraMenu" class="camera-menu">
-          <div class="menu-header">Select Camera</div>
+        <div
+          v-if="showCameraMenu"
+          class="camera-menu"
+          role="menu"
+          aria-label="Available cameras"
+        >
+          <div class="menu-header" role="presentation">Select Camera</div>
           <button
             v-for="device in videoDevices"
             :key="device.deviceId"
             @click="selectCamera(device.deviceId)"
             class="camera-option"
             :class="{ selected: device.deviceId === selectedDeviceId }"
+            role="menuitem"
+            :aria-label="`Select ${device.label || 'Camera'}`"
+            :aria-current="device.deviceId === selectedDeviceId ? 'true' : 'false'"
           >
             <span class="camera-name">{{ device.label || 'Camera' }}</span>
-            <span v-if="device.deviceId === selectedDeviceId" class="check-icon">✓</span>
+            <span
+              v-if="device.deviceId === selectedDeviceId"
+              class="check-icon"
+              aria-hidden="true"
+            >✓</span>
           </button>
         </div>
       </transition>
     </div>
 
     <!-- Local Label -->
-    <div class="local-label">You</div>
+    <div class="local-label" aria-hidden="true">You</div>
+
+    <!-- Screen reader announcements -->
+    <div role="status" aria-live="polite" class="sr-only">
+      {{ cameraStatusAnnouncement }}
+    </div>
   </div>
 </template>
 
@@ -89,6 +120,7 @@ const emit = defineEmits<Emits>()
 
 const videoElement = ref<HTMLVideoElement | null>(null)
 const showCameraMenu = ref(false)
+const cameraStatusAnnouncement = ref<string>('')
 
 // ============================================================================
 // Methods
@@ -105,8 +137,11 @@ function toggleCameraMenu() {
  * Select a camera
  */
 function selectCamera(deviceId: string) {
+  const device = props.videoDevices.find(d => d.deviceId === deviceId)
   emit('select-camera', deviceId)
   showCameraMenu.value = false
+  // Announce camera selection
+  cameraStatusAnnouncement.value = `Selected ${device?.label || 'camera'}`
 }
 
 /**
@@ -115,7 +150,20 @@ function selectCamera(deviceId: string) {
 function handleClickOutside(event: MouseEvent) {
   const target = event.target as HTMLElement
   if (!target.closest('.camera-selector')) {
+    if (showCameraMenu.value) {
+      showCameraMenu.value = false
+      cameraStatusAnnouncement.value = 'Camera menu closed'
+    }
+  }
+}
+
+/**
+ * Handle keyboard navigation in camera menu
+ */
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && showCameraMenu.value) {
     showCameraMenu.value = false
+    cameraStatusAnnouncement.value = 'Camera menu closed'
   }
 }
 
@@ -151,6 +199,8 @@ onMounted(() => {
 
   // Add click outside listener
   document.addEventListener('click', handleClickOutside)
+  // Add keyboard listener
+  document.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
@@ -161,6 +211,8 @@ onUnmounted(() => {
 
   // Remove click outside listener
   document.removeEventListener('click', handleClickOutside)
+  // Remove keyboard listener
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
@@ -405,5 +457,33 @@ onUnmounted(() => {
     font-size: 10px;
     padding: 3px 8px;
   }
+}
+
+/* ============================================================================
+   Accessibility
+   ============================================================================ */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible for camera controls */
+.camera-button:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+.camera-option:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: -2px;
 }
 </style>

@@ -1,6 +1,11 @@
 <template>
   <div
     class="call-line"
+    role="button"
+    tabindex="0"
+    :aria-label="ariaLabel"
+    :aria-current="isActiveLine ? 'true' : 'false'"
+    :aria-pressed="isActiveLine"
     :class="{
       'call-line--active': isActiveLine,
       'call-line--held': isOnHold,
@@ -10,15 +15,23 @@
       'call-line--terminated': state === 'terminated' || state === 'failed',
     }"
     @click="handleLineClick"
+    @keyup.enter="handleLineClick"
+    @keyup.space.prevent="handleLineClick"
   >
     <!-- Line Header -->
     <div class="call-line__header">
       <div class="call-line__number">
-        <span class="line-badge" :class="{ active: isActiveLine }">Line {{ lineNumber }}</span>
-        <span class="state-badge" :class="stateClass">{{ stateText }}</span>
+        <span class="line-badge" :class="{ active: isActiveLine }">
+          <span v-if="isActiveLine" aria-hidden="true">▶ </span>
+          Line {{ lineNumber }}
+        </span>
+        <span class="state-badge" :class="stateClass">
+          <span class="state-icon" aria-hidden="true">{{ stateIcon }}</span>
+          {{ stateText }}
+        </span>
       </div>
-      <div class="call-line__duration" v-if="state === 'active' || state === 'held'">
-        {{ formattedDuration }}
+      <div class="call-line__duration" v-if="state === 'active' || state === 'held'" aria-live="off">
+        <span class="sr-only">Call duration </span>{{ formattedDuration }}
       </div>
     </div>
 
@@ -29,19 +42,27 @@
     </div>
 
     <!-- Audio Elements (hidden, for WebRTC streams) -->
-    <audio ref="localAudioRef" autoplay muted></audio>
-    <audio ref="remoteAudioRef" autoplay :muted="!isActiveLine"></audio>
+    <audio ref="localAudioRef" autoplay muted aria-label="Local audio stream"></audio>
+    <audio ref="remoteAudioRef" autoplay :muted="!isActiveLine" :aria-label="`Remote audio from ${displayName}`"></audio>
 
     <!-- Call Controls -->
     <div class="call-line__controls">
       <!-- Incoming Call Controls -->
       <template v-if="state === 'ringing'">
-        <button @click.stop="$emit('answer')" class="btn btn--success" title="Answer">
-          <span class="btn-icon">📞</span>
+        <button
+          @click.stop="$emit('answer')"
+          class="btn btn--success"
+          :aria-label="`Answer incoming call from ${displayName}`"
+        >
+          <span class="btn-icon" aria-hidden="true">📞</span>
           Answer
         </button>
-        <button @click.stop="$emit('reject')" class="btn btn--danger" title="Reject">
-          <span class="btn-icon">❌</span>
+        <button
+          @click.stop="$emit('reject')"
+          class="btn btn--danger"
+          :aria-label="`Reject call from ${displayName}`"
+        >
+          <span class="btn-icon" aria-hidden="true">❌</span>
           Reject
         </button>
       </template>
@@ -52,9 +73,10 @@
           @click.stop="handleToggleHold"
           class="btn btn--secondary"
           :class="{ active: isOnHold }"
-          :title="isOnHold ? 'Resume' : 'Hold'"
+          :aria-label="isOnHold ? `Resume call with ${displayName}` : `Put call with ${displayName} on hold`"
+          :aria-pressed="isOnHold"
         >
-          <span class="btn-icon">{{ isOnHold ? '▶️' : '⏸️' }}</span>
+          <span class="btn-icon" aria-hidden="true">{{ isOnHold ? '▶️' : '⏸️' }}</span>
           {{ isOnHold ? 'Resume' : 'Hold' }}
         </button>
 
@@ -62,9 +84,10 @@
           @click.stop="handleToggleMute"
           class="btn btn--secondary"
           :class="{ active: isMuted }"
-          :title="isMuted ? 'Unmute' : 'Mute'"
+          :aria-label="isMuted ? `Unmute call with ${displayName}` : `Mute call with ${displayName}`"
+          :aria-pressed="isMuted"
         >
-          <span class="btn-icon">{{ isMuted ? '🔇' : '🔊' }}</span>
+          <span class="btn-icon" aria-hidden="true">{{ isMuted ? '🔇' : '🔊' }}</span>
           {{ isMuted ? 'Unmute' : 'Mute' }}
         </button>
 
@@ -73,14 +96,19 @@
           class="btn btn--secondary"
           :class="{ active: showDtmfPad }"
           :disabled="isOnHold"
-          title="DTMF"
+          :aria-label="showDtmfPad ? 'Hide DTMF keypad' : 'Show DTMF keypad'"
+          :aria-expanded="showDtmfPad"
         >
-          <span class="btn-icon">🔢</span>
+          <span class="btn-icon" aria-hidden="true">🔢</span>
           DTMF
         </button>
 
-        <button @click.stop="$emit('hangup')" class="btn btn--danger" title="Hangup">
-          <span class="btn-icon">📵</span>
+        <button
+          @click.stop="$emit('hangup')"
+          class="btn btn--danger"
+          :aria-label="`Hangup call with ${displayName}`"
+        >
+          <span class="btn-icon" aria-hidden="true">📵</span>
           Hangup
         </button>
       </template>
@@ -88,11 +116,15 @@
       <!-- Calling State -->
       <template v-else-if="state === 'calling'">
         <div class="calling-indicator">
-          <span class="spinner"></span>
+          <span class="spinner" role="status" aria-label="Calling"></span>
           Calling...
         </div>
-        <button @click.stop="$emit('hangup')" class="btn btn--danger" title="Cancel">
-          <span class="btn-icon">❌</span>
+        <button
+          @click.stop="$emit('hangup')"
+          class="btn btn--danger"
+          :aria-label="`Cancel call to ${displayName}`"
+        >
+          <span class="btn-icon" aria-hidden="true">❌</span>
           Cancel
         </button>
       </template>
@@ -100,30 +132,40 @@
       <!-- Terminated State -->
       <template v-else-if="state === 'terminated' || state === 'failed'">
         <div class="terminated-info">
-          <span class="status-icon">{{ state === 'failed' ? '❌' : '📴' }}</span>
+          <span class="status-icon" aria-hidden="true">{{ state === 'failed' ? '❌' : '📴' }}</span>
           {{ state === 'failed' ? 'Call Failed' : 'Call Ended' }}
         </div>
       </template>
     </div>
 
     <!-- DTMF Pad (shown when active and not on hold) -->
-    <div v-if="showDtmfPad && state === 'active' && !isOnHold" class="dtmf-pad">
-      <div class="dtmf-grid">
+    <div
+      v-if="showDtmfPad && state === 'active' && !isOnHold"
+      class="dtmf-pad"
+      role="region"
+      aria-label="DTMF keypad"
+    >
+      <div class="dtmf-grid" role="grid" aria-label="DTMF tones">
         <button
           v-for="tone in dtmfTones"
           :key="tone"
           @click.stop="handleDtmf(tone)"
           class="dtmf-btn"
+          role="gridcell"
+          :aria-label="`Send DTMF tone ${tone}`"
         >
           {{ tone }}
         </button>
+      </div>
+      <div role="status" aria-live="polite" class="sr-only">
+        {{ dtmfAnnouncement }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { CallState, CallSession } from 'vuesip'
 
 // Props
@@ -160,6 +202,7 @@ const emit = defineEmits<{
 const showDtmfPad = ref(false)
 const localAudioRef = ref<HTMLAudioElement | null>(null)
 const remoteAudioRef = ref<HTMLAudioElement | null>(null)
+const dtmfAnnouncement = ref('')
 
 // DTMF tones
 const dtmfTones = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
@@ -203,6 +246,36 @@ const stateText = computed(() => {
   return textMap[props.state] || props.state
 })
 
+const stateIcon = computed(() => {
+  const icons: Record<string, string> = {
+    idle: '○',
+    ringing: '🔔',
+    calling: '📞',
+    active: '●',
+    held: '⏸',
+    terminated: '✕',
+    failed: '⚠',
+  }
+  return icons[props.state] || '○'
+})
+
+const ariaLabel = computed(() => {
+  const parts = [
+    `Line ${props.lineNumber}`,
+    props.state === 'ringing' ? 'Incoming call' : stateText.value,
+    `from ${displayName.value}`,
+  ]
+
+  if (props.isActiveLine) parts.push('Active line')
+  if (props.isOnHold) parts.push('On hold')
+  if (props.isMuted) parts.push('Muted')
+  if (props.state === 'active' && !props.isOnHold) {
+    parts.push(`Duration ${formattedDuration.value}`)
+  }
+
+  return parts.join(', ')
+})
+
 // Methods
 function handleLineClick() {
   if (props.state === 'active' || props.state === 'held' || props.isOnHold) {
@@ -228,6 +301,23 @@ function handleToggleMute() {
 
 function handleDtmf(tone: string) {
   emit('sendDtmf', tone)
+  dtmfAnnouncement.value = `Sent DTMF tone ${tone}`
+
+  // Clear announcement after screen reader has read it
+  setTimeout(() => {
+    dtmfAnnouncement.value = ''
+  }, 1000)
+}
+
+// Keyboard event handler for DTMF
+function handleKeyboardDtmf(e: KeyboardEvent) {
+  if (!showDtmfPad.value || props.isOnHold || props.state !== 'active') return
+
+  const key = e.key
+  if (/^[0-9*#]$/.test(key)) {
+    e.preventDefault()
+    handleDtmf(key)
+  }
 }
 
 // Watch for stream changes and attach to audio elements
@@ -269,6 +359,13 @@ onMounted(() => {
     remoteAudioRef.value.srcObject = props.remoteStream
     remoteAudioRef.value.muted = !props.isActiveLine
   }
+
+  // Add keyboard event listener for DTMF
+  window.addEventListener('keydown', handleKeyboardDtmf)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyboardDtmf)
 })
 </script>
 
@@ -285,6 +382,12 @@ onMounted(() => {
 .call-line:hover {
   border-color: #dee2e6;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.call-line:focus {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+  border-color: #667eea;
 }
 
 .call-line--active {
@@ -361,6 +464,10 @@ onMounted(() => {
   border-radius: 20px;
   font-size: 0.8em;
   font-weight: 500;
+}
+
+.state-icon {
+  margin-right: 4px;
 }
 
 .state-idle {
@@ -442,6 +549,11 @@ onMounted(() => {
 .btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn:focus {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
 }
 
 .btn:active {
@@ -546,7 +658,42 @@ onMounted(() => {
   border-color: #667eea;
 }
 
+.dtmf-btn:focus {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+}
+
 .dtmf-btn:active {
   transform: scale(0.95);
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .call-line,
+  .btn,
+  .dtmf-btn {
+    transition-duration: 0.01ms !important;
+  }
+
+  .call-line--ringing {
+    animation: none;
+  }
+
+  .spinner {
+    animation: none;
+  }
 }
 </style>

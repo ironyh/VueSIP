@@ -1,5 +1,42 @@
 <template>
-  <div class="conference-room" role="main" aria-label="Conference room">
+  <div class="conference-room" role="main" aria-labelledby="conference-title">
+    <!-- ARIA Live Regions for Screen Reader Announcements -->
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      class="sr-only"
+    >
+      {{ participantAnnouncement }}
+    </div>
+
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      class="sr-only"
+    >
+      {{ speakingAnnouncement }}
+    </div>
+
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      class="sr-only"
+    >
+      {{ muteAnnouncement }}
+    </div>
+
+    <div
+      role="status"
+      aria-live="assertive"
+      aria-atomic="true"
+      class="sr-only"
+    >
+      {{ conferenceStatusAnnouncement }}
+    </div>
+
     <!-- Conference Header -->
     <div class="card conference-header">
       <div class="header-content">
@@ -28,19 +65,25 @@
           class="participant-count"
           role="status"
           aria-live="polite"
-          aria-label="Current participant count"
+          aria-atomic="true"
         >
           {{ participantCount }} {{ participantCount === 1 ? 'Participant' : 'Participants' }}
         </div>
       </div>
 
       <!-- Conference Controls -->
-      <div class="conference-controls" role="group" aria-label="Conference control buttons">
+      <div
+        id="conference-controls"
+        class="conference-controls"
+        role="toolbar"
+        aria-label="Conference controls"
+      >
         <button
           v-if="!isActive"
           @click="handleCreateConference"
           class="primary"
           :disabled="creatingConference"
+          :aria-label="creatingConference ? 'Creating conference, please wait' : 'Create conference'"
         >
           {{ creatingConference ? 'Creating...' : 'Create Conference' }}
         </button>
@@ -49,27 +92,36 @@
           <button
             @click="handleToggleLock"
             class="primary"
+            :aria-pressed="isLocked"
+            :aria-label="isLocked ? 'Unlock conference to allow new participants' : 'Lock conference to prevent new participants'"
           >
+            <span aria-hidden="true">{{ isLocked ? '🔒' : '🔓' }}</span>
             {{ isLocked ? 'Unlock Conference' : 'Lock Conference' }}
           </button>
 
           <button
             @click="handleToggleRecording"
             :class="isRecording ? 'danger' : 'success'"
+            :aria-pressed="isRecording"
+            :aria-label="isRecording ? 'Stop recording conference' : 'Start recording conference'"
           >
+            <span aria-hidden="true">{{ isRecording ? '⏹' : '⏺' }}</span>
             {{ isRecording ? 'Stop Recording' : 'Start Recording' }}
           </button>
 
           <button
             @click="handleMuteAll"
             class="primary"
+            aria-label="Mute all participants in the conference"
           >
+            <span aria-hidden="true">🔇</span>
             Mute All Participants
           </button>
 
           <button
             @click="handleEndConference"
             class="danger"
+            aria-label="End conference for all participants"
           >
             End Conference
           </button>
@@ -88,6 +140,7 @@
 
     <!-- Participant List -->
     <ParticipantList
+      id="participant-list"
       v-if="isActive"
       :participants="participants"
       :local-participant-id="localParticipant?.id"
@@ -171,6 +224,73 @@ interface EventLogItem {
   message: string
 }
 const eventLog = ref<EventLogItem[]>([])
+
+// ARIA Live Region Announcements
+const participantAnnouncement = ref('')
+const speakingAnnouncement = ref('')
+const muteAnnouncement = ref('')
+const conferenceStatusAnnouncement = ref('')
+
+// Track speaking participants to avoid duplicate announcements
+const currentSpeaker = ref<string | null>(null)
+const speakingTimeout = ref<number | null>(null)
+
+/**
+ * Announce participant events
+ */
+const announceParticipant = (message: string) => {
+  participantAnnouncement.value = message
+  setTimeout(() => {
+    participantAnnouncement.value = ''
+  }, 3000)
+}
+
+/**
+ * Announce speaking status
+ */
+const announceSpeaking = (participantName: string, isSpeaking: boolean) => {
+  if (isSpeaking) {
+    // Clear any existing timeout
+    if (speakingTimeout.value) {
+      clearTimeout(speakingTimeout.value)
+    }
+
+    // Only announce if it's a different speaker
+    if (currentSpeaker.value !== participantName) {
+      currentSpeaker.value = participantName
+      speakingAnnouncement.value = `${participantName} is speaking`
+
+      // Clear after 2 seconds
+      speakingTimeout.value = window.setTimeout(() => {
+        speakingAnnouncement.value = ''
+      }, 2000)
+    }
+  } else {
+    if (currentSpeaker.value === participantName) {
+      currentSpeaker.value = null
+    }
+  }
+}
+
+/**
+ * Announce mute status changes
+ */
+const announceMute = (participantName: string, isMuted: boolean) => {
+  muteAnnouncement.value = `${participantName} ${isMuted ? 'muted' : 'unmuted'}`
+  setTimeout(() => {
+    muteAnnouncement.value = ''
+  }, 3000)
+}
+
+/**
+ * Announce conference status changes
+ */
+const announceConferenceStatus = (message: string) => {
+  conferenceStatusAnnouncement.value = message
+  setTimeout(() => {
+    conferenceStatusAnnouncement.value = ''
+  }, 4000)
+}
 
 /**
  * Create a new conference
@@ -291,13 +411,17 @@ const handleToggleLock = async () => {
     if (isLocked.value) {
       await unlockConference()
       addEventLog('Conference unlocked')
+      announceConferenceStatus('Conference unlocked. New participants can now join.')
     } else {
       await lockConference()
       addEventLog('Conference locked')
+      announceConferenceStatus('Conference locked. No new participants can join.')
     }
   } catch (error) {
     console.error('Failed to toggle lock:', error)
-    alert(`Failed to toggle lock: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    const errorMsg = `Failed to toggle lock: ${error instanceof Error ? error.message : 'Unknown error'}`
+    alert(errorMsg)
+    announceConferenceStatus(errorMsg)
   }
 }
 
@@ -309,13 +433,17 @@ const handleToggleRecording = async () => {
     if (isRecording.value) {
       await stopRecording()
       addEventLog('Recording stopped')
+      announceConferenceStatus('Conference recording stopped')
     } else {
       await startRecording()
       addEventLog('Recording started')
+      announceConferenceStatus('Conference recording started')
     }
   } catch (error) {
     console.error('Failed to toggle recording:', error)
-    alert(`Failed to toggle recording: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    const errorMsg = `Failed to toggle recording: ${error instanceof Error ? error.message : 'Unknown error'}`
+    alert(errorMsg)
+    announceConferenceStatus(errorMsg)
   }
 }
 
@@ -354,25 +482,45 @@ onMounted(() => {
     switch (event.type) {
       case 'participant:joined':
         if (event.participant) {
-          addEventLog(`${event.participant.displayName || event.participant.uri} joined`)
+          const name = event.participant.displayName || event.participant.uri
+          addEventLog(`${name} joined`)
+          announceParticipant(`${name} joined the conference`)
         }
         break
       case 'participant:left':
         if (event.participant) {
-          addEventLog(`${event.participant.displayName || event.participant.uri} left`)
+          const name = event.participant.displayName || event.participant.uri
+          addEventLog(`${name} left`)
+          announceParticipant(`${name} left the conference`)
         }
         break
       case 'participant:updated': {
-        // Only log mute changes - properly typed
+        // Handle participant updates - properly typed
         const updateEvent = event as ParticipantUpdatedEvent
-        if (updateEvent.participant && updateEvent.changes && 'isMuted' in updateEvent.changes) {
+        if (updateEvent.participant && updateEvent.changes) {
           const name = updateEvent.participant.displayName || updateEvent.participant.uri
-          addEventLog(`${name} ${updateEvent.participant.isMuted ? 'muted' : 'unmuted'}`)
+
+          // Announce mute changes
+          if ('isMuted' in updateEvent.changes) {
+            addEventLog(`${name} ${updateEvent.participant.isMuted ? 'muted' : 'unmuted'}`)
+            announceMute(name, updateEvent.participant.isMuted)
+          }
+
+          // Announce speaking changes (only if audio level changes significantly)
+          if ('audioLevel' in updateEvent.changes) {
+            const isSpeaking = (updateEvent.participant.audioLevel || 0) > 0.1
+            announceSpeaking(name, isSpeaking)
+          }
         }
         break
       }
       case 'state:changed':
         addEventLog(`Conference state: ${event.state}`)
+        if (event.state === 'active') {
+          announceConferenceStatus('Conference is now active')
+        } else if (event.state === 'ended') {
+          announceConferenceStatus('Conference has ended')
+        }
         break
     }
   })
@@ -385,6 +533,11 @@ onUnmounted(() => {
   if (unsubscribeConferenceEvents) {
     unsubscribeConferenceEvents()
     unsubscribeConferenceEvents = null
+  }
+
+  // Cleanup speaking timeout
+  if (speakingTimeout.value) {
+    clearTimeout(speakingTimeout.value)
   }
 })
 </script>

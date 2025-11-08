@@ -1,12 +1,32 @@
 <template>
   <div class="app">
+    <!-- Skip Navigation Links -->
+    <nav class="skip-links" aria-label="Skip navigation">
+      <a href="#main-content" class="skip-link">Skip to main content</a>
+      <a href="#connection-panel" class="skip-link">Skip to connection</a>
+      <a href="#participant-list" class="skip-link" v-if="isRegistered">Skip to participants</a>
+      <a href="#conference-controls" class="skip-link" v-if="isRegistered">Skip to conference controls</a>
+    </nav>
+
     <h1>VueSip Conference Call Example</h1>
     <p class="subtitle">
       Multi-party conference calling with participant management
     </p>
 
+    <!-- Global Error Announcements -->
+    <div
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+      class="sr-only"
+      v-if="errorMessage"
+    >
+      {{ errorMessage }}
+    </div>
+
     <!-- Connection Panel -->
     <ConnectionPanel
+      id="connection-panel"
       v-model:server="config.server"
       v-model:username="config.username"
       v-model:password="config.password"
@@ -19,8 +39,10 @@
 
     <!-- Conference Room (only shown when connected) -->
     <ConferenceRoom
+      id="main-content"
       v-if="isRegistered"
       :sip-client="sipClient"
+      @error="handleError"
     />
   </div>
 </template>
@@ -45,8 +67,22 @@ const sipClient = ref<SipClient | null>(null)
 const isConnected = ref(false)
 const isRegistered = ref(false)
 
+// Error handling for accessibility
+const errorMessage = ref('')
+
 // Store event listener cleanup functions
 const eventCleanupFunctions: Array<() => void> = []
+
+/**
+ * Handle errors and announce them to screen readers
+ */
+const handleError = (error: string) => {
+  errorMessage.value = error
+  // Clear error message after 5 seconds
+  setTimeout(() => {
+    errorMessage.value = ''
+  }, 5000)
+}
 
 /**
  * Connect to SIP server
@@ -146,9 +182,57 @@ onUnmounted(async () => {
   font-size: 1.1rem;
 }
 
+/* Skip Navigation Links */
+.skip-links {
+  position: relative;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #646cff;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 600;
+  z-index: 1000;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 10px;
+}
+
+.skip-link:not(:focus) {
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 @media (prefers-color-scheme: light) {
   .subtitle {
     color: rgba(0, 0, 0, 0.6);
   }
+}
+</style>
+
+<style>
+/* Global accessibility utilities (not scoped) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 </style>

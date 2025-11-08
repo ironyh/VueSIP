@@ -115,12 +115,35 @@ select {
 input:focus,
 select:focus {
   outline: 2px solid #646cff;
+  outline-offset: 2px;
 }
 
 label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
+}
+
+/* Accessible links */
+a {
+  color: #646cff;
+  text-decoration: underline;
+}
+
+a:hover {
+  color: #535bf2;
+}
+
+a:focus {
+  outline: 2px solid #646cff;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Ensure abbr elements are accessible */
+abbr[title] {
+  text-decoration: underline dotted;
+  cursor: help;
 }
 
 .card {
@@ -155,6 +178,34 @@ label {
   color: white;
 }
 
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  button {
+    border: 2px solid currentColor;
+  }
+
+  input,
+  select {
+    border: 2px solid currentColor;
+  }
+
+  .card {
+    border: 2px solid currentColor;
+  }
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
@@ -173,5 +224,13 @@ label {
   .card {
     background-color: #f9f9f9;
     border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  a {
+    color: #4a5568;
+  }
+
+  a:hover {
+    color: #2d3748;
   }
 }

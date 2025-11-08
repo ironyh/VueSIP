@@ -2,6 +2,11 @@
   <div class="active-call card">
     <h2>Active Call</h2>
 
+    <!-- Call State Announcements -->
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
+      {{ callAnnouncement }}
+    </div>
+
     <!-- Call Header -->
     <div class="call-header">
       <div class="caller-info">
@@ -9,31 +14,35 @@
         <div class="caller-number">{{ formatUri(remoteUri) }}</div>
       </div>
       <div class="call-status">
-        <span class="status-badge" :class="state">{{ stateText }}</span>
+        <span class="status-badge" :class="state" role="status">
+          {{ stateText }}
+        </span>
       </div>
     </div>
 
     <!-- Call Timer -->
-    <div class="call-timer">
-      <div class="timer-display">{{ formatDuration(duration) }}</div>
-      <div class="timer-label">Duration</div>
+    <div class="call-timer" role="timer" :aria-label="`Call duration: ${formatDuration(duration)}`">
+      <div class="timer-display" aria-hidden="true">{{ formatDuration(duration) }}</div>
+      <div class="timer-label" aria-hidden="true">Duration</div>
     </div>
 
     <!-- Call Controls -->
-    <div class="call-controls">
+    <div class="call-controls" role="group" aria-label="Call controls">
       <button
         class="control-btn"
         :class="{ active: isMuted }"
-        @click="$emit('mute')"
-        :title="isMuted ? 'Unmute' : 'Mute'"
+        @click="handleMute"
+        role="switch"
+        :aria-checked="isMuted"
+        :aria-label="isMuted ? 'Unmute microphone' : 'Mute microphone'"
       >
-        <svg v-if="!isMuted" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg v-if="!isMuted" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
           <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
           <line x1="12" y1="19" x2="12" y2="23"></line>
           <line x1="8" y1="23" x2="16" y2="23"></line>
         </svg>
-        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <line x1="1" y1="1" x2="23" y2="23"></line>
           <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
           <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
@@ -46,10 +55,12 @@
       <button
         class="control-btn"
         :class="{ active: isOnHold }"
-        @click="$emit('hold')"
-        :title="isOnHold ? 'Resume' : 'Hold'"
+        @click="handleHold"
+        role="switch"
+        :aria-checked="isOnHold"
+        :aria-label="isOnHold ? 'Resume call' : 'Put call on hold'"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <rect x="6" y="4" width="4" height="16"></rect>
           <rect x="14" y="4" width="4" height="16"></rect>
         </svg>
@@ -59,9 +70,9 @@
       <button
         class="control-btn hangup-btn"
         @click="$emit('hangup')"
-        title="Hangup"
+        aria-label="End call"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
         </svg>
         <span>Hangup</span>
@@ -107,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { CallSession } from 'vuesip'
 
 // ============================================================================
@@ -125,12 +136,13 @@ const props = defineProps<{
   callNotes: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   hangup: []
   mute: []
   hold: []
   'send-dtmf': [digit: string]
   'update:notes': [notes: string]
+  'call-state-change': [announcement: string]
 }>()
 
 // ============================================================================
@@ -138,6 +150,7 @@ defineEmits<{
 // ============================================================================
 
 const showDialpad = ref(false)
+const callAnnouncement = ref('')
 
 const dialpadDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 
@@ -180,9 +193,49 @@ const formatDuration = (seconds: number): string => {
   }
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
+
+const announceCallState = (message: string) => {
+  callAnnouncement.value = message
+  emit('call-state-change', message)
+  setTimeout(() => {
+    callAnnouncement.value = ''
+  }, 1000)
+}
+
+const handleMute = () => {
+  emit('mute')
+  const message = props.isMuted ? 'Microphone unmuted' : 'Microphone muted'
+  announceCallState(message)
+}
+
+const handleHold = () => {
+  emit('hold')
+  const message = props.isOnHold ? 'Call resumed' : 'Call placed on hold'
+  announceCallState(message)
+}
+
+// Watch for call state changes
+watch(() => props.state, (newState, oldState) => {
+  if (newState !== oldState) {
+    announceCallState(stateText.value)
+  }
+})
 </script>
 
 <style scoped>
+/* Screen Reader Only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .active-call {
   background: white;
 }

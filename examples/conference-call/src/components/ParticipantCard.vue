@@ -1,34 +1,38 @@
 <template>
-  <div
+  <li
     class="participant-card"
     :class="{ 'is-local': isLocal, 'is-speaking': isSpeaking }"
-    role="article"
-    :aria-label="`Participant: ${participant.displayName || 'Unknown'}`"
+    :aria-label="participantAriaLabel"
   >
     <!-- Participant Header -->
     <div class="participant-header">
-      <div class="participant-avatar">
+      <div
+        class="participant-avatar"
+        :aria-label="`Avatar for ${participant.displayName || 'Unknown'}`"
+        role="img"
+      >
         {{ avatarInitials }}
       </div>
 
       <div class="participant-info">
         <div class="participant-name">
           {{ participant.displayName || 'Unknown' }}
-          <span v-if="isLocal" class="local-badge">(You)</span>
-          <span v-if="participant.isModerator" class="moderator-badge">Moderator</span>
+          <span v-if="isLocal" class="local-badge" aria-label="This is you">(You)</span>
+          <span v-if="participant.isModerator" class="moderator-badge" aria-label="Role: moderator">Moderator</span>
         </div>
-        <div class="participant-uri">
+        <div class="participant-uri" aria-label="SIP URI">
           {{ participant.uri }}
         </div>
       </div>
     </div>
 
     <!-- Participant Status -->
-    <div class="participant-status">
+    <div class="participant-status" role="status" aria-live="polite" aria-atomic="true">
       <div class="status-indicators">
         <span
           :class="['indicator', `indicator-${participant.state}`]"
-          :title="`State: ${participant.state}`"
+          role="status"
+          :aria-label="`Connection state: ${participant.state}`"
         >
           {{ stateLabel }}
         </span>
@@ -36,17 +40,28 @@
         <span
           v-if="participant.isMuted"
           class="indicator indicator-muted"
-          title="Muted"
+          role="status"
+          aria-label="Audio is muted"
         >
-          Muted
+          <span aria-hidden="true">🔇</span> Muted
+        </span>
+
+        <span
+          v-if="isSpeaking"
+          class="indicator indicator-speaking"
+          role="status"
+          aria-label="Currently speaking"
+        >
+          <span aria-hidden="true">🗣️</span> Speaking
         </span>
 
         <span
           v-if="participant.isOnHold"
           class="indicator indicator-hold"
-          title="On Hold"
+          role="status"
+          aria-label="On hold"
         >
-          On Hold
+          <span aria-hidden="true">⏸</span> On Hold
         </span>
       </div>
 
@@ -58,8 +73,11 @@
         :aria-valuenow="audioLevelPercent"
         aria-valuemin="0"
         aria-valuemax="100"
-        :aria-label="`Audio level: ${audioLevelPercent}%`"
+        :aria-label="`Audio level: ${audioLevelPercent} percent, ${audioLevelDescription}`"
       >
+        <div class="audio-level-label sr-only">
+          Audio level: {{ audioLevelDescription }}
+        </div>
         <div class="audio-level-bar">
           <div
             class="audio-level-fill"
@@ -70,23 +88,23 @@
     </div>
 
     <!-- Participant Controls -->
-    <div class="participant-controls" role="group" :aria-label="`Controls for ${participant.displayName || 'participant'}`">
+    <div class="participant-controls" role="group" :aria-label="`Controls for ${participantName}`">
       <button
         v-if="!participant.isMuted"
         @click="$emit('mute')"
         class="control-btn"
-        :aria-label="`Mute ${participant.displayName || 'participant'}`"
-        title="Mute participant"
+        :aria-label="`Mute ${participantName}`"
       >
+        <span aria-hidden="true">🔇</span>
         Mute
       </button>
       <button
         v-else
         @click="$emit('unmute')"
         class="control-btn"
-        :aria-label="`Unmute ${participant.displayName || 'participant'}`"
-        title="Unmute participant"
+        :aria-label="`Unmute ${participantName}`"
       >
+        <span aria-hidden="true">🔊</span>
         Unmute
       </button>
 
@@ -94,18 +112,18 @@
         v-if="!isLocal"
         @click="handleRemove"
         class="control-btn danger"
-        :aria-label="`Remove ${participant.displayName || 'participant'} from conference`"
-        title="Remove participant"
+        :aria-label="`Remove ${participantName} from conference`"
       >
+        <span aria-hidden="true">✖</span>
         Remove
       </button>
     </div>
 
     <!-- Join Time -->
     <div class="participant-meta">
-      <small>Joined {{ joinedAtFormatted }}</small>
+      <small aria-label="Join time">Joined {{ joinedAtFormatted }}</small>
     </div>
-  </div>
+  </li>
 </template>
 
 <script setup lang="ts">
@@ -139,6 +157,46 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+// Participant name helper
+const participantName = computed(() => {
+  return props.participant.displayName || 'Unknown participant'
+})
+
+// Comprehensive ARIA label for the participant card
+const participantAriaLabel = computed(() => {
+  const parts = [participantName.value]
+
+  if (props.isLocal) {
+    parts.push('(You)')
+  }
+
+  if (props.participant.isModerator) {
+    parts.push('Moderator')
+  }
+
+  parts.push(`Connection: ${props.participant.state}`)
+
+  if (props.participant.isMuted) {
+    parts.push('Muted')
+  } else {
+    parts.push('Unmuted')
+  }
+
+  if (isSpeaking.value) {
+    parts.push('Currently speaking')
+  }
+
+  if (props.participant.isOnHold) {
+    parts.push('On hold')
+  }
+
+  if (props.participant.state === 'connected') {
+    parts.push(`Audio level: ${audioLevelPercent.value}%`)
+  }
+
+  return parts.join(', ')
+})
+
 // Avatar initials
 const avatarInitials = computed(() => {
   const name = props.participant.displayName || props.participant.uri
@@ -159,6 +217,17 @@ const stateLabel = computed(() => {
 const audioLevelPercent = computed(() => {
   const level = props.participant.audioLevel || 0
   return Math.round(level * 100)
+})
+
+// Audio level description for screen readers
+const audioLevelDescription = computed(() => {
+  const level = audioLevelPercent.value
+  if (level === 0) return 'silent'
+  if (level < 20) return 'very quiet'
+  if (level < 40) return 'quiet'
+  if (level < 60) return 'moderate'
+  if (level < 80) return 'loud'
+  return 'very loud'
 })
 
 // Check if participant is speaking (audio level above threshold)
@@ -335,6 +404,21 @@ const handleRemove = () => {
 .indicator-hold {
   background-color: #ff9800;
   color: white;
+}
+
+.indicator-speaking {
+  background-color: #4caf50;
+  color: white;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .audio-level {

@@ -13,47 +13,49 @@
     </div>
 
     <!-- Filters -->
-    <div v-if="showFilters" class="filters-section">
-      <div class="filter-row">
-        <div class="filter-group">
-          <label>Direction</label>
-          <select v-model="filters.direction">
-            <option :value="null">All</option>
-            <option value="incoming">Incoming</option>
-            <option value="outgoing">Outgoing</option>
-          </select>
+    <div v-if="showFilters" class="filters-section" role="search">
+      <form @submit.prevent="applyFilters" aria-label="Filter call history">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="filter-direction">Direction</label>
+            <select id="filter-direction" v-model="filters.direction" aria-label="Filter by call direction">
+              <option :value="null">All</option>
+              <option value="incoming">Incoming</option>
+              <option value="outgoing">Outgoing</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-status">Status</label>
+            <select id="filter-status" v-model="filters.status" aria-label="Filter by call status">
+              <option :value="null">All</option>
+              <option value="answered">Answered</option>
+              <option value="missed">Missed</option>
+            </select>
+          </div>
         </div>
 
-        <div class="filter-group">
-          <label>Status</label>
-          <select v-model="filters.status">
-            <option :value="null">All</option>
-            <option value="answered">Answered</option>
-            <option value="missed">Missed</option>
-          </select>
-        </div>
-      </div>
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="filter-date-from">From Date</label>
+            <input id="filter-date-from" v-model="filters.dateFrom" type="date" aria-label="Filter from date" />
+          </div>
 
-      <div class="filter-row">
-        <div class="filter-group">
-          <label>From Date</label>
-          <input v-model="filters.dateFrom" type="date" />
+          <div class="filter-group">
+            <label for="filter-date-to">To Date</label>
+            <input id="filter-date-to" v-model="filters.dateTo" type="date" aria-label="Filter to date" />
+          </div>
         </div>
 
-        <div class="filter-group">
-          <label>To Date</label>
-          <input v-model="filters.dateTo" type="date" />
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary btn-sm">
+            Apply Filters
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" @click="clearFilters">
+            Clear
+          </button>
         </div>
-      </div>
-
-      <div class="filter-actions">
-        <button class="btn btn-primary btn-sm" @click="applyFilters">
-          Apply Filters
-        </button>
-        <button class="btn btn-secondary btn-sm" @click="clearFilters">
-          Clear
-        </button>
-      </div>
+      </form>
     </div>
 
     <!-- Export Button -->
@@ -71,13 +73,16 @@
 
       <div v-else class="history-table">
         <table>
+          <caption class="sr-only">
+            Call history showing {{ history.length }} {{ history.length === 1 ? 'entry' : 'entries' }}
+          </caption>
           <thead>
             <tr>
-              <th>Contact</th>
-              <th>Type</th>
-              <th>Duration</th>
-              <th>Time</th>
-              <th>Actions</th>
+              <th scope="col">Contact</th>
+              <th scope="col">Type</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Time</th>
+              <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -96,11 +101,11 @@
               </td>
               <td>
                 <span class="type-badge" :class="entry.direction">
-                  <svg v-if="entry.direction === 'incoming'" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg v-if="entry.direction === 'incoming'" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <polyline points="17 11 12 6 7 11"></polyline>
                     <polyline points="17 18 12 13 7 18"></polyline>
                   </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <polyline points="7 13 12 18 17 13"></polyline>
                     <polyline points="7 6 12 11 17 6"></polyline>
                   </svg>
@@ -110,7 +115,11 @@
                   Missed
                 </span>
               </td>
-              <td>{{ formatDuration(entry.duration) }}</td>
+              <td>
+                <span :aria-label="`Duration: ${formatDuration(entry.duration)}`">
+                  {{ formatDuration(entry.duration) }}
+                </span>
+              </td>
               <td>
                 <div class="time-cell">
                   <div>{{ formatDate(entry.startTime) }}</div>
@@ -320,6 +329,19 @@ const handleExport = () => {
 </script>
 
 <style scoped>
+/* Screen Reader Only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .call-history-panel {
   background: white;
   display: flex;

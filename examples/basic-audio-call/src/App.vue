@@ -1,5 +1,16 @@
 <template>
   <div class="app">
+    <!-- Skip Navigation Link for Accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- ARIA Live Regions for Screen Reader Announcements -->
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
+      {{ statusAnnouncement }}
+    </div>
+    <div role="alert" aria-live="assertive" aria-atomic="true" class="sr-only">
+      {{ errorAnnouncement }}
+    </div>
+
     <header>
       <h1>Basic Audio Call Example</h1>
       <p class="subtitle">
@@ -7,7 +18,7 @@
       </p>
     </header>
 
-    <main>
+    <main id="main-content" role="main">
       <!-- Connection Panel -->
       <ConnectionPanel
         :is-connected="isConnected"
@@ -19,7 +30,7 @@
       />
 
       <!-- Audio Device Selection -->
-      <div v-if="isConnected" class="card">
+      <section v-if="isConnected" class="card" role="region" aria-label="Audio device selection">
         <h2>Audio Devices</h2>
         <div class="form-group">
           <label for="audio-input">Microphone</label>
@@ -56,7 +67,7 @@
             </option>
           </select>
         </div>
-      </div>
+      </section>
 
       <!-- Call Controls -->
       <CallControls
@@ -77,7 +88,7 @@
       />
 
       <!-- Call Statistics (Debug Info) -->
-      <div v-if="session && callState === 'active'" class="card debug-info">
+      <section v-if="session && callState === 'active'" class="card debug-info" role="region" aria-label="Debug information">
         <h3>Debug Information</h3>
         <div class="stats-grid">
           <div>
@@ -99,7 +110,7 @@
             <strong>On Hold:</strong> {{ isOnHold ? 'Yes' : 'No' }}
           </div>
         </div>
-      </div>
+      </section>
     </main>
   </div>
 </template>
@@ -173,6 +184,12 @@ const {
  */
 const connecting = ref(false)
 const connectionError = ref('')
+
+/**
+ * ARIA live region announcements for screen readers
+ */
+const statusAnnouncement = ref('')
+const errorAnnouncement = ref('')
 
 /**
  * Handle SIP connection
@@ -350,6 +367,77 @@ const handleAudioOutputChange = () => {
 watch(sipError, (error) => {
   if (error) {
     connectionError.value = error
+  }
+})
+
+/**
+ * Accessibility: Watch for connection status changes and announce them
+ */
+watch(isConnected, (connected) => {
+  if (connected) {
+    statusAnnouncement.value = 'Connected to SIP server'
+  } else {
+    statusAnnouncement.value = 'Disconnected from SIP server'
+  }
+})
+
+/**
+ * Accessibility: Watch for registration status changes and announce them
+ */
+watch(isRegistered, (registered) => {
+  if (registered) {
+    statusAnnouncement.value = 'Successfully registered with SIP server'
+  }
+})
+
+/**
+ * Accessibility: Watch for call state changes and announce them
+ */
+watch(callState, (newState, oldState) => {
+  // Only announce meaningful state changes
+  if (newState === oldState) return
+
+  switch (newState) {
+    case 'calling':
+      statusAnnouncement.value = 'Calling...'
+      break
+    case 'incoming':
+      statusAnnouncement.value = `Incoming call from ${remoteDisplayName.value || remoteUri.value}`
+      break
+    case 'ringing':
+      statusAnnouncement.value = 'Call ringing'
+      break
+    case 'active':
+      statusAnnouncement.value = 'Call connected'
+      break
+    case 'ended':
+      statusAnnouncement.value = 'Call ended'
+      break
+  }
+})
+
+/**
+ * Accessibility: Watch for mute status changes and announce them
+ */
+watch(isMuted, (muted) => {
+  statusAnnouncement.value = muted ? 'Microphone muted' : 'Microphone unmuted'
+})
+
+/**
+ * Accessibility: Watch for hold status changes and announce them
+ */
+watch(isOnHold, (onHold) => {
+  statusAnnouncement.value = onHold ? 'Call on hold' : 'Call resumed'
+})
+
+/**
+ * Accessibility: Watch for connection errors and announce them
+ */
+watch(connectionError, (error) => {
+  if (error) {
+    errorAnnouncement.value = `Error: ${error}`
+  } else {
+    errorAnnouncement.value = ''
   }
 })
 

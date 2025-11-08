@@ -1,12 +1,17 @@
 <template>
-  <div class="card participant-list" role="region" aria-label="Conference participants">
-    <h3 id="participants-heading">Participants</h3>
+  <div class="card participant-list" role="region" aria-labelledby="participants-heading">
+    <h3 id="participants-heading">
+      Participants
+      <span class="participant-count" aria-live="polite">
+        ({{ participants.length }})
+      </span>
+    </h3>
 
     <div v-if="participants.length === 0" class="empty-state" role="status">
       <p>No participants yet. Add participants to start the conference.</p>
     </div>
 
-    <div
+    <ul
       v-else
       class="participants-grid"
       role="list"
@@ -21,7 +26,7 @@
         @unmute="$emit('unmuteParticipant', participant.id)"
         @remove="$emit('removeParticipant', participant.id)"
       />
-    </div>
+    </ul>
   </div>
 </template>
 
@@ -54,6 +59,15 @@ defineEmits<Emits>()
 <style scoped>
 .participant-list h3 {
   margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.participant-count {
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .empty-state {
@@ -63,12 +77,22 @@ defineEmits<Emits>()
 }
 
 .participants-grid {
+  /* Reset list styles */
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  /* Grid layout */
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
 }
 
 @media (prefers-color-scheme: light) {
+  .participant-count {
+    color: rgba(0, 0, 0, 0.7);
+  }
+
   .empty-state {
     color: rgba(0, 0, 0, 0.6);
   }

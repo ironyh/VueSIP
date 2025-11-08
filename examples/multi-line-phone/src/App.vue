@@ -1,104 +1,134 @@
 <template>
   <div class="multi-line-phone">
-    <div class="header">
+    <!-- Screen reader announcements -->
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
+      {{ srAnnouncement }}
+    </div>
+
+    <div role="alert" aria-live="assertive" class="sr-only">
+      {{ srAlert }}
+    </div>
+
+    <!-- Skip link target -->
+    <span id="main-content" class="skip-target"></span>
+
+    <header class="header">
       <h1>Multi-Line Phone</h1>
       <p class="subtitle">VueSip Advanced Example - Manage up to 5 concurrent calls</p>
-    </div>
+    </header>
 
     <div class="main-container">
       <!-- Left Panel: Connection and Call History -->
-      <div class="left-panel">
-        <ConnectionPanel
-          v-model:connected="isConnected"
-          v-model:registered="isRegistered"
-          :is-connecting="isConnecting"
-          @connect="handleConnect"
-          @disconnect="handleDisconnect"
-        />
+      <aside class="left-panel" aria-label="Connection settings and call history">
+        <nav aria-label="SIP connection settings">
+          <ConnectionPanel
+            v-model:connected="isConnected"
+            v-model:registered="isRegistered"
+            :is-connecting="isConnecting"
+            @connect="handleConnect"
+            @disconnect="handleDisconnect"
+          />
+        </nav>
 
         <!-- Call History -->
-        <div class="call-history" v-if="callHistory.length > 0">
-          <h3>Recent Calls</h3>
-          <div class="history-list">
-            <div
+        <section
+          v-if="callHistory.length > 0"
+          class="call-history"
+          aria-labelledby="call-history-heading"
+        >
+          <h2 id="call-history-heading">Recent Calls</h2>
+          <ul class="history-list" role="list">
+            <li
               v-for="entry in callHistory.slice(0, 10)"
               :key="entry.id"
               class="history-item"
+              role="listitem"
             >
               <div class="history-info">
                 <span class="history-uri">{{ entry.remoteUri || 'Unknown' }}</span>
                 <span class="history-direction" :class="entry.direction">
-                  {{ entry.direction === 'incoming' ? '📞 In' : '📲 Out' }}
+                  <span aria-hidden="true">{{ entry.direction === 'incoming' ? '📞' : '📲' }}</span>
+                  {{ entry.direction === 'incoming' ? 'Incoming' : 'Outgoing' }}
                 </span>
               </div>
               <span class="history-duration">{{ formatDuration(entry.duration || 0) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+            </li>
+          </ul>
+        </section>
+      </aside>
 
       <!-- Center Panel: Active Call Lines -->
-      <div class="center-panel">
-        <div class="call-lines-header">
-          <h2>Active Lines ({{ activeCallCount }}/{{ MAX_LINES }})</h2>
-          <button
-            v-if="activeCallCount < MAX_LINES"
-            @click="showDialpad = !showDialpad"
-            class="btn-new-call"
-            :disabled="!isRegistered"
-          >
-            {{ showDialpad ? 'Hide Dialpad' : '+ New Call' }}
-          </button>
-        </div>
+      <main class="center-panel">
+        <section aria-labelledby="active-lines-heading">
+          <div class="call-lines-header">
+            <h2 id="active-lines-heading">
+              Active Lines ({{ activeCallCount }}/{{ MAX_LINES }})
+              <span class="sr-only">
+                {{ activeCallCount }} of {{ MAX_LINES }} lines currently in use
+              </span>
+            </h2>
+            <button
+              v-if="activeCallCount < MAX_LINES"
+              @click="showDialpad = !showDialpad"
+              class="btn-new-call"
+              :disabled="!isRegistered"
+              :aria-label="showDialpad ? 'Hide dialpad' : 'Show dialpad to make new call'"
+              :aria-expanded="showDialpad"
+            >
+              {{ showDialpad ? 'Hide Dialpad' : '+ New Call' }}
+            </button>
+          </div>
 
-        <!-- Call Lines -->
-        <div class="call-lines">
-          <CallLine
-            v-for="(line, index) in callLines"
-            :key="line.id"
-            :line-number="index + 1"
-            :session="line.session"
-            :state="line.state"
-            :remote-uri="line.remoteUri"
-            :remote-display-name="line.remoteDisplayName"
-            :duration="line.duration"
-            :is-on-hold="line.isOnHold"
-            :is-muted="line.isMuted"
-            :is-active-line="line.id === activeLineId"
-            :local-stream="line.localStream"
-            :remote-stream="line.remoteStream"
-            @answer="handleAnswer(line)"
-            @reject="handleReject(line)"
-            @hangup="handleHangup(line)"
-            @hold="handleHold(line)"
-            @unhold="handleUnhold(line)"
-            @mute="handleMute(line)"
-            @unmute="handleUnmute(line)"
-            @make-active="makeLineActive(line.id)"
-            @send-dtmf="handleSendDTMF(line, $event)"
-          />
-        </div>
+          <!-- Call Lines -->
+          <div class="call-lines" role="group" aria-label="Active call lines">
+            <CallLine
+              v-for="(line, index) in callLines"
+              :key="line.id"
+              :line-number="index + 1"
+              :session="line.session"
+              :state="line.state"
+              :remote-uri="line.remoteUri"
+              :remote-display-name="line.remoteDisplayName"
+              :duration="line.duration"
+              :is-on-hold="line.isOnHold"
+              :is-muted="line.isMuted"
+              :is-active-line="line.id === activeLineId"
+              :local-stream="line.localStream"
+              :remote-stream="line.remoteStream"
+              @answer="handleAnswer(line)"
+              @reject="handleReject(line)"
+              @hangup="handleHangup(line)"
+              @hold="handleHold(line)"
+              @unhold="handleUnhold(line)"
+              @mute="handleMute(line)"
+              @unmute="handleUnmute(line)"
+              @make-active="makeLineActive(line.id)"
+              @send-dtmf="handleSendDTMF(line, $event)"
+            />
+          </div>
 
-        <!-- Empty State -->
-        <div v-if="activeCallCount === 0" class="empty-state">
-          <div class="empty-icon">📞</div>
-          <h3>No Active Calls</h3>
-          <p>Use the dialpad to make a new call or wait for incoming calls</p>
-        </div>
-      </div>
+          <!-- Empty State -->
+          <div v-if="activeCallCount === 0" class="empty-state">
+            <div class="empty-icon" aria-hidden="true">📞</div>
+            <h3>No Active Calls</h3>
+            <p>Use the dialpad to make a new call or wait for incoming calls</p>
+          </div>
+        </section>
+      </main>
 
       <!-- Right Panel: Dialpad and Info -->
-      <div class="right-panel">
-        <Dialpad
-          v-if="showDialpad && isRegistered"
-          v-model:number="dialNumber"
-          @call="handleMakeCall"
-          :disabled="activeCallCount >= MAX_LINES"
-        />
+      <aside class="right-panel" aria-label="Dialpad and application features">
+        <section v-if="showDialpad && isRegistered" aria-label="Dialpad">
+          <Dialpad
+            v-model:number="dialNumber"
+            @call="handleMakeCall"
+            :disabled="activeCallCount >= MAX_LINES"
+          />
+        </section>
 
-        <div v-if="!isRegistered" class="info-panel">
-          <div class="info-icon">ℹ️</div>
-          <h3>Getting Started</h3>
+        <section v-if="!isRegistered" class="info-panel" aria-labelledby="getting-started-heading">
+          <div class="info-icon" aria-hidden="true">ℹ️</div>
+          <h2 id="getting-started-heading">Getting Started</h2>
           <ol class="info-list">
             <li>Configure your SIP credentials in the Connection Panel</li>
             <li>Click "Connect" to establish connection</li>
@@ -106,10 +136,10 @@
             <li>Manage up to 5 concurrent calls</li>
             <li>Switch between calls by clicking on them</li>
           </ol>
-        </div>
+        </section>
 
-        <div v-else class="info-panel">
-          <h3>Multi-Line Features</h3>
+        <section v-else class="info-panel" aria-labelledby="features-heading">
+          <h2 id="features-heading">Multi-Line Features</h2>
           <ul class="feature-list">
             <li><strong>Hold/Resume:</strong> Put calls on hold while talking to others</li>
             <li><strong>Call Switching:</strong> Click on a line to make it active</li>
@@ -117,8 +147,8 @@
             <li><strong>DTMF:</strong> Send touch tones during calls</li>
             <li><strong>Multiple Lines:</strong> Handle up to 5 simultaneous calls</li>
           </ul>
-        </div>
-      </div>
+        </section>
+      </aside>
     </div>
 
     <!-- Incoming Call Alert -->
@@ -133,14 +163,20 @@
     />
 
     <!-- Max Lines Warning -->
-    <div v-if="maxLinesWarning" class="max-lines-warning">
+    <div v-if="maxLinesWarning" role="alert" aria-live="assertive" class="max-lines-warning">
       <div class="warning-content">
-        <span class="warning-icon">⚠️</span>
+        <span class="warning-icon" aria-hidden="true">⚠️</span>
         <div class="warning-text">
           <strong>Maximum Lines Reached</strong>
           <p>You've reached the maximum of {{ MAX_LINES }} concurrent calls. Please end a call before starting a new one.</p>
         </div>
-        <button @click="maxLinesWarning = false" class="warning-close">×</button>
+        <button
+          @click="maxLinesWarning = false"
+          class="warning-close"
+          aria-label="Close maximum lines warning"
+        >
+          <span aria-hidden="true">×</span>
+        </button>
       </div>
     </div>
   </div>
@@ -175,6 +211,11 @@ const showDialpad = ref(false)
 const dialNumber = ref('')
 const isConnecting = ref(false)
 const maxLinesWarning = ref(false)
+
+// Screen reader announcements
+const srAnnouncement = ref('')
+const srAlert = ref('')
+const previousCallLineStates = new Map<string, CallState>()
 
 /**
  * Call Line Interface
@@ -663,6 +704,55 @@ function formatDuration(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
+// Watch for call line additions/removals
+watch(callLines, (newLines, oldLines) => {
+  if (newLines.length > oldLines.length) {
+    srAlert.value = `New call added. ${newLines.length} active ${newLines.length === 1 ? 'call' : 'calls'}`
+  } else if (newLines.length < oldLines.length) {
+    srAnnouncement.value = `Call ended. ${newLines.length} active ${newLines.length === 1 ? 'call' : 'calls'}`
+  }
+}, { deep: true })
+
+// Watch for state changes
+watch(callLines, (lines) => {
+  lines.forEach((line, index) => {
+    const oldState = previousCallLineStates.get(line.id)
+    if (oldState && oldState !== line.state) {
+      const lineNumber = index + 1
+      const displayName = line.remoteDisplayName || line.remoteUri || 'Unknown'
+
+      if (line.state === 'ringing') {
+        srAlert.value = `Incoming call on line ${lineNumber} from ${displayName}`
+      } else if (line.state === 'active' && oldState === 'ringing') {
+        srAnnouncement.value = `Line ${lineNumber} call with ${displayName} active`
+      } else if (line.state === 'active' && oldState === 'calling') {
+        srAnnouncement.value = `Line ${lineNumber} call to ${displayName} connected`
+      } else if (line.isOnHold && oldState !== 'held') {
+        srAnnouncement.value = `Line ${lineNumber} on hold`
+      } else if (!line.isOnHold && oldState === 'held') {
+        srAnnouncement.value = `Line ${lineNumber} resumed`
+      } else if (line.state === 'terminated') {
+        srAnnouncement.value = `Line ${lineNumber} call ended`
+      } else if (line.state === 'failed') {
+        srAlert.value = `Line ${lineNumber} call failed`
+      }
+    }
+    previousCallLineStates.set(line.id, line.state)
+  })
+}, { deep: true })
+
+// Watch for active line changes
+watch(activeLineId, (newId, oldId) => {
+  if (newId !== oldId && newId) {
+    const line = callLines.value.find(l => l.id === newId)
+    if (line) {
+      const lineNumber = callLines.value.indexOf(line) + 1
+      const displayName = line.remoteDisplayName || line.remoteUri || 'Unknown'
+      srAnnouncement.value = `Switched to line ${lineNumber} with ${displayName}`
+    }
+  }
+})
+
 // Listen for incoming calls
 onMounted(() => {
   const eventBus = getEventBus()
@@ -981,6 +1071,34 @@ onUnmounted(() => {
 
 .warning-close:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.skip-target {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Responsive Design */

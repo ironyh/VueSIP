@@ -2,59 +2,88 @@
   <div class="connection-panel">
     <div class="panel-header">
       <h3>SIP Connection</h3>
-      <div class="status-indicator" :class="statusClass">
-        <span class="status-dot"></span>
+      <div class="status-indicator" :class="statusClass" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-icon" aria-hidden="true">{{ statusIcon }}</span>
         <span class="status-text">{{ statusText }}</span>
       </div>
     </div>
 
     <!-- Connection Form -->
     <form @submit.prevent="handleConnect" class="connection-form">
-      <div class="form-group">
-        <label for="sipUri">SIP URI</label>
-        <input
-          id="sipUri"
-          v-model="config.sipUri"
-          type="text"
-          placeholder="sip:1000@example.com"
-          :disabled="isConnected"
-          required
-        />
-      </div>
+      <fieldset>
+        <legend class="sr-only">SIP Account Configuration</legend>
 
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input
-          id="password"
-          v-model="config.password"
-          type="password"
-          placeholder="Enter password"
-          :disabled="isConnected"
-          required
-        />
-      </div>
+        <div class="form-group">
+          <label for="sipUri">SIP URI <span class="required" aria-label="required">*</span></label>
+          <input
+            id="sipUri"
+            v-model="config.sipUri"
+            type="text"
+            placeholder="sip:1000@example.com"
+            :disabled="isConnected"
+            required
+            aria-required="true"
+            aria-describedby="sipUri-hint"
+          />
+          <small id="sipUri-hint" class="form-hint">
+            Your SIP account URI (e.g., sip:1000@example.com)
+          </small>
+        </div>
 
-      <div class="form-group">
-        <label for="uri">WebSocket URI</label>
-        <input
-          id="uri"
-          v-model="config.uri"
-          type="text"
-          placeholder="wss://sip.example.com:7443"
-          :disabled="isConnected"
-          required
-        />
-      </div>
+        <div class="form-group">
+          <label for="password">Password <span class="required" aria-label="required">*</span></label>
+          <input
+            id="password"
+            v-model="config.password"
+            type="password"
+            placeholder="Enter password"
+            :disabled="isConnected"
+            required
+            aria-required="true"
+            aria-describedby="password-hint"
+          />
+          <small id="password-hint" class="form-hint">
+            Your SIP account password
+          </small>
+        </div>
 
-      <div class="form-group">
-        <label for="displayName">Display Name (Optional)</label>
-        <input
-          id="displayName"
-          v-model="config.displayName"
-          type="text"
-          placeholder="Your Name"
-          :disabled="isConnected"
-        />
+        <div class="form-group">
+          <label for="uri">WebSocket URI <span class="required" aria-label="required">*</span></label>
+          <input
+            id="uri"
+            v-model="config.uri"
+            type="text"
+            placeholder="wss://sip.example.com:7443"
+            :disabled="isConnected"
+            required
+            aria-required="true"
+            aria-describedby="uri-hint"
+          />
+          <small id="uri-hint" class="form-hint">
+            WebSocket server address (e.g., wss://sip.example.com:7443)
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="displayName">Display Name</label>
+          <input
+            id="displayName"
+            v-model="config.displayName"
+            type="text"
+            placeholder="Your Name"
+            :disabled="isConnected"
+            aria-describedby="displayName-hint"
+          />
+          <small id="displayName-hint" class="form-hint">
+            Optional: Name shown to other callers
+          </small>
+        </div>
+      </fieldset>
+
+      <!-- Error message region -->
+      <div v-if="errorMessage" role="alert" aria-live="assertive" class="error-message">
+        <strong>Connection Error:</strong> {{ errorMessage }}
       </div>
 
       <!-- Action Buttons -->
@@ -64,9 +93,10 @@
           type="submit"
           class="btn btn--primary"
           :disabled="!canConnect || isConnecting"
+          :aria-label="isConnecting ? 'Connecting to SIP server' : 'Connect to SIP server'"
         >
-          <span v-if="!isConnecting" class="btn-icon">🔌</span>
-          <span v-else class="btn-spinner"></span>
+          <span v-if="!isConnecting" class="btn-icon" aria-hidden="true">🔌</span>
+          <span v-else class="btn-spinner" role="status" aria-label="Connecting"></span>
           {{ isConnecting ? 'Connecting...' : 'Connect' }}
         </button>
         <button
@@ -74,15 +104,16 @@
           type="button"
           @click="handleDisconnect"
           class="btn btn--danger"
+          aria-label="Disconnect from SIP server"
         >
-          <span class="btn-icon">🔌</span>
+          <span class="btn-icon" aria-hidden="true">🔌</span>
           Disconnect
         </button>
       </div>
     </form>
 
     <!-- Connection Info (when connected) -->
-    <div v-if="isConnected" class="connection-info">
+    <div v-if="isConnected" class="connection-info" role="region" aria-label="Connection information">
       <div class="info-item">
         <span class="info-label">Status:</span>
         <span class="info-value">{{ isRegistered ? 'Registered' : 'Connected' }}</span>
@@ -167,6 +198,7 @@ const config = ref<SipConfig>({
 const isConnected = ref(props.connected)
 const isRegistered = ref(props.registered)
 const isConnecting = ref(props.isConnecting)
+const errorMessage = ref('')
 
 // Computed
 const canConnect = computed(() => {
@@ -189,9 +221,18 @@ const statusText = computed(() => {
   return 'Disconnected'
 })
 
+const statusIcon = computed(() => {
+  if (isRegistered.value) return '✓'
+  if (isConnected.value) return '○'
+  return '✕'
+})
+
 // Methods
 function handleConnect() {
   if (!canConnect.value) return
+
+  // Clear previous errors
+  errorMessage.value = ''
 
   // Save config to localStorage
   localStorage.setItem('sip_uri', config.value.uri)
@@ -199,10 +240,17 @@ function handleConnect() {
   localStorage.setItem('sip_password', config.value.password)
   localStorage.setItem('sip_displayName', config.value.displayName)
 
-  emit('connect', { ...config.value })
+  try {
+    emit('connect', { ...config.value })
+  } catch (error) {
+    errorMessage.value = error instanceof Error
+      ? error.message
+      : 'Failed to connect to SIP server. Please check your credentials.'
+  }
 }
 
 function handleDisconnect() {
+  errorMessage.value = ''
   emit('disconnect')
 }
 
@@ -266,6 +314,11 @@ watch(
   animation: pulse 2s ease-in-out infinite;
 }
 
+.status-icon {
+  font-size: 1.2em;
+  margin-right: 4px;
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -309,6 +362,15 @@ watch(
   gap: 16px;
 }
 
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -319,6 +381,11 @@ watch(
   font-size: 0.9em;
   font-weight: 600;
   color: #495057;
+}
+
+.required {
+  color: #dc3545;
+  margin-left: 2px;
 }
 
 .form-group input {
@@ -332,11 +399,33 @@ watch(
 .form-group input:focus {
   outline: none;
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
 }
 
 .form-group input:disabled {
   background: #f8f9fa;
   cursor: not-allowed;
+}
+
+.form-hint {
+  display: block;
+  font-size: 0.85em;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.error-message {
+  padding: 12px;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  color: #721c24;
+  font-size: 0.9em;
+}
+
+.error-message strong {
+  display: block;
+  margin-bottom: 4px;
 }
 
 .form-actions {
@@ -365,6 +454,11 @@ watch(
 .btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn:focus {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
 }
 
 .btn:active:not(:disabled) {
@@ -432,6 +526,11 @@ watch(
   color: #764ba2;
 }
 
+.setup-help summary:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
 .help-content {
   margin-top: 12px;
   font-size: 0.9em;
@@ -483,6 +582,35 @@ watch(
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .status-dot {
+    animation: none;
+  }
+
+  .btn {
+    transition-duration: 0.01ms !important;
+  }
+
+  .btn-spinner {
+    animation: none;
+    border-top-color: white;
   }
 }
 </style>

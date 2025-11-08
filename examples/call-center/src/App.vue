@@ -1,5 +1,13 @@
 <template>
   <div class="call-center">
+    <!-- Skip Navigation Links -->
+    <div class="skip-links">
+      <a href="#main-content" class="skip-link">Skip to main content</a>
+      <a href="#call-queue" class="skip-link">Skip to call queue</a>
+      <a href="#active-call" class="skip-link">Skip to active call</a>
+      <a href="#call-history" class="skip-link">Skip to call history</a>
+    </div>
+
     <!-- Not Connected State -->
     <div v-if="!isConnected" class="login-container">
       <div class="login-card card">
@@ -8,8 +16,16 @@
       </div>
     </div>
 
+    <!-- Global ARIA Live Regions -->
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
+      {{ statusAnnouncement }}
+    </div>
+    <div role="alert" aria-live="assertive" aria-atomic="true" class="sr-only">
+      {{ errorAnnouncement }}
+    </div>
+
     <!-- Notification Toast -->
-    <div v-if="notification" class="notification-toast" :class="notification.type">
+    <div v-if="notification" class="notification-toast" :class="notification.type" role="status" aria-live="polite">
       <span>{{ notification.message }}</span>
       <button class="close-btn" @click="notification = null" aria-label="Close notification">×</button>
     </div>
@@ -17,7 +33,7 @@
     <!-- Connected State - Main Dashboard -->
     <div v-else class="dashboard">
       <!-- Header -->
-      <header class="dashboard-header">
+      <header class="dashboard-header" role="banner">
         <div class="header-content">
           <h1>Call Center Dashboard</h1>
           <div class="header-actions">
@@ -32,7 +48,7 @@
       <!-- Main Content -->
       <div class="dashboard-content">
         <!-- Left Sidebar - Call Queue & Agent Info -->
-        <aside class="sidebar">
+        <aside class="sidebar" aria-label="Agent status and call queue">
           <AgentDashboard
             :agent-status="agentStatus"
             :current-call-id="callId"
@@ -41,17 +57,20 @@
             :average-duration="todayStats.averageDuration"
           />
           <CallQueue
+            id="call-queue"
             :queue="callQueue"
             :agent-status="agentStatus"
             @answer="handleQueuedCallAnswer"
+            @queue-update="handleQueueUpdate"
           />
         </aside>
 
         <!-- Main Area - Active Call & Stats -->
-        <main class="main-content">
+        <main id="main-content" class="main-content" aria-label="Active call or statistics">
           <!-- Active Call -->
           <ActiveCall
             v-if="isActive"
+            id="active-call"
             :session="session"
             :state="state"
             :remote-uri="remoteUri"
@@ -65,6 +84,7 @@
             @hold="handleHoldToggle"
             @send-dtmf="handleSendDTMF"
             @update:notes="currentCallNotes = $event"
+            @call-state-change="handleCallStateChange"
           />
 
           <!-- Statistics Dashboard (when no active call) -->
@@ -72,7 +92,7 @@
         </main>
 
         <!-- Right Panel - Call History -->
-        <aside class="history-panel">
+        <aside id="call-history" class="history-panel" aria-label="Call history and statistics">
           <CallHistoryPanel
             :history="filteredHistory"
             :total-count="totalCalls"
@@ -148,6 +168,25 @@ const callQueue = ref<QueuedCall[]>([])
 
 // Error/notification state
 const notification = ref<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
+
+// ARIA Live Region Announcements
+const statusAnnouncement = ref('')
+const errorAnnouncement = ref('')
+
+// Announcement helpers
+const announceStatus = (message: string) => {
+  statusAnnouncement.value = message
+  setTimeout(() => {
+    statusAnnouncement.value = ''
+  }, 1000)
+}
+
+const announceError = (message: string) => {
+  errorAnnouncement.value = message
+  setTimeout(() => {
+    errorAnnouncement.value = ''
+  }, 1000)
+}
 
 // Show notification helper
 const showNotification = (type: 'success' | 'error' | 'info', message: string, duration = 5000) => {
@@ -287,8 +326,15 @@ const handleDisconnect = async () => {
 }
 
 const updateAgentStatus = (status: AgentStatus) => {
+  const oldStatus = agentStatus.value
   agentStatus.value = status
   saveAgentStatus(status)
+
+  // Announce status change
+  if (oldStatus !== status) {
+    const statusText = status === 'available' ? 'Available' : status === 'busy' ? 'Busy' : 'Away'
+    announceStatus(`Agent status changed to ${statusText}`)
+  }
 
   // Start/stop queue simulation based on status
   if (status === 'available') {
@@ -296,6 +342,14 @@ const updateAgentStatus = (status: AgentStatus) => {
   } else {
     stopQueueSimulation()
   }
+}
+
+const handleQueueUpdate = (announcement: string) => {
+  announceStatus(announcement)
+}
+
+const handleCallStateChange = (announcement: string) => {
+  announceStatus(announcement)
 }
 
 const handleQueuedCallAnswer = async (queuedCall: QueuedCall) => {
@@ -432,6 +486,45 @@ watch(isActive, (active) => {
   width: 100%;
   min-height: 100vh;
   background: #f3f4f6;
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Skip Navigation Links */
+.skip-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  padding: 0.75rem 1.5rem;
+  background: #1e40af;
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 0 0 8px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.skip-link:focus {
+  left: 0;
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
 }
 
 /* Login Container */

@@ -1,21 +1,31 @@
 <template>
   <div class="app">
+    <!-- Skip Navigation Links -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <a href="#video-controls" class="skip-link">Skip to video controls</a>
+
     <!-- Header -->
-    <header class="header">
+    <header class="header" role="banner">
       <div class="container">
         <h1>
-          <span class="logo">📹</span>
+          <span class="logo" aria-hidden="true">📹</span>
           VueSip Video Call Example
         </h1>
-        <div class="status-indicator" :class="{ connected: isConnected, registered: isRegistered }">
-          <span class="dot"></span>
+        <div
+          class="status-indicator"
+          :class="{ connected: isConnected, registered: isRegistered }"
+          role="status"
+          aria-live="polite"
+        >
+          <span class="dot" aria-hidden="true"></span>
+          <span class="sr-only">Connection status: </span>
           {{ connectionStatus }}
         </div>
       </div>
     </header>
 
     <!-- Main Content -->
-    <main class="main">
+    <main id="main-content" class="main" role="main">
       <div class="container">
         <!-- Connection Panel - Show when not connected -->
         <ConnectionPanel
@@ -28,7 +38,7 @@
         <!-- Video Call Interface - Show when connected -->
         <div v-else class="video-interface">
           <!-- Video Display Area -->
-          <div class="video-display">
+          <div class="video-display" role="region" aria-label="Video call display area">
             <!-- Remote Video (main view) -->
             <RemoteVideo
               :stream="remoteStream"
@@ -47,7 +57,7 @@
           </div>
 
           <!-- Call Information -->
-          <div class="call-info" v-if="isCallActive">
+          <div class="call-info" v-if="isCallActive" role="status" aria-live="polite">
             <div class="call-info-item">
               <span class="label">Status:</span>
               <span class="value">{{ callState }}</span>
@@ -63,26 +73,36 @@
           </div>
 
           <!-- Call Controls -->
-          <VideoCallControls
-            :is-call-active="isCallActive"
-            :call-state="callState"
-            :is-muted="isMuted"
-            :has-local-video="hasLocalVideo"
-            :is-on-hold="isOnHold"
-            @make-call="handleMakeCall"
-            @answer="handleAnswer"
-            @reject="handleReject"
-            @hangup="handleHangup"
-            @toggle-mute="handleToggleMute"
-            @toggle-video="handleToggleVideo"
-            @toggle-hold="handleToggleHold"
-          />
+          <div id="video-controls">
+            <VideoCallControls
+              :is-call-active="isCallActive"
+              :call-state="callState"
+              :is-muted="isMuted"
+              :has-local-video="hasLocalVideo"
+              :is-on-hold="isOnHold"
+              @make-call="handleMakeCall"
+              @answer="handleAnswer"
+              @reject="handleReject"
+              @hangup="handleHangup"
+              @toggle-mute="handleToggleMute"
+              @toggle-video="handleToggleVideo"
+              @toggle-hold="handleToggleHold"
+            />
+          </div>
+        </div>
+
+        <!-- ARIA Live Regions for Screen Reader Announcements -->
+        <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
+          {{ statusAnnouncement }}
+        </div>
+        <div role="alert" aria-live="assertive" aria-atomic="true" class="sr-only">
+          {{ errorAnnouncement }}
         </div>
       </div>
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer" role="contentinfo">
       <div class="container">
         <p>Built with VueSip - A headless Vue.js SIP/VoIP library</p>
       </div>
@@ -175,6 +195,8 @@ const {
 // ============================================================================
 
 const connectionError = ref<string | null>(null)
+const statusAnnouncement = ref<string>('')
+const errorAnnouncement = ref<string>('')
 
 // ============================================================================
 // Computed Properties
@@ -308,6 +330,8 @@ async function handleHangup() {
  */
 function handleToggleMute() {
   toggleMute()
+  // Announce state change
+  statusAnnouncement.value = isMuted.value ? 'Microphone unmuted' : 'Microphone muted'
 }
 
 /**
@@ -324,12 +348,17 @@ async function handleToggleVideo() {
     }
 
     // Toggle video tracks
+    const newState = !videoTracks[0].enabled
     videoTracks.forEach((track) => {
-      track.enabled = !track.enabled
+      track.enabled = newState
     })
+
+    // Announce state change
+    statusAnnouncement.value = newState ? 'Camera turned on' : 'Camera turned off'
   } catch (error) {
     console.error('Failed to toggle video:', error)
     connectionError.value = error instanceof Error ? error.message : 'Failed to toggle video'
+    errorAnnouncement.value = 'Failed to toggle camera'
   }
 }
 
@@ -379,14 +408,19 @@ async function handleCameraSelect(deviceId: string) {
         localStream.value.addTrack(newVideoTrack)
 
         console.log('Camera switched to:', deviceId)
+        // Announce camera change
+        const device = videoInputDevices.value.find(d => d.deviceId === deviceId)
+        statusAnnouncement.value = `Camera switched to ${device?.label || 'selected camera'}`
       } catch (error) {
         console.error('Failed to switch camera during call:', error)
         connectionError.value = error instanceof Error ? error.message : 'Failed to switch camera'
+        errorAnnouncement.value = 'Failed to switch camera'
       }
     }
   } catch (error) {
     console.error('Failed to select camera:', error)
     connectionError.value = error instanceof Error ? error.message : 'Failed to select camera'
+    errorAnnouncement.value = 'Failed to select camera'
   }
 }
 
@@ -415,6 +449,8 @@ function formatDuration(seconds: number): string {
 // Listen for incoming calls
 eventBus.on('call:incoming', (data: { remoteUri: string; remoteDisplayName?: string }) => {
   console.log('Incoming call from:', data.remoteUri)
+  // Announce incoming call to screen readers
+  statusAnnouncement.value = `Incoming video call from ${data.remoteDisplayName || data.remoteUri}`
   // The UI will show the answer button automatically when callState changes
 })
 
@@ -422,6 +458,22 @@ eventBus.on('call:incoming', (data: { remoteUri: string; remoteDisplayName?: str
 watch(sipError, (error) => {
   if (error) {
     connectionError.value = error.message
+    errorAnnouncement.value = `Connection error: ${error.message}`
+  }
+})
+
+// Watch for call state changes
+watch(callState, (newState, oldState) => {
+  if (newState !== oldState) {
+    const stateMessages: Record<string, string> = {
+      'ringing': 'Call is ringing',
+      'active': 'Call connected',
+      'ended': 'Call ended',
+      'failed': 'Call failed',
+    }
+    if (stateMessages[newState]) {
+      statusAnnouncement.value = stateMessages[newState]
+    }
   }
 })
 
@@ -628,5 +680,54 @@ onUnmounted(() => {
     flex-direction: column;
     gap: 15px;
   }
+}
+
+/* ============================================================================
+   Accessibility
+   ============================================================================ */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Skip navigation links */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #667eea;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  font-weight: 600;
+  z-index: 100;
+  border-radius: 0 0 4px 0;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Focus visible styles for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
 }
 </style>

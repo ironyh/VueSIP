@@ -1,5 +1,5 @@
 <template>
-  <div class="remote-video-container">
+  <div class="remote-video-container" role="region" aria-label="Remote participant video">
     <!-- Remote Video Element -->
     <video
       ref="remoteVideoElement"
@@ -7,39 +7,50 @@
       playsinline
       class="remote-video"
       :class="{ active: isActive && stream }"
-      aria-label="Remote video stream"
+      :aria-label="`Remote video from ${remoteDisplayName || 'remote participant'}`"
+      :aria-hidden="!isActive || !stream"
     ></video>
 
     <!-- Placeholder when no call is active -->
-    <div v-if="!isActive" class="idle-state">
+    <div v-if="!isActive" class="idle-state" role="status" aria-live="polite">
       <div class="idle-content">
-        <span class="phone-icon">📞</span>
+        <span class="phone-icon" aria-hidden="true">📞</span>
         <h2>Ready for Video Call</h2>
         <p>Enter a SIP URI below to start a call</p>
       </div>
     </div>
 
     <!-- Placeholder when call is active but no video -->
-    <div v-else-if="isActive && !stream" class="connecting-state">
+    <div v-else-if="isActive && !stream" class="connecting-state" role="status" aria-live="polite">
       <div class="connecting-content">
-        <div class="pulse-ring"></div>
-        <span class="user-icon">👤</span>
+        <div class="pulse-ring" aria-hidden="true"></div>
+        <span class="user-icon" aria-hidden="true">👤</span>
         <h2>{{ remoteDisplayName || 'Unknown' }}</h2>
         <p>Connecting video...</p>
       </div>
     </div>
 
     <!-- Remote Display Name Overlay (when video is active) -->
-    <div v-if="isActive && stream" class="remote-name-overlay">
+    <div v-if="isActive && stream" class="remote-name-overlay" aria-hidden="true">
       {{ remoteDisplayName || 'Remote User' }}
     </div>
 
     <!-- Video Statistics (optional, can be toggled) -->
-    <div v-if="showStats && isActive && stream" class="video-stats">
+    <div
+      v-if="showStats && isActive && stream"
+      class="video-stats"
+      role="status"
+      aria-label="Video statistics"
+    >
       <div class="stat-item">
         <span class="stat-label">Resolution:</span>
         <span class="stat-value">{{ videoResolution }}</span>
       </div>
+    </div>
+
+    <!-- Screen reader announcements for video state changes -->
+    <div role="status" aria-live="polite" class="sr-only">
+      {{ videoStatusAnnouncement }}
     </div>
   </div>
 </template>
@@ -69,6 +80,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const remoteVideoElement = ref<HTMLVideoElement | null>(null)
 const videoResolution = ref<string>('Unknown')
+const videoStatusAnnouncement = ref<string>('')
 
 // ============================================================================
 // Methods
@@ -95,17 +107,38 @@ function updateVideoStats() {
  */
 watch(
   () => props.stream,
-  (newStream) => {
+  (newStream, oldStream) => {
     if (remoteVideoElement.value) {
-      if (newStream) {
+      if (newStream && !oldStream) {
         remoteVideoElement.value.srcObject = newStream
+        // Announce video start
+        videoStatusAnnouncement.value = `Remote video from ${props.remoteDisplayName || 'participant'} started`
 
         // Update stats when video metadata is loaded
         remoteVideoElement.value.addEventListener('loadedmetadata', updateVideoStats)
-      } else {
+      } else if (!newStream && oldStream) {
         remoteVideoElement.value.srcObject = null
         videoResolution.value = 'Unknown'
+        // Announce video stop
+        videoStatusAnnouncement.value = 'Remote video stopped'
+      } else if (newStream) {
+        remoteVideoElement.value.srcObject = newStream
+        remoteVideoElement.value.addEventListener('loadedmetadata', updateVideoStats)
       }
+    }
+  }
+)
+
+/**
+ * Watch for call state changes
+ */
+watch(
+  () => props.isActive,
+  (newActive, oldActive) => {
+    if (newActive && !oldActive) {
+      videoStatusAnnouncement.value = `Call connected with ${props.remoteDisplayName || 'remote participant'}`
+    } else if (!newActive && oldActive) {
+      videoStatusAnnouncement.value = 'Call ended'
     }
   }
 )
@@ -370,5 +403,22 @@ onUnmounted(() => {
     font-size: 11px;
     padding: 8px 12px;
   }
+}
+
+/* ============================================================================
+   Accessibility
+   ============================================================================ */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 </style>

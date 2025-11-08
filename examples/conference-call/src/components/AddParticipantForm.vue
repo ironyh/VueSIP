@@ -1,19 +1,43 @@
 <template>
-  <div class="card add-participant-form">
-    <h3>Add Participant</h3>
+  <div
+    class="card add-participant-form"
+    role="region"
+    aria-labelledby="add-participant-heading"
+  >
+    <h3 id="add-participant-heading">Add Participant</h3>
 
-    <div v-if="isLocked" class="warning-message">
+    <div
+      v-if="isLocked"
+      class="warning-message"
+      role="alert"
+      aria-live="polite"
+    >
+      <span aria-hidden="true">🔒</span>
       Conference is locked. Unlock it to add new participants.
     </div>
 
-    <div v-else-if="isFull" class="warning-message">
+    <div
+      v-else-if="isFull"
+      class="warning-message"
+      role="alert"
+      aria-live="polite"
+    >
+      <span aria-hidden="true">⚠️</span>
       Conference is full ({{ maxParticipants }} participants maximum).
     </div>
 
-    <form v-else @submit.prevent="handleSubmit" class="form">
+    <form
+      v-else
+      @submit.prevent="handleSubmit"
+      class="form"
+      aria-label="Add participant form"
+    >
       <div class="form-row">
         <div class="form-group">
-          <label for="participantUri">SIP URI *</label>
+          <label for="participantUri">
+            SIP URI
+            <abbr title="required" aria-label="required">*</abbr>
+          </label>
           <input
             id="participantUri"
             v-model="participantUri"
@@ -21,43 +45,56 @@
             placeholder="sip:user@domain.com"
             required
             pattern="sip:.*"
-            title="Must be a valid SIP URI (e.g., sip:1001@example.com)"
+            aria-describedby="uri-help"
+            aria-required="true"
           />
-          <small class="help-text">
+          <small id="uri-help" class="help-text">
             Example: sip:1001@example.com or sip:alice@sip.server.com
           </small>
         </div>
 
         <div class="form-group">
-          <label for="displayName">Display Name</label>
+          <label for="displayName">Display Name (Optional)</label>
           <input
             id="displayName"
             v-model="displayName"
             type="text"
             placeholder="e.g., Alice Smith"
+            aria-describedby="name-help"
           />
-          <small class="help-text">
+          <small id="name-help" class="help-text">
             Optional friendly name for this participant
           </small>
         </div>
       </div>
 
-      <button type="submit" class="primary add-btn" :disabled="adding">
+      <button
+        type="submit"
+        class="primary add-btn"
+        :disabled="adding"
+        :aria-label="adding ? 'Adding participant, please wait' : 'Add participant to conference'"
+      >
         {{ adding ? 'Adding...' : 'Add to Conference' }}
       </button>
     </form>
 
     <!-- Quick Add Suggestions -->
-    <div v-if="!isLocked && !isFull" class="quick-add">
-      <h4>Quick Add</h4>
+    <div
+      v-if="!isLocked && !isFull"
+      class="quick-add"
+      role="region"
+      aria-labelledby="quick-add-heading"
+    >
+      <h4 id="quick-add-heading">Quick Add</h4>
       <p class="help-text">
         Click to quickly add test participants:
       </p>
-      <div class="quick-add-buttons">
+      <div class="quick-add-buttons" role="group" aria-label="Quick add participant buttons">
         <button
           @click="quickAdd('sip:1001@example.com', 'Alice')"
           class="quick-add-btn"
           :disabled="adding"
+          aria-label="Quick add Alice as sip:1001@example.com"
         >
           + Alice (1001)
         </button>
@@ -65,6 +102,7 @@
           @click="quickAdd('sip:1002@example.com', 'Bob')"
           class="quick-add-btn"
           :disabled="adding"
+          aria-label="Quick add Bob as sip:1002@example.com"
         >
           + Bob (1002)
         </button>
@@ -72,6 +110,7 @@
           @click="quickAdd('sip:1003@example.com', 'Charlie')"
           class="quick-add-btn"
           :disabled="adding"
+          aria-label="Quick add Charlie as sip:1003@example.com"
         >
           + Charlie (1003)
         </button>

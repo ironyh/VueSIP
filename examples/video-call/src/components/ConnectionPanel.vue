@@ -1,50 +1,64 @@
 <template>
-  <div class="connection-panel">
+  <div class="connection-panel" role="region" aria-label="SIP Connection Configuration">
     <div class="panel-header">
       <h2>Connect to SIP Server</h2>
-      <p>Enter your SIP credentials to start making video calls</p>
+      <p id="form-description">Enter your SIP credentials to start making video calls</p>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="connection-form">
+    <form @submit.prevent="handleSubmit" class="connection-form" aria-describedby="form-description">
       <!-- SIP URI -->
       <div class="form-group">
-        <label for="sipUri">SIP URI</label>
+        <label for="sipUri">
+          SIP URI
+          <span class="required-indicator" aria-label="required">*</span>
+        </label>
         <input
           id="sipUri"
           v-model="formData.sipUri"
           type="text"
           placeholder="sip:user@domain.com"
           required
+          aria-required="true"
+          aria-describedby="sipUri-hint"
           :disabled="isConnecting"
         />
-        <span class="hint">Your SIP address (e.g., sip:1001@pbx.example.com)</span>
+        <span id="sipUri-hint" class="hint">Your SIP address (e.g., sip:1001@pbx.example.com)</span>
       </div>
 
       <!-- SIP Password -->
       <div class="form-group">
-        <label for="sipPassword">Password</label>
+        <label for="sipPassword">
+          Password
+          <span class="required-indicator" aria-label="required">*</span>
+        </label>
         <input
           id="sipPassword"
           v-model="formData.sipPassword"
           type="password"
           placeholder="Enter password"
           required
+          aria-required="true"
           :disabled="isConnecting"
         />
       </div>
 
       <!-- WebSocket Server -->
       <div class="form-group">
-        <label for="wsServer">WebSocket Server</label>
+        <label for="wsServer">
+          WebSocket Server
+          <span class="required-indicator" aria-label="required">*</span>
+        </label>
         <input
           id="wsServer"
           v-model="formData.wsServer"
           type="text"
           placeholder="wss://pbx.example.com:8089/ws"
           required
+          aria-required="true"
+          aria-describedby="wsServer-hint"
           :disabled="isConnecting"
         />
-        <span class="hint">WebSocket URL (must start with ws:// or wss://)</span>
+        <span id="wsServer-hint" class="hint">WebSocket URL (must start with ws:// or wss://)</span>
       </div>
 
       <!-- Display Name (Optional) -->
@@ -55,29 +69,36 @@
           v-model="formData.displayName"
           type="text"
           placeholder="Your Name"
+          aria-describedby="displayName-hint"
           :disabled="isConnecting"
         />
+        <span id="displayName-hint" class="hint sr-only">Optional field for your display name during calls</span>
       </div>
 
       <!-- Error Message -->
-      <div v-if="error" class="error-message">
-        <span class="error-icon">⚠️</span>
+      <div v-if="error" class="error-message" role="alert" aria-live="assertive">
+        <span class="error-icon" aria-hidden="true">⚠️</span>
         {{ error }}
       </div>
 
       <!-- Submit Button -->
-      <button type="submit" class="submit-button" :disabled="isConnecting">
+      <button
+        type="submit"
+        class="submit-button"
+        :disabled="isConnecting"
+        :aria-label="isConnecting ? 'Connecting to SIP server' : 'Connect to SIP server'"
+      >
         <span v-if="!isConnecting">Connect</span>
-        <span v-else class="loading">
-          <span class="spinner"></span>
+        <span v-else class="loading" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
           Connecting...
         </span>
       </button>
     </form>
 
     <!-- Info Box -->
-    <div class="info-box">
-      <h3>📋 Requirements</h3>
+    <div class="info-box" role="complementary" aria-labelledby="requirements-heading">
+      <h3 id="requirements-heading"><span aria-hidden="true">📋</span> Requirements</h3>
       <ul>
         <li>A SIP account with video calling support</li>
         <li>WebRTC-compatible SIP server (e.g., Asterisk with WebRTC)</li>
@@ -87,9 +108,9 @@
     </div>
 
     <!-- Example Credentials -->
-    <div class="example-box">
-      <h3>💡 Example Configuration</h3>
-      <div class="example-code">
+    <div class="example-box" role="complementary" aria-labelledby="example-heading">
+      <h3 id="example-heading"><span aria-hidden="true">💡</span> Example Configuration</h3>
+      <div class="example-code" role="group" aria-label="Example SIP credentials">
         <div class="code-line">
           <span class="code-label">SIP URI:</span>
           <code>sip:1001@pbx.example.com</code>
@@ -247,6 +268,24 @@ function handleSubmit() {
 .hint {
   font-size: 13px;
   color: #6b7280;
+}
+
+.required-indicator {
+  color: #dc2626;
+  margin-left: 4px;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 /* ============================================================================

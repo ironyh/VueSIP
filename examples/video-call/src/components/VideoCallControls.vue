@@ -1,17 +1,26 @@
 <template>
-  <div class="video-call-controls">
+  <div class="video-call-controls" role="region" aria-label="Video call controls">
     <!-- Call Initiation (when not in a call) -->
     <div v-if="!isCallActive" class="call-initiation">
       <div class="input-group">
+        <label for="target-uri" class="sr-only">Enter SIP URI to call</label>
         <input
+          id="target-uri"
           v-model="targetUri"
           type="text"
           placeholder="Enter SIP URI (e.g., sip:1002@domain.com)"
           class="uri-input"
+          aria-describedby="target-uri-hint"
           @keyup.enter="handleMakeCall"
         />
-        <button @click="handleMakeCall" class="call-button" :disabled="!targetUri.trim()">
-          <span class="icon">📞</span>
+        <span id="target-uri-hint" class="sr-only">Enter the SIP address of the person you want to call, then press Enter or click the Start Video Call button</span>
+        <button
+          @click="handleMakeCall"
+          class="call-button"
+          :disabled="!targetUri.trim()"
+          aria-label="Start video call"
+        >
+          <span class="icon" aria-hidden="true">📞</span>
           <span class="text">Start Video Call</span>
         </button>
       </div>
@@ -19,16 +28,18 @@
 
     <!-- Call Controls (during call) -->
     <div v-else class="call-controls">
-      <div class="controls-container">
+      <div class="controls-container" role="toolbar" aria-label="Video call action buttons">
         <!-- Mute Audio Button -->
         <button
           @click="$emit('toggle-mute')"
           class="control-button"
           :class="{ active: isMuted }"
-          title="Toggle Microphone"
+          :aria-label="isMuted ? 'Unmute microphone' : 'Mute microphone'"
+          :aria-pressed="isMuted"
         >
-          <span class="icon">{{ isMuted ? '🔇' : '🎤' }}</span>
+          <span class="icon" aria-hidden="true">{{ isMuted ? '🔇' : '🎤' }}</span>
           <span class="label">{{ isMuted ? 'Unmute' : 'Mute' }}</span>
+          <span class="sr-only">{{ isMuted ? 'Microphone is currently muted' : 'Microphone is currently active' }}</span>
         </button>
 
         <!-- Toggle Video Button -->
@@ -36,10 +47,12 @@
           @click="$emit('toggle-video')"
           class="control-button"
           :class="{ active: !hasLocalVideo }"
-          title="Toggle Camera"
+          :aria-label="hasLocalVideo ? 'Turn off camera' : 'Turn on camera'"
+          :aria-pressed="!hasLocalVideo"
         >
-          <span class="icon">{{ hasLocalVideo ? '📹' : '🚫' }}</span>
+          <span class="icon" aria-hidden="true">{{ hasLocalVideo ? '📹' : '🚫' }}</span>
           <span class="label">{{ hasLocalVideo ? 'Stop Video' : 'Start Video' }}</span>
+          <span class="sr-only">{{ hasLocalVideo ? 'Camera is currently on' : 'Camera is currently off' }}</span>
         </button>
 
         <!-- Hang Up Button (prominent) -->
@@ -47,9 +60,9 @@
           v-if="callState !== 'ringing'"
           @click="$emit('hangup')"
           class="control-button hangup-button"
-          title="Hang Up"
+          aria-label="Hang up and end call"
         >
-          <span class="icon">📵</span>
+          <span class="icon" aria-hidden="true">📵</span>
           <span class="label">Hang Up</span>
         </button>
 
@@ -58,9 +71,9 @@
           v-if="callState === 'ringing'"
           @click="$emit('answer')"
           class="control-button answer-button"
-          title="Answer Call"
+          aria-label="Answer incoming call"
         >
-          <span class="icon">✅</span>
+          <span class="icon" aria-hidden="true">✅</span>
           <span class="label">Answer</span>
         </button>
 
@@ -69,9 +82,9 @@
           v-if="callState === 'ringing'"
           @click="$emit('reject')"
           class="control-button hangup-button"
-          title="Reject Call"
+          aria-label="Reject incoming call"
         >
-          <span class="icon">❌</span>
+          <span class="icon" aria-hidden="true">❌</span>
           <span class="label">Reject</span>
         </button>
 
@@ -81,10 +94,12 @@
           @click="$emit('toggle-hold')"
           class="control-button"
           :class="{ active: isOnHold }"
-          title="Toggle Hold"
+          :aria-label="isOnHold ? 'Resume call from hold' : 'Put call on hold'"
+          :aria-pressed="isOnHold"
         >
-          <span class="icon">{{ isOnHold ? '▶️' : '⏸️' }}</span>
+          <span class="icon" aria-hidden="true">{{ isOnHold ? '▶️' : '⏸️' }}</span>
           <span class="label">{{ isOnHold ? 'Resume' : 'Hold' }}</span>
+          <span class="sr-only">{{ isOnHold ? 'Call is currently on hold' : 'Call is currently active' }}</span>
         </button>
       </div>
     </div>
@@ -358,5 +373,46 @@ function handleMakeCall() {
   .control-button .label {
     font-size: 10px;
   }
+}
+
+/* ============================================================================
+   Accessibility
+   ============================================================================ */
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible styles for keyboard navigation */
+.control-button:focus-visible,
+.call-button:focus-visible,
+.uri-input:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Enhanced focus for critical actions */
+.hangup-button:focus-visible {
+  outline: 3px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.answer-button:focus-visible {
+  outline: 3px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* Ensure pressed state is visually distinguishable for accessibility */
+.control-button[aria-pressed="true"] {
+  border: 2px solid #dc2626;
 }
 </style>

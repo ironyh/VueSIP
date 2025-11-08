@@ -3,33 +3,44 @@
     <h2>Agent Dashboard</h2>
 
     <!-- Agent Status Indicator -->
-    <div class="status-section">
+    <section class="status-section" aria-label="Agent status">
       <div class="status-indicator">
-        <span class="status-dot" :class="agentStatus"></span>
-        <span class="status-text">{{ statusText }}</span>
+        <span class="status-dot" :class="agentStatus" aria-hidden="true"></span>
+        <span class="status-text">
+          {{ statusText }}
+          <span class="sr-only">
+            {{ statusDescription }}
+          </span>
+        </span>
       </div>
-    </div>
+    </section>
 
     <!-- Quick Stats -->
-    <div class="quick-stats">
-      <div class="stat-item">
-        <div class="stat-label">Calls Today</div>
-        <div class="stat-value">{{ totalCallsToday }}</div>
+    <section aria-label="Today's statistics">
+      <h3 class="sr-only">Quick Statistics</h3>
+      <div class="quick-stats">
+        <div class="stat-item">
+          <div class="stat-label" id="calls-today-label">Calls Today</div>
+          <div class="stat-value" aria-labelledby="calls-today-label" role="status">{{ totalCallsToday }}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label" id="missed-calls-label">Missed</div>
+          <div class="stat-value text-danger" aria-labelledby="missed-calls-label" role="status">
+            {{ missedCalls }}
+            <span v-if="missedCalls > 0" class="sr-only">missed calls</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label" id="avg-duration-label">Avg Duration</div>
+          <div class="stat-value" aria-labelledby="avg-duration-label">{{ formatDuration(averageDuration) }}</div>
+        </div>
       </div>
-      <div class="stat-item">
-        <div class="stat-label">Missed</div>
-        <div class="stat-value text-danger">{{ missedCalls }}</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Avg Duration</div>
-        <div class="stat-value">{{ formatDuration(averageDuration) }}</div>
-      </div>
-    </div>
+    </section>
 
     <!-- Current Call Info -->
-    <div v-if="currentCallId" class="current-call-info">
+    <div v-if="currentCallId" class="current-call-info" role="status" aria-live="polite">
       <div class="info-badge">
-        <span class="pulse-dot"></span>
+        <span class="pulse-dot" aria-hidden="true"></span>
         On Call
       </div>
     </div>
@@ -68,6 +79,19 @@ const statusText = computed(() => {
   }
 })
 
+const statusDescription = computed(() => {
+  switch (props.agentStatus) {
+    case 'available':
+      return '(Ready to receive calls)'
+    case 'busy':
+      return '(Currently on a call)'
+    case 'away':
+      return '(Not accepting calls)'
+    default:
+      return ''
+  }
+})
+
 // ============================================================================
 // Methods
 // ============================================================================
@@ -84,6 +108,19 @@ const formatDuration = (seconds: number): string => {
 </script>
 
 <style scoped>
+/* Screen Reader Only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .agent-dashboard {
   background: white;
 }

@@ -15,10 +15,12 @@
       </div>
       <div class="button-group" role="group" aria-label="Call actions">
         <button @click="emit('answer')" class="success" aria-label="Answer incoming call">
-          Answer
+          <span aria-hidden="true">📞</span>
+          <span>Answer</span>
         </button>
         <button @click="emit('reject')" class="danger" aria-label="Reject incoming call">
-          Reject
+          <span aria-hidden="true">✖</span>
+          <span>Reject</span>
         </button>
       </div>
     </div>
@@ -45,17 +47,24 @@
         :disabled="!targetUri.trim()"
         aria-label="Make outgoing call"
       >
-        Call
+        <span aria-hidden="true">📞</span>
+        <span>Call</span>
       </button>
     </div>
 
     <!-- Active Call Controls -->
     <div v-else class="active-call">
       <div class="call-status" role="status" aria-live="polite">
-        <h3>{{ callStateLabel }}</h3>
-        <p class="caller-id">{{ remoteDisplayName || remoteUri }}</p>
-        <p v-if="duration > 0" class="duration" aria-label="Call duration">
-          {{ formattedDuration }}
+        <h3>
+          {{ callStateLabel }}
+          <span class="sr-only">with {{ remoteDisplayName || remoteUri }}</span>
+        </h3>
+        <p class="caller-id" aria-label="Caller information">
+          {{ remoteDisplayName || remoteUri }}
+        </p>
+        <p v-if="duration > 0" class="duration">
+          <span class="sr-only">Call duration:</span>
+          <span aria-label="`Call duration ${formattedDuration}`">{{ formattedDuration }}</span>
         </p>
       </div>
 
@@ -68,7 +77,8 @@
           :aria-label="isMuted ? 'Unmute microphone' : 'Mute microphone'"
           :aria-pressed="isMuted"
         >
-          {{ isMuted ? 'Unmute' : 'Mute' }}
+          <span aria-hidden="true">{{ isMuted ? '🔇' : '🎤' }}</span>
+          <span>{{ isMuted ? 'Unmute' : 'Mute' }}</span>
         </button>
 
         <!-- Hold/Unhold -->
@@ -79,7 +89,8 @@
           :aria-label="isOnHold ? 'Resume call' : 'Put call on hold'"
           :aria-pressed="isOnHold"
         >
-          {{ isOnHold ? 'Unhold' : 'Hold' }}
+          <span aria-hidden="true">{{ isOnHold ? '▶' : '⏸' }}</span>
+          <span>{{ isOnHold ? 'Resume' : 'Hold' }}</span>
         </button>
 
         <!-- Hangup -->
@@ -89,7 +100,8 @@
           class="danger"
           aria-label="End call"
         >
-          Hangup
+          <span aria-hidden="true">✖</span>
+          <span>Hangup</span>
         </button>
       </div>
 
