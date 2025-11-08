@@ -2544,7 +2544,7 @@ export const SipClientProvider = defineComponent({
      * </template>
      *
      * <script setup>
-     * import { ref } from 'vue'
+     * import { ref, computed } from 'vue'
      * import { useSipClientProvider } from 'vuesip'
      *
      * const { client, connectionState } = useSipClientProvider()

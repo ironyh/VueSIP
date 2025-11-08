@@ -415,15 +415,21 @@
  *   })
  * })
  *
- * // Save configuration to localStorage
+ * // Save configuration to sessionStorage (more secure than localStorage)
  * const saveConfig = () => {
+ *   // Exclude sensitive data like passwords
+ *   const { password, ...safeSipConfig } = config.sipConfig || {}
+ *
  *   const currentConfig = {
- *     sip: config.sipConfig,
+ *     sip: safeSipConfig,  // Password excluded for security
  *     media: config.mediaConfig,
  *     preferences: config.userPreferences
  *   }
- *   localStorage.setItem('vueSipConfig', JSON.stringify(currentConfig))
- *   console.log('Configuration saved')
+ *
+ *   // Use sessionStorage instead of localStorage for better security
+ *   // sessionStorage is cleared when the browser tab is closed
+ *   sessionStorage.setItem('vueSipConfig', JSON.stringify(currentConfig))
+ *   console.log('Configuration saved (password excluded for security)')
  * }
  * </script>
  * ```
@@ -683,7 +689,7 @@
  * ```vue
  * <script setup>
  * import { ConfigProvider, useConfigProvider } from 'vuesip'
- * import { ref, watch, onMounted } from 'vue'
+ * import { ref, computed, watch, onMounted } from 'vue'
  *
  * // PITFALL 1: Hardcoding credentials
  * // Problem: Credentials committed to version control, security risk
@@ -1454,7 +1460,76 @@ export const ConfigProvider = defineComponent({
     },
   },
 
-  setup(props, { slots }) {
+  emits: {
+    /**
+     * Emitted when configuration validation completes
+     *
+     * @param result - ValidationResult object containing validation status and errors
+     *
+     * @remarks
+     * **When Emitted:**
+     * - After initial configuration validation on mount (if `validateOnMount=true`)
+     * - After configuration updates when validation is enabled
+     * - When `validateAll()` is called programmatically
+     *
+     * **Event Payload:**
+     * ```typescript
+     * interface ValidationResult {
+     *   valid: boolean                    // Overall validation status
+     *   errors: Array<{                   // Array of validation errors
+     *     field: string                   // Field that failed validation
+     *     message: string                 // Human-readable error message
+     *     value?: any                     // Invalid value (for debugging)
+     *   }>
+     *   timestamp: number                 // Validation timestamp (Date.now())
+     * }
+     * ```
+     *
+     * **Use Cases:**
+     * - Display validation errors to users in the UI
+     * - Prevent app initialization with invalid configuration
+     * - Log validation failures for debugging
+     * - Track configuration quality metrics
+     *
+     * @example
+     * ```vue
+     * <template>
+     *   <ConfigProvider
+     *     :sip-config="sipConfig"
+     *     :validate-on-mount="true"
+     *     @config-validated="onConfigValidated"
+     *   >
+     *     <div v-if="!isConfigValid" class="error-banner">
+     *       Configuration errors detected. Please check your settings.
+     *     </div>
+     *     <YourApp v-else />
+     *   </ConfigProvider>
+     * </template>
+     *
+     * <script setup>
+     * import { ref } from 'vue'
+     *
+     * const isConfigValid = ref(true)
+     *
+     * const onConfigValidated = (result) => {
+     *   isConfigValid.value = result.valid
+     *
+     *   if (!result.valid) {
+     *     console.error('Configuration validation failed:', result.errors)
+     *     result.errors.forEach(error => {
+     *       console.error(`- ${error.field}: ${error.message}`)
+     *     })
+     *   } else {
+     *     console.log('Configuration validated successfully')
+     *   }
+     * }
+     * </script>
+     * ```
+     */
+    'config-validated': (result: { valid: boolean; errors: any[]; timestamp: number }) => true,
+  },
+
+  setup(props, { slots, emit }) {
     logger.info('ConfigProvider initializing')
 
     // ============================================================================
@@ -1500,12 +1575,13 @@ export const ConfigProvider = defineComponent({
         }
       }
 
-      // Validate all on mount if requested and no individual validations were done
-      if (props.validateOnMount && !(props.sipConfig || props.mediaConfig)) {
+      // Validate and emit validation result if validation is enabled
+      if (props.validateOnMount) {
         const validationResult = configStore.validateAll()
         if (!validationResult.valid) {
           logger.warn('Configuration validation failed on mount', validationResult.errors)
         }
+        emit('config-validated', validationResult)
       }
     }
 
