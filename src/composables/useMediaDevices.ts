@@ -162,6 +162,9 @@ export function useMediaDevices(
   const isEnumerating = ref(false)
   const lastError = ref<Error | null>(null)
 
+  // Internal AbortController for automatic cleanup on unmount
+  const internalAbortController = ref(new AbortController())
+
   // Critical fix: Sync flag to prevent infinite loops in bidirectional sync
   const isUpdatingFromStore = ref(false)
 
@@ -290,6 +293,9 @@ export function useMediaDevices(
    * ```
    */
   const enumerateDevices = async (signal?: AbortSignal): Promise<MediaDevice[]> => {
+    // Use internal abort signal if none provided (auto-cleanup on unmount)
+    const effectiveSignal = signal ?? internalAbortController.value.signal
+
     if (isEnumerating.value) {
       log.debug('Device enumeration already in progress')
       return allDevices.value
@@ -300,7 +306,7 @@ export function useMediaDevices(
       lastError.value = null
 
       // Check if aborted before starting
-      throwIfAborted(signal)
+      throwIfAborted(effectiveSignal)
 
       log.info('Enumerating devices')
 
@@ -312,7 +318,7 @@ export function useMediaDevices(
         devices = await mediaManager.value.enumerateDevices()
 
         // Check signal after first async operation
-        throwIfAborted(signal)
+        throwIfAborted(effectiveSignal)
 
         rawDevices = await navigator.mediaDevices.enumerateDevices()
       } else {
@@ -320,7 +326,7 @@ export function useMediaDevices(
         rawDevices = await navigator.mediaDevices.enumerateDevices()
 
         // Check signal after enumeration
-        throwIfAborted(signal)
+        throwIfAborted(effectiveSignal)
 
         devices = rawDevices.map((device) => ({
           deviceId: device.deviceId,
@@ -767,6 +773,12 @@ export function useMediaDevices(
   onUnmounted(() => {
     log.debug('Composable unmounting, cleaning up')
     stopDeviceChangeMonitoring()
+
+    // Abort any pending async operations
+    if (!internalAbortController.value.signal.aborted) {
+      log.info('Aborting pending operations on unmount')
+      internalAbortController.value.abort()
+    }
   })
 
   // ============================================================================

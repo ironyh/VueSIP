@@ -172,6 +172,9 @@ export function useCallSession(
   // Concurrent operation guard to prevent race conditions
   const isOperationInProgress = ref(false)
 
+  // Internal AbortController for automatic cleanup on unmount
+  const internalAbortController = ref(new AbortController())
+
   // ============================================================================
   // Computed Values
   // ============================================================================
@@ -312,6 +315,9 @@ export function useCallSession(
     options: CallSessionOptions = {},
     signal?: AbortSignal
   ): Promise<void> => {
+    // Use internal abort signal if none provided (auto-cleanup on unmount)
+    const effectiveSignal = signal ?? internalAbortController.value.signal
+
     // Guard against concurrent operations
     if (isOperationInProgress.value) {
       const error = 'Call operation already in progress'
@@ -327,7 +333,7 @@ export function useCallSession(
     }
 
     // Check if aborted before starting
-    throwIfAborted(signal)
+    throwIfAborted(effectiveSignal)
 
     // Validate target URI
     if (!target || target.trim() === '') {
@@ -354,7 +360,7 @@ export function useCallSession(
       clearSession()
 
       // Check if aborted after clearing session
-      throwIfAborted(signal)
+      throwIfAborted(effectiveSignal)
 
       // Acquire local media if mediaManager is provided
       if (mediaManager?.value) {
@@ -366,7 +372,7 @@ export function useCallSession(
         localStreamBeforeCall = mediaManager.value.getLocalStream() || null
 
         // Check if aborted after media acquisition
-        throwIfAborted(signal)
+        throwIfAborted(effectiveSignal)
       }
 
       // Initiate call via SIP client
@@ -718,6 +724,12 @@ export function useCallSession(
   onUnmounted(() => {
     log.debug('Composable unmounting, cleaning up')
     stopDurationTracking()
+
+    // Abort any pending async operations
+    if (!internalAbortController.value.signal.aborted) {
+      log.info('Aborting pending operations on unmount')
+      internalAbortController.value.abort()
+    }
   })
 
   // ============================================================================
