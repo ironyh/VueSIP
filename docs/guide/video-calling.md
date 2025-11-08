@@ -12,6 +12,7 @@ This comprehensive guide covers everything you need to implement professional vi
 - [Receiving Video Calls](#receiving-video-calls)
 - [Video Quality Management](#video-quality-management)
 - [Screen Sharing](#screen-sharing)
+- [Multi-Party Video Conferencing](#multi-party-video-conferencing)
 - [Advanced Features](#advanced-features)
 - [Mobile Considerations](#mobile-considerations)
 - [Performance](#performance)
@@ -1885,6 +1886,2402 @@ async function toggleScreenShare() {
 }
 </style>
 ```
+
+---
+
+## Multi-Party Video Conferencing
+
+### Introduction to Multi-Party Video
+
+Multi-party video conferencing allows multiple participants to join a single video call, similar to Zoom, Microsoft Teams, or Google Meet. Instead of simple 1-to-1 calls, conferences support many participants viewing and interacting with each other simultaneously.
+
+**What Makes Multi-Party Different:**
+- **Multiple Video Streams**: Each participant has their own video stream that needs to be managed
+- **Complex UI Layouts**: Gallery view, speaker view, and grid layouts instead of simple PiP
+- **Participant Management**: Add, remove, mute participants dynamically
+- **Scalability Challenges**: Bandwidth and performance considerations with many streams
+- **Active Speaker Detection**: Identify and highlight who's currently speaking
+- **Advanced Controls**: Lock conference, record sessions, manage permissions
+
+### When to Use Conferences vs Multiple 1-to-1 Calls
+
+**Use Conferences When:**
+- You need 3+ participants in the same conversation
+- Everyone should see and hear everyone else
+- You need centralized controls (mute all, lock, record)
+- You want a shared meeting room experience
+- Server-side mixing is available (better performance)
+
+**Use Multiple 1-to-1 Calls When:**
+- You need separate private conversations
+- Different quality settings per call
+- Independent call controls
+- Point-to-point encryption is required
+
+💡 **Best Practice**: Use conferences for team meetings, webinars, and group collaboration. Use separate calls for private consultations or interviews.
+
+---
+
+### Using useConference
+
+VueSip provides the `useConference` composable for managing multi-party video conferences with a complete API for participant management and conference controls.
+
+#### Basic Conference Setup
+
+```typescript
+import { useSipClient, useConference } from 'vuesip'
+
+const { sipClient } = useSipClient()
+
+const {
+  // State
+  conference,           // Conference details
+  state,                // Current state (Idle, Creating, Active, etc.)
+  participants,         // Array of all participants
+  participantCount,     // Total number of participants
+  isActive,            // Whether conference is active
+  isLocked,            // Whether conference is locked
+  isRecording,         // Whether recording is active
+
+  // Conference management
+  createConference,    // Create a new conference
+  joinConference,      // Join existing conference
+  endConference,       // End the conference
+
+  // Participant management
+  addParticipant,      // Add a participant
+  removeParticipant,   // Remove a participant
+  muteParticipant,     // Mute a participant
+  unmuteParticipant,   // Unmute a participant
+
+  // Controls
+  lockConference,      // Lock the conference
+  unlockConference,    // Unlock the conference
+  startRecording,      // Start recording
+  stopRecording,       // Stop recording
+
+  // Events
+  onConferenceEvent    // Listen to conference events
+} = useConference(sipClient)
+```
+
+#### Creating a Conference
+
+Create a new conference and become the moderator:
+
+```typescript
+// Create with default settings (max 10 participants)
+const conferenceId = await createConference()
+console.log('Conference created:', conferenceId)
+
+// Create with custom settings
+const confId = await createConference({
+  maxParticipants: 25,        // Allow up to 25 people
+  locked: false,              // Start unlocked
+  metadata: {
+    topic: 'Team Standup',
+    scheduled: new Date()
+  }
+})
+
+// Conference is now active
+console.log('Active:', isActive.value)  // true
+console.log('Participants:', participantCount.value)  // 1 (you)
+```
+
+💡 **Why it matters**: Creating a conference makes you the moderator with full control over participants, recording, and conference settings.
+
+#### Joining an Existing Conference
+
+Join a conference that someone else created:
+
+```typescript
+// Join using the conference URI
+await joinConference('sip:conference-room-123@example.com')
+
+console.log('Joined conference')
+console.log('Participants:', participants.value.length)
+
+// You may not have moderator privileges when joining
+const localUser = participants.value.find(p => p.isSelf)
+console.log('Am I moderator?', localUser?.isModerator)
+```
+
+⚠️ **Important**: When joining a conference, you may not have moderator privileges. Some operations like removing participants or locking the conference may be restricted.
+
+#### Adding Participants
+
+Invite participants to join your conference:
+
+```typescript
+// Add participant with display name
+const participantId = await addParticipant(
+  'sip:alice@example.com',
+  'Alice Smith'
+)
+console.log('Added participant:', participantId)
+
+// Add multiple participants
+const participants = [
+  { uri: 'sip:bob@example.com', name: 'Bob Jones' },
+  { uri: 'sip:charlie@example.com', name: 'Charlie Brown' },
+  { uri: 'sip:diana@example.com', name: 'Diana Prince' }
+]
+
+for (const p of participants) {
+  try {
+    await addParticipant(p.uri, p.name)
+    console.log(`Added ${p.name}`)
+  } catch (error) {
+    console.error(`Failed to add ${p.name}:`, error)
+  }
+}
+
+console.log('Total participants:', participantCount.value)
+```
+
+⚠️ **Error Handling**: Adding participants can fail if the conference is locked, full, or if the participant URI is invalid. Always wrap in try-catch.
+
+#### Managing Participants
+
+Control participant behavior during the conference:
+
+```typescript
+// Get a specific participant
+const participant = participants.value.find(
+  p => p.displayName === 'Alice Smith'
+)
+
+if (participant) {
+  // Mute the participant
+  await muteParticipant(participant.id)
+  console.log('Muted:', participant.displayName)
+
+  // Later, unmute them
+  await unmuteParticipant(participant.id)
+  console.log('Unmuted:', participant.displayName)
+
+  // Remove from conference if needed
+  await removeParticipant(participant.id, 'Violating terms')
+  console.log('Removed:', participant.displayName)
+}
+
+// Mute all participants except yourself
+for (const p of participants.value) {
+  if (!p.isSelf && !p.isMuted) {
+    await muteParticipant(p.id)
+  }
+}
+```
+
+📝 **Note**: You can mute yourself or others, but you can typically only unmute yourself. Other participants usually need to unmute themselves for privacy reasons.
+
+#### Conference Controls
+
+Lock, unlock, and record the conference:
+
+```typescript
+// Lock conference to prevent new joins
+await lockConference()
+console.log('Conference locked:', isLocked.value)
+
+// Later, unlock to allow new participants
+await unlockConference()
+console.log('Conference unlocked')
+
+// Start recording (requires server support)
+await startRecording()
+console.log('Recording:', isRecording.value)
+
+// Stop recording
+await stopRecording()
+console.log('Recording stopped')
+
+// End conference for everyone
+await endConference()
+console.log('Conference ended')
+```
+
+⚠️ **Recording Compliance**: Always notify participants before recording. Some jurisdictions require all-party consent for recording. Display a clear recording indicator in your UI.
+
+#### Listening to Conference Events
+
+React to conference changes in real-time:
+
+```typescript
+// Register event listener
+const unsubscribe = onConferenceEvent((event) => {
+  switch (event.type) {
+    case 'participant:joined':
+      console.log(`${event.participant.displayName} joined`)
+      showNotification(`${event.participant.displayName} joined the conference`)
+      break
+
+    case 'participant:left':
+      console.log(`${event.participant.displayName} left`)
+      if (event.reason) {
+        console.log('Reason:', event.reason)
+      }
+      break
+
+    case 'participant:updated':
+      console.log('Participant updated:', event.changes)
+      if (event.changes.isMuted !== undefined) {
+        const status = event.changes.isMuted ? 'muted' : 'unmuted'
+        console.log(`${event.participant.displayName} ${status}`)
+      }
+      break
+
+    case 'state:changed':
+      console.log('Conference state:', event.state)
+      break
+
+    case 'audio:level':
+      // Audio levels update every 100ms
+      // Use for active speaker detection
+      break
+
+    case 'locked':
+      console.log('Conference locked')
+      break
+
+    case 'unlocked':
+      console.log('Conference unlocked')
+      break
+
+    case 'recording:started':
+      console.log('Recording started')
+      showRecordingIndicator()
+      break
+
+    case 'recording:stopped':
+      console.log('Recording stopped')
+      hideRecordingIndicator()
+      break
+  }
+})
+
+// Clean up when component unmounts
+onUnmounted(() => {
+  unsubscribe()
+})
+```
+
+💡 **Performance Tip**: Audio level events fire every 100ms. If you're not using active speaker detection, you can filter them out to reduce processing.
+
+---
+
+### Managing Multiple Video Streams
+
+In a conference, each participant can have their own video stream. Managing these streams efficiently is crucial for performance and user experience.
+
+#### Understanding Participant Streams
+
+Each participant in the conference has a `stream` property containing their MediaStream:
+
+```typescript
+// Access participant streams
+participants.value.forEach(participant => {
+  if (participant.stream) {
+    const videoTracks = participant.stream.getVideoTracks()
+    const audioTracks = participant.stream.getAudioTracks()
+
+    console.log(`${participant.displayName}:`)
+    console.log(`- Video tracks: ${videoTracks.length}`)
+    console.log(`- Audio tracks: ${audioTracks.length}`)
+    console.log(`- Video enabled: ${videoTracks[0]?.enabled}`)
+  } else {
+    console.log(`${participant.displayName}: No stream yet`)
+  }
+})
+```
+
+#### Attaching Streams to Video Elements
+
+Create video elements dynamically for each participant:
+
+```vue
+<template>
+  <div class="conference-grid">
+    <!-- Video tile for each participant -->
+    <div
+      v-for="participant in participants"
+      :key="participant.id"
+      class="video-tile"
+      :class="{
+        'is-self': participant.isSelf,
+        'is-speaking': isParticipantSpeaking(participant),
+        'is-muted': participant.isMuted
+      }"
+    >
+      <!-- Video element -->
+      <video
+        :ref="(el) => setVideoRef(participant.id, el)"
+        autoplay
+        playsinline
+        :muted="participant.isSelf"
+        class="participant-video"
+      />
+
+      <!-- Participant info overlay -->
+      <div class="participant-info">
+        <span class="name">{{ participant.displayName || 'Unknown' }}</span>
+        <span v-if="participant.isMuted" class="muted-icon">🔇</span>
+        <span v-if="participant.isModerator" class="mod-badge">MOD</span>
+      </div>
+
+      <!-- No video placeholder -->
+      <div v-if="!hasVideo(participant)" class="no-video">
+        <div class="avatar">
+          {{ getInitial(participant.displayName) }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, watch, onMounted } from 'vue'
+import { useConference } from 'vuesip'
+import type { Participant } from 'vuesip'
+
+const { participants } = useConference(sipClient)
+
+// Store video element references
+const videoRefs = ref<Map<string, HTMLVideoElement>>(new Map())
+
+// Set video element reference
+function setVideoRef(participantId: string, el: any) {
+  if (el && el instanceof HTMLVideoElement) {
+    videoRefs.value.set(participantId, el)
+  }
+}
+
+// Attach streams when participants change
+watch(participants, () => {
+  participants.value.forEach(participant => {
+    if (participant.stream) {
+      const videoEl = videoRefs.value.get(participant.id)
+      if (videoEl && videoEl.srcObject !== participant.stream) {
+        videoEl.srcObject = participant.stream
+      }
+    }
+  })
+}, { deep: true })
+
+// Check if participant has video
+function hasVideo(participant: Participant): boolean {
+  if (!participant.stream) return false
+  const videoTracks = participant.stream.getVideoTracks()
+  return videoTracks.length > 0 && videoTracks[0].enabled
+}
+
+// Get initial for avatar
+function getInitial(name?: string): string {
+  return (name || '?').charAt(0).toUpperCase()
+}
+
+// Check if participant is speaking (placeholder)
+function isParticipantSpeaking(participant: Participant): boolean {
+  return (participant.audioLevel || 0) > 0.3
+}
+</script>
+```
+
+#### Stream Lifecycle Management
+
+Properly manage stream lifecycle to prevent memory leaks:
+
+```typescript
+import { ref, watch, onUnmounted } from 'vue'
+
+// Track active streams
+const activeStreams = ref<Map<string, MediaStream>>(new Map())
+
+// Watch for new participants
+watch(participants, (newParticipants, oldParticipants) => {
+  // Find removed participants
+  const oldIds = new Set((oldParticipants || []).map(p => p.id))
+  const newIds = new Set(newParticipants.map(p => p.id))
+
+  oldIds.forEach(oldId => {
+    if (!newIds.has(oldId)) {
+      // Participant left - clean up their stream
+      cleanupParticipantStream(oldId)
+    }
+  })
+
+  // Add new participant streams
+  newParticipants.forEach(participant => {
+    if (participant.stream && !activeStreams.value.has(participant.id)) {
+      activeStreams.value.set(participant.id, participant.stream)
+    }
+  })
+}, { deep: true })
+
+// Cleanup a specific participant's stream
+function cleanupParticipantStream(participantId: string) {
+  const stream = activeStreams.value.get(participantId)
+  if (stream) {
+    // Note: Don't stop tracks for remote streams - WebRTC handles that
+    // Only clear our references
+    activeStreams.value.delete(participantId)
+
+    // Clear video element
+    const videoEl = videoRefs.value.get(participantId)
+    if (videoEl) {
+      videoEl.srcObject = null
+      videoRefs.value.delete(participantId)
+    }
+  }
+}
+
+// Cleanup all streams on unmount
+onUnmounted(() => {
+  activeStreams.value.forEach((stream, participantId) => {
+    cleanupParticipantStream(participantId)
+  })
+  activeStreams.value.clear()
+})
+```
+
+⚠️ **Important**: Never call `stop()` on remote participant tracks. WebRTC manages remote streams automatically. Only clear your local references.
+
+#### Handling Stream Changes
+
+Participants can enable/disable their video during the conference:
+
+```typescript
+// Watch for stream changes
+watch(participants, (newParticipants) => {
+  newParticipants.forEach(participant => {
+    const videoEl = videoRefs.value.get(participant.id)
+    if (!videoEl) return
+
+    if (participant.stream) {
+      // Update video element if stream changed
+      if (videoEl.srcObject !== participant.stream) {
+        videoEl.srcObject = participant.stream
+      }
+
+      // Check video track status
+      const videoTrack = participant.stream.getVideoTracks()[0]
+      if (videoTrack) {
+        console.log(
+          `${participant.displayName} video:`,
+          videoTrack.enabled ? 'enabled' : 'disabled'
+        )
+      }
+    } else {
+      // No stream - show placeholder
+      videoEl.srcObject = null
+    }
+  })
+}, { deep: true })
+```
+
+---
+
+### Video Grid Layouts
+
+Effective layout patterns for displaying multiple video streams in a conference.
+
+#### Basic Grid Layout
+
+Display all participants in equal-sized tiles:
+
+```vue
+<template>
+  <div class="video-grid" :style="gridStyle">
+    <div
+      v-for="participant in participants"
+      :key="participant.id"
+      class="grid-tile"
+    >
+      <video
+        :ref="(el) => setVideoRef(participant.id, el)"
+        autoplay
+        playsinline
+        :muted="participant.isSelf"
+        class="tile-video"
+      />
+      <div class="tile-overlay">
+        {{ participant.displayName }}
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const { participants } = useConference(sipClient)
+
+// Calculate grid columns based on participant count
+const gridStyle = computed(() => {
+  const count = participants.value.length
+
+  let columns = 1
+  if (count <= 1) columns = 1
+  else if (count <= 4) columns = 2
+  else if (count <= 9) columns = 3
+  else if (count <= 16) columns = 4
+  else columns = 5
+
+  return {
+    gridTemplateColumns: `repeat(${columns}, 1fr)`
+  }
+})
+</script>
+
+<style scoped>
+.video-grid {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  height: 100vh;
+  background: #000;
+}
+
+.grid-tile {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+}
+
+.tile-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tile-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  padding: 8px;
+  font-size: 14px;
+  text-align: center;
+}
+</style>
+```
+
+#### Speaker View Layout
+
+Large video for active speaker, thumbnails for others:
+
+```vue
+<template>
+  <div class="speaker-view">
+    <!-- Main speaker video (large) -->
+    <div class="main-video">
+      <video
+        v-if="activeSpeaker"
+        :ref="(el) => setVideoRef(activeSpeaker.id, el)"
+        autoplay
+        playsinline
+        :muted="activeSpeaker.isSelf"
+        class="speaker-video"
+      />
+      <div class="speaker-info">
+        <h3>{{ activeSpeaker?.displayName || 'No Active Speaker' }}</h3>
+      </div>
+    </div>
+
+    <!-- Thumbnail strip for other participants -->
+    <div class="thumbnail-strip">
+      <div
+        v-for="participant in otherParticipants"
+        :key="participant.id"
+        class="thumbnail"
+        :class="{ 'is-self': participant.isSelf }"
+        @click="setActiveSpeaker(participant)"
+      >
+        <video
+          :ref="(el) => setVideoRef(participant.id, el)"
+          autoplay
+          playsinline
+          :muted="participant.isSelf"
+          class="thumb-video"
+        />
+        <div class="thumb-name">
+          {{ participant.displayName }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import type { Participant } from 'vuesip'
+
+const { participants, onConferenceEvent } = useConference(sipClient)
+
+const activeSpeaker = ref<Participant | null>(null)
+
+// Other participants (not the active speaker)
+const otherParticipants = computed(() =>
+  participants.value.filter(p => p.id !== activeSpeaker.value?.id)
+)
+
+// Detect active speaker from audio levels
+onConferenceEvent((event) => {
+  if (event.type === 'audio:level' && event.levels) {
+    let maxLevel = 0
+    let loudestParticipant: Participant | null = null
+
+    event.levels.forEach((level, uri) => {
+      if (level > maxLevel && level > 0.3) {  // Threshold to avoid noise
+        const participant = participants.value.find(p => p.uri === uri)
+        if (participant && !participant.isSelf) {
+          maxLevel = level
+          loudestParticipant = participant
+        }
+      }
+    })
+
+    if (loudestParticipant && loudestParticipant !== activeSpeaker.value) {
+      activeSpeaker.value = loudestParticipant
+    }
+  }
+})
+
+// Initialize with first participant
+watch(participants, (newParticipants) => {
+  if (!activeSpeaker.value && newParticipants.length > 0) {
+    activeSpeaker.value = newParticipants[0]
+  }
+}, { immediate: true })
+
+// Manually set active speaker
+function setActiveSpeaker(participant: Participant) {
+  activeSpeaker.value = participant
+}
+</script>
+
+<style scoped>
+.speaker-view {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #000;
+}
+
+.main-video {
+  flex: 1;
+  position: relative;
+  background: #1a1a1a;
+}
+
+.speaker-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.speaker-info {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+
+.thumbnail-strip {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: #000;
+  overflow-x: auto;
+}
+
+.thumbnail {
+  position: relative;
+  width: 150px;
+  height: 100px;
+  flex-shrink: 0;
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.thumbnail:hover {
+  transform: scale(1.05);
+}
+
+.thumbnail.is-self {
+  border: 2px solid #10b981;
+}
+
+.thumb-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 4px;
+  font-size: 12px;
+  text-align: center;
+}
+</style>
+```
+
+#### Gallery View with Pagination
+
+Handle large conferences with pagination:
+
+```vue
+<template>
+  <div class="gallery-view">
+    <!-- Current page of participants -->
+    <div class="gallery-grid">
+      <div
+        v-for="participant in currentPageParticipants"
+        :key="participant.id"
+        class="gallery-tile"
+      >
+        <video
+          :ref="(el) => setVideoRef(participant.id, el)"
+          autoplay
+          playsinline
+          :muted="participant.isSelf"
+          class="gallery-video"
+        />
+        <div class="participant-name">
+          {{ participant.displayName }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination controls -->
+    <div v-if="totalPages > 1" class="pagination">
+      <button
+        @click="previousPage"
+        :disabled="currentPage === 0"
+        class="page-btn"
+      >
+        ← Previous
+      </button>
+
+      <span class="page-info">
+        Page {{ currentPage + 1 }} of {{ totalPages }}
+        ({{ participants.length }} participants)
+      </span>
+
+      <button
+        @click="nextPage"
+        :disabled="currentPage >= totalPages - 1"
+        class="page-btn"
+      >
+        Next →
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+
+const { participants } = useConference(sipClient)
+
+const PARTICIPANTS_PER_PAGE = 9  // 3x3 grid
+const currentPage = ref(0)
+
+// Calculate total pages
+const totalPages = computed(() =>
+  Math.ceil(participants.value.length / PARTICIPANTS_PER_PAGE)
+)
+
+// Get participants for current page
+const currentPageParticipants = computed(() => {
+  const start = currentPage.value * PARTICIPANTS_PER_PAGE
+  const end = start + PARTICIPANTS_PER_PAGE
+  return participants.value.slice(start, end)
+})
+
+function nextPage() {
+  if (currentPage.value < totalPages.value - 1) {
+    currentPage.value++
+  }
+}
+
+function previousPage() {
+  if (currentPage.value > 0) {
+    currentPage.value--
+  }
+}
+</script>
+
+<style scoped>
+.gallery-view {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #000;
+}
+
+.gallery-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  padding: 10px;
+}
+
+.gallery-tile {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.gallery-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.participant-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  padding: 8px;
+  text-align: center;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 15px;
+  background: #1a1a1a;
+  color: white;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+}
+</style>
+```
+
+💡 **Performance Tip**: For conferences with 50+ participants, only render video elements for participants on the current page. This significantly reduces CPU and memory usage.
+
+#### Responsive Grid Pattern
+
+Adapt grid layout based on screen size:
+
+```vue
+<style scoped>
+/* Desktop: 4-column grid */
+@media (min-width: 1200px) {
+  .video-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Tablet: 3-column grid */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .video-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Mobile landscape: 2-column grid */
+@media (max-width: 767px) and (orientation: landscape) {
+  .video-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile portrait: 1-column grid */
+@media (max-width: 767px) and (orientation: portrait) {
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-tile {
+    aspect-ratio: 4/3;  /* Better for portrait */
+  }
+}
+</style>
+```
+
+---
+
+### Active Speaker Detection
+
+Identify and highlight the currently speaking participant using audio level monitoring.
+
+#### Basic Active Speaker Detection
+
+Use audio level events to detect who's speaking:
+
+```typescript
+import { ref } from 'vue'
+import type { Participant } from 'vuesip'
+
+const { participants, onConferenceEvent } = useConference(sipClient)
+
+const activeSpeaker = ref<Participant | null>(null)
+const audioLevels = ref<Map<string, number>>(new Map())
+
+// Threshold for considering someone as "speaking"
+const SPEAKING_THRESHOLD = 0.3  // 30% audio level
+
+// Listen for audio level updates
+onConferenceEvent((event) => {
+  if (event.type === 'audio:level' && event.levels) {
+    // Update audio levels
+    audioLevels.value = new Map(event.levels)
+
+    // Find participant with highest audio level above threshold
+    let maxLevel = SPEAKING_THRESHOLD
+    let currentSpeaker: Participant | null = null
+
+    event.levels.forEach((level, uri) => {
+      if (level > maxLevel) {
+        const participant = participants.value.find(p => p.uri === uri)
+        // Don't set self as active speaker (optional)
+        if (participant && !participant.isSelf) {
+          maxLevel = level
+          currentSpeaker = participant
+        }
+      }
+    })
+
+    // Update active speaker if changed
+    if (currentSpeaker !== activeSpeaker.value) {
+      const previousSpeaker = activeSpeaker.value
+      activeSpeaker.value = currentSpeaker
+
+      console.log('Active speaker changed:')
+      console.log('- Previous:', previousSpeaker?.displayName)
+      console.log('- Current:', currentSpeaker?.displayName)
+    }
+  }
+})
+
+// Check if a participant is currently speaking
+function isSpeaking(participant: Participant): boolean {
+  const level = audioLevels.value.get(participant.uri) || 0
+  return level > SPEAKING_THRESHOLD
+}
+```
+
+#### Visual Active Speaker Indicator
+
+Highlight the active speaker in the UI:
+
+```vue
+<template>
+  <div class="conference-grid">
+    <div
+      v-for="participant in participants"
+      :key="participant.id"
+      class="video-tile"
+      :class="{
+        'is-active-speaker': participant.id === activeSpeaker?.id,
+        'is-speaking': isSpeaking(participant)
+      }"
+    >
+      <video
+        :ref="(el) => setVideoRef(participant.id, el)"
+        autoplay
+        playsinline
+        :muted="participant.isSelf"
+        class="participant-video"
+      />
+
+      <!-- Audio level indicator -->
+      <div class="audio-indicator" :style="audioIndicatorStyle(participant)">
+        <div class="level-bar"></div>
+      </div>
+
+      <!-- Active speaker badge -->
+      <div v-if="participant.id === activeSpeaker?.id" class="speaker-badge">
+        🔊 Speaking
+      </div>
+
+      <div class="participant-name">
+        {{ participant.displayName }}
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import type { Participant } from 'vuesip'
+
+const { participants, onConferenceEvent } = useConference(sipClient)
+
+const activeSpeaker = ref<Participant | null>(null)
+const audioLevels = ref<Map<string, number>>(new Map())
+
+onConferenceEvent((event) => {
+  if (event.type === 'audio:level' && event.levels) {
+    audioLevels.value = new Map(event.levels)
+
+    // Detect active speaker
+    let maxLevel = 0.3
+    let currentSpeaker: Participant | null = null
+
+    event.levels.forEach((level, uri) => {
+      if (level > maxLevel) {
+        const participant = participants.value.find(p => p.uri === uri)
+        if (participant && !participant.isSelf) {
+          maxLevel = level
+          currentSpeaker = participant
+        }
+      }
+    })
+
+    if (currentSpeaker) {
+      activeSpeaker.value = currentSpeaker
+    }
+  }
+})
+
+function isSpeaking(participant: Participant): boolean {
+  return (audioLevels.value.get(participant.uri) || 0) > 0.3
+}
+
+function audioIndicatorStyle(participant: Participant) {
+  const level = audioLevels.value.get(participant.uri) || 0
+  return {
+    opacity: level > 0.1 ? 1 : 0,
+    transform: `scaleX(${level})`
+  }
+}
+</script>
+
+<style scoped>
+.video-tile {
+  position: relative;
+  border: 3px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.video-tile.is-speaking {
+  border-color: #3b82f6;
+}
+
+.video-tile.is-active-speaker {
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+.audio-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 10px;
+  right: 10px;
+  height: 4px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+
+.level-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #3b82f6);
+  transform-origin: left;
+  transition: transform 0.1s;
+}
+
+.speaker-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(16, 185, 129, 0.9);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.participant-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  padding: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+</style>
+```
+
+#### Auto-Switching in Speaker View
+
+Automatically switch the main view to the active speaker:
+
+```typescript
+import { ref, watch } from 'vue'
+
+const activeSpeaker = ref<Participant | null>(null)
+const pinnedParticipant = ref<Participant | null>(null)
+
+// Main video shows pinned participant or active speaker
+const mainParticipant = computed(() =>
+  pinnedParticipant.value || activeSpeaker.value || participants.value[0]
+)
+
+// Detect active speaker with debouncing
+let speakerChangeTimeout: number | null = null
+
+onConferenceEvent((event) => {
+  if (event.type === 'audio:level' && event.levels) {
+    // Find loudest participant
+    let maxLevel = 0.3
+    let currentSpeaker: Participant | null = null
+
+    event.levels.forEach((level, uri) => {
+      if (level > maxLevel) {
+        const participant = participants.value.find(p => p.uri === uri)
+        if (participant && !participant.isSelf) {
+          maxLevel = level
+          currentSpeaker = participant
+        }
+      }
+    })
+
+    // Debounce speaker changes (avoid flickering)
+    if (currentSpeaker && currentSpeaker !== activeSpeaker.value) {
+      if (speakerChangeTimeout) {
+        clearTimeout(speakerChangeTimeout)
+      }
+
+      speakerChangeTimeout = window.setTimeout(() => {
+        // Only switch if no participant is pinned
+        if (!pinnedParticipant.value) {
+          activeSpeaker.value = currentSpeaker
+        }
+      }, 500)  // 500ms debounce
+    }
+  }
+})
+
+// Allow manual pinning
+function pinParticipant(participant: Participant) {
+  pinnedParticipant.value = participant
+}
+
+function unpinParticipant() {
+  pinnedParticipant.value = null
+}
+```
+
+💡 **UX Tip**: Add a debounce delay (300-500ms) before switching speakers to prevent rapid flickering when multiple people talk in quick succession.
+
+---
+
+### Conference Controls UI
+
+Build a comprehensive control panel for managing the conference.
+
+#### Basic Control Panel
+
+```vue
+<template>
+  <div class="conference-controls">
+    <!-- Participant count -->
+    <div class="control-section">
+      <span class="participant-count">
+        👥 {{ participantCount }} participant{{ participantCount !== 1 ? 's' : '' }}
+      </span>
+    </div>
+
+    <!-- Mute/Video controls -->
+    <div class="control-section">
+      <button
+        @click="toggleMute"
+        :class="{ active: isMuted }"
+        class="control-btn"
+      >
+        {{ isMuted ? '🔇 Unmute' : '🔊 Mute' }}
+      </button>
+
+      <button
+        @click="toggleVideo"
+        :class="{ active: !hasVideo }"
+        class="control-btn"
+      >
+        {{ hasVideo ? '📹 Stop Video' : '📹 Start Video' }}
+      </button>
+    </div>
+
+    <!-- Conference controls (moderator only) -->
+    <div v-if="isModerator" class="control-section">
+      <button
+        @click="toggleLock"
+        :class="{ active: isLocked }"
+        class="control-btn"
+      >
+        {{ isLocked ? '🔓 Unlock' : '🔒 Lock' }}
+      </button>
+
+      <button
+        @click="toggleRecording"
+        :class="{ active: isRecording, recording: isRecording }"
+        class="control-btn"
+      >
+        {{ isRecording ? '⏹️ Stop Recording' : '⏺️ Record' }}
+      </button>
+
+      <button @click="handleAddParticipant" class="control-btn">
+        ➕ Add Participant
+      </button>
+    </div>
+
+    <!-- Leave/End conference -->
+    <div class="control-section">
+      <button
+        v-if="isModerator"
+        @click="confirmEndConference"
+        class="control-btn danger"
+      >
+        🛑 End Conference
+      </button>
+      <button
+        v-else
+        @click="handleLeaveConference"
+        class="control-btn danger"
+      >
+        📞 Leave
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+
+const {
+  participantCount,
+  isLocked,
+  isRecording,
+  localParticipant,
+  lockConference,
+  unlockConference,
+  startRecording,
+  stopRecording,
+  endConference
+} = useConference(sipClient)
+
+const isMuted = ref(false)
+const hasVideo = ref(true)
+
+const isModerator = computed(() => localParticipant.value?.isModerator || false)
+
+async function toggleMute() {
+  // Your mute implementation
+  isMuted.value = !isMuted.value
+}
+
+async function toggleVideo() {
+  // Your video toggle implementation
+  hasVideo.value = !hasVideo.value
+}
+
+async function toggleLock() {
+  try {
+    if (isLocked.value) {
+      await unlockConference()
+    } else {
+      await lockConference()
+    }
+  } catch (error) {
+    console.error('Failed to toggle lock:', error)
+  }
+}
+
+async function toggleRecording() {
+  try {
+    if (isRecording.value) {
+      await stopRecording()
+    } else {
+      // Confirm before recording
+      const confirmed = confirm(
+        'Start recording this conference? All participants will be notified.'
+      )
+      if (confirmed) {
+        await startRecording()
+      }
+    }
+  } catch (error) {
+    console.error('Failed to toggle recording:', error)
+  }
+}
+
+function handleAddParticipant() {
+  const uri = prompt('Enter participant SIP URI:')
+  if (uri) {
+    const name = prompt('Enter display name (optional):')
+    addParticipant(uri, name || undefined)
+      .then(() => console.log('Participant added'))
+      .catch(error => alert(`Failed to add participant: ${error.message}`))
+  }
+}
+
+function confirmEndConference() {
+  const confirmed = confirm(
+    'End this conference for all participants?'
+  )
+  if (confirmed) {
+    endConference()
+      .then(() => console.log('Conference ended'))
+      .catch(error => console.error('Failed to end conference:', error))
+  }
+}
+
+function handleLeaveConference() {
+  endConference()
+}
+</script>
+
+<style scoped>
+.conference-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  padding: 15px 20px;
+  background: rgba(0,0,0,0.8);
+  border-radius: 50px;
+  backdrop-filter: blur(10px);
+  z-index: 100;
+}
+
+.control-section {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 0 15px;
+  border-right: 1px solid rgba(255,255,255,0.2);
+}
+
+.control-section:last-child {
+  border-right: none;
+}
+
+.participant-count {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.control-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 25px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.control-btn:hover {
+  background: rgba(255,255,255,0.3);
+  transform: scale(1.05);
+}
+
+.control-btn.active {
+  background: #ef4444;
+}
+
+.control-btn.recording {
+  background: #ef4444;
+  animation: pulse 2s infinite;
+}
+
+.control-btn.danger {
+  background: #ef4444;
+}
+
+.control-btn.danger:hover {
+  background: #dc2626;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+</style>
+```
+
+#### Participant Roster with Controls
+
+Manage individual participants:
+
+```vue
+<template>
+  <div class="participant-roster">
+    <div class="roster-header">
+      <h3>Participants ({{ participantCount }})</h3>
+      <button
+        v-if="isModerator"
+        @click="showAddDialog = true"
+        class="add-btn"
+      >
+        ➕ Add
+      </button>
+    </div>
+
+    <div class="roster-list">
+      <div
+        v-for="participant in participants"
+        :key="participant.id"
+        class="participant-row"
+        :class="{ 'is-self': participant.isSelf }"
+      >
+        <!-- Avatar -->
+        <div class="participant-avatar">
+          {{ getInitial(participant.displayName) }}
+        </div>
+
+        <!-- Info -->
+        <div class="participant-info">
+          <div class="participant-name">
+            {{ participant.displayName || 'Unknown' }}
+            <span v-if="participant.isSelf" class="you-badge">You</span>
+            <span v-if="participant.isModerator" class="mod-badge">MOD</span>
+          </div>
+          <div class="participant-status">
+            {{ getParticipantStatus(participant) }}
+          </div>
+        </div>
+
+        <!-- Audio level indicator -->
+        <div class="audio-level">
+          <div
+            class="level-bar"
+            :style="{ height: `${(participant.audioLevel || 0) * 100}%` }"
+          ></div>
+        </div>
+
+        <!-- Controls (moderator only, not for self) -->
+        <div v-if="isModerator && !participant.isSelf" class="participant-actions">
+          <button
+            @click="toggleParticipantMute(participant)"
+            :class="{ active: participant.isMuted }"
+            class="action-btn"
+            :title="participant.isMuted ? 'Unmute' : 'Mute'"
+          >
+            {{ participant.isMuted ? '🔇' : '🔊' }}
+          </button>
+
+          <button
+            @click="removeParticipantConfirm(participant)"
+            class="action-btn danger"
+            title="Remove from conference"
+          >
+            ❌
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import type { Participant } from 'vuesip'
+
+const {
+  participants,
+  participantCount,
+  localParticipant,
+  muteParticipant,
+  unmuteParticipant,
+  removeParticipant
+} = useConference(sipClient)
+
+const showAddDialog = ref(false)
+
+const isModerator = computed(() => localParticipant.value?.isModerator || false)
+
+function getInitial(name?: string): string {
+  return (name || '?').charAt(0).toUpperCase()
+}
+
+function getParticipantStatus(participant: Participant): string {
+  if (participant.isMuted) return 'Muted'
+  if (participant.isOnHold) return 'On Hold'
+  if (participant.state === 'connecting') return 'Connecting...'
+  return 'Active'
+}
+
+async function toggleParticipantMute(participant: Participant) {
+  try {
+    if (participant.isMuted) {
+      await unmuteParticipant(participant.id)
+    } else {
+      await muteParticipant(participant.id)
+    }
+  } catch (error) {
+    console.error('Failed to toggle mute:', error)
+  }
+}
+
+function removeParticipantConfirm(participant: Participant) {
+  const confirmed = confirm(
+    `Remove ${participant.displayName} from the conference?`
+  )
+  if (confirmed) {
+    removeParticipant(participant.id, 'Removed by moderator')
+      .then(() => console.log('Participant removed'))
+      .catch(error => console.error('Failed to remove:', error))
+  }
+}
+</script>
+
+<style scoped>
+.participant-roster {
+  width: 300px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #2a2a2a;
+  color: white;
+}
+
+.roster-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.add-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #10b981;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.roster-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.participant-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  border-bottom: 1px solid #2a2a2a;
+  transition: background 0.2s;
+}
+
+.participant-row:hover {
+  background: #2a2a2a;
+}
+
+.participant-row.is-self {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.participant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.participant-info {
+  flex: 1;
+}
+
+.participant-name {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.you-badge, .mod-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.you-badge {
+  background: #10b981;
+  color: white;
+}
+
+.mod-badge {
+  background: #3b82f6;
+  color: white;
+}
+
+.participant-status {
+  color: #999;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.audio-level {
+  width: 4px;
+  height: 30px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.level-bar {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: #10b981;
+  transition: height 0.1s;
+}
+
+.participant-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.action-btn.active {
+  background: #ef4444;
+}
+
+.action-btn.danger {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.action-btn.danger:hover {
+  background: #ef4444;
+}
+</style>
+```
+
+---
+
+### Performance Optimization for Multiple Streams
+
+Handle bandwidth and performance challenges when managing many video streams.
+
+#### Bandwidth Management
+
+Reduce quality for non-active participants:
+
+```typescript
+import { watch } from 'vue'
+
+const activeSpeaker = ref<Participant | null>(null)
+
+// Optimize video quality based on priority
+watch([participants, activeSpeaker], async ([currentParticipants, speaker]) => {
+  for (const participant of currentParticipants) {
+    if (!participant.stream) continue
+
+    const videoTrack = participant.stream.getVideoTracks()[0]
+    if (!videoTrack) continue
+
+    try {
+      if (participant.id === speaker?.id) {
+        // Active speaker gets HD quality
+        await videoTrack.applyConstraints({
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 }
+        })
+      } else if (participant.isSelf) {
+        // Self view gets medium quality
+        await videoTrack.applyConstraints({
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 15 }
+        })
+      } else {
+        // Other participants get low quality
+        await videoTrack.applyConstraints({
+          width: { ideal: 320 },
+          height: { ideal: 240 },
+          frameRate: { ideal: 10 }
+        })
+      }
+    } catch (error) {
+      console.error('Failed to apply constraints:', error)
+    }
+  }
+}, { deep: true })
+```
+
+#### Virtual Scrolling for Large Conferences
+
+Only render visible participants for 50+ participant conferences:
+
+```vue
+<template>
+  <div
+    ref="scrollContainer"
+    class="virtual-scroll-container"
+    @scroll="handleScroll"
+  >
+    <!-- Spacer for scrolling -->
+    <div :style="{ height: `${totalHeight}px` }" class="scroll-spacer">
+      <!-- Only render visible items -->
+      <div
+        v-for="participant in visibleParticipants"
+        :key="participant.id"
+        :style="{
+          position: 'absolute',
+          top: `${getParticipantOffset(participant)}px`,
+          width: '100%'
+        }"
+        class="virtual-item"
+      >
+        <video
+          :ref="(el) => setVideoRef(participant.id, el)"
+          autoplay
+          playsinline
+          :muted="participant.isSelf"
+          class="participant-video"
+        />
+        <div class="participant-name">
+          {{ participant.displayName }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+
+const { participants } = useConference(sipClient)
+
+const ITEM_HEIGHT = 200  // Height of each video tile
+const BUFFER = 2  // Number of items to render above/below viewport
+
+const scrollContainer = ref<HTMLElement>()
+const scrollTop = ref(0)
+
+const totalHeight = computed(() =>
+  participants.value.length * ITEM_HEIGHT
+)
+
+const visibleRange = computed(() => {
+  if (!scrollContainer.value) return { start: 0, end: 10 }
+
+  const containerHeight = scrollContainer.value.clientHeight
+  const start = Math.floor(scrollTop.value / ITEM_HEIGHT) - BUFFER
+  const end = Math.ceil((scrollTop.value + containerHeight) / ITEM_HEIGHT) + BUFFER
+
+  return {
+    start: Math.max(0, start),
+    end: Math.min(participants.value.length, end)
+  }
+})
+
+const visibleParticipants = computed(() => {
+  const { start, end } = visibleRange.value
+  return participants.value.slice(start, end)
+})
+
+function getParticipantOffset(participant: Participant): number {
+  const index = participants.value.findIndex(p => p.id === participant.id)
+  return index * ITEM_HEIGHT
+}
+
+function handleScroll(event: Event) {
+  scrollTop.value = (event.target as HTMLElement).scrollTop
+}
+</script>
+```
+
+💡 **Performance Impact**: Virtual scrolling reduces DOM elements from 100+ to ~10, drastically improving performance for large conferences.
+
+#### Simulcast Support
+
+Use different quality streams for different viewers (if server supports):
+
+```typescript
+// Request simulcast layers when creating conference
+await createConference({
+  maxParticipants: 50,
+  metadata: {
+    simulcast: {
+      enabled: true,
+      layers: ['low', 'medium', 'high']
+    }
+  }
+})
+
+// Server will provide multiple quality levels
+// Clients automatically receive appropriate quality based on:
+// - Available bandwidth
+// - CPU capacity
+// - Participant priority (active speaker vs thumbnails)
+```
+
+📝 **Note**: Simulcast requires server-side support (e.g., Janus, Jitsi, or commercial SFU). Check your SIP server capabilities.
+
+#### Quality Reduction Strategies
+
+Implement progressive quality degradation:
+
+```typescript
+const MAX_HD_STREAMS = 1     // Only active speaker in HD
+const MAX_SD_STREAMS = 8      // Next 8 in SD
+// Rest in low quality
+
+function optimizeStreamQualities() {
+  const sorted = participants.value.slice()
+    .sort((a, b) => {
+      // Prioritize: 1) Active speaker, 2) Self, 3) Others by join time
+      if (a.id === activeSpeaker.value?.id) return -1
+      if (b.id === activeSpeaker.value?.id) return 1
+      if (a.isSelf) return -1
+      if (b.isSelf) return 1
+      return a.joinedAt.getTime() - b.joinedAt.getTime()
+    })
+
+  sorted.forEach(async (participant, index) => {
+    const videoTrack = participant.stream?.getVideoTracks()[0]
+    if (!videoTrack) return
+
+    let constraints
+    if (index < MAX_HD_STREAMS) {
+      // HD for top priority
+      constraints = { width: 1280, height: 720, frameRate: 30 }
+    } else if (index < MAX_HD_STREAMS + MAX_SD_STREAMS) {
+      // SD for medium priority
+      constraints = { width: 640, height: 480, frameRate: 15 }
+    } else {
+      // Low quality for rest
+      constraints = { width: 320, height: 240, frameRate: 10 }
+    }
+
+    try {
+      await videoTrack.applyConstraints({
+        width: { ideal: constraints.width },
+        height: { ideal: constraints.height },
+        frameRate: { ideal: constraints.frameRate }
+      })
+    } catch (error) {
+      console.error('Failed to apply constraints:', error)
+    }
+  })
+}
+
+// Re-optimize when active speaker changes
+watch(activeSpeaker, () => {
+  optimizeStreamQualities()
+})
+```
+
+---
+
+### Complete Conference Examples
+
+Production-ready conference components you can use directly.
+
+#### Basic Conference Room
+
+```vue
+<template>
+  <div class="conference-room">
+    <!-- Pre-conference lobby -->
+    <div v-if="!isActive" class="lobby">
+      <h2>Join Conference</h2>
+
+      <!-- Camera preview -->
+      <div class="preview-section">
+        <video
+          ref="previewVideo"
+          autoplay
+          muted
+          playsinline
+          class="preview"
+        />
+        <button @click="togglePreviewVideo">
+          {{ previewVideoEnabled ? 'Stop Video' : 'Start Video' }}
+        </button>
+      </div>
+
+      <!-- Join options -->
+      <div class="join-options">
+        <input
+          v-model="displayName"
+          placeholder="Your name"
+          class="input"
+        />
+        <button @click="handleJoinConference" class="join-btn">
+          Join Conference
+        </button>
+      </div>
+    </div>
+
+    <!-- Active conference -->
+    <div v-else class="active-conference">
+      <!-- Video grid -->
+      <div class="video-grid" :style="gridStyle">
+        <div
+          v-for="participant in participants"
+          :key="participant.id"
+          class="video-tile"
+          :class="{
+            'is-active-speaker': participant.id === activeSpeaker?.id,
+            'is-self': participant.isSelf
+          }"
+        >
+          <video
+            :ref="(el) => setVideoRef(participant.id, el)"
+            autoplay
+            playsinline
+            :muted="participant.isSelf"
+            class="tile-video"
+          />
+
+          <div class="tile-info">
+            <span class="name">{{ participant.displayName }}</span>
+            <span v-if="participant.isMuted" class="muted">🔇</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button @click="toggleMute" :class="{ active: isMuted }">
+          {{ isMuted ? '🔇' : '🔊' }}
+        </button>
+        <button @click="toggleVideo" :class="{ active: !hasVideo }">
+          {{ hasVideo ? '📹' : '📹' }}
+        </button>
+        <button @click="handleEndConference" class="danger">
+          📞 Leave
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useConference } from 'vuesip'
+import type { Participant } from 'vuesip'
+
+const {
+  participants,
+  isActive,
+  createConference,
+  joinConference,
+  endConference,
+  onConferenceEvent
+} = useConference(sipClient)
+
+const displayName = ref('')
+const previewVideo = ref<HTMLVideoElement>()
+const previewStream = ref<MediaStream | null>(null)
+const previewVideoEnabled = ref(true)
+const isMuted = ref(false)
+const hasVideo = ref(true)
+const activeSpeaker = ref<Participant | null>(null)
+const videoRefs = ref<Map<string, HTMLVideoElement>>(new Map())
+
+// Grid layout calculation
+const gridStyle = computed(() => {
+  const count = participants.value.length
+  const columns = count <= 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : 4
+  return { gridTemplateColumns: `repeat(${columns}, 1fr)` }
+})
+
+// Start preview on mount
+onMounted(async () => {
+  try {
+    previewStream.value = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    })
+    if (previewVideo.value) {
+      previewVideo.value.srcObject = previewStream.value
+    }
+  } catch (error) {
+    console.error('Failed to start preview:', error)
+  }
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (previewStream.value) {
+    previewStream.value.getTracks().forEach(track => track.stop())
+  }
+})
+
+// Toggle preview video
+function togglePreviewVideo() {
+  if (previewStream.value) {
+    const videoTrack = previewStream.value.getVideoTracks()[0]
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled
+      previewVideoEnabled.value = videoTrack.enabled
+    }
+  }
+}
+
+// Join conference
+async function handleJoinConference() {
+  try {
+    // Stop preview
+    if (previewStream.value) {
+      previewStream.value.getTracks().forEach(track => track.stop())
+      previewStream.value = null
+    }
+
+    // Create or join conference
+    await createConference({
+      maxParticipants: 10,
+      metadata: { displayName: displayName.value }
+    })
+  } catch (error) {
+    console.error('Failed to join:', error)
+    alert('Failed to join conference')
+  }
+}
+
+// Set video ref
+function setVideoRef(participantId: string, el: any) {
+  if (el && el instanceof HTMLVideoElement) {
+    videoRefs.value.set(participantId, el)
+  }
+}
+
+// Attach streams
+watch(participants, () => {
+  participants.value.forEach(participant => {
+    if (participant.stream) {
+      const videoEl = videoRefs.value.get(participant.id)
+      if (videoEl && videoEl.srcObject !== participant.stream) {
+        videoEl.srcObject = participant.stream
+      }
+    }
+  })
+}, { deep: true })
+
+// Detect active speaker
+onConferenceEvent((event) => {
+  if (event.type === 'audio:level' && event.levels) {
+    let maxLevel = 0.3
+    let speaker: Participant | null = null
+
+    event.levels.forEach((level, uri) => {
+      if (level > maxLevel) {
+        const p = participants.value.find(p => p.uri === uri)
+        if (p && !p.isSelf) {
+          maxLevel = level
+          speaker = p
+        }
+      }
+    })
+
+    if (speaker) {
+      activeSpeaker.value = speaker
+    }
+  }
+})
+
+// Toggle mute
+function toggleMute() {
+  // Implement mute logic
+  isMuted.value = !isMuted.value
+}
+
+// Toggle video
+function toggleVideo() {
+  // Implement video toggle logic
+  hasVideo.value = !hasVideo.value
+}
+
+// End conference
+async function handleEndConference() {
+  try {
+    await endConference()
+  } catch (error) {
+    console.error('Failed to end conference:', error)
+  }
+}
+</script>
+
+<style scoped>
+.conference-room {
+  width: 100%;
+  height: 100vh;
+  background: #000;
+  color: white;
+}
+
+.lobby {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.preview-section {
+  margin: 30px 0;
+}
+
+.preview {
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 4/3;
+  background: #1a1a1a;
+  border-radius: 12px;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.join-options {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.input {
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: white;
+  font-size: 16px;
+}
+
+.join-btn {
+  padding: 15px 30px;
+  border: none;
+  border-radius: 8px;
+  background: #10b981;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.join-btn:hover {
+  transform: scale(1.02);
+}
+
+.active-conference {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.video-grid {
+  flex: 1;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.video-tile {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 3px solid transparent;
+}
+
+.video-tile.is-active-speaker {
+  border-color: #10b981;
+}
+
+.video-tile.is-self {
+  border-color: #3b82f6;
+}
+
+.tile-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tile-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.7);
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.name {
+  font-size: 14px;
+}
+
+.muted {
+  font-size: 16px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  padding: 20px;
+  background: rgba(0,0,0,0.8);
+}
+
+.controls button {
+  width: 50px;
+  height: 50px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.controls button:hover {
+  transform: scale(1.1);
+}
+
+.controls button.active {
+  background: #ef4444;
+}
+
+.controls button.danger {
+  background: #ef4444;
+}
+</style>
+```
+
+💡 **Production Tip**: This basic conference room can be extended with features like screen sharing, chat, participant roster, and recording controls.
+
+---
+
+### Summary
+
+This section covered everything you need to build professional multi-party video conferencing in VueSip:
+
+✅ **useConference API**: Creating, joining, and managing conferences
+✅ **Multiple Video Streams**: Accessing and attaching participant streams
+✅ **Video Grid Layouts**: Grid, speaker, gallery, and responsive patterns
+✅ **Active Speaker Detection**: Real-time audio level monitoring
+✅ **Conference Controls**: Mute, lock, record, and participant management
+✅ **Performance Optimization**: Bandwidth management, virtual scrolling, simulcast
+✅ **Complete Examples**: Production-ready conference room components
+
+### Key Takeaways
+
+1. **Use useConference for multi-party**: The composable handles all conference lifecycle and participant management
+2. **Manage streams carefully**: Each participant has their own stream that needs proper lifecycle management
+3. **Optimize for scale**: Use quality reduction, pagination, and virtual scrolling for large conferences
+4. **Detect active speakers**: Audio level events enable dynamic UI highlighting and layout switching
+5. **Provide moderator controls**: Lock, record, mute, and remove participants for effective moderation
+6. **Handle bandwidth**: Reduce quality for non-active participants to conserve bandwidth
+7. **Design responsive layouts**: Support grid, speaker, and gallery views with responsive breakpoints
+
+### Next Steps
+
+- Explore [Screen Sharing](#screen-sharing) for presenting in conferences
+- Learn about [Performance Optimization](#performance) for handling many streams
+- Check [Best Practices](#best-practices) for production deployments
+- Review complete [API Reference](../api/useConference.md) for advanced features
+
+💡 **Pro Tip**: Start with a basic grid layout and 4-6 participants. Add advanced features like speaker detection and quality optimization as your needs grow.
 
 ---
 
