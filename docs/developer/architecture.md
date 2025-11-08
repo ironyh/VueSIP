@@ -4,6 +4,8 @@
 **Last Updated:** 2025-11-08
 **Target Audience:** Developers, Technical Architects, Contributors
 
+> **Note:** If you're looking to contribute to VueSip, please also see our [Contributing Guide](../../CONTRIBUTING.md) for development workflow, coding standards, and PR process.
+
 ---
 
 ## Table of Contents
@@ -1507,10 +1509,11 @@ The four-layer architecture (Protocol → Business Logic → Composable → Inte
 ## Additional Resources
 
 - **Technical Specifications**: `/TECHNICAL_SPECIFICATIONS.md`
+- **Contributing Guide**: `/CONTRIBUTING.md` - Developer guidelines and workflow
 - **API Documentation**: `/docs/api/`
 - **User Guides**: `/docs/guide/`
 - **Testing Guide**: `/docs/testing-guide.md`
-- **Examples**: `/playground/`
+- **Examples**: `/examples/` and `/playground/`
 
 ---
 

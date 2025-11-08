@@ -6,6 +6,6 @@ contact_links:
   - name: Discussions
     url: https://github.com/ironyh/VueSip/discussions
     about: Ask questions and discuss VueSip with the community
-  - name: SIP.js Documentation
-    url: https://sipjs.com/
-    about: Learn more about the underlying SIP.js library
+  - name: JsSIP Documentation
+    url: https://jssip.net/
+    about: Learn more about the underlying JsSIP library

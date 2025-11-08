@@ -148,6 +148,8 @@ pnpm run docs:build
 
 ## Project Architecture
 
+For a comprehensive deep-dive into VueSip's architecture, see [Architecture Documentation](docs/developer/architecture.md).
+
 ### Directory Structure
 
 ```
@@ -1452,12 +1454,14 @@ Update CHANGELOG.md following [Keep a Changelog](https://keepachangelog.com/):
 
 ## Additional Resources
 
+- [VueSip Architecture Documentation](docs/developer/architecture.md) - System design and architecture
 - [Vue 3 Documentation](https://vuejs.org/)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [Vitest Documentation](https://vitest.dev/)
 - [Playwright Documentation](https://playwright.dev/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [JsSIP Documentation](https://jssip.net/documentation/)
+- [WebRTC API](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API)
 
 ## License
 
