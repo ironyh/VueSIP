@@ -740,6 +740,12 @@ Events related to conference calls and participants.
 | `conference:ended` | `EventNames.CONFERENCE_ENDED` | `ConferenceEndedEvent` | Conference ended |
 | `conference:participant:joined` | `EventNames.CONFERENCE_PARTICIPANT_JOINED` | `ConferenceParticipantJoinedEvent` | Participant joined |
 | `conference:participant:left` | `EventNames.CONFERENCE_PARTICIPANT_LEFT` | `ConferenceParticipantLeftEvent` | Participant left |
+| `sip:conference:participant:invited` | - | `ConferenceParticipantInvitedEvent` | Participant invited to conference |
+| `sip:conference:participant:removed` | - | `ConferenceParticipantRemovedEvent` | Participant removed from conference |
+| `sip:conference:participant:muted` | - | `ConferenceParticipantMutedEvent` | Participant muted |
+| `sip:conference:participant:unmuted` | - | `ConferenceParticipantUnmutedEvent` | Participant unmuted |
+| `sip:conference:recording:started` | - | `ConferenceRecordingStartedEvent` | Conference recording started |
+| `sip:conference:recording:stopped` | - | `ConferenceRecordingStoppedEvent` | Conference recording stopped |
 
 **ConferenceCreatedEvent Payload:**
 
@@ -773,6 +779,70 @@ interface Participant {
 }
 ```
 
+**ConferenceParticipantInvitedEvent Payload:**
+
+```typescript
+interface ConferenceParticipantInvitedEvent extends BaseEvent {
+  type: 'sip:conference:participant:invited'
+  conferenceId: string
+  participant: Participant
+  timestamp: Date
+}
+```
+
+**ConferenceParticipantRemovedEvent Payload:**
+
+```typescript
+interface ConferenceParticipantRemovedEvent extends BaseEvent {
+  type: 'sip:conference:participant:removed'
+  conferenceId: string
+  participant: Participant
+  timestamp: Date
+}
+```
+
+**ConferenceParticipantMutedEvent Payload:**
+
+```typescript
+interface ConferenceParticipantMutedEvent extends BaseEvent {
+  type: 'sip:conference:participant:muted'
+  conferenceId: string
+  participant: Participant
+  timestamp: Date
+}
+```
+
+**ConferenceParticipantUnmutedEvent Payload:**
+
+```typescript
+interface ConferenceParticipantUnmutedEvent extends BaseEvent {
+  type: 'sip:conference:participant:unmuted'
+  conferenceId: string
+  participant: Participant
+  timestamp: Date
+}
+```
+
+**ConferenceRecordingStartedEvent Payload:**
+
+```typescript
+interface ConferenceRecordingStartedEvent extends BaseEvent {
+  type: 'sip:conference:recording:started'
+  conferenceId: string
+  timestamp: Date
+}
+```
+
+**ConferenceRecordingStoppedEvent Payload:**
+
+```typescript
+interface ConferenceRecordingStoppedEvent extends BaseEvent {
+  type: 'sip:conference:recording:stopped'
+  conferenceId: string
+  timestamp: Date
+}
+```
+
 **Example:**
 
 ```typescript
@@ -788,6 +858,36 @@ eventBus.on('conference:participant:joined', (event) => {
 
 eventBus.on('conference:participant:left', (event) => {
   console.log('Participant left:', event.participant.displayName)
+})
+
+// Monitor participant state changes
+eventBus.on('sip:conference:participant:invited', (event) => {
+  console.log('Participant invited:', event.participant.uri)
+})
+
+eventBus.on('sip:conference:participant:removed', (event) => {
+  console.log('Participant removed:', event.participant.displayName)
+})
+
+eventBus.on('sip:conference:participant:muted', (event) => {
+  console.log('Participant muted:', event.participant.displayName)
+  updateParticipantUI(event.participant.id, { muted: true })
+})
+
+eventBus.on('sip:conference:participant:unmuted', (event) => {
+  console.log('Participant unmuted:', event.participant.displayName)
+  updateParticipantUI(event.participant.id, { muted: false })
+})
+
+// Monitor recording events
+eventBus.on('sip:conference:recording:started', (event) => {
+  console.log('Recording started for conference:', event.conferenceId)
+  showRecordingIndicator(true)
+})
+
+eventBus.on('sip:conference:recording:stopped', (event) => {
+  console.log('Recording stopped for conference:', event.conferenceId)
+  showRecordingIndicator(false)
 })
 ```
 
