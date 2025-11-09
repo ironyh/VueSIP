@@ -7,6 +7,7 @@
 import { BaseSubagent } from './BaseSubagent'
 import type { SipTestAgent } from '../SipTestAgent'
 import type { PresenceStatus } from '../types'
+import { TIMING, LIMITS } from '../constants'
 
 export interface Message {
   id: string
@@ -97,7 +98,7 @@ export class PresenceSubagent extends BaseSubagent {
       direction: 'outgoing',
     }
 
-    this.state.messages.push(message)
+    this.addMessage(message)
     this.state.messagesSent++
 
     this.emit('presence:message-sent', {
@@ -122,7 +123,7 @@ export class PresenceSubagent extends BaseSubagent {
       direction: 'incoming',
     }
 
-    this.state.messages.push(message)
+    this.addMessage(message)
     this.state.messagesReceived++
 
     this.emit('presence:message-received', {
@@ -144,7 +145,7 @@ export class PresenceSubagent extends BaseSubagent {
    * Get messages with a specific agent
    */
   getMessagesWithAgent(agentUri: string): Message[] {
-    return this.state.messages.filter(m => m.from === agentUri || m.to === agentUri)
+    return this.state.messages.filter((m) => m.from === agentUri || m.to === agentUri)
   }
 
   /**
@@ -175,7 +176,7 @@ export class PresenceSubagent extends BaseSubagent {
   /**
    * Wait for a message
    */
-  async waitForMessage(timeout = 5000): Promise<Message> {
+  async waitForMessage(timeout = TIMING.DEFAULT_WAIT_TIMEOUT): Promise<Message> {
     const initialCount = this.state.messagesReceived
 
     return new Promise((resolve, reject) => {
@@ -186,15 +187,27 @@ export class PresenceSubagent extends BaseSubagent {
       const checkMessage = () => {
         if (this.state.messagesReceived > initialCount) {
           clearTimeout(timer)
-          const messages = this.state.messages.filter(m => m.direction === 'incoming')
+          const messages = this.state.messages.filter((m) => m.direction === 'incoming')
           resolve(messages[messages.length - 1])
         } else {
-          setTimeout(checkMessage, 100)
+          setTimeout(checkMessage, TIMING.POLLING_INTERVAL)
         }
       }
 
       checkMessage()
     })
+  }
+
+  /**
+   * Add a message to the messages array with size limit enforcement
+   */
+  private addMessage(message: Message): void {
+    this.state.messages.push(message)
+
+    // Enforce MAX_MESSAGES limit
+    if (this.state.messages.length > LIMITS.MAX_MESSAGES) {
+      this.state.messages.shift() // Remove oldest message
+    }
   }
 
   /**

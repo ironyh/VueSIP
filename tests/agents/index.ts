@@ -6,18 +6,13 @@
 
 // Core agent classes
 export { SipTestAgent, createSipTestAgent, type SipTestAgentConfig } from './SipTestAgent'
-export {
-  AgentManager,
-  createAgentManager,
-  createAgentIdentity,
-} from './AgentManager'
+export { AgentManager, createAgentManager, createAgentIdentity } from './AgentManager'
 
 // Network simulation
-export {
-  NetworkSimulator,
-  createNetworkSimulator,
-  NETWORK_PROFILES,
-} from './NetworkSimulator'
+export { NetworkSimulator, createNetworkSimulator, NETWORK_PROFILES } from './NetworkSimulator'
+
+// Constants
+export { TIMING, LIMITS, NETWORK, DEFAULTS } from './constants'
 
 // Subagents
 export type { ISubagent } from './types'

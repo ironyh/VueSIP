@@ -10,6 +10,7 @@
  */
 
 import type { NetworkProfile, NetworkInterruption } from './types'
+import { LIMITS } from './constants'
 
 /**
  * Predefined network profiles for common scenarios
@@ -91,6 +92,7 @@ export class NetworkSimulator {
   private events: NetworkEvent[] = []
   private isInterrupted = false
   private interruptionTimer: NodeJS.Timeout | null = null
+  private pendingInterruptions: NodeJS.Timeout[] = []
 
   constructor(profile: NetworkProfile = NETWORK_PROFILES.PERFECT) {
     this.currentProfile = profile
@@ -152,7 +154,7 @@ export class NetworkSimulator {
    */
   calculateBandwidthDelay(dataSize: number): number {
     // dataSize in bytes, bandwidth in kbps
-    const bandwidthBps = this.currentProfile.bandwidth * 1024 / 8 // Convert to bytes per second
+    const bandwidthBps = (this.currentProfile.bandwidth * 1024) / 8 // Convert to bytes per second
     const delay = (dataSize / bandwidthBps) * 1000 // Convert to milliseconds
     return delay
   }
@@ -176,9 +178,16 @@ export class NetworkSimulator {
 
     const delay = interruption.delay || 0
 
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       this.startInterruption(interruption)
+      // Remove from tracking once executed
+      const index = this.pendingInterruptions.indexOf(timeoutId)
+      if (index > -1) {
+        this.pendingInterruptions.splice(index, 1)
+      }
     }, delay)
+
+    this.pendingInterruptions.push(timeoutId)
   }
 
   /**
@@ -216,10 +225,7 @@ export class NetworkSimulator {
   /**
    * Simulate network operation with all conditions applied
    */
-  async simulateNetworkOperation<T>(
-    operation: () => Promise<T>,
-    dataSize = 1024
-  ): Promise<T> {
+  async simulateNetworkOperation<T>(operation: () => Promise<T>, dataSize = 1024): Promise<T> {
     // Check for interruption
     if (this.isInterrupted) {
       throw new Error('Network interrupted')
@@ -250,8 +256,8 @@ export class NetworkSimulator {
     totalLatencyEvents: number
     averageLatency: number
   } {
-    const latencyEvents = this.events.filter(e => e.type === 'latency')
-    const packetLossEvents = this.events.filter(e => e.type === 'packet-loss')
+    const latencyEvents = this.events.filter((e) => e.type === 'latency')
+    const packetLossEvents = this.events.filter((e) => e.type === 'packet-loss')
 
     return {
       profile: this.currentProfile,
@@ -274,6 +280,10 @@ export class NetworkSimulator {
       clearTimeout(this.interruptionTimer)
       this.interruptionTimer = null
     }
+
+    // Clear all pending scheduled interruptions
+    this.pendingInterruptions.forEach(clearTimeout)
+    this.pendingInterruptions = []
   }
 
   /**
@@ -285,13 +295,18 @@ export class NetworkSimulator {
       type,
       details,
     })
+
+    // Enforce MAX_NETWORK_EVENTS limit
+    if (this.events.length > LIMITS.MAX_NETWORK_EVENTS) {
+      this.events.shift() // Remove oldest event
+    }
   }
 
   /**
    * Delay helper
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   /**

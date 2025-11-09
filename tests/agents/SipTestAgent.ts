@@ -13,10 +13,12 @@ import { RegistrationSubagent } from './subagents/RegistrationSubagent'
 import { CallSubagent } from './subagents/CallSubagent'
 import { MediaSubagent } from './subagents/MediaSubagent'
 import { PresenceSubagent } from './subagents/PresenceSubagent'
+import { TIMING, LIMITS } from './constants'
 import type {
   AgentIdentity,
   AgentState,
   AgentMetrics,
+  AgentError,
   NetworkProfile,
   ISubagent,
 } from './types'
@@ -52,6 +54,7 @@ export class SipTestAgent extends EventEmitter {
   public readonly presence: PresenceSubagent
 
   private subagents: ISubagent[]
+  private errors: AgentError[] = []
   private initialized = false
   private destroyed = false
 
@@ -144,7 +147,7 @@ export class SipTestAgent extends EventEmitter {
       await this.registration.unregister()
       // Simulate unregistration event
       this.mockServer.simulateUnregistered()
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, TIMING.EVENT_PROCESSING_DELAY))
     }
 
     this.mockUA.stop()
@@ -164,12 +167,42 @@ export class SipTestAgent extends EventEmitter {
     await this.registration.register()
 
     // Simulate registration with network latency
-    await this.networkSimulator.applyLatency(
-      this.mockServer.simulateRegistered()
-    )
+    await this.networkSimulator.applyLatency(this.mockServer.simulateRegistered())
 
     await this.registration.waitForRegistration()
     this.log('Registered successfully')
+  }
+
+  /**
+   * Add an error to the agent's error log
+   */
+  addError(
+    code: string,
+    message: string,
+    source: 'registration' | 'call' | 'media' | 'presence' | 'network'
+  ): void {
+    const error: AgentError = {
+      timestamp: Date.now(),
+      code,
+      message,
+      source,
+    }
+
+    this.errors.push(error)
+
+    // Enforce MAX_ERRORS limit
+    if (this.errors.length > LIMITS.MAX_ERRORS) {
+      this.errors.shift() // Remove oldest error
+    }
+
+    this.log(`Error: [${source}] ${code} - ${message}`)
+  }
+
+  /**
+   * Clear all errors
+   */
+  clearErrors(): void {
+    this.errors = []
   }
 
   /**
@@ -181,7 +214,7 @@ export class SipTestAgent extends EventEmitter {
       registered: this.registration.isRegistered(),
       activeSessions: this.call.getActiveCalls(),
       presenceStatus: this.presence.getStatus(),
-      errors: [],
+      errors: [...this.errors], // Return a copy
       lastActivity: Date.now(),
     }
   }
@@ -205,7 +238,7 @@ export class SipTestAgent extends EventEmitter {
       avgCallDuration: callState.averageCallDuration as number,
       registrationAttempts: registrationState.registrationAttempts,
       registrationFailures: registrationState.registrationFailures,
-      networkErrors: 0,
+      networkErrors: this.errors.filter((e) => e.source === 'network').length,
     }
   }
 
@@ -259,7 +292,7 @@ export class SipTestAgent extends EventEmitter {
     // Apply network latency first
     await this.networkSimulator.applyLatency(Promise.resolve())
     // Then wait for the specified time
-    await new Promise(resolve => setTimeout(resolve, ms))
+    await new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   /**

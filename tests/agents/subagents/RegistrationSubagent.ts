@@ -6,6 +6,7 @@
 
 import { BaseSubagent } from './BaseSubagent'
 import type { SipTestAgent } from '../SipTestAgent'
+import { TIMING } from '../constants'
 
 export interface RegistrationState {
   registered: boolean
@@ -100,7 +101,7 @@ export class RegistrationSubagent extends BaseSubagent {
   /**
    * Wait for registration to complete
    */
-  async waitForRegistration(timeout = 5000): Promise<void> {
+  async waitForRegistration(timeout = TIMING.DEFAULT_WAIT_TIMEOUT): Promise<void> {
     if (this.state.registered) {
       return
     }
@@ -118,7 +119,7 @@ export class RegistrationSubagent extends BaseSubagent {
           clearTimeout(timer)
           reject(new Error(this.state.lastError))
         } else {
-          setTimeout(checkRegistration, 100)
+          setTimeout(checkRegistration, TIMING.POLLING_INTERVAL)
         }
       }
 
@@ -189,6 +190,9 @@ export class RegistrationSubagent extends BaseSubagent {
     this.state.registering = false
     this.state.registrationFailures++
     this.state.lastError = data?.cause || 'Unknown error'
+
+    // Track error in agent
+    this.agent.addError('REGISTRATION_FAILED', this.state.lastError, 'registration')
 
     this.emit('registration:failed', {
       agentId: this.agentId,

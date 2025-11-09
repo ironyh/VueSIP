@@ -8,6 +8,7 @@ import { BaseSubagent } from './BaseSubagent'
 import type { SipTestAgent } from '../SipTestAgent'
 import type { MockRTCSession } from '../../helpers/MockSipServer'
 import type { CallOptions } from '../types'
+import { TIMING } from '../constants'
 
 export interface CallState {
   activeCalls: Map<string, MockRTCSession>
@@ -34,6 +35,7 @@ export class CallSubagent extends BaseSubagent {
   }
 
   private callStartTimes: Map<string, number> = new Map()
+  private sessionHandlers: Map<string, Map<string, (...args: any[]) => void>> = new Map()
 
   constructor(agent: SipTestAgent) {
     super(agent, 'call')
@@ -63,6 +65,8 @@ export class CallSubagent extends BaseSubagent {
       call.terminate()
       this.state.activeCalls.delete(call.id)
       this.callStartTimes.delete(call.id)
+      // Cleanup event handlers to prevent memory leaks
+      this.cleanupSessionHandlers(call.id)
     }
   }
 
@@ -149,6 +153,9 @@ export class CallSubagent extends BaseSubagent {
 
     this.state.activeCalls.delete(sessionId)
     this.state.callsEnded++
+
+    // Cleanup event handlers to prevent memory leaks
+    this.cleanupSessionHandlers(sessionId)
 
     this.emit('call:terminated', {
       agentId: this.agentId,
@@ -243,7 +250,7 @@ export class CallSubagent extends BaseSubagent {
   /**
    * Wait for an incoming call
    */
-  async waitForIncomingCall(timeout = 5000): Promise<MockRTCSession> {
+  async waitForIncomingCall(timeout = TIMING.DEFAULT_WAIT_TIMEOUT): Promise<MockRTCSession> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error(`No incoming call received within ${timeout}ms`))
@@ -258,7 +265,7 @@ export class CallSubagent extends BaseSubagent {
           const calls = this.getActiveCalls()
           resolve(calls[calls.length - 1])
         } else {
-          setTimeout(checkIncomingCall, 100)
+          setTimeout(checkIncomingCall, TIMING.POLLING_INTERVAL)
         }
       }
 
@@ -278,7 +285,7 @@ export class CallSubagent extends BaseSubagent {
       callsRejected: this.state.callsRejected,
       callsEnded: this.state.callsEnded,
       averageCallDuration:
-        this.state.callsEnded > 0 ? this.state.totalCallDuration / this.state.callsEnded : 0,
+        this.state.callsEnded > 0 ? this.state.totalCallDuration / this.state.callsEnded / 1000 : 0,
     }
   }
 
@@ -303,46 +310,82 @@ export class CallSubagent extends BaseSubagent {
    * Setup event handlers for a call session
    */
   private setupSessionHandlers(session: MockRTCSession): void {
-    session.on('progress', () => {
+    const handlers = new Map<string, (...args: any[]) => void>()
+
+    const onProgress = () => {
       this.emit('call:progress', {
         agentId: this.agentId,
         sessionId: session.id,
       })
-    })
+    }
 
-    session.on('accepted', () => {
+    const onAccepted = () => {
       this.emit('call:accepted', {
         agentId: this.agentId,
         sessionId: session.id,
       })
-    })
+    }
 
-    session.on('confirmed', () => {
+    const onConfirmed = () => {
       this.emit('call:confirmed', {
         agentId: this.agentId,
         sessionId: session.id,
       })
-    })
+    }
 
-    session.on('ended', (data: any) => {
+    const onEnded = (data: any) => {
       this.handleCallEnded(session.id, data)
-    })
+    }
 
-    session.on('hold', (data: any) => {
+    const onHold = (data: any) => {
       this.emit('call:hold', {
         agentId: this.agentId,
         sessionId: session.id,
         originator: data.originator,
       })
-    })
+    }
 
-    session.on('unhold', (data: any) => {
+    const onUnhold = (data: any) => {
       this.emit('call:unhold', {
         agentId: this.agentId,
         sessionId: session.id,
         originator: data.originator,
       })
-    })
+    }
+
+    // Register handlers
+    session.on('progress', onProgress)
+    session.on('accepted', onAccepted)
+    session.on('confirmed', onConfirmed)
+    session.on('ended', onEnded)
+    session.on('hold', onHold)
+    session.on('unhold', onUnhold)
+
+    // Store handlers for cleanup
+    handlers.set('progress', onProgress)
+    handlers.set('accepted', onAccepted)
+    handlers.set('confirmed', onConfirmed)
+    handlers.set('ended', onEnded)
+    handlers.set('hold', onHold)
+    handlers.set('unhold', onUnhold)
+
+    this.sessionHandlers.set(session.id, handlers)
+  }
+
+  /**
+   * Cleanup event handlers for a session
+   */
+  private cleanupSessionHandlers(sessionId: string): void {
+    const handlers = this.sessionHandlers.get(sessionId)
+    const session = this.state.activeCalls.get(sessionId)
+
+    if (handlers && session) {
+      handlers.forEach((handler, event) => {
+        session.off(event, handler)
+      })
+    }
+
+    this.sessionHandlers.delete(sessionId)
   }
 
   /**
@@ -358,6 +401,15 @@ export class CallSubagent extends BaseSubagent {
 
     this.state.activeCalls.delete(sessionId)
     this.state.callsEnded++
+
+    // Track call errors
+    const cause = data.cause || 'Unknown'
+    if (cause !== 'Bye' && cause !== 'Terminated' && cause !== 'Canceled') {
+      this.agent.addError('CALL_FAILED', `Call ended: ${cause}`, 'call')
+    }
+
+    // Cleanup event handlers to prevent memory leaks
+    this.cleanupSessionHandlers(sessionId)
 
     this.emit('call:ended', {
       agentId: this.agentId,

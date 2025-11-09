@@ -13,6 +13,7 @@ import type {
   ConferenceInfo,
   ConferenceParticipant,
 } from './types'
+import { TIMING } from './constants'
 
 /**
  * Agent Manager
@@ -121,13 +122,12 @@ export class AgentManager extends EventEmitter {
     const session = await caller.call.makeCall(callee.getIdentity().uri)
 
     // Simulate the call being received by callee
-    const calleeSession = callee.getMockServer().simulateIncomingCall(
-      caller.getIdentity().uri,
-      callee.getIdentity().uri
-    )
+    const calleeSession = callee
+      .getMockServer()
+      .simulateIncomingCall(caller.getIdentity().uri, callee.getIdentity().uri)
 
     // Wait for the incoming call event to be processed
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise((resolve) => setTimeout(resolve, TIMING.EVENT_PROCESSING_DELAY))
 
     // Auto-answer if configured
     if (autoAnswer) {
@@ -137,7 +137,7 @@ export class AgentManager extends EventEmitter {
       callee.getMockServer().simulateCallProgress(calleeSession)
       caller.getMockServer().simulateCallProgress(session)
 
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, TIMING.POLLING_INTERVAL))
 
       caller.getMockServer().simulateCallAccepted(session)
       callee.getMockServer().simulateCallAccepted(calleeSession)
@@ -186,7 +186,9 @@ export class AgentManager extends EventEmitter {
     conferenceUri: string,
     participantAgentIds: string[]
   ): Promise<ConferenceInfo> {
-    this.log(`Creating conference: ${conferenceUri} with ${participantAgentIds.length} participants`)
+    this.log(
+      `Creating conference: ${conferenceUri} with ${participantAgentIds.length} participants`
+    )
 
     const conference: ConferenceInfo = {
       id: `conf-${Date.now()}`,
@@ -267,7 +269,7 @@ export class AgentManager extends EventEmitter {
   async connectAllAgents(): Promise<void> {
     this.log('Connecting all agents...')
 
-    const promises = this.getAllAgents().map(agent => agent.connect())
+    const promises = this.getAllAgents().map((agent) => agent.connect())
     await Promise.all(promises)
 
     this.log('All agents connected')
@@ -279,7 +281,7 @@ export class AgentManager extends EventEmitter {
   async registerAllAgents(): Promise<void> {
     this.log('Registering all agents...')
 
-    const promises = this.getAllAgents().map(agent => agent.register())
+    const promises = this.getAllAgents().map((agent) => agent.register())
     await Promise.all(promises)
 
     this.log('All agents registered')
@@ -291,7 +293,7 @@ export class AgentManager extends EventEmitter {
   async disconnectAllAgents(): Promise<void> {
     this.log('Disconnecting all agents...')
 
-    const promises = this.getAllAgents().map(agent => agent.disconnect())
+    const promises = this.getAllAgents().map((agent) => agent.disconnect())
     await Promise.all(promises)
 
     this.log('All agents disconnected')
