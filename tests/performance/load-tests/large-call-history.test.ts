@@ -16,6 +16,30 @@ import { CallDirection } from '@/types/call.types'
 import { PERFORMANCE } from '@/utils/constants'
 import type { CallHistoryEntry } from '@/types/history.types'
 
+// Performance budget constants for history operations
+// Base budget is PERFORMANCE.MAX_STATE_UPDATE_LATENCY (50ms)
+// We scale this based on the size of operations:
+// - Small datasets (100 entries): 1x base = 50ms
+// - Medium datasets (500 entries): 2x base = 100ms
+// - Large datasets (1000 entries): 4x base = 200ms
+// - Very large datasets (5000 entries): 10x base = 500ms
+// - Filtering/searching: 2x base = 100ms (can scan many entries)
+// - Sorting: 3x base = 150ms (more complex than filtering)
+// - Statistics: varies with dataset size
+const HISTORY_BUDGETS = {
+  SMALL_DATASET: PERFORMANCE.MAX_STATE_UPDATE_LATENCY, // 100 entries
+  MEDIUM_DATASET: PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 2, // 500 entries
+  LARGE_DATASET: PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 4, // 1000 entries
+  VERY_LARGE_DATASET: PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 10, // 5000 entries
+  FILTER_OPERATION: PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 2, // Filtering budget
+  SORT_OPERATION: PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 3, // Sorting budget
+  PAGINATION_ALL: PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 10, // All pages budget
+  CLEANUP_OPERATION: PERFORMANCE.MAX_STATE_UPDATE_LATENCY, // Cleanup budget
+  DELETION_BATCH: PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 2, // 100 deletions
+  CONCURRENT_OPS: PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 4, // Multiple operations
+  RAPID_FILTER: PERFORMANCE.MAX_STATE_UPDATE_LATENCY, // Rapid filter changes
+} as const
+
 // Mock the logger
 vi.mock('@/utils/logger', () => ({
   createLogger: () => ({
@@ -125,7 +149,7 @@ describe('Large Call History Performance Tests', () => {
 
       expect(result.entries.length).toBe(100)
       expect(result.totalCount).toBe(100)
-      expect(performanceMarks[0].duration).toBeLessThan(50) // 50ms for 100 entries
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SMALL_DATASET)
     })
 
     it('should handle 500 entries efficiently', () => {
@@ -136,7 +160,7 @@ describe('Large Call History Performance Tests', () => {
 
       expect(result.entries.length).toBe(500)
       expect(result.totalCount).toBe(500)
-      expect(performanceMarks[0].duration).toBeLessThan(100) // 100ms for 500 entries
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.MEDIUM_DATASET)
     })
 
     it('should handle 1000 entries efficiently', () => {
@@ -147,7 +171,7 @@ describe('Large Call History Performance Tests', () => {
 
       expect(result.entries.length).toBe(1000)
       expect(result.totalCount).toBe(1000)
-      expect(performanceMarks[0].duration).toBeLessThan(200) // 200ms for 1000 entries
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.LARGE_DATASET)
     })
 
     it('should handle 5000 entries efficiently', () => {
@@ -159,7 +183,7 @@ describe('Large Call History Performance Tests', () => {
       expect(result.entries.length).toBe(5000)
       expect(result.totalCount).toBe(5000)
       // 5000 is 5x the default max, so allow more time
-      expect(performanceMarks[0].duration).toBeLessThan(500) // 500ms for 5000 entries
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.VERY_LARGE_DATASET)
     })
 
     it('should warn when exceeding DEFAULT_MAX_HISTORY_ENTRIES', () => {
@@ -191,7 +215,7 @@ describe('Large Call History Performance Tests', () => {
 
       expect(result.entries.length).toBeGreaterThan(0)
       expect(result.entries.every((e) => e.direction === CallDirection.Incoming)).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
 
     it('should filter by wasAnswered efficiently', () => {
@@ -201,7 +225,7 @@ describe('Large Call History Performance Tests', () => {
 
       expect(result.entries.length).toBeGreaterThan(0)
       expect(result.entries.every((e) => e.wasAnswered)).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
 
     it('should filter by wasMissed efficiently', () => {
@@ -211,7 +235,7 @@ describe('Large Call History Performance Tests', () => {
 
       expect(result.entries.length).toBeGreaterThan(0)
       expect(result.entries.every((e) => e.wasMissed)).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
 
     it('should filter by hasVideo efficiently', () => {
@@ -221,7 +245,7 @@ describe('Large Call History Performance Tests', () => {
 
       expect(result.entries.length).toBeGreaterThan(0)
       expect(result.entries.every((e) => e.hasVideo)).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
 
     it('should filter by date range efficiently', () => {
@@ -235,7 +259,7 @@ describe('Large Call History Performance Tests', () => {
       )
 
       expect(result.entries.length).toBeGreaterThan(0)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
 
     it('should filter by tags efficiently', () => {
@@ -245,7 +269,7 @@ describe('Large Call History Performance Tests', () => {
 
       expect(result.entries.length).toBeGreaterThan(0)
       expect(result.entries.every((e) => e.tags?.includes('important'))).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
 
     it('should handle multiple filters efficiently', () => {
@@ -262,7 +286,7 @@ describe('Large Call History Performance Tests', () => {
       expect(result.entries.every((e) => e.direction === CallDirection.Incoming)).toBe(true)
       expect(result.entries.every((e) => e.wasAnswered)).toBe(true)
       expect(result.entries.every((e) => !e.hasVideo)).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
 
     it('should scale filtering performance with entry count', () => {
@@ -310,7 +334,7 @@ describe('Large Call History Performance Tests', () => {
       expect(
         result.entries.every((e) => e.remoteDisplayName?.toLowerCase().includes('alice'))
       ).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
 
     it('should search by URI efficiently', () => {
@@ -320,7 +344,7 @@ describe('Large Call History Performance Tests', () => {
 
       expect(result.entries.length).toBeGreaterThan(0)
       expect(result.entries.every((e) => e.remoteUri.includes('bob@example'))).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
 
     it('should handle case-insensitive search efficiently', () => {
@@ -329,7 +353,7 @@ describe('Large Call History Performance Tests', () => {
       const result = measureTime('search-case-insensitive', 1000, () => searchHistory('CHARLIE'))
 
       expect(result.entries.length).toBeGreaterThan(0)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
 
     it('should combine search with filters efficiently', () => {
@@ -340,7 +364,7 @@ describe('Large Call History Performance Tests', () => {
       )
 
       expect(result.entries.every((e) => e.direction === CallDirection.Incoming)).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
 
     it('should handle empty search results efficiently', () => {
@@ -351,7 +375,7 @@ describe('Large Call History Performance Tests', () => {
       )
 
       expect(result.entries.length).toBe(0)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.FILTER_OPERATION)
     })
   })
 
@@ -378,7 +402,7 @@ describe('Large Call History Performance Tests', () => {
           result.entries[i - 1].startTime.getTime()
         )
       }
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
 
     it('should sort by startTime descending efficiently', () => {
@@ -395,7 +419,7 @@ describe('Large Call History Performance Tests', () => {
           result.entries[i - 1].startTime.getTime()
         )
       }
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
 
     it('should sort by duration efficiently', () => {
@@ -410,7 +434,7 @@ describe('Large Call History Performance Tests', () => {
       for (let i = 1; i < result.entries.length; i++) {
         expect(result.entries[i].duration).toBeGreaterThanOrEqual(result.entries[i - 1].duration)
       }
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
 
     it('should sort by remoteUri efficiently', () => {
@@ -421,7 +445,7 @@ describe('Large Call History Performance Tests', () => {
       )
 
       expect(result.entries.length).toBe(1000)
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
   })
 
@@ -442,7 +466,7 @@ describe('Large Call History Performance Tests', () => {
       expect(result.entries.length).toBe(10)
       expect(result.totalCount).toBe(1000)
       expect(result.hasMore).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
 
     it('should paginate efficiently with offset and limit', () => {
@@ -455,7 +479,7 @@ describe('Large Call History Performance Tests', () => {
       expect(result.entries.length).toBe(50)
       expect(result.totalCount).toBe(1000)
       expect(result.hasMore).toBe(true)
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
 
     it('should handle multiple page requests efficiently', () => {
@@ -473,7 +497,7 @@ describe('Large Call History Performance Tests', () => {
       const duration = performance.now() - start
 
       expect(pages.length).toBe(20) // 1000 / 50 = 20 pages
-      expect(duration).toBeLessThan(500) // All pages in 500ms
+      expect(duration).toBeLessThan(HISTORY_BUDGETS.PAGINATION_ALL)
     })
 
     it('should optimize pagination with large offset', () => {
@@ -487,7 +511,7 @@ describe('Large Call History Performance Tests', () => {
       expect(result.entries.length).toBe(50)
       expect(result.totalCount).toBe(1000)
       expect(result.hasMore).toBe(true) // offset + limit = 950, which is less than 1000
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
   })
 
@@ -505,7 +529,7 @@ describe('Large Call History Performance Tests', () => {
       expect(stats.totalCalls).toBe(100)
       expect(stats.incomingCalls).toBeGreaterThan(0)
       expect(stats.outgoingCalls).toBeGreaterThan(0)
-      expect(performanceMarks[0].duration).toBeLessThan(50)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SMALL_DATASET)
     })
 
     it('should compute statistics for 500 entries efficiently', () => {
@@ -515,7 +539,7 @@ describe('Large Call History Performance Tests', () => {
       const stats = measureTime('stats-500', 500, () => getStatistics())
 
       expect(stats.totalCalls).toBe(500)
-      expect(performanceMarks[0].duration).toBeLessThan(100)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.MEDIUM_DATASET)
     })
 
     it('should compute statistics for 1000 entries efficiently', () => {
@@ -525,7 +549,7 @@ describe('Large Call History Performance Tests', () => {
       const stats = measureTime('stats-1000', 1000, () => getStatistics())
 
       expect(stats.totalCalls).toBe(1000)
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
 
     it('should compute statistics for 5000 entries efficiently', () => {
@@ -535,7 +559,7 @@ describe('Large Call History Performance Tests', () => {
       const stats = measureTime('stats-5000', 5000, () => getStatistics())
 
       expect(stats.totalCalls).toBe(5000)
-      expect(performanceMarks[0].duration).toBeLessThan(300)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.VERY_LARGE_DATASET * 0.6)
     })
 
     it('should compute frequent contacts efficiently', () => {
@@ -551,7 +575,7 @@ describe('Large Call History Performance Tests', () => {
           stats.frequentContacts[i - 1].count
         )
       }
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
 
     it('should compute statistics with filter efficiently', () => {
@@ -563,7 +587,7 @@ describe('Large Call History Performance Tests', () => {
       )
 
       expect(stats.outgoingCalls).toBe(0) // Only incoming filtered
-      expect(performanceMarks[0].duration).toBeLessThan(150)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.SORT_OPERATION)
     })
   })
 
@@ -596,7 +620,7 @@ describe('Large Call History Performance Tests', () => {
       })
 
       expect(mockCallHistory.length).toBe(0)
-      expect(performanceMarks[0].duration).toBeLessThan(50)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.CLEANUP_OPERATION)
     })
 
     it('should handle deletion of entries efficiently', () => {
@@ -613,7 +637,7 @@ describe('Large Call History Performance Tests', () => {
       const duration = performance.now() - start
 
       expect(mockCallHistory.length).toBe(900)
-      expect(duration).toBeLessThan(100)
+      expect(duration).toBeLessThan(HISTORY_BUDGETS.DELETION_BATCH)
     })
   })
 
@@ -645,7 +669,7 @@ describe('Large Call History Performance Tests', () => {
 
       const duration = performance.now() - start
 
-      expect(duration).toBeLessThan(200)
+      expect(duration).toBeLessThan(HISTORY_BUDGETS.CONCURRENT_OPS)
     })
 
     it('should handle rapid filter changes efficiently', () => {
@@ -660,7 +684,7 @@ describe('Large Call History Performance Tests', () => {
 
       const duration = performance.now() - start
 
-      expect(duration).toBeLessThan(50)
+      expect(duration).toBeLessThan(HISTORY_BUDGETS.RAPID_FILTER)
     })
   })
 
@@ -689,7 +713,7 @@ describe('Large Call History Performance Tests', () => {
       const result = measureTime('exact-max', maxEntries, () => getHistory())
 
       expect(result.entries.length).toBe(maxEntries)
-      expect(performanceMarks[0].duration).toBeLessThan(250)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.LARGE_DATASET * 1.25)
     })
 
     it('should handle very large single page request', () => {
@@ -699,7 +723,7 @@ describe('Large Call History Performance Tests', () => {
       const result = measureTime('large-page', 5000, () => getHistory({ limit: 5000 }))
 
       expect(result.entries.length).toBe(5000)
-      expect(performanceMarks[0].duration).toBeLessThan(500)
+      expect(performanceMarks[0].duration).toBeLessThan(HISTORY_BUDGETS.VERY_LARGE_DATASET)
     })
   })
 

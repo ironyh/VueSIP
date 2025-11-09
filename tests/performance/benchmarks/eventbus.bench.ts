@@ -33,22 +33,31 @@ describe('EventBus Performance', () => {
   })
 
   bench('emit event with 1 listener', () => {
-    eventBus.on('test:event', () => {})
+    const off = eventBus.on('test:event', () => {})
     eventBus.emit('test:event', { data: 'test' })
+    off()
   })
 
   bench('emit event with 10 listeners', () => {
+    const offs: (() => void)[] = []
     for (let i = 0; i < 10; i++) {
-      eventBus.on('test:event', () => {})
+      offs.push(eventBus.on('test:event', () => {}))
     }
     eventBus.emit('test:event', { data: 'test' })
+
+    // Cleanup
+    offs.forEach((off) => off())
   })
 
   bench('emit event with 100 listeners', () => {
+    const offs: (() => void)[] = []
     for (let i = 0; i < 100; i++) {
-      eventBus.on('test:event', () => {})
+      offs.push(eventBus.on('test:event', () => {}))
     }
     eventBus.emit('test:event', { data: 'test' })
+
+    // Cleanup
+    offs.forEach((off) => off())
   })
 
   // ============================================================================
@@ -61,7 +70,8 @@ describe('EventBus Performance', () => {
   })
 
   bench('register listener with once()', () => {
-    eventBus.once('test:event', () => {})
+    const off = eventBus.once('test:event', () => {})
+    off()
   })
 
   bench('register and unregister listener', () => {
@@ -78,10 +88,14 @@ describe('EventBus Performance', () => {
   })
 
   bench('listenerCount with 10 listeners', () => {
+    const offs: (() => void)[] = []
     for (let i = 0; i < 10; i++) {
-      eventBus.on('test:event', () => {})
+      offs.push(eventBus.on('test:event', () => {}))
     }
     eventBus.listenerCount('test:event')
+
+    // Cleanup
+    offs.forEach((off) => off())
   })
 
   // ============================================================================
@@ -93,8 +107,9 @@ describe('EventBus Performance', () => {
   })
 
   bench('emit specific event with wildcard listener', () => {
-    eventBus.on('call:*', () => {})
+    const off = eventBus.on('call:*', () => {})
     eventBus.emit('call:incoming', { data: 'test' })
+    off()
   })
 
   // ============================================================================

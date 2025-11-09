@@ -200,21 +200,27 @@ describe('Bundle Size Performance Tests', () => {
 
   describe('Bundle Size Limits', () => {
     it('should check if build artifacts exist', () => {
-      if (!hasBuild) {
-        console.warn('\n⚠️  Build artifacts not found in dist/ directory.')
-        console.warn('   Run `npm run build` to generate bundles before running these tests.\n')
+      if (process.env.CI) {
+        // In CI, fail if build doesn't exist
+        if (!hasBuild) {
+          throw new Error(
+            'Build artifacts not found in dist/ directory. ' +
+              'Run `npm run build` before running tests in CI.'
+          )
+        }
+        expect(hasBuild).toBe(true)
+      } else {
+        // In local dev, just warn and skip gracefully
+        if (!hasBuild) {
+          console.warn(
+            '\n⚠️  Skipping bundle size tests: build artifacts not found in dist/ directory'
+          )
+          console.warn('   Run `npm run build` to generate bundles and enable these tests\n')
+        }
       }
-
-      // This test passes either way, but provides information
-      expect(true).toBe(true)
     })
 
-    it('should validate ES module bundle size (minified)', () => {
-      if (!hasBuild) {
-        console.log('Skipping: Build artifacts not found')
-        return
-      }
-
+    it.skipIf(!hasBuild)('should validate ES module bundle size (minified)', () => {
       const measurements: BundleSizeMeasurement[] = []
       const esModulePath = resolve(getDistDir(), 'vuesip.js')
 
@@ -238,12 +244,7 @@ describe('Bundle Size Performance Tests', () => {
       }
     })
 
-    it('should validate CommonJS bundle size (minified)', () => {
-      if (!hasBuild) {
-        console.log('Skipping: Build artifacts not found')
-        return
-      }
-
+    it.skipIf(!hasBuild)('should validate CommonJS bundle size (minified)', () => {
       const measurements: BundleSizeMeasurement[] = []
       const cjsModulePath = resolve(getDistDir(), 'vuesip.cjs')
 
@@ -267,12 +268,7 @@ describe('Bundle Size Performance Tests', () => {
       }
     })
 
-    it('should validate UMD bundle size (minified)', () => {
-      if (!hasBuild) {
-        console.log('Skipping: Build artifacts not found')
-        return
-      }
-
+    it.skipIf(!hasBuild)('should validate UMD bundle size (minified)', () => {
       const measurements: BundleSizeMeasurement[] = []
       const umdModulePath = resolve(getDistDir(), 'vuesip.umd.js')
 
@@ -298,12 +294,7 @@ describe('Bundle Size Performance Tests', () => {
   })
 
   describe('Gzipped Bundle Size Limits', () => {
-    it('should validate ES module gzipped size', () => {
-      if (!hasBuild) {
-        console.log('Skipping: Build artifacts not found')
-        return
-      }
-
+    it.skipIf(!hasBuild)('should validate ES module gzipped size', () => {
       const measurements: BundleSizeMeasurement[] = []
       const esModulePath = resolve(getDistDir(), 'vuesip.js')
 
@@ -332,12 +323,7 @@ describe('Bundle Size Performance Tests', () => {
       }
     })
 
-    it('should validate CommonJS gzipped size', () => {
-      if (!hasBuild) {
-        console.log('Skipping: Build artifacts not found')
-        return
-      }
-
+    it.skipIf(!hasBuild)('should validate CommonJS gzipped size', () => {
       const measurements: BundleSizeMeasurement[] = []
       const cjsModulePath = resolve(getDistDir(), 'vuesip.cjs')
 
@@ -366,12 +352,7 @@ describe('Bundle Size Performance Tests', () => {
       }
     })
 
-    it('should validate UMD gzipped size', () => {
-      if (!hasBuild) {
-        console.log('Skipping: Build artifacts not found')
-        return
-      }
-
+    it.skipIf(!hasBuild)('should validate UMD gzipped size', () => {
       const measurements: BundleSizeMeasurement[] = []
       const umdModulePath = resolve(getDistDir(), 'vuesip.umd.js')
 
@@ -402,12 +383,7 @@ describe('Bundle Size Performance Tests', () => {
   })
 
   describe('Bundle Size Comparison', () => {
-    it('should compare raw vs gzipped sizes for all bundles', () => {
-      if (!hasBuild) {
-        console.log('Skipping: Build artifacts not found')
-        return
-      }
-
+    it.skipIf(!hasBuild)('should compare raw vs gzipped sizes for all bundles', () => {
       const bundleFiles = getBundleFiles()
       const measurements: BundleSizeMeasurement[] = []
 
@@ -457,12 +433,7 @@ describe('Bundle Size Performance Tests', () => {
   })
 
   describe('Bundle Size Regression Detection', () => {
-    it('should detect unexpected bundle size increases', () => {
-      if (!hasBuild) {
-        console.log('Skipping: Build artifacts not found')
-        return
-      }
-
+    it.skipIf(!hasBuild)('should detect unexpected bundle size increases', () => {
       const measurements: BundleSizeMeasurement[] = []
       const bundleFiles = getBundleFiles()
 
@@ -492,12 +463,7 @@ describe('Bundle Size Performance Tests', () => {
       }
     })
 
-    it('should ensure all bundles exist', () => {
-      if (!hasBuild) {
-        console.log('Skipping: Build artifacts not found')
-        return
-      }
-
+    it.skipIf(!hasBuild)('should ensure all bundles exist', () => {
       const distDir = getDistDir()
       const expectedBundles = ['vuesip.js', 'vuesip.cjs', 'vuesip.umd.js']
       const missingBundles: string[] = []
@@ -518,13 +484,7 @@ describe('Bundle Size Performance Tests', () => {
   })
 
   describe('Bundle Size Summary', () => {
-    it('should generate comprehensive bundle size report', () => {
-      if (!hasBuild) {
-        const report = createReport('Comprehensive Bundle Size Report', [], false)
-        console.log(formatReport(report))
-        return
-      }
-
+    it.skipIf(!hasBuild)('should generate comprehensive bundle size report', () => {
       const measurements: BundleSizeMeasurement[] = []
       const bundleFiles = getBundleFiles()
 

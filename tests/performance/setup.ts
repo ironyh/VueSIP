@@ -19,6 +19,19 @@ import { PERFORMANCE } from '../../src/utils/constants'
 // ============================================================================
 
 /**
+ * Browser Performance API with memory support (Chrome/Edge)
+ */
+interface PerformanceMemory {
+  totalJSHeapSize?: number
+  usedJSHeapSize?: number
+  jsHeapSizeLimit?: number
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory?: PerformanceMemory
+}
+
+/**
  * Memory usage snapshot
  */
 export interface MemorySnapshot {
@@ -114,6 +127,13 @@ export interface LoadTestResult {
     peak: MemorySnapshot
     final: MemorySnapshot
   }
+  /** Errors encountered during load test (if any) */
+  errors?: Array<{
+    /** Operation index/iteration */
+    iteration: number
+    /** Error that occurred */
+    error: unknown
+  }>
 }
 
 // ============================================================================
@@ -135,13 +155,8 @@ export async function getMemorySnapshot(): Promise<MemorySnapshot> {
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
 
-  const memory =
-    (
-      performance as {
-        memory?: { totalJSHeapSize?: number; usedJSHeapSize?: number; jsHeapSizeLimit?: number }
-      }
-    ).memory ||
-    ({} as { totalJSHeapSize?: number; usedJSHeapSize?: number; jsHeapSizeLimit?: number })
+  const perf = performance as PerformanceWithMemory
+  const memory: PerformanceMemory = perf.memory || {}
 
   return {
     timestamp: Date.now(),
@@ -533,20 +548,25 @@ export async function runLoadTest(
     concurrency?: number
     duration?: number // in milliseconds
     iterations?: number
+    verbose?: boolean
   } = {}
 ): Promise<LoadTestResult> {
-  const { concurrency = 10, duration, iterations } = options
+  const { concurrency = 10, duration, iterations, verbose = false } = options
 
   const initialMemory = await getMemorySnapshot()
   let peakMemory = initialMemory
   let successCount = 0
   let failureCount = 0
   const durations: number[] = []
+  const errors: Array<{ iteration: number; error: unknown }> = []
 
   const startTime = performance.now()
   let endTime = startTime
 
+  let operationIndex = 0
+
   const runOperation = async () => {
+    const currentIteration = operationIndex++
     try {
       const result = await measureTime('load-test-op', operation)
       durations.push(result.duration)
@@ -559,6 +579,11 @@ export async function runLoadTest(
       }
     } catch (error) {
       failureCount++
+      errors.push({ iteration: currentIteration, error })
+
+      if (verbose || process.env.DEBUG) {
+        console.error(`Load test operation failed (iteration ${currentIteration}):`, error)
+      }
     }
   }
 
@@ -606,6 +631,7 @@ export async function runLoadTest(
       peak: peakMemory,
       final: finalMemory,
     },
+    errors: errors.length > 0 ? errors : undefined,
   }
 }
 
@@ -665,4 +691,15 @@ export function printLoadTestResult(result: LoadTestResult): void {
 
   const memoryDelta = calculateMemoryDelta(result.memoryUsage.initial, result.memoryUsage.final)
   console.log(`   Delta: ${formatBytes(memoryDelta)}`)
+
+  if (result.errors && result.errors.length > 0) {
+    console.log(`\n   Errors (${result.errors.length}):`)
+    result.errors.slice(0, 5).forEach(({ iteration, error }) => {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.log(`   - Iteration ${iteration}: ${errorMessage}`)
+    })
+    if (result.errors.length > 5) {
+      console.log(`   ... and ${result.errors.length - 5} more errors`)
+    }
+  }
 }

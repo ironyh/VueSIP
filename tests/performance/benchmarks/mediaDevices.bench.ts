@@ -12,6 +12,23 @@ import type { EventBus } from '@/core/EventBus'
 import { PERFORMANCE } from '@/utils/constants'
 import { MediaDeviceKind } from '@/types/media.types'
 
+// Type definitions for browser APIs with memory support (unused but kept for future use)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface PerformanceMemory {
+  usedJSHeapSize: number
+  totalJSHeapSize: number
+  jsHeapSizeLimit: number
+}
+
+// Helper interface for accessing MediaManager internals in tests
+interface MediaManagerTestAccess extends MediaManager {
+  localStream?: MediaStream
+  permissions?: {
+    audio?: boolean
+    video?: boolean
+  }
+}
+
 // Mock MediaDevices API
 const createMockMediaDevices = () => {
   const devices = [
@@ -205,7 +222,7 @@ describe('MediaDevices Performance Benchmarks', () => {
     bench('mute audio track', async () => {
       await mediaManager.getUserMedia({ audio: true, video: false })
 
-      const localStream = (mediaManager as any).localStream
+      const localStream = (mediaManager as MediaManagerTestAccess).localStream
       if (localStream) {
         const audioTrack = localStream.getAudioTracks()[0]
         if (audioTrack) {
@@ -217,7 +234,7 @@ describe('MediaDevices Performance Benchmarks', () => {
     bench('unmute audio track', async () => {
       await mediaManager.getUserMedia({ audio: true, video: false })
 
-      const localStream = (mediaManager as any).localStream
+      const localStream = (mediaManager as MediaManagerTestAccess).localStream
       if (localStream) {
         const audioTrack = localStream.getAudioTracks()[0]
         if (audioTrack) {
@@ -230,7 +247,7 @@ describe('MediaDevices Performance Benchmarks', () => {
     bench('mute/unmute cycle', async () => {
       await mediaManager.getUserMedia({ audio: true, video: false })
 
-      const localStream = (mediaManager as any).localStream
+      const localStream = (mediaManager as MediaManagerTestAccess).localStream
       if (localStream) {
         const audioTrack = localStream.getAudioTracks()[0]
         if (audioTrack) {
@@ -246,7 +263,7 @@ describe('MediaDevices Performance Benchmarks', () => {
     bench('mute video track', async () => {
       await mediaManager.getUserMedia({ audio: true, video: true })
 
-      const localStream = (mediaManager as any).localStream
+      const localStream = (mediaManager as MediaManagerTestAccess).localStream
       if (localStream) {
         const videoTrack = localStream.getVideoTracks()[0]
         if (videoTrack) {
@@ -260,7 +277,7 @@ describe('MediaDevices Performance Benchmarks', () => {
     bench('add track to stream', async () => {
       await mediaManager.getUserMedia({ audio: true, video: false })
 
-      const localStream = (mediaManager as any).localStream
+      const localStream = (mediaManager as MediaManagerTestAccess).localStream
       if (localStream) {
         const newTrack = {
           kind: 'video',
@@ -268,14 +285,14 @@ describe('MediaDevices Performance Benchmarks', () => {
           stop: vi.fn(),
           getSettings: () => ({ deviceId: 'video-input-1' }),
         }
-        localStream.addTrack(newTrack as any)
+        localStream.addTrack(newTrack as unknown as MediaStreamTrack)
       }
     })
 
     bench('remove track from stream', async () => {
       await mediaManager.getUserMedia({ audio: true, video: false })
 
-      const localStream = (mediaManager as any).localStream
+      const localStream = (mediaManager as MediaManagerTestAccess).localStream
       if (localStream) {
         const audioTrack = localStream.getAudioTracks()[0]
         if (audioTrack) {
@@ -287,7 +304,7 @@ describe('MediaDevices Performance Benchmarks', () => {
     bench('replace track in stream', async () => {
       await mediaManager.getUserMedia({ audio: true, video: false })
 
-      const localStream = (mediaManager as any).localStream
+      const localStream = (mediaManager as MediaManagerTestAccess).localStream
       if (localStream) {
         const oldTrack = localStream.getAudioTracks()[0]
         if (oldTrack) {
@@ -299,7 +316,7 @@ describe('MediaDevices Performance Benchmarks', () => {
           }
 
           localStream.removeTrack(oldTrack)
-          localStream.addTrack(newTrack as any)
+          localStream.addTrack(newTrack as unknown as MediaStreamTrack)
           oldTrack.stop()
         }
       }
@@ -332,17 +349,15 @@ describe('MediaDevices Performance Benchmarks', () => {
       await mediaManager.getUserMedia({ audio: true, video: false })
 
       // Check permission status (if available)
-      const _hasAudio = (mediaManager as { permissions?: { audio?: boolean } }).permissions?.audio
+      const _hasAudio = (mediaManager as MediaManagerTestAccess).permissions?.audio
     })
 
     bench('request audio+video permission', async () => {
       await mediaManager.getUserMedia({ audio: true, video: true })
 
       // Check permission status
-      const _hasAudio = (mediaManager as { permissions?: { audio?: boolean; video?: boolean } })
-        .permissions?.audio
-      const _hasVideo = (mediaManager as { permissions?: { audio?: boolean; video?: boolean } })
-        .permissions?.video
+      const _hasAudio = (mediaManager as MediaManagerTestAccess).permissions?.audio
+      const _hasVideo = (mediaManager as MediaManagerTestAccess).permissions?.video
     })
   })
 
@@ -350,9 +365,9 @@ describe('MediaDevices Performance Benchmarks', () => {
     bench('stop single stream', async () => {
       await mediaManager.getUserMedia({ audio: true, video: false })
 
-      const localStream = (mediaManager as any).localStream
+      const localStream = (mediaManager as MediaManagerTestAccess).localStream
       if (localStream) {
-        localStream.getTracks().forEach((track: any) => track.stop())
+        localStream.getTracks().forEach((track) => track.stop())
       }
     })
 

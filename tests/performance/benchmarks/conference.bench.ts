@@ -43,6 +43,9 @@ describe('Conference Performance Benchmarks', () => {
   })
 
   afterEach(async () => {
+    // Clean up mockSipClient mocks
+    vi.clearAllMocks()
+
     const eventBusResult = eventBus.destroy()
     if (eventBusResult && typeof eventBusResult.then === 'function') {
       await eventBusResult

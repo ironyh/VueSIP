@@ -21,6 +21,19 @@ import {
 import { EventBus } from '../../../src/core/EventBus'
 import { SessionManager } from '../../../src/core/SessionManager'
 import { createMockRTCSession } from '../../utils/test-helpers'
+import { PERFORMANCE } from '../../../src/utils/constants'
+
+// Call setup specific performance budgets based on PERFORMANCE constants
+const CALL_SETUP_BUDGETS = {
+  SESSION_CREATION: PERFORMANCE.MAX_EVENT_PROPAGATION_TIME, // 10ms - very fast operation
+  STD_DEV_THRESHOLD: PERFORMANCE.MAX_EVENT_PROPAGATION_TIME / 2, // 5ms - low variance expected
+  AVERAGE_LATENCY: PERFORMANCE.MAX_EVENT_PROPAGATION_TIME * 2, // 20ms - average operation time
+  P95_LATENCY: PERFORMANCE.MAX_EVENT_PROPAGATION_TIME * 3, // 30ms - 95th percentile
+  P99_LATENCY: PERFORMANCE.MAX_STATE_UPDATE_LATENCY, // 50ms - 99th percentile
+  MAX_LATENCY: PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 2, // 100ms - maximum acceptable
+  MAX_MIN_RATIO: 10, // Maximum ratio between slowest and fastest operations
+  MEMORY_DELTA_MB: 5, // Maximum memory growth in MB
+} as const
 
 describe('Call Setup Performance Metrics', () => {
   let eventBus: EventBus
@@ -53,7 +66,7 @@ describe('Call Setup Performance Metrics', () => {
     printTimingResult(result)
 
     // Session creation should be very fast
-    expect(result.duration).toBeLessThan(10) // 10ms
+    expect(result.duration).toBeLessThan(CALL_SETUP_BUDGETS.SESSION_CREATION)
   })
 
   it('should emit events within time budget', async () => {
@@ -94,7 +107,7 @@ describe('Call Setup Performance Metrics', () => {
     assertMetricsWithinBudget(metrics, PERFORMANCE_BUDGETS.stateUpdateLatency, 'p95')
 
     // Check consistency (low standard deviation)
-    expect(metrics.stdDev).toBeLessThan(5) // Standard deviation < 5ms
+    expect(metrics.stdDev).toBeLessThan(CALL_SETUP_BUDGETS.STD_DEV_THRESHOLD)
   })
 
   it('should maintain fast event propagation under load', async () => {
@@ -154,7 +167,7 @@ describe('Call Setup Performance Metrics', () => {
     console.log(`   Delta: ${(memoryResult.memoryDelta / 1024 / 1024).toFixed(2)} MB`)
 
     // Memory delta should be minimal after cleanup
-    expect(memoryResult.memoryDelta).toBeLessThan(5 * 1024 * 1024) // < 5MB
+    expect(memoryResult.memoryDelta).toBeLessThan(CALL_SETUP_BUDGETS.MEMORY_DELTA_MB * 1024 * 1024)
   })
 
   // ============================================================================
@@ -181,13 +194,13 @@ describe('Call Setup Performance Metrics', () => {
     printMetrics(metrics)
 
     // Validate different percentiles
-    expect(metrics.average).toBeLessThan(20) // Average < 20ms
-    expect(metrics.p95).toBeLessThan(30) // P95 < 30ms
-    expect(metrics.p99).toBeLessThan(50) // P99 < 50ms
-    expect(metrics.max).toBeLessThan(100) // Max < 100ms
+    expect(metrics.average).toBeLessThan(CALL_SETUP_BUDGETS.AVERAGE_LATENCY)
+    expect(metrics.p95).toBeLessThan(CALL_SETUP_BUDGETS.P95_LATENCY)
+    expect(metrics.p99).toBeLessThan(CALL_SETUP_BUDGETS.P99_LATENCY)
+    expect(metrics.max).toBeLessThan(CALL_SETUP_BUDGETS.MAX_LATENCY)
 
     // Distribution should be relatively tight
-    expect(metrics.max / metrics.min).toBeLessThan(10) // Max/min ratio < 10x
+    expect(metrics.max / metrics.min).toBeLessThan(CALL_SETUP_BUDGETS.MAX_MIN_RATIO)
   })
 
   // ============================================================================

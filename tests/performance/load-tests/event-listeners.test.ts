@@ -302,8 +302,8 @@ describe('Event Listener Performance Tests', () => {
         })
       })
 
-      // Cleanup should be fast
-      expect(duration).toBeLessThan(50) // 50ms for 100 listeners
+      // Cleanup should be fast (allow 1x state update latency)
+      expect(duration).toBeLessThan(PERFORMANCE.MAX_STATE_UPDATE_LATENCY)
       expect(eventBus.listenerCount('connected')).toBe(0)
     })
 
@@ -342,7 +342,8 @@ describe('Event Listener Performance Tests', () => {
         eventBus.removeAllListeners()
       })
 
-      expect(duration).toBeLessThan(10) // Should be very fast
+      // Should be very fast (allow 1/5 of state update latency)
+      expect(duration).toBeLessThan(PERFORMANCE.MAX_EVENT_PROPAGATION_TIME)
       expect(eventBus.eventNames().length).toBe(0)
     })
 
@@ -354,7 +355,8 @@ describe('Event Listener Performance Tests', () => {
         eventBus.removeAllListeners('connected')
       })
 
-      expect(duration).toBeLessThan(10)
+      // Should be very fast (allow 1x event propagation time)
+      expect(duration).toBeLessThan(PERFORMANCE.MAX_EVENT_PROPAGATION_TIME)
       expect(eventBus.listenerCount('connected')).toBe(0)
       expect(eventBus.listenerCount('disconnected')).toBe(100)
     })
@@ -384,7 +386,8 @@ describe('Event Listener Performance Tests', () => {
         eventBus.destroy()
       })
 
-      expect(duration).toBeLessThan(20) // Should be very fast
+      // Should be very fast (allow 2x event propagation time for cleanup)
+      expect(duration).toBeLessThan(PERFORMANCE.MAX_EVENT_PROPAGATION_TIME * 2)
       expect(eventBus.eventNames().length).toBe(0)
     })
   })
@@ -460,7 +463,8 @@ describe('Event Listener Performance Tests', () => {
         handlers.forEach((h) => eventBus.off('call:incoming', h))
       })
 
-      expect(duration).toBeLessThan(100) // Should complete in reasonable time
+      // Mixed operations should complete reasonably fast (allow 2x state update latency)
+      expect(duration).toBeLessThan(PERFORMANCE.MAX_STATE_UPDATE_LATENCY * 2)
       expect(eventBus.listenerCount('connected')).toBe(100)
       expect(eventBus.listenerCount('disconnected')).toBe(100)
       expect(eventBus.listenerCount('call:incoming')).toBe(0)

@@ -22,6 +22,20 @@ import {
 import type { SipClientConfig } from '../../../src/types/config.types'
 import { PERFORMANCE } from '../../../src/utils/constants'
 
+// Type definitions for browser APIs with memory support
+interface PerformanceMemory {
+  usedJSHeapSize: number
+  totalJSHeapSize: number
+  jsHeapSizeLimit: number
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory?: PerformanceMemory
+}
+
+// Environment-based timeout multiplier for CI/slow environments
+const TIMEOUT_MULTIPLIER = process.env.CI ? 5 : 1
+
 // Mock JsSIP at module level
 const mockUA = {
   start: vi.fn(),
@@ -47,6 +61,78 @@ vi.mock('jssip', () => ({
     },
   },
 }))
+
+// =============================================================================
+// Test Configuration Constants
+// =============================================================================
+
+/**
+ * Call count configurations for concurrent call tests
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const CALL_COUNTS = {
+  /** Baseline single call test */
+  BASELINE: 1,
+  /** Three concurrent calls - moderate load */
+  MODERATE: 3,
+  /** Five concurrent calls - recommended maximum */
+  RECOMMENDED_MAX: 5,
+  /** Ten concurrent calls - stress test scenario */
+  STRESS: 10,
+} as const
+
+/**
+ * Test configurations for concurrent call scaling
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const SCALING_TEST_CALLS = [1, 3, 5] as const
+
+/**
+ * Wait times for async operations (milliseconds)
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const WAIT_TIMES = {
+  /** Short delay between rapid sequential calls */
+  RAPID_SEQUENTIAL: 10,
+  /** Wait for call establishment */
+  CALL_ESTABLISHMENT: 50,
+  /** Wait for memory stabilization */
+  MEMORY_STABILIZATION: 100,
+  /** Wait for cleanup after operations */
+  CLEANUP: 50,
+} as const
+
+/**
+ * Network and connection settings
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const NETWORK_SETTINGS = {
+  /** Minimal network latency for performance testing (ms) */
+  LATENCY: 10,
+  /** Connection delay for mock responses (ms) */
+  CONNECTION_DELAY: 10,
+} as const
+
+/**
+ * Performance thresholds
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const PERFORMANCE_LIMITS = {
+  /** Event loop latency threshold for system responsiveness (ms) */
+  EVENT_LOOP_LATENCY: 100,
+  /** Memory increase threshold for leak detection (bytes) */
+  MEMORY_LEAK: 10 * 1024 * 1024, // 10MB
+  /** Maximum performance degradation multiplier */
+  MAX_DEGRADATION_MULTIPLIER: 3,
+} as const
+
+/**
+ * Memory leak test iterations
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const LEAK_TEST_ITERATIONS = 3
+
+// =============================================================================
 
 /**
  * Performance metrics for a call setup test
@@ -80,17 +166,25 @@ function getMemoryUsage(): number {
     return process.memoryUsage().heapUsed
   }
   // Fallback for browser environments
-  if (typeof performance !== 'undefined' && (performance as any).memory) {
-    return (performance as any).memory.usedJSHeapSize
+  const perf = performance as PerformanceWithMemory
+  if (typeof performance !== 'undefined' && perf.memory) {
+    return perf.memory.usedJSHeapSize
   }
   return 0
 }
 
 /**
- * Helper to wait for a specific duration
+ * Helper to wait for next tick (immediate execution)
+ */
+function waitImmediate(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve))
+}
+
+/**
+ * Helper to wait for a specific duration with environment-based multiplier
  */
 function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms * TIMEOUT_MULTIPLIER))
 }
 
 /**
@@ -143,10 +237,10 @@ describe('Performance: Concurrent Calls', () => {
     mockUA.isRegistered.mockReturnValue(false)
     mockUA.once.mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
       if (event === 'connected') {
-        setTimeout(() => handler({ socket: { url: 'wss://test.com' } }), 10)
+        setImmediate(() => handler({ socket: { url: 'wss://test.com' } }))
       }
       if (event === 'registered') {
-        setTimeout(() => handler({ response: { getHeader: () => '600' } }), 10)
+        setImmediate(() => handler({ response: { getHeader: () => '600' } }))
       }
     })
 
@@ -186,8 +280,8 @@ describe('Performance: Concurrent Calls', () => {
         mockServer.simulateCallAccepted(session)
         mockServer.simulateCallConfirmed(session)
 
-        // Wait for call to be established
-        setTimeout(resolve, 50)
+        // Wait for call to be established (next tick)
+        setImmediate(resolve)
       })
 
       callPromises.push(callPromise)
@@ -214,7 +308,7 @@ describe('Performance: Concurrent Calls', () => {
     for (const session of sessions) {
       mockServer.simulateCallEnded(session, 'local')
     }
-    await wait(50)
+    await waitImmediate()
 
     return {
       callCount,
@@ -342,7 +436,7 @@ describe('Performance: Concurrent Calls', () => {
         mockServer.simulateCallAccepted(session)
       }
 
-      await wait(100)
+      await waitImmediate()
 
       // Check responsiveness multiple times
       const responsivenessChecks = await Promise.all([
@@ -371,7 +465,7 @@ describe('Performance: Concurrent Calls', () => {
         mockServer.simulateCallProgress(session)
         mockServer.simulateCallAccepted(session)
         mockServer.simulateCallConfirmed(session)
-        await wait(10) // Minimal delay between calls
+        await waitImmediate() // Next tick execution
       }
 
       const endTime = performance.now()
@@ -412,14 +506,14 @@ describe('Performance: Concurrent Calls', () => {
           mockServer.simulateCallAccepted(session)
         }
 
-        await wait(50)
+        await waitImmediate()
 
         // End all calls
         for (const session of sessions) {
           mockServer.simulateCallEnded(session, 'local')
         }
 
-        await wait(50)
+        await waitImmediate()
       }
 
       // Force garbage collection if available
@@ -462,7 +556,7 @@ describe('Performance: Concurrent Calls', () => {
           mockServer.simulateCallAccepted(session)
         }
 
-        await wait(50)
+        await waitImmediate()
 
         const memoryAfter = getMemoryUsage()
         const memoryDelta = memoryAfter - memoryBefore
@@ -472,7 +566,7 @@ describe('Performance: Concurrent Calls', () => {
         for (const session of sessions) {
           mockServer.simulateCallEnded(session, 'local')
         }
-        await wait(50)
+        await waitImmediate()
       }
 
       console.log('Memory per call trend:', {
@@ -510,7 +604,7 @@ describe('Performance: Concurrent Calls', () => {
         mockServer.simulateCallConfirmed(session)
       }
 
-      await wait(100)
+      await waitImmediate()
 
       // All calls should be established
       const establishedCalls = sessions.filter((s) => s.isEstablished()).length
@@ -535,7 +629,7 @@ describe('Performance: Concurrent Calls', () => {
         mockServer.simulateCallAccepted(session)
       }
 
-      await wait(100)
+      await waitImmediate()
 
       // System should handle calls beyond the recommended limit
       // (implementation may choose to accept, queue, or reject)
@@ -560,7 +654,7 @@ describe('Performance: Concurrent Calls', () => {
       for (const callCount of [1, 3, 5]) {
         const metrics = await testConcurrentCalls(callCount)
         results.push(metrics)
-        await wait(100) // Allow system to stabilize between tests
+        await waitImmediate() // Allow system to stabilize between tests
       }
 
       // Average setup time should not increase exponentially

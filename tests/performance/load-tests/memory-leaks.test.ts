@@ -18,6 +18,112 @@ import { MediaManager } from '../../../src/core/MediaManager'
 import { createMockSipServer } from '../../helpers/MockSipServer'
 import { PERFORMANCE } from '../../../src/utils/constants'
 
+// =============================================================================
+// Test Configuration Constants
+// =============================================================================
+
+/**
+ * Iteration counts for memory leak detection tests
+ */
+const TEST_ITERATIONS = {
+  /** Standard iteration count to detect memory leaks in call cycles */
+  CALL_CYCLES: 100,
+  /** Iterations for testing memory release after call termination */
+  MEMORY_RELEASE: 50,
+  /** Iterations for event listener registration/removal tests */
+  EVENT_LISTENERS: 100,
+  /** Iterations for EventBus instance creation/destruction */
+  EVENT_BUS_INSTANCES: 100,
+  /** Large number of event emissions to test for buildup */
+  EVENT_EMISSIONS: 1000,
+  /** Iterations for media stream acquisition/release */
+  MEDIA_STREAMS: 100,
+  /** Iterations for MediaManager instance lifecycle */
+  MEDIA_MANAGER_INSTANCES: 50,
+  /** Iterations for combined call lifecycle with media */
+  FULL_CALL_LIFECYCLE: 100,
+  /** Iterations for long-running session operations */
+  LONG_RUNNING_OPS: 50,
+  /** Number of concurrent calls for memory validation */
+  CONCURRENT_CALLS: 5,
+  /** Iterations for garbage collection demonstration */
+  GC_DEMONSTRATION: 100,
+  /** Number of media track stop validations */
+  TRACK_STOPS: 10,
+} as const
+
+/**
+ * Warmup iterations to stabilize memory before measurement
+ */
+const WARMUP = {
+  /** Warmup cycles for call creation tests */
+  CALL_CREATION: 10,
+  /** Warmup cycles for full lifecycle tests */
+  FULL_LIFECYCLE: 5,
+} as const
+
+/**
+ * Memory snapshot frequencies
+ */
+const SNAPSHOT_INTERVALS = {
+  /** Snapshot every 20 iterations for detailed tracking */
+  DETAILED: 20,
+  /** Snapshot every 10 iterations for medium tracking */
+  MEDIUM: 10,
+} as const
+
+/**
+ * Async wait times (milliseconds)
+ */
+const WAIT_TIMES = {
+  /** Short wait for async cleanup operations */
+  CLEANUP_SHORT: 5,
+  /** Medium wait for async cleanup (50ms) */
+  CLEANUP_MEDIUM: 50,
+  /** Longer wait for async cleanup and stabilization (100ms) */
+  CLEANUP_LONG: 100,
+  /** Wait for operations in long-running sessions */
+  LONG_RUNNING_OP: 10,
+} as const
+
+/**
+ * Garbage collection wait times (milliseconds)
+ */
+const GC_WAIT_TIMES = {
+  /** Short wait after GC (50ms) */
+  SHORT: 50,
+  /** Standard wait after GC (100ms) */
+  STANDARD: 100,
+} as const
+
+/**
+ * Memory retention thresholds (as ratios)
+ */
+const MEMORY_RETENTION = {
+  /** 20% - Memory retention after releasing call sessions */
+  CALL_RELEASE: 0.2,
+  /** 30% - Memory retention after destroying EventBus or MediaManager */
+  COMPONENT_CLEANUP: 0.3,
+  /** 50% - Maximum acceptable growth rate between test halves */
+  MAX_GROWTH_RATE: 0.5,
+} as const
+
+/**
+ * Memory growth thresholds (bytes)
+ */
+const MEMORY_THRESHOLDS = {
+  /** 5 MB - Threshold for event listener operations */
+  EVENT_LISTENERS: 5 * 1024 * 1024,
+  /** 3 MB - Threshold for event emissions */
+  EVENT_EMISSIONS: 3 * 1024 * 1024,
+  /** 10 MB - Threshold for media stream operations */
+  MEDIA_STREAMS: 10 * 1024 * 1024,
+  /** 5 MB - Threshold for long-running sessions */
+  LONG_RUNNING: 5 * 1024 * 1024,
+} as const
+
+// =============================================================================
+
 /**
  * Force garbage collection if available
  */
@@ -34,9 +140,9 @@ function forceGC(): void {
 async function getMemoryUsage(): Promise<number> {
   if (global.gc) {
     global.gc()
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, GC_WAIT_TIMES.STANDARD))
     global.gc() // Run twice for more reliable GC
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, GC_WAIT_TIMES.STANDARD))
   }
   const usage = process.memoryUsage()
   return usage.heapUsed
@@ -107,11 +213,11 @@ describe('Memory Leak Detection Tests', () => {
 
   describe('Call Creation/Termination Cycles', () => {
     it('should not leak memory after 100 call creation/termination cycles', async () => {
-      const iterations = 100
+      const iterations = TEST_ITERATIONS.CALL_CYCLES
       const memorySnapshots: number[] = []
 
       // Warm-up phase to stabilize memory
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < WARMUP.CALL_CREATION; i++) {
         const session = mockSipServer.createSession(`warmup-${i}`)
         new CallSession({
           id: session.id,
@@ -123,11 +229,11 @@ describe('Memory Leak Detection Tests', () => {
           eventBus,
         })
         mockSipServer.simulateCallEnded(session)
-        await new Promise((resolve) => setTimeout(resolve, 5))
+        await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_SHORT))
       }
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
 
       // Baseline memory measurement
       const baselineMemory = await getMemoryUsage()
@@ -153,19 +259,19 @@ describe('Memory Leak Detection Tests', () => {
         mockSipServer.simulateCallEnded(session)
 
         // Allow async cleanup
-        await new Promise((resolve) => setTimeout(resolve, 5))
+        await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_SHORT))
 
         // Take memory snapshot every 20 iterations
-        if ((i + 1) % 20 === 0) {
+        if ((i + 1) % SNAPSHOT_INTERVALS.DETAILED === 0) {
           forceGC()
-          await new Promise((resolve) => setTimeout(resolve, 50))
+          await new Promise((resolve) => setTimeout(resolve, GC_WAIT_TIMES.SHORT))
           memorySnapshots.push(await getMemoryUsage())
         }
       }
 
       // Final memory measurement
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       const finalMemory = await getMemoryUsage()
       memorySnapshots.push(finalMemory)
 
@@ -188,12 +294,12 @@ describe('Memory Leak Detection Tests', () => {
       const averageGrowthRate = (secondHalfAvg - firstHalfAvg) / firstHalfAvg
 
       // Memory should not grow more than 50% between halves
-      expect(averageGrowthRate).toBeLessThan(0.5)
+      expect(averageGrowthRate).toBeLessThan(MEMORY_RETENTION.MAX_GROWTH_RATE)
     })
 
     it('should release memory after call sessions are terminated', async () => {
       const sessions: CallSession[] = []
-      const iterations = 50
+      const iterations = TEST_ITERATIONS.MEMORY_RELEASE
 
       // Create multiple call sessions
       const beforeMemory = await getMemoryUsage()
@@ -229,11 +335,11 @@ describe('Memory Leak Detection Tests', () => {
       sessions.length = 0
 
       // Wait for cleanup
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       mockSipServer.clearSessions()
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       const afterMemory = await getMemoryUsage()
 
       // Memory after cleanup should be close to before
@@ -242,13 +348,13 @@ describe('Memory Leak Detection Tests', () => {
       const memoryUsedDuringTest = duringMemory - beforeMemory
       const retentionRatio = memoryRetained / memoryUsedDuringTest
 
-      expect(retentionRatio).toBeLessThan(0.2)
+      expect(retentionRatio).toBeLessThan(MEMORY_RETENTION.CALL_RELEASE)
     })
   })
 
   describe('Event Listener Registration/Cleanup', () => {
     it('should not leak memory with repeated event listener registration/removal', async () => {
-      const iterations = 100
+      const iterations = TEST_ITERATIONS.EVENT_LISTENERS
       const handlers: Array<() => void> = []
 
       const beforeMemory = await getMemoryUsage()
@@ -273,19 +379,18 @@ describe('Memory Leak Detection Tests', () => {
 
       handlers.length = 0
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
 
       const afterMemory = await getMemoryUsage()
       const memoryGrowth = getMemoryDelta(beforeMemory, afterMemory)
 
       // Should not accumulate significant memory from event listeners
-      const maxAllowedGrowth = 5 * 1024 * 1024 // 5 MB tolerance
-      expect(memoryGrowth).toBeLessThan(maxAllowedGrowth)
+      expect(memoryGrowth).toBeLessThan(MEMORY_THRESHOLDS.EVENT_LISTENERS)
     })
 
     it('should properly clean up event listeners when EventBus is destroyed', async () => {
       const eventBuses: EventBus[] = []
-      const iterations = 100
+      const iterations = TEST_ITERATIONS.EVENT_BUS_INSTANCES
 
       const beforeMemory = await getMemoryUsage()
 
@@ -310,7 +415,7 @@ describe('Memory Leak Detection Tests', () => {
       eventBuses.length = 0
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       const afterMemory = await getMemoryUsage()
 
       // Memory should be mostly released
@@ -318,11 +423,11 @@ describe('Memory Leak Detection Tests', () => {
       const memoryUsedDuringTest = duringMemory - beforeMemory
       const retentionRatio = memoryRetained / memoryUsedDuringTest
 
-      expect(retentionRatio).toBeLessThan(0.3)
+      expect(retentionRatio).toBeLessThan(MEMORY_RETENTION.COMPONENT_CLEANUP)
     })
 
     it('should handle 1000+ event emissions without memory buildup', async () => {
-      const iterations = 1000
+      const iterations = TEST_ITERATIONS.EVENT_EMISSIONS
       const handler = vi.fn()
 
       eventBus.on('test:event', handler)
@@ -334,15 +439,14 @@ describe('Memory Leak Detection Tests', () => {
         eventBus.emit('test:event', { data: `iteration-${i}` })
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       forceGC()
       const afterMemory = await getMemoryUsage()
 
       const memoryGrowth = getMemoryDelta(beforeMemory, afterMemory)
 
       // Event emissions should not accumulate memory
-      const maxAllowedGrowth = 3 * 1024 * 1024 // 3 MB tolerance
-      expect(memoryGrowth).toBeLessThan(maxAllowedGrowth)
+      expect(memoryGrowth).toBeLessThan(MEMORY_THRESHOLDS.EVENT_EMISSIONS)
       expect(handler).toHaveBeenCalledTimes(iterations)
 
       eventBus.off('test:event', handler)
@@ -351,7 +455,7 @@ describe('Memory Leak Detection Tests', () => {
 
   describe('Media Stream Handling', () => {
     it('should not leak memory after acquiring and releasing media streams 100 times', async () => {
-      const iterations = 100
+      const iterations = TEST_ITERATIONS.MEDIA_STREAMS
 
       const beforeMemory = await getMemoryUsage()
 
@@ -364,23 +468,22 @@ describe('Memory Leak Detection Tests', () => {
         mediaManager.releaseUserMedia()
 
         // Allow cleanup
-        await new Promise((resolve) => setTimeout(resolve, 5))
+        await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_SHORT))
       }
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       const afterMemory = await getMemoryUsage()
 
       const memoryGrowth = getMemoryDelta(beforeMemory, afterMemory)
 
       // Should not accumulate significant memory from media streams
-      const maxAllowedGrowth = 10 * 1024 * 1024 // 10 MB tolerance
-      expect(memoryGrowth).toBeLessThan(maxAllowedGrowth)
+      expect(memoryGrowth).toBeLessThan(MEMORY_THRESHOLDS.MEDIA_STREAMS)
     })
 
     it('should release media stream resources when MediaManager is destroyed', async () => {
       const managers: MediaManager[] = []
-      const iterations = 50
+      const iterations = TEST_ITERATIONS.MEDIA_MANAGER_INSTANCES
 
       const beforeMemory = await getMemoryUsage()
 
@@ -401,7 +504,7 @@ describe('Memory Leak Detection Tests', () => {
       managers.length = 0
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       const afterMemory = await getMemoryUsage()
 
       // Memory should be mostly released
@@ -409,7 +512,7 @@ describe('Memory Leak Detection Tests', () => {
       const memoryUsedDuringTest = duringMemory - beforeMemory
       const retentionRatio = memoryRetained / memoryUsedDuringTest
 
-      expect(retentionRatio).toBeLessThan(0.3)
+      expect(retentionRatio).toBeLessThan(MEMORY_RETENTION.COMPONENT_CLEANUP)
     })
 
     it('should properly stop all media tracks when releasing streams', async () => {
@@ -437,7 +540,7 @@ describe('Memory Leak Detection Tests', () => {
       }))
 
       // Acquire and release multiple streams
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < TEST_ITERATIONS.TRACK_STOPS; i++) {
         await mediaManager.getUserMedia({ audio: true, video: false })
         mediaManager.releaseUserMedia()
       }
@@ -451,11 +554,11 @@ describe('Memory Leak Detection Tests', () => {
 
   describe('Combined Scenario: Full Call Lifecycle with Media', () => {
     it('should not leak memory in 100 full call cycles with media', async () => {
-      const iterations = 100
+      const iterations = TEST_ITERATIONS.FULL_CALL_LIFECYCLE
       const memorySnapshots: number[] = []
 
       // Warm-up
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < WARMUP.FULL_LIFECYCLE; i++) {
         await mediaManager.getUserMedia({ audio: true, video: false })
         const session = mockSipServer.createSession(`warmup-${i}`)
         new CallSession({
@@ -469,11 +572,11 @@ describe('Memory Leak Detection Tests', () => {
         })
         mockSipServer.simulateCallEnded(session)
         mediaManager.releaseUserMedia()
-        await new Promise((resolve) => setTimeout(resolve, 5))
+        await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_SHORT))
       }
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
 
       const baselineMemory = await getMemoryUsage()
       memorySnapshots.push(baselineMemory)
@@ -513,18 +616,18 @@ describe('Memory Leak Detection Tests', () => {
         // Release media
         mediaManager.releaseUserMedia()
 
-        await new Promise((resolve) => setTimeout(resolve, 5))
+        await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_SHORT))
 
         // Take memory snapshot every 20 iterations
-        if ((i + 1) % 20 === 0) {
+        if ((i + 1) % SNAPSHOT_INTERVALS.DETAILED === 0) {
           forceGC()
-          await new Promise((resolve) => setTimeout(resolve, 50))
+          await new Promise((resolve) => setTimeout(resolve, GC_WAIT_TIMES.SHORT))
           memorySnapshots.push(await getMemoryUsage())
         }
       }
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       const finalMemory = await getMemoryUsage()
       memorySnapshots.push(finalMemory)
 
@@ -544,7 +647,7 @@ describe('Memory Leak Detection Tests', () => {
       const averageGrowthRate = (secondHalfAvg - firstHalfAvg) / firstHalfAvg
 
       // Memory should stabilize and not grow continuously
-      expect(averageGrowthRate).toBeLessThan(0.5)
+      expect(averageGrowthRate).toBeLessThan(MEMORY_RETENTION.MAX_GROWTH_RATE)
     })
   })
 
@@ -568,14 +671,14 @@ describe('Memory Leak Detection Tests', () => {
       memorySnapshots.push(beforeMemory)
 
       // Simulate long-running call with periodic operations
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < TEST_ITERATIONS.LONG_RUNNING_OPS; i++) {
         // Perform various operations
         callSession.mute()
-        await new Promise((resolve) => setTimeout(resolve, 10))
+        await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.LONG_RUNNING_OP))
         callSession.unmute()
-        await new Promise((resolve) => setTimeout(resolve, 10))
+        await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.LONG_RUNNING_OP))
 
-        if (i % 10 === 0) {
+        if (i % SNAPSHOT_INTERVALS.MEDIUM === 0) {
           forceGC()
           memorySnapshots.push(await getMemoryUsage())
         }
@@ -591,13 +694,12 @@ describe('Memory Leak Detection Tests', () => {
       const memoryGrowth = getMemoryDelta(beforeMemory, afterMemory)
 
       // Long-running session should not accumulate memory
-      const maxAllowedGrowth = 5 * 1024 * 1024 // 5 MB tolerance
-      expect(memoryGrowth).toBeLessThan(maxAllowedGrowth)
+      expect(memoryGrowth).toBeLessThan(MEMORY_THRESHOLDS.LONG_RUNNING)
     })
 
     it('should validate memory per call does not exceed PERFORMANCE.MAX_MEMORY_PER_CALL', async () => {
       const sessions: CallSession[] = []
-      const maxConcurrentCalls = 5
+      const maxConcurrentCalls = TEST_ITERATIONS.CONCURRENT_CALLS
 
       const beforeMemory = await getMemoryUsage()
 
@@ -621,7 +723,7 @@ describe('Memory Leak Detection Tests', () => {
       }
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       const duringMemory = await getMemoryUsage()
 
       const totalMemoryUsed = getMemoryDelta(beforeMemory, duringMemory)
@@ -641,14 +743,14 @@ describe('Memory Leak Detection Tests', () => {
       mediaManager.releaseUserMedia()
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       const afterMemory = await getMemoryUsage()
 
       // Memory should be released after cleanup
       const memoryRetained = afterMemory - beforeMemory
       const retentionRatio = memoryRetained / totalMemoryUsed
 
-      expect(retentionRatio).toBeLessThan(0.3)
+      expect(retentionRatio).toBeLessThan(MEMORY_RETENTION.COMPONENT_CLEANUP)
     })
   })
 
@@ -670,7 +772,7 @@ describe('Memory Leak Detection Tests', () => {
       const beforeMemory = await getMemoryUsage()
 
       // Allocate memory
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < TEST_ITERATIONS.GC_DEMONSTRATION; i++) {
         largeObjects.push(new Array(1000).fill({ data: `item-${i}` }))
       }
 
@@ -681,7 +783,7 @@ describe('Memory Leak Detection Tests', () => {
       largeObjects.length = 0
 
       forceGC()
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_LONG))
       const afterMemory = await getMemoryUsage()
 
       const retained = afterMemory - beforeMemory
@@ -689,7 +791,7 @@ describe('Memory Leak Detection Tests', () => {
       // Most memory should be released
       if (global.gc) {
         const retentionRatio = retained / allocated
-        expect(retentionRatio).toBeLessThan(0.3)
+        expect(retentionRatio).toBeLessThan(MEMORY_RETENTION.COMPONENT_CLEANUP)
       }
     })
   })

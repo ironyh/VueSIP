@@ -13,6 +13,16 @@ import type { SipClientConfig } from '@/types/config.types'
 import { PERFORMANCE } from '@/utils/constants'
 import { createMockSipServer, type MockSipServer } from '../../helpers/MockSipServer'
 
+// Type definitions for mock function calls
+type MockCall<T extends unknown[] = unknown[]> = T
+
+// Helper interface for accessing SipClient internals in tests
+interface SipClientTestAccess extends SipClient {
+  ua: ReturnType<typeof vi.fn>
+  _registrationState: string
+  _connectionState: string
+}
+
 // Mock JsSIP - must be defined inline to avoid hoisting issues
 vi.mock('jssip', () => {
   return {
@@ -134,8 +144,8 @@ describe('SipClient Performance Benchmarks', () => {
       const registerPromise = client.register()
 
       // Fast-path: immediate success
-      const mockUA = (client as any).ua
-      const handlers = mockUA.once.mock.calls.find((c: any) => c[0] === 'registered')
+      const mockUA = (client as SipClientTestAccess).ua
+      const handlers = mockUA.once.mock.calls.find((c: MockCall) => c[0] === 'registered')
       if (handlers && handlers[1]) {
         handlers[1]({ response: { getHeader: () => '600' } })
       }
@@ -152,13 +162,13 @@ describe('SipClient Performance Benchmarks', () => {
       const client = new SipClient(config, eventBus)
 
       // Set as registered
-      ;(client as any)._registrationState = 'registered'
+      ;(client as SipClientTestAccess)._registrationState = 'registered'
 
       const unregisterPromise = client.unregister()
 
       // Mock successful unregistration
-      const mockUA = (client as any).ua
-      const handlers = mockUA.once.mock.calls.find((c: any) => c[0] === 'unregistered')
+      const mockUA = (client as SipClientTestAccess).ua
+      const handlers = mockUA.once.mock.calls.find((c: MockCall) => c[0] === 'unregistered')
       if (handlers && handlers[1]) {
         handlers[1]()
       }
@@ -176,8 +186,8 @@ describe('SipClient Performance Benchmarks', () => {
 
       // Register
       const registerPromise = client.register()
-      const mockUA = (client as any).ua
-      let handlers = mockUA.once.mock.calls.find((c: any) => c[0] === 'registered')
+      const mockUA = (client as SipClientTestAccess).ua
+      let handlers = mockUA.once.mock.calls.find((c: MockCall) => c[0] === 'registered')
       if (handlers && handlers[1]) {
         handlers[1]({ response: { getHeader: () => '600' } })
       }
@@ -185,7 +195,7 @@ describe('SipClient Performance Benchmarks', () => {
 
       // Unregister
       const unregisterPromise = client.unregister()
-      handlers = mockUA.once.mock.calls.find((c: any) => c[0] === 'unregistered')
+      handlers = mockUA.once.mock.calls.find((c: MockCall) => c[0] === 'unregistered')
       if (handlers && handlers[1]) {
         handlers[1]()
       }
@@ -236,8 +246,8 @@ describe('SipClient Performance Benchmarks', () => {
 
       // Simulate incoming call
       const mockSession = mockServer.createSession()
-      const mockUA = (client as any).ua
-      const handlers = mockUA.on.mock.calls.find((c: any) => c[0] === 'newRTCSession')
+      const mockUA = (client as SipClientTestAccess).ua
+      const handlers = mockUA.on.mock.calls.find((c: MockCall) => c[0] === 'newRTCSession')
 
       if (handlers && handlers[1]) {
         handlers[1]({
@@ -274,7 +284,7 @@ describe('SipClient Performance Benchmarks', () => {
       const client = new SipClient(config, eventBus)
 
       // Set as connected
-      ;(client as any)._connectionState = 'connected'
+      ;(client as SipClientTestAccess)._connectionState = 'connected'
 
       client.disconnect()
 
@@ -287,16 +297,16 @@ describe('SipClient Performance Benchmarks', () => {
     bench('handle connection state changes', async () => {
       const client = new SipClient(config, eventBus)
 
-      const mockUA = (client as any).ua
+      const mockUA = (client as SipClientTestAccess).ua
 
       // Simulate connecting
-      const connectingHandlers = mockUA.on.mock.calls.find((c: any) => c[0] === 'connecting')
+      const connectingHandlers = mockUA.on.mock.calls.find((c: MockCall) => c[0] === 'connecting')
       if (connectingHandlers && connectingHandlers[1]) {
         connectingHandlers[1]()
       }
 
       // Simulate connected
-      const connectedHandlers = mockUA.on.mock.calls.find((c: any) => c[0] === 'connected')
+      const connectedHandlers = mockUA.on.mock.calls.find((c: MockCall) => c[0] === 'connected')
       if (connectedHandlers && connectedHandlers[1]) {
         connectedHandlers[1]({ socket: { url: 'wss://sip.example.com' } })
       }
@@ -331,8 +341,8 @@ describe('SipClient Performance Benchmarks', () => {
       eventBus.on('registration:registered', () => eventCount++)
 
       // Trigger state changes
-      const mockUA = (client as any).ua
-      const connectedHandlers = mockUA.on.mock.calls.find((c: any) => c[0] === 'connected')
+      const mockUA = (client as SipClientTestAccess).ua
+      const connectedHandlers = mockUA.on.mock.calls.find((c: MockCall) => c[0] === 'connected')
       if (connectedHandlers && connectedHandlers[1]) {
         connectedHandlers[1]({ socket: { url: 'wss://sip.example.com' } })
       }
@@ -348,7 +358,7 @@ describe('SipClient Performance Benchmarks', () => {
     bench('process multiple concurrent events', async () => {
       const client = new SipClient(config, eventBus)
 
-      const mockUA = (client as any).ua
+      const mockUA = (client as SipClientTestAccess).ua
 
       // Simulate multiple events
       const events = ['connecting', 'connected', 'newRTCSession', 'registered']
@@ -356,7 +366,7 @@ describe('SipClient Performance Benchmarks', () => {
       const startTime = performance.now()
 
       events.forEach((eventName) => {
-        const handlers = mockUA.on.mock.calls.find((c: any) => c[0] === eventName)
+        const handlers = mockUA.on.mock.calls.find((c: MockCall) => c[0] === eventName)
         if (handlers && handlers[1]) {
           if (eventName === 'connected') {
             handlers[1]({ socket: { url: 'wss://sip.example.com' } })
@@ -417,8 +427,8 @@ describe('SipClient Performance Benchmarks', () => {
       const client = new SipClient(config, eventBus)
 
       // Set up some state
-      ;(client as any)._connectionState = 'connected'
-      ;(client as any)._registrationState = 'registered'
+      ;(client as SipClientTestAccess)._connectionState = 'connected'
+      ;(client as SipClientTestAccess)._registrationState = 'registered'
 
       // Clean up
       const result = client.destroy()
@@ -459,8 +469,8 @@ describe('SipClient Performance Benchmarks', () => {
       const startTime = performance.now()
 
       // Trigger state change
-      const mockUA = (client as any).ua
-      const handlers = mockUA.on.mock.calls.find((c: any) => c[0] === 'connected')
+      const mockUA = (client as SipClientTestAccess).ua
+      const handlers = mockUA.on.mock.calls.find((c: MockCall) => c[0] === 'connected')
       if (handlers && handlers[1]) {
         handlers[1]({ socket: { url: 'wss://sip.example.com' } })
       }
@@ -492,8 +502,8 @@ describe('SipClient Performance Benchmarks', () => {
       client.makeCall('sip:alice@example.com')
 
       // Complete registration
-      const mockUA = (client as any).ua
-      const handlers = mockUA.once.mock.calls.find((c: any) => c[0] === 'registered')
+      const mockUA = (client as SipClientTestAccess).ua
+      const handlers = mockUA.once.mock.calls.find((c: MockCall) => c[0] === 'registered')
       if (handlers && handlers[1]) {
         handlers[1]({ response: { getHeader: () => '600' } })
       }

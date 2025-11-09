@@ -46,6 +46,97 @@ vi.mock('jssip', () => ({
   },
 }))
 
+// =============================================================================
+// Test Configuration Constants
+// =============================================================================
+
+/**
+ * Test cycle counts - Number of iterations for various rapid operation tests
+ */
+const TEST_CYCLES = {
+  /** High iteration count to detect memory leaks and performance degradation over time */
+  RAPID_CALL_CREATION: 150,
+  /** Lower count due to async overhead and network simulation */
+  REGISTRATION: 50,
+  /** Higher count for synchronous operations that are fast to execute */
+  MUTE_UNMUTE: 200,
+  /** Lower count as device operations involve media stream management */
+  DEVICE_SWITCHING: 50,
+  /** Moderate count for testing call state stability */
+  STABILITY_TEST: 100,
+  /** Moderate count for memory leak detection with proper cleanup */
+  MEMORY_LEAK_DETECTION: 50,
+  /** Small count for stream cleanup validation */
+  STREAM_CLEANUP: 30,
+} as const
+
+/**
+ * Event and performance test counts
+ */
+const PERFORMANCE_TEST_COUNTS = {
+  /** Large number of events to test propagation speed */
+  EVENT_EMISSIONS: 1000,
+  /** Number of event subscribers to test multi-listener performance */
+  EVENT_SUBSCRIBERS: 20,
+  /** Number of events for multi-subscriber test */
+  SUBSCRIBER_EVENTS: 100,
+  /** Number of state updates to test latency */
+  STATE_UPDATES: 500,
+  /** Number of concurrent operations to test for deadlocks */
+  CONCURRENT_CALLS: 5,
+} as const
+
+/**
+ * Memory snapshot frequencies - How often to capture memory measurements
+ */
+const SNAPSHOT_INTERVALS = {
+  /** Take snapshot every 25 iterations for high-frequency tests */
+  HIGH_FREQUENCY: 25,
+  /** Take snapshot every 10 iterations for medium-frequency tests */
+  MEDIUM_FREQUENCY: 10,
+  /** Take snapshot every 50 iterations for low-frequency tests */
+  LOW_FREQUENCY: 50,
+} as const
+
+/**
+ * Async operation wait times (milliseconds)
+ */
+const ASYNC_WAIT_TIMES = {
+  /** Very short wait for immediate cleanup operations */
+  IMMEDIATE: 1,
+  /** Short wait for async cleanup after operations */
+  CLEANUP: 5,
+  /** Medium wait for concurrent operations */
+  CONCURRENT_OPS: 10,
+} as const
+
+/**
+ * Performance thresholds for validation
+ */
+const PERFORMANCE_THRESHOLDS = {
+  /** Maximum acceptable time for mocked call creation (ms) */
+  MOCK_CALL_CREATION: 100,
+  /** Maximum acceptable time for device switching with mocks (ms) */
+  MOCK_DEVICE_SWITCH: 100,
+  /** Maximum acceptable memory growth during tests (bytes) */
+  MAX_MEMORY_GROWTH: 100 * 1024 * 1024, // 100MB
+  /** Memory growth threshold for memory leak tests (bytes) */
+  LEAK_DETECTION_MEMORY: 50 * 1024 * 1024, // 50MB
+  /** Maximum acceptable performance degradation ratio */
+  MAX_DEGRADATION_RATIO: 1.5, // 50% degradation
+} as const
+
+/**
+ * Warmup configurations - Iterations to stabilize system before measurement
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const WARMUP = {
+  /** Warmup cycles for call creation tests */
+  CALL_CREATION: 10,
+} as const
+
+// =============================================================================
+
 /**
  * Performance metrics collector
  */
@@ -279,7 +370,7 @@ describe('Rapid Operations Performance Tests', () => {
 
   describe('Rapid Call Creation and Termination', () => {
     it('should handle 100+ rapid call creation/termination cycles without crashes', async () => {
-      const CYCLES = 150
+      const CYCLES = TEST_CYCLES.RAPID_CALL_CREATION
       const callSessions: CallSession[] = []
 
       performanceCollector.takeMemorySnapshot()
@@ -311,14 +402,14 @@ describe('Rapid Operations Performance Tests', () => {
         await measureTime(
           async () => {
             mockSipServer.simulateCallEnded(session.rtcSession as MockRTCSession, 'local')
-            await new Promise((resolve) => setTimeout(resolve, 5))
+            await new Promise((resolve) => setTimeout(resolve, ASYNC_WAIT_TIMES.CLEANUP))
           },
           performanceCollector,
           'call-termination'
         )
 
         // Take memory snapshot every 25 cycles
-        if (i % 25 === 0) {
+        if (i % SNAPSHOT_INTERVALS.HIGH_FREQUENCY === 0) {
           performanceCollector.takeMemorySnapshot()
         }
       }
@@ -345,14 +436,16 @@ describe('Rapid Operations Performance Tests', () => {
 
       // Validate against performance targets
       // Each call setup should be well under target call setup time since we're mocking
-      expect(creationMetrics!.averageTime).toBeLessThan(100) // Should be fast with mocks
+      expect(creationMetrics!.averageTime).toBeLessThan(PERFORMANCE_THRESHOLDS.MOCK_CALL_CREATION)
 
       // Check memory didn't grow excessively (100MB threshold)
-      expect(performanceCollector.hasExcessiveMemoryGrowth(100 * 1024 * 1024)).toBe(false)
+      expect(
+        performanceCollector.hasExcessiveMemoryGrowth(PERFORMANCE_THRESHOLDS.MAX_MEMORY_GROWTH)
+      ).toBe(false)
     })
 
     it('should maintain stable performance across call cycles', async () => {
-      const CYCLES = 100
+      const CYCLES = TEST_CYCLES.STABILITY_TEST
       const firstHalfTimes: number[] = []
       const secondHalfTimes: number[] = []
 
@@ -373,7 +466,7 @@ describe('Rapid Operations Performance Tests', () => {
         })
 
         mockSipServer.simulateCallEnded(mockSession, 'local')
-        await new Promise((resolve) => setTimeout(resolve, 1))
+        await new Promise((resolve) => setTimeout(resolve, ASYNC_WAIT_TIMES.IMMEDIATE))
 
         const end = performance.now()
         const duration = end - start
@@ -396,13 +489,15 @@ describe('Rapid Operations Performance Tests', () => {
       )
 
       // Performance should not degrade significantly (allow 50% degradation)
-      expect(secondHalfAvg).toBeLessThan(firstHalfAvg * 1.5)
+      expect(secondHalfAvg).toBeLessThan(
+        firstHalfAvg * PERFORMANCE_THRESHOLDS.MAX_DEGRADATION_RATIO
+      )
     })
   })
 
   describe('Rapid Registration/Unregistration Cycles', () => {
     it('should handle rapid registration/unregistration cycles', async () => {
-      const CYCLES = 50
+      const CYCLES = TEST_CYCLES.REGISTRATION
 
       // Setup connection
       mockUA.isConnected.mockReturnValue(true)
@@ -445,7 +540,7 @@ describe('Rapid Operations Performance Tests', () => {
           'unregistration'
         )
 
-        if (i % 10 === 0) {
+        if (i % SNAPSHOT_INTERVALS.MEDIUM_FREQUENCY === 0) {
           performanceCollector.takeMemorySnapshot()
         }
       }
@@ -478,7 +573,7 @@ describe('Rapid Operations Performance Tests', () => {
 
   describe('Rapid Mute/Unmute Operations', () => {
     it('should handle rapid mute/unmute operations without hangs', async () => {
-      const CYCLES = 200
+      const CYCLES = TEST_CYCLES.MUTE_UNMUTE
 
       // Setup an active call session
       const mockSession = mockSipServer.createSession('mute-test-session')
@@ -535,7 +630,7 @@ describe('Rapid Operations Performance Tests', () => {
           'unmute'
         )
 
-        if (i % 50 === 0) {
+        if (i % SNAPSHOT_INTERVALS.LOW_FREQUENCY === 0) {
           performanceCollector.takeMemorySnapshot()
         }
       }
@@ -567,7 +662,7 @@ describe('Rapid Operations Performance Tests', () => {
     })
 
     it('should handle alternating mute states correctly', async () => {
-      const CYCLES = 100
+      const CYCLES = TEST_CYCLES.STABILITY_TEST
       const mockSession = mockSipServer.createSession('mute-state-session')
       mockSession.isEstablished.mockReturnValue(true)
 
@@ -614,7 +709,7 @@ describe('Rapid Operations Performance Tests', () => {
 
   describe('Rapid Device Switching', () => {
     it('should handle rapid device switching without crashes', async () => {
-      const CYCLES = 50
+      const CYCLES = TEST_CYCLES.DEVICE_SWITCHING
       const devices = ['device1', 'device2']
 
       performanceCollector.takeMemorySnapshot()
@@ -658,7 +753,7 @@ describe('Rapid Operations Performance Tests', () => {
           'device-switch'
         )
 
-        if (i % 10 === 0) {
+        if (i % SNAPSHOT_INTERVALS.MEDIUM_FREQUENCY === 0) {
           performanceCollector.takeMemorySnapshot()
         }
       }
@@ -680,14 +775,14 @@ describe('Rapid Operations Performance Tests', () => {
       expect(switchMetrics!.operationCount).toBe(CYCLES)
 
       // Device switching should be reasonably fast (mocked, so very fast)
-      expect(switchMetrics!.averageTime).toBeLessThan(100)
+      expect(switchMetrics!.averageTime).toBeLessThan(PERFORMANCE_THRESHOLDS.MOCK_DEVICE_SWITCH)
 
       // Check memory
       expect(performanceCollector.hasExcessiveMemoryGrowth()).toBe(false)
     })
 
     it('should cleanup old streams when switching devices', async () => {
-      const CYCLES = 30
+      const CYCLES = TEST_CYCLES.STREAM_CLEANUP
       const stoppedTracks: any[] = []
 
       for (let i = 0; i < CYCLES; i++) {
@@ -720,7 +815,7 @@ describe('Rapid Operations Performance Tests', () => {
 
   describe('Event Propagation Performance', () => {
     it('should propagate events within performance target time', async () => {
-      const EVENTS = 1000
+      const EVENTS = PERFORMANCE_TEST_COUNTS.EVENT_EMISSIONS
       const eventTimes: number[] = []
 
       for (let i = 0; i < EVENTS; i++) {
@@ -744,8 +839,8 @@ describe('Rapid Operations Performance Tests', () => {
     })
 
     it('should handle multiple subscribers without significant performance degradation', async () => {
-      const SUBSCRIBERS = 20
-      const EVENTS = 100
+      const SUBSCRIBERS = PERFORMANCE_TEST_COUNTS.EVENT_SUBSCRIBERS
+      const EVENTS = PERFORMANCE_TEST_COUNTS.SUBSCRIBER_EVENTS
 
       // Add multiple subscribers
       for (let i = 0; i < SUBSCRIBERS; i++) {
@@ -775,7 +870,7 @@ describe('Rapid Operations Performance Tests', () => {
 
   describe('State Update Performance', () => {
     it('should update state within latency target', async () => {
-      const UPDATES = 500
+      const UPDATES = PERFORMANCE_TEST_COUNTS.STATE_UPDATES
       const mockSession = mockSipServer.createSession('state-test')
 
       for (let i = 0; i < UPDATES; i++) {
@@ -802,7 +897,7 @@ describe('Rapid Operations Performance Tests', () => {
 
   describe('Concurrent Operations', () => {
     it('should handle concurrent call operations without deadlock', async () => {
-      const CONCURRENT_CALLS = 5
+      const CONCURRENT_CALLS = PERFORMANCE_TEST_COUNTS.CONCURRENT_CALLS
       const promises: Promise<void>[] = []
 
       performanceCollector.takeMemorySnapshot()
@@ -823,7 +918,7 @@ describe('Rapid Operations Performance Tests', () => {
           })
 
           // Perform some operations
-          await new Promise((resolve) => setTimeout(resolve, 10))
+          await new Promise((resolve) => setTimeout(resolve, ASYNC_WAIT_TIMES.CONCURRENT_OPS))
           mockSipServer.simulateCallEnded(mockSession, 'local')
         })()
 
@@ -874,7 +969,7 @@ describe('Rapid Operations Performance Tests', () => {
 
   describe('Memory Leak Detection', () => {
     it('should not leak memory after cleanup', async () => {
-      const ITERATIONS = 50
+      const ITERATIONS = TEST_CYCLES.MEMORY_LEAK_DETECTION
 
       performanceCollector.takeMemorySnapshot()
 
@@ -898,7 +993,7 @@ describe('Rapid Operations Performance Tests', () => {
         // Cleanup
         callSession.destroy()
 
-        if (i % 10 === 0) {
+        if (i % SNAPSHOT_INTERVALS.MEDIUM_FREQUENCY === 0) {
           performanceCollector.takeMemorySnapshot()
         }
       }
@@ -913,7 +1008,9 @@ describe('Rapid Operations Performance Tests', () => {
 
       // Memory growth should be minimal after cleanup
       // Allow for some growth due to test overhead, but should be reasonable
-      expect(memoryGrowthMB).toBeLessThan(50) // 50MB threshold
+      expect(memoryGrowthMB).toBeLessThan(
+        PERFORMANCE_THRESHOLDS.LEAK_DETECTION_MEMORY / (1024 * 1024)
+      )
     })
   })
 })

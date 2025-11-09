@@ -11,6 +11,25 @@ import { EventBus } from '@/core/EventBus'
 import { CallDirection } from '@/types/call.types'
 import { PERFORMANCE } from '@/utils/constants'
 
+// Type definitions for MockRTCSession events
+type EventHandler = (...args: unknown[]) => void | Promise<void>
+
+interface RTCSessionEventData {
+  response?: {
+    status_code?: number
+    reason_phrase?: string
+  }
+  cause?: string
+  originator?: string
+}
+
+// Helper interface for accessing CallSession internals in tests
+interface CallSessionTestAccess extends CallSession {
+  _state: string
+  _isOnHold: boolean
+  _isMuted: boolean
+}
+
 // Mock RTCSession
 class MockRTCSession {
   id = 'bench-session-id'
@@ -18,25 +37,25 @@ class MockRTCSession {
     uri: { toString: () => 'sip:alice@example.com' },
     display_name: 'Alice',
   }
-  connection: any = null
-  private listeners: Map<string, ((...args: any[]) => void)[]> = new Map()
+  connection: RTCPeerConnection | null = null
+  private listeners: Map<string, EventHandler[]> = new Map()
 
-  on(event: string, handler: (...args: any[]) => void) {
+  on(event: string, handler: EventHandler): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, [])
     }
     this.listeners.get(event)?.push(handler)
   }
 
-  once(event: string, handler: (...args: any[]) => void) {
-    const wrapper = (...args: any[]) => {
+  once(event: string, handler: EventHandler): void {
+    const wrapper = (...args: unknown[]): void => {
       handler(...args)
       this.off(event, wrapper)
     }
     this.on(event, wrapper)
   }
 
-  off(event: string, handler: (...args: any[]) => void) {
+  off(event: string, handler: EventHandler): void {
     const handlers = this.listeners.get(event)
     if (handlers) {
       const index = handlers.indexOf(handler)
@@ -46,11 +65,11 @@ class MockRTCSession {
     }
   }
 
-  removeAllListeners() {
+  removeAllListeners(): void {
     this.listeners.clear()
   }
 
-  emit(event: string, data?: any) {
+  emit(event: string, data?: RTCSessionEventData): void {
     const handlers = this.listeners.get(event)
     if (handlers) {
       handlers.forEach((handler) => handler(data))
@@ -145,7 +164,7 @@ describe('CallSession Performance Benchmarks', () => {
       })
 
       // Set to ringing state
-      ;(session as any)._state = 'ringing'
+      ;(session as CallSessionTestAccess)._state = 'ringing'
 
       await session.answer()
 
@@ -173,7 +192,7 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'ringing'
+      ;(session as CallSessionTestAccess)._state = 'ringing'
 
       await session.answer({
         mediaConstraints: {
@@ -213,7 +232,7 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
+      ;(session as CallSessionTestAccess)._state = 'active'
 
       await session.hangup()
 
@@ -241,7 +260,7 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'ringing'
+      ;(session as CallSessionTestAccess)._state = 'ringing'
 
       await session.hangup()
 
@@ -271,7 +290,7 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
+      ;(session as CallSessionTestAccess)._state = 'active'
 
       await session.hold()
 
@@ -299,8 +318,8 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
-      ;(session as any)._isOnHold = true
+      ;(session as CallSessionTestAccess)._state = 'active'
+      ;(session as CallSessionTestAccess)._isOnHold = true
 
       await session.unhold()
 
@@ -328,11 +347,11 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
+      ;(session as CallSessionTestAccess)._state = 'active'
 
       await session.hold()
-      ;(session as any)._isOnHold = true
-      ;(session as any)._state = 'active'
+      ;(session as CallSessionTestAccess)._isOnHold = true
+      ;(session as CallSessionTestAccess)._state = 'active'
       await session.unhold()
 
       const sessionResult = session.destroy()
@@ -361,7 +380,7 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
+      ;(session as CallSessionTestAccess)._state = 'active'
 
       session.mute()
 
@@ -389,8 +408,8 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
-      ;(session as any)._isMuted = true
+      ;(session as CallSessionTestAccess)._state = 'active'
+      ;(session as CallSessionTestAccess)._isMuted = true
 
       session.unmute()
 
@@ -420,7 +439,7 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
+      ;(session as CallSessionTestAccess)._state = 'active'
 
       session.sendDTMF('1')
 
@@ -448,7 +467,7 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
+      ;(session as CallSessionTestAccess)._state = 'active'
 
       session.sendDTMF('5', {
         duration: 200,
@@ -511,7 +530,7 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
+      ;(session as CallSessionTestAccess)._state = 'active'
 
       mockRtcSession.emit('ended', {
         cause: 'BYE',
@@ -616,7 +635,7 @@ describe('CallSession Performance Benchmarks', () => {
         eventBus,
       })
 
-      ;(session as any)._state = 'active'
+      ;(session as CallSessionTestAccess)._state = 'active'
 
       const sessionResult = session.destroy()
       if (sessionResult && typeof sessionResult.then === 'function') {
