@@ -708,3 +708,38 @@ test('should have no accessibility violations', async ({ page }) => {
 2. Review [Playwright docs](https://playwright.dev)
 3. Check test examples in existing spec files
 4. Run tests with `--debug` flag for inspection
+
+## Advanced Testing Features
+
+VueSip includes advanced E2E testing capabilities beyond the core tests:
+
+- **Accessibility Testing** - WCAG 2.1 AA compliance (23 tests)
+- **Network Condition Simulation** - Test under various network scenarios (24 tests)
+- **Performance Testing** - Monitor load time, FPS, memory (20+ tests)
+- **Audio/Video Quality** - WebRTC stream validation (16 tests)
+- **Multi-User Scenarios** - Test interactions between users (11 tests)
+- **Custom Reporters** - Flaky test detection, metrics, notifications
+- **Docker SIP Server** - Real Asterisk integration testing
+
+📘 **See [ADVANCED_E2E_TESTING.md](/ADVANCED_E2E_TESTING.md) for complete guide**
+
+### Quick Access
+
+```bash
+# Run advanced tests
+npm run test:e2e:advanced
+
+# Run specific category
+npm run test:e2e:a11y          # Accessibility
+npm run test:e2e:network       # Network conditions
+npm run test:e2e:performance   # Performance
+npm run test:e2e:multiuser     # Multi-user
+
+# Start Docker SIP server
+cd tests/e2e/docker && docker-compose up -d
+```
+
+### Additional Resources
+
+- [Advanced E2E Testing Guide](/ADVANCED_E2E_TESTING.md) ⭐ **New!**
+- [Docker SIP Server Documentation](./docker/README.md)
