@@ -2594,12 +2594,13 @@ Each guide is a separate markdown file in `docs/guide/`:
   - DTMF tone sending
   - Call transfer (blind and attended)
 
-- [ ] Write Device Management guide
+- [x] Write Device Management guide
   - **Files:** `docs/guide/device-management.md`
   - Enumerating devices
   - Device selection
   - Permission handling
   - Device testing
+  - **Status:** ✅ Complete (1,911 lines, comprehensive guide with device enumeration, selection, permissions, testing, monitoring, best practices, complete examples, API reference, and troubleshooting)
 
 - [ ] Write Call History guide
   - **Files:** `docs/guide/call-history.md`
