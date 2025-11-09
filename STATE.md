@@ -2573,7 +2573,7 @@ Each guide is a separate markdown file in `docs/guide/`:
   - Configuration overview
   - Common use cases
 
-- [ ] Write Making Calls guide
+- [x] Write Making Calls guide
   - **Files:** `docs/guide/making-calls.md`
   - Outgoing call setup
   - Call options and media constraints
