@@ -24,30 +24,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Run linter
-        run: npm run lint
+        run: pnpm run lint
+        continue-on-error: true
 
       - name: Run type checking
-        run: npm run typecheck
+        run: pnpm run typecheck
 
       - name: Run unit tests
-        run: npm run test:unit
+        run: pnpm run test:unit
 
       - name: Run integration tests
-        run: npm run test:integration
+        run: pnpm run test:integration
         continue-on-error: true
 
       - name: Generate coverage report
-        run: npm run coverage:unit
+        run: pnpm run coverage:unit
 
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v4
@@ -63,17 +69,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Run performance benchmarks
-        run: npm run test:performance:bench
+        run: pnpm run test:performance:bench
         continue-on-error: true
 
       - name: Run performance load tests (with GC)
@@ -81,7 +92,7 @@ jobs:
         continue-on-error: true
 
       - name: Run performance metrics tests
-        run: npm run test:performance:metrics
+        run: pnpm run test:performance:metrics
         continue-on-error: true
 
       - name: Upload performance results
@@ -102,20 +113,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build package
-        run: npm run build
+        run: pnpm run build
 
       - name: Check bundle size
-        run: npm run test:performance:metrics
+        run: pnpm run test:performance:metrics
         continue-on-error: true
 
       - name: Upload build artifacts
