@@ -347,32 +347,22 @@ describe('SipClient', () => {
     })
 
     it('should emit registration events', async () => {
-      vi.useFakeTimers()
-
       const registeredHandler = vi.fn()
       eventBus.on('sip:registered', registeredHandler)
 
-      // Call register and setup event trigger
-      const registerPromise = sipClient.register()
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (event === 'registered') {
+          setTimeout(() => {
+            mockUA.isRegistered.mockReturnValue(true)
+            handler({ response: { getHeader: () => '600' } })
+          }, 10)
+        }
+      })
 
-      // Use runAllTimers to ensure all handlers are registered
-      await vi.advanceTimersByTimeAsync(0)
+      await sipClient.register()
 
-      // Now trigger the event
-      mockUA.isRegistered.mockReturnValue(true)
-      triggerEvent('registered', { response: { getHeader: () => '600' } })
-
-      await registerPromise
-
-      // Wait for the handler to be called with timeout
-      await vi.waitFor(
-        () => {
-          expect(registeredHandler).toHaveBeenCalled()
-        },
-        { timeout: 1000, interval: 10 }
-      )
-
-      vi.useRealTimers()
+      // Handler should be called after event is emitted
+      expect(registeredHandler).toHaveBeenCalled()
     })
 
     it('should handle registration failure', async () => {
@@ -403,31 +393,17 @@ describe('SipClient', () => {
       expect(mockUA.register).toHaveBeenCalledTimes(registerCalls)
     })
 
-    it(
-      'should handle registration timeout',
-      async () => {
-        vi.useFakeTimers()
+    it('should handle registration timeout', async () => {
+      // Mock that never calls the registered event
+      mockUA.once.mockImplementation(() => {
+        // Don't call the handler - let it timeout
+      })
 
-        // Start the client first
-        const startPromise = sipClient.start()
-        await vi.advanceTimersByTimeAsync(0)
-        mockUA.isConnected.mockReturnValue(true)
-        triggerEvent('connected', {})
-        await startPromise
+      const registerPromise = sipClient.register()
 
-        // Now attempt to register - but don't trigger registered event
-        const registerPromise = sipClient.register()
-
-        // Advance timers to trigger the registration timeout (30 seconds)
-        await vi.advanceTimersByTimeAsync(31000)
-
-        // Should reject with timeout error
-        await expect(registerPromise).rejects.toThrow('Registration timeout')
-
-        vi.useRealTimers()
-      },
-      35000
-    ) // Increase test timeout
+      // Should reject with timeout error
+      await expect(registerPromise).rejects.toThrow('Registration timeout')
+    }, 35000)
   })
 
   describe('unregister()', () => {
@@ -468,41 +444,22 @@ describe('SipClient', () => {
     })
 
     it('should emit unregistration events', async () => {
-      vi.useFakeTimers()
-
       const unregisteredHandler = vi.fn()
       eventBus.on('sip:unregistered', unregisteredHandler)
 
-      // First start the client
-      const startPromise = sipClient.start()
-      await vi.advanceTimersByTimeAsync(0)
-      mockUA.isConnected.mockReturnValue(true)
-      triggerEvent('connected', {})
-      await startPromise
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (event === 'unregistered') {
+          setTimeout(() => {
+            mockUA.isRegistered.mockReturnValue(false)
+            handler({ cause: 'user' })
+          }, 10)
+        }
+      })
 
-      // Register the client
-      const registerPromise = sipClient.register()
-      await vi.advanceTimersByTimeAsync(0)
-      mockUA.isRegistered.mockReturnValue(true)
-      triggerEvent('registered', { response: { getHeader: () => '600' } })
-      await registerPromise
+      await sipClient.unregister()
 
-      // Now unregister
-      const unregisterPromise = sipClient.unregister()
-      await vi.advanceTimersByTimeAsync(0)
-      mockUA.isRegistered.mockReturnValue(false)
-      triggerEvent('unregistered', { cause: 'user' })
-      await unregisterPromise
-
-      // Wait for the handler to be called
-      await vi.waitFor(
-        () => {
-          expect(unregisteredHandler).toHaveBeenCalled()
-        },
-        { timeout: 1000, interval: 10 }
-      )
-
-      vi.useRealTimers()
+      // Handler should be called after event is emitted
+      expect(unregisteredHandler).toHaveBeenCalled()
     })
 
     it('should not unregister if not registered', async () => {
