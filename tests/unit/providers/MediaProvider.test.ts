@@ -122,10 +122,10 @@ describe('MediaProvider', () => {
         },
       })
 
-      // Wait for async initialization to complete
-      await vi.waitFor(() => {
-        expect(mockEnumerateDevices).toHaveBeenCalled()
-      })
+      await nextTick()
+      await nextTick() // Wait for async initialization
+
+      expect(mockEnumerateDevices).toHaveBeenCalled()
     })
 
     it('should skip enumeration when autoEnumerate is false', async () => {

@@ -522,15 +522,10 @@ describe('useSipClient', () => {
       const { connect, reconnect } = result
 
       await connect()
-
-      // Clear start call count from connect, we only care about reconnect calls
-      mockSipClient.start.mockClear()
-      mockSipClient.stop.mockClear()
-
       await reconnect()
 
       expect(mockSipClient.stop).toHaveBeenCalled()
-      expect(mockSipClient.start).toHaveBeenCalledTimes(1) // Once for reconnect
+      expect(mockSipClient.start).toHaveBeenCalledTimes(2) // Once for initial connect, once for reconnect
 
       unmount()
     })
