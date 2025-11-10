@@ -231,16 +231,15 @@ describe('TransportManager', () => {
       // Start the connection and expect it to timeout
       const connectPromise = transport.connect()
 
+      // Attach error handler immediately to prevent unhandled rejection
+      const errorPromise = connectPromise.catch((error) => error)
+
       // Fast-forward past timeout
       await vi.advanceTimersByTimeAsync(600)
 
-      // Now check if it rejected (catch any unhandled rejection)
-      try {
-        await connectPromise
-        throw new Error('Expected connection to timeout but it succeeded')
-      } catch (error: any) {
-        expect(error.message).toContain('Connection timeout')
-      }
+      // Now check the error
+      const error = await errorPromise
+      expect(error.message).toContain('Connection timeout')
       expect(transport.state).toBe('connection_failed')
 
       // Restore

@@ -347,6 +347,8 @@ describe('SipClient', () => {
     })
 
     it('should emit registration events', async () => {
+      vi.useFakeTimers()
+
       const registeredHandler = vi.fn()
       eventBus.on('sip:registered', registeredHandler)
 
@@ -369,6 +371,8 @@ describe('SipClient', () => {
         },
         { timeout: 1000, interval: 10 }
       )
+
+      vi.useRealTimers()
     })
 
     it('should handle registration failure', async () => {
@@ -402,6 +406,8 @@ describe('SipClient', () => {
     it(
       'should handle registration timeout',
       async () => {
+        vi.useFakeTimers()
+
         // Start the client first
         const startPromise = sipClient.start()
         await vi.advanceTimersByTimeAsync(0)
@@ -417,6 +423,8 @@ describe('SipClient', () => {
 
         // Should reject with timeout error
         await expect(registerPromise).rejects.toThrow('Registration timeout')
+
+        vi.useRealTimers()
       },
       35000
     ) // Increase test timeout
@@ -460,6 +468,8 @@ describe('SipClient', () => {
     })
 
     it('should emit unregistration events', async () => {
+      vi.useFakeTimers()
+
       const unregisteredHandler = vi.fn()
       eventBus.on('sip:unregistered', unregisteredHandler)
 
@@ -491,6 +501,8 @@ describe('SipClient', () => {
         },
         { timeout: 1000, interval: 10 }
       )
+
+      vi.useRealTimers()
     })
 
     it('should not unregister if not registered', async () => {

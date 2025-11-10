@@ -156,17 +156,15 @@ describe('useSipRegistration', () => {
       expect(basicClient.register).toHaveBeenCalled()
     })
 
-    it('should fallback to basic register() when extended register throws', async () => {
-      mockSipClient.register
-        .mockRejectedValueOnce(new Error('Extended API not supported'))
-        .mockResolvedValueOnce(undefined)
+    it('should propagate register() errors without fallback', async () => {
+      mockSipClient.register.mockRejectedValueOnce(new Error('Extended API not supported'))
 
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { register } = useSipRegistration(sipClientRef)
 
-      await register()
+      await expect(register()).rejects.toThrow('Extended API not supported')
 
-      expect(mockSipClient.register).toHaveBeenCalledTimes(2)
+      expect(mockSipClient.register).toHaveBeenCalledTimes(1)
     })
 
     it('should set up auto-refresh timer after successful registration', async () => {

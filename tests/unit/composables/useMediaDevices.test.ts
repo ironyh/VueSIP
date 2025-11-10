@@ -927,10 +927,11 @@ describe('useMediaDevices - Comprehensive Tests', () => {
       // Only one actual enumeration should occur
       expect(mockEnumerateDevices).toHaveBeenCalledTimes(1)
 
-      // After first enumeration completes, subsequent calls should return the cached devices
+      // After first enumeration completes, subsequent calls will enumerate again
+      // (devices can change, so we don't aggressively cache)
       const result3 = await enumerateDevices()
       expect(result3).toEqual(result1)
-      expect(mockEnumerateDevices).toHaveBeenCalledTimes(1) // Still only 1 call
+      expect(mockEnumerateDevices).toHaveBeenCalledTimes(2) // Second enumeration
     })
 
     it('should set isEnumerating flag during enumeration', async () => {
