@@ -628,10 +628,26 @@ describe('SipClient', () => {
 
       await sipClient.start()
 
-      // Simulate new session event
+      // Simulate new session event with complete mock session
       if (sessionEventHandler) {
+        const mockSession = {
+          id: 'session-1',
+          on: vi.fn(),
+          once: vi.fn(),
+          off: vi.fn(),
+          terminate: vi.fn(),
+          answer: vi.fn(),
+          hold: vi.fn(),
+          unhold: vi.fn(),
+          sendDTMF: vi.fn(),
+          mute: vi.fn(),
+          unmute: vi.fn(),
+          isMuted: vi.fn().mockReturnValue(false),
+          isOnHold: vi.fn().mockReturnValue(false),
+          connection: {},
+        }
         sessionEventHandler({
-          session: { id: 'session-1' },
+          session: mockSession,
           originator: 'remote',
           request: {},
         })
@@ -666,12 +682,21 @@ describe('SipClient', () => {
 
       await sipClient.start()
 
-      // Simulate new message event
+      // Simulate new message event with complete mock request
       if (messageEventHandler) {
+        const mockRequest = {
+          getHeader: vi.fn((header: string) => {
+            if (header === 'Content-Type') return 'text/plain'
+            return null
+          }),
+          from: { uri: { toString: () => 'sip:sender@example.com' } },
+          to: { uri: { toString: () => 'sip:testuser@example.com' } },
+          body: 'Hello',
+        }
         messageEventHandler({
           message: { body: 'Hello' },
           originator: 'remote',
-          request: {},
+          request: mockRequest,
         })
       }
 
