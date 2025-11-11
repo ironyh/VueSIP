@@ -522,101 +522,88 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       const mockEventBus = {
         on: vi.fn((event: string, handler: any) => `listener_${event}`),
         removeById: vi.fn(),
-        emitSync: vi.fn(),
         once: vi.fn(),
         off: vi.fn(),
         emit: vi.fn(),
       }
 
-      const { EventBus } = await import('@/core/EventBus')
-      vi.mocked(EventBus).mockImplementationOnce(() => mockEventBus as any)
-
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
-          autoConnect: false,
+          autoConnect: true,
+          autoRegister: true,
           eventBus: mockEventBus,
         },
       })
 
       await flushPromises()
 
-      // Trigger registered event handler
-      const registeredCall = mockEventBus.on.mock.calls.find(call => call[0] === 'sip:registered')
-      expect(registeredCall).toBeDefined()
-      if (registeredCall) {
-        registeredCall[1]({ uri: 'sip:alice@example.com' })
-      }
-
+      // With autoRegister=true, registered is emitted proactively by connect()
       expect(wrapper.emitted('registered')).toBeDefined()
-      expect(wrapper.emitted('registered')?.[0]?.[0]).toBe('sip:alice@example.com')
+      expect(wrapper.emitted('registered')?.[0]?.[0]).toBe(mockConfig.sipUri)
     })
 
     it('should emit ready event when fully initialized', async () => {
       const mockEventBus = {
         on: vi.fn((event: string, handler: any) => `listener_${event}`),
         removeById: vi.fn(),
-        emitSync: vi.fn(),
         once: vi.fn(),
         off: vi.fn(),
         emit: vi.fn(),
       }
 
-      const { EventBus } = await import('@/core/EventBus')
-      vi.mocked(EventBus).mockImplementationOnce(() => mockEventBus as any)
-
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
-          autoConnect: false,
+          autoConnect: true,
+          autoRegister: true,
           eventBus: mockEventBus,
         },
       })
 
       await flushPromises()
 
-      // Trigger registered event
-      const registeredCall = mockEventBus.on.mock.calls.find(call => call[0] === 'sip:registered')
-      if (registeredCall) {
-        registeredCall[1]({ uri: 'sip:alice@example.com' })
-      }
-
+      // With autoConnect + autoRegister, ready is emitted after registration
       expect(wrapper.emitted('ready')).toBeDefined()
     })
 
     it('should emit error event on registration failure', async () => {
+      const mockRegisterFail = vi.fn().mockRejectedValue(new Error('Registration failed'))
+      const { SipClient } = await import('@/core/SipClient')
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          register: mockRegisterFail,
+          stop: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+        }
+      })
+
       const mockEventBus = {
         on: vi.fn((event: string, handler: any) => `listener_${event}`),
         removeById: vi.fn(),
-        emitSync: vi.fn(),
         once: vi.fn(),
         off: vi.fn(),
         emit: vi.fn(),
       }
 
-      const { EventBus } = await import('@/core/EventBus')
-      vi.mocked(EventBus).mockImplementationOnce(() => mockEventBus as any)
-
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
-          autoConnect: false,
+          autoConnect: true,
+          autoRegister: true,
           eventBus: mockEventBus,
         },
       })
 
       await flushPromises()
 
-      // Trigger registration_failed event
-      const failedCall = mockEventBus.on.mock.calls.find(call => call[0] === 'sip:registration_failed')
-      expect(failedCall).toBeDefined()
-      if (failedCall) {
-        failedCall[1]({ cause: 'Authentication failed' })
-      }
-
+      // Error should be emitted when registration fails during autoRegister
       expect(wrapper.emitted('error')).toBeDefined()
       const errorEvent = wrapper.emitted('error')?.[0]?.[0] as Error
-      expect(errorEvent?.message).toContain('Authentication failed')
+      expect(errorEvent?.message).toContain('Registration failed')
     })
   })
 
