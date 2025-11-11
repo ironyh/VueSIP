@@ -927,7 +927,7 @@ describe('Conference Integration Tests', () => {
       p1.callSession = callSession1
 
       // Hold participant
-        await callSession1.hold()
+      await callSession1.hold()
       mockSipServer.simulateHold(session1, 'local')
       await new Promise((resolve) => setTimeout(resolve, 10))
 

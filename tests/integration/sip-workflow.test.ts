@@ -17,11 +17,6 @@ import { createMockSipServer, type MockRTCSession } from '../helpers/MockSipServ
 import type { SipClientConfig } from '../../src/types/config.types'
 import { RegistrationState } from '../../src/types/sip.types'
 
-// Mock JsSIP with proper event handler storage
-const eventHandlers = new Map<string, Function[]>()
-const onceHandlers = new Map<string, Function[]>()
-const sessionEventHandlers = new Map<string, Function[]>()
-
 // Mock JsSIP to use our MockSipServer
 vi.mock('jssip', () => {
   let mockSipServer: ReturnType<typeof createMockSipServer> | null = null
