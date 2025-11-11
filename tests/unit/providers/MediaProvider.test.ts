@@ -5,7 +5,7 @@
 /* eslint-disable vue/one-component-per-file */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import { MediaProvider, useMediaProvider } from '../../../src/providers/MediaProvider'
 import { deviceStore } from '../../../src/stores/deviceStore'
@@ -516,7 +516,7 @@ describe('MediaProvider', () => {
       })
 
       await nextTick()
-      await nextTick()
+      await flushPromises()
 
       expect(wrapper.emitted('permissionsGranted')).toBeTruthy()
       const emittedEvent = wrapper.emitted('permissionsGranted')?.[0]
@@ -538,7 +538,7 @@ describe('MediaProvider', () => {
       })
 
       await nextTick()
-      await nextTick()
+      await flushPromises()
 
       expect(wrapper.emitted('permissionsDenied')).toBeTruthy()
     })
@@ -691,7 +691,7 @@ describe('MediaProvider', () => {
       })
 
       await nextTick()
-      await nextTick()
+      await flushPromises()
 
       expect(wrapper.emitted('error')).toBeTruthy()
     })

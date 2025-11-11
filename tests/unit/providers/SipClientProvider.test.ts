@@ -40,10 +40,11 @@ vi.mock('@/core/SipClient', () => ({
 vi.mock('@/core/EventBus', () => ({
   EventBus: vi.fn(function () {
     return {
-      on: vi.fn(),
-      once: vi.fn(),
+      on: vi.fn().mockReturnValue('listener-id'),
+      once: vi.fn().mockReturnValue('listener-id'),
       off: vi.fn(),
       emit: vi.fn(),
+      removeById: vi.fn(),
     }
   }),
 }))
