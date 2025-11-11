@@ -220,6 +220,8 @@ export const SipClientProvider = defineComponent({
     /**
      * Initialize SIP client with configuration
      */
+    const initialized = ref(false)
+
     const initializeClient = (): void => {
       try {
         // Validate configuration
@@ -239,6 +241,7 @@ export const SipClientProvider = defineComponent({
 
         // Create SIP client instance
         client.value = new SipClient(props.config, eventBus.value as EventBus)
+        initialized.value = true
 
         // Setup event listeners
         setupEventListeners()
@@ -475,11 +478,16 @@ export const SipClientProvider = defineComponent({
     }
 
     // Lifecycle hooks
+    // Initialize early so event listeners are ready before mount (tests rely on this)
+    initializeClient()
+
     onMounted(async () => {
       logger.debug('SipClientProvider mounted')
 
-      // Initialize client
-      initializeClient()
+      // Avoid double initialization if already done
+      if (!initialized.value && !client.value) {
+        initializeClient()
+      }
 
       // Auto-connect if enabled
       if (props.autoConnect && client.value) {
@@ -487,7 +495,8 @@ export const SipClientProvider = defineComponent({
           await connect()
         } catch (err) {
           logger.error('Auto-connect failed', err)
-          // Error already emitted in connect()
+          // Ensure error event emitted
+          if (error.value) emit('error', error.value)
         }
       }
     })
