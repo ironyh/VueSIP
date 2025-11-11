@@ -532,13 +532,17 @@ describe('Memory Leak Detection Tests', () => {
         }
       }
 
-      global.navigator.mediaDevices.getUserMedia = vi.fn().mockImplementation(async () => ({
-        id: 'mock-stream',
-        active: true,
-        getTracks: vi.fn().mockReturnValue([createMockTrack()]),
-        getAudioTracks: vi.fn().mockReturnValue([createMockTrack()]),
-        getVideoTracks: vi.fn().mockReturnValue([]),
-      }))
+      global.navigator.mediaDevices.getUserMedia = vi.fn().mockImplementation(async () => {
+        // Create track once and share it between getTracks and getAudioTracks
+        const audioTrack = createMockTrack()
+        return {
+          id: 'mock-stream',
+          active: true,
+          getTracks: vi.fn().mockReturnValue([audioTrack]),
+          getAudioTracks: vi.fn().mockReturnValue([audioTrack]),
+          getVideoTracks: vi.fn().mockReturnValue([]),
+        }
+      })
 
       // Acquire and release multiple streams
       for (let i = 0; i < TEST_ITERATIONS.TRACK_STOPS; i++) {
@@ -602,6 +606,10 @@ describe('Memory Leak Detection Tests', () => {
         // Simulate call lifecycle
         mockSipServer.simulateCallProgress(session)
         mockSipServer.simulateCallAccepted(session)
+        mockSipServer.simulateCallConfirmed(session)
+
+        // Wait for call to be fully established (state: active)
+        await new Promise((resolve) => setTimeout(resolve, WAIT_TIMES.CLEANUP_SHORT))
 
         // Hold/unhold
         await callSession.hold()

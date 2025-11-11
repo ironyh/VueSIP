@@ -523,6 +523,18 @@ export class MediaManager {
         this.permissions.video = PermissionStatus.Granted
       }
 
+      // Clean up old stream if it exists (e.g., when switching devices)
+      if (this.localStream) {
+        logger.debug('Cleaning up old local stream before replacing', {
+          oldStreamId: this.localStream.id,
+          newStreamId: stream.id,
+        })
+        this.localStream.getTracks().forEach((track) => {
+          logger.debug('Stopping old track', { kind: track.kind, id: track.id })
+          track.stop()
+        })
+      }
+
       // Store local stream
       this.localStream = stream
 
