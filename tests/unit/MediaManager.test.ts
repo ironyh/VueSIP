@@ -358,8 +358,8 @@ describe('MediaManager', () => {
       const eventPromise = eventBus.waitFor('media:ice:candidate')
       pc.onicecandidate?.({ candidate: mockCandidate } as any)
 
-      const event = await eventPromise
-      expect(event.payload.candidate).toBeDefined()
+      const payload = await eventPromise
+      expect(payload.candidate).toBeDefined()
     })
 
     it('should emit ICE gathering complete event on null candidate', async () => {
@@ -379,8 +379,8 @@ describe('MediaManager', () => {
       pc.iceConnectionState = 'connected'
       pc.oniceconnectionstatechange?.()
 
-      const event = await eventPromise
-      expect(event.payload.state).toBe('connected')
+      const payload = await eventPromise
+      expect(payload.state).toBe('connected')
     })
 
     it('should handle connection failure', async () => {
@@ -391,8 +391,8 @@ describe('MediaManager', () => {
       pc.iceConnectionState = 'failed'
       pc.oniceconnectionstatechange?.()
 
-      const event = await eventPromise
-      expect(event.payload.state).toBe('failed')
+      const payload = await eventPromise
+      expect(payload.state).toBe('failed')
     })
 
     it('should emit track added event', async () => {
@@ -404,8 +404,8 @@ describe('MediaManager', () => {
       const eventPromise = eventBus.waitFor('media:track:added')
       pc.ontrack?.({ track: mockTrack, streams: [mockStream] } as any)
 
-      const event = await eventPromise
-      expect(event.payload.track).toBeDefined()
+      const payload = await eventPromise
+      expect(payload.track).toBeDefined()
     })
   })
 
