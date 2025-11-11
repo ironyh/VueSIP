@@ -5,6 +5,7 @@
  */
 
 import { vi } from 'vitest'
+import { configureLogger } from '../src/utils/logger'
 
 // Mock JsSIP globally
 vi.mock('jssip', () => {
@@ -142,4 +143,12 @@ if (process.env.VITEST_SILENT !== 'false') {
   // Keep warn and error for debugging
   // global.console.warn = vi.fn()
   // global.console.error = vi.fn()
+}
+
+// Configure VueSIP logger for tests
+// Suppress logger output during tests by using a custom no-op handler
+if (process.env.VITEST_SILENT !== 'false') {
+  configureLogger({
+    enabled: false, // Disable all logging during tests
+  })
 }
