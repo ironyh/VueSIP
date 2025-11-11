@@ -32,14 +32,12 @@ class MockMediaRecorder {
 
   stop() {
     this.state = 'inactive'
-    // Fire ondataavailable with mock data before onstop
+    // Trigger ondataavailable with mock data before onstop
     if (this.ondataavailable) {
-      setTimeout(() => {
-        this.ondataavailable?.({ data: new Blob(['mock-audio-data'], { type: 'audio/webm' }) } as any)
-        // Then fire onstop
-        setTimeout(() => this.onstop?.(), 10)
-      }, 5)
-    } else if (this.onstop) {
+      const mockBlob = new Blob(['mock data'], { type: 'audio/webm' })
+      this.ondataavailable({ data: mockBlob } as any)
+    }
+    if (this.onstop) {
       setTimeout(() => this.onstop?.(), 10)
     }
   }
@@ -63,12 +61,13 @@ class MockIDBDatabase {
     onabort: null,
     onerror: null,
     objectStore: vi.fn((name: string) => ({
-      add: vi.fn().mockImplementation(() => {
+      add: vi.fn((data: any) => {
         const request = {
-          onsuccess: null as ((event: any) => void) | null,
-          onerror: null as ((event: any) => void) | null,
+          onsuccess: null,
+          onerror: null,
+          result: data,
         }
-        // Trigger onsuccess asynchronously
+        // Trigger onsuccess asynchronously to simulate IndexedDB behavior
         setTimeout(() => {
           if (request.onsuccess) {
             request.onsuccess({ target: request } as any)
@@ -258,8 +257,8 @@ describe('RecordingPlugin - Edge Cases', () => {
       // Should have called error callback for empty recording
       expect(onRecordingError).toHaveBeenCalled()
 
-      // Restore original mock
-      global.MediaRecorder = originalMockMediaRecorder
+      // Restore original MediaRecorder
+      global.MediaRecorder = originalMediaRecorder
     })
 
     it('should not save empty blobs to IndexedDB', async () => {

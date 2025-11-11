@@ -31,14 +31,12 @@ class MockMediaRecorder {
 
   stop() {
     this.state = 'inactive'
-    // Fire ondataavailable with mock data before onstop
+    // Trigger ondataavailable with mock data before onstop
     if (this.ondataavailable) {
-      setTimeout(() => {
-        this.ondataavailable?.({ data: new Blob(['mock-audio-data'], { type: 'audio/webm' }) } as any)
-        // Then fire onstop
-        setTimeout(() => this.onstop?.(), 10)
-      }, 5)
-    } else if (this.onstop) {
+      const mockBlob = new Blob(['mock data'], { type: 'audio/webm' })
+      this.ondataavailable({ data: mockBlob } as any)
+    }
+    if (this.onstop) {
       setTimeout(() => this.onstop?.(), 10)
     }
   }

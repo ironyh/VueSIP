@@ -33,7 +33,7 @@ describe('AnalyticsPlugin - Lifecycle', () => {
 
     it('should prevent double installation', async () => {
       // Enable logging for this test and spy on console.warn
-      loggerModule.configureLogger({ enabled: true, handler: undefined })
+      loggerModule.configureLogger({ enabled: true })
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
       await plugin.install({ eventBus }, { endpoint: 'https://test.com' })
@@ -49,7 +49,7 @@ describe('AnalyticsPlugin - Lifecycle', () => {
 
       consoleSpy.mockRestore()
       // Restore logging to disabled state
-      loggerModule.configureLogger({ enabled: false, handler: undefined })
+      loggerModule.configureLogger({ enabled: false })
     })
 
     it('should allow reinstallation after uninstall', async () => {

@@ -14,6 +14,11 @@ export const APP_URL = '/?test=true' as const
 export const APP_URL = '/?test=true'
 
 /**
+ * Application URL with test harness enabled
+ */
+export const APP_URL = '/?test=true'
+
+/**
  * Mock SIP server configuration
  */
 export interface MockSipServerConfig {

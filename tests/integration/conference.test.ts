@@ -905,7 +905,7 @@ describe('Conference Integration Tests', () => {
 
     it('should handle hold/unhold for conference participants', async () => {
       const session1 = mockSipServer.createSession('conf-call-1')
-
+      
       const callSession1 = new CallSession({
         id: session1.id,
         direction: 'outgoing',
@@ -916,23 +916,20 @@ describe('Conference Integration Tests', () => {
         eventBus,
       })
 
-      // Simulate call being accepted and confirmed (must be after CallSession creation so event handlers are registered)
+      // Simulate call lifecycle to get to active state
+      mockSipServer.simulateCallProgress(session1)
+      await new Promise((resolve) => setTimeout(resolve, 10))
       mockSipServer.simulateCallAccepted(session1)
       mockSipServer.simulateCallConfirmed(session1)
-
-      // Wait for async events to propagate
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       const p1 = createParticipant('p1', 'sip:participant1@example.com', 'Participant 1')
       p1.callSession = callSession1
 
       // Hold participant
-      const holdPromise = callSession1.hold()
+        await callSession1.hold()
       mockSipServer.simulateHold(session1, 'local')
-      await holdPromise
-
-      // Wait for hold event to propagate
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       // In real implementation, held state would be tracked
       expect(session1.hold).toHaveBeenCalled()

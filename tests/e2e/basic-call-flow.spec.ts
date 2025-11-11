@@ -4,8 +4,7 @@
  * Tests real-world user scenarios using Playwright
  */
 
-import { test, expect } from '@playwright/test'
-import { APP_URL } from './fixtures'
+import { test, expect, APP_URL } from './fixtures'
 
 test.describe('Basic Call Flow', () => {
   test.beforeEach(async ({ page }) => {
