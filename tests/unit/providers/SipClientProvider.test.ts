@@ -442,54 +442,32 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
     })
 
     it('should not auto-register when autoRegister is false', async () => {
-      const mockEventBus = {
-        on: vi.fn((event: string, handler: any) => {
-          // Simulate connected event
-          if (event === 'sip:connected') {
-            setTimeout(() => handler(), 0)
-          }
-        }),
-        once: vi.fn(),
-        off: vi.fn(),
-        emit: vi.fn(),
-      }
-
-      const mockClient = {
-        config: mockConfig,
-        start: vi.fn().mockResolvedValue(undefined),
-        stop: vi.fn().mockResolvedValue(undefined),
-        register: vi.fn().mockResolvedValue(undefined),
-        unregister: vi.fn().mockResolvedValue(undefined),
-        connectionState: 'disconnected',
-        registrationState: 'unregistered',
-      }
-
-      const { SipClient } = await import('@/core/SipClient')
-      const { EventBus } = await import('@/core/EventBus')
-
-      vi.mocked(EventBus).mockImplementationOnce(function () {
-        return mockEventBus as any
-      })
-      vi.mocked(SipClient).mockImplementationOnce(function () {
-        return mockClient as any
-      })
+      let readyEmitted = false
 
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
-          autoConnect: true,
+          autoConnect: false,
           autoRegister: false,
+          onReady: () => { readyEmitted = true }
         },
       })
 
       await flushPromises()
-      await new Promise(resolve => setTimeout(resolve, 20))
+
+      const { SipClient } = await import('@/core/SipClient')
+      const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
+      const eventBus = mockInstance?.eventBus
+
+      // Simulate connection (with autoRegister=false, should emit ready without registration)
+      eventBus?.emitSync('sip:connected')
+      await nextTick()
 
       // Should NOT call register
-      expect(mockClient.register).not.toHaveBeenCalled()
+      expect(mockInstance?.register).not.toHaveBeenCalled()
 
-      // Should emit ready immediately after connection (without waiting for registration)
-      expect(wrapper.emitted('ready')).toBeDefined()
+      // Should emit ready immediately after connection
+      expect(readyEmitted).toBe(true)
     })
   })
 
