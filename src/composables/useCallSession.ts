@@ -268,6 +268,10 @@ export function useCallSession(
           if (oldState !== newState) {
             stopDurationTracking()
           }
+        } else if (oldState === 'active' && newState !== 'active') {
+          // Catch-all: Stop timer when leaving 'active' state for ANY reason
+          // This prevents memory leak if state changes unexpectedly
+          stopDurationTracking()
         }
       } catch (error) {
         log.error('Error in state watcher:', error)
@@ -550,12 +554,20 @@ export function useCallSession(
    * @throws Error if no session or reject fails
    */
   const reject = async (statusCode = 486): Promise<void> => {
+    // Guard against concurrent operations
+    if (isOperationInProgress.value) {
+      const error = 'Call operation already in progress'
+      log.warn(error)
+      throw new Error(error)
+    }
+
     if (!session.value) {
       const error = 'No active session to reject'
       log.error(error)
       throw new Error(error)
     }
 
+    isOperationInProgress.value = true
     const timer = createOperationTimer()
 
     try {
@@ -580,11 +592,15 @@ export function useCallSession(
           },
           state: {
             sessionState: session.value?.state,
+            isOperationInProgress: isOperationInProgress.value,
           },
           duration: timer.elapsed(),
         }
       )
       throw error
+    } finally {
+      // Always reset operation guard
+      isOperationInProgress.value = false
     }
   }
 
@@ -652,11 +668,21 @@ export function useCallSession(
    * @throws Error if no session or hold fails
    */
   const hold = async (): Promise<void> => {
+    // Guard against concurrent operations
+    if (isOperationInProgress.value) {
+      const error = 'Call operation already in progress'
+      log.warn(error)
+      throw new Error(error)
+    }
+
     if (!session.value) {
       const error = 'No active session to hold'
       log.error(error)
       throw new Error(error)
     }
+
+    isOperationInProgress.value = true
+    const timer = createOperationTimer()
 
     try {
       log.info(`Putting call on hold: ${session.value.id}`)
@@ -666,8 +692,29 @@ export function useCallSession(
 
       log.info('Call on hold')
     } catch (error) {
-      log.error('Failed to hold call:', error)
+      logErrorWithContext(
+        log,
+        'Failed to hold call',
+        error,
+        'hold',
+        'useCallSession',
+        ErrorSeverity.MEDIUM,
+        {
+          context: {
+            sessionId: session.value?.id,
+          },
+          state: {
+            sessionState: session.value?.state,
+            isOnHold: session.value?.isOnHold,
+            isOperationInProgress: isOperationInProgress.value,
+          },
+          duration: timer.elapsed(),
+        }
+      )
       throw error
+    } finally {
+      // Always reset operation guard
+      isOperationInProgress.value = false
     }
   }
 
@@ -677,11 +724,21 @@ export function useCallSession(
    * @throws Error if no session or unhold fails
    */
   const unhold = async (): Promise<void> => {
+    // Guard against concurrent operations
+    if (isOperationInProgress.value) {
+      const error = 'Call operation already in progress'
+      log.warn(error)
+      throw new Error(error)
+    }
+
     if (!session.value) {
       const error = 'No active session to unhold'
       log.error(error)
       throw new Error(error)
     }
+
+    isOperationInProgress.value = true
+    const timer = createOperationTimer()
 
     try {
       log.info(`Resuming call from hold: ${session.value.id}`)
@@ -691,8 +748,29 @@ export function useCallSession(
 
       log.info('Call resumed')
     } catch (error) {
-      log.error('Failed to unhold call:', error)
+      logErrorWithContext(
+        log,
+        'Failed to unhold call',
+        error,
+        'unhold',
+        'useCallSession',
+        ErrorSeverity.MEDIUM,
+        {
+          context: {
+            sessionId: session.value?.id,
+          },
+          state: {
+            sessionState: session.value?.state,
+            isOnHold: session.value?.isOnHold,
+            isOperationInProgress: isOperationInProgress.value,
+          },
+          duration: timer.elapsed(),
+        }
+      )
       throw error
+    } finally {
+      // Always reset operation guard
+      isOperationInProgress.value = false
     }
   }
 
@@ -758,6 +836,8 @@ export function useCallSession(
       throw new Error(error)
     }
 
+    const timer = createOperationTimer()
+
     try {
       log.debug(`Sending DTMF tone: ${tone}`)
 
@@ -766,7 +846,26 @@ export function useCallSession(
 
       log.debug('DTMF sent')
     } catch (error) {
-      log.error('Failed to send DTMF:', error)
+      logErrorWithContext(
+        log,
+        'Failed to send DTMF',
+        error,
+        'sendDTMF',
+        'useCallSession',
+        ErrorSeverity.LOW,
+        {
+          context: {
+            sessionId: session.value?.id,
+            tone,
+            options,
+          },
+          state: {
+            sessionState: session.value?.state,
+            isOnHold: session.value?.isOnHold,
+          },
+          duration: timer.elapsed(),
+        }
+      )
       throw error
     }
   }

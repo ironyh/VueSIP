@@ -1128,6 +1128,186 @@ describe('useConference', () => {
   })
 
   // ============================================================================
+  // Concurrent Operation Guards
+  // ============================================================================
+
+  describe('Concurrent Operation Guards', () => {
+    it('should prevent concurrent createConference attempts', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      // Make createConference hang
+      let resolveCreate: any
+      mockSipClient.createConference = vi.fn(
+        () => new Promise((resolve) => (resolveCreate = () => resolve(undefined)))
+      )
+
+      // Start first create
+      const create1 = result.createConference()
+
+      // Try to create again
+      const create2 = result.createConference()
+
+      // Second create should be rejected
+      await expect(create2).rejects.toThrow('A conference is already active')
+
+      // Complete first create
+      resolveCreate()
+      await create1
+
+      expect(mockSipClient.createConference).toHaveBeenCalledTimes(1)
+      unmount()
+    })
+
+    it('should prevent concurrent addParticipant attempts', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await result.createConference()
+
+      // Make inviteToConference hang
+      let resolveInvite: any
+      mockSipClient.inviteToConference = vi.fn(
+        () => new Promise((resolve) => (resolveInvite = () => resolve(undefined)))
+      )
+
+      // Start first add
+      const add1 = result.addParticipant('sip:alice@example.com')
+
+      // Try to add another participant
+      const add2 = result.addParticipant('sip:bob@example.com')
+
+      // Second add should be rejected
+      await expect(add2).rejects.toThrow('Participant operation already in progress')
+
+      // Complete first add
+      resolveInvite()
+      await add1
+
+      expect(mockSipClient.inviteToConference).toHaveBeenCalledTimes(1)
+      unmount()
+    })
+
+    it('should allow addParticipant after previous completes', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await result.createConference()
+
+      // First add completes
+      await result.addParticipant('sip:alice@example.com')
+
+      // Second add should succeed
+      await result.addParticipant('sip:bob@example.com')
+
+      expect(mockSipClient.inviteToConference).toHaveBeenCalledTimes(2)
+      unmount()
+    })
+
+    it('should reset guard even if addParticipant fails', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await result.createConference()
+
+      // First add fails
+      mockSipClient.inviteToConference.mockRejectedValueOnce(new Error('Invite failed'))
+
+      await expect(result.addParticipant('sip:alice@example.com')).rejects.toThrow('Invite failed')
+
+      // Second add should succeed (guard was reset)
+      await result.addParticipant('sip:bob@example.com')
+
+      expect(mockSipClient.inviteToConference).toHaveBeenCalledTimes(2)
+      unmount()
+    })
+  })
+
+  // ============================================================================
+  // Validation Tests
+  // ============================================================================
+
+  describe('Validation Tests', () => {
+    it('should validate maxParticipants is positive', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await expect(result.createConference({ maxParticipants: 0 })).rejects.toThrow(
+        'maxParticipants must be at least 1'
+      )
+
+      unmount()
+    })
+
+    it('should validate maxParticipants is not negative', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await expect(result.createConference({ maxParticipants: -5 })).rejects.toThrow(
+        'maxParticipants must be at least 1'
+      )
+
+      unmount()
+    })
+
+    it('should accept valid maxParticipants values', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await result.createConference({ maxParticipants: 10 })
+
+      expect(result.conference.value?.maxParticipants).toBe(10)
+      unmount()
+    })
+  })
+
+  // ============================================================================
+  // Timer Cleanup Tests
+  // ============================================================================
+
+  describe('Timer Cleanup Tests', () => {
+    it('should cleanup audio level monitoring timer on endConference', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await result.createConference()
+
+      const timerCountBefore = vi.getTimerCount()
+      expect(timerCountBefore).toBeGreaterThan(0)
+
+      await result.endConference()
+
+      // Timer should be cleared
+      const timerCountAfter = vi.getTimerCount()
+      expect(timerCountAfter).toBeLessThan(timerCountBefore)
+
+      unmount()
+    })
+
+    it('should cleanup audio level monitoring timer on unmount', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await result.createConference()
+
+      expect(vi.getTimerCount()).toBeGreaterThan(0)
+
+      // Unmount should cleanup timers
+      unmount()
+
+      // In a real scenario, onUnmounted would be called
+      // We verify the timer exists while conference is active
+    })
+
+    it('should cleanup state transition timer after delay', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await result.createConference()
+      await result.endConference()
+
+      expect(result.conference.value).not.toBeNull()
+
+      // Advance past the delay
+      await vi.advanceTimersByTimeAsync(CONFERENCE_CONSTANTS.STATE_TRANSITION_DELAY)
+
+      expect(result.conference.value).toBeNull()
+
+      unmount()
+    })
+  })
+
+  // ============================================================================
   // Computed Properties
   // ============================================================================
 

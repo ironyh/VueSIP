@@ -250,6 +250,84 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
       expect(callAttempts).toBe(2)
       unmount()
     })
+
+    it('should prevent concurrent reject attempts', async () => {
+      const sipClientRef = ref<SipClient>(mockSipClient)
+      const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
+
+      mockSession.reject = vi.fn().mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve(undefined), 100))
+      )
+      result.session.value = mockSession
+
+      // Start first reject (won't complete immediately)
+      const reject1 = result.reject()
+
+      // Try to reject again
+      const reject2 = result.reject()
+
+      // Second reject should be rejected
+      await expect(reject2).rejects.toThrow('Call operation already in progress')
+
+      // Complete first reject
+      await vi.advanceTimersByTimeAsync(100)
+      await reject1
+
+      expect(mockSession.reject).toHaveBeenCalledTimes(1)
+      unmount()
+    })
+
+    it('should prevent concurrent hold attempts', async () => {
+      const sipClientRef = ref<SipClient>(mockSipClient)
+      const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
+
+      mockSession.hold = vi.fn().mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve(undefined), 100))
+      )
+      result.session.value = mockSession
+
+      // Start first hold (won't complete immediately)
+      const hold1 = result.hold()
+
+      // Try to hold again
+      const hold2 = result.hold()
+
+      // Second hold should be rejected
+      await expect(hold2).rejects.toThrow('Call operation already in progress')
+
+      // Complete first hold
+      await vi.advanceTimersByTimeAsync(100)
+      await hold1
+
+      expect(mockSession.hold).toHaveBeenCalledTimes(1)
+      unmount()
+    })
+
+    it('should prevent concurrent unhold attempts', async () => {
+      const sipClientRef = ref<SipClient>(mockSipClient)
+      const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
+
+      mockSession.unhold = vi.fn().mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve(undefined), 100))
+      )
+      result.session.value = mockSession
+
+      // Start first unhold (won't complete immediately)
+      const unhold1 = result.unhold()
+
+      // Try to unhold again
+      const unhold2 = result.unhold()
+
+      // Second unhold should be rejected
+      await expect(unhold2).rejects.toThrow('Call operation already in progress')
+
+      // Complete first unhold
+      await vi.advanceTimersByTimeAsync(100)
+      await unhold1
+
+      expect(mockSession.unhold).toHaveBeenCalledTimes(1)
+      unmount()
+    })
   })
 
   describe('Duration Timer Error Recovery', () => {
