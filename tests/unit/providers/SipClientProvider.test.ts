@@ -36,24 +36,32 @@ vi.mock('@/core/SipClient', () => ({
   }),
 }))
 
-// Mock EventBus
+// Mock EventBus with functional event handling
+const globalHandlers = new Map<string, Function[]>()
+
 vi.mock('@/core/EventBus', () => ({
   EventBus: vi.fn(function () {
-    const handlers = new Map<string, Function[]>()
     return {
       on: vi.fn((event: string, handler: Function) => {
-        if (!handlers.has(event)) handlers.set(event, [])
-        handlers.get(event)!.push(handler)
-        return 'listener-id'
+        if (!globalHandlers.has(event)) globalHandlers.set(event, [])
+        globalHandlers.get(event)!.push(handler)
+        return `listener-${event}-${Date.now()}`
       }),
       once: vi.fn().mockReturnValue('listener-id'),
       off: vi.fn(),
       emit: vi.fn(),
       emitSync: vi.fn((event: string, data?: any) => {
-        const eventHandlers = handlers.get(event) || []
+        const eventHandlers = globalHandlers.get(event) || []
         eventHandlers.forEach(h => h(data))
       }),
-      removeById: vi.fn(),
+      removeById: vi.fn((id: string) => {
+        // Simple cleanup for tests
+        globalHandlers.forEach((handlers, event) => {
+          const filtered = handlers.filter((_, i) => `listener-${event}-${i}` !== id)
+          if (filtered.length) globalHandlers.set(event, filtered)
+          else globalHandlers.delete(event)
+        })
+      }),
     }
   }),
 }))
@@ -95,6 +103,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
     }
 
     vi.clearAllMocks()
+    globalHandlers.clear()
   })
 
   afterEach(() => {
