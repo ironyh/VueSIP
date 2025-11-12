@@ -205,10 +205,19 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         warnings: [],
       })
 
+      const mockEventBus = {
+        on: vi.fn((event: string, handler: any) => `listener_${event}`),
+        removeById: vi.fn(),
+        once: vi.fn(),
+        off: vi.fn(),
+        emit: vi.fn(),
+      }
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
+          eventBus: mockEventBus,
         },
       })
 
@@ -222,10 +231,19 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
   describe('Lifecycle Management', () => {
     it('should not auto-connect when autoConnect is false', async () => {
+      const mockEventBus = {
+        on: vi.fn((event: string, handler: any) => `listener_${event}`),
+        removeById: vi.fn(),
+        once: vi.fn(),
+        off: vi.fn(),
+        emit: vi.fn(),
+      }
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
+          eventBus: mockEventBus,
         },
       })
 
