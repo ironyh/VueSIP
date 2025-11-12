@@ -502,13 +502,11 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         emit: vi.fn(),
       }
 
-      const { EventBus } = await import('@/core/EventBus')
-      vi.mocked(EventBus).mockImplementationOnce(() => mockEventBus as any)
-
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
-          autoConnect: false,
+          autoConnect: true,
+          eventBus: mockEventBus,
         },
       })
 
