@@ -222,6 +222,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
+      await new Promise(resolve => setTimeout(resolve, 10))
 
       // Should emit error event
       expect(wrapper.emitted('error')).toBeDefined()
@@ -271,6 +272,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
+      await new Promise(resolve => setTimeout(resolve, 10))
 
       const { SipClient } = await import('@/core/SipClient')
       const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
@@ -314,6 +316,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
+      await new Promise(resolve => setTimeout(resolve, 10))
 
       // Should emit error event
       expect(wrapper.emitted('error')).toBeDefined()
@@ -496,7 +499,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await new Promise(resolve => setTimeout(resolve, 20))
 
       // Should NOT call register
       expect(mockClient.register).not.toHaveBeenCalled()
@@ -525,6 +528,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
+      await new Promise(resolve => setTimeout(resolve, 10))
 
       // With autoConnect=true, connected is emitted proactively
       expect(wrapper.emitted('connected')).toBeDefined()
@@ -549,6 +553,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
+      await new Promise(resolve => setTimeout(resolve, 10))
 
       // With autoRegister=true, registered is emitted proactively by connect()
       expect(wrapper.emitted('registered')).toBeDefined()
@@ -574,6 +579,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
+      await new Promise(resolve => setTimeout(resolve, 10))
 
       // With autoConnect + autoRegister, ready is emitted after registration
       expect(wrapper.emitted('ready')).toBeDefined()
@@ -611,6 +617,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
+      await new Promise(resolve => setTimeout(resolve, 10))
 
       // Error should be emitted when registration fails during autoRegister
       expect(wrapper.emitted('error')).toBeDefined()
