@@ -532,7 +532,7 @@ export const SipClientProvider = defineComponent({
 
     // Render default slot
     return () => {
-      return h('div', { class: 'sip-client-provider' }, slots.default ? slots.default() : null)
+      return h('div', { class: 'sip-client-provider' }, slots.default?.())
     }
   },
 })
