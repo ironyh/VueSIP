@@ -403,35 +403,35 @@ let mediaDevices: ReturnType<typeof useMediaDevices>
 let callHistory: ReturnType<typeof useCallHistory>
 let callControls: ReturnType<typeof useCallControls>
 
-// Composable return values
-let isConnected: any
-let isRegistered: any
-let connectionState: any
-let lastError: any
-let connect: any
-let disconnect: any
-let updateConfig: any
-let callState: any
-let direction: any
-let remoteUri: any
-let isLocalHeld: any
-let isMuted: any
-let answerTime: any
-let makeCall: any
-let answer: any
-let reject: any
-let hangup: any
-let hold: any
-let unhold: any
-let mute: any
-let unmute: any
-let audioInputDevices: any
-let audioOutputDevices: any
-let selectedAudioInputId: any
-let selectedAudioOutputId: any
-let selectAudioInput: any
-let selectAudioOutput: any
-let history: any
+// Composable return values - Initialize with default values for reactivity
+let isConnected: any = ref(false)
+let isRegistered: any = ref(false)
+let connectionState: any = ref('disconnected')
+let lastError: any = ref(null)
+let connect: any = () => Promise.resolve()
+let disconnect: any = () => Promise.resolve()
+let updateConfig: any = () => ({ valid: false })
+let callState: any = ref('idle')
+let direction: any = ref(null)
+let remoteUri: any = ref('')
+let isLocalHeld: any = ref(false)
+let isMuted: any = ref(false)
+let answerTime: any = ref(null)
+let makeCall: any = () => Promise.resolve()
+let answer: any = () => Promise.resolve()
+let reject: any = () => Promise.resolve()
+let hangup: any = () => Promise.resolve()
+let hold: any = () => Promise.resolve()
+let unhold: any = () => Promise.resolve()
+let mute: any = () => Promise.resolve()
+let unmute: any = () => Promise.resolve()
+let audioInputDevices: any = ref([])
+let audioOutputDevices: any = ref([])
+let selectedAudioInputId: any = ref(null)
+let selectedAudioOutputId: any = ref(null)
+let selectAudioInput: any = () => {}
+let selectAudioOutput: any = () => {}
+let history: any = ref([])
 
 try {
   // Temporarily disable composables to test if basic app mounts
@@ -444,8 +444,16 @@ try {
     autoCleanup: true,
   })
   console.log('TestApp: useSipClient initialized')
-  ;({ isConnected, isRegistered, connectionState, lastError, connect, disconnect, updateConfig } =
-    sipClient)
+  // useSipClient returns 'error' not 'lastError', so we alias it during destructuring
+  ;({
+    isConnected,
+    isRegistered,
+    connectionState,
+    error: lastError,
+    connect,
+    disconnect,
+    updateConfig,
+  } = sipClient)
 
   // Create a computed ref for the SipClient instance
   const sipClientRef = computed(() => sipClient?.getClient() ?? null)
@@ -504,6 +512,13 @@ try {
   console.log('TestApp: useCallControls initialized')
 
   console.log('TestApp: All composables initialized successfully')
+
+  // Watch for connection errors - must be inside try block after lastError is assigned
+  watch(lastError, (error) => {
+    if (error) {
+      console.error('SIP Error:', error)
+    }
+  })
 } catch (error: any) {
   initializationError.value = `Failed to initialize: ${error.message || 'Unknown error'}`
   console.error('Composable initialization error:', error)
@@ -703,15 +718,6 @@ const formatDuration = () => {
   const minutes = Math.floor(diff / 60)
   const seconds = diff % 60
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-}
-
-// Watch for connection errors (only if lastError was successfully initialized)
-if (lastError) {
-  watch(lastError, (error) => {
-    if (error) {
-      console.error('SIP Error:', error)
-    }
-  })
 }
 
 // Cleanup on component unmount
