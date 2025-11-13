@@ -45,6 +45,8 @@ export default defineConfig({
             '--disable-setuid-sandbox',
             '--disable-gpu',
             '--disable-software-rasterizer',
+            '--single-process', // Essential for containerized environments
+            '--no-zygote', // Works with --single-process for better stability
             '--use-fake-device-for-media-stream',
             '--use-fake-ui-for-media-stream',
           ],
