@@ -263,7 +263,7 @@ const {
   hangup,
   callState,
   hasActiveCall,
-} = useCallSession(sipClient.getClient())
+} = useCallSession(sipClient)
 
 // Network Profiles
 interface NetworkProfile {

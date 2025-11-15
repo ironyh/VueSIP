@@ -233,7 +233,7 @@ const {
   callState,
   hasActiveCall,
   isMuted,
-} = useCallSession(sipClient.getClient())
+} = useCallSession(sipClient)
 
 // Video Elements
 const localVideo = ref<HTMLVideoElement | null>(null)

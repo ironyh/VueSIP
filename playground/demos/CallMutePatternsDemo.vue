@@ -258,7 +258,8 @@ const {
   currentCall,
   callState,
   hasActiveCall,
-} = useCallSession(sipClient.getClient())
+  isMuted: isCallMuted,
+} = useCallSession(sipClient)
 
 // Mute State
 const isMuted = ref(false)

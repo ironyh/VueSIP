@@ -177,7 +177,7 @@ const {
   currentCall,
   callState,
   hasActiveCall,
-} = useCallSession(sipClient.getClient())
+} = useCallSession(sipClient)
 
 // Recording State
 const isRecording = ref(false)

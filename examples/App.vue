@@ -1,19 +1,65 @@
 <template>
   <div id="app" data-testid="sip-client">
     <div class="container">
-      <h1>VueSip - SIP Interface</h1>
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <h1 style="margin: 0">VueSip - SIP Interface</h1>
+        <button class="btn btn-secondary" data-testid="settings-button" @click="showSettings = !showSettings">
+          ⚙️ Settings
+        </button>
+      </div>
+
+      <!-- Settings Panel -->
+      <div v-if="showSettings" class="settings-panel" data-testid="settings-panel">
+        <h2>SIP Settings</h2>
+        <div class="form-group">
+          <label>SIP URI (Username):</label>
+          <input
+            v-model="config.username"
+            type="text"
+            data-testid="sip-uri-input"
+            placeholder="sip:user@example.com"
+          />
+        </div>
+        <div class="form-group">
+          <label>Password:</label>
+          <input
+            v-model="config.password"
+            type="password"
+            data-testid="password-input"
+            placeholder="password"
+          />
+        </div>
+        <div class="form-group">
+          <label>Server URI:</label>
+          <input
+            v-model="config.server"
+            type="text"
+            data-testid="server-uri-input"
+            placeholder="wss://sip.example.com:7443"
+          />
+        </div>
+        <button class="btn btn-primary" data-testid="save-settings-button" @click="showSettings = false">
+          Save Settings
+        </button>
+      </div>
 
       <!-- Connection Status -->
       <div class="status-bar">
         <div class="status-item">
           <span class="status-label">Connection:</span>
-          <span :class="['status-indicator', { connected: isConnected }]">
+          <span
+            :class="['status-indicator', { connected: isConnected }]"
+            data-testid="connection-status"
+          >
             {{ isConnected ? 'Connected' : 'Disconnected' }}
           </span>
         </div>
         <div class="status-item">
           <span class="status-label">Registration:</span>
-          <span :class="['status-indicator', { connected: isRegistered }]">
+          <span
+            :class="['status-indicator', { connected: isRegistered }]"
+            data-testid="registration-status"
+          >
             {{ isRegistered ? 'Registered' : 'Not Registered' }}
           </span>
         </div>
@@ -38,7 +84,12 @@
           <label>Display Name:</label>
           <input v-model="config.displayName" type="text" placeholder="John Doe" />
         </div>
-        <button :disabled="isConnecting" class="btn btn-primary" @click="handleConnect">
+        <button
+          :disabled="isConnecting"
+          class="btn btn-primary"
+          data-testid="connect-button"
+          @click="handleConnect"
+        >
           {{ isConnecting ? 'Connecting...' : 'Connect' }}
         </button>
       </div>
@@ -94,11 +145,13 @@
         </div>
 
         <!-- Disconnect Button -->
-        <button class="btn btn-danger" @click="handleDisconnect">Disconnect</button>
+        <button class="btn btn-danger" data-testid="disconnect-button" @click="handleDisconnect">
+          Disconnect
+        </button>
       </div>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-message">
+      <div v-if="error" class="error-message" data-testid="error-message">
         {{ error.message }}
       </div>
     </div>
@@ -111,6 +164,9 @@ import { useSipConnection, useSipCall, useSipDtmf, useAudioDevices } from '../sr
 import type { SipConfig } from '../src'
 import Dialpad from '../src/components/Dialpad.vue'
 import CallControls from '../src/components/CallControls.vue'
+
+// UI State
+const showSettings = ref(false)
 
 // Configuration
 const config = ref<SipConfig>({
@@ -357,6 +413,17 @@ h3 {
   background: #2563eb;
 }
 
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
 .btn-danger {
   background: #ef4444;
   color: white;
@@ -365,6 +432,14 @@ h3 {
 
 .btn-danger:hover {
   background: #dc2626;
+}
+
+.settings-panel {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 1px solid #e5e7eb;
 }
 
 .main-interface {

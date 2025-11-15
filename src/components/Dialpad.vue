@@ -6,6 +6,7 @@
         type="text"
         readonly
         class="dialpad-input"
+        data-testid="dialpad-input"
         placeholder="Enter number"
       />
     </div>
@@ -14,6 +15,7 @@
         v-for="button in buttons"
         :key="button.digit"
         class="dialpad-button"
+        :data-testid="`dtmf-${button.digit}`"
         @click="handleDigit(button.digit)"
       >
         <span class="digit">{{ button.digit }}</span>
@@ -21,6 +23,7 @@
       </button>
       <button
         class="dialpad-button call-button"
+        data-testid="call-button"
         :disabled="!number || isCalling"
         @click="handleCall"
       >

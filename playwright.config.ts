@@ -9,12 +9,10 @@ export default defineConfig({
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only - reduced from 2 to 0 to fail fast on broken tests */
-  retries: process.env.CI ? 0 : 0,
-  /* Increase parallelism on CI from 1 to 4 workers for faster execution */
-  workers: process.env.CI ? 4 : undefined,
-  /* Set timeout per test to prevent hanging - 30 seconds */
-  timeout: 30000,
+  /* Retry on CI only */
+  retries: process.env.CI ? 2 : 0,
+  /* Opt out of parallel tests on CI. Workers limited to prevent resource exhaustion */
+  workers: process.env.CI ? 1 : 2,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html'],
@@ -38,7 +36,30 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            '--disable-dev-shm-usage',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-gpu',
+            '--disable-software-rasterizer',
+            // Only use single-process in strict CI containers to avoid memory exhaustion
+            ...(process.env.CI && process.env.CONTAINER ? ['--single-process', '--no-zygote'] : []),
+            // Memory management
+            '--js-flags=--max-old-space-size=2048',
+            '--disable-extensions',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            // Media device mocking
+            '--use-fake-device-for-media-stream',
+            '--use-fake-ui-for-media-stream',
+          ],
+        },
+        permissions: ['microphone', 'camera'],
+      },
     },
 
     {
