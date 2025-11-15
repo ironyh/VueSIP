@@ -2,7 +2,7 @@
   <div class="call-controls">
     <div v-if="incomingCall" class="incoming-call" data-testid="incoming-call-notification">
       <h3>Incoming Call</h3>
-      <p>{{ incomingCall.remoteIdentity }}</p>
+      <p>{{ incomingCall.remoteDisplayName || incomingCall.remoteUri }}</p>
       <div class="call-actions">
         <button class="btn btn-success" data-testid="answer-button" @click="$emit('answer')">
           <i class="pi pi-phone"></i> Answer
@@ -15,7 +15,7 @@
 
     <div v-else-if="currentCall" class="active-call" data-testid="active-call">
       <h3>Active Call</h3>
-      <p>{{ currentCall.remoteIdentity }}</p>
+      <p>{{ currentCall.remoteDisplayName || currentCall.remoteUri }}</p>
       <p class="call-duration" data-testid="call-status">{{ formatDuration(currentCall) }}</p>
       <div class="call-actions">
         <button class="btn btn-secondary" data-testid="mute-audio-button" @click="$emit('mute')">
@@ -51,10 +51,10 @@ defineEmits<{
 }>()
 
 const formatDuration = (call: CallSession): string => {
-  if (!call.answerTime) return '00:00'
+  if (!call.timing.answerTime) return '00:00'
 
   const now = new Date()
-  const diff = Math.floor((now.getTime() - call.answerTime.getTime()) / 1000)
+  const diff = Math.floor((now.getTime() - call.timing.answerTime.getTime()) / 1000)
   const minutes = Math.floor(diff / 60)
   const seconds = diff % 60
 
