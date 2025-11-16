@@ -1147,6 +1147,7 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
       // Clear existing timer before setting new one
       if (stateTransitionTimer !== null) {
         clearTimeout(stateTransitionTimer)
+        stateTransitionTimer = null
       }
 
       // Clear conference after a delay
