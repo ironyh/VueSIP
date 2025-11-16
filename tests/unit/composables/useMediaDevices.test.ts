@@ -922,7 +922,9 @@ describe('useMediaDevices - Comprehensive Tests', () => {
       expect(promise1).toBe(promise2)
 
       // Complete enumeration
-      resolveEnumerate!([{ deviceId: 'audio-in-1', kind: 'audioinput', label: 'Mic', groupId: 'group-1' }])
+      resolveEnumerate!([
+        { deviceId: 'audio-in-1', kind: 'audioinput', label: 'Mic', groupId: 'group-1' },
+      ])
 
       const result1 = await promise1
       const result2 = await promise2
@@ -940,7 +942,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
         { deviceId: 'audio-in-1', kind: 'audioinput', label: 'Mic', groupId: 'group-1' },
       ])
 
-      const { enumerateDevices, isEnumerating, allDevices } = useMediaDevices(ref(null), {
+      const { enumerateDevices, isEnumerating } = useMediaDevices(ref(null), {
         autoEnumerate: false,
       })
 
@@ -948,16 +950,19 @@ describe('useMediaDevices - Comprehensive Tests', () => {
       const call1 = enumerateDevices()
       expect(isEnumerating.value).toBe(true)
 
-      // Try second concurrent enumeration - it will return current allDevices (empty initially)
+      // Try second concurrent enumeration - should return same promise
       const call2 = enumerateDevices()
+
+      // Both promises should be the same
+      expect(call1).toBe(call2)
 
       // First call should complete successfully
       const result1 = await call1
       expect(result1.length).toBe(1)
 
-      // Second call returns empty allDevices since it was called during enumeration
+      // Second call returns same result since it's the same promise
       const result2 = await call2
-      expect(result2).toEqual([])
+      expect(result2).toEqual(result1)
 
       // Only one actual enumeration should occur
       expect(mockEnumerateDevices).toHaveBeenCalledTimes(1)
