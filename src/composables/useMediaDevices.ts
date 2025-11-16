@@ -7,18 +7,23 @@
  * @module composables/useMediaDevices
  */
 
-import { ref, computed, watch, onMounted, onUnmounted, nextTick, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  nextTick,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import { MediaManager } from '../core/MediaManager'
 import { deviceStore } from '../stores/deviceStore'
 import type { MediaDevice } from '../types/media.types'
 import { MediaDeviceKind, PermissionStatus } from '../types/media.types'
 import { createLogger } from '../utils/logger'
 import { throwIfAborted, isAbortError } from '../utils/abortController'
-import {
-  ErrorSeverity,
-  logErrorWithContext,
-  createOperationTimer,
-} from '../utils/errorContext'
+import { ErrorSeverity, logErrorWithContext, createOperationTimer } from '../utils/errorContext'
 
 const log = createLogger('useMediaDevices')
 
@@ -303,7 +308,7 @@ export function useMediaDevices(
    * // Later: controller.abort()
    * ```
    */
-  const enumerateDevices = async (signal?: AbortSignal): Promise<MediaDevice[]> => {
+  const enumerateDevices = (signal?: AbortSignal): Promise<MediaDevice[]> => {
     // Use internal abort signal if none provided (auto-cleanup on unmount)
     const effectiveSignal = signal ?? internalAbortController.value.signal
 
@@ -314,12 +319,13 @@ export function useMediaDevices(
 
     const timer = createOperationTimer()
 
+    // Set flag BEFORE creating promise to prevent race conditions
+    isEnumerating.value = true
+    lastError.value = null
+
     // Store the promise to return to concurrent callers
     enumerationPromise = (async () => {
       try {
-        isEnumerating.value = true
-        lastError.value = null
-
         // Check if aborted before starting
         throwIfAborted(effectiveSignal)
 

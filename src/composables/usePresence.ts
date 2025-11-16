@@ -181,8 +181,8 @@ export function usePresence(sipClient: Ref<SipClient | null>): UsePresenceReturn
       const { statusMessage, expires = PRESENCE_CONSTANTS.DEFAULT_EXPIRES, extraHeaders } = options
 
       // Validate expires parameter
-      if (expires < 60 || expires > 86400) {
-        throw new Error('Expires must be between 60 and 86400 seconds')
+      if (expires <= 0 || expires > 86400) {
+        throw new Error('Expires must be between 1 and 86400 seconds')
       }
 
       // Publish presence via SIP client
@@ -250,6 +250,11 @@ export function usePresence(sipClient: Ref<SipClient | null>): UsePresenceReturn
       log.info(`Subscribing to presence of ${uri}`)
 
       const { expires = PRESENCE_CONSTANTS.DEFAULT_EXPIRES, extraHeaders } = options
+
+      // Validate expires parameter
+      if (expires <= 0 || expires > 86400) {
+        throw new Error('Expires must be between 1 and 86400 seconds')
+      }
 
       // Create subscription ID
       const subscriptionId = `sub-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
@@ -324,13 +329,19 @@ export function usePresence(sipClient: Ref<SipClient | null>): UsePresenceReturn
     const timerId = window.setTimeout(async () => {
       log.info(`Auto-refreshing subscription to ${uri}`)
       try {
-        // Unsubscribe and re-subscribe
-        await unsubscribe(uri)
-        // Check if subscription still exists after unsubscribe (component may have unmounted)
+        // Check if subscription still exists (component may have unmounted)
         if (!subscriptions.value.has(uri)) {
           log.debug(`Subscription to ${uri} no longer exists, skipping refresh`)
           return
         }
+
+        // Unsubscribe at SIP level
+        await sipClient.value!.unsubscribePresence(uri)
+
+        // Remove subscription from map so re-subscribe can proceed
+        subscriptions.value.delete(uri)
+
+        // Re-subscribe
         await subscribe(uri, { expires })
       } catch (error) {
         log.error(`Failed to refresh subscription to ${uri}:`, error)
