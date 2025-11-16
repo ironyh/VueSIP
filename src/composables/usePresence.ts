@@ -251,6 +251,11 @@ export function usePresence(sipClient: Ref<SipClient | null>): UsePresenceReturn
 
       const { expires = PRESENCE_CONSTANTS.DEFAULT_EXPIRES, extraHeaders } = options
 
+      // Validate expires parameter
+      if (expires < 60 || expires > 86400) {
+        throw new Error('Expires must be between 60 and 86400 seconds')
+      }
+
       // Create subscription ID
       const subscriptionId = `sub-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
 
