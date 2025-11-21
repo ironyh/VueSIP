@@ -134,6 +134,18 @@ vi.mock('jssip', () => {
   }
 })
 
+// Helper function to schedule UA events asynchronously
+function scheduleUAEvent(event: string, data: any, delay: number = 0) {
+  setTimeout(() => {
+    mockUA.triggerEvent(event, data)
+  }, delay)
+}
+
+// Helper to flush all pending microtasks
+function flushMicrotasks(): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, 0))
+}
+
 describe('Network Resilience Integration Tests', () => {
   let eventBus: EventBus
   let sipClient: SipClient
@@ -454,11 +466,27 @@ describe('Network Resilience Integration Tests', () => {
       })
       mockUA.isConnected.mockReturnValue(true)
 
+<<<<<<< HEAD
       // Start connection and wait for handlers to be registered
       const startPromise = sipClient.start()
       await waitForNextTick()
       
       // Trigger connected event for both once and on handlers BEFORE checking state
+=======
+      await sipClient.start()
+      await flushMicrotasks()
+      
+      // Wait for connection state to update
+      await waitFor(() => sipClient.connectionState === 'connected', { 
+        timeout: 1000,
+        timeoutMessage: 'Connection state did not become connected' 
+      })
+      expect(sipClient.connectionState).toBe('connected')
+
+      // Wait for handlers to be set up, then trigger connected event
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      // Trigger connected event for both once and on handlers
+>>>>>>> origin/main
       if (mockUA._onceHandlers['connected']) {
         mockUA._onceHandlers['connected'].forEach((h: Function) => {
           h({ socket: { url: 'wss://test.com' } })

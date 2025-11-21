@@ -36,7 +36,30 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            '--disable-dev-shm-usage',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-gpu',
+            '--disable-software-rasterizer',
+            // Only use single-process in strict CI containers to avoid memory exhaustion
+            ...(process.env.CI && process.env.CONTAINER ? ['--single-process', '--no-zygote'] : []),
+            // Memory management
+            '--js-flags=--max-old-space-size=2048',
+            '--disable-extensions',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            // Media device mocking
+            '--use-fake-device-for-media-stream',
+            '--use-fake-ui-for-media-stream',
+          ],
+        },
+        permissions: ['microphone', 'camera'],
+      },
       // Full test suite on chromium (primary browser)
     },
 
@@ -90,5 +113,8 @@ export default defineConfig({
     command: 'pnpm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
+    timeout: 120000, // 2 minutes for CI environments
+    stdout: process.env.CI ? 'pipe' : 'ignore',
+    stderr: process.env.CI ? 'pipe' : 'ignore',
   },
 })

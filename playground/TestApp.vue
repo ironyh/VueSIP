@@ -1,14 +1,17 @@
 <template>
-  <div id="app" data-testid="sip-client">
+  <div data-testid="sip-client">
     <div class="container">
-      <h1>VueSip - E2E Test Application</h1>
+      <header>
+        <h1>VueSip - E2E Test Application</h1>
+      </header>
 
-      <!-- Initialization Error -->
-      <div v-if="initializationError" data-testid="initialization-error" class="error-message">
-        <strong>Initialization Error:</strong> {{ initializationError }}
-      </div>
+      <main>
+        <!-- Initialization Error -->
+        <div v-if="initializationError" data-testid="initialization-error" class="error-message">
+          <strong>Initialization Error:</strong> {{ initializationError }}
+        </div>
 
-      <!-- Connection Status -->
+        <!-- Connection Status -->
       <div class="status-bar">
         <div class="status-item">
           <span class="status-label">Connection:</span>
@@ -99,7 +102,7 @@
         <div class="row">
           <div class="col">
             <div class="dialpad-section">
-              <h3>Dialpad</h3>
+              <h2>Dialpad</h2>
               <input
                 v-model="dialNumber"
                 data-testid="dialpad-input"
@@ -118,7 +121,7 @@
             </div>
 
             <!-- DTMF Pad (during call) -->
-            <div v-if="callState !== 'idle'" class="dtmf-section">
+            <div v-if="callState === 'confirmed'" class="dtmf-section">
               <button data-testid="dialpad-toggle" class="btn btn-secondary" @click="toggleDTMF">
                 {{ showDTMF ? 'Hide' : 'Show' }} DTMF Pad
               </button>
@@ -142,7 +145,7 @@
           <div class="col">
             <!-- Active Call Display -->
             <div v-if="callState !== 'idle'" class="active-call-panel" data-testid="active-call">
-              <h3>Active Call</h3>
+              <h2>Active Call</h2>
               <div data-testid="call-status" class="call-status">
                 {{ callState }}
               </div>
@@ -249,7 +252,7 @@
               class="incoming-notification"
               data-testid="incoming-call-notification"
             >
-              <h3>Incoming Call</h3>
+              <h2>Incoming Call</h2>
               <p>From: {{ remoteUri }}</p>
             </div>
           </div>
@@ -265,7 +268,7 @@
             {{ showHistory ? 'Hide' : 'Show' }} Call History
           </button>
           <div v-if="showHistory" data-testid="call-history-panel" class="history-panel">
-            <h3>Call History</h3>
+            <h2>Call History</h2>
             <div
               v-for="(entry, index) in history"
               :key="index"
@@ -288,7 +291,7 @@
             {{ showDevices ? 'Hide' : 'Show' }} Device Settings
           </button>
           <div v-if="showDevices" class="device-panel">
-            <h3>Audio Devices</h3>
+            <h2>Audio Devices</h2>
             <div class="form-group" data-testid="audio-input-devices">
               <label>Audio Input:</label>
               <select
@@ -338,12 +341,13 @@
       </button>
 
       <!-- Error Display -->
-      <div v-if="error" data-testid="error-message" class="error-message">
-        {{ error }}
+      <div v-if="lastError" data-testid="error-message" class="error-message">
+        {{ lastError }}
       </div>
       <div v-if="registrationError" data-testid="registration-error" class="error-message">
         {{ registrationError }}
       </div>
+      </main>
     </div>
   </div>
 </template>
@@ -403,51 +407,67 @@ let mediaDevices: ReturnType<typeof useMediaDevices>
 let callHistory: ReturnType<typeof useCallHistory>
 let callControls: ReturnType<typeof useCallControls>
 
-// Composable return values
-let isConnected: any
-let isRegistered: any
-let connectionState: any
-let error: any
-let connect: any
-let disconnect: any
-let updateConfig: any
-let callState: any
-let callId: any
-let direction: any
-let remoteUri: any
-let isLocalHeld: any
-let isMuted: any
-let timing: any
-let answerTime: any
-let makeCall: any
-let answer: any
-let reject: any
-let hangup: any
-let hold: any
-let unhold: any
-let mute: any
-let unmute: any
-let audioInputDevices: any
-let audioOutputDevices: any
-let selectedAudioInputId: any
-let selectedAudioOutputId: any
-let selectAudioInput: any
-let selectAudioOutput: any
-let history: any
+// Composable return values - Initialize with default values for reactivity
+let isConnected: any = ref(false)
+let isRegistered: any = ref(false)
+let connectionState: any = ref('disconnected')
+let lastError: any = ref(null)
+let connect: any = () => Promise.resolve()
+let disconnect: any = () => Promise.resolve()
+let updateConfig: any = () => ({ valid: false })
+let callState: any = ref('idle')
+let callId: any = ref(null)
+let direction: any = ref(null)
+let remoteUri: any = ref('')
+let isLocalHeld: any = ref(false)
+let isMuted: any = ref(false)
+let timing: any = ref({ answerTime: null })
+let answerTime: any = ref(null)
+let makeCall: any = () => Promise.resolve()
+let answer: any = () => Promise.resolve()
+let reject: any = () => Promise.resolve()
+let hangup: any = () => Promise.resolve()
+let hold: any = () => Promise.resolve()
+let unhold: any = () => Promise.resolve()
+let mute: any = () => Promise.resolve()
+let unmute: any = () => Promise.resolve()
+let audioInputDevices: any = ref([])
+let audioOutputDevices: any = ref([])
+let selectedAudioInputId: any = ref(null)
+let selectedAudioOutputId: any = ref(null)
+let selectAudioInput: any = () => {}
+let selectAudioOutput: any = () => {}
+let history: any = ref([])
 
 try {
-  // SIP Client
-  sipClient = useSipClient({
+  // Temporarily disable composables to test if basic app mounts
+  console.log('TestApp: Starting composable initialization...')
+
+  // SIP Client - pass undefined for initialConfig, options as second parameter
+  console.log('TestApp: Initializing useSipClient...')
+  sipClient = useSipClient(undefined, {
     autoConnect: false,
     autoCleanup: true,
   })
-  ;({ isConnected, isRegistered, connectionState, error, connect, disconnect, updateConfig } =
-    sipClient)
+  console.log('TestApp: useSipClient initialized')
+  // useSipClient returns 'error' not 'lastError', so we alias it during destructuring
+  ;({
+    isConnected,
+    isRegistered,
+    connectionState,
+    error: lastError,
+    connect,
+    disconnect,
+    updateConfig,
+  } = sipClient)
 
-  // Call Session - useCallSession requires a Ref<SipClient | null>
-  // Create a computed ref that tracks the SipClient instance from getClient()
-  const sipClientRef = computed(() => sipClient.getClient())
+  // Create a computed ref for the SipClient instance
+  const sipClientRef = computed(() => sipClient?.getClient() ?? null)
+
+  // Call Session
+  console.log('TestApp: Initializing useCallSession...')
   callSession = useCallSession(sipClientRef)
+  console.log('TestApp: useCallSession initialized')
   ;({
     state: callState,
     callId,
@@ -467,13 +487,21 @@ try {
   } = callSession)
   
   // Extract answerTime from timing object as a computed ref for template compatibility
-  const answerTime = computed(() => timing.value.answerTime ?? null)
+  answerTime = computed(() => timing.value.answerTime ?? null)
 
-  // DTMF - useDTMF requires a Ref<CallSession | null>
-  dtmf = useDTMF(callSession.session)
+  // DTMF
+  console.log('TestApp: Initializing useDTMF...')
+  dtmf = useDTMF(callSession)
+  console.log('TestApp: useDTMF initialized')
 
-  // Media Devices
-  mediaDevices = useMediaDevices()
+  // Media Devices - enable auto-enumerate in E2E tests (we have mocks)
+  console.log('TestApp: Initializing useMediaDevices...')
+  const isE2E = window.location.search.includes('test=true')
+  mediaDevices = useMediaDevices(undefined, {
+    autoEnumerate: isE2E, // Enable for E2E tests with mocked devices
+    autoMonitor: false,
+  })
+  console.log('TestApp: useMediaDevices initialized')
   ;({
     audioInputDevices,
     audioOutputDevices,
@@ -484,88 +512,101 @@ try {
   } = mediaDevices)
 
   // Call History
+  console.log('TestApp: Initializing useCallHistory...')
   callHistory = useCallHistory()
+  console.log('TestApp: useCallHistory initialized')
   ;({ history } = callHistory)
 
-  // Call Controls - useCallControls requires a Ref<SipClient | null>
-  callControls = useCallControls(sipClientRef)
+  // Call Controls
+  console.log('TestApp: Initializing useCallControls...')
+  callControls = useCallControls(callSession)
+  console.log('TestApp: useCallControls initialized')
+
+  console.log('TestApp: All composables initialized successfully')
+
+  // Watch for connection errors - must be inside try block after lastError is assigned
+  watch(lastError, (error) => {
+    if (error) {
+      console.error('SIP Error:', error)
+    }
+  })
 
   // Test helpers - expose on window for E2E tests AFTER composables are initialized
   if (typeof window !== 'undefined') {
-  // Lightweight debug state for E2E fixtures to query without relying on DOM
-  const dbgState = ((window as any).__sipState = (window as any).__sipState || {
-    // connection
-    isConnected: false,
-    connectionState: 'disconnected',
-    // registration
-    isRegistered: false,
-    registrationState: 'unregistered',
-    // meta
-    lastUpdate: Date.now(),
-  })
+    // Lightweight debug state for E2E fixtures to query without relying on DOM
+    const dbgState = ((window as any).__sipState = (window as any).__sipState || {
+      // connection
+      isConnected: false,
+      connectionState: 'disconnected',
+      // registration
+      isRegistered: false,
+      registrationState: 'unregistered',
+      // meta
+      lastUpdate: Date.now(),
+    })
 
-  const syncDbgState = () => {
-    try {
-      dbgState.isConnected = !!(isConnected?.value ?? false)
-      dbgState.connectionState = String(connectionState?.value ?? 'disconnected')
-      dbgState.isRegistered = !!(isRegistered?.value ?? false)
-      dbgState.registrationState = String((sipClient as any)?.registrationState?.value ?? (isRegistered?.value ? 'registered' : 'unregistered'))
-      dbgState.lastUpdate = Date.now()
-    } catch (e) {
-      // no-op: debug state is best-effort only
+    const syncDbgState = () => {
+      try {
+        dbgState.isConnected = !!(isConnected?.value ?? false)
+        dbgState.connectionState = String(connectionState?.value ?? 'disconnected')
+        dbgState.isRegistered = !!(isRegistered?.value ?? false)
+        dbgState.registrationState = String((sipClient as any)?.registrationState?.value ?? (isRegistered?.value ? 'registered' : 'unregistered'))
+        dbgState.lastUpdate = Date.now()
+      } catch (e) {
+        // no-op: debug state is best-effort only
+      }
     }
-  }
-  // Initial sync and reactive updates
-  syncDbgState()
-  watch([() => isConnected?.value, () => connectionState?.value, () => isRegistered?.value], syncDbgState, {
-    immediate: true,
-  })
+    // Initial sync and reactive updates
+    syncDbgState()
+    watch([() => isConnected?.value, () => connectionState?.value, () => isRegistered?.value], syncDbgState, {
+      immediate: true,
+    })
 
-  // Expose call debug state separately to keep concerns clear for fixtures
-  const callDbg = ((window as any).__callState = (window as any).__callState || {
-    callState: 'idle',
-    direction: '',
-    remoteUri: '',
-    isInCall: false,
-    lastUpdate: Date.now(),
-  })
+    // Expose call debug state separately to keep concerns clear for fixtures
+    const callDbg = ((window as any).__callState = (window as any).__callState || {
+      callState: 'idle',
+      direction: '',
+      remoteUri: '',
+      isInCall: false,
+      lastUpdate: Date.now(),
+    })
 
-  const syncCallDbg = () => {
-    try {
-      const cs = String(callState?.value ?? 'idle')
-      const dir = String(direction?.value ?? '')
-      const uri = String(remoteUri?.value ?? '')
-      callDbg.callState = cs
-      callDbg.direction = dir
-      callDbg.remoteUri = uri
-      // Consider active/held/early_media/answering as in-call states
-      callDbg.isInCall = ['active', 'held', 'remote_held', 'early_media', 'answering'].includes(cs)
-      callDbg.lastUpdate = Date.now()
-    } catch (e) {
-      // best-effort, non-fatal
+    const syncCallDbg = () => {
+      try {
+        const cs = String(callState?.value ?? 'idle')
+        const dir = String(direction?.value ?? '')
+        const uri = String(remoteUri?.value ?? '')
+        callDbg.callState = cs
+        callDbg.direction = dir
+        callDbg.remoteUri = uri
+        // Consider active/held/early_media/answering as in-call states
+        callDbg.isInCall = ['active', 'held', 'remote_held', 'early_media', 'answering'].includes(cs)
+        callDbg.lastUpdate = Date.now()
+      } catch (e) {
+        // best-effort, non-fatal
+      }
     }
-  }
-  syncCallDbg()
-  watch([() => callState?.value, () => direction?.value, () => remoteUri?.value], syncCallDbg, {
-    immediate: true,
-  })
+    syncCallDbg()
+    watch([() => callState?.value, () => direction?.value, () => remoteUri?.value], syncCallDbg, {
+      immediate: true,
+    })
 
-  ;(window as any).__forceSipConnection = () => {
-    console.debug('[TestApp] __forceSipConnection called, forcing connected event')
-    const client = sipClient.getClient()
-    if (client && typeof client.forceEmitConnected === 'function') {
-      client.forceEmitConnected()
-      console.debug('[TestApp] forceEmitConnected called successfully')
-    } else {
-      console.warn('[TestApp] Could not find SipClient or forceEmitConnected method', {
-        hasSipClient: !!sipClient,
-        hasGetClient: !!sipClient.getClient,
-        client: !!client,
-        hasForceEmit: client ? typeof client.forceEmitConnected : 'no client'
-      })
+    ;(window as any).__forceSipConnection = () => {
+      console.debug('[TestApp] __forceSipConnection called, forcing connected event')
+      const client = sipClient.getClient()
+      if (client && typeof client.forceEmitConnected === 'function') {
+        client.forceEmitConnected()
+        console.debug('[TestApp] forceEmitConnected called successfully')
+      } else {
+        console.warn('[TestApp] Could not find SipClient or forceEmitConnected method', {
+          hasSipClient: !!sipClient,
+          hasGetClient: !!sipClient.getClient,
+          client: !!client,
+          hasForceEmit: client ? typeof client.forceEmitConnected : 'no client'
+        })
+      }
     }
-  }
-  console.debug('[TestApp] __forceSipConnection helper installed')
+    console.debug('[TestApp] __forceSipConnection helper installed')
   }
 } catch (error: any) {
   initializationError.value = `Failed to initialize: ${error.message || 'Unknown error'}`
@@ -587,14 +628,14 @@ const saveSettings = () => {
 
   // Validate WebSocket URI format
   const uriValidation = validateWebSocketUrl(tempConfig.value.uri)
-  if (!uriValidation.isValid) {
+  if (!uriValidation.valid) {
     validationError.value = `Invalid Server URI: ${uriValidation.error}`
     return
   }
 
   // Validate SIP URI format
   const sipUriValidation = validateSipUri(tempConfig.value.sipUri)
-  if (!sipUriValidation.isValid) {
+  if (!sipUriValidation.valid) {
     validationError.value = `Invalid SIP URI: ${sipUriValidation.error}`
     return
   }
@@ -773,15 +814,6 @@ const formatDuration = () => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
-// Watch for connection errors (only if error was successfully initialized)
-if (error) {
-  watch(error, (err) => {
-    if (err) {
-      console.error('SIP Error:', err)
-    }
-  })
-}
-
 // Cleanup on component unmount
 onUnmounted(() => {
   // Clear all pending timeouts to prevent memory leaks
@@ -802,10 +834,6 @@ body {
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   background: #f3f4f6;
   color: #1f2937;
-}
-
-#app {
-  padding: 2rem;
 }
 
 .container {
@@ -908,13 +936,13 @@ h3 {
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #2563eb; /* Darker blue for WCAG AA contrast (4.5:1) */
   color: white;
   width: 100%;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2563eb;
+  background: #1d4ed8;
 }
 
 .btn-success {
@@ -927,12 +955,12 @@ h3 {
 }
 
 .btn-danger {
-  background: #ef4444;
+  background: #dc2626; /* Darker red for WCAG AA contrast (4.5:1) */
   color: white;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #dc2626;
+  background: #b91c1c;
 }
 
 .btn-secondary {

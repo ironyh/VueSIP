@@ -7,20 +7,32 @@
  * @module composables/useMediaDevices
  */
 
-import { ref, computed, watch, onMounted, onUnmounted, readonly, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  readonly,
+  nextTick,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import { MediaManager } from '../core/MediaManager'
 import { deviceStore } from '../stores/deviceStore'
 import type { MediaDevice } from '../types/media.types'
 import { MediaDeviceKind, PermissionStatus } from '../types/media.types'
 import { createLogger } from '../utils/logger'
-import { throwIfAborted } from '../utils/abortController'
-import {
-  ErrorSeverity,
-  logErrorWithContext,
-  createOperationTimer,
-} from '../utils/errorContext'
+import { throwIfAborted, isAbortError } from '../utils/abortController'
+import { ErrorSeverity, logErrorWithContext, createOperationTimer } from '../utils/errorContext'
 
 const log = createLogger('useMediaDevices')
+
+/**
+ * Module-level enumeration promise to prevent concurrent enumeration
+ * and return the same promise for multiple callers
+ */
+let enumerationPromise: Promise<MediaDevice[]> | null = null
 
 /**
  * Device test options
@@ -238,7 +250,7 @@ export function useMediaDevices(
         selectedAudioOutputId.value = newState.audioOutputId
         selectedVideoInputId.value = newState.videoInputId
         // Reset flag in next tick to allow updates
-        Promise.resolve().then(() => {
+        nextTick(() => {
           isUpdatingFromStore.value = false
         })
       }
@@ -300,6 +312,7 @@ export function useMediaDevices(
    * // Later: controller.abort()
    * ```
    */
+<<<<<<< HEAD
   const enumerateDevices = async (signal?: AbortSignal): Promise<MediaDevice[]> => {
     // Debug log for E2E tests
     if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
@@ -315,14 +328,24 @@ export function useMediaDevices(
         console.log('useMediaDevices.enumerateDevices: already in progress, returning cached devices')
       }
       return allDevices.value
+=======
+  const enumerateDevices = (signal?: AbortSignal): Promise<MediaDevice[]> => {
+    // Use internal abort signal if none provided (auto-cleanup on unmount)
+    const effectiveSignal = signal ?? internalAbortController.value.signal
+
+    if (isEnumerating.value && enumerationPromise) {
+      log.debug('Device enumeration already in progress, returning pending promise')
+      return enumerationPromise
+>>>>>>> origin/main
     }
 
     const timer = createOperationTimer()
 
-    try {
-      isEnumerating.value = true
-      lastError.value = null
+    // Set flag BEFORE creating promise to prevent race conditions
+    isEnumerating.value = true
+    lastError.value = null
 
+<<<<<<< HEAD
       // Check if aborted before starting
       throwIfAborted(effectiveSignal)
 
@@ -339,24 +362,24 @@ export function useMediaDevices(
         devices = await mediaManager.value.enumerateDevices()
 
         // Check signal after first async operation
+=======
+    // Store the promise to return to concurrent callers
+    enumerationPromise = (async () => {
+      try {
+        // Check if aborted before starting
+>>>>>>> origin/main
         throwIfAborted(effectiveSignal)
 
-        rawDevices = await navigator.mediaDevices.enumerateDevices()
-      } else {
-        // Fallback to direct API
-        rawDevices = await navigator.mediaDevices.enumerateDevices()
+        log.info('Enumerating devices')
 
-        // Check signal after enumeration
-        throwIfAborted(effectiveSignal)
+        let devices: MediaDevice[]
+        let rawDevices: MediaDeviceInfo[]
 
-        devices = rawDevices.map((device) => ({
-          deviceId: device.deviceId,
-          label: device.label || `${device.kind} ${device.deviceId.slice(0, 5)}`,
-          kind: device.kind as MediaDeviceKind,
-          groupId: device.groupId,
-        }))
-      }
+        if (mediaManager?.value) {
+          // Use MediaManager if available
+          devices = await mediaManager.value.enumerateDevices()
 
+<<<<<<< HEAD
       // Update store with raw browser MediaDeviceInfo[]
       deviceStore.setDevices(rawDevices)
       
@@ -365,43 +388,70 @@ export function useMediaDevices(
         console.log('useMediaDevices: setDevices called with', rawDevices.length, 'devices')
         console.log('useMediaDevices: audioInputDevices after setDevices:', deviceStore.audioInputDevices.length)
       }
+=======
+          // Check signal after first async operation
+          throwIfAborted(effectiveSignal)
+>>>>>>> origin/main
 
-      log.info(`Enumerated ${devices.length} devices`)
-      return devices
-    } catch (error) {
-      // Handle abort errors gracefully - don't set lastError, just rethrow
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        throw error
-      }
+          rawDevices = await navigator.mediaDevices.enumerateDevices()
+        } else {
+          // Fallback to direct API
+          rawDevices = await navigator.mediaDevices.enumerateDevices()
 
-      const err = error instanceof Error ? error : new Error('Device enumeration failed')
-      lastError.value = err
+          // Check signal after enumeration
+          throwIfAborted(effectiveSignal)
 
-      logErrorWithContext(
-        log,
-        'Failed to enumerate devices',
-        err,
-        'enumerateDevices',
-        'useMediaDevices',
-        ErrorSeverity.MEDIUM,
-        {
-          context: {
-            hasMediaManager: !!mediaManager?.value,
-          },
-          state: {
-            isEnumerating: isEnumerating.value,
-            currentDeviceCount: allDevices.value.length,
-            audioInputs: audioInputDevices.value.length,
-            audioOutputs: audioOutputDevices.value.length,
-            videoInputs: videoInputDevices.value.length,
-          },
-          duration: timer.elapsed(),
+          devices = rawDevices.map((device) => ({
+            deviceId: device.deviceId,
+            label: device.label || `${device.kind} ${device.deviceId.slice(0, 5)}`,
+            kind: device.kind as MediaDeviceKind,
+            groupId: device.groupId,
+          }))
         }
-      )
-      throw err
-    } finally {
-      isEnumerating.value = false
-    }
+
+        // Update store with raw browser MediaDeviceInfo[]
+        deviceStore.setDevices(rawDevices)
+
+        log.info(`Enumerated ${devices.length} devices`)
+        return devices
+      } catch (error) {
+        // Handle abort errors gracefully - don't set lastError, just rethrow
+        if (isAbortError(error)) {
+          throw error
+        }
+
+        const err = error instanceof Error ? error : new Error('Device enumeration failed')
+        lastError.value = err
+
+        logErrorWithContext(
+          log,
+          'Failed to enumerate devices',
+          err,
+          'enumerateDevices',
+          'useMediaDevices',
+          ErrorSeverity.MEDIUM,
+          {
+            context: {
+              hasMediaManager: !!mediaManager?.value,
+            },
+            state: {
+              isEnumerating: isEnumerating.value,
+              currentDeviceCount: allDevices.value.length,
+              audioInputs: audioInputDevices.value.length,
+              audioOutputs: audioOutputDevices.value.length,
+              videoInputs: videoInputDevices.value.length,
+            },
+            duration: timer.elapsed(),
+          }
+        )
+        throw err
+      } finally {
+        isEnumerating.value = false
+        enumerationPromise = null
+      }
+    })()
+
+    return enumerationPromise
   }
 
   // ============================================================================
