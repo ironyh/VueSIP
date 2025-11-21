@@ -11,8 +11,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Run tests in parallel - optimized for CI performance */
+  workers: process.env.CI ? 4 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html'],
@@ -37,26 +37,51 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      // Full test suite on chromium (primary browser)
     },
 
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      // Smoke tests only - exclude visual regression and performance tests
+      testIgnore: [
+        /visual-regression\.spec\.ts/,
+        /performance\.spec\.ts/,
+      ],
     },
 
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      // Smoke tests only - exclude visual regression and performance tests
+      testIgnore: [
+        /visual-regression\.spec\.ts/,
+        /performance\.spec\.ts/,
+      ],
     },
 
     /* Test against mobile viewports. */
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
+      // Smoke tests only - exclude visual regression, performance, and advanced tests
+      testIgnore: [
+        /visual-regression\.spec\.ts/,
+        /performance\.spec\.ts/,
+        /av-quality\.spec\.ts/,
+        /multi-user\.spec\.ts/,
+      ],
     },
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 12'] },
+      // Smoke tests only - exclude visual regression, performance, and advanced tests
+      testIgnore: [
+        /visual-regression\.spec\.ts/,
+        /performance\.spec\.ts/,
+        /av-quality\.spec\.ts/,
+        /multi-user\.spec\.ts/,
+      ],
     },
   ],
 

@@ -85,7 +85,7 @@
 
           <div class="control-buttons">
             <button
-              v-if="callState === 'incoming'"
+              v-if="callState === 'ringing'"
               class="btn btn-success"
               @click="handleAnswer"
             >
@@ -103,11 +103,11 @@
 
             <button
               class="btn btn-control"
-              :class="{ active: hasLocalVideo }"
-              :title="hasLocalVideo ? 'Stop Video' : 'Start Video'"
+              :class="{ active: hasLocalVideoFromSession }"
+              :title="hasLocalVideoFromSession ? 'Stop Video' : 'Start Video'"
               @click="handleToggleVideo"
             >
-              {{ hasLocalVideo ? '📹' : '📷' }}
+              {{ hasLocalVideoFromSession ? '📹' : '📷' }}
             </button>
 
             <button
@@ -147,7 +147,7 @@
         <div class="stats-grid">
           <div class="stat-item">
             <span class="stat-label">Local Video:</span>
-            <span class="stat-value">{{ hasLocalVideo ? 'Enabled' : 'Disabled' }}</span>
+            <span class="stat-value">{{ hasLocalVideoFromSession ? 'Enabled' : 'Disabled' }}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">Remote Video:</span>
@@ -166,17 +166,16 @@
       <h4>Code Example</h4>
       <pre><code>import { useSipClient, useCallSession, useMediaDevices } from 'vuesip'
 
-const sipClient = useSipClient()
+const { getClient } = useSipClient()
+const sipClientRef = computed(() => getClient())
 const {
   makeCall,
   answer,
   hangup,
   localStream,
   remoteStream,
-  hasLocalVideo,
-  enableVideo,
-  disableVideo
-} = useCallSession(sipClient)
+  hasLocalVideo: hasLocalVideoFromSession
+} = useCallSession(sipClientRef)
 
 const {
   videoInputDevices,
@@ -197,12 +196,8 @@ await answer({
   video: true
 })
 
-// Toggle video during call
-if (hasLocalVideo.value) {
-  await disableVideo()
-} else {
-  await enableVideo()
-}
+// Note: Video is enabled when making/answering calls with { video: true }
+// There's no toggle method - video state is controlled via call options
 
 // Change camera
 selectVideoInput(deviceId)
@@ -249,8 +244,7 @@ const {
   hangup,
   mute,
   unmute,
-  enableVideo,
-  disableVideo,
+  hasLocalVideo: hasLocalVideoFromSession,
 } = useCallSession(sipClientRef)
 
 // Media Devices
@@ -279,7 +273,7 @@ const callStateDisplay = computed(() => {
   return states[callState.value] || callState.value
 })
 
-const hasLocalVideo = computed(() => {
+const hasLocalVideoDisplay = computed(() => {
   if (!localStream.value) return false
   const videoTracks = localStream.value.getVideoTracks()
   return videoTracks.length > 0 && videoTracks[0].enabled
@@ -334,10 +328,9 @@ const handleToggleMute = async () => {
 
 const handleToggleVideo = async () => {
   try {
-    if (hasLocalVideo.value) {
-      await disableVideo()
-    } else {
-      await enableVideo()
+    if (hasLocalVideoFromSession.value) {
+      // Video cannot be toggled during call - it's set when making/answering
+      console.log('Video toggle not supported - video is set at call start')
     }
   } catch (error) {
     console.error('Toggle video error:', error)

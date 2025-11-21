@@ -15,6 +15,7 @@ import { CallSession } from '../../src/core/CallSession'
 import { EventBus } from '../../src/core/EventBus'
 import { createMockSipServer, type MockRTCSession } from '../helpers/MockSipServer'
 import { MediaDeviceKind, type ExtendedMediaStreamConstraints } from '../../src/types/media.types'
+import { waitForNextTick, waitForEvent } from '../utils/test-helpers'
 
 /**
  * Helper function to create mock media devices
@@ -43,6 +44,10 @@ let getUserMediaCallCount = 0
 function setupMockMediaDevices(devices: MediaDeviceInfo[], shouldFailOnCall?: number): void {
   let streamCounter = 0
   getUserMediaCallCount = 0 // Reset on each setup
+  // Keep an internal device list reference for mutation in tests
+  const deviceList: MediaDeviceInfo[] = [...devices]
+  // @ts-expect-error - attach test-only property for mutation
+  ;(global as any).navigator = global.navigator || ({} as any)
   global.navigator.mediaDevices = {
     getUserMedia: vi.fn().mockImplementation((constraints: any) => {
       getUserMediaCallCount++
@@ -77,7 +82,8 @@ function setupMockMediaDevices(devices: MediaDeviceInfo[], shouldFailOnCall?: nu
         getVideoTracks: vi.fn().mockReturnValue([]),
       })
     }),
-    enumerateDevices: vi.fn().mockResolvedValue(devices),
+    // Always resolve to the current device list snapshot
+    enumerateDevices: vi.fn().mockImplementation(async () => [...deviceList]),
     getSupportedConstraints: vi.fn().mockReturnValue({
       deviceId: true,
       echoCancellation: true,
@@ -86,8 +92,10 @@ function setupMockMediaDevices(devices: MediaDeviceInfo[], shouldFailOnCall?: nu
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
-    } as never,
-  })
+    // Expose the live list for tests that mutate it directly
+    // @ts-expect-error - test-only property
+    __deviceList: deviceList,
+  } as any
 }
 
 describe('Device Switching Integration Tests', () => {
@@ -155,10 +163,10 @@ describe('Device Switching Integration Tests', () => {
 
       // Simulate call lifecycle to get to active state
       mockSipServer.simulateCallProgress(mockSession)
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await waitForNextTick()
       mockSipServer.simulateCallAccepted(mockSession)
       mockSipServer.simulateCallConfirmed(mockSession)
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForEvent(eventBus, 'call:confirmed', 1000)
 
       expect(callSession).toBeDefined()
 
@@ -228,7 +236,7 @@ describe('Device Switching Integration Tests', () => {
         video: false,
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       mediaManager.stopLocalStream()
 
@@ -237,7 +245,7 @@ describe('Device Switching Integration Tests', () => {
         video: false,
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(events).toContain('added')
     })

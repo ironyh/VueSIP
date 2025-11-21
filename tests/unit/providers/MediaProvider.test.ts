@@ -577,6 +577,9 @@ describe('MediaProvider', () => {
     })
 
     it('should throw error when used outside provider', () => {
+      // Suppress Vue's expected injection warning for this test
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(function () {})
+
       const ComponentWithoutProvider = defineComponent({
         setup() {
           expect(() => useMediaProvider()).toThrow(
@@ -587,6 +590,8 @@ describe('MediaProvider', () => {
       })
 
       mount(ComponentWithoutProvider)
+      
+      warnSpy.mockRestore()
     })
   })
 

@@ -17,6 +17,7 @@ import { CallSession } from '../../src/core/CallSession'
 import { MediaManager } from '../../src/core/MediaManager'
 import { createMockSipServer, type MockRTCSession } from '../helpers/MockSipServer'
 import type { Participant, ConferenceState } from '../../src/types/conference.types'
+import { waitForNextTick, waitForEvent, waitForCondition } from '../utils/test-helpers'
 
 /**
  * Helper function to setup mock navigator.mediaDevices for conference tests
@@ -369,7 +370,7 @@ describe('Conference Integration Tests', () => {
         participant: createParticipant('p1', 'sip:user1@example.com', 'User 1'),
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(events).toContain('joined')
     })
@@ -384,7 +385,7 @@ describe('Conference Integration Tests', () => {
         participantId: 'p1',
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(events).toContain('left')
     })
@@ -399,7 +400,7 @@ describe('Conference Integration Tests', () => {
         participantId: 'p1',
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(events).toContain('muted')
     })
@@ -413,7 +414,7 @@ describe('Conference Integration Tests', () => {
         conferenceId: 'conf-1',
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(events).toContain('ended')
     })
@@ -614,7 +615,7 @@ describe('Conference Integration Tests', () => {
       // Simulate call ending
       mockSipServer.simulateCallEnded(session1)
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       // In real scenario, this would trigger participant removal
       conference.participants = conference.participants.filter((p) => p.id !== 'p1')
@@ -680,7 +681,7 @@ describe('Conference Integration Tests', () => {
         conferenceId: 'conf-1',
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(events).toContain('started')
     })
@@ -694,7 +695,7 @@ describe('Conference Integration Tests', () => {
         conferenceId: 'conf-1',
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(events).toContain('stopped')
     })
@@ -817,7 +818,7 @@ describe('Conference Integration Tests', () => {
       // Simulate participant 1 leaving (call ends)
       mockSipServer.simulateCallEnded(session1, 'remote', 'Bye')
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       // In real implementation, this would trigger participant removal
       conference.participants = conference.participants.filter((p) => p.id !== 'p1')
@@ -918,10 +919,10 @@ describe('Conference Integration Tests', () => {
 
       // Simulate call lifecycle to get to active state
       mockSipServer.simulateCallProgress(session1)
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await waitForNextTick()
       mockSipServer.simulateCallAccepted(session1)
       mockSipServer.simulateCallConfirmed(session1)
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForEvent(eventBus, 'call:confirmed', 1000)
 
       const p1 = createParticipant('p1', 'sip:participant1@example.com', 'Participant 1')
       p1.callSession = callSession1
@@ -929,10 +930,16 @@ describe('Conference Integration Tests', () => {
       // Hold participant
       await callSession1.hold()
       mockSipServer.simulateHold(session1, 'local')
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await waitForNextTick()
 
       // In real implementation, held state would be tracked
       expect(session1.hold).toHaveBeenCalled()
+      
+      // Wait for hold state to be set before unholding
+      await waitForCondition(
+        () => callSession1.state === 'held' || session1.localHold === true,
+        { timeout: 1000, description: 'call to be held' }
+      )
 
       // Unhold participant
       const unholdPromise = callSession1.unhold()
@@ -940,7 +947,7 @@ describe('Conference Integration Tests', () => {
       await unholdPromise
 
       // Wait for unhold event to propagate
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await waitForNextTick()
 
       expect(session1.unhold).toHaveBeenCalled()
     })
@@ -989,7 +996,7 @@ describe('Conference Integration Tests', () => {
         mockSipServer.simulateCallEnded(session as never, 'local', 'Conference ended')
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       // Cleanup conference
       conference.participants = []

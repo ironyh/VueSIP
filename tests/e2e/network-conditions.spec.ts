@@ -85,8 +85,8 @@ test.describe('Network Conditions - Connection Quality', () => {
     await page.fill(SELECTORS.DIALPAD.NUMBER_INPUT, TEST_DATA.PHONE_NUMBERS.VALID)
     await page.click(SELECTORS.DIALPAD.CALL_BUTTON)
 
-    // Call should still be initiated despite latency
-    await page.waitForTimeout(2000)
+    // Call should still be initiated despite latency - wait for call status to appear
+    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toBeVisible({ timeout: 10000 })
 
     const callStatus = await page.locator(SELECTORS.STATUS.CALL_STATUS).textContent()
     expect(callStatus).toBeTruthy()
@@ -118,7 +118,8 @@ test.describe('Network Conditions - Connection Quality', () => {
     await page.fill(SELECTORS.DIALPAD.NUMBER_INPUT, TEST_DATA.PHONE_NUMBERS.VALID)
     await page.click(SELECTORS.DIALPAD.CALL_BUTTON)
 
-    await page.waitForTimeout(1500)
+    // Wait for call status despite packet loss
+    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toBeVisible({ timeout: 10000 })
 
     // App should handle packet loss gracefully
     const callStatus = await page.locator(SELECTORS.STATUS.CALL_STATUS).textContent()
@@ -140,8 +141,8 @@ test.describe('Network Conditions - Connection Quality', () => {
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
 
-    // Wait for timeout or error
-    await page.waitForTimeout(5000)
+    // Wait for connection status to change (either connected or error)
+    await expect(page.locator(SELECTORS.STATUS.CONNECTION_STATUS)).not.toContainText(/disconnected/i, { timeout: 10000 })
 
     // Should either show error or eventually connect
     const connectionStatus = await page.locator(SELECTORS.STATUS.CONNECTION_STATUS).textContent()
@@ -173,11 +174,12 @@ test.describe('Network Conditions - Connection Interruption', () => {
     // Make a call
     await page.fill(SELECTORS.DIALPAD.NUMBER_INPUT, TEST_DATA.PHONE_NUMBERS.VALID)
     await page.click(SELECTORS.DIALPAD.CALL_BUTTON)
-    await page.waitForTimeout(500)
+    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toBeVisible({ timeout: 5000 })
 
     // Simulate network disconnection
     await context.setOffline(true)
-    await page.waitForTimeout(1000)
+    // Wait for disconnection to be detected
+    await expect(page.locator(SELECTORS.STATUS.CONNECTION_STATUS)).not.toContainText(/connected/i, { timeout: 5000 })
 
     // Should show disconnected status or error
     const status = await page.locator(SELECTORS.STATUS.CONNECTION_STATUS).textContent()
@@ -185,7 +187,8 @@ test.describe('Network Conditions - Connection Interruption', () => {
 
     // Reconnect
     await context.setOffline(false)
-    await page.waitForTimeout(1000)
+    // Wait for reconnection
+    await waitForConnectionState('connected')
   })
 
   test('should automatically reconnect after brief disconnection', async ({
@@ -203,11 +206,12 @@ test.describe('Network Conditions - Connection Interruption', () => {
 
     // Brief disconnection (500ms)
     await context.setOffline(true)
-    await page.waitForTimeout(500)
+    // Wait for disconnection to be detected
+    await expect(page.locator(SELECTORS.STATUS.CONNECTION_STATUS)).not.toContainText(/connected/i, { timeout: 2000 })
     await context.setOffline(false)
 
     // Wait for auto-reconnection
-    await page.waitForTimeout(2000)
+    await waitForConnectionState('connected')
 
     // Should reconnect automatically
     const connectionStatus = await page.locator(SELECTORS.STATUS.CONNECTION_STATUS).textContent()
@@ -226,7 +230,8 @@ test.describe('Network Conditions - Connection Interruption', () => {
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
 
-    await page.waitForTimeout(1500)
+    // Wait for connection attempt to complete (should fail or timeout)
+    await expect(page.locator(SELECTORS.STATUS.CONNECTION_STATUS)).not.toContainText(/connecting/i, { timeout: 5000 })
 
     // Should show error or disconnected state
     const status = await page.locator(SELECTORS.STATUS.CONNECTION_STATUS).textContent()

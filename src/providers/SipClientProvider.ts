@@ -222,8 +222,17 @@ export const SipClientProvider = defineComponent({
      */
     const initializeClient = (): void => {
       try {
+        // Merge autoRegister prop into config.registrationOptions
+        const mergedConfig: SipClientConfig = {
+          ...props.config,
+          registrationOptions: {
+            ...props.config.registrationOptions,
+            autoRegister: props.autoRegister,
+          },
+        }
+
         // Validate configuration
-        const validation = validateSipConfig(props.config)
+        const validation = validateSipConfig(mergedConfig)
         if (!validation.valid) {
           const err = new Error(`Invalid SIP configuration: ${validation.errors?.join(', ')}`)
           logger.error('Configuration validation failed', { validation })
@@ -233,12 +242,13 @@ export const SipClientProvider = defineComponent({
         }
 
         logger.info('Initializing SIP client', {
-          uri: props.config.uri,
-          sipUri: props.config.sipUri,
+          uri: mergedConfig.uri,
+          sipUri: mergedConfig.sipUri,
+          autoRegister: props.autoRegister,
         })
 
         // Create SIP client instance
-        client.value = new SipClient(props.config, eventBus.value as EventBus)
+        client.value = new SipClient(mergedConfig, eventBus.value as EventBus)
 
         // Setup event listeners
         setupEventListeners()

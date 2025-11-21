@@ -4,7 +4,7 @@
 
 /* eslint-disable vue/one-component-per-file */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import { ConfigProvider, useConfigProvider } from '../../../src/providers/ConfigProvider'
@@ -649,8 +649,20 @@ describe('ConfigProvider', () => {
     })
 
     it('should throw error when used outside provider', () => {
+      // Suppress Vue's expected injection warning for this test
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation((message) => {
+        // Only suppress the specific Vue injection warning
+        if (typeof message === 'string' && message.includes('injection') && message.includes('config-provider')) {
+          return
+        }
+        // Allow other warnings through
+        console.warn(message)
+      })
+
       const ComponentWithoutProvider = defineComponent({
         setup() {
+          // The warning is emitted when Vue tries to resolve the injection
+          // before our expect() catches the error
           expect(() => useConfigProvider()).toThrow(
             'useConfigProvider must be used within a ConfigProvider component'
           )
@@ -659,6 +671,8 @@ describe('ConfigProvider', () => {
       })
 
       mount(ComponentWithoutProvider)
+      
+      warnSpy.mockRestore()
     })
   })
 

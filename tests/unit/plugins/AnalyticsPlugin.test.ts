@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { AnalyticsPlugin } from '../../../src/plugins/AnalyticsPlugin'
 import { EventBus } from '../../../src/core/EventBus'
 import type { PluginContext, AnalyticsEvent } from '../../../src/types/plugin.types'
+import { waitForNextTick } from '../../utils/test-helpers'
 
 // Mock fetch
 global.fetch = vi.fn()
@@ -88,7 +89,7 @@ describe('AnalyticsPlugin', () => {
       eventBus.emit('registered', undefined)
 
       // Wait for async processing
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(plugin).toBeDefined()
     })
@@ -126,7 +127,7 @@ describe('AnalyticsPlugin', () => {
       await plugin.uninstall(context)
 
       // Give time for async flush
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
     })
 
     it('should stop batch timer on uninstall', async () => {
@@ -208,7 +209,7 @@ describe('AnalyticsPlugin', () => {
       })
 
       // Wait for plugin:installed event to be processed
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
       // Clear the fetch mock to ignore the plugin:installed event
       fetchMock.mockClear()
 
@@ -217,15 +218,15 @@ describe('AnalyticsPlugin', () => {
       eventBus.emit('registered')
 
       // Should not send yet (batch size not reached: 1 plugin:installed + 2 new = 3 < 4)
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
       expect(sendSpy).not.toHaveBeenCalled()
 
       // Track one more event to reach batch size (1 + 2 + 1 = 4)
       eventBus.emit('callStarted', { callId: 'test' })
 
-      // Should send now
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      expect(fetchMock).toHaveBeenCalled()
+      // Should send now (sendEvents invoked due to batch size)
+      await waitForNextTick()
+      expect(sendSpy).toHaveBeenCalled()
     })
 
     it('should send batched events on interval', async () => {
@@ -439,7 +440,7 @@ describe('AnalyticsPlugin', () => {
 
       eventBus.emit('connected', undefined)
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await waitForNextTick()
     })
   })
 

@@ -9,6 +9,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
 import { SipClientProvider, useSipClientProvider } from '@/providers/SipClientProvider'
 import type { SipClientConfig } from '@/types/config.types'
+import { waitForNextTick, waitForCondition } from '../../utils/test-helpers'
 
 // Mock the logger
 vi.mock('@/utils/logger', () => ({
@@ -194,7 +195,15 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      expect(validateSipConfig).toHaveBeenCalledWith(mockConfig)
+      // Config should be merged with autoRegister prop (defaults to true)
+      const callArgs = vi.mocked(validateSipConfig).mock.calls[0]?.[0]
+      expect(callArgs).toBeDefined()
+      expect(callArgs).toMatchObject({
+        ...mockConfig,
+        registrationOptions: {
+          autoRegister: true, // default value
+        },
+      })
     })
 
     it('should handle invalid configuration gracefully', async () => {
@@ -410,7 +419,11 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Wait for register to be called (mock uses setTimeout with 0 delay)
+      await waitForCondition(
+        () => mockClient.register.mock.calls.length > 0,
+        { timeout: 1000, description: 'register to be called' }
+      )
 
       // Should call register after connection
       expect(mockClient.register).toHaveBeenCalled()
@@ -459,7 +472,11 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Wait for ready event to be emitted (handler uses setTimeout with 0 delay)
+      await waitForCondition(
+        () => wrapper.emitted('ready') !== undefined,
+        { timeout: 1000, description: 'ready event to be emitted' }
+      )
 
       // Should NOT call register
       expect(mockClient.register).not.toHaveBeenCalled()
@@ -495,7 +512,11 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Wait for the event to be emitted (mock uses setTimeout with 0 delay)
+      await waitForCondition(
+        () => wrapper.emitted('connected') !== undefined,
+        { timeout: 1000, description: 'connected event to be emitted' }
+      )
 
       expect(wrapper.emitted('connected')).toBeDefined()
     })
@@ -525,7 +546,11 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Wait for the event to be emitted (mock uses setTimeout with 0 delay)
+      await waitForCondition(
+        () => wrapper.emitted('registered') !== undefined,
+        { timeout: 1000, description: 'registered event to be emitted' }
+      )
 
       expect(wrapper.emitted('registered')).toBeDefined()
       expect(wrapper.emitted('registered')?.[0]?.[0]).toBe('sip:alice@example.com')
@@ -556,7 +581,11 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Wait for the event to be emitted (mock uses setTimeout with 0 delay)
+      await waitForCondition(
+        () => wrapper.emitted('ready') !== undefined,
+        { timeout: 1000, description: 'ready event to be emitted' }
+      )
 
       expect(wrapper.emitted('ready')).toBeDefined()
     })
@@ -586,7 +615,11 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Wait for the event to be emitted (mock uses setTimeout with 0 delay)
+      await waitForCondition(
+        () => wrapper.emitted('error') !== undefined,
+        { timeout: 1000, description: 'error event to be emitted' }
+      )
 
       expect(wrapper.emitted('error')).toBeDefined()
       const errorEvent = wrapper.emitted('error')?.[0]?.[0] as Error

@@ -138,14 +138,18 @@ test.describe('Two-Party Call Scenarios', () => {
     await userA.page.click('[data-testid="connect-button"]')
     await userB.page.click('[data-testid="connect-button"]')
 
-    await userA.page.waitForTimeout(500)
-    await userB.page.waitForTimeout(500)
+    // Wait for both users to be connected
+    await Promise.all([
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+    ])
 
     // User A calls User B
     await userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com')
     await userA.page.click('[data-testid="call-button"]')
 
-    await userA.page.waitForTimeout(300)
+    // Wait for call status to appear
+    await expect(userA.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // Verify User A shows calling state
     const userAStatus = await userA.page.locator('[data-testid="call-status"]').textContent()
@@ -170,7 +174,11 @@ test.describe('Two-Party Call Scenarios', () => {
       userB.page.click('[data-testid="connect-button"]'),
     ])
 
-    await Promise.all([userA.page.waitForTimeout(500), userB.page.waitForTimeout(500)])
+    // Wait for both users to be connected
+    await Promise.all([
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+    ])
 
     // Both users call each other simultaneously
     await Promise.all([
@@ -183,7 +191,11 @@ test.describe('Two-Party Call Scenarios', () => {
       userB.page.click('[data-testid="call-button"]'),
     ])
 
-    await Promise.all([userA.page.waitForTimeout(500), userB.page.waitForTimeout(500)])
+    // Wait for both call statuses to appear
+    await Promise.all([
+      expect(userA.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 }),
+      expect(userB.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 }),
+    ])
 
     // Both should handle the race condition gracefully
     const [statusA, statusB] = await Promise.all([
@@ -214,16 +226,17 @@ test.describe('Two-Party Call Scenarios', () => {
       userC.page.click('[data-testid="connect-button"]'),
     ])
 
+    // Wait for all users to be connected
     await Promise.all([
-      userA.page.waitForTimeout(500),
-      userB.page.waitForTimeout(500),
-      userC.page.waitForTimeout(500),
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userC.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
     ])
 
     // User A calls User B
     await userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com')
     await userA.page.click('[data-testid="call-button"]')
-    await userA.page.waitForTimeout(500)
+    await expect(userA.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // User B transfers call to User C (if transfer UI exists)
     const transferButton = userB.page.locator('[data-testid="transfer-button"]')
@@ -231,7 +244,8 @@ test.describe('Two-Party Call Scenarios', () => {
       await transferButton.click()
       await userB.page.fill('[data-testid="transfer-target-input"]', 'sip:userC@example.com')
       await userB.page.click('[data-testid="complete-transfer-button"]')
-      await userB.page.waitForTimeout(500)
+      // Wait for transfer to be initiated - check for status change
+      await expect(userB.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
       // Verify transfer initiated
       const userBStatus = await userB.page.locator('[data-testid="call-status"]').textContent()
@@ -262,13 +276,14 @@ test.describe('Two-Party Call Scenarios', () => {
     // User A calls User B
     await userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com')
     await userA.page.click('[data-testid="call-button"]')
-    await userA.page.waitForTimeout(500)
+    await expect(userA.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // User A puts call on hold
     const holdButton = userA.page.locator('[data-testid="hold-button"]')
     if (await holdButton.isVisible()) {
       await holdButton.click()
-      await userA.page.waitForTimeout(300)
+      // Wait for hold state to be set
+      await expect(holdButton).toHaveAttribute('aria-pressed', 'true', { timeout: 3000 })
 
       // Check hold state
       const isHeld = await holdButton.getAttribute('aria-pressed')
@@ -276,7 +291,8 @@ test.describe('Two-Party Call Scenarios', () => {
 
       // Resume call
       await holdButton.click()
-      await userA.page.waitForTimeout(300)
+      // Wait for unhold state
+      await expect(holdButton).toHaveAttribute('aria-pressed', 'false', { timeout: 3000 })
 
       const isResumed = await holdButton.getAttribute('aria-pressed')
       expect(isResumed).toBe('false')
@@ -340,26 +356,27 @@ test.describe('Conference Call Scenarios', () => {
       userC.page.click('[data-testid="connect-button"]'),
     ])
 
+    // Wait for all users to be connected
     await Promise.all([
-      userA.page.waitForTimeout(500),
-      userB.page.waitForTimeout(500),
-      userC.page.waitForTimeout(500),
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userC.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
     ])
 
     // Simulate conference scenario
     await userA.page.fill('[data-testid="number-input"]', 'conference@example.com')
     await userA.page.click('[data-testid="call-button"]')
-    await userA.page.waitForTimeout(300)
+    await expect(userA.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // User B joins
     await userB.page.fill('[data-testid="number-input"]', 'conference@example.com')
     await userB.page.click('[data-testid="call-button"]')
-    await userB.page.waitForTimeout(300)
+    await expect(userB.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // User C joins
     await userC.page.fill('[data-testid="number-input"]', 'conference@example.com')
     await userC.page.click('[data-testid="call-button"]')
-    await userC.page.waitForTimeout(300)
+    await expect(userC.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // All should be in call state
     const [statusA, statusB, statusC] = await Promise.all([

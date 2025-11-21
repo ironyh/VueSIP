@@ -184,9 +184,101 @@ export function createMockPluginContext(eventBus: EventBus, overrides?: any) {
 
 /**
  * Wait for a specified amount of time
+ * @deprecated Use condition-based waits instead (waitForCondition, waitForEvent, etc.)
+ * Only use this for intentional delays (e.g., network simulation)
  */
 export function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Flush pending microtasks (Promise.resolve().then() callbacks)
+ * Useful for waiting for immediate async operations to complete
+ */
+export function flushMicrotasks(): Promise<void> {
+  return Promise.resolve()
+}
+
+/**
+ * Wait for the next event loop tick
+ * Useful for waiting for immediate async operations that don't emit events
+ */
+export function waitForNextTick(): Promise<void> {
+  return new Promise((resolve) => {
+    // Use setImmediate if available (Node.js), otherwise setTimeout(fn, 0)
+    if (typeof setImmediate !== 'undefined') {
+      setImmediate(resolve)
+    } else {
+      setTimeout(resolve, 0)
+    }
+  })
+}
+
+/**
+ * Wait for a condition to become true
+ * Polls the condition function until it returns true or timeout is reached
+ *
+ * @param condition - Function that returns true when condition is met
+ * @param options - Wait options
+ * @returns Promise that resolves when condition is true
+ * @throws Error if timeout is reached
+ */
+export async function waitForCondition(
+  condition: () => boolean | Promise<boolean>,
+  options: {
+    timeout?: number
+    interval?: number
+    description?: string
+  } = {}
+): Promise<void> {
+  const { timeout = 5000, interval = 10, description = 'condition' } = options
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < timeout) {
+    const result = await condition()
+    if (result) {
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, interval))
+  }
+
+  throw new Error(`Timeout waiting for ${description} (${timeout}ms)`)
+}
+
+/**
+ * Wait for a state value to match the expected value
+ * Polls the getter function until it returns the expected value or timeout is reached
+ *
+ * @param getState - Function that returns the current state
+ * @param expectedState - The expected state value
+ * @param options - Wait options
+ * @returns Promise that resolves when state matches
+ * @throws Error if timeout is reached
+ */
+export async function waitForState<T>(
+  getState: () => T | Promise<T>,
+  expectedState: T,
+  options: {
+    timeout?: number
+    interval?: number
+    description?: string
+  } = {}
+): Promise<void> {
+  const { timeout = 5000, interval = 10, description = 'state' } = options
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < timeout) {
+    const currentState = await getState()
+    if (currentState === expectedState) {
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, interval))
+  }
+
+  const finalState = await getState()
+  throw new Error(
+    `Timeout waiting for ${description} to be ${expectedState} (current: ${finalState}, timeout: ${timeout}ms)`
+  )
 }
 
 /**
@@ -230,6 +322,70 @@ export function waitForEvent(
 }
 
 /**
+ * Wait for multiple events to be emitted (in any order)
+ * Resolves when all events have been emitted or timeout is reached
+ *
+ * @param eventBus - Event bus to listen on
+ * @param eventNames - Array of event names to wait for
+ * @param timeout - Maximum time to wait in milliseconds
+ * @returns Promise that resolves with a map of event names to their data
+ */
+export function waitForEvents(
+  eventBus: EventBus,
+  eventNames: string[],
+  timeout: number = 5000
+): Promise<Record<string, any>> {
+  return new Promise((resolve, reject) => {
+    const results: Record<string, any> = {}
+    const receivedEvents = new Set<string>()
+    const handlers: Map<string, (data: any) => void> = new Map()
+    let timerId: ReturnType<typeof setTimeout> | null = null
+
+    const cleanup = () => {
+      if (timerId !== null) {
+        clearTimeout(timerId)
+        timerId = null
+      }
+      handlers.forEach((handler, eventName) => {
+        eventBus.off(eventName, handler)
+      })
+      handlers.clear()
+    }
+
+    const checkComplete = () => {
+      if (receivedEvents.size === eventNames.length) {
+        cleanup()
+        resolve(results)
+      }
+    }
+
+    // Set up handlers for each event
+    eventNames.forEach((eventName) => {
+      const handler = (data: any) => {
+        if (!receivedEvents.has(eventName)) {
+          receivedEvents.add(eventName)
+          results[eventName] = data
+          checkComplete()
+        }
+      }
+      handlers.set(eventName, handler)
+      eventBus.on(eventName, handler)
+    })
+
+    // Set up timeout
+    timerId = setTimeout(() => {
+      cleanup()
+      const missingEvents = eventNames.filter((name) => !receivedEvents.has(name))
+      reject(
+        new Error(
+          `Timeout waiting for events: ${missingEvents.join(', ')} (received: ${Array.from(receivedEvents).join(', ')})`
+        )
+      )
+    }, timeout)
+  })
+}
+
+/**
  * Create a mock event for testing
  */
 export function createMockEvent<T = any>(type: string, data?: T) {
@@ -269,29 +425,33 @@ export function setupMediaDevicesMock(options?: {
     } as any,
   ]
 
-  global.navigator.mediaDevices = {
-    getUserMedia: vi.fn().mockImplementation(() => {
-      if (options?.getUserMediaSuccess === false) {
-        return Promise.reject(new Error('Permission denied'))
-      }
-      return Promise.resolve(mockStream)
-    }),
-    enumerateDevices: vi.fn().mockImplementation(() => {
-      if (options?.enumerateDevicesSuccess === false) {
-        return Promise.reject(new Error('Failed to enumerate devices'))
-      }
-      return Promise.resolve(mockDevices)
-    }),
-    getSupportedConstraints: vi.fn().mockReturnValue({
-      audio: true,
-      video: true,
-      echoCancellation: true,
-      noiseSuppression: true,
-    }),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  } as any
+  Object.defineProperty(global.navigator, 'mediaDevices', {
+    value: {
+      getUserMedia: vi.fn().mockImplementation(() => {
+        if (options?.getUserMediaSuccess === false) {
+          return Promise.reject(new Error('Permission denied'))
+        }
+        return Promise.resolve(mockStream)
+      }),
+      enumerateDevices: vi.fn().mockImplementation(() => {
+        if (options?.enumerateDevicesSuccess === false) {
+          return Promise.reject(new Error('Failed to enumerate devices'))
+        }
+        return Promise.resolve(mockDevices)
+      }),
+      getSupportedConstraints: vi.fn().mockReturnValue({
+        audio: true,
+        video: true,
+        echoCancellation: true,
+        noiseSuppression: true,
+      }),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    },
+    writable: true,
+    configurable: true,
+  })
 
   return { mockStream, mockDevices }
 }
@@ -360,7 +520,7 @@ export function simulateIncomingCall(mockUA: any, sessionId: string = 'session-1
 
   // Trigger the event
   if (newRTCSessionHandler) {
-    newRTCSessionHandler({
+    ;(newRTCSessionHandler as Function)({
       session: mockSession,
       originator: 'remote',
       request: {

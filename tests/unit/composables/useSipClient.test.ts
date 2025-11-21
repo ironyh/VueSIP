@@ -516,7 +516,7 @@ describe('useSipClient', () => {
     })
   })
 
-  describe('reconnect()', () => {
+describe.sequential('reconnect()', () => {
     it('should reconnect successfully', async () => {
       const { result, unmount } = withSetup(() => useSipClient({
         ...testConfig,
@@ -561,12 +561,14 @@ describe('useSipClient', () => {
     })
 
     it('should wait before reconnecting', async () => {
-      vi.useFakeTimers()
-
       const { result, unmount } = withSetup(() => useSipClient(testConfig))
       const { connect, reconnect } = result
 
+      // Perform initial connect with real timers
       await connect()
+
+      // Switch to fake timers to control reconnect delay
+      vi.useFakeTimers()
 
       // Start reconnect
       const reconnectPromise = reconnect()
@@ -854,15 +856,16 @@ describe('useSipClient', () => {
     })
   })
 
-  describe('configurable reconnect delay (MINOR FIX)', () => {
+  describe.sequential('configurable reconnect delay (MINOR FIX)', () => {
     it('should use custom reconnect delay', async () => {
-      vi.useFakeTimers()
-
       const { result, unmount } = withSetup(() => useSipClient(testConfig, { reconnectDelay: 2000 }))
       const { connect, reconnect } = result
 
+      // Connect with real timers
       await connect()
 
+      // Control the reconnect delay with fake timers
+      vi.useFakeTimers()
       const reconnectPromise = reconnect()
       await vi.advanceTimersByTimeAsync(2000)
       await reconnectPromise

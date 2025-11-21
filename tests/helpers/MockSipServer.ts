@@ -235,7 +235,14 @@ export class MockSipServer {
     session.isInProgress.mockReturnValue(true)
     this.createTimeout(() => {
       const handlers = session._handlers['progress'] || []
-      handlers.forEach((handler) => handler({ originator: 'remote' }))
+      handlers.forEach((handler) => handler({
+        originator: 'remote',
+        response: {
+          status_code: 180,
+          reason_phrase: 'Ringing',
+          getHeader: vi.fn(),
+        },
+      }))
     }, this.config.networkLatency)
   }
 
@@ -249,7 +256,14 @@ export class MockSipServer {
 
     this.createTimeout(() => {
       const handlers = session._handlers['accepted'] || []
-      handlers.forEach((handler) => handler({ originator: 'remote' }))
+      handlers.forEach((handler) => handler({
+        originator: 'remote',
+        response: {
+          status_code: 200,
+          reason_phrase: 'OK',
+          getHeader: vi.fn(),
+        },
+      }))
     }, this.config.networkLatency)
   }
 

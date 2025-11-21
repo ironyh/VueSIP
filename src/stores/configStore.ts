@@ -7,7 +7,7 @@
  * @module stores/configStore
  */
 
-import { reactive, computed, readonly } from 'vue'
+import { reactive, computed, readonly, markRaw } from 'vue'
 import type {
   SipClientConfig,
   MediaConfiguration,
@@ -101,6 +101,9 @@ const computed_values = {
   }),
 }
 
+const cloneSipConfig = (config: SipClientConfig): SipClientConfig =>
+  JSON.parse(JSON.stringify(config)) as SipClientConfig
+
 /**
  * Configuration Store
  *
@@ -115,7 +118,7 @@ export const configStore = {
    * Get SIP configuration (readonly)
    */
   get sipConfig() {
-    return state.sipConfig ? readonly(state.sipConfig) : null
+    return state.sipConfig
   },
 
   /**
@@ -209,8 +212,8 @@ export const configStore = {
       }
     }
 
-    // Store configuration
-    state.sipConfig = { ...config }
+    // Store configuration as raw, non-reactive copy to avoid proxy issues
+    state.sipConfig = markRaw(cloneSipConfig(config))
     state.configTimestamp = new Date()
     log.info('SIP configuration updated', { uri: config.sipUri })
 
@@ -234,7 +237,10 @@ export const configStore = {
       }
     }
 
-    const updatedConfig = { ...state.sipConfig, ...updates }
+    const updatedConfig = {
+      ...(state.sipConfig ? cloneSipConfig(state.sipConfig) : {}),
+      ...updates,
+    } as SipClientConfig
     return this.setSipConfig(updatedConfig, validate)
   },
 

@@ -7,7 +7,7 @@
  * @module composables/useSipClient
  */
 
-import { ref, computed, onUnmounted, readonly, nextTick, toRaw, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onUnmounted, readonly, nextTick, toRaw, watch, type Ref, type ComputedRef } from 'vue'
 import { SipClient } from '@/core/SipClient'
 import { EventBus } from '@/core/EventBus'
 import { configStore } from '@/stores/configStore'
@@ -210,16 +210,26 @@ export function useSipClient(
   // Reactive State (Computed)
   // ============================================================================
 
+  // Track connection state reactively via refs that update on events
+  // This ensures Vue reactivity works even when SipClient's internal state changes
+  const _connectionState = ref<ConnectionState>(ConnectionState.Disconnected)
+  const _isConnected = ref(false)
+
   /**
-   * Connection state - uses SipClient as single source of truth
-   * Falls back to 'disconnected' if client not initialized
+   * Connection state - uses reactive refs updated via events for Vue reactivity
+   * Falls back to SipClient if reactive state not yet initialized
+   * Updated reactively via event listeners and watchers
    */
   const connectionState = computed(() => {
-    return sipClient.value?.connectionState ?? ConnectionState.Disconnected
+    // Use reactive ref which is updated by events and watchers
+    // The watcher syncs from SipClient, so this should always be up-to-date
+    return _connectionState.value
   })
 
   const isConnected = computed(() => {
-    return sipClient.value?.isConnected ?? false
+    // Use reactive ref which is updated by events and watchers
+    // The watcher syncs from SipClient, so this should always be up-to-date
+    return _isConnected.value
   })
 
   const isRegistered = computed(() => {
@@ -258,8 +268,15 @@ export function useSipClient(
     listeners.push({
       event: 'sip:connected',
       id: eventBus.on('sip:connected', () => {
+        console.log('[useSipClient] sip:connected event received!')
         logger.debug('SIP client connected')
         error.value = null
+        // Update reactive state
+        console.log('[useSipClient] Updating _connectionState to Connected')
+        _connectionState.value = ConnectionState.Connected
+        console.log('[useSipClient] Updating _isConnected to true')
+        _isConnected.value = true
+        console.log('[useSipClient] State updated. connectionState:', _connectionState.value, 'isConnected:', _isConnected.value)
       }),
     })
 
@@ -271,6 +288,9 @@ export function useSipClient(
         if (payload?.error) {
           error.value = new Error(payload.error)
         }
+        // Update reactive state
+        _connectionState.value = ConnectionState.Disconnected
+        _isConnected.value = false
       }),
     })
 
@@ -333,6 +353,28 @@ export function useSipClient(
   // Setup event listeners immediately and store cleanup function
   const cleanupEventListeners = setupEventListeners()
 
+  // Watch SipClient state and sync to reactive refs as fallback
+  // This ensures reactivity even if events don't fire immediately
+  watch(
+    () => sipClient.value?.connectionState,
+    (newState) => {
+      if (newState !== undefined) {
+        _connectionState.value = newState
+      }
+    },
+    { immediate: true }
+  )
+
+  watch(
+    () => sipClient.value?.isConnected,
+    (newIsConnected) => {
+      if (newIsConnected !== undefined) {
+        _isConnected.value = newIsConnected
+      }
+    },
+    { immediate: true }
+  )
+
   // ============================================================================
   // Methods
   // ============================================================================
@@ -354,21 +396,38 @@ export function useSipClient(
       if (!sipClient.value) {
         logger.info('Creating SIP client')
         // Extract raw config object from Vue reactivity system
-        sipClient.value = new SipClient(toRaw(config) as SipClientConfig, eventBus)
+        const plainConfig = JSON.parse(JSON.stringify(config)) as SipClientConfig
+        console.log('useSipClient.connect plainConfig', plainConfig)
+        sipClient.value = new SipClient(plainConfig, eventBus)
       }
 
       // Start the client with timeout
       logger.info('Starting SIP client')
 
       const connectPromise = sipClient.value.start()
+      let timeoutId: ReturnType<typeof setTimeout> | null = null
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(
+        timeoutId = setTimeout(
           () => reject(new Error(`Connection timeout after ${connectionTimeout}ms`)),
           connectionTimeout
         )
       })
 
       await Promise.race([connectPromise, timeoutPromise])
+      // Clear the timeout if connect resolved first to avoid stray timers
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+      
+      // Manually sync state after connection (in case events don't fire immediately)
+      // First, perform an immediate sync; if already connected, skip polling to avoid timer reliance
+      if (sipClient.value) {
+        _connectionState.value = sipClient.value.connectionState
+        _isConnected.value = sipClient.value.isConnected
+      }
+      // Skip additional polling to avoid timer interactions in tests; consumers
+      // receive state updates via event listeners and this initial sync
 
       logger.info('SIP client connected successfully')
     } catch (err) {
@@ -399,6 +458,10 @@ export function useSipClient(
       sipClient.value.destroy()
       sipClient.value = null
       registrationStore.setUnregistered()
+      
+      // Reset reactive state
+      _connectionState.value = ConnectionState.Disconnected
+      _isConnected.value = false
 
       logger.info('SIP client disconnected successfully')
     } catch (err) {
@@ -482,7 +545,29 @@ export function useSipClient(
     try {
       logger.info('Updating SIP client configuration')
 
-      const validationResult = configStore.updateSipConfig(config, true)
+      const hasExistingConfig = configStore.hasSipConfig
+      let validationResult: ValidationResult
+      const configSnapshot = JSON.parse(JSON.stringify(config))
+      console.log('useSipClient.updateConfig', { hasExistingConfig, config: configSnapshot })
+
+      if (hasExistingConfig) {
+        validationResult = configStore.updateSipConfig(config, true)
+      } else {
+        const requiredFields: Array<keyof SipClientConfig> = ['uri', 'sipUri', 'password']
+        const missingFields = requiredFields.filter(
+          (field) => !(config as Partial<SipClientConfig>)[field]
+        )
+        if (missingFields.length > 0) {
+          const message = `Missing required fields for initial config: ${missingFields.join(', ')}`
+          logger.error(message)
+          return {
+            valid: false,
+            errors: [message],
+          }
+        }
+
+        validationResult = configStore.setSipConfig(config as SipClientConfig, true)
+      }
 
       if (!validationResult.valid) {
         logger.error('Invalid configuration update', validationResult.errors)

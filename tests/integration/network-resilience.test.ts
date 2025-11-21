@@ -13,6 +13,12 @@ import { SipClient } from '../../src/core/SipClient'
 import { CallSession } from '../../src/core/CallSession'
 import { EventBus } from '../../src/core/EventBus'
 import type { SipClientConfig } from '../../src/types/config.types'
+import {
+  waitForEvent,
+  waitForState,
+  waitForNextTick,
+  flushMicrotasks as flushMicrotasksHelper,
+} from '../utils/test-helpers'
 
 // Mock JsSIP with proper event handler storage
 const createMockUA = () => {
@@ -76,6 +82,19 @@ const createMockUA = () => {
 }
 
 let mockUA = createMockUA()
+
+// Helper: schedule a UA event via the mock after a delay
+function scheduleUAEvent(event: string, data: any, delay = 0) {
+  setTimeout(() => {
+    // Use the mock's triggerEvent to notify listeners
+    if (typeof (mockUA as any).triggerEvent === 'function') {
+      ;(mockUA as any).triggerEvent(event, data)
+    }
+  }, delay)
+}
+
+// Use flushMicrotasks from test-helpers
+const flushMicrotasks = flushMicrotasksHelper
 
 const mockRTCSession = {
   id: 'session-123',
@@ -175,7 +194,7 @@ describe('Network Resilience Integration Tests', () => {
       eventBus.on('call:ended', () => events.push('call:ended'))
 
       // Wait for handlers to be registered
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       // Trigger disconnect using the mock's handlers
       if (mockUA._handlers && mockUA._handlers['disconnected']) {
@@ -184,10 +203,11 @@ describe('Network Resilience Integration Tests', () => {
         })
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
-
-      // Should have detected disconnect
-      expect(sipClient.connectionState).toBe('disconnected')
+      // Wait for disconnect state
+      await waitForState(() => sipClient.connectionState, 'disconnected', {
+        timeout: 1000,
+        description: 'connection state to be disconnected',
+      })
     })
 
     it('should attempt reconnection after disconnect', async () => {
@@ -201,14 +221,18 @@ describe('Network Resilience Integration Tests', () => {
       scheduleUAEvent('connected', {}, 0)
 
       await sipClient.start()
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForState(() => sipClient.connectionState, 'connected', {
+        timeout: 1000,
+        description: 'connection state to be connected',
+      })
 
       // Disconnect
       mockUA.isConnected.mockReturnValue(false)
       await sipClient.stop()
-      await new Promise((resolve) => setTimeout(resolve, 50))
-
-      expect(sipClient.connectionState).toBe('disconnected')
+      await waitForState(() => sipClient.connectionState, 'disconnected', {
+        timeout: 1000,
+        description: 'connection state to be disconnected',
+      })
 
       // Reconnect - clear handlers and set up fresh
       mockUA._onceHandlers = {}
@@ -240,12 +264,13 @@ describe('Network Resilience Integration Tests', () => {
       mockUA.isConnected.mockReturnValue(false) // Start disconnected
       const startPromise = sipClient.start()
       // Wait for handlers to be registered
-      await new Promise((resolve) => setTimeout(resolve, 30))
+      await waitForNextTick()
       mockUA.isConnected.mockReturnValue(true) // Set connected
       await startPromise
-      await new Promise((resolve) => setTimeout(resolve, 150))
-
-      expect(sipClient.connectionState).toBe('connected')
+      await waitForState(() => sipClient.connectionState, 'connected', {
+        timeout: 2000,
+        description: 'connection state to be connected after reconnect',
+      })
     })
   })
 
@@ -271,7 +296,7 @@ describe('Network Resilience Integration Tests', () => {
 
         await sipClient.start()
         // Wait for handlers to be set up, then trigger connected event
-        await new Promise((resolve) => setTimeout(resolve, 20))
+        await waitForNextTick()
         // Trigger connected event for both once and on handlers
         if (mockUA._onceHandlers['connected']) {
           mockUA._onceHandlers['connected'].forEach((h: Function) => {
@@ -284,8 +309,10 @@ describe('Network Resilience Integration Tests', () => {
             h({ socket: { url: 'wss://test.com' } })
           })
         }
-        await new Promise((resolve) => setTimeout(resolve, 50))
-        expect(sipClient.connectionState).toBe('connected')
+        await waitForState(() => sipClient.connectionState, 'connected', {
+          timeout: 1000,
+          description: 'connection state to be connected',
+        })
 
         // Disconnect
         mockUA.isConnected.mockReturnValue(false)
@@ -426,15 +453,12 @@ describe('Network Resilience Integration Tests', () => {
         mockUA._onceHandlers[event].push(handler)
       })
       mockUA.isConnected.mockReturnValue(true)
-      scheduleUAEvent('connected', {}, 0)
 
-      await sipClient.start()
-      await flushMicrotasks()
-      expect(sipClient.connectionState).toBe('connected')
-
-      // Wait for handlers to be set up, then trigger connected event
-      await new Promise((resolve) => setTimeout(resolve, 20))
-      // Trigger connected event for both once and on handlers
+      // Start connection and wait for handlers to be registered
+      const startPromise = sipClient.start()
+      await waitForNextTick()
+      
+      // Trigger connected event for both once and on handlers BEFORE checking state
       if (mockUA._onceHandlers['connected']) {
         mockUA._onceHandlers['connected'].forEach((h: Function) => {
           h({ socket: { url: 'wss://test.com' } })
@@ -446,7 +470,14 @@ describe('Network Resilience Integration Tests', () => {
           h({ socket: { url: 'wss://test.com' } })
         })
       }
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      
+      // Wait for start to complete and events to propagate
+      await startPromise
+      await flushMicrotasks()
+      await waitForState(() => sipClient.connectionState, 'connected', {
+        timeout: 1000,
+        description: 'connection state to be connected',
+      })
 
       // Disconnect - trigger via handlers
       mockUA.isConnected.mockReturnValue(false)

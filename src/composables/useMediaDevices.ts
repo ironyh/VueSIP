@@ -7,7 +7,7 @@
  * @module composables/useMediaDevices
  */
 
-import { ref, computed, watch, onMounted, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, readonly, type Ref, type ComputedRef } from 'vue'
 import { MediaManager } from '../core/MediaManager'
 import { deviceStore } from '../stores/deviceStore'
 import type { MediaDevice } from '../types/media.types'
@@ -159,6 +159,9 @@ export function useMediaDevices(
   } = {}
 ): UseMediaDevicesReturn {
   const { autoEnumerate = true, autoMonitor = true } = options
+  
+  // Debug: log when composable is called
+  console.log('useMediaDevices: composable called, autoEnumerate:', autoEnumerate, 'window available:', typeof window !== 'undefined')
 
   // ============================================================================
   // Reactive State
@@ -298,11 +301,19 @@ export function useMediaDevices(
    * ```
    */
   const enumerateDevices = async (signal?: AbortSignal): Promise<MediaDevice[]> => {
+    // Debug log for E2E tests
+    if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+      console.log('useMediaDevices.enumerateDevices: called')
+    }
+    
     // Use internal abort signal if none provided (auto-cleanup on unmount)
     const effectiveSignal = signal ?? internalAbortController.value.signal
 
     if (isEnumerating.value) {
       log.debug('Device enumeration already in progress')
+      if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+        console.log('useMediaDevices.enumerateDevices: already in progress, returning cached devices')
+      }
       return allDevices.value
     }
 
@@ -316,6 +327,9 @@ export function useMediaDevices(
       throwIfAborted(effectiveSignal)
 
       log.info('Enumerating devices')
+      if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+        console.log('useMediaDevices.enumerateDevices: starting enumeration')
+      }
 
       let devices: MediaDevice[]
       let rawDevices: MediaDeviceInfo[]
@@ -345,6 +359,12 @@ export function useMediaDevices(
 
       // Update store with raw browser MediaDeviceInfo[]
       deviceStore.setDevices(rawDevices)
+      
+      // Debug log for E2E tests
+      if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+        console.log('useMediaDevices: setDevices called with', rawDevices.length, 'devices')
+        console.log('useMediaDevices: audioInputDevices after setDevices:', deviceStore.audioInputDevices.length)
+      }
 
       log.info(`Enumerated ${devices.length} devices`)
       return devices
@@ -786,13 +806,27 @@ export function useMediaDevices(
   // Initialize on mount
   onMounted(async () => {
     log.debug('Composable mounted')
+    
+    // Debug log for E2E tests
+    if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+      console.log('useMediaDevices: onMounted called, autoEnumerate:', autoEnumerate)
+    }
 
     // Auto-enumerate if enabled
     if (autoEnumerate) {
       try {
+        if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+          console.log('useMediaDevices: calling enumerateDevices() from onMounted')
+        }
         await enumerateDevices()
+        if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+          console.log('useMediaDevices: enumerateDevices() completed')
+        }
       } catch (error) {
         log.error('Auto-enumeration failed:', error)
+        if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+          console.error('useMediaDevices: enumerateDevices() failed:', error)
+        }
       }
     }
 
