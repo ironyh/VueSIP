@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 
+import { toRaw } from 'vue'
 import JsSIP, { type UA, type Socket } from 'jssip'
 import type { UAConfiguration } from 'jssip/lib/UA'
 import type { EventBus } from './EventBus'
@@ -126,8 +127,9 @@ export class SipClient {
   private conferences = new Map<string, ConferenceStateInterface>()
 
   constructor(config: SipClientConfig, eventBus: EventBus) {
-    // Create a shallow copy to avoid Vue proxy issues
-    this.config = { ...config }
+    // Convert to plain object to avoid Vue proxy issues with JsSIP
+    // Use JSON serialization to deep clone and remove proxies
+    this.config = JSON.parse(JSON.stringify(config)) as SipClientConfig
     this.eventBus = eventBus
     this.state = {
       connectionState: ConnectionState.Disconnected,
@@ -1967,7 +1969,7 @@ export class SipClient {
     // Convert to plain object to prevent proxy errors
     try {
       // Access sipUri to trigger any proxy errors early
-      void this.config.sipUri
+      const _ = this.config.sipUri
     } catch (e: any) {
       // If there's a proxy error, convert config to plain object
       logger.warn('Config is a Vue proxy, converting to plain object for JsSIP compatibility', e.message)

@@ -7,7 +7,7 @@
  * @module composables/useSipClient
  */
 
-import { ref, computed, onUnmounted, readonly, nextTick, watch, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onUnmounted, readonly, nextTick, toRaw, watch, type Ref, type ComputedRef } from 'vue'
 import { SipClient } from '@/core/SipClient'
 import { EventBus } from '@/core/EventBus'
 import { configStore } from '@/stores/configStore'
@@ -268,14 +268,15 @@ export function useSipClient(
     listeners.push({
       event: 'sip:connected',
       id: eventBus.on('sip:connected', () => {
+        console.log('[useSipClient] sip:connected event received!')
         logger.debug('SIP client connected')
         error.value = null
         // Update reactive state
-        logger.debug('Updating _connectionState to Connected')
+        console.log('[useSipClient] Updating _connectionState to Connected')
         _connectionState.value = ConnectionState.Connected
-        logger.debug('Updating _isConnected to true')
+        console.log('[useSipClient] Updating _isConnected to true')
         _isConnected.value = true
-        logger.debug('State updated. connectionState:', _connectionState.value, 'isConnected:', _isConnected.value)
+        console.log('[useSipClient] State updated. connectionState:', _connectionState.value, 'isConnected:', _isConnected.value)
       }),
     })
 
@@ -396,7 +397,7 @@ export function useSipClient(
         logger.info('Creating SIP client')
         // Extract raw config object from Vue reactivity system
         const plainConfig = JSON.parse(JSON.stringify(config)) as SipClientConfig
-        logger.debug('Connecting with config', plainConfig)
+        console.log('useSipClient.connect plainConfig', plainConfig)
         sipClient.value = new SipClient(plainConfig, eventBus)
       }
 
@@ -547,7 +548,7 @@ export function useSipClient(
       const hasExistingConfig = configStore.hasSipConfig
       let validationResult: ValidationResult
       const configSnapshot = JSON.parse(JSON.stringify(config))
-      logger.debug('Updating config', { hasExistingConfig, config: configSnapshot })
+      console.log('useSipClient.updateConfig', { hasExistingConfig, config: configSnapshot })
 
       if (hasExistingConfig) {
         validationResult = configStore.updateSipConfig(config, true)
