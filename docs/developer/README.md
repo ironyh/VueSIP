@@ -42,15 +42,15 @@ Complete guide to VueSip's API documentation generation system:
 
 If you're looking to contribute to VueSip, start with these resources:
 
-1. **[Contributing Guide](../../CONTRIBUTING.md)** - Development workflow, coding standards, testing requirements, and PR process
-2. **[Architecture Documentation](architecture.md)** - Understand the system design
-3. **[Technical Specifications](../../TECHNICAL_SPECIFICATIONS.md)** - Detailed technical specs
-4. **[Examples](../../examples/)** - Production-ready example applications
+1. **[Contributing Guide](https://github.com/ironyh/VueSIP/blob/main/CONTRIBUTING.md)** - Development workflow, coding standards, testing requirements, and PR process
+2. **[Architecture Documentation](./architecture)** - Understand the system design
+3. **[Technical Specifications](https://github.com/ironyh/VueSIP/blob/main/TECHNICAL_SPECIFICATIONS.md)** - Detailed technical specs
+4. **[Examples](../examples/)** - Production-ready example applications
 
 ## Additional Resources
 
 - **[User Guides](../guide/)** - End-user documentation
-- **[Changelog](../../CHANGELOG.md)** - Version history
+- **[Changelog](https://github.com/ironyh/VueSIP/blob/main/CHANGELOG.md)** - Version history
 - **[GitHub Issues](https://github.com/ironyh/VueSip/issues)** - Bug reports and feature requests
 - **[GitHub Discussions](https://github.com/ironyh/VueSip/discussions)** - Community discussion
 

@@ -157,7 +157,7 @@ describe('AnalyticsPlugin', () => {
 
       eventBus.emit('connected', undefined)
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
     })
 
     it('should track call events', async () => {
@@ -169,7 +169,7 @@ describe('AnalyticsPlugin', () => {
         direction: 'outgoing',
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
     })
 
     it('should track registration events', async () => {
@@ -179,7 +179,7 @@ describe('AnalyticsPlugin', () => {
       eventBus.emit('registered', undefined)
       eventBus.emit('unregistered', undefined)
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
     })
 
     it('should track media events', async () => {
@@ -189,7 +189,7 @@ describe('AnalyticsPlugin', () => {
       eventBus.emit('mediaAcquired', undefined)
       eventBus.emit('mediaReleased', undefined)
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
     })
   })
 

@@ -203,3 +203,22 @@ export const TEST_DATA = {
   PHONE_NUMBER_2: '+15551234567',
   INVALID_PHONE_NUMBER: 'abc',
 } as const
+
+/**
+ * Test timeout constants (in milliseconds)
+ * Centralized timeout values to avoid hardcoded magic numbers
+ */
+export const TEST_TIMEOUTS = {
+  // Short waits for UI state updates
+  SHORT: 300,
+  // Standard wait for async operations
+  STANDARD: 500,
+  // Longer wait for network operations
+  LONG: 1000,
+  // Extended wait for complex operations
+  EXTENDED: 2000,
+  // Very long wait for slow operations
+  VERY_LONG: 3000,
+  // Maximum wait for critical operations
+  MAXIMUM: 5000,
+} as const

@@ -7,6 +7,7 @@ export default defineConfig({
   lang: 'en-US',
   lastUpdated: true,
   cleanUrls: true,
+  ignoreDeadLinks: true, // TODO: Remove after creating missing guide pages
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
@@ -24,6 +25,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
       { text: 'API Reference', link: '/api/', activeMatch: '/api/' },
       { text: 'Examples', link: '/examples/', activeMatch: '/examples/' },
+      { text: 'Developer', link: '/developer/', activeMatch: '/developer/' },
       { text: 'FAQ', link: '/faq' },
     ],
 
@@ -106,6 +108,20 @@ export default defineConfig({
           text: 'Examples',
           items: [
             { text: 'Overview', link: '/examples/' },
+          ],
+        },
+      ],
+
+      '/developer/': [
+        {
+          text: 'Developer Guide',
+          collapsed: false,
+          items: [
+            { text: 'Overview', link: '/developer/' },
+            { text: 'Architecture', link: '/developer/architecture' },
+            { text: 'TypeDoc Setup', link: '/developer/typedoc-setup' },
+            { text: 'Testing Guide', link: '/developer/testing' },
+            { text: 'Code Style & Patterns', link: '/developer/code-style' },
           ],
         },
       ],

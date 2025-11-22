@@ -4,7 +4,7 @@
 **Last Updated:** 2025-11-08
 **Target Audience:** Developers, Technical Architects, Contributors
 
-> **Note:** If you're looking to contribute to VueSip, please also see our [Contributing Guide](../../CONTRIBUTING.md) for development workflow, coding standards, and PR process.
+> **Note:** If you're looking to contribute to VueSip, please also see our [Contributing Guide](https://github.com/ironyh/VueSIP/blob/main/CONTRIBUTING.md) for development workflow, coding standards, and PR process.
 
 ---
 
@@ -49,7 +49,7 @@ VueSip is a headless Vue.js component library that provides comprehensive SIP (S
 - **WebRTC**: Native browser APIs for media handling
 - **Vite 5.0+**: Build tool and development server
 
-> **Note on SIP Library Support:** VueSip is designed to support multiple SIP libraries (JsSIP, SIP.js, etc.) through an adapter pattern. Currently, JsSIP is the implemented adapter. See [Adapter Architecture](../../src/adapters/README.md) and [Adapter Roadmap](../../ADAPTER_ROADMAP.md) for details on multi-library support.
+> **Note on SIP Library Support:** VueSip is designed to support multiple SIP libraries (JsSIP, SIP.js, etc.) through an adapter pattern. Currently, JsSIP is the implemented adapter. See [Adapter Architecture](https://github.com/ironyh/VueSIP/blob/main/src/adapters/README.md) and [Adapter Roadmap](https://github.com/ironyh/VueSIP/blob/main/ADAPTER_ROADMAP.md) for details on multi-library support.
 
 ---
 
@@ -206,9 +206,9 @@ The **Protocol Layer** handles low-level communication protocols and browser API
 - `STUN/TURN`: NAT traversal
 
 **Isolation:**
-This layer is completely isolated from Vue and application logic through the adapter pattern. Different SIP libraries can be used by implementing the `ISipAdapter` interface. See [Adapter Architecture](../../src/adapters/README.md) for details.
+This layer is completely isolated from Vue and application logic through the adapter pattern. Different SIP libraries can be used by implementing the `ISipAdapter` interface. See [Adapter Architecture](https://github.com/ironyh/VueSIP/blob/main/src/adapters/README.md) for details.
 
-> **SIP Library Adapters:** VueSip uses an adapter pattern to support multiple SIP libraries. Currently implemented: JsSIP. Planned: SIP.js. See [Adapter Roadmap](../../ADAPTER_ROADMAP.md).
+> **SIP Library Adapters:** VueSip uses an adapter pattern to support multiple SIP libraries. Currently implemented: JsSIP. Planned: SIP.js. See [Adapter Roadmap](https://github.com/ironyh/VueSIP/blob/main/ADAPTER_ROADMAP.md).
 
 ### Layer 2: Business Logic Layer
 
@@ -1301,7 +1301,7 @@ const credentials = await decrypt(encrypted, userKey)
 - Custom implementation (too much effort)
 
 **Future Support:**
-VueSip uses an adapter pattern (see [Adapter Architecture](../../src/adapters/README.md)) that allows runtime selection of SIP libraries. JsSIP is currently the default and only implemented adapter, but SIP.js support is planned. This provides library flexibility without changing application code.
+VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ironyh/VueSIP/blob/main/src/adapters/README.md)) that allows runtime selection of SIP libraries. JsSIP is currently the default and only implemented adapter, but SIP.js support is planned. This provides library flexibility without changing application code.
 
 ### 4. Event-Driven Architecture
 
@@ -1516,8 +1516,8 @@ The four-layer architecture (Protocol → Business Logic → Composable → Inte
 
 ## Additional Resources
 
-- **Adapter Architecture**: `/src/adapters/README.md` - Multi-library SIP support design
-- **Adapter Roadmap**: `/ADAPTER_ROADMAP.md` - Implementation plan for SIP library adapters
+- **[Adapter Architecture](https://github.com/ironyh/VueSIP/blob/main/src/adapters/README.md)** - Multi-library SIP support design
+- **[Adapter Roadmap](https://github.com/ironyh/VueSIP/blob/main/ADAPTER_ROADMAP.md)** - Implementation plan for SIP library adapters
 - **Technical Specifications**: `/TECHNICAL_SPECIFICATIONS.md`
 - **Contributing Guide**: `/CONTRIBUTING.md` - Developer guidelines and workflow
 - **API Documentation**: `/docs/api/`

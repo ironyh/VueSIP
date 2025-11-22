@@ -4,6 +4,7 @@
  * Tests the complete SIP workflow including connection, registration, calls, and media.
  */
 
+/* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
@@ -21,6 +22,7 @@ import {
   waitForNextTick,
   waitForCondition,
   flushMicrotasks,
+  waitFor,
 } from '../utils/test-helpers'
 
 // Mock JsSIP to use our MockSipServer
@@ -37,9 +39,9 @@ vi.mock('jssip', () => {
         }
         // Fallback: create a temporary one
         if (!mockSipServer) {
-          mockSipServer = createMockSipServer({
+          mockSipServer = createMockSipServer({ 
             autoRegister: false,
-            networkLatency: 0,
+            networkLatency: 0
           })
         }
         return mockSipServer.getUA()
@@ -159,11 +161,11 @@ describe('SIP Workflow Integration Tests', () => {
     vi.clearAllMocks()
 
     eventBus = new EventBus()
-    mockSipServer = createMockSipServer({
+    mockSipServer = createMockSipServer({ 
       autoRegister: false,
-      networkLatency: 0, // Disable latency for CI reliability
+      networkLatency: 0 // Disable latency for CI reliability
     })
-
+    
     // Store mock server globally so JsSIP mock can access it
     ;(global as any).__mockSipServer = mockSipServer
 
@@ -255,10 +257,10 @@ describe('SIP Workflow Integration Tests', () => {
 
       // Make call through SipClient to ensure proper lifecycle setup
       const callPromise = sipClient.call('sip:remote@example.com')
-
+      
       // Wait for CallSession to be created and handlers registered
       await waitForNextTick()
-
+      
       const callSession = await callPromise
 
       // Simulate call progress with proper response object
@@ -315,7 +317,7 @@ describe('SIP Workflow Integration Tests', () => {
       mockUA.call.mockReturnValue(session)
 
       const callSession = await sipClient.call('sip:remote@example.com')
-
+      
       // Wait for handlers to be registered
       await waitForNextTick()
 
@@ -364,9 +366,9 @@ describe('SIP Workflow Integration Tests', () => {
         configurable: true,
       })
 
-      await expect(mediaManager.getUserMedia({ audio: true, video: false })).rejects.toThrow(
-        'Permission denied'
-      )
+      await expect(
+        mediaManager.getUserMedia({ audio: true, video: false })
+      ).rejects.toThrow('Permission denied')
     })
   })
 
@@ -485,12 +487,12 @@ describe('SIP Workflow Integration Tests', () => {
       mockSipServer.simulateHold(session, 'local')
       await waitForNextTick()
       await flushMicrotasks()
-
+      
       // Wait for hold state to be set
-      await waitForCondition(() => callSession.state === 'held' || session.localHold === true, {
-        timeout: 1000,
-        description: 'call to be held',
-      })
+      await waitForCondition(
+        () => callSession.state === 'held' || session.localHold === true,
+        { timeout: 1000, description: 'call to be held' }
+      )
 
       // Now unhold
       await callSession.unhold()
@@ -528,23 +530,26 @@ describe('SIP Workflow Integration Tests', () => {
 
       mockSipServer.simulateConnect()
       await sipClient.start()
-
+      
       // Wait for connection state to be updated
-      await waitFor(() => sipClient.isConnected, {
-        timeout: 1000,
-        timeoutMessage: 'Connection not established',
-      })
+      await waitFor(() => sipClient.isConnected, { timeout: 1000, timeoutMessage: 'Connection not established' })
 
       mockSipServer.simulateRegistered()
       await sipClient.register()
 
-      // Wait for events to propagate
-      await waitForEvents(eventBus, ['sip:connected', 'sip:registered'], 1000)
+      // Wait for registration state to be updated
+      await waitFor(() => sipClient.registrationState === RegistrationState.Registered, {
+        timeout: 1000,
+        timeoutMessage: 'Registration not completed'
+      })
 
       expect(sipClient.isConnected).toBe(true)
       expect(sipClient.registrationState).toBe(RegistrationState.Registered)
-      expect(events).toContainEqual(expect.objectContaining({ type: 'connected' }))
-      expect(events).toContainEqual(expect.objectContaining({ type: 'registered' }))
+
+      // Verify events were propagated
+      await waitFor(() => events.length > 0, { timeout: 1000 })
+      expect(events.some(e => e.type === 'connected')).toBe(true)
+      expect(events.some(e => e.type === 'registered')).toBe(true)
     })
   })
 
@@ -561,7 +566,9 @@ describe('SIP Workflow Integration Tests', () => {
 
     it('should cleanup media on destroy', () => {
       const mockStream = {
-        getTracks: vi.fn().mockReturnValue([{ kind: 'audio', stop: vi.fn() }]),
+        getTracks: vi.fn().mockReturnValue([
+          { kind: 'audio', stop: vi.fn() },
+        ]),
       } as any
 
       // Manually set stream

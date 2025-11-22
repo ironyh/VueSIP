@@ -308,13 +308,23 @@ export function useMediaDevices(
    * // Later: controller.abort()
    * ```
    */
-  const enumerateDevices = (signal?: AbortSignal): Promise<MediaDevice[]> => {
+  const enumerateDevices = async (signal?: AbortSignal): Promise<MediaDevice[]> => {
     // Use internal abort signal if none provided (auto-cleanup on unmount)
     const effectiveSignal = signal ?? internalAbortController.value.signal
 
+    // Check if enumeration is already in progress
     if (isEnumerating.value && enumerationPromise) {
       log.debug('Device enumeration already in progress, returning pending promise')
       return enumerationPromise
+    }
+
+    // Check if cached devices are available and return them immediately
+    const cachedDevices = allDevices.value
+    const hasCachedDevices = cachedDevices.length > 0 && deviceStore.lastEnumerationTime !== null
+    
+    if (hasCachedDevices) {
+      log.debug('Returning cached devices', { count: cachedDevices.length })
+      return cachedDevices
     }
 
     const timer = createOperationTimer()

@@ -468,7 +468,7 @@ describe('RecordingPlugin', () => {
         stream: mockStream,
       })
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(plugin).toBeDefined()
     })

@@ -806,3 +806,6 @@ export function withSetup<T>(composable: () => T): { result: T; app: App; unmoun
   }
 }
 
+// Re-export waitFor from testUtils for convenience
+export { waitFor } from '../helpers/testUtils'
+

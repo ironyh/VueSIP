@@ -4,7 +4,9 @@
  * Tests for network disconnect, reconnection, and connection thrashing scenarios
  */
 
+/* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SipClient } from '../../src/core/SipClient'
@@ -12,9 +14,11 @@ import { CallSession } from '../../src/core/CallSession'
 import { EventBus } from '../../src/core/EventBus'
 import type { SipClientConfig } from '../../src/types/config.types'
 import {
+  waitForEvent,
   waitForState,
   waitForNextTick,
   flushMicrotasks as flushMicrotasksHelper,
+  wait,
 } from '../utils/test-helpers'
 
 // Mock JsSIP with proper event handler storage
@@ -131,6 +135,18 @@ vi.mock('jssip', () => {
   }
 })
 
+// Helper function to schedule UA events asynchronously
+function scheduleUAEvent(event: string, data: any, delay: number = 0) {
+  setTimeout(() => {
+    mockUA.triggerEvent(event, data)
+  }, delay)
+}
+
+// Helper to flush all pending microtasks
+function flushMicrotasks(): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, 0))
+}
+
 describe('Network Resilience Integration Tests', () => {
   let eventBus: EventBus
   let sipClient: SipClient
@@ -208,6 +224,7 @@ describe('Network Resilience Integration Tests', () => {
     })
 
     it('should attempt reconnection after disconnect', async () => {
+      // eslint-disable-next-line @typescript-eslint/ban-types
       mockUA.once.mockImplementation((event: string, handler: Function) => {
         if (event === 'connected') {
           setTimeout(() => handler({ socket: { url: 'wss://test.com' } }), 10)
@@ -233,7 +250,8 @@ describe('Network Resilience Integration Tests', () => {
       // Reconnect - clear handlers and set up fresh
       mockUA._onceHandlers = {}
       mockUA.isConnected.mockReturnValue(false) // Start as disconnected
-
+      
+      // eslint-disable-next-line @typescript-eslint/ban-types
       mockUA.once.mockImplementation((event: string, handler: Function) => {
         // Store handler in the correct place
         const onceHandlers = mockUA._onceHandlers
@@ -241,7 +259,7 @@ describe('Network Resilience Integration Tests', () => {
           onceHandlers[event] = []
         }
         onceHandlers[event].push(handler)
-
+        
         // Trigger if connected - need to trigger both once and on handlers
         if (event === 'connected') {
           setTimeout(() => {
@@ -276,8 +294,9 @@ describe('Network Resilience Integration Tests', () => {
       for (let i = 0; i < cycles; i++) {
         // Clear handlers for each cycle
         mockUA._onceHandlers = {}
-
+        
         // Connect
+        // eslint-disable-next-line @typescript-eslint/ban-types
         mockUA.once.mockImplementation((event: string, handler: Function) => {
           // Store handler
           if (!mockUA._onceHandlers[event]) {
@@ -326,7 +345,9 @@ describe('Network Resilience Integration Tests', () => {
       for (let i = 0; i < 5; i++) {
         mockUA.isConnected.mockReturnValue(true)
         scheduleUAEvent('connected', {}, 0)
-        promises.push(sipClient.start().then(() => flushMicrotasks()))
+        promises.push(
+          sipClient.start().then(() => flushMicrotasks())
+        )
 
         mockUA.isConnected.mockReturnValue(false)
         scheduleUAEvent('disconnected', {}, 0)
@@ -344,7 +365,8 @@ describe('Network Resilience Integration Tests', () => {
       const initialListenerCount = eventBus.listenerCount()
 
       for (let i = 0; i < 5; i++) {
-        mockUA.once.mockImplementation((event: string, handler: Function) => {
+        // eslint-disable-next-line @typescript-eslint/ban-types
+      mockUA.once.mockImplementation((event: string, handler: Function) => {
           if (event === 'connected') {
             setTimeout(() => handler({ socket: { url: 'wss://test.com' } }), 5)
           }
@@ -381,7 +403,8 @@ describe('Network Resilience Integration Tests', () => {
 
       await sipClient.start()
 
-      scheduleUAEvent('registrationFailed', { cause: 'Network timeout' }, 10)
+      scheduleUAEvent('registrationFailed', { cause: 'Network timeout' }, 0)
+      await waitForNextTick()
 
       await expect(sipClient.register()).rejects.toThrow()
       expect(sipClient.registrationState).toBe('registration_failed')
@@ -392,6 +415,7 @@ describe('Network Resilience Integration Tests', () => {
     it('should handle connection that disconnects immediately after connecting', async () => {
       let connectCount = 0
 
+      // eslint-disable-next-line @typescript-eslint/ban-types
       mockUA.once.mockImplementation((event: string, handler: Function) => {
         // Store handler
         if (!mockUA._onceHandlers[event]) {
@@ -403,7 +427,7 @@ describe('Network Resilience Integration Tests', () => {
 
       await sipClient.start()
       // Wait for handlers to be set up, then trigger connected event
-      await new Promise((resolve) => setTimeout(resolve, 20))
+      await waitForNextTick()
       // Count handlers before clearing
       const onceHandlerCount = mockUA._onceHandlers['connected']?.length || 0
       const onHandlerCount = mockUA._handlers?.['connected']?.length || 0
@@ -420,7 +444,7 @@ describe('Network Resilience Integration Tests', () => {
           h({ socket: { url: 'wss://test.com' } })
         })
       }
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       // Should have connected at least once (handlers were registered)
       expect(connectCount).toBeGreaterThan(0)
@@ -434,6 +458,7 @@ describe('Network Resilience Integration Tests', () => {
       eventBus.on('sip:connection_failed', () => events.push('failed'))
 
       // First attempt - success - need to store AND trigger
+      // eslint-disable-next-line @typescript-eslint/ban-types
       mockUA.once.mockImplementation((event: string, handler: Function) => {
         // Store handler
         if (!mockUA._onceHandlers[event]) {
@@ -446,7 +471,7 @@ describe('Network Resilience Integration Tests', () => {
       // Start connection and wait for handlers to be registered
       const startPromise = sipClient.start()
       await waitForNextTick()
-
+      
       // Trigger connected event for both once and on handlers BEFORE checking state
       if (mockUA._onceHandlers['connected']) {
         mockUA._onceHandlers['connected'].forEach((h: Function) => {
@@ -459,10 +484,10 @@ describe('Network Resilience Integration Tests', () => {
           h({ socket: { url: 'wss://test.com' } })
         })
       }
-
+      
       // Wait for start to complete and events to propagate
       await startPromise
-      await flushMicrotasksHelper()
+      await flushMicrotasks()
       await waitForState(() => sipClient.connectionState, 'connected', {
         timeout: 1000,
         description: 'connection state to be connected',
@@ -470,16 +495,16 @@ describe('Network Resilience Integration Tests', () => {
 
       // Disconnect - trigger via handlers
       mockUA.isConnected.mockReturnValue(false)
-
+      
       // Trigger disconnected event using stored handlers
       if (mockUA._handlers && mockUA._handlers['disconnected']) {
         mockUA._handlers['disconnected'].forEach((handler: Function) => {
           handler({ code: 1000, reason: 'Normal closure' })
         })
       }
-
+      
       await sipClient.stop()
-      await flushMicrotasksHelper()
+      await flushMicrotasks()
       expect(sipClient.connectionState).toBe('disconnected')
     })
   })
@@ -535,6 +560,7 @@ describe('Network Resilience Integration Tests', () => {
 
     it('should handle unexpected WebSocket errors', async () => {
       // Setup mock to trigger disconnected event before connected
+      // eslint-disable-next-line @typescript-eslint/ban-types
       mockUA.once.mockImplementation((event: string, handler: Function) => {
         if (event === 'disconnected') {
           // Trigger disconnected immediately to simulate error

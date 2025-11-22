@@ -41,10 +41,7 @@
   "cleanOutputDir": true,
   "hideGenerator": true,
   "disableSources": false,
-  "hideParameterTypesInTitle": false,
   "useCodeBlocks": true,
-  "stripInternal": true,
-  "blockTagsDocOnly": false,
   "visibilityFilters": {
     "protected": true,
     "private": false,
@@ -65,9 +62,5 @@
   "classPropertiesFormat": "table",
   "enumMembersFormat": "table",
   "typeDeclarationFormat": "table",
-  "propertyMembersFormat": "table",
-  "markedOptions": {
-    "breaks": true,
-    "gfm": true
-  }
+  "propertyMembersFormat": "table"
 }
