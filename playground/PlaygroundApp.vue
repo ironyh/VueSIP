@@ -16,20 +16,63 @@
       <aside class="playground-sidebar">
         <nav>
           <h2>Examples</h2>
+
+          <!-- Search Input -->
+          <div class="search-box">
+            <input
+              v-model="searchQuery"
+              type="search"
+              placeholder="Search demos..."
+              class="search-input"
+              aria-label="Search demos"
+            />
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="clear-search"
+              aria-label="Clear search"
+              type="button"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Filter Stats -->
+          <div v-if="searchQuery" class="filter-stats">
+            Showing {{ filteredExamples.length }} of {{ examples.length }} demos
+          </div>
+
+          <!-- Example List -->
           <ul class="example-list">
             <li
-              v-for="example in examples"
+              v-for="example in filteredExamples"
               :key="example.id"
               :class="{ active: currentExample === example.id }"
               @click="selectExample(example.id)"
             >
               <span class="example-icon">{{ example.icon }}</span>
               <div class="example-info">
-                <h3>{{ example.title }}</h3>
-                <p>{{ example.description }}</p>
+                <h3 v-html="highlightMatch(example.title)"></h3>
+                <p v-html="highlightMatch(example.description)"></p>
+              </div>
+              <!-- Show matching tags when searching -->
+              <div v-if="searchQuery && getMatchingTags(example.tags).length > 0" class="matching-tags">
+                <span
+                  v-for="tag in getMatchingTags(example.tags)"
+                  :key="tag"
+                  class="tag-badge"
+                >
+                  {{ tag }}
+                </span>
               </div>
             </li>
           </ul>
+
+          <!-- No Results Message -->
+          <div v-if="filteredExamples.length === 0" class="no-results">
+            <p>No demos found matching "{{ searchQuery }}"</p>
+            <button @click="searchQuery = ''" type="button" class="btn-secondary">Clear search</button>
+          </div>
         </nav>
 
         <!-- Quick Links -->
@@ -143,11 +186,33 @@ import { allExamples } from './examples'
 
 // Use imported examples
 const examples = allExamples
+
 // State
 const currentExample = ref('basic-call')
 const activeTab = ref<'demo' | 'code' | 'setup'>('demo')
+const searchQuery = ref('')
 
 // Computed
+const filteredExamples = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return examples
+  }
+
+  const query = searchQuery.value.toLowerCase()
+  return examples.filter(example => {
+    // Search in title
+    if (example.title.toLowerCase().includes(query)) return true
+
+    // Search in description
+    if (example.description.toLowerCase().includes(query)) return true
+
+    // Search in tags
+    if (example.tags.some(tag => tag.toLowerCase().includes(query))) return true
+
+    return false
+  })
+})
+
 const activeExample = computed(() => {
   return examples.find((ex) => ex.id === currentExample.value) || examples[0]
 })
@@ -156,6 +221,20 @@ const activeExample = computed(() => {
 const selectExample = (id: string) => {
   currentExample.value = id
   activeTab.value = 'demo'
+}
+
+const highlightMatch = (text: string): string => {
+  if (!searchQuery.value.trim()) return text
+
+  const regex = new RegExp(`(${searchQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  return text.replace(regex, '<mark>$1</mark>')
+}
+
+const getMatchingTags = (tags: string[]): string[] => {
+  if (!searchQuery.value.trim()) return []
+
+  const query = searchQuery.value.toLowerCase()
+  return tags.filter(tag => tag.toLowerCase().includes(query))
 }
 </script>
 
@@ -214,6 +293,115 @@ const selectExample = (id: string) => {
   margin: 0 0 1rem 0;
   font-size: 1.25rem;
   color: #333;
+}
+
+/* Search Box */
+.search-box {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.clear-search {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.125rem;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.clear-search:hover {
+  color: #ef4444;
+}
+
+/* Filter Stats */
+.filter-stats {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* Highlight Mark */
+:deep(mark) {
+  background-color: #fef3c7;
+  color: inherit;
+  padding: 0.125rem 0.25rem;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+/* Matching Tags */
+.matching-tags {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tag-badge {
+  font-size: 0.625rem;
+  padding: 0.125rem 0.375rem;
+  background: #667eea;
+  color: white;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #6b7280;
+}
+
+.no-results p {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
 }
 
 .example-list {
