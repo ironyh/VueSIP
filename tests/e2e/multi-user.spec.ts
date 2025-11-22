@@ -8,7 +8,7 @@
 
 import { test as base, expect, Browser, BrowserContext, Page } from '@playwright/test'
 import { test as fixtureTest, APP_URL } from './fixtures'
-import { SELECTORS, TEST_DATA } from './selectors'
+import { SELECTORS, TEST_DATA, TEST_TIMEOUTS } from './selectors'
 
 // Define user fixture type
 type MultiUserFixtures = {
@@ -271,7 +271,11 @@ test.describe('Two-Party Call Scenarios', () => {
       userB.page.click('[data-testid="connect-button"]'),
     ])
 
-    await Promise.all([userA.page.waitForTimeout(500), userB.page.waitForTimeout(500)])
+    // Wait for both users to be connected
+    await Promise.all([
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+    ])
 
     // User A calls User B
     await userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com')
@@ -317,9 +321,9 @@ test.describe('Conference Call Scenarios', () => {
     ])
 
     await Promise.all([
-      userA.page.waitForTimeout(500),
-      userB.page.waitForTimeout(500),
-      userC.page.waitForTimeout(500),
+      userA.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
+      userB.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
+      userC.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
     ])
 
     // User A initiates calls to both B and C (if supported)
@@ -486,10 +490,11 @@ test.describe('Concurrent Operations', () => {
       userC.page.click('[data-testid="connect-button"]'),
     ])
 
+    // Wait for all users to be connected
     await Promise.all([
-      userA.page.waitForTimeout(1000),
-      userB.page.waitForTimeout(1000),
-      userC.page.waitForTimeout(1000),
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userC.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
     ])
 
     // All should be connected
@@ -524,9 +529,9 @@ test.describe('Concurrent Operations', () => {
     ])
 
     await Promise.all([
-      userA.page.waitForTimeout(500),
-      userB.page.waitForTimeout(500),
-      userC.page.waitForTimeout(500),
+      userA.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
+      userB.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
+      userC.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
     ])
 
     // All make calls simultaneously
@@ -543,9 +548,9 @@ test.describe('Concurrent Operations', () => {
     ])
 
     await Promise.all([
-      userA.page.waitForTimeout(500),
-      userB.page.waitForTimeout(500),
-      userC.page.waitForTimeout(500),
+      userA.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
+      userB.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
+      userC.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
     ])
 
     // All should have initiated calls

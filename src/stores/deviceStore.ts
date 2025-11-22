@@ -7,7 +7,7 @@
  * @module stores/deviceStore
  */
 
-import { reactive, computed, readonly } from 'vue'
+import { reactive, computed, readonly, nextTick } from 'vue'
 import type { MediaDevice } from '../types/media.types'
 import { MediaDeviceKind, PermissionStatus } from '../types/media.types'
 import { createLogger } from '../utils/logger'
@@ -693,6 +693,6 @@ if (typeof window !== 'undefined') {
       }
     }
     // Check on next tick as well in case location isn't ready yet
-    setTimeout(checkAndExpose, 0)
+    nextTick(checkAndExpose)
   }
 }

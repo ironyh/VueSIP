@@ -18,6 +18,7 @@ import {
   waitForState,
   waitForNextTick,
   flushMicrotasks as flushMicrotasksHelper,
+  wait,
 } from '../utils/test-helpers'
 
 // Mock JsSIP with proper event handler storage
@@ -402,7 +403,8 @@ describe('Network Resilience Integration Tests', () => {
 
       await sipClient.start()
 
-      scheduleUAEvent('registrationFailed', { cause: 'Network timeout' }, 10)
+      scheduleUAEvent('registrationFailed', { cause: 'Network timeout' }, 0)
+      await waitForNextTick()
 
       await expect(sipClient.register()).rejects.toThrow()
       expect(sipClient.registrationState).toBe('registration_failed')
@@ -425,7 +427,7 @@ describe('Network Resilience Integration Tests', () => {
 
       await sipClient.start()
       // Wait for handlers to be set up, then trigger connected event
-      await new Promise((resolve) => setTimeout(resolve, 20))
+      await waitForNextTick()
       // Count handlers before clearing
       const onceHandlerCount = mockUA._onceHandlers['connected']?.length || 0
       const onHandlerCount = mockUA._handlers?.['connected']?.length || 0
@@ -442,7 +444,7 @@ describe('Network Resilience Integration Tests', () => {
           h({ socket: { url: 'wss://test.com' } })
         })
       }
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       // Should have connected at least once (handlers were registered)
       expect(connectCount).toBeGreaterThan(0)
@@ -466,27 +468,11 @@ describe('Network Resilience Integration Tests', () => {
       })
       mockUA.isConnected.mockReturnValue(true)
 
-<<<<<<< HEAD
       // Start connection and wait for handlers to be registered
       const startPromise = sipClient.start()
       await waitForNextTick()
       
       // Trigger connected event for both once and on handlers BEFORE checking state
-=======
-      await sipClient.start()
-      await flushMicrotasks()
-      
-      // Wait for connection state to update
-      await waitFor(() => sipClient.connectionState === 'connected', { 
-        timeout: 1000,
-        timeoutMessage: 'Connection state did not become connected' 
-      })
-      expect(sipClient.connectionState).toBe('connected')
-
-      // Wait for handlers to be set up, then trigger connected event
-      await new Promise((resolve) => setTimeout(resolve, 20))
-      // Trigger connected event for both once and on handlers
->>>>>>> origin/main
       if (mockUA._onceHandlers['connected']) {
         mockUA._onceHandlers['connected'].forEach((h: Function) => {
           h({ socket: { url: 'wss://test.com' } })

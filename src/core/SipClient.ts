@@ -4,7 +4,6 @@
  * @packageDocumentation
  */
 
-import { toRaw } from 'vue'
 import JsSIP, { type UA, type Socket } from 'jssip'
 import type { UAConfiguration } from 'jssip/lib/UA'
 import type { EventBus } from './EventBus'
@@ -52,6 +51,8 @@ import type {
   ConferenceRecordingStoppedEvent,
   AudioMutedEvent,
   AudioUnmutedEvent,
+  VideoDisabledEvent,
+  VideoEnabledEvent,
   PresencePublishEvent,
   PresenceSubscribeEvent,
   PresenceUnsubscribeEvent,
@@ -119,6 +120,7 @@ export class SipClient {
   private presenceSubscriptions = new Map<string, any>()
   private presencePublications = new Map<string, { etag: string; expires: number }>()
   private isMuted = false
+  private isVideoDisabled = false
 
   // Conference management
   private conferences = new Map<string, ConferenceStateInterface>()
@@ -262,9 +264,9 @@ export class SipClient {
       // Wait for connection
       let connectionSucceeded = false
       try {
-        console.log('[SipClient] Calling waitForConnection()')
+        logger.debug('Calling waitForConnection()')
         await this.waitForConnection()
-        console.log('[SipClient] waitForConnection() succeeded')
+        logger.debug('waitForConnection() succeeded')
         connectionSucceeded = true
       } catch (error) {
         // If waitForConnection rejects with "Connection failed", it means a disconnected
@@ -272,15 +274,13 @@ export class SipClient {
         const errorMessage = error instanceof Error ? error.message : String(error)
         if (errorMessage === 'Connection failed') {
           // Connection explicitly failed (disconnected event fired) - rethrow
-          console.log('[SipClient] waitForConnection() failed with Connection failed, rejecting')
           logger.error('Connection failed during start:', error)
           throw error
         }
-        
+
         // For timeout errors, we may use the fallback in test environments
         // In test environments (like Playwright), JsSIP may not emit 'connected'
         // even though the WebSocket is open. Log the error but continue to fallback.
-        console.log('[SipClient] waitForConnection() failed (timeout), will use fallback:', error)
         logger.warn('waitForConnection failed (timeout), will use fallback:', error)
       }
 
@@ -289,7 +289,7 @@ export class SipClient {
       // the state/event bus reflects the connected status in that case.
       // Only use fallback if connection didn't succeed and didn't explicitly fail
       if (!connectionSucceeded) {
-        console.log('[SipClient] Calling ensureConnectedEvent fallback')
+        logger.debug('Calling ensureConnectedEvent fallback')
         this.ensureConnectedEvent(this.config.uri, 'waitForConnection:fallback')
       }
 
@@ -1449,6 +1449,94 @@ export class SipClient {
   }
 
   /**
+   * Disable video on all active calls
+   */
+  async disableVideo(): Promise<void> {
+    if (this.isVideoDisabled) {
+      logger.debug('Video is already disabled')
+      return
+    }
+
+    logger.info('Disabling video on all active calls')
+    let disabledCount = 0
+    let errorCount = 0
+
+    // Disable all active call video tracks
+    this.activeCalls.forEach((session) => {
+      if (session && session.connection) {
+        try {
+          const senders = session.connection.getSenders()
+          senders.forEach((sender: RTCRtpSender) => {
+            try {
+              if (sender.track && sender.track.kind === 'video') {
+                sender.track.enabled = false
+                disabledCount++
+              }
+            } catch (error) {
+              errorCount++
+              logger.error('Failed to disable video track:', error)
+            }
+          })
+        } catch (error) {
+          errorCount++
+          logger.error('Failed to get senders from connection:', error)
+        }
+      }
+    })
+
+    this.isVideoDisabled = true
+    this.eventBus.emitSync('sip:video:disabled', {
+      type: 'sip:video:disabled',
+      timestamp: new Date(),
+    } satisfies VideoDisabledEvent)
+    logger.info(`Disabled ${disabledCount} video tracks (${errorCount} errors)`)
+  }
+
+  /**
+   * Enable video on all active calls
+   */
+  async enableVideo(): Promise<void> {
+    if (!this.isVideoDisabled) {
+      logger.debug('Video is not disabled')
+      return
+    }
+
+    logger.info('Enabling video on all active calls')
+    let enabledCount = 0
+    let errorCount = 0
+
+    // Enable all active call video tracks
+    this.activeCalls.forEach((session) => {
+      if (session && session.connection) {
+        try {
+          const senders = session.connection.getSenders()
+          senders.forEach((sender: RTCRtpSender) => {
+            try {
+              if (sender.track && sender.track.kind === 'video') {
+                sender.track.enabled = true
+                enabledCount++
+              }
+            } catch (error) {
+              errorCount++
+              logger.error('Failed to enable video track:', error)
+            }
+          })
+        } catch (error) {
+          errorCount++
+          logger.error('Failed to get senders from connection:', error)
+        }
+      }
+    })
+
+    this.isVideoDisabled = false
+    this.eventBus.emitSync('sip:video:enabled', {
+      type: 'sip:video:enabled',
+      timestamp: new Date(),
+    } satisfies VideoEnabledEvent)
+    logger.info(`Enabled ${enabledCount} video tracks (${errorCount} errors)`)
+  }
+
+  /**
    * Clean up resources
    */
   destroy(): void {
@@ -1477,8 +1565,9 @@ export class SipClient {
       this.presenceSubscriptions.clear()
       this.presencePublications.clear()
 
-      // Reset mute state
+      // Reset mute and video state
       this.isMuted = false
+      this.isVideoDisabled = false
 
       logger.info('SIP client destroyed and all resources cleared')
     } catch (error) {
@@ -1879,7 +1968,7 @@ export class SipClient {
     // Convert to plain object to prevent proxy errors
     try {
       // Access sipUri to trigger any proxy errors early
-      const _ = this.config.sipUri
+      void this.config.sipUri
     } catch (e: any) {
       // If there's a proxy error, convert config to plain object
       logger.warn('Config is a Vue proxy, converting to plain object for JsSIP compatibility', e.message)

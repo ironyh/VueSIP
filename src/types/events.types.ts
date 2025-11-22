@@ -206,6 +206,10 @@ export interface EventMap {
   'sip:audio:muted': AudioMutedEvent
   'sip:audio:unmuted': AudioUnmutedEvent
 
+  // Video events
+  'sip:video:disabled': VideoDisabledEvent
+  'sip:video:enabled': VideoEnabledEvent
+
   // Presence events
   'sip:presence:publish': PresencePublishEvent
   'sip:presence:subscribe': PresenceSubscribeEvent
@@ -458,6 +462,20 @@ export interface AudioMutedEvent extends BaseEvent {
  */
 export interface AudioUnmutedEvent extends BaseEvent {
   type: 'sip:audio:unmuted'
+}
+
+/**
+ * Video Disabled event
+ */
+export interface VideoDisabledEvent extends BaseEvent {
+  type: 'sip:video:disabled'
+}
+
+/**
+ * Video Enabled event
+ */
+export interface VideoEnabledEvent extends BaseEvent {
+  type: 'sip:video:enabled'
 }
 
 /**
