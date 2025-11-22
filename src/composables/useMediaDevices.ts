@@ -314,7 +314,7 @@ export function useMediaDevices(
    * // Later: controller.abort()
    * ```
    */
-  const enumerateDevices = (signal?: AbortSignal): Promise<MediaDevice[]> => {
+  const enumerateDevices = async (signal?: AbortSignal): Promise<MediaDevice[]> => {
     // Debug log for E2E tests
     if (isDebugMode()) {
       console.log('useMediaDevices.enumerateDevices: called')
@@ -323,12 +323,25 @@ export function useMediaDevices(
     // Use internal abort signal if none provided (auto-cleanup on unmount)
     const effectiveSignal = signal ?? internalAbortController.value.signal
 
+    // Check if enumeration is already in progress
     if (isEnumerating.value && enumerationPromise) {
       log.debug('Device enumeration already in progress, returning pending promise')
       if (isDebugMode()) {
         console.log('useMediaDevices.enumerateDevices: already in progress, returning pending promise')
       }
       return enumerationPromise
+    }
+
+    // Check if cached devices are available and return them immediately
+    const cachedDevices = allDevices.value
+    const hasCachedDevices = cachedDevices.length > 0 && deviceStore.lastEnumerationTime !== null
+    
+    if (hasCachedDevices) {
+      log.debug('Returning cached devices', { count: cachedDevices.length })
+      if (isDebugMode()) {
+        console.log('useMediaDevices.enumerateDevices: returning cached devices', cachedDevices.length)
+      }
+      return cachedDevices
     }
 
     const timer = createOperationTimer()
@@ -836,18 +849,9 @@ export function useMediaDevices(
     // Auto-enumerate if enabled
     if (autoEnumerate) {
       try {
-        if (isDebugMode()) {
-          console.log('useMediaDevices: calling enumerateDevices() from onMounted')
-        }
         await enumerateDevices()
-        if (isDebugMode()) {
-          console.log('useMediaDevices: enumerateDevices() completed')
-        }
       } catch (error) {
         log.error('Auto-enumeration failed:', error)
-        if (isDebugMode()) {
-          console.error('useMediaDevices: enumerateDevices() failed:', error)
-        }
       }
     }
 

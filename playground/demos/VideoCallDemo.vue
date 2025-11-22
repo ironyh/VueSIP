@@ -172,6 +172,7 @@ const {
   makeCall,
   answer,
   hangup,
+  toggleVideo,
   localStream,
   remoteStream,
   hasLocalVideo: hasLocalVideoFromSession
@@ -196,8 +197,8 @@ await answer({
   video: true
 })
 
-// Note: Video is enabled when making/answering calls with { video: true }
-// There's no toggle method - video state is controlled via call options
+// Toggle video during call
+toggleVideo() // Enable/disable video track
 
 // Change camera
 selectVideoInput(deviceId)
@@ -245,6 +246,7 @@ const {
   hangup,
   mute,
   unmute,
+  toggleVideo,
   hasLocalVideo: hasLocalVideoFromSession,
 } = useCallSession(sipClientRef)
 
@@ -327,12 +329,9 @@ const handleToggleMute = async () => {
   }
 }
 
-const handleToggleVideo = async () => {
+const handleToggleVideo = () => {
   try {
-    if (hasLocalVideoFromSession.value) {
-      // Video cannot be toggled during call - it's set when making/answering
-      console.log('Video toggle not supported - video is set at call start')
-    }
+    toggleVideo()
   } catch (error) {
     console.error('Toggle video error:', error)
     alert(`Failed to toggle video: ${error instanceof Error ? error.message : 'Unknown error'}`)

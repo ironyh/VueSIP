@@ -109,6 +109,12 @@ export interface UseCallSessionReturn {
   unmute: () => void
   /** Toggle mute state */
   toggleMute: () => void
+  /** Disable video */
+  disableVideo: () => void
+  /** Enable video */
+  enableVideo: () => void
+  /** Toggle video state */
+  toggleVideo: () => void
   /** Send DTMF tone */
   sendDTMF: (tone: string, options?: DTMFOptions) => Promise<void>
   /** Get call statistics */
@@ -819,6 +825,43 @@ export function useCallSession(
   }
 
   /**
+   * Disable video
+   */
+  const disableVideo = (): void => {
+    if (!session.value) {
+      log.debug('No active session to disable video')
+      return
+    }
+
+    log.debug(`Disabling video for call: ${session.value.id}`)
+    session.value.disableVideo()
+  }
+
+  /**
+   * Enable video
+   */
+  const enableVideo = (): void => {
+    if (!session.value) {
+      log.debug('No active session to enable video')
+      return
+    }
+
+    log.debug(`Enabling video for call: ${session.value.id}`)
+    session.value.enableVideo()
+  }
+
+  /**
+   * Toggle video state
+   */
+  const toggleVideo = (): void => {
+    if (!hasLocalVideo.value) {
+      enableVideo()
+    } else {
+      disableVideo()
+    }
+  }
+
+  /**
    * Send DTMF tone
    *
    * @param tone - DTMF tone (0-9, *, #, A-D)
@@ -957,6 +1000,9 @@ export function useCallSession(
     mute,
     unmute,
     toggleMute,
+    disableVideo,
+    enableVideo,
+    toggleVideo,
     sendDTMF,
     getStats,
     clearSession,

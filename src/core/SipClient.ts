@@ -51,6 +51,8 @@ import type {
   ConferenceRecordingStoppedEvent,
   AudioMutedEvent,
   AudioUnmutedEvent,
+  VideoDisabledEvent,
+  VideoEnabledEvent,
   PresencePublishEvent,
   PresenceSubscribeEvent,
   PresenceUnsubscribeEvent,
@@ -118,6 +120,7 @@ export class SipClient {
   private presenceSubscriptions = new Map<string, any>()
   private presencePublications = new Map<string, { etag: string; expires: number }>()
   private isMuted = false
+  private isVideoDisabled = false
 
   // Conference management
   private conferences = new Map<string, ConferenceStateInterface>()
@@ -1445,6 +1448,94 @@ export class SipClient {
   }
 
   /**
+   * Disable video on all active calls
+   */
+  async disableVideo(): Promise<void> {
+    if (this.isVideoDisabled) {
+      logger.debug('Video is already disabled')
+      return
+    }
+
+    logger.info('Disabling video on all active calls')
+    let disabledCount = 0
+    let errorCount = 0
+
+    // Disable all active call video tracks
+    this.activeCalls.forEach((session) => {
+      if (session && session.connection) {
+        try {
+          const senders = session.connection.getSenders()
+          senders.forEach((sender: RTCRtpSender) => {
+            try {
+              if (sender.track && sender.track.kind === 'video') {
+                sender.track.enabled = false
+                disabledCount++
+              }
+            } catch (error) {
+              errorCount++
+              logger.error('Failed to disable video track:', error)
+            }
+          })
+        } catch (error) {
+          errorCount++
+          logger.error('Failed to get senders from connection:', error)
+        }
+      }
+    })
+
+    this.isVideoDisabled = true
+    this.eventBus.emitSync('sip:video:disabled', {
+      type: 'sip:video:disabled',
+      timestamp: new Date(),
+    } satisfies VideoDisabledEvent)
+    logger.info(`Disabled ${disabledCount} video tracks (${errorCount} errors)`)
+  }
+
+  /**
+   * Enable video on all active calls
+   */
+  async enableVideo(): Promise<void> {
+    if (!this.isVideoDisabled) {
+      logger.debug('Video is not disabled')
+      return
+    }
+
+    logger.info('Enabling video on all active calls')
+    let enabledCount = 0
+    let errorCount = 0
+
+    // Enable all active call video tracks
+    this.activeCalls.forEach((session) => {
+      if (session && session.connection) {
+        try {
+          const senders = session.connection.getSenders()
+          senders.forEach((sender: RTCRtpSender) => {
+            try {
+              if (sender.track && sender.track.kind === 'video') {
+                sender.track.enabled = true
+                enabledCount++
+              }
+            } catch (error) {
+              errorCount++
+              logger.error('Failed to enable video track:', error)
+            }
+          })
+        } catch (error) {
+          errorCount++
+          logger.error('Failed to get senders from connection:', error)
+        }
+      }
+    })
+
+    this.isVideoDisabled = false
+    this.eventBus.emitSync('sip:video:enabled', {
+      type: 'sip:video:enabled',
+      timestamp: new Date(),
+    } satisfies VideoEnabledEvent)
+    logger.info(`Enabled ${enabledCount} video tracks (${errorCount} errors)`)
+  }
+
+  /**
    * Clean up resources
    */
   destroy(): void {
@@ -1473,8 +1564,9 @@ export class SipClient {
       this.presenceSubscriptions.clear()
       this.presencePublications.clear()
 
-      // Reset mute state
+      // Reset mute and video state
       this.isMuted = false
+      this.isVideoDisabled = false
 
       logger.info('SIP client destroyed and all resources cleared')
     } catch (error) {

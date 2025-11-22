@@ -548,6 +548,40 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
   }
 
   /**
+   * Disable local video
+   */
+  disableVideo(): void {
+    try {
+      logger.debug(`Disabling video for call: ${this._id}`)
+
+      // Disable video using JsSIP
+      this.rtcSession.mute({ video: true })
+
+      this.emitCallEvent('call:video:disabled')
+    } catch (error) {
+      logger.error(`Failed to disable video for call: ${this._id}`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Enable local video
+   */
+  enableVideo(): void {
+    try {
+      logger.debug(`Enabling video for call: ${this._id}`)
+
+      // Enable video using JsSIP
+      this.rtcSession.unmute({ video: true })
+
+      this.emitCallEvent('call:video:enabled')
+    } catch (error) {
+      logger.error(`Failed to enable video for call: ${this._id}`, error)
+      throw error
+    }
+  }
+
+  /**
    * Send DTMF tone or tone sequence
    * Tones are queued and sent sequentially with proper timing
    *

@@ -130,11 +130,10 @@ test.describe('Incoming Call Scenarios', () => {
 
     // Second incoming call (call waiting)
     await simulateIncomingCall('sip:second@example.com')
-    await page.waitForTimeout(200)
-
-    // Verify call waiting notification
-    // Note: Behavior depends on implementation - might show second caller or busy signal
-    // This test validates the app handles the scenario without crashing
+    
+    // Wait for call status to update (either shows call waiting notification or busy signal)
+    // This ensures the app has processed the second incoming call
+    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toBeVisible()
     const callStatus = await page.locator(SELECTORS.STATUS.CALL_STATUS).textContent()
     expect(callStatus).toBeTruthy()
   })
@@ -187,7 +186,17 @@ test.describe('Incoming Call Scenarios', () => {
 
     // Incoming call while on active call
     await simulateIncomingCall('sip:incoming@example.com')
-    await page.waitForTimeout(200)
+    
+    // Wait for call status to update (call waiting or busy state)
+    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toBeVisible()
+    await page.waitForFunction(
+      (selector) => {
+        const element = document.querySelector(selector)
+        return element && element.textContent && element.textContent.trim().length > 0
+      },
+      SELECTORS.STATUS.CALL_STATUS,
+      { timeout: 5000 }
+    )
 
     // App should either show call waiting or busy - verify no crash
     const callStatus = await page.locator(SELECTORS.STATUS.CALL_STATUS).textContent()

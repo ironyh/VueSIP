@@ -22,6 +22,7 @@ import {
   waitForNextTick,
   waitForCondition,
   flushMicrotasks,
+  waitFor,
 } from '../utils/test-helpers'
 
 // Mock JsSIP to use our MockSipServer

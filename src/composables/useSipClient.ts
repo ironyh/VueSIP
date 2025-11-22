@@ -271,9 +271,11 @@ export function useSipClient(
         logger.debug('SIP client connected')
         error.value = null
         // Update reactive state
+        logger.debug('Updating _connectionState to Connected')
         _connectionState.value = ConnectionState.Connected
+        logger.debug('Updating _isConnected to true')
         _isConnected.value = true
-        logger.debug('State updated', { connectionState: _connectionState.value, isConnected: _isConnected.value })
+        logger.debug('State updated. connectionState:', _connectionState.value, 'isConnected:', _isConnected.value)
       }),
     })
 

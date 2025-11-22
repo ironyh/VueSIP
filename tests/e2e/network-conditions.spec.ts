@@ -317,7 +317,7 @@ test.describe('Network Conditions - Bandwidth Throttling', () => {
     // Make a call
     await page.fill(SELECTORS.DIALPAD.NUMBER_INPUT, TEST_DATA.PHONE_NUMBERS.VALID)
     await page.click(SELECTORS.DIALPAD.CALL_BUTTON)
-    await page.waitForTimeout(500)
+    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toBeVisible()
 
     // Vary bandwidth during call
     let currentBandwidth = 1000 // Start with 1Mbps
@@ -376,7 +376,7 @@ test.describe('Network Conditions - DNS and Server Failures', () => {
 
     // Either error message visible or status shows failed
     const hasError = (await errorMessage.isVisible()) || statusText?.includes('Disconnected')
-    expect(hasError).toBeDefined()
+    expect(hasError).toBe(true)
   })
 
   test('should retry failed connections with exponential backoff', async ({
