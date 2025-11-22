@@ -171,11 +171,6 @@ export function useMediaDevices(
   } = {}
 ): UseMediaDevicesReturn {
   const { autoEnumerate = true, autoMonitor = true } = options
-  
-  // Debug: log when composable is called
-  if (isDebugMode()) {
-    console.log('useMediaDevices: composable called, autoEnumerate:', autoEnumerate, 'window available:', typeof window !== 'undefined')
-  }
 
   // ============================================================================
   // Reactive State
@@ -315,20 +310,12 @@ export function useMediaDevices(
    * ```
    */
   const enumerateDevices = async (signal?: AbortSignal): Promise<MediaDevice[]> => {
-    // Debug log for E2E tests
-    if (isDebugMode()) {
-      console.log('useMediaDevices.enumerateDevices: called')
-    }
-
     // Use internal abort signal if none provided (auto-cleanup on unmount)
     const effectiveSignal = signal ?? internalAbortController.value.signal
 
     // Check if enumeration is already in progress
     if (isEnumerating.value && enumerationPromise) {
       log.debug('Device enumeration already in progress, returning pending promise')
-      if (isDebugMode()) {
-        console.log('useMediaDevices.enumerateDevices: already in progress, returning pending promise')
-      }
       return enumerationPromise
     }
 
@@ -338,9 +325,6 @@ export function useMediaDevices(
     
     if (hasCachedDevices) {
       log.debug('Returning cached devices', { count: cachedDevices.length })
-      if (isDebugMode()) {
-        console.log('useMediaDevices.enumerateDevices: returning cached devices', cachedDevices.length)
-      }
       return cachedDevices
     }
 
@@ -357,9 +341,6 @@ export function useMediaDevices(
         throwIfAborted(effectiveSignal)
 
         log.info('Enumerating devices')
-        if (isDebugMode()) {
-          console.log('useMediaDevices.enumerateDevices: starting enumeration')
-        }
 
         let devices: MediaDevice[]
         let rawDevices: MediaDeviceInfo[]
@@ -389,12 +370,6 @@ export function useMediaDevices(
 
         // Update store with raw browser MediaDeviceInfo[]
         deviceStore.setDevices(rawDevices)
-
-        // Debug log for E2E tests
-        if (isDebugMode()) {
-          console.log('useMediaDevices: setDevices called with', rawDevices.length, 'devices')
-          console.log('useMediaDevices: audioInputDevices after setDevices:', deviceStore.audioInputDevices.length)
-        }
 
         log.info(`Enumerated ${devices.length} devices`)
         return devices
@@ -840,11 +815,6 @@ export function useMediaDevices(
   // Initialize on mount
   onMounted(async () => {
     log.debug('Composable mounted')
-    
-    // Debug log for E2E tests
-    if (isDebugMode()) {
-      console.log('useMediaDevices: onMounted called, autoEnumerate:', autoEnumerate)
-    }
 
     // Auto-enumerate if enabled
     if (autoEnumerate) {
