@@ -123,9 +123,8 @@ export class SipClient {
   private conferences = new Map<string, ConferenceStateInterface>()
 
   constructor(config: SipClientConfig, eventBus: EventBus) {
-    // Convert to plain object to avoid Vue proxy issues with JsSIP
-    // Use JSON serialization to deep clone and remove proxies
-    this.config = JSON.parse(JSON.stringify(config)) as SipClientConfig
+    // Create a shallow copy to avoid Vue proxy issues
+    this.config = { ...config }
     this.eventBus = eventBus
     this.state = {
       connectionState: ConnectionState.Disconnected,
@@ -261,9 +260,9 @@ export class SipClient {
       // Wait for connection
       let connectionSucceeded = false
       try {
-        console.log('[SipClient] Calling waitForConnection()')
+        logger.debug('Calling waitForConnection()')
         await this.waitForConnection()
-        console.log('[SipClient] waitForConnection() succeeded')
+        logger.debug('waitForConnection() succeeded')
         connectionSucceeded = true
       } catch (error) {
         // If waitForConnection rejects with "Connection failed", it means a disconnected
@@ -271,15 +270,13 @@ export class SipClient {
         const errorMessage = error instanceof Error ? error.message : String(error)
         if (errorMessage === 'Connection failed') {
           // Connection explicitly failed (disconnected event fired) - rethrow
-          console.log('[SipClient] waitForConnection() failed with Connection failed, rejecting')
           logger.error('Connection failed during start:', error)
           throw error
         }
-        
+
         // For timeout errors, we may use the fallback in test environments
         // In test environments (like Playwright), JsSIP may not emit 'connected'
         // even though the WebSocket is open. Log the error but continue to fallback.
-        console.log('[SipClient] waitForConnection() failed (timeout), will use fallback:', error)
         logger.warn('waitForConnection failed (timeout), will use fallback:', error)
       }
 
@@ -288,7 +285,7 @@ export class SipClient {
       // the state/event bus reflects the connected status in that case.
       // Only use fallback if connection didn't succeed and didn't explicitly fail
       if (!connectionSucceeded) {
-        console.log('[SipClient] Calling ensureConnectedEvent fallback')
+        logger.debug('Calling ensureConnectedEvent fallback')
         this.ensureConnectedEvent(this.config.uri, 'waitForConnection:fallback')
       }
 

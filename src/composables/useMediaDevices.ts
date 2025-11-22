@@ -24,6 +24,7 @@ import { MediaDeviceKind, PermissionStatus } from '../types/media.types'
 import { createLogger } from '../utils/logger'
 import { throwIfAborted, isAbortError } from '../utils/abortController'
 import { ErrorSeverity, logErrorWithContext, createOperationTimer } from '../utils/errorContext'
+import { isDebugMode } from '../utils/env'
 
 const log = createLogger('useMediaDevices')
 
@@ -172,7 +173,9 @@ export function useMediaDevices(
   const { autoEnumerate = true, autoMonitor = true } = options
   
   // Debug: log when composable is called
-  console.log('useMediaDevices: composable called, autoEnumerate:', autoEnumerate, 'window available:', typeof window !== 'undefined')
+  if (isDebugMode()) {
+    console.log('useMediaDevices: composable called, autoEnumerate:', autoEnumerate, 'window available:', typeof window !== 'undefined')
+  }
 
   // ============================================================================
   // Reactive State
@@ -313,7 +316,7 @@ export function useMediaDevices(
    */
   const enumerateDevices = (signal?: AbortSignal): Promise<MediaDevice[]> => {
     // Debug log for E2E tests
-    if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+    if (isDebugMode()) {
       console.log('useMediaDevices.enumerateDevices: called')
     }
 
@@ -322,7 +325,7 @@ export function useMediaDevices(
 
     if (isEnumerating.value && enumerationPromise) {
       log.debug('Device enumeration already in progress, returning pending promise')
-      if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+      if (isDebugMode()) {
         console.log('useMediaDevices.enumerateDevices: already in progress, returning pending promise')
       }
       return enumerationPromise
@@ -341,7 +344,7 @@ export function useMediaDevices(
         throwIfAborted(effectiveSignal)
 
         log.info('Enumerating devices')
-        if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+        if (isDebugMode()) {
           console.log('useMediaDevices.enumerateDevices: starting enumeration')
         }
 
@@ -375,7 +378,7 @@ export function useMediaDevices(
         deviceStore.setDevices(rawDevices)
 
         // Debug log for E2E tests
-        if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+        if (isDebugMode()) {
           console.log('useMediaDevices: setDevices called with', rawDevices.length, 'devices')
           console.log('useMediaDevices: audioInputDevices after setDevices:', deviceStore.audioInputDevices.length)
         }
@@ -826,23 +829,23 @@ export function useMediaDevices(
     log.debug('Composable mounted')
     
     // Debug log for E2E tests
-    if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+    if (isDebugMode()) {
       console.log('useMediaDevices: onMounted called, autoEnumerate:', autoEnumerate)
     }
 
     // Auto-enumerate if enabled
     if (autoEnumerate) {
       try {
-        if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+        if (isDebugMode()) {
           console.log('useMediaDevices: calling enumerateDevices() from onMounted')
         }
         await enumerateDevices()
-        if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+        if (isDebugMode()) {
           console.log('useMediaDevices: enumerateDevices() completed')
         }
       } catch (error) {
         log.error('Auto-enumeration failed:', error)
-        if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+        if (isDebugMode()) {
           console.error('useMediaDevices: enumerateDevices() failed:', error)
         }
       }

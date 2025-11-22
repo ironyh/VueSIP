@@ -268,15 +268,12 @@ export function useSipClient(
     listeners.push({
       event: 'sip:connected',
       id: eventBus.on('sip:connected', () => {
-        console.log('[useSipClient] sip:connected event received!')
         logger.debug('SIP client connected')
         error.value = null
         // Update reactive state
-        console.log('[useSipClient] Updating _connectionState to Connected')
         _connectionState.value = ConnectionState.Connected
-        console.log('[useSipClient] Updating _isConnected to true')
         _isConnected.value = true
-        console.log('[useSipClient] State updated. connectionState:', _connectionState.value, 'isConnected:', _isConnected.value)
+        logger.debug('State updated', { connectionState: _connectionState.value, isConnected: _isConnected.value })
       }),
     })
 
@@ -397,7 +394,7 @@ export function useSipClient(
         logger.info('Creating SIP client')
         // Extract raw config object from Vue reactivity system
         const plainConfig = JSON.parse(JSON.stringify(config)) as SipClientConfig
-        console.log('useSipClient.connect plainConfig', plainConfig)
+        logger.debug('Connecting with config', plainConfig)
         sipClient.value = new SipClient(plainConfig, eventBus)
       }
 
@@ -548,7 +545,7 @@ export function useSipClient(
       const hasExistingConfig = configStore.hasSipConfig
       let validationResult: ValidationResult
       const configSnapshot = JSON.parse(JSON.stringify(config))
-      console.log('useSipClient.updateConfig', { hasExistingConfig, config: configSnapshot })
+      logger.debug('Updating config', { hasExistingConfig, config: configSnapshot })
 
       if (hasExistingConfig) {
         validationResult = configStore.updateSipConfig(config, true)
