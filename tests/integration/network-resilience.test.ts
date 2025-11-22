@@ -481,7 +481,7 @@ describe('Network Resilience Integration Tests', () => {
       }
 
       await sipClient.stop()
-      await flushMicrotasks()
+      await flushMicrotasksHelper()
       expect(sipClient.connectionState).toBe('disconnected')
     })
   })
