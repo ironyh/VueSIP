@@ -139,7 +139,22 @@
               <p v-if="snippet.description" class="snippet-description">
                 {{ snippet.description }}
               </p>
-              <pre><code>{{ snippet.code }}</code></pre>
+              <div class="code-block-wrapper">
+                <button
+                  @click="copyCode(snippet.code, index)"
+                  class="copy-button"
+                  :class="{ copied: copiedSnippets[index] }"
+                  :aria-label="copiedSnippets[index] ? 'Copied!' : 'Copy code'"
+                  type="button"
+                >
+                  <span v-if="copiedSnippets[index]" class="copy-icon">✓</span>
+                  <span v-else class="copy-icon">📋</span>
+                  <span class="copy-text">
+                    {{ copiedSnippets[index] ? 'Copied!' : 'Copy' }}
+                  </span>
+                </button>
+                <pre><code>{{ snippet.code }}</code></pre>
+              </div>
             </div>
           </div>
 
@@ -191,6 +206,7 @@ const examples = allExamples
 const currentExample = ref('basic-call')
 const activeTab = ref<'demo' | 'code' | 'setup'>('demo')
 const searchQuery = ref('')
+const copiedSnippets = ref<Record<number, boolean>>({})
 
 // Computed
 const filteredExamples = computed(() => {
@@ -235,6 +251,36 @@ const getMatchingTags = (tags: string[]): string[] => {
 
   const query = searchQuery.value.toLowerCase()
   return tags.filter(tag => tag.toLowerCase().includes(query))
+}
+
+const copyCode = async (code: string, index: number) => {
+  try {
+    // Modern Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(code)
+    } else {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea')
+      textarea.value = code
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+
+    // Show success feedback
+    copiedSnippets.value[index] = true
+
+    // Reset after 2 seconds
+    setTimeout(() => {
+      copiedSnippets.value[index] = false
+    }, 2000)
+  } catch (error) {
+    console.error('Failed to copy code:', error)
+    alert('Failed to copy code. Please select and copy manually.')
+  }
 }
 </script>
 
@@ -579,19 +625,67 @@ const getMatchingTags = (tags: string[]): string[] => {
   color: #666;
 }
 
-.code-snippet pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
-  padding: 1.5rem;
-  border-radius: 8px;
-  overflow-x: auto;
-  margin: 0;
-}
-
 .code-snippet code {
   font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
   font-size: 0.875rem;
   line-height: 1.6;
+}
+
+/* Code Block Wrapper */
+.code-block-wrapper {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.copy-button {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: #2d2d2d;
+  color: #9ca3af;
+  border: 1px solid #3f3f3f;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 10;
+  min-height: 32px;
+  min-width: 80px;
+}
+
+.copy-button:hover {
+  background: #3f3f3f;
+  color: white;
+  border-color: #4f4f4f;
+}
+
+.copy-button.copied {
+  background: #10b981;
+  color: white;
+  border-color: #059669;
+}
+
+.copy-icon {
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+.copy-text {
+  font-weight: 500;
+}
+
+/* Ensure code block has enough padding for button */
+.code-snippet pre {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 3rem 1.5rem 1.5rem 1.5rem; /* Extra padding at top for button */
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0;
 }
 
 /* Setup Container */
