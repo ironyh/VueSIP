@@ -253,6 +253,11 @@ describe('SipClient', () => {
 
     it('should handle connection failure', async () => {
       mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        // Store handler in onceHandlers for proper cleanup
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        
+        // Fire disconnected event immediately to simulate connection failure
         if (event === 'disconnected') {
           setTimeout(() => handler({}), 10)
         }

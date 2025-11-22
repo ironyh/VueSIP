@@ -17,6 +17,7 @@ import {
   type AgentManager,
   type SipTestAgent,
 } from '../agents'
+import { waitForCondition } from '../utils/test-helpers'
 
 describe('Agent Network Conditions Integration Tests', () => {
   let manager: AgentManager
@@ -311,12 +312,18 @@ describe('Agent Network Conditions Integration Tests', () => {
       })
 
       // Wait for interruption to start
-      await new Promise(resolve => setTimeout(resolve, 60))
+      await waitForCondition(
+        () => simulator.isNetworkInterrupted() === true,
+        { timeout: 1000, description: 'network interruption to start' }
+      )
 
       expect(simulator.isNetworkInterrupted()).toBe(true)
 
       // Wait for interruption to end
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await waitForCondition(
+        () => simulator.isNetworkInterrupted() === false,
+        { timeout: 2000, description: 'network interruption to end' }
+      )
 
       expect(simulator.isNetworkInterrupted()).toBe(false)
     })
@@ -338,7 +345,10 @@ describe('Agent Network Conditions Integration Tests', () => {
       })
 
       // Wait for interruption to start
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await waitForCondition(
+        () => simulator.isNetworkInterrupted() === true,
+        { timeout: 1000, description: 'network interruption to start' }
+      )
 
       // Try to simulate a network operation
       await expect(
@@ -370,8 +380,11 @@ describe('Agent Network Conditions Integration Tests', () => {
         delay: 150,
       })
 
-      // Wait for all interruptions to process
-      await new Promise(resolve => setTimeout(resolve, 250))
+      // Wait for all interruptions to process - network should be back to normal
+      await waitForCondition(
+        () => simulator.isNetworkInterrupted() === false,
+        { timeout: 3000, description: 'all network interruptions to end' }
+      )
 
       // Should be back to normal
       expect(simulator.isNetworkInterrupted()).toBe(false)
@@ -492,11 +505,17 @@ describe('Agent Network Conditions Integration Tests', () => {
       })
 
       // Wait for interruption
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await waitForCondition(
+        () => simulator.isNetworkInterrupted() === true,
+        { timeout: 1000, description: 'network interruption to start' }
+      )
       expect(simulator.isNetworkInterrupted()).toBe(true)
 
       // Wait for recovery
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await waitForCondition(
+        () => simulator.isNetworkInterrupted() === false,
+        { timeout: 2000, description: 'network recovery' }
+      )
       expect(simulator.isNetworkInterrupted()).toBe(false)
 
       // Network operations should work again
@@ -516,12 +535,14 @@ describe('Agent Network Conditions Integration Tests', () => {
 
       const simulator = agent.getNetworkSimulator()
 
-      // Generate some statistics
-      for (let i = 0; i < 50; i++) {
+      // Generate some statistics - call enough times to ensure at least one packet drop
+      // With WIFI_POOR (2% packet loss), calling 200 times gives ~4 expected drops
+      for (let i = 0; i < 200; i++) {
         simulator.shouldDropPacket()
       }
 
       let stats = simulator.getStatistics()
+      // Verify we have traffic/stats before reset
       expect(stats.totalPacketsDropped).toBeGreaterThan(0)
 
       // Reset

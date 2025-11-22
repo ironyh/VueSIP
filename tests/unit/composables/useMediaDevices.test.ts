@@ -89,28 +89,30 @@ describe('useMediaDevices - Comprehensive Tests', () => {
     } as any
 
     // Mock AudioContext
-    global.AudioContext = vi.fn().mockImplementation(() => ({
-      createMediaStreamSource: vi.fn(() => ({
-        connect: vi.fn(),
-      })),
-      createAnalyser: vi.fn(() => ({
-        connect: vi.fn(),
-        frequencyBinCount: 1024,
-        getByteFrequencyData: vi.fn(),
-      })),
-      createOscillator: vi.fn(() => ({
-        connect: vi.fn(),
-        start: vi.fn(),
-        stop: vi.fn(),
-        frequency: { value: 0 },
-      })),
-      createGain: vi.fn(() => ({
-        connect: vi.fn(),
-        gain: { value: 0 },
-      })),
-      destination: {},
-      close: vi.fn().mockResolvedValue(undefined),
-    })) as any
+    global.AudioContext = vi.fn().mockImplementation(function () {
+      return {
+        createMediaStreamSource: vi.fn().mockReturnValue({
+          connect: vi.fn(),
+        }),
+        createAnalyser: vi.fn().mockReturnValue({
+          connect: vi.fn(),
+          frequencyBinCount: 1024,
+          getByteFrequencyData: vi.fn(),
+        }),
+        createOscillator: vi.fn().mockReturnValue({
+          connect: vi.fn(),
+          start: vi.fn(),
+          stop: vi.fn(),
+          frequency: { value: 0 },
+        }),
+        createGain: vi.fn().mockReturnValue({
+          connect: vi.fn(),
+          gain: { value: 0 },
+        }),
+        destination: {},
+        close: vi.fn().mockResolvedValue(undefined),
+      }
+    }) as any
   })
 
   afterEach(() => {
@@ -230,7 +232,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
   describe('Permission Management', () => {
     it('should request audio permission successfully', async () => {
       const mockStream = {
-        getTracks: vi.fn(() => [{ stop: vi.fn(), kind: 'audio' }]),
+        getTracks: vi.fn().mockReturnValue([{ stop: vi.fn(), kind: 'audio' }]),
       }
       mockGetUserMedia.mockResolvedValue(mockStream)
 
@@ -256,7 +258,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
 
     it('should request video permission successfully', async () => {
       const mockStream = {
-        getTracks: vi.fn(() => [{ stop: vi.fn(), kind: 'video' }]),
+        getTracks: vi.fn().mockReturnValue([{ stop: vi.fn(), kind: 'video' }]),
       }
       mockGetUserMedia.mockResolvedValue(mockStream)
 
@@ -282,7 +284,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
 
     it('should request both permissions together', async () => {
       const mockStream = {
-        getTracks: vi.fn(() => [
+        getTracks: vi.fn().mockReturnValue([
           { stop: vi.fn(), kind: 'audio' },
           { stop: vi.fn(), kind: 'video' },
         ]),
@@ -301,7 +303,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
 
     it('should request only audio permission by default', async () => {
       const mockStream = {
-        getTracks: vi.fn(() => [{ stop: vi.fn() }]),
+        getTracks: vi.fn().mockReturnValue([{ stop: vi.fn() }]),
       }
       mockGetUserMedia.mockResolvedValue(mockStream)
       mockEnumerateDevices.mockResolvedValue([])
@@ -315,7 +317,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
 
     it('should re-enumerate after granting permissions', async () => {
       const mockStream = {
-        getTracks: vi.fn(() => [{ stop: vi.fn() }]),
+        getTracks: vi.fn().mockReturnValue([{ stop: vi.fn() }]),
       }
       mockGetUserMedia.mockResolvedValue(mockStream)
       mockEnumerateDevices.mockResolvedValue([])
@@ -330,7 +332,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
     it('should stop tracks after permission check', async () => {
       const stopFn = vi.fn()
       const mockStream = {
-        getTracks: vi.fn(() => [{ stop: stopFn, kind: 'audio' }]),
+        getTracks: vi.fn().mockReturnValue([{ stop: stopFn, kind: 'audio' }]),
       }
       mockGetUserMedia.mockResolvedValue(mockStream)
 
@@ -462,7 +464,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
       vi.useFakeTimers()
 
       const mockStream = {
-        getTracks: vi.fn(() => [{ stop: vi.fn(), kind: 'audio' }]),
+        getTracks: vi.fn().mockReturnValue([{ stop: vi.fn(), kind: 'audio' }]),
       }
       mockGetUserMedia.mockResolvedValue(mockStream)
 
@@ -533,7 +535,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
 
     it('should handle audio output test errors', async () => {
       // Mock AudioContext to throw error
-      global.AudioContext = vi.fn().mockImplementation(() => {
+      global.AudioContext = vi.fn().mockImplementation(function () {
         throw new Error('AudioContext failed')
       }) as any
 
@@ -549,7 +551,7 @@ describe('useMediaDevices - Comprehensive Tests', () => {
 
       const stopFn = vi.fn()
       const mockStream = {
-        getTracks: vi.fn(() => [{ stop: stopFn, kind: 'audio' }]),
+        getTracks: vi.fn().mockReturnValue([{ stop: stopFn, kind: 'audio' }]),
       }
       mockGetUserMedia.mockResolvedValue(mockStream)
 

@@ -16,7 +16,13 @@ import { EventBus } from '../../src/core/EventBus'
 import { createMockSipServer, type MockRTCSession } from '../helpers/MockSipServer'
 import type { SipClientConfig } from '../../src/types/config.types'
 import { RegistrationState } from '../../src/types/sip.types'
-import { waitFor, waitForEvent } from '../helpers/testUtils'
+import {
+  waitForEvent,
+  waitForEvents,
+  waitForNextTick,
+  waitForCondition,
+  flushMicrotasks,
+} from '../utils/test-helpers'
 
 // Mock JsSIP to use our MockSipServer
 vi.mock('jssip', () => {
@@ -48,29 +54,7 @@ vi.mock('jssip', () => {
   }
 })
 
-// Helper function to trigger UA events (calls both .on() and .once() handlers)
-function triggerUAEvent(event: string, data?: any) {
-  // Trigger .on() handlers
-  const onHandlers = eventHandlers.get(event)
-  if (onHandlers) {
-    onHandlers.forEach((handler) => handler(data))
-  }
-
-  // Trigger .once() handlers and remove them
-  const onceHandlerList = onceHandlers.get(event)
-  if (onceHandlerList) {
-    onceHandlerList.forEach((handler) => handler(data))
-    onceHandlers.delete(event)
-  }
-}
-
-// Helper function to trigger RTC session events
-function triggerSessionEvent(event: string, data?: any) {
-  const handlers = sessionEventHandlers.get(event)
-  if (handlers) {
-    handlers.forEach((handler) => handler(data))
-  }
-}
+// Note: Helper functions removed - tests use MockSipServer methods directly
 
 // Helper function to create CallSession with proper options
 function createMockCallSession(
@@ -174,30 +158,6 @@ describe('SIP Workflow Integration Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    eventHandlers.clear()
-    onceHandlers.clear()
-    sessionEventHandlers.clear()
-
-    mockUA.on.mockImplementation((event: string, handler: Function) => {
-      if (!eventHandlers.has(event)) {
-        eventHandlers.set(event, [])
-      }
-      eventHandlers.get(event)!.push(handler)
-    })
-    mockUA.once.mockImplementation((event: string, handler: Function) => {
-      if (!onceHandlers.has(event)) {
-        onceHandlers.set(event, [])
-      }
-      onceHandlers.get(event)!.push(handler)
-    })
-    mockUA.isConnected.mockReturnValue(false)
-    mockUA.isRegistered.mockReturnValue(false)
-    mockRTCSession.on.mockImplementation((event: string, handler: Function) => {
-      if (!sessionEventHandlers.has(event)) {
-        sessionEventHandlers.set(event, [])
-      }
-      sessionEventHandlers.get(event)!.push(handler)
-    })
 
     eventBus = new EventBus()
     mockSipServer = createMockSipServer({ 
@@ -254,7 +214,7 @@ describe('SIP Workflow Integration Tests', () => {
       expect(sipClient.isRegistered).toBe(true)
 
       // Wait for events to propagate
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await waitForEvents(eventBus, ['sip:connected', 'sip:registered'], 1000)
 
       expect(events).toContain('connected')
       expect(events).toContain('registered')
@@ -294,35 +254,52 @@ describe('SIP Workflow Integration Tests', () => {
       const mockUA = mockSipServer.getUA()
       mockUA.call.mockReturnValue(session)
 
-      // Use the session ID from mockRTCSession for the call
-      const callSession = createMockCallSession(session as any, 'outgoing', eventBus, session.id)
+      // Make call through SipClient to ensure proper lifecycle setup
+      const callPromise = sipClient.call('sip:remote@example.com')
+      
+      // Wait for CallSession to be created and handlers registered
+      await waitForNextTick()
+      
+      const callSession = await callPromise
 
-      // Simulate call progress
+      // Simulate call progress with proper response object
       mockSipServer.simulateCallProgress(session)
+      await waitForEvent(eventBus, 'call:progress', 1000)
 
       // Simulate call accepted
       mockSipServer.simulateCallAccepted(session)
-      mockSipServer.simulateCallConfirmed(session)
+      await waitForEvent(eventBus, 'call:accepted', 1000)
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      // Simulate call confirmed
+      mockSipServer.simulateCallConfirmed(session)
+      await waitForEvent(eventBus, 'call:confirmed', 1000)
 
       expect(callSession).toBeDefined()
       expect(callSession.id).toBe(session.id)
       expect(callSession.direction).toBe('outgoing')
+      expect(callSession.state).toBe('active')
     })
 
     it('should receive incoming call successfully', async () => {
+      // Track incoming call event
+      let incomingCallSession: any = null
+      eventBus.on('sip:new_session', (event: any) => {
+        incomingCallSession = event.session
+      })
+
+      // Simulate incoming call - this triggers newRTCSession on the UA
       const session = mockSipServer.simulateIncomingCall(
         'sip:caller@example.com',
         'sip:testuser@example.com'
       )
 
-      const callSession = createMockCallSession(session as any, 'incoming', eventBus)
+      // Wait for newRTCSession event to be processed
+      await waitForEvent(eventBus, 'sip:new_session', 1000)
 
-      await new Promise((resolve) => setTimeout(resolve, 50))
-
-      expect(callSession).toBeDefined()
-      expect(callSession.direction).toBe('incoming')
+      // Verify incoming call was received - SipClient should have created a CallSession
+      expect(incomingCallSession).toBeDefined()
+      // The session from the event should match the mock session
+      expect(incomingCallSession).toBe(session)
     })
 
     it('should handle call lifecycle: start -> progress -> accept -> end', async () => {
@@ -333,24 +310,34 @@ describe('SIP Workflow Integration Tests', () => {
       eventBus.on('call:confirmed', () => events.push('confirmed'))
       eventBus.on('call:ended', () => events.push('ended'))
 
+      // Make call through SipClient for proper lifecycle
       const session = mockSipServer.createSession()
-      const callSession = createMockCallSession(session as any, 'outgoing', eventBus)
+      const mockUA = mockSipServer.getUA()
+      mockUA.call.mockReturnValue(session)
 
-      // Simulate call lifecycle
+      const callSession = await sipClient.call('sip:remote@example.com')
+      
+      // Wait for handlers to be registered
+      await waitForNextTick()
+
+      // Simulate call lifecycle in proper order
       mockSipServer.simulateCallProgress(session)
-      await new Promise((resolve) => setTimeout(resolve, 20))
+      await waitForEvent(eventBus, 'call:progress', 1000)
 
       mockSipServer.simulateCallAccepted(session)
-      await new Promise((resolve) => setTimeout(resolve, 20))
+      await waitForEvent(eventBus, 'call:accepted', 1000)
 
       mockSipServer.simulateCallConfirmed(session)
-      await new Promise((resolve) => setTimeout(resolve, 20))
+      await waitForEvent(eventBus, 'call:confirmed', 1000)
 
       mockSipServer.simulateCallEnded(session, 'local', 'Bye')
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await waitForEvent(eventBus, 'call:ended', 1000)
 
+      // Verify all lifecycle events were emitted
       expect(events).toContain('progress')
       expect(events).toContain('accepted')
+      expect(events).toContain('confirmed')
+      expect(events).toContain('ended')
     })
   })
 
@@ -385,19 +372,35 @@ describe('SIP Workflow Integration Tests', () => {
   })
 
   describe('DTMF Handling', () => {
+    beforeEach(async () => {
+      // Setup connected and registered state
+      mockSipServer.simulateConnect()
+      await sipClient.start()
+      mockSipServer.simulateRegistered()
+      await sipClient.register()
+    })
+
     it('should send DTMF tones', async () => {
       const session = mockSipServer.createSession()
-      const callSession = createMockCallSession(session as any, 'outgoing', eventBus)
+      const mockUA = mockSipServer.getUA()
+      mockUA.call.mockReturnValue(session)
+
+      // Make call through SipClient for proper lifecycle
+      const callSession = await sipClient.call('sip:remote@example.com')
+      await waitForNextTick()
 
       // Set call to active state by simulating full call lifecycle
       mockSipServer.simulateCallProgress(session)
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await waitForEvent(eventBus, 'call:progress', 1000)
 
       mockSipServer.simulateCallAccepted(session)
-      mockSipServer.simulateCallConfirmed(session)
+      await waitForEvent(eventBus, 'call:accepted', 1000)
 
-      // Wait for state transition to active
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      mockSipServer.simulateCallConfirmed(session)
+      await waitForEvent(eventBus, 'call:confirmed', 1000)
+
+      // Verify call is active before sending DTMF
+      expect(callSession.state).toBe('active')
 
       callSession.sendDTMF('1')
       expect(session.sendDTMF).toHaveBeenCalledWith('1', expect.any(Object))
@@ -408,19 +411,35 @@ describe('SIP Workflow Integration Tests', () => {
   })
 
   describe('Call Transfer', () => {
+    beforeEach(async () => {
+      // Setup connected and registered state
+      mockSipServer.simulateConnect()
+      await sipClient.start()
+      mockSipServer.simulateRegistered()
+      await sipClient.register()
+    })
+
     it('should transfer call (blind transfer)', async () => {
       const session = mockSipServer.createSession()
-      const callSession = createMockCallSession(session as any, 'outgoing', eventBus)
+      const mockUA = mockSipServer.getUA()
+      mockUA.call.mockReturnValue(session)
+
+      // Make call through SipClient for proper lifecycle
+      const callSession = await sipClient.call('sip:remote@example.com')
+      await waitForNextTick()
 
       // Set call to active state
       mockSipServer.simulateCallProgress(session)
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await waitForEvent(eventBus, 'call:progress', 1000)
 
       mockSipServer.simulateCallAccepted(session)
-      mockSipServer.simulateCallConfirmed(session)
+      await waitForEvent(eventBus, 'call:accepted', 1000)
 
-      // Wait for state transition to active
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      mockSipServer.simulateCallConfirmed(session)
+      await waitForEvent(eventBus, 'call:confirmed', 1000)
+
+      // Verify call is active before transfer
+      expect(callSession.state).toBe('active')
 
       callSession.transfer('sip:transfer@example.com')
 
@@ -429,19 +448,35 @@ describe('SIP Workflow Integration Tests', () => {
   })
 
   describe('Hold/Unhold', () => {
+    beforeEach(async () => {
+      // Setup connected and registered state
+      mockSipServer.simulateConnect()
+      await sipClient.start()
+      mockSipServer.simulateRegistered()
+      await sipClient.register()
+    })
+
     it('should hold and unhold call', async () => {
       const session = mockSipServer.createSession()
-      const callSession = createMockCallSession(session as any, 'outgoing', eventBus)
+      const mockUA = mockSipServer.getUA()
+      mockUA.call.mockReturnValue(session)
+
+      // Make call through SipClient for proper lifecycle
+      const callSession = await sipClient.call('sip:remote@example.com')
+      await waitForNextTick()
 
       // Set call to active state
       mockSipServer.simulateCallProgress(session)
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await waitForEvent(eventBus, 'call:progress', 1000)
 
       mockSipServer.simulateCallAccepted(session)
-      mockSipServer.simulateCallConfirmed(session)
+      await waitForEvent(eventBus, 'call:accepted', 1000)
 
-      // Wait for state transition to active
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      mockSipServer.simulateCallConfirmed(session)
+      await waitForEvent(eventBus, 'call:confirmed', 1000)
+
+      // Verify call is active before hold
+      expect(callSession.state).toBe('active')
 
       // Hold the call
       await callSession.hold()
@@ -449,7 +484,14 @@ describe('SIP Workflow Integration Tests', () => {
 
       // Trigger hold event to update CallSession state
       mockSipServer.simulateHold(session, 'local')
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await waitForNextTick()
+      await flushMicrotasks()
+      
+      // Wait for hold state to be set
+      await waitForCondition(
+        () => callSession.state === 'held' || session.localHold === true,
+        { timeout: 1000, description: 'call to be held' }
+      )
 
       // Now unhold
       await callSession.unhold()
@@ -493,6 +535,16 @@ describe('SIP Workflow Integration Tests', () => {
 
       mockSipServer.simulateRegistered()
       await sipClient.register()
+<<<<<<< HEAD
+
+      // Wait for events to propagate
+      await waitForEvents(eventBus, ['sip:connected', 'sip:registered'], 1000)
+
+      expect(sipClient.isConnected).toBe(true)
+      expect(sipClient.registrationState).toBe(RegistrationState.Registered)
+      expect(events).toContainEqual(expect.objectContaining({ type: 'connected' }))
+      expect(events).toContainEqual(expect.objectContaining({ type: 'registered' }))
+=======
       
       // Wait for registration state to be updated
       await waitFor(() => sipClient.registrationState === RegistrationState.Registered, { 
@@ -507,6 +559,7 @@ describe('SIP Workflow Integration Tests', () => {
       await waitFor(() => events.length > 0, { timeout: 1000 })
       expect(events.some(e => e.type === 'connected')).toBe(true)
       expect(events.some(e => e.type === 'registered')).toBe(true)
+>>>>>>> origin/main
     })
   })
 

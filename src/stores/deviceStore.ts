@@ -56,6 +56,20 @@ const state = reactive<DeviceStoreState>({
   hasDeviceChangeListener: false,
 })
 
+// Expose state directly for E2E testing to ensure reactivity works
+if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
+  ;(window as any).__deviceStoreState = state
+}
+
+const pickPreferredDevice = (devices: MediaDevice[]): string | null => {
+  if (!devices.length) {
+    return null
+  }
+
+  const defaultDevice = devices.find((d) => d.isDefault)
+  return defaultDevice ? defaultDevice.deviceId : devices[0]!.deviceId
+}
+
 /**
  * Computed values
  */
@@ -122,8 +136,10 @@ export const deviceStore = {
 
   /**
    * Get audio input devices
+   * Returns readonly wrapper to prevent direct mutation, but preserves reactivity
    */
   get audioInputDevices() {
+    // readonly() preserves reactivity - the computed in useMediaDevices should track this
     return readonly(state.audioInputDevices)
   },
 
@@ -281,12 +297,19 @@ export const deviceStore = {
     state.lastEnumerationTime = new Date()
     log.debug(`Set ${devices.length} audio input devices`)
 
-    // Auto-select first device if none selected
-    if (!state.selectedAudioInputId && devices.length > 0) {
-      // Try to find default device first
-      const defaultDevice = devices.find((d) => d.isDefault)
-      const deviceId = defaultDevice ? defaultDevice.deviceId : devices[0]!.deviceId
-      this.selectAudioInput(deviceId)
+    const currentId = state.selectedAudioInputId
+    const stillValid =
+      currentId !== null && devices.some((device) => device.deviceId === currentId)
+
+    if (stillValid) {
+      // keep current selection
+      return
+    }
+
+    const nextId = pickPreferredDevice(devices)
+    state.selectedAudioInputId = nextId
+    if (nextId) {
+      log.info(`Auto-selected audio input: ${nextId}`)
     }
   },
 
@@ -300,12 +323,18 @@ export const deviceStore = {
     state.lastEnumerationTime = new Date()
     log.debug(`Set ${devices.length} audio output devices`)
 
-    // Auto-select first device if none selected
-    if (!state.selectedAudioOutputId && devices.length > 0) {
-      // Try to find default device first
-      const defaultDevice = devices.find((d) => d.isDefault)
-      const deviceId = defaultDevice ? defaultDevice.deviceId : devices[0]!.deviceId
-      this.selectAudioOutput(deviceId)
+    const currentId = state.selectedAudioOutputId
+    const stillValid =
+      currentId !== null && devices.some((device) => device.deviceId === currentId)
+
+    if (stillValid) {
+      return
+    }
+
+    const nextId = pickPreferredDevice(devices)
+    state.selectedAudioOutputId = nextId
+    if (nextId) {
+      log.info(`Auto-selected audio output: ${nextId}`)
     }
   },
 
@@ -319,12 +348,18 @@ export const deviceStore = {
     state.lastEnumerationTime = new Date()
     log.debug(`Set ${devices.length} video input devices`)
 
-    // Auto-select first device if none selected
-    if (!state.selectedVideoInputId && devices.length > 0) {
-      // Try to find default device first
-      const defaultDevice = devices.find((d) => d.isDefault)
-      const deviceId = defaultDevice ? defaultDevice.deviceId : devices[0]!.deviceId
-      this.selectVideoInput(deviceId)
+    const currentId = state.selectedVideoInputId
+    const stillValid =
+      currentId !== null && devices.some((device) => device.deviceId === currentId)
+
+    if (stillValid) {
+      return
+    }
+
+    const nextId = pickPreferredDevice(devices)
+    state.selectedVideoInputId = nextId
+    if (nextId) {
+      log.info(`Auto-selected video input: ${nextId}`)
     }
   },
 
@@ -617,6 +652,7 @@ export const deviceStore = {
         kind: d.kind as any,
         label: d.label,
         groupId: d.groupId,
+        isDefault: d.deviceId === 'default',
       }))
     state.audioOutputDevices = devices
       .filter((d) => d.kind === 'audiooutput')
@@ -625,6 +661,7 @@ export const deviceStore = {
         kind: d.kind as any,
         label: d.label,
         groupId: d.groupId,
+        isDefault: d.deviceId === 'default',
       }))
     state.videoInputDevices = devices
       .filter((d) => d.kind === 'videoinput')
@@ -633,7 +670,29 @@ export const deviceStore = {
         kind: d.kind as any,
         label: d.label,
         groupId: d.groupId,
+        isDefault: d.deviceId === 'default',
       }))
     state.lastEnumerationTime = new Date()
   },
+}
+
+// Expose deviceStore and state on window for E2E testing (after store is defined)
+if (typeof window !== 'undefined') {
+  // Expose immediately - don't wait for next tick
+  // The state should be available immediately
+  if (window.location?.search?.includes('test=true')) {
+    ;(window as any).deviceStore = deviceStore
+    ;(window as any).__deviceStoreState = state
+    console.log('deviceStore and state exposed on window for E2E testing')
+  } else {
+    // Also set up a listener in case the URL changes (for dynamic test mode)
+    const checkAndExpose = () => {
+      if (window.location?.search?.includes('test=true')) {
+        ;(window as any).deviceStore = deviceStore
+        ;(window as any).__deviceStoreState = state
+      }
+    }
+    // Check on next tick as well in case location isn't ready yet
+    setTimeout(checkAndExpose, 0)
+  }
 }

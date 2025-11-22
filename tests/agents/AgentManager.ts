@@ -23,6 +23,7 @@ export class AgentManager extends EventEmitter {
   private conferences: Map<string, ConferenceInfo> = new Map()
   private config: Required<AgentManagerConfig>
   private destroyed = false
+  private conferenceCounter = 0
 
   constructor(config: AgentManagerConfig = {}) {
     super()
@@ -190,8 +191,11 @@ export class AgentManager extends EventEmitter {
       `Creating conference: ${conferenceUri} with ${participantAgentIds.length} participants`
     )
 
+    // Generate unique conference ID using counter to avoid collisions when creating multiple conferences
+    const conferenceId = `conf-${Date.now()}-${++this.conferenceCounter}`
+
     const conference: ConferenceInfo = {
-      id: `conf-${Date.now()}`,
+      id: conferenceId,
       uri: conferenceUri,
       participants: [],
       startedAt: Date.now(),

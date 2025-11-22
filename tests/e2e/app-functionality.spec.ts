@@ -369,3 +369,147 @@ test.describe('Accessibility', () => {
     await expect(page.locator('[data-testid="call-button"]')).toBeDisabled()
   })
 })
+
+test.describe('Call Functionality - Outgoing Calls', () => {
+  test.beforeEach(async ({ page, mockSipServer, mockMediaDevices, configureSip }) => {
+    // Setup mocks
+    await mockSipServer()
+    await mockMediaDevices()
+
+    // Navigate to the app
+    await page.goto(APP_URL)
+
+    // Configure and connect
+    await configureSip({
+      uri: 'wss://sip.example.com:7443',
+      username: 'sip:testuser@example.com',
+      password: 'testpassword',
+    })
+  })
+
+  test('should make an outgoing call', async ({
+    page,
+    waitForConnectionState,
+    waitForRegistrationState,
+    waitForCallState,
+  }) => {
+    // Connect
+    await page.click('[data-testid="connect-button"]')
+
+    // Wait for connection and registration using fixtures
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
+
+    // Enter destination and make call
+    await page.fill('[data-testid="dialpad-input"]', 'sip:destination@example.com')
+    await page.click('[data-testid="call-button"]')
+
+    // Wait for call to progress to ringing/active
+    await waitForCallState(['ringing', 'active'])
+
+    // Verify active call interface appears
+    await expect(page.locator('[data-testid="active-call"]')).toBeVisible()
+  })
+
+  test('should show call status during outgoing call', async ({
+    page,
+    waitForConnectionState,
+    waitForRegistrationState,
+    waitForCallState,
+  }) => {
+    // Connect
+    await page.click('[data-testid="connect-button"]')
+
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
+
+    // Make call
+    await page.fill('[data-testid="dialpad-input"]', 'sip:destination@example.com')
+    await page.click('[data-testid="call-button"]')
+
+    // Wait for a meaningful call state
+    await waitForCallState(['calling', 'ringing', 'active'])
+
+    // Verify call status is visible
+    const callStatus = page.locator('[data-testid="call-status"]')
+    
+    // Verify call status shows calling state
+    await expect(callStatus).toContainText(/calling|connecting|ringing/i)
+
+    // Verify hangup button is available
+    await expect(page.locator('[data-testid="hangup-button"]')).toBeVisible()
+  })
+
+  test('should hangup an outgoing call', async ({
+    page,
+    waitForConnectionState,
+    waitForRegistrationState,
+    waitForCallState,
+  }) => {
+    // Connect
+    await page.click('[data-testid="connect-button"]')
+
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
+
+    // Make call
+    await page.fill('[data-testid="dialpad-input"]', 'sip:destination@example.com')
+    await page.click('[data-testid="call-button"]')
+
+    // Wait for call to be active before hanging up
+    await waitForCallState('active')
+    await expect(page.locator('[data-testid="hangup-button"]')).toBeVisible()
+
+    // Hangup the call
+    await page.click('[data-testid="hangup-button"]')
+
+    // Verify call ends (terminated/idle)
+    await waitForCallState(['terminated', 'idle'])
+    await expect(page.locator('[data-testid="active-call"]')).not.toBeVisible({ timeout: 3000 })
+  })
+})
+
+test.describe('Call Functionality - Incoming Calls', () => {
+  test.beforeEach(async ({ page, mockSipServer, mockMediaDevices, configureSip }) => {
+    // Setup mocks
+    await mockSipServer()
+    await mockMediaDevices()
+
+    // Navigate to the app
+    await page.goto(APP_URL)
+
+    // Configure and connect
+    await configureSip({
+      uri: 'wss://sip.example.com:7443',
+      username: 'sip:testuser@example.com',
+      password: 'testpassword',
+    })
+  })
+
+  test('should display incoming call notification', async ({
+    page,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Connect
+    await page.click('[data-testid="connect-button"]')
+
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
+
+    // Simulate incoming call and wait for ringing
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+
+    // Verify incoming call notification appears
+    await expect(page.locator('[data-testid="incoming-call-notification"]')).toBeVisible({
+      timeout: 5000,
+    })
+
+    // Verify answer and reject buttons are visible
+    await expect(page.locator('[data-testid="answer-button"]')).toBeVisible()
+    await expect(page.locator('[data-testid="reject-button"]')).toBeVisible()
+  })
+})

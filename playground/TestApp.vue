@@ -340,13 +340,13 @@
         <i class="pi pi-cog"></i> {{ showSettings ? 'Close' : 'Settings' }}
       </button>
 
-        <!-- Error Display -->
-        <div v-if="lastError" data-testid="error-message" class="error-message">
-          {{ lastError }}
-        </div>
-        <div v-if="registrationError" data-testid="registration-error" class="error-message">
-          {{ registrationError }}
-        </div>
+      <!-- Error Display -->
+      <div v-if="lastError" data-testid="error-message" class="error-message">
+        {{ lastError }}
+      </div>
+      <div v-if="registrationError" data-testid="registration-error" class="error-message">
+        {{ registrationError }}
+      </div>
       </main>
     </div>
   </div>
@@ -416,10 +416,12 @@ let connect: any = () => Promise.resolve()
 let disconnect: any = () => Promise.resolve()
 let updateConfig: any = () => ({ valid: false })
 let callState: any = ref('idle')
+let callId: any = ref(null)
 let direction: any = ref(null)
 let remoteUri: any = ref('')
 let isLocalHeld: any = ref(false)
 let isMuted: any = ref(false)
+let timing: any = ref({ answerTime: null })
 let answerTime: any = ref(null)
 let makeCall: any = () => Promise.resolve()
 let answer: any = () => Promise.resolve()
@@ -467,12 +469,13 @@ try {
   callSession = useCallSession(sipClientRef)
   console.log('TestApp: useCallSession initialized')
   ;({
-    callState,
+    state: callState,
+    callId,
     direction,
     remoteUri,
-    isLocalHeld,
+    isOnHold: isLocalHeld,
     isMuted,
-    answerTime,
+    timing,
     makeCall,
     answer,
     reject,
@@ -482,6 +485,9 @@ try {
     mute,
     unmute,
   } = callSession)
+  
+  // Extract answerTime from timing object as a computed ref for template compatibility
+  answerTime = computed(() => timing.value.answerTime ?? null)
 
   // DTMF
   console.log('TestApp: Initializing useDTMF...')
@@ -524,6 +530,84 @@ try {
       console.error('SIP Error:', error)
     }
   })
+
+  // Test helpers - expose on window for E2E tests AFTER composables are initialized
+  if (typeof window !== 'undefined') {
+    // Lightweight debug state for E2E fixtures to query without relying on DOM
+    const dbgState = ((window as any).__sipState = (window as any).__sipState || {
+      // connection
+      isConnected: false,
+      connectionState: 'disconnected',
+      // registration
+      isRegistered: false,
+      registrationState: 'unregistered',
+      // meta
+      lastUpdate: Date.now(),
+    })
+
+    const syncDbgState = () => {
+      try {
+        dbgState.isConnected = !!(isConnected?.value ?? false)
+        dbgState.connectionState = String(connectionState?.value ?? 'disconnected')
+        dbgState.isRegistered = !!(isRegistered?.value ?? false)
+        dbgState.registrationState = String((sipClient as any)?.registrationState?.value ?? (isRegistered?.value ? 'registered' : 'unregistered'))
+        dbgState.lastUpdate = Date.now()
+      } catch (e) {
+        // no-op: debug state is best-effort only
+      }
+    }
+    // Initial sync and reactive updates
+    syncDbgState()
+    watch([() => isConnected?.value, () => connectionState?.value, () => isRegistered?.value], syncDbgState, {
+      immediate: true,
+    })
+
+    // Expose call debug state separately to keep concerns clear for fixtures
+    const callDbg = ((window as any).__callState = (window as any).__callState || {
+      callState: 'idle',
+      direction: '',
+      remoteUri: '',
+      isInCall: false,
+      lastUpdate: Date.now(),
+    })
+
+    const syncCallDbg = () => {
+      try {
+        const cs = String(callState?.value ?? 'idle')
+        const dir = String(direction?.value ?? '')
+        const uri = String(remoteUri?.value ?? '')
+        callDbg.callState = cs
+        callDbg.direction = dir
+        callDbg.remoteUri = uri
+        // Consider active/held/early_media/answering as in-call states
+        callDbg.isInCall = ['active', 'held', 'remote_held', 'early_media', 'answering'].includes(cs)
+        callDbg.lastUpdate = Date.now()
+      } catch (e) {
+        // best-effort, non-fatal
+      }
+    }
+    syncCallDbg()
+    watch([() => callState?.value, () => direction?.value, () => remoteUri?.value], syncCallDbg, {
+      immediate: true,
+    })
+
+    ;(window as any).__forceSipConnection = () => {
+      console.debug('[TestApp] __forceSipConnection called, forcing connected event')
+      const client = sipClient.getClient()
+      if (client && typeof client.forceEmitConnected === 'function') {
+        client.forceEmitConnected()
+        console.debug('[TestApp] forceEmitConnected called successfully')
+      } else {
+        console.warn('[TestApp] Could not find SipClient or forceEmitConnected method', {
+          hasSipClient: !!sipClient,
+          hasGetClient: !!sipClient.getClient,
+          client: !!client,
+          hasForceEmit: client ? typeof client.forceEmitConnected : 'no client'
+        })
+      }
+    }
+    console.debug('[TestApp] __forceSipConnection helper installed')
+  }
 } catch (error: any) {
   initializationError.value = `Failed to initialize: ${error.message || 'Unknown error'}`
   console.error('Composable initialization error:', error)
@@ -685,9 +769,14 @@ const sendDTMF = async (digit: string) => {
 
 const handleTransfer = async () => {
   if (!transferTarget.value) return
+  const callId = callSession?.callId?.value
+  if (!callId) {
+    transferStatus.value = 'No active call to transfer'
+    return
+  }
   try {
     transferStatus.value = 'Transferring...'
-    await callControls.blindTransfer(transferTarget.value)
+    await callControls.blindTransfer(callId, transferTarget.value)
     transferStatus.value = 'Transfer initiated'
   } catch (err: any) {
     transferStatus.value = `Transfer failed: ${err.message}`

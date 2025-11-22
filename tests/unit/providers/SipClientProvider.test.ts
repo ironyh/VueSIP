@@ -9,6 +9,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import { SipClientProvider, useSipClientProvider } from '@/providers/SipClientProvider'
 import type { SipClientConfig } from '@/types/config.types'
+import { waitForNextTick, waitForCondition } from '../../utils/test-helpers'
 
 // Mock the logger
 vi.mock('@/utils/logger', () => ({
@@ -212,7 +213,15 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      expect(validateSipConfig).toHaveBeenCalledWith(mockConfig)
+      // Config should be merged with autoRegister prop (defaults to true)
+      const callArgs = vi.mocked(validateSipConfig).mock.calls[0]?.[0]
+      expect(callArgs).toBeDefined()
+      expect(callArgs).toMatchObject({
+        ...mockConfig,
+        registrationOptions: {
+          autoRegister: true, // default value
+        },
+      })
     })
 
     it('should handle invalid configuration gracefully', async () => {
@@ -435,7 +444,11 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Wait for register to be called (mock uses setTimeout with 0 delay)
+      await waitForCondition(
+        () => mockClient.register.mock.calls.length > 0,
+        { timeout: 1000, description: 'register to be called' }
+      )
 
       // Should call register after connection
       expect(mockClient.register).toHaveBeenCalled()

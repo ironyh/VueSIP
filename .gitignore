@@ -67,3 +67,6 @@ docs/api/generated/
 
 # MCP Configuration (contains sensitive tokens)
 .mcp.json
+
+# Gemini AI tool directory
+.gemini/

@@ -25,6 +25,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -32,8 +33,9 @@ test.describe('Incoming Call Scenarios', () => {
     await waitForConnectionState('connected')
     await waitForRegistrationState('registered')
 
-    // Simulate incoming call
+    // Simulate incoming call and wait for ringing
     await simulateIncomingCall('sip:alice@example.com')
+    await waitForCallState('ringing')
 
     // Verify incoming call notification is displayed
     await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText('Incoming', {
@@ -51,6 +53,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -58,21 +61,15 @@ test.describe('Incoming Call Scenarios', () => {
     await waitForConnectionState('connected')
     await waitForRegistrationState('registered')
 
-    // Simulate incoming call
+    // Simulate incoming call and wait for ringing
     await simulateIncomingCall('sip:bob@example.com')
-
-    // Wait for incoming call notification
-    await expect(page.locator(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)).toBeVisible({
-      timeout: 5000,
-    })
+    await waitForCallState('ringing')
 
     // Answer the call
     await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
 
-    // Verify call is active
-    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText('Active', {
-      timeout: 3000,
-    })
+    // Verify call becomes active
+    await waitForCallState('active')
 
     // Verify call control buttons are available
     await expect(page.locator(SELECTORS.CALL_CONTROLS.HANGUP_BUTTON)).toBeVisible()
@@ -86,6 +83,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -93,22 +91,15 @@ test.describe('Incoming Call Scenarios', () => {
     await waitForConnectionState('connected')
     await waitForRegistrationState('registered')
 
-    // Simulate incoming call
+    // Simulate incoming call and wait for ringing
     await simulateIncomingCall('sip:charlie@example.com')
-
-    // Wait for incoming call notification
-    await expect(page.locator(SELECTORS.CALL_CONTROLS.REJECT_BUTTON)).toBeVisible({
-      timeout: 5000,
-    })
+    await waitForCallState('ringing')
 
     // Reject the call
     await page.click(SELECTORS.CALL_CONTROLS.REJECT_BUTTON)
 
-    // Verify call is terminated
-    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).not.toContainText('Incoming', {
-      timeout: 3000,
-    })
-    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).not.toContainText('Active')
+    // Verify call is terminated/idle
+    await waitForCallState(['terminated', 'idle'])
 
     // Verify answer/reject buttons are no longer visible
     await expect(page.locator(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)).not.toBeVisible()
@@ -121,6 +112,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -130,11 +122,11 @@ test.describe('Incoming Call Scenarios', () => {
 
     // First incoming call
     await simulateIncomingCall('sip:first@example.com')
-    await page.waitForTimeout(200)
+    await waitForCallState('ringing')
 
     // Answer first call
     await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
-    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText('Active')
+    await waitForCallState('active')
 
     // Second incoming call (call waiting)
     await simulateIncomingCall('sip:second@example.com')
@@ -153,6 +145,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -164,7 +157,7 @@ test.describe('Incoming Call Scenarios', () => {
 
     // Simulate incoming call
     await simulateIncomingCall(callerUri)
-    await page.waitForTimeout(200)
+    await waitForCallState('ringing')
 
     // Verify caller information is displayed somewhere in the app
     // (exact location depends on implementation)
@@ -178,6 +171,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -188,9 +182,8 @@ test.describe('Incoming Call Scenarios', () => {
     // Make outbound call first
     await page.fill(SELECTORS.DIALPAD.NUMBER_INPUT, TEST_DATA.PHONE_NUMBERS.VALID)
     await page.click(SELECTORS.DIALPAD.CALL_BUTTON)
-
     // Wait for outbound call to be active
-    await page.waitForTimeout(500)
+    await waitForCallState('active')
 
     // Incoming call while on active call
     await simulateIncomingCall('sip:incoming@example.com')
@@ -207,6 +200,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -214,12 +208,11 @@ test.describe('Incoming Call Scenarios', () => {
     await waitForConnectionState('connected')
     await waitForRegistrationState('registered')
 
-    // Simulate incoming call
+    // Simulate incoming call and answer
     await simulateIncomingCall('sip:mediatest@example.com')
-
-    // Answer the call
+    await waitForCallState('ringing')
     await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
-    await page.waitForTimeout(200)
+    await waitForCallState('active')
 
     // Verify call is active
     await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText('Active')
@@ -245,6 +238,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -252,20 +246,17 @@ test.describe('Incoming Call Scenarios', () => {
     await waitForConnectionState('connected')
     await waitForRegistrationState('registered')
 
-    // Simulate incoming call
+    // Simulate incoming call and answer
     await simulateIncomingCall('sip:endtest@example.com')
-
-    // Answer the call
+    await waitForCallState('ringing')
     await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
-    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText('Active')
+    await waitForCallState('active')
 
     // End the call
     await page.click(SELECTORS.CALL_CONTROLS.HANGUP_BUTTON)
 
     // Verify call ended
-    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).not.toContainText('Active', {
-      timeout: 3000,
-    })
+    await waitForCallState(['terminated', 'idle'])
   })
 
   test('should record incoming call in call history', async ({
@@ -274,6 +265,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -283,16 +275,13 @@ test.describe('Incoming Call Scenarios', () => {
 
     const callerUri = 'sip:history@example.com'
 
-    // Simulate incoming call
+    // Simulate incoming call, answer, hang up
     await simulateIncomingCall(callerUri)
-
-    // Answer the call
+    await waitForCallState('ringing')
     await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
-    await page.waitForTimeout(200)
-
-    // End the call
+    await waitForCallState('active')
     await page.click(SELECTORS.CALL_CONTROLS.HANGUP_BUTTON)
-    await page.waitForTimeout(200)
+    await waitForCallState(['terminated', 'idle'])
 
     // Open call history
     const historyButton = page.locator(SELECTORS.CALL_HISTORY.TOGGLE_BUTTON)
@@ -315,6 +304,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -324,12 +314,11 @@ test.describe('Incoming Call Scenarios', () => {
 
     const callerUri = 'sip:rejected@example.com'
 
-    // Simulate incoming call
+    // Simulate incoming call and reject
     await simulateIncomingCall(callerUri)
-
-    // Reject the call
+    await waitForCallState('ringing')
     await page.click(SELECTORS.CALL_CONTROLS.REJECT_BUTTON)
-    await page.waitForTimeout(200)
+    await waitForCallState(['terminated', 'idle'])
 
     // Open call history if available
     const historyButton = page.locator(SELECTORS.CALL_HISTORY.TOGGLE_BUTTON)
@@ -348,6 +337,7 @@ test.describe('Incoming Call Scenarios', () => {
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
+    waitForCallState,
   }) => {
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
@@ -357,16 +347,14 @@ test.describe('Incoming Call Scenarios', () => {
 
     // Simulate incoming call
     await simulateIncomingCall('sip:rapid@example.com')
-    await page.waitForTimeout(100)
+    await waitForCallState('ringing')
 
     // Rapidly click answer multiple times (should handle gracefully)
     await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
     await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
 
     // Should still result in active call without errors
-    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText('Active', {
-      timeout: 3000,
-    })
+    await waitForCallState('active')
   })
 
   test('should auto-reject incoming call when disconnected', async ({

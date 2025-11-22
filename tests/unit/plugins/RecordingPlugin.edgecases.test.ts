@@ -219,8 +219,8 @@ describe('RecordingPlugin - Edge Cases', () => {
         }
       }
 
-      // Temporarily replace global mock
-      const originalMediaRecorder = global.MediaRecorder
+      // Temporarily replace the global MediaRecorder
+      const originalMockMediaRecorder = global.MediaRecorder
       global.MediaRecorder = EmptyMockMediaRecorder as any
 
       const onRecordingError = vi.fn()
@@ -243,7 +243,7 @@ describe('RecordingPlugin - Edge Cases', () => {
       expect(onRecordingError).toHaveBeenCalled()
 
       // Restore original MediaRecorder
-      global.MediaRecorder = originalMediaRecorder
+      global.MediaRecorder = originalMockMediaRecorder
     })
 
     it('should not save empty blobs to IndexedDB', async () => {

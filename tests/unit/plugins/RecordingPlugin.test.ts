@@ -7,6 +7,7 @@ import { RecordingPlugin } from '../../../src/plugins/RecordingPlugin'
 import { EventBus } from '../../../src/core/EventBus'
 import type { PluginContext } from '../../../src/types/plugin.types'
 import * as loggerModule from '../../../src/utils/logger'
+import { waitForNextTick, waitForCondition } from '../../utils/test-helpers'
 
 // Mock MediaRecorder
 class MockMediaRecorder {
@@ -290,8 +291,11 @@ describe('RecordingPlugin', () => {
 
       await plugin.startRecording('call-123', mockStream)
 
-      // Wait for async event
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      // Wait for async event - the mock MediaRecorder uses setTimeout internally
+      await waitForCondition(
+        () => onRecordingStart.mock.calls.length > 0,
+        { timeout: 1000, description: 'recording start callback' }
+      )
 
       expect(onRecordingStart).toHaveBeenCalled()
     })
@@ -331,8 +335,11 @@ describe('RecordingPlugin', () => {
       await plugin.startRecording('call-123', mockStream)
       await plugin.stopRecording('call-123')
 
-      // Wait for async event
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      // Wait for async event - the mock MediaRecorder uses setTimeout internally
+      await waitForCondition(
+        () => onRecordingStop.mock.calls.length > 0,
+        { timeout: 1000, description: 'recording stop callback' }
+      )
 
       expect(onRecordingStop).toHaveBeenCalled()
 
@@ -349,7 +356,7 @@ describe('RecordingPlugin', () => {
       await plugin.startRecording('call-123', mockStream)
 
       // Wait for recording to start
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       plugin.pauseRecording('call-123')
 
@@ -372,7 +379,7 @@ describe('RecordingPlugin', () => {
       await plugin.startRecording('call-123', mockStream)
 
       // Wait for recording to start
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       plugin.pauseRecording('call-123')
       plugin.resumeRecording('call-123')
@@ -445,7 +452,7 @@ describe('RecordingPlugin', () => {
       })
 
       // Wait for async processing
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(plugin).toBeDefined()
     })
@@ -480,7 +487,7 @@ describe('RecordingPlugin', () => {
       })
 
       // Wait for async processing
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       expect(plugin).toBeDefined()
     })
@@ -491,7 +498,7 @@ describe('RecordingPlugin', () => {
       })
 
       // Wait for async processing
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      await waitForNextTick()
 
       // Should not throw
       expect(plugin).toBeDefined()

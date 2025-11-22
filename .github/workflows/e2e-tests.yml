@@ -9,12 +9,14 @@ on:
 
 jobs:
   test:
-    timeout-minutes: 60
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
+        # Optional: Add sharding for chromium (largest test suite)
+        # shard: ${{ matrix.browser == 'chromium' && [1, 2] || [1] }}
 
     steps:
       - name: Checkout repository
@@ -85,7 +87,7 @@ jobs:
           if-no-files-found: warn
 
   test-mobile:
-    timeout-minutes: 60
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

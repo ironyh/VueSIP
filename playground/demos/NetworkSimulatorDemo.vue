@@ -256,14 +256,16 @@ const targetUri = ref('sip:1000@example.com')
 const { sipClient, connectionState, isConnected, isConnecting, connect, disconnect } =
   useSipClient()
 
-// Call Management
+// Call Management - useCallSession requires a Ref
+const sipClientRef = computed(() => sipClient.value)
 const {
   makeCall: makeCallFn,
   answer,
   hangup,
-  callState,
-  hasActiveCall,
-} = useCallSession(sipClient)
+  session: currentCall,
+  state: callState,
+  isActive: hasActiveCall,
+} = useCallSession(sipClientRef)
 
 // Network Profiles
 interface NetworkProfile {
