@@ -17,6 +17,7 @@ import { screenSharingExample } from './screen-sharing'
 import { callWaitingExample } from './call-waiting'
 import { sipMessagingExample } from './sip-messaging'
 import { presenceExample } from './presence'
+import { toolbarLayoutsExample } from './toolbar-layouts'
 
 export const allExamples = [
   basicCallExample,
@@ -38,6 +39,7 @@ export const allExamples = [
   callWaitingExample,
   sipMessagingExample,
   presenceExample,
+  toolbarLayoutsExample,
 ]
 
 export type { ExampleDefinition, CodeSnippet } from './types'
