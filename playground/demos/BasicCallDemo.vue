@@ -189,7 +189,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { useSipClient, useCallSession } from '../../src'
+import { useCallSession } from '../../src'
+import { playgroundSipClient } from '../sipClient'
 
 // localStorage keys
 const CREDENTIALS_STORAGE_KEY = 'vuesip-credentials'
@@ -223,8 +224,8 @@ const dialNumber = ref('')
 const rememberMe = ref(false)
 const savePassword = ref(false)
 
-// SIP Client
-const { connect, disconnect, isConnected, isRegistered, error: sipError, updateConfig, getClient } = useSipClient()
+// Use shared SIP Client instance
+const { connect, disconnect, isConnected, isRegistered, error: sipError, updateConfig, getClient } = playgroundSipClient
 
 // Call Session
 const sipClientRef = computed(() => getClient())

@@ -92,11 +92,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useSipClient } from '../../src'
 import { useCallSession } from '../../src'
+import { playgroundSipClient } from '../sipClient'
 
-// Get SIP client state
-const { isConnected, isRegistered, getClient, disconnect } = useSipClient()
+// Use shared SIP client instance
+const { isConnected, isRegistered, getClient, disconnect } = playgroundSipClient
 
 // Get call session state and methods
 const sipClientRef = computed(() => getClient())

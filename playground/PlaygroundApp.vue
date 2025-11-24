@@ -224,8 +224,8 @@ const { makeCall, answer, hangup } = useCallSession()</code></pre>
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { allExamples } from './examples'
-import { useSipClient } from '../src'
 import CallToolbar from './components/CallToolbar.vue'
+import { playgroundSipClient } from './sipClient'
 
 // localStorage keys for credentials
 const CREDENTIALS_STORAGE_KEY = 'vuesip-credentials'
@@ -247,8 +247,8 @@ interface CredentialsOptions {
 // Use imported examples
 const examples = allExamples
 
-// Get SIP client for global auto-connect
-const { connect, disconnect, isConnected, updateConfig } = useSipClient()
+// Get shared SIP client for global auto-connect
+const { connect, disconnect, isConnected, updateConfig } = playgroundSipClient
 
 // State
 const currentExample = ref('basic-call')
