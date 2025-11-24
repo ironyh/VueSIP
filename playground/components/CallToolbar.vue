@@ -74,6 +74,16 @@
           >
             ❌ Hangup
           </button>
+
+          <!-- Disconnect button when connected but no active call -->
+          <button
+            v-if="isConnected && !isActive"
+            class="btn btn-warning btn-sm"
+            @click="handleDisconnect"
+            aria-label="Disconnect from server"
+          >
+            🔌 Disconnect
+          </button>
         </div>
       </div>
     </div>
@@ -86,7 +96,7 @@ import { useSipClient } from '../../src'
 import { useCallSession } from '../../src'
 
 // Get SIP client state
-const { isConnected, isRegistered, getClient } = useSipClient()
+const { isConnected, isRegistered, getClient, disconnect } = useSipClient()
 
 // Get call session state and methods
 const sipClientRef = computed(() => getClient())
@@ -164,6 +174,18 @@ const handleHoldToggle = async () => {
     }
   } catch (error) {
     console.error('Failed to toggle hold:', error)
+  }
+}
+
+const handleDisconnect = async () => {
+  try {
+    // Hangup any active call first
+    if (isActive.value) {
+      await hangup()
+    }
+    await disconnect()
+  } catch (error) {
+    console.error('Failed to disconnect:', error)
   }
 }
 </script>
@@ -317,6 +339,17 @@ const handleHoldToggle = async () => {
   background: #dc2626;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-warning:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 .btn-secondary {
