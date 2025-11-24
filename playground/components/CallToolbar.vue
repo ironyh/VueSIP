@@ -80,7 +80,7 @@
             v-if="isConnected && !isActive"
             class="btn btn-warning btn-sm"
             @click="handleDisconnect"
-            aria-label="Disconnect from server"
+            aria-label="Disconnect from SIP server"
           >
             🔌 Disconnect
           </button>
@@ -91,15 +91,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useCallSession } from '../../src'
 import { playgroundSipClient } from '../sipClient'
 
 // Use shared SIP client instance
 const { isConnected, isRegistered, getClient, disconnect } = playgroundSipClient
 
-// Get call session state and methods
+// Get client reference for composables
 const sipClientRef = computed(() => getClient())
+
+// Get call session state and methods
 const {
   session,
   state,
