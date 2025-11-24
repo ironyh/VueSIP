@@ -190,6 +190,7 @@ const handleHoldToggle = async () => {
   align-items: center;
   gap: 2rem;
   color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Status Section */
@@ -203,17 +204,18 @@ const handleHoldToggle = async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #ef4444;
   transition: background 0.3s;
   flex-shrink: 0;
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
 }
 
 .status-dot.connected {
@@ -262,9 +264,10 @@ const handleHoldToggle = async () => {
 }
 
 .no-call-text {
-  font-size: 0.875rem;
-  opacity: 0.7;
+  font-size: 0.9375rem;
+  opacity: 0.85;
   font-style: italic;
+  font-weight: 500;
 }
 
 /* Call Controls */
