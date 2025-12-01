@@ -207,11 +207,12 @@ export function sanitizeContext(
 
     // Check if key contains sensitive information (exact match or with common separators)
     const isSensitive = SENSITIVE_KEYS.some((sensitiveKey) => {
+      const lowerSensitive = sensitiveKey.toLowerCase()
       return (
-        lowerKey === sensitiveKey ||
-        lowerKey.startsWith(sensitiveKey + '_') ||
-        lowerKey.endsWith('_' + sensitiveKey) ||
-        lowerKey.includes('_' + sensitiveKey + '_')
+        lowerKey === lowerSensitive ||
+        lowerKey.startsWith(lowerSensitive + '_') ||
+        lowerKey.endsWith('_' + lowerSensitive) ||
+        lowerKey.includes('_' + lowerSensitive + '_')
       )
     })
 
