@@ -122,21 +122,21 @@ export const defaultMockDevices: MockMediaDevice[] = [
  * Optimized for faster test execution while maintaining realistic timing
  */
 const SIP_DELAYS = {
-  CONNECTION: 20,      // Reduced from 50ms
-  REGISTER_200: 30,    // Reduced from 80ms
-  INVITE_100: 20,       // Reduced from 50ms
-  INVITE_180: 50,       // Reduced from 100ms
-  INVITE_200: 50,       // Reduced from 150ms
-  BYE_200: 20,          // Reduced from 50ms
-  CANCEL_200: 20,       // Reduced from 50ms
-  ACK_PROCESS: 10,      // Keep as is (already optimal)
-  OPTIONS_200: 20,      // Reduced from 50ms
+  CONNECTION: 20, // Reduced from 50ms
+  REGISTER_200: 30, // Reduced from 80ms
+  INVITE_100: 20, // Reduced from 50ms
+  INVITE_180: 50, // Reduced from 100ms
+  INVITE_200: 50, // Reduced from 150ms
+  BYE_200: 20, // Reduced from 50ms
+  CANCEL_200: 20, // Reduced from 50ms
+  ACK_PROCESS: 10, // Keep as is (already optimal)
+  OPTIONS_200: 20, // Reduced from 50ms
 }
 
 /**
  * Parse SIP method from request (used in injected mock script)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function _parseSipMethod(data: string): string | null {
   const lines = data.split('\r\n')
   if (lines.length === 0) return null
@@ -148,7 +148,7 @@ function _parseSipMethod(data: string): string | null {
 /**
  * Extract Call-ID from SIP message (used in injected mock script)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function _extractCallId(data: string): string {
   const match = data.match(/Call-ID:\s*(.+)/i)
   return match ? match[1].trim() : 'default-call-id'
@@ -157,7 +157,7 @@ function _extractCallId(data: string): string {
 /**
  * Extract CSeq number from SIP message (used in injected mock script)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function _extractCSeq(data: string): string {
   const match = data.match(/CSeq:\s*(\d+)/i)
   return match ? match[1] : '1'
@@ -166,7 +166,7 @@ function _extractCSeq(data: string): string {
 /**
  * Extract branch from Via header (used in injected mock script)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function _extractBranch(data: string): string {
   const match = data.match(/branch=([^;\s]+)/i)
   return match ? match[1] : 'z9hG4bK123'
@@ -175,7 +175,7 @@ function _extractBranch(data: string): string {
 /**
  * Extract From tag (used in injected mock script)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function _extractFromTag(data: string): string {
   const match = data.match(/From:.*tag=([^;\s]+)/i)
   return match ? match[1] : '123'
@@ -184,7 +184,7 @@ function _extractFromTag(data: string): string {
 /**
  * Extract To URI (used in injected mock script)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function _extractToUri(data: string): string {
   const match = data.match(/To:\s*<([^>]+)>/i)
   return match ? match[1] : 'sip:destination@example.com'
@@ -193,7 +193,7 @@ function _extractToUri(data: string): string {
 /**
  * Extract From URI (used in injected mock script)
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function _extractFromUri(data: string): string {
   const match = data.match(/From:\s*<([^>]+)>/i)
   return match ? match[1] : 'sip:testuser@example.com'
@@ -214,7 +214,7 @@ export function mockWebSocketResponses(page: Page) {
               ;(window as any).JsSIP.debug.enable('JsSIP:*')
               console.log('[MockWebSocket] JsSIP debug enabled')
             }
-          } catch (e) {
+          } catch (_e) {
             // JsSIP not loaded yet, will try again later
           }
         }
@@ -293,7 +293,7 @@ export function mockWebSocketResponses(page: Page) {
 
         // Track active calls
         private activeCalls = new Map<string, any>()
-        
+
         // Track messages for debugging
         receivedMessages: string[] = []
         sentMessages: string[] = []
@@ -327,15 +327,17 @@ export function mockWebSocketResponses(page: Page) {
           // Only store SIP WebSocket, not Vite HMR or other WebSockets
           if (url && url.includes('sip.example.com')) {
             ;(window as any).__mockWebSocket = this
-            console.log('[MockWebSocket] Stored SIP WebSocket instance for incoming call simulation')
+            console.log(
+              '[MockWebSocket] Stored SIP WebSocket instance for incoming call simulation'
+            )
           }
-          
+
           // Also expose debug info
           ;(window as any).__mockWebSocketDebug = {
             getReceivedMessages: () => this.receivedMessages || [],
             getSentMessages: () => this.sentMessages || [],
           }
-          
+
           // Initialize message tracking arrays
           this.receivedMessages = []
           this.sentMessages = []
@@ -354,9 +356,16 @@ export function mockWebSocketResponses(page: Page) {
          * Simulate an incoming INVITE from remote party
          */
         simulateIncomingInvite(fromUri: string, toUri: string) {
-          console.log('[simulateIncomingInvite] Called with:', { fromUri, toUri, readyState: this.readyState })
+          console.log('[simulateIncomingInvite] Called with:', {
+            fromUri,
+            toUri,
+            readyState: this.readyState,
+          })
           if (this.readyState !== 1) {
-            console.error('[simulateIncomingInvite] WebSocket not open! ReadyState:', this.readyState)
+            console.error(
+              '[simulateIncomingInvite] WebSocket not open! ReadyState:',
+              this.readyState
+            )
             return
           }
 
@@ -410,16 +419,18 @@ export function mockWebSocketResponses(page: Page) {
             console.log('[MockWebSocket] ===== INVITE REQUEST RECEIVED =====')
             console.log('[MockWebSocket] Full request (first 800 chars):')
             console.log(data.substring(0, 800))
-            console.log('[MockWebSocket] Extracted values:', { 
-              callId, 
-              cseq, 
-              branch, 
+            console.log('[MockWebSocket] Extracted values:', {
+              callId,
+              cseq,
+              branch,
               fromTag,
               via: via?.substring(0, 150),
-              hasVia: !!via 
+              hasVia: !!via,
             })
             // Log Via header lines specifically
-            const viaLines = data.split('\r\n').filter(line => line.toLowerCase().startsWith('via:'))
+            const viaLines = data
+              .split('\r\n')
+              .filter((line) => line.toLowerCase().startsWith('via:'))
             console.log('[MockWebSocket] Via header lines from request:', viaLines)
             if (via) {
               console.log('[MockWebSocket] Extracted Via header:', via)
@@ -547,10 +558,10 @@ export function mockWebSocketResponses(page: Page) {
                   `a=rtpmap:0 PCMU/8000\r\n` +
                   `a=rtpmap:8 PCMA/8000\r\n` +
                   `a=rtpmap:101 telephone-event/8000\r\n`
-                
+
                 // Calculate correct Content-Length
                 const contentLength = sdpBody.length
-                
+
                 const ok =
                   `SIP/2.0 200 OK\r\n` +
                   `Via: ${viaHeader}\r\n` +
@@ -570,7 +581,7 @@ export function mockWebSocketResponses(page: Page) {
                 console.log(ok.substring(0, 600))
                 // Track sent messages
                 this.sentMessages.push(ok.substring(0, 200)) // Store first 200 chars
-                
+
                 this.emitEvent('message', new MessageEvent('message', { data: ok }))
               }, delays.INVITE_200)
             }, delays.INVITE_180 - delays.INVITE_100)
@@ -710,13 +721,13 @@ export function mockWebSocketResponses(page: Page) {
       }
 
       // Replace global WebSocket on both window and globalThis to ensure all contexts use the mock
-      const OriginalWebSocket = (window as any).WebSocket
+      const _OriginalWebSocket = (window as any).WebSocket
       ;(window as any).WebSocket = MockWebSocket
       ;(globalThis as any).WebSocket = MockWebSocket
-      
+
       // Log when WebSocket is instantiated
       const OriginalMockWebSocket = MockWebSocket
-      ;(window as any).WebSocket = function(url: string, protocols?: string | string[]) {
+      ;(window as any).WebSocket = function (url: string, protocols?: string | string[]) {
         console.log('[MockWebSocket] WebSocket constructor called with:', url, protocols)
         const instance = new OriginalMockWebSocket(url, protocols)
         console.log('[MockWebSocket] Created instance, readyState:', instance.readyState)
@@ -725,7 +736,6 @@ export function mockWebSocketResponses(page: Page) {
       // Copy static properties
       Object.setPrototypeOf((window as any).WebSocket, OriginalMockWebSocket)
       Object.assign((window as any).WebSocket, OriginalMockWebSocket)
-      
       ;(globalThis as any).WebSocket = (window as any).WebSocket
     },
     { delays: SIP_DELAYS }
@@ -813,7 +823,7 @@ export function mockGetUserMedia(page: Page, devices: MockMediaDevice[]) {
     }
 
     // Mock enumerateDevices - ensure it's set up before the page loads
-    const originalEnumerateDevices = navigator.mediaDevices.enumerateDevices
+    const _originalEnumerateDevices = navigator.mediaDevices.enumerateDevices
     navigator.mediaDevices.enumerateDevices = async () => {
       console.log('Mock enumerateDevices called, returning', devices.length, 'devices')
       const result = devices.map(
@@ -831,7 +841,7 @@ export function mockGetUserMedia(page: Page, devices: MockMediaDevice[]) {
       console.log('Mock enumerateDevices called from:', new Error().stack)
       return result
     }
-    
+
     // Also ensure the mock is available immediately
     console.log('Mock mediaDevices.enumerateDevices set up with', devices.length, 'devices')
   }, JSON.stringify(devices))
@@ -963,7 +973,9 @@ export const test = base.extend<TestFixtures>({
             mockWs.simulateIncomingInvite(from, to)
             console.log('[simulateIncomingCall] simulateIncomingInvite called')
           } else {
-            console.error('[simulateIncomingCall] Mock WebSocket not found or simulateIncomingInvite not available')
+            console.error(
+              '[simulateIncomingCall] Mock WebSocket not found or simulateIncomingInvite not available'
+            )
           }
         },
         { from: remoteUri, to: 'sip:testuser@example.com' }
@@ -977,12 +989,17 @@ export const test = base.extend<TestFixtures>({
     await use(async (config: MockSipServerConfig) => {
       console.log('[fixture] configureSip applying config', config)
       // Fill in SIP configuration
-      await page.click('[data-testid="settings-button"]')
+      const settingsButton = page.locator('[data-testid="settings-button"]')
+      await settingsButton.scrollIntoViewIfNeeded()
+      await settingsButton.click()
       await page.fill('[data-testid="sip-uri-input"]', config.username)
       await page.fill('[data-testid="password-input"]', config.password)
       await page.fill('[data-testid="server-uri-input"]', config.uri)
       await page.click('[data-testid="save-settings-button"]')
-      await page.click('[data-testid="settings-button"]') // Close settings
+      // Close settings - use force:true for mobile viewports where main element
+      // may intercept pointer events due to mobile layout reflow
+      await settingsButton.scrollIntoViewIfNeeded()
+      await settingsButton.click({ force: true })
     })
   },
 
@@ -1024,9 +1041,12 @@ export const test = base.extend<TestFixtures>({
             const expected = expectedState.toLowerCase()
             const connected = !!sipDbg.isConnected
             const current = String(sipDbg.connectionState || '').toLowerCase()
-            if ((expected === 'connected' && (connected || current === 'connected')) ||
-                (expected === 'disconnected' && (!connected && current === 'disconnected'))) {
-              const debug = (window as any).__connectionDebug || ((window as any).__connectionDebug = {})
+            if (
+              (expected === 'connected' && (connected || current === 'connected')) ||
+              (expected === 'disconnected' && !connected && current === 'disconnected')
+            ) {
+              const debug =
+                (window as any).__connectionDebug || ((window as any).__connectionDebug = {})
               debug.lastMatchedAt = Date.now()
               debug.matchedVia = 'sipDbg'
               return true
@@ -1046,7 +1066,8 @@ export const test = base.extend<TestFixtures>({
             return true
           }
 
-          const debug = ((window as any).__connectionDebug = (window as any).__connectionDebug || {})
+          const debug = ((window as any).__connectionDebug =
+            (window as any).__connectionDebug || {})
           const now = Date.now()
           if (!debug.lastLogAt || now - debug.lastLogAt > 1000) {
             debug.lastLogAt = now
@@ -1108,9 +1129,12 @@ export const test = base.extend<TestFixtures>({
           if (sipDbg) {
             const registered = !!sipDbg.isRegistered
             const regState = String(sipDbg.registrationState || '').toLowerCase()
-            if ((expected === 'registered' && (registered || regState === 'registered')) ||
-                (expected === 'unregistered' && (!registered && regState === 'unregistered'))) {
-              const debug = (window as any).__registrationDebug || ((window as any).__registrationDebug = {})
+            if (
+              (expected === 'registered' && (registered || regState === 'registered')) ||
+              (expected === 'unregistered' && !registered && regState === 'unregistered')
+            ) {
+              const debug =
+                (window as any).__registrationDebug || ((window as any).__registrationDebug = {})
               debug.lastMatchedAt = Date.now()
               debug.matchedVia = 'sipDbg'
               return true
@@ -1118,12 +1142,15 @@ export const test = base.extend<TestFixtures>({
           }
 
           // DOM-based checks
-          const statusElement = document.querySelector('[data-testid="registration-status"]') as HTMLElement | null
+          const statusElement = document.querySelector(
+            '[data-testid="registration-status"]'
+          ) as HTMLElement | null
           if (!statusElement) return false
 
           // Class fallback (UI binds { connected: isRegistered })
           if (expected === 'registered' && statusElement.classList.contains('connected')) {
-            const debug = (window as any).__registrationDebug || ((window as any).__registrationDebug = {})
+            const debug =
+              (window as any).__registrationDebug || ((window as any).__registrationDebug = {})
             debug.lastMatchedAt = Date.now()
             debug.matchedVia = 'class'
             return true
@@ -1141,7 +1168,9 @@ export const test = base.extend<TestFixtures>({
 
   waitForCallState: async ({ page }, use) => {
     await use(async (desired: string | string[]) => {
-      const desiredStates = Array.isArray(desired) ? desired.map((s) => s.toLowerCase()) : [String(desired).toLowerCase()]
+      const desiredStates = Array.isArray(desired)
+        ? desired.map((s) => s.toLowerCase())
+        : [String(desired).toLowerCase()]
       await page.waitForFunction(
         (states) => {
           const callDbg = (window as any).__callState
