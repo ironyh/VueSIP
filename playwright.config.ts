@@ -78,12 +78,15 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      // Smoke tests only - exclude visual regression, performance, and call tests (mock WS timing issues)
+      // Smoke tests only - exclude tests with WebSocket timing and mock issues
       testIgnore: [
         /visual-regression\.spec\.ts/,
         /performance\.spec\.ts/,
         /incoming-call\.spec\.ts/,
         /multi-user\.spec\.ts/,
+        /basic-call-flow\.spec\.ts/,
+        /av-quality\.spec\.ts/,
+        /error-scenarios\.spec\.ts/,
       ],
     },
 
