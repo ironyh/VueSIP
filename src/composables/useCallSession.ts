@@ -22,7 +22,7 @@ import type {
   TerminationCause,
 } from '../types/call.types'
 import { createLogger } from '../utils/logger'
-import { validateSipUri } from '../utils/validators'
+import { validateSipUri } from '@/utils/validators'
 import { throwIfAborted, isAbortError } from '../utils/abortController'
 import { ErrorSeverity, logErrorWithContext, createOperationTimer } from '../utils/errorContext'
 

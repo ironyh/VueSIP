@@ -19,16 +19,16 @@ vi.mock('@/utils/logger', () => ({
   }),
 }))
 
-// Mock the validators
+// Mock the validators - must match SimpleValidationResult interface
 vi.mock('@/utils/validators', () => ({
   validateSipUri: (uri: string) => {
     if (!uri || uri.trim() === '') {
-      return { valid: false, error: 'URI is empty' }
+      return { valid: false, isValid: false, error: 'URI is empty', errors: ['URI is empty'], normalized: null }
     }
     if (!uri.includes('@') && !uri.startsWith('sip:')) {
-      return { valid: false, error: 'Invalid SIP URI format' }
+      return { valid: false, isValid: false, error: 'Invalid SIP URI format', errors: ['Invalid SIP URI format'], normalized: null }
     }
-    return { valid: true, error: null }
+    return { valid: true, isValid: true, error: null, errors: [], normalized: uri }
   },
 }))
 
