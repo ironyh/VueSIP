@@ -312,8 +312,8 @@ export const STORAGE_KEYS = {
  * Performance targets and limits
  */
 export const PERFORMANCE = {
-  /** Maximum bundle size in bytes (minified) */
-  MAX_BUNDLE_SIZE: 250 * 1024, // 250 KB
+  /** Maximum bundle size in bytes (minified) - includes AMI composables and presence types */
+  MAX_BUNDLE_SIZE: 270 * 1024, // 270 KB
 
   /** Maximum bundle size in bytes (gzipped) */
   MAX_BUNDLE_SIZE_GZIPPED: 75 * 1024, // 75 KB
