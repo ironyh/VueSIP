@@ -121,16 +121,26 @@ export const defaultMockDevices: MockMediaDevice[] = [
  * SIP response delays (in milliseconds)
  * Optimized for faster test execution while maintaining realistic timing
  */
+/**
+ * CI-aware delay multiplier
+ * CI environments are typically slower, so we increase delays by 2x
+ */
+const CI_DELAY_MULTIPLIER = process.env.CI ? 2 : 1
+
+/**
+ * SIP event delays (in milliseconds)
+ * These are automatically adjusted for CI environments
+ */
 const SIP_DELAYS = {
-  CONNECTION: 20, // Reduced from 50ms
-  REGISTER_200: 30, // Reduced from 80ms
-  INVITE_100: 20, // Reduced from 50ms
-  INVITE_180: 50, // Reduced from 100ms
-  INVITE_200: 50, // Reduced from 150ms
-  BYE_200: 20, // Reduced from 50ms
-  CANCEL_200: 20, // Reduced from 50ms
-  ACK_PROCESS: 10, // Keep as is (already optimal)
-  OPTIONS_200: 20, // Reduced from 50ms
+  CONNECTION: 20 * CI_DELAY_MULTIPLIER,
+  REGISTER_200: 30 * CI_DELAY_MULTIPLIER,
+  INVITE_100: 20 * CI_DELAY_MULTIPLIER,
+  INVITE_180: 50 * CI_DELAY_MULTIPLIER,
+  INVITE_200: 50 * CI_DELAY_MULTIPLIER,
+  BYE_200: 20 * CI_DELAY_MULTIPLIER,
+  CANCEL_200: 20 * CI_DELAY_MULTIPLIER,
+  ACK_PROCESS: 10 * CI_DELAY_MULTIPLIER,
+  OPTIONS_200: 20 * CI_DELAY_MULTIPLIER,
 }
 
 /**
