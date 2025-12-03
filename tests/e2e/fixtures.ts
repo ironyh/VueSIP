@@ -118,10 +118,6 @@ export const defaultMockDevices: MockMediaDevice[] = [
 ]
 
 /**
- * SIP response delays (in milliseconds)
- * Optimized for faster test execution while maintaining realistic timing
- */
-/**
  * CI-aware delay multiplier
  * CI environments are typically slower, so we increase delays by 2x
  */

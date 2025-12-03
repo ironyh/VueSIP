@@ -414,7 +414,6 @@ describe('SipClient', () => {
     it('should handle registration timeout', async () => {
       // Use fake timers to speed up timeout test
       vi.useFakeTimers()
-
       try {
         // Mock that never calls the registered event
         mockUA.once.mockImplementation(() => {
@@ -423,7 +422,7 @@ describe('SipClient', () => {
 
         const registerPromise = sipClient.register()
 
-        // Fast-forward time to trigger timeout (30 seconds)
+        // Fast-forward past the 30-second timeout
         vi.advanceTimersByTime(30000)
 
         // Should reject with timeout error
