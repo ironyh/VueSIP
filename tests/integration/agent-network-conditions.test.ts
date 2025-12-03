@@ -233,18 +233,25 @@ describe('Agent Network Conditions Integration Tests', () => {
     it('should track packet loss statistics', async () => {
       const agent = await manager.createAgent({
         identity: createAgentIdentity('alice'),
-        networkProfile: NETWORK_PROFILES.WIFI_POOR,
+        networkProfile: NETWORK_PROFILES.WIFI_POOR, // 2% packet loss
         autoRegister: true,
       })
 
       const simulator = agent.getNetworkSimulator()
 
-      // Simulate some packet drops
-      for (let i = 0; i < 100; i++) {
-        simulator.shouldDropPacket()
+      // Simulate enough packet checks to ensure at least one drop
+      // With 2% packet loss, 200 checks should give ~4 expected drops
+      let droppedCount = 0
+      for (let i = 0; i < 200; i++) {
+        if (simulator.shouldDropPacket()) {
+          droppedCount++
+        }
       }
 
       const stats = simulator.getStatistics()
+      // Verify that drops were tracked in statistics
+      expect(stats.totalPacketsDropped).toBe(droppedCount)
+      // With 2% loss over 200 packets, expect at least 1 drop (very high probability)
       expect(stats.totalPacketsDropped).toBeGreaterThan(0)
     })
   })
