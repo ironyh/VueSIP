@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * useCallSession composable unit tests
  * Tests for Phase 6.11 improvements: input validation and concurrent operation guards
@@ -24,12 +23,12 @@ vi.mock('@/utils/logger', () => ({
 vi.mock('@/utils/validators', () => ({
   validateSipUri: (uri: string) => {
     if (!uri || uri.trim() === '') {
-      return { isValid: false, errors: ['URI is empty'] }
+      return { valid: false, error: 'URI is empty' }
     }
     if (!uri.includes('@') && !uri.startsWith('sip:')) {
-      return { isValid: false, errors: ['Invalid SIP URI format'] }
+      return { valid: false, error: 'Invalid SIP URI format' }
     }
-    return { isValid: true, errors: [] }
+    return { valid: true, error: null }
   },
 }))
 

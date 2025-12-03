@@ -161,21 +161,13 @@ export function useAmiPeers(
     return list
   })
 
-  const sipPeers = computed(() =>
-    peerList.value.filter((p) => p.channelType === 'SIP')
-  )
+  const sipPeers = computed(() => peerList.value.filter((p) => p.channelType === 'SIP'))
 
-  const pjsipPeers = computed(() =>
-    peerList.value.filter((p) => p.channelType === 'PJSIP')
-  )
+  const pjsipPeers = computed(() => peerList.value.filter((p) => p.channelType === 'PJSIP'))
 
-  const onlinePeers = computed(() =>
-    peerList.value.filter((p) => isPeerOnline(p))
-  )
+  const onlinePeers = computed(() => peerList.value.filter((p) => isPeerOnline(p)))
 
-  const offlinePeers = computed(() =>
-    peerList.value.filter((p) => !isPeerOnline(p))
-  )
+  const offlinePeers = computed(() => peerList.value.filter((p) => !isPeerOnline(p)))
 
   const statusSummary = computed<PeerStatusSummary>(() => {
     const list = peerList.value
@@ -207,13 +199,17 @@ export function useAmiPeers(
 
   /**
    * Check if peer is online based on status patterns
+   * Uses word boundary matching to avoid false positives (e.g., 'unreachable' shouldn't match 'reachable')
    */
   const isPeerOnline = (peer: PeerInfo): boolean => {
     if (!peer.status) return false
     const status = peer.status.toLowerCase()
-    return config.onlineStatusPatterns.some(
-      (pattern: string) => status.includes(pattern.toLowerCase())
-    )
+    return config.onlineStatusPatterns.some((pattern: string) => {
+      const lowerPattern = pattern.toLowerCase()
+      // Use word boundary regex to match whole words only
+      const regex = new RegExp(`\\b${lowerPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+      return regex.test(status)
+    })
   }
 
   // ============================================================================
@@ -341,9 +337,7 @@ export function useAmiPeers(
    * Check if peer is online
    */
   const isOnline = (nameOrPeer: string | PeerInfo): boolean => {
-    const peer = typeof nameOrPeer === 'string'
-      ? peers.value.get(nameOrPeer)
-      : nameOrPeer
+    const peer = typeof nameOrPeer === 'string' ? peers.value.get(nameOrPeer) : nameOrPeer
     return peer ? isPeerOnline(peer) : false
   }
 
@@ -391,9 +385,7 @@ export function useAmiPeers(
         objectName,
         channelType,
         ipAddress: data.Address?.split(':')[0] || '',
-        port: data.Address?.includes(':')
-          ? parseInt(data.Address.split(':')[1] || '0', 10)
-          : 0,
+        port: data.Address?.includes(':') ? parseInt(data.Address.split(':')[1] || '0', 10) : 0,
         status: parsePeerStatus(data.PeerStatus),
         dynamic: false,
         forceRPort: false,

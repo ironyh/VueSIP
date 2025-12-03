@@ -833,17 +833,14 @@ describe('usePresence', () => {
   // ==========================================================================
 
   describe('Validation', () => {
-    it('should accept custom presence state strings (not just enum values)', async () => {
-      // The implementation allows custom presence state strings, not just enum values
-      // This is by design to support custom presence states
+    it('should reject custom presence state strings (only enum values allowed)', async () => {
+      // The implementation validates that only valid PresenceState enum values are accepted
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { setStatus } = usePresence(sipClientRef)
 
-      // Custom state should be accepted (not rejected)
-      await setStatus('CustomState' as any)
-      expect(mockSipClient.publishPresence).toHaveBeenCalledWith(
-        expect.objectContaining({ state: 'CustomState' })
-      )
+      // Custom state should be rejected
+      await expect(setStatus('CustomState' as any)).rejects.toThrow('Invalid presence state')
+      expect(mockSipClient.publishPresence).not.toHaveBeenCalled()
     })
 
     it('should reject null PresenceState', async () => {

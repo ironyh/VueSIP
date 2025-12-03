@@ -9,53 +9,55 @@ import type { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
 
 // Mock JsSIP - use vi.hoisted() for variables used in factory
-const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent } = vi.hoisted(() => {
-  // Event handler storage
-  const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
-  const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
+const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent } = vi.hoisted(
+  () => {
+    // Event handler storage
+    const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
+    const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
 
-  // Helper to trigger events
-  const triggerEvent = (event: string, data?: any) => {
-    // Trigger 'on' handlers
-    const handlers = eventHandlers[event] || []
-    handlers.forEach((handler) => handler(data))
+    // Helper to trigger events
+    const triggerEvent = (event: string, data?: any) => {
+      // Trigger 'on' handlers
+      const handlers = eventHandlers[event] || []
+      handlers.forEach((handler) => handler(data))
 
-    // Trigger and remove 'once' handlers
-    const once = onceHandlers[event] || []
-    once.forEach((handler) => handler(data))
-    onceHandlers[event] = []
+      // Trigger and remove 'once' handlers
+      const once = onceHandlers[event] || []
+      once.forEach((handler) => handler(data))
+      onceHandlers[event] = []
+    }
+
+    const mockUA = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      register: vi.fn(),
+      unregister: vi.fn(),
+      sendMessage: vi.fn(),
+      isConnected: vi.fn().mockReturnValue(false),
+      isRegistered: vi.fn().mockReturnValue(false),
+      on: vi.fn((event: string, handler: (...args: any[]) => void) => {
+        if (!eventHandlers[event]) eventHandlers[event] = []
+        eventHandlers[event].push(handler)
+      }),
+      once: vi.fn((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+      }),
+      off: vi.fn((event: string, handler: (...args: any[]) => void) => {
+        if (eventHandlers[event]) {
+          eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler)
+        }
+        if (onceHandlers[event]) {
+          onceHandlers[event] = onceHandlers[event].filter((h) => h !== handler)
+        }
+      }),
+    }
+
+    const mockWebSocketInterface = vi.fn()
+
+    return { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent }
   }
-
-  const mockUA = {
-    start: vi.fn(),
-    stop: vi.fn(),
-    register: vi.fn(),
-    unregister: vi.fn(),
-    sendMessage: vi.fn(),
-    isConnected: vi.fn().mockReturnValue(false),
-    isRegistered: vi.fn().mockReturnValue(false),
-    on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (!eventHandlers[event]) eventHandlers[event] = []
-      eventHandlers[event].push(handler)
-    }),
-    once: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-    }),
-    off: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (eventHandlers[event]) {
-        eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler)
-      }
-      if (onceHandlers[event]) {
-        onceHandlers[event] = onceHandlers[event].filter((h) => h !== handler)
-      }
-    }),
-  }
-
-  const mockWebSocketInterface = vi.fn()
-
-  return { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent }
-})
+)
 
 vi.mock('jssip', () => {
   return {
@@ -256,7 +258,7 @@ describe('SipClient', () => {
         // Store handler in onceHandlers for proper cleanup
         if (!onceHandlers[event]) onceHandlers[event] = []
         onceHandlers[event].push(handler)
-        
+
         // Fire disconnected event immediately to simulate connection failure
         if (event === 'disconnected') {
           setTimeout(() => handler({}), 10)
@@ -394,12 +396,17 @@ describe('SipClient', () => {
     })
 
     it('should not register if already registered', async () => {
-      mockUA.isRegistered.mockReturnValue(true)
+      // First, complete a successful registration
+      setTimeout(() => {
+        mockUA.isRegistered.mockReturnValue(true)
+        triggerEvent('registered', {})
+      }, 10)
 
       await sipClient.register()
       const registerCalls = mockUA.register.mock.calls.length
 
-      await sipClient.register() // Second call should be ignored
+      // Second call should return immediately without calling mockUA.register again
+      await sipClient.register()
 
       expect(mockUA.register).toHaveBeenCalledTimes(registerCalls)
     })
@@ -463,9 +470,15 @@ describe('SipClient', () => {
     })
 
     it('should not unregister if not registered', async () => {
-      mockUA.isRegistered.mockReturnValue(false)
+      // First, complete unregistration properly
+      setTimeout(() => {
+        mockUA.isRegistered.mockReturnValue(false)
+        triggerEvent('unregistered', {})
+      }, 10)
 
       await sipClient.unregister()
+
+      // Second call should return immediately since we're already unregistered
       await expect(sipClient.unregister()).resolves.not.toThrow()
     })
   })

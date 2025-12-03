@@ -1,352 +1,459 @@
 <template>
-  <div data-testid="sip-client">
+  <div data-testid="sip-client" lang="en">
     <div class="container">
       <header>
         <h1>VueSip - E2E Test Application</h1>
       </header>
 
-      <main>
+      <!-- Screen reader live region for status announcements -->
+      <div aria-live="polite" aria-atomic="true" class="sr-only" data-testid="status-announcer">
+        {{ connectionState }} - {{ isRegistered ? 'Registered' : 'Unregistered' }}
+      </div>
+
+      <main role="main">
         <!-- Initialization Error -->
-        <div v-if="initializationError" data-testid="initialization-error" class="error-message">
+        <div
+          v-if="initializationError"
+          data-testid="initialization-error"
+          class="error-message"
+          role="alert"
+          aria-live="assertive"
+        >
           <strong>Initialization Error:</strong> {{ initializationError }}
         </div>
 
         <!-- Connection Status -->
-      <div class="status-bar">
-        <div class="status-item">
-          <span class="status-label">Connection:</span>
-          <span
-            data-testid="connection-status"
-            :class="['status-indicator', { connected: isConnected }]"
-          >
-            {{ connectionState }}
-          </span>
+        <div class="status-bar">
+          <div class="status-item">
+            <span class="status-label">Connection:</span>
+            <span
+              data-testid="connection-status"
+              :class="['status-indicator', { connected: isConnected }]"
+            >
+              {{ connectionState }}
+            </span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Registration:</span>
+            <span
+              data-testid="registration-status"
+              :class="['status-indicator', { connected: isRegistered }]"
+            >
+              {{ isRegistered ? 'Registered' : 'Unregistered' }}
+            </span>
+          </div>
         </div>
-        <div class="status-item">
-          <span class="status-label">Registration:</span>
-          <span
-            data-testid="registration-status"
-            :class="['status-indicator', { connected: isRegistered }]"
-          >
-            {{ isRegistered ? 'Registered' : 'Unregistered' }}
-          </span>
-        </div>
-      </div>
 
-      <!-- Settings Panel -->
-      <div v-if="showSettings" data-testid="settings-panel" class="settings-panel">
-        <h2>SIP Settings</h2>
-        <div class="form-group">
-          <label>SIP URI:</label>
-          <input
-            v-model="tempConfig.sipUri"
-            data-testid="sip-uri-input"
-            type="text"
-            placeholder="sip:user@example.com"
-          />
-        </div>
-        <div class="form-group">
-          <label>Password:</label>
-          <input
-            v-model="tempConfig.password"
-            data-testid="password-input"
-            type="password"
-            placeholder="password"
-          />
-        </div>
-        <div class="form-group">
-          <label>Server URI:</label>
-          <input
-            v-model="tempConfig.uri"
-            data-testid="server-uri-input"
-            type="text"
-            placeholder="wss://sip.example.com:7443"
-          />
-        </div>
-        <button class="btn btn-primary" data-testid="save-settings-button" @click="saveSettings">
-          Save Settings
-        </button>
-        <div v-if="settingsSaved" data-testid="settings-saved-message" class="success-message">
-          Settings saved successfully!
-        </div>
-        <div v-if="validationError" data-testid="validation-error" class="error-message">
-          {{ validationError }}
-        </div>
-      </div>
-
-      <!-- Main Interface -->
-      <div v-if="!showSettings" class="main-interface">
-        <!-- Connection Controls -->
-        <div class="connection-controls">
-          <button
-            v-if="!isConnected"
-            class="btn btn-primary"
-            data-testid="connect-button"
-            :disabled="isConnecting"
-            @click="handleConnect"
-          >
-            {{ isConnecting ? 'Connecting...' : 'Connect' }}
+        <!-- Settings Panel -->
+        <section
+          v-if="showSettings"
+          id="settings-panel"
+          data-testid="settings-panel"
+          class="settings-panel"
+          aria-labelledby="settings-heading"
+        >
+          <h2 id="settings-heading">SIP Settings</h2>
+          <div class="form-group">
+            <label for="sip-uri-input">SIP URI:</label>
+            <input
+              id="sip-uri-input"
+              v-model="tempConfig.sipUri"
+              data-testid="sip-uri-input"
+              type="text"
+              placeholder="sip:user@example.com"
+              aria-describedby="sip-uri-hint"
+            />
+            <span id="sip-uri-hint" class="sr-only"
+              >Enter your SIP address in the format sip:user@domain</span
+            >
+          </div>
+          <div class="form-group">
+            <label for="password-input">Password:</label>
+            <input
+              id="password-input"
+              v-model="tempConfig.password"
+              data-testid="password-input"
+              type="password"
+              placeholder="password"
+              autocomplete="current-password"
+            />
+          </div>
+          <div class="form-group">
+            <label for="server-uri-input">Server URI:</label>
+            <input
+              id="server-uri-input"
+              v-model="tempConfig.uri"
+              data-testid="server-uri-input"
+              type="text"
+              placeholder="wss://sip.example.com:7443"
+              aria-describedby="server-uri-hint"
+            />
+            <span id="server-uri-hint" class="sr-only"
+              >Enter the WebSocket server address starting with wss://</span
+            >
+          </div>
+          <button class="btn btn-primary" data-testid="save-settings-button" @click="saveSettings">
+            Save Settings
           </button>
-          <button
-            v-else
-            class="btn btn-danger"
-            data-testid="disconnect-button"
-            :disabled="isDisconnecting"
-            @click="handleDisconnect"
+          <div
+            v-if="settingsSaved"
+            data-testid="settings-saved-message"
+            class="success-message"
+            role="status"
           >
-            {{ isDisconnecting ? 'Disconnecting...' : 'Disconnect' }}
-          </button>
-        </div>
+            Settings saved successfully!
+          </div>
+          <div
+            v-if="validationError"
+            data-testid="validation-error"
+            class="error-message"
+            role="alert"
+            aria-live="assertive"
+          >
+            {{ validationError }}
+          </div>
+        </section>
 
-        <!-- Dialpad and Call Controls -->
-        <div class="row">
-          <div class="col">
-            <div class="dialpad-section">
-              <h2>Dialpad</h2>
-              <input
-                v-model="dialNumber"
-                data-testid="dialpad-input"
-                type="text"
-                class="dialpad-input"
-                placeholder="Enter number or SIP URI"
-              />
-              <button
-                class="btn btn-success"
-                data-testid="call-button"
-                :disabled="!dialNumber || !isConnected || isMakingCall"
-                @click="handleMakeCall"
-              >
-                <i class="pi pi-phone"></i> {{ isMakingCall ? 'Calling...' : 'Call' }}
-              </button>
-            </div>
-
-            <!-- DTMF Pad (during call) -->
-            <div v-if="callState === 'confirmed'" class="dtmf-section">
-              <button data-testid="dialpad-toggle" class="btn btn-secondary" @click="toggleDTMF">
-                {{ showDTMF ? 'Hide' : 'Show' }} DTMF Pad
-              </button>
-              <div v-if="showDTMF" class="dtmf-pad">
-                <button
-                  v-for="digit in dtmfDigits"
-                  :key="digit"
-                  :data-testid="`dtmf-${digit}`"
-                  class="dtmf-button"
-                  @click="sendDTMF(digit)"
-                >
-                  {{ digit }}
-                </button>
-              </div>
-              <div v-if="dtmfFeedback" data-testid="dtmf-feedback" class="dtmf-feedback">
-                Sent: {{ dtmfFeedback }}
-              </div>
-            </div>
+        <!-- Main Interface -->
+        <div v-if="!showSettings" class="main-interface">
+          <!-- Connection Controls -->
+          <div class="connection-controls" role="group" aria-label="Connection controls">
+            <button
+              v-if="!isConnected"
+              class="btn btn-primary"
+              data-testid="connect-button"
+              :disabled="isConnecting"
+              :aria-busy="isConnecting"
+              aria-label="Connect to SIP server"
+              @click="handleConnect"
+            >
+              {{ isConnecting ? 'Connecting...' : 'Connect' }}
+            </button>
+            <button
+              v-else
+              class="btn btn-danger"
+              data-testid="disconnect-button"
+              :disabled="isDisconnecting"
+              :aria-busy="isDisconnecting"
+              aria-label="Disconnect from SIP server"
+              @click="handleDisconnect"
+            >
+              {{ isDisconnecting ? 'Disconnecting...' : 'Disconnect' }}
+            </button>
           </div>
 
-          <div class="col">
-            <!-- Active Call Display -->
-            <div v-if="callState !== 'idle'" class="active-call-panel" data-testid="active-call">
-              <h2>Active Call</h2>
-              <div data-testid="call-status" class="call-status">
-                {{ callState }}
-              </div>
-              <div class="call-info">
-                <div>Direction: {{ direction }}</div>
-                <div>Remote: {{ remoteUri }}</div>
-                <div v-if="answerTime">Duration: {{ formatDuration() }}</div>
-              </div>
-
-              <!-- Call Control Buttons -->
-              <div class="call-controls">
+          <!-- Dialpad and Call Controls -->
+          <div class="row">
+            <div class="col">
+              <div class="dialpad-section" aria-labelledby="dialpad-heading">
+                <h2 id="dialpad-heading">Dialpad</h2>
+                <label for="dialpad-number-input" class="sr-only">Phone number or SIP URI</label>
+                <input
+                  id="dialpad-number-input"
+                  v-model="dialNumber"
+                  data-testid="dialpad-input"
+                  type="tel"
+                  class="dialpad-input"
+                  placeholder="Enter number or SIP URI"
+                  aria-describedby="dialpad-hint"
+                />
+                <span id="dialpad-hint" class="sr-only"
+                  >Enter a phone number or SIP URI to call</span
+                >
                 <button
-                  v-if="callState === 'ringing' && direction === 'incoming'"
                   class="btn btn-success"
-                  data-testid="answer-button"
-                  :disabled="isAnswering"
-                  @click="handleAnswer"
+                  data-testid="call-button"
+                  :disabled="!dialNumber || !isConnected || isMakingCall"
+                  :aria-busy="isMakingCall"
+                  :aria-label="
+                    isMakingCall
+                      ? 'Calling in progress'
+                      : 'Make call to ' + (dialNumber || 'entered number')
+                  "
+                  @click="handleMakeCall"
                 >
-                  {{ isAnswering ? 'Answering...' : 'Answer' }}
-                </button>
-                <button
-                  v-if="callState === 'ringing'"
-                  class="btn btn-danger"
-                  data-testid="reject-button"
-                  @click="handleReject"
-                >
-                  Reject
-                </button>
-                <button
-                  v-if="callState === 'active'"
-                  class="btn btn-secondary"
-                  :data-testid="isLocalHeld ? 'unhold-button' : 'hold-button'"
-                  @click="handleToggleHold"
-                >
-                  {{ isLocalHeld ? 'Unhold' : 'Hold' }}
-                </button>
-                <button
-                  v-if="callState === 'active'"
-                  class="btn btn-secondary"
-                  data-testid="mute-audio-button"
-                  @click="handleToggleMute"
-                >
-                  {{ isMuted ? 'Unmute' : 'Mute' }}
-                </button>
-                <button
-                  v-if="callState === 'active'"
-                  class="btn btn-secondary"
-                  data-testid="toggle-video-button"
-                  @click="handleToggleVideo"
-                >
-                  {{ videoEnabled ? 'Disable Video' : 'Enable Video' }}
-                </button>
-                <button
-                  class="btn btn-danger"
-                  data-testid="hangup-button"
-                  :disabled="isHangingUp"
-                  @click="handleHangup"
-                >
-                  {{ isHangingUp ? 'Hanging up...' : 'Hangup' }}
+                  <span aria-hidden="true"><i class="pi pi-phone"></i></span>
+                  {{ isMakingCall ? 'Calling...' : 'Call' }}
                 </button>
               </div>
 
-              <!-- Audio/Video Status -->
-              <div class="media-status">
-                <div data-testid="audio-status">Audio: {{ isMuted ? 'Muted' : 'Unmuted' }}</div>
-                <div data-testid="video-status">
-                  Video: {{ videoEnabled ? 'Enabled' : 'Disabled' }}
+              <!-- DTMF Pad (during call) -->
+              <div
+                v-if="callState === 'confirmed'"
+                class="dtmf-section"
+                aria-labelledby="dtmf-heading"
+              >
+                <h3 id="dtmf-heading" class="sr-only">DTMF Tones</h3>
+                <button
+                  data-testid="dialpad-toggle"
+                  class="btn btn-secondary"
+                  :aria-expanded="showDTMF"
+                  aria-controls="dtmf-pad"
+                  @click="toggleDTMF"
+                >
+                  {{ showDTMF ? 'Hide' : 'Show' }} DTMF Pad
+                </button>
+                <div
+                  v-if="showDTMF"
+                  id="dtmf-pad"
+                  class="dtmf-pad"
+                  role="group"
+                  aria-label="DTMF keypad"
+                >
+                  <button
+                    v-for="digit in dtmfDigits"
+                    :key="digit"
+                    :data-testid="`dtmf-${digit}`"
+                    class="dtmf-button"
+                    :aria-label="'Send DTMF tone ' + digit"
+                    @click="sendDTMF(digit)"
+                  >
+                    {{ digit }}
+                  </button>
+                </div>
+                <div
+                  v-if="dtmfFeedback"
+                  data-testid="dtmf-feedback"
+                  class="dtmf-feedback"
+                  role="status"
+                  aria-live="polite"
+                >
+                  Sent: {{ dtmfFeedback }}
                 </div>
               </div>
+            </div>
 
-              <!-- Transfer Controls -->
-              <div class="transfer-section">
-                <button
-                  class="btn btn-secondary"
-                  data-testid="transfer-button"
-                  @click="showTransfer = !showTransfer"
-                >
-                  Transfer Call
-                </button>
-                <div v-if="showTransfer" class="transfer-controls">
-                  <input
-                    v-model="transferTarget"
-                    data-testid="transfer-input"
-                    type="text"
-                    placeholder="sip:transfer@example.com"
-                  />
+            <div class="col">
+              <!-- Active Call Display -->
+              <div v-if="callState !== 'idle'" class="active-call-panel" data-testid="active-call">
+                <h2>Active Call</h2>
+                <div data-testid="call-status" class="call-status">
+                  {{ callState }}
+                </div>
+                <div class="call-info">
+                  <div>Direction: {{ direction }}</div>
+                  <div>Remote: {{ remoteUri }}</div>
+                  <div v-if="answerTime">Duration: {{ formatDuration() }}</div>
+                </div>
+
+                <!-- Call Control Buttons -->
+                <div class="call-controls">
                   <button
-                    class="btn btn-primary"
-                    data-testid="confirm-transfer-button"
-                    @click="handleTransfer"
+                    v-if="callState === 'ringing' && direction === 'incoming'"
+                    class="btn btn-success"
+                    data-testid="answer-button"
+                    :disabled="isAnswering"
+                    @click="handleAnswer"
                   >
-                    Confirm Transfer
+                    {{ isAnswering ? 'Answering...' : 'Answer' }}
                   </button>
-                  <div v-if="transferStatus" data-testid="transfer-status">
-                    {{ transferStatus }}
+                  <button
+                    v-if="callState === 'ringing'"
+                    class="btn btn-danger"
+                    data-testid="reject-button"
+                    @click="handleReject"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    v-if="callState === 'active'"
+                    class="btn btn-secondary"
+                    :data-testid="isLocalHeld ? 'unhold-button' : 'hold-button'"
+                    :aria-pressed="isLocalHeld"
+                    :aria-label="isLocalHeld ? 'Resume call' : 'Put call on hold'"
+                    @click="handleToggleHold"
+                  >
+                    {{ isLocalHeld ? 'Unhold' : 'Hold' }}
+                  </button>
+                  <button
+                    v-if="callState === 'active'"
+                    class="btn btn-secondary"
+                    data-testid="mute-audio-button"
+                    :aria-pressed="isMuted"
+                    :aria-label="isMuted ? 'Unmute microphone' : 'Mute microphone'"
+                    @click="handleToggleMute"
+                  >
+                    {{ isMuted ? 'Unmute' : 'Mute' }}
+                  </button>
+                  <button
+                    v-if="callState === 'active'"
+                    class="btn btn-secondary"
+                    data-testid="toggle-video-button"
+                    :aria-pressed="videoEnabled"
+                    :aria-label="videoEnabled ? 'Turn off camera' : 'Turn on camera'"
+                    @click="handleToggleVideo"
+                  >
+                    {{ videoEnabled ? 'Disable Video' : 'Enable Video' }}
+                  </button>
+                  <button
+                    class="btn btn-danger"
+                    data-testid="hangup-button"
+                    :disabled="isHangingUp"
+                    @click="handleHangup"
+                  >
+                    {{ isHangingUp ? 'Hanging up...' : 'Hangup' }}
+                  </button>
+                </div>
+
+                <!-- Audio/Video Status -->
+                <div class="media-status">
+                  <div data-testid="audio-status">Audio: {{ isMuted ? 'Muted' : 'Unmuted' }}</div>
+                  <div data-testid="video-status">
+                    Video: {{ videoEnabled ? 'Enabled' : 'Disabled' }}
+                  </div>
+                </div>
+
+                <!-- Transfer Controls -->
+                <div class="transfer-section">
+                  <button
+                    class="btn btn-secondary"
+                    data-testid="transfer-button"
+                    @click="showTransfer = !showTransfer"
+                  >
+                    Transfer Call
+                  </button>
+                  <div v-if="showTransfer" class="transfer-controls">
+                    <input
+                      v-model="transferTarget"
+                      data-testid="transfer-input"
+                      type="text"
+                      placeholder="sip:transfer@example.com"
+                    />
+                    <button
+                      class="btn btn-primary"
+                      data-testid="confirm-transfer-button"
+                      @click="handleTransfer"
+                    >
+                      Confirm Transfer
+                    </button>
+                    <div v-if="transferStatus" data-testid="transfer-status">
+                      {{ transferStatus }}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Incoming Call Notification -->
-            <div
-              v-if="direction === 'incoming' && callState === 'ringing'"
-              class="incoming-notification"
-              data-testid="incoming-call-notification"
-            >
-              <h2>Incoming Call</h2>
-              <p>From: {{ remoteUri }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Call History -->
-        <div class="call-history-section">
-          <button
-            class="btn btn-secondary"
-            data-testid="call-history-button"
-            @click="showHistory = !showHistory"
-          >
-            {{ showHistory ? 'Hide' : 'Show' }} Call History
-          </button>
-          <div v-if="showHistory" data-testid="call-history-panel" class="history-panel">
-            <h2>Call History</h2>
-            <div
-              v-for="(entry, index) in history"
-              :key="index"
-              data-testid="history-entry"
-              class="history-entry"
-            >
-              <div>{{ entry.remoteUri }}</div>
-              <div>{{ entry.direction }} - {{ entry.startTime }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Device Settings -->
-        <div class="device-settings-section">
-          <button
-            class="btn btn-secondary"
-            data-testid="device-settings-button"
-            @click="showDevices = !showDevices"
-          >
-            {{ showDevices ? 'Hide' : 'Show' }} Device Settings
-          </button>
-          <div v-if="showDevices" class="device-panel">
-            <h2>Audio Devices</h2>
-            <div class="form-group" data-testid="audio-input-devices">
-              <label>Audio Input:</label>
-              <select
-                v-model="selectedAudioInputId"
-                data-testid="audio-input-select"
-                @change="handleInputChange"
+              <!-- Incoming Call Notification -->
+              <div
+                v-if="direction === 'incoming' && callState === 'ringing'"
+                class="incoming-notification"
+                data-testid="incoming-call-notification"
               >
-                <option
-                  v-for="device in audioInputDevices"
-                  :key="device.deviceId"
-                  :value="device.deviceId"
-                >
-                  {{ device.label || 'Unknown Device' }}
-                </option>
-              </select>
+                <h2>Incoming Call</h2>
+                <p>From: {{ remoteUri }}</p>
+              </div>
             </div>
-            <div class="form-group" data-testid="audio-output-devices">
-              <label>Audio Output:</label>
-              <select
-                v-model="selectedAudioOutputId"
-                data-testid="audio-output-select"
-                @change="handleOutputChange"
+          </div>
+
+          <!-- Call History -->
+          <div class="call-history-section">
+            <button
+              class="btn btn-secondary"
+              data-testid="call-history-button"
+              @click="showHistory = !showHistory"
+            >
+              {{ showHistory ? 'Hide' : 'Show' }} Call History
+            </button>
+            <div v-if="showHistory" data-testid="call-history-panel" class="history-panel">
+              <h2>Call History</h2>
+              <div
+                v-for="(entry, index) in history"
+                :key="index"
+                data-testid="history-entry"
+                class="history-entry"
               >
-                <option
-                  v-for="device in audioOutputDevices"
-                  :key="device.deviceId"
-                  :value="device.deviceId"
-                >
-                  {{ device.label || 'Unknown Device' }}
-                </option>
-              </select>
+                <div>{{ entry.remoteUri }}</div>
+                <div>{{ entry.direction }} - {{ entry.startTime }}</div>
+              </div>
             </div>
-            <div v-if="deviceChanged" data-testid="device-changed-message" class="success-message">
-              Device changed successfully!
+          </div>
+
+          <!-- Device Settings -->
+          <div class="device-settings-section">
+            <button
+              class="btn btn-secondary"
+              data-testid="device-settings-button"
+              @click="showDevices = !showDevices"
+            >
+              {{ showDevices ? 'Hide' : 'Show' }} Device Settings
+            </button>
+            <div v-if="showDevices" class="device-panel">
+              <h2>Audio Devices</h2>
+              <div class="form-group" data-testid="audio-input-devices">
+                <label>Audio Input:</label>
+                <select
+                  v-model="selectedAudioInputId"
+                  data-testid="audio-input-select"
+                  @change="handleInputChange"
+                >
+                  <option
+                    v-for="device in audioInputDevices"
+                    :key="device.deviceId"
+                    :value="device.deviceId"
+                  >
+                    {{ device.label || 'Unknown Device' }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group" data-testid="audio-output-devices">
+                <label>Audio Output:</label>
+                <select
+                  v-model="selectedAudioOutputId"
+                  data-testid="audio-output-select"
+                  @change="handleOutputChange"
+                >
+                  <option
+                    v-for="device in audioOutputDevices"
+                    :key="device.deviceId"
+                    :value="device.deviceId"
+                  >
+                    {{ device.label || 'Unknown Device' }}
+                  </option>
+                </select>
+              </div>
+              <div
+                v-if="deviceChanged"
+                data-testid="device-changed-message"
+                class="success-message"
+              >
+                Device changed successfully!
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Settings Button -->
-      <button
-        class="btn btn-secondary settings-btn"
-        data-testid="settings-button"
-        @click="showSettings = !showSettings"
-      >
-        <i class="pi pi-cog"></i> {{ showSettings ? 'Close' : 'Settings' }}
-      </button>
+        <!-- Settings Button -->
+        <button
+          class="btn btn-secondary settings-btn"
+          data-testid="settings-button"
+          :aria-expanded="showSettings"
+          aria-controls="settings-panel"
+          :aria-label="showSettings ? 'Close settings panel' : 'Open settings'"
+          @click="showSettings = !showSettings"
+        >
+          <span aria-hidden="true"><i class="pi pi-cog"></i></span>
+          {{ showSettings ? 'Close' : 'Settings' }}
+        </button>
 
-      <!-- Error Display -->
-      <div v-if="lastError" data-testid="error-message" class="error-message">
-        {{ lastError }}
-      </div>
-      <div v-if="registrationError" data-testid="registration-error" class="error-message">
-        {{ registrationError }}
-      </div>
+        <!-- Error Display -->
+        <div
+          v-if="lastError"
+          data-testid="error-message"
+          class="error-message"
+          role="alert"
+          aria-live="assertive"
+        >
+          <span class="sr-only">Error:</span> {{ lastError }}
+        </div>
+        <div
+          v-if="registrationError"
+          data-testid="registration-error"
+          class="error-message"
+          role="alert"
+          aria-live="assertive"
+        >
+          <span class="sr-only">Registration Error:</span> {{ registrationError }}
+        </div>
       </main>
     </div>
   </div>
@@ -416,7 +523,7 @@ let connect: any = () => Promise.resolve()
 let disconnect: any = () => Promise.resolve()
 let updateConfig: any = () => ({ valid: false })
 let callState: any = ref('idle')
-let callId: any = ref(null)
+let _callId: any = ref(null)
 let direction: any = ref(null)
 let remoteUri: any = ref('')
 let isLocalHeld: any = ref(false)
@@ -470,7 +577,7 @@ try {
   console.log('TestApp: useCallSession initialized')
   ;({
     state: callState,
-    callId,
+    callId: _callId,
     direction,
     remoteUri,
     isOnHold: isLocalHeld,
@@ -485,7 +592,7 @@ try {
     mute,
     unmute,
   } = callSession)
-  
+
   // Extract answerTime from timing object as a computed ref for template compatibility
   answerTime = computed(() => timing.value.answerTime ?? null)
 
@@ -550,17 +657,24 @@ try {
         dbgState.isConnected = !!(isConnected?.value ?? false)
         dbgState.connectionState = String(connectionState?.value ?? 'disconnected')
         dbgState.isRegistered = !!(isRegistered?.value ?? false)
-        dbgState.registrationState = String((sipClient as any)?.registrationState?.value ?? (isRegistered?.value ? 'registered' : 'unregistered'))
+        dbgState.registrationState = String(
+          (sipClient as any)?.registrationState?.value ??
+            (isRegistered?.value ? 'registered' : 'unregistered')
+        )
         dbgState.lastUpdate = Date.now()
-      } catch (e) {
+      } catch {
         // no-op: debug state is best-effort only
       }
     }
     // Initial sync and reactive updates
     syncDbgState()
-    watch([() => isConnected?.value, () => connectionState?.value, () => isRegistered?.value], syncDbgState, {
-      immediate: true,
-    })
+    watch(
+      [() => isConnected?.value, () => connectionState?.value, () => isRegistered?.value],
+      syncDbgState,
+      {
+        immediate: true,
+      }
+    )
 
     // Expose call debug state separately to keep concerns clear for fixtures
     const callDbg = ((window as any).__callState = (window as any).__callState || {
@@ -580,9 +694,11 @@ try {
         callDbg.direction = dir
         callDbg.remoteUri = uri
         // Consider active/held/early_media/answering as in-call states
-        callDbg.isInCall = ['active', 'held', 'remote_held', 'early_media', 'answering'].includes(cs)
+        callDbg.isInCall = ['active', 'held', 'remote_held', 'early_media', 'answering'].includes(
+          cs
+        )
         callDbg.lastUpdate = Date.now()
-      } catch (e) {
+      } catch {
         // best-effort, non-fatal
       }
     }
@@ -590,7 +706,6 @@ try {
     watch([() => callState?.value, () => direction?.value, () => remoteUri?.value], syncCallDbg, {
       immediate: true,
     })
-
     ;(window as any).__forceSipConnection = () => {
       console.debug('[TestApp] __forceSipConnection called, forcing connected event')
       const client = sipClient.getClient()
@@ -602,7 +717,7 @@ try {
           hasSipClient: !!sipClient,
           hasGetClient: !!sipClient.getClient,
           client: !!client,
-          hasForceEmit: client ? typeof client.forceEmitConnected : 'no client'
+          hasForceEmit: client ? typeof client.forceEmitConnected : 'no client',
         })
       }
     }
@@ -946,12 +1061,12 @@ h3 {
 }
 
 .btn-success {
-  background: #10b981;
+  background: #047857; /* Darker emerald for WCAG AA contrast (4.6:1) */
   color: white;
 }
 
 .btn-success:hover:not(:disabled) {
-  background: #059669;
+  background: #065f46; /* Even darker on hover for contrast */
 }
 
 .btn-danger {
@@ -1148,5 +1263,47 @@ h3 {
   .row {
     grid-template-columns: 1fr;
   }
+}
+
+/* Screen reader only - visually hidden but accessible to assistive technology */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip to main content link - visible on focus for keyboard users */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  z-index: 100;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* High contrast focus indicators for accessibility */
+:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
 }
 </style>
