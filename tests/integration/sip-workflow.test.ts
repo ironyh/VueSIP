@@ -203,17 +203,31 @@ describe('SIP Workflow Integration Tests', () => {
       eventBus.on('sip:registered', () => events.push('registered'))
 
       // Start connection - mock server will auto-connect
+      // Call simulateConnect AFTER start() so the UA is ready to receive events
+      const startPromise = sipClient.start()
       mockSipServer.simulateConnect()
-      await sipClient.start()
+      await startPromise
+
+      // Wait for the connected event to be processed
+      await waitForCondition(() => events.includes('connected'), {
+        timeout: 1000,
+        description: 'connected event to be emitted',
+      })
       expect(sipClient.isConnected).toBe(true)
 
       // Register - mock server will auto-register
+      const registerPromise = sipClient.register()
       mockSipServer.simulateRegistered()
-      await sipClient.register()
+      await registerPromise
+
+      // Wait for the registered event to be processed
+      await waitForCondition(() => events.includes('registered'), {
+        timeout: 1000,
+        description: 'registered event to be emitted',
+      })
       expect(sipClient.isRegistered).toBe(true)
 
-      // Events should have already been captured by our listeners
-      // (waitForEvents is not needed since events are already emitted synchronously)
+      // Verify both events were captured
       expect(events).toContain('connected')
       expect(events).toContain('registered')
     })

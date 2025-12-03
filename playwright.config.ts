@@ -30,6 +30,15 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     /* Record video on test failure */
     video: 'retain-on-failure',
+    /* CI-aware timeouts - double timeouts in CI environment for reliability */
+    actionTimeout: process.env.CI ? 20000 : 10000,
+    navigationTimeout: process.env.CI ? 60000 : 30000,
+  },
+  /* Global test timeout - increased for CI */
+  timeout: process.env.CI ? 60000 : 30000,
+  /* Expect timeout for assertions */
+  expect: {
+    timeout: process.env.CI ? 15000 : 5000,
   },
 
   /* Configure projects for major browsers */

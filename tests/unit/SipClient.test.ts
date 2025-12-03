@@ -412,16 +412,26 @@ describe('SipClient', () => {
     })
 
     it('should handle registration timeout', async () => {
-      // Mock that never calls the registered event
-      mockUA.once.mockImplementation(() => {
-        // Don't call the handler - let it timeout
-      })
+      // Use fake timers to speed up timeout test
+      vi.useFakeTimers()
 
-      const registerPromise = sipClient.register()
+      try {
+        // Mock that never calls the registered event
+        mockUA.once.mockImplementation(() => {
+          // Don't call the handler - let it timeout
+        })
 
-      // Should reject with timeout error
-      await expect(registerPromise).rejects.toThrow('Registration timeout')
-    }, 35000)
+        const registerPromise = sipClient.register()
+
+        // Fast-forward time to trigger timeout (30 seconds)
+        vi.advanceTimersByTime(30000)
+
+        // Should reject with timeout error
+        await expect(registerPromise).rejects.toThrow('Registration timeout')
+      } finally {
+        vi.useRealTimers()
+      }
+    })
   })
 
   describe('unregister()', () => {
