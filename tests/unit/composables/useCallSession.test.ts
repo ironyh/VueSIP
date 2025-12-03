@@ -19,8 +19,19 @@ vi.mock('@/utils/logger', () => ({
   }),
 }))
 
-// Mock the validators
+// Mock the validators - mock both alias and relative paths to ensure it works in all environments
 vi.mock('@/utils/validators', () => ({
+  validateSipUri: (uri: string) => {
+    if (!uri || uri.trim() === '') {
+      return { valid: false, error: 'URI is empty' }
+    }
+    if (!uri.includes('@') && !uri.startsWith('sip:')) {
+      return { valid: false, error: 'Invalid SIP URI format' }
+    }
+    return { valid: true, error: null }
+  },
+}))
+vi.mock('../../../src/utils/validators', () => ({
   validateSipUri: (uri: string) => {
     if (!uri || uri.trim() === '') {
       return { valid: false, error: 'URI is empty' }
