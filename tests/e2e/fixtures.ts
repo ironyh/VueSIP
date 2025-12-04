@@ -730,23 +730,13 @@ export function mockWebSocketResponses(page: Page) {
         }
       }
 
-      // Replace global WebSocket on both window and globalThis to ensure all contexts use the mock
+      // Replace global WebSocket - directly assign MockWebSocket class
+      // This avoids wrapper functions that might confuse WebKit's Proxy handling
       const _OriginalWebSocket = (window as any).WebSocket
+
+      // Directly assign MockWebSocket as the WebSocket constructor
       ;(window as any).WebSocket = MockWebSocket
       ;(globalThis as any).WebSocket = MockWebSocket
-
-      // Log when WebSocket is instantiated
-      const OriginalMockWebSocket = MockWebSocket
-      ;(window as any).WebSocket = function (url: string, protocols?: string | string[]) {
-        console.log('[MockWebSocket] WebSocket constructor called with:', url, protocols)
-        const instance = new OriginalMockWebSocket(url, protocols)
-        console.log('[MockWebSocket] Created instance, readyState:', instance.readyState)
-        return instance
-      }
-      // Copy static properties
-      Object.setPrototypeOf((window as any).WebSocket, OriginalMockWebSocket)
-      Object.assign((window as any).WebSocket, OriginalMockWebSocket)
-      ;(globalThis as any).WebSocket = (window as any).WebSocket
     },
     { delays: SIP_DELAYS }
   )

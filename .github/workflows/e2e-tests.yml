@@ -14,7 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit]
+        # Note: WebKit excluded due to JsSIP Proxy incompatibility (see tests/e2e/WEBKIT_KNOWN_ISSUES.md)
+        browser: [chromium, firefox]
         # Optional: Add sharding for chromium (largest test suite)
         # shard: ${{ matrix.browser == 'chromium' && [1, 2] || [1] }}
 
@@ -106,7 +107,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        device: ['Mobile Chrome', 'Mobile Safari']
+        # Note: Mobile Safari excluded due to JsSIP WebKit Proxy incompatibility
+        device: ['Mobile Chrome']
 
     steps:
       - name: Checkout repository
