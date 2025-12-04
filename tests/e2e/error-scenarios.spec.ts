@@ -154,13 +154,17 @@ test.describe('Call Control Errors', () => {
   test('should not allow calling with empty dialpad', async ({ page }) => {
     // Configure and connect first
     await page.click(SELECTORS.SETTINGS.SETTINGS_BUTTON)
+    await page.waitForSelector(SELECTORS.SETTINGS.SIP_URI_INPUT, { state: 'visible' })
     await page.fill(SELECTORS.SETTINGS.SIP_URI_INPUT, TEST_DATA.VALID_SIP_URI)
     await page.fill(SELECTORS.SETTINGS.PASSWORD_INPUT, TEST_DATA.VALID_PASSWORD)
     await page.fill(SELECTORS.SETTINGS.SERVER_URI_INPUT, TEST_DATA.VALID_WS_URI)
     await page.click(SELECTORS.SETTINGS.SAVE_SETTINGS_BUTTON)
-    await page.click(SELECTORS.SETTINGS.SETTINGS_BUTTON)
 
-    // Wait a bit for settings to apply
+    // Wait for settings panel to be ready before closing
+    await page.waitForTimeout(200)
+    await page.click(SELECTORS.SETTINGS.SETTINGS_BUTTON, { force: true })
+
+    // Wait for settings panel to close
     await page.waitForTimeout(100)
 
     // Call button should be disabled with empty input
