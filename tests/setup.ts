@@ -1,11 +1,63 @@
 /**
  * Test Setup
  *
- * Global setup for Vitest tests
+ * Global setup for Vitest tests with Vue 3 composable support
+ *
+ * This setup file provides:
+ * - Vue app instance for composable testing
+ * - Mock WebRTC and media APIs
+ * - Mock JsSIP library
+ * - Global test utilities
+ * - Logger configuration for tests
  */
 
-import { vi } from 'vitest'
+import { vi, afterEach } from 'vitest'
+import { config } from '@vue/test-utils'
+import { createApp } from 'vue'
 import { configureLogger } from '../src/utils/logger'
+
+// ==========================================
+// VUE TEST UTILS CONFIGURATION
+// ==========================================
+// Configure Vue Test Utils for optimal testing
+config.global.config.errorHandler = (err) => {
+  // Suppress Vue warnings in tests unless they're critical
+  if (err instanceof Error && !err.message.includes('Avoid app logic')) {
+    console.error(err)
+  }
+}
+
+// Set up global properties if needed
+config.global.mocks = {
+  // Add global mocks here if needed
+}
+
+// ==========================================
+// VUE APP INSTANCE FOR COMPOSABLES
+// ==========================================
+// Create a Vue app instance to provide proper context for composables
+// This eliminates "onUnmounted is called when there is no active component instance" warnings
+let app: ReturnType<typeof createApp> | null = null
+
+// Create app instance before each test
+export function setupVueApp() {
+  if (!app) {
+    app = createApp({})
+  }
+  return app
+}
+
+// Clean up app instance after each test
+afterEach(() => {
+  if (app) {
+    try {
+      app.unmount()
+    } catch (e) {
+      // Ignore unmount errors in tests
+    }
+    app = null
+  }
+})
 
 // Mock JsSIP globally
 vi.mock('jssip', () => {

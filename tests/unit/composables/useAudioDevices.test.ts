@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useAudioDevices } from '@/composables/useAudioDevices'
-import { nextTick } from 'vue'
+import { nextTick, defineComponent } from 'vue'
+import { mount, type VueWrapper } from '@vue/test-utils'
 
 // Mock navigator.mediaDevices
 const mockEnumerateDevices = vi.fn()
@@ -18,6 +19,26 @@ const createMockDevice = (
   groupId: 'group1',
   toJSON: () => ({}),
 })
+
+// Helper to mount composable in Vue component context
+function mountUseAudioDevices() {
+  let composableResult: ReturnType<typeof useAudioDevices>
+
+  const wrapper = mount(
+    defineComponent({
+      setup() {
+        composableResult = useAudioDevices()
+        return composableResult
+      },
+      template: '<div></div>',
+    })
+  )
+
+  return {
+    result: composableResult!,
+    wrapper,
+  }
+}
 
 beforeEach(() => {
   // Setup navigator.mediaDevices mock
@@ -44,56 +65,69 @@ afterEach(() => {
 describe('useAudioDevices', () => {
   describe('Initialization', () => {
     it('should initialize with empty device lists', () => {
-      const { audioInputDevices, audioOutputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      expect(audioInputDevices.value).toEqual([])
-      expect(audioOutputDevices.value).toEqual([])
+      expect(result.audioInputDevices.value).toEqual([])
+      expect(result.audioOutputDevices.value).toEqual([])
+
+      wrapper.unmount()
     })
 
     it('should initialize selected devices as null', () => {
-      const { selectedInputDevice, selectedOutputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      expect(selectedInputDevice.value).toBeNull()
-      expect(selectedOutputDevice.value).toBeNull()
+      expect(result.selectedInputDevice.value).toBeNull()
+      expect(result.selectedOutputDevice.value).toBeNull()
+
+      wrapper.unmount()
     })
 
-    it('should call refreshDevices on mount', () => {
-      // The composable calls refreshDevices in onMounted, but since we're testing in isolation
-      // we need to call it manually
-      const { refreshDevices } = useAudioDevices()
+    it('should call refreshDevices on mount', async () => {
+      const { wrapper } = mountUseAudioDevices()
 
-      expect(mockGetUserMedia).not.toHaveBeenCalled()
-
-      // Manually trigger refresh to test behavior
-      refreshDevices()
+      // onMounted triggers refreshDevices automatically
+      // Wait for async operations to complete
+      await wrapper.vm.$nextTick()
+      await new Promise(resolve => setTimeout(resolve, 0))
 
       expect(mockGetUserMedia).toHaveBeenCalledWith({ audio: true })
+
+      wrapper.unmount()
     })
 
-    it('should register device change listener on mount', () => {
-      useAudioDevices()
+    it('should register device change listener on mount', async () => {
+      const { wrapper } = mountUseAudioDevices()
 
-      // In the actual component, this would be called in onMounted
-      // For testing, we verify the addEventListener would be called
-      expect(mockAddEventListener).not.toHaveBeenCalled()
+      // onMounted registers the device change listener
+      // Wait for async operations to complete
+      await wrapper.vm.$nextTick()
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      expect(mockAddEventListener).toHaveBeenCalledWith('devicechange', expect.any(Function))
+
+      wrapper.unmount()
     })
   })
 
   describe('refreshDevices()', () => {
     it('should request audio permission', async () => {
-      const { refreshDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
 
       expect(mockGetUserMedia).toHaveBeenCalledWith({ audio: true })
+
+      wrapper.unmount()
     })
 
     it('should enumerate devices after permission granted', async () => {
-      const { refreshDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
 
       expect(mockEnumerateDevices).toHaveBeenCalled()
+
+      wrapper.unmount()
     })
 
     it('should populate audio input devices', async () => {
@@ -103,17 +137,19 @@ describe('useAudioDevices', () => {
         createMockDevice('audiooutput', 'output1', 'Speaker 1'),
       ])
 
-      const { refreshDevices, audioInputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value).toHaveLength(2)
-      expect(audioInputDevices.value[0]).toMatchObject({
+      expect(result.audioInputDevices.value).toHaveLength(2)
+      expect(result.audioInputDevices.value[0]).toMatchObject({
         deviceId: 'input1',
         label: 'Microphone 1',
         kind: 'audioinput',
       })
+
+      wrapper.unmount()
     })
 
     it('should populate audio output devices', async () => {
@@ -123,17 +159,19 @@ describe('useAudioDevices', () => {
         createMockDevice('audioinput', 'input1', 'Microphone 1'),
       ])
 
-      const { refreshDevices, audioOutputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioOutputDevices.value).toHaveLength(2)
-      expect(audioOutputDevices.value[0]).toMatchObject({
+      expect(result.audioOutputDevices.value).toHaveLength(2)
+      expect(result.audioOutputDevices.value[0]).toMatchObject({
         deviceId: 'output1',
         label: 'Speaker 1',
         kind: 'audiooutput',
       })
+
+      wrapper.unmount()
     })
 
     it('should use fallback labels when device label is empty', async () => {
@@ -142,13 +180,15 @@ describe('useAudioDevices', () => {
         createMockDevice('audiooutput', 'def456', ''),
       ])
 
-      const { refreshDevices, audioInputDevices, audioOutputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value[0]?.label).toContain('Microphone')
-      expect(audioOutputDevices.value[0]?.label).toContain('Speaker')
+      expect(result.audioInputDevices.value[0]?.label).toContain('Microphone')
+      expect(result.audioOutputDevices.value[0]?.label).toContain('Speaker')
+
+      wrapper.unmount()
     })
 
     it('should set default input device if not already set', async () => {
@@ -157,12 +197,14 @@ describe('useAudioDevices', () => {
         createMockDevice('audioinput', 'input2', 'Microphone 2'),
       ])
 
-      const { refreshDevices, selectedInputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(selectedInputDevice.value).toBe('input1')
+      expect(result.selectedInputDevice.value).toBe('input1')
+
+      wrapper.unmount()
     })
 
     it('should set default output device if not already set', async () => {
@@ -171,12 +213,14 @@ describe('useAudioDevices', () => {
         createMockDevice('audiooutput', 'output2', 'Speaker 2'),
       ])
 
-      const { refreshDevices, selectedOutputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(selectedOutputDevice.value).toBe('output1')
+      expect(result.selectedOutputDevice.value).toBe('output1')
+
+      wrapper.unmount()
     })
 
     it('should not change selected device if already set', async () => {
@@ -185,43 +229,60 @@ describe('useAudioDevices', () => {
         createMockDevice('audioinput', 'input2', 'Microphone 2'),
       ])
 
-      const { refreshDevices, selectedInputDevice, setInputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
       // Manually set device before refresh
-      setInputDevice('input2')
+      result.setInputDevice('input2')
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(selectedInputDevice.value).toBe('input2')
+      expect(result.selectedInputDevice.value).toBe('input2')
+
+      wrapper.unmount()
     })
 
     it('should handle permission denied error', async () => {
       mockGetUserMedia.mockRejectedValue(new Error('Permission denied'))
 
-      const { refreshDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await expect(refreshDevices()).rejects.toThrow('Permission denied')
+      // Wait for onMounted to complete
+      await wrapper.vm.$nextTick()
+
+      // Now call refreshDevices explicitly
+      await expect(result.refreshDevices()).rejects.toThrow('Permission denied')
+
+      wrapper.unmount()
     })
 
     it('should handle enumeration errors', async () => {
       mockEnumerateDevices.mockRejectedValue(new Error('Enumeration failed'))
 
-      const { refreshDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await expect(refreshDevices()).rejects.toThrow('Enumeration failed')
+      // Wait for onMounted to complete (which calls refreshDevices)
+      // The error will be caught and logged, but not thrown
+      await wrapper.vm.$nextTick()
+
+      // Call refreshDevices again to test error handling
+      await expect(result.refreshDevices()).rejects.toThrow('Enumeration failed')
+
+      wrapper.unmount()
     })
 
     it('should handle empty device list', async () => {
       mockEnumerateDevices.mockResolvedValue([])
 
-      const { refreshDevices, audioInputDevices, audioOutputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value).toEqual([])
-      expect(audioOutputDevices.value).toEqual([])
+      expect(result.audioInputDevices.value).toEqual([])
+      expect(result.audioOutputDevices.value).toEqual([])
+
+      wrapper.unmount()
     })
 
     it('should filter out video devices', async () => {
@@ -231,70 +292,84 @@ describe('useAudioDevices', () => {
         createMockDevice('audiooutput', 'output1', 'Speaker'),
       ])
 
-      const { refreshDevices, audioInputDevices, audioOutputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value).toHaveLength(1)
-      expect(audioOutputDevices.value).toHaveLength(1)
-      expect(audioInputDevices.value.some((d) => d.kind === 'videoinput')).toBe(false)
+      expect(result.audioInputDevices.value).toHaveLength(1)
+      expect(result.audioOutputDevices.value).toHaveLength(1)
+      expect(result.audioInputDevices.value.some((d) => d.kind === 'videoinput')).toBe(false)
+
+      wrapper.unmount()
     })
   })
 
   describe('setInputDevice()', () => {
     it('should set selected input device', () => {
-      const { setInputDevice, selectedInputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      setInputDevice('input1')
+      result.setInputDevice('input1')
 
-      expect(selectedInputDevice.value).toBe('input1')
+      expect(result.selectedInputDevice.value).toBe('input1')
+
+      wrapper.unmount()
     })
 
     it('should allow changing input device', () => {
-      const { setInputDevice, selectedInputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      setInputDevice('input1')
-      expect(selectedInputDevice.value).toBe('input1')
+      result.setInputDevice('input1')
+      expect(result.selectedInputDevice.value).toBe('input1')
 
-      setInputDevice('input2')
-      expect(selectedInputDevice.value).toBe('input2')
+      result.setInputDevice('input2')
+      expect(result.selectedInputDevice.value).toBe('input2')
+
+      wrapper.unmount()
     })
 
     it('should set device even if it does not exist in list', () => {
-      const { setInputDevice, selectedInputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      setInputDevice('non-existent')
+      result.setInputDevice('non-existent')
 
-      expect(selectedInputDevice.value).toBe('non-existent')
+      expect(result.selectedInputDevice.value).toBe('non-existent')
+
+      wrapper.unmount()
     })
   })
 
   describe('setOutputDevice()', () => {
     it('should set selected output device', () => {
-      const { setOutputDevice, selectedOutputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      setOutputDevice('output1')
+      result.setOutputDevice('output1')
 
-      expect(selectedOutputDevice.value).toBe('output1')
+      expect(result.selectedOutputDevice.value).toBe('output1')
+
+      wrapper.unmount()
     })
 
     it('should allow changing output device', () => {
-      const { setOutputDevice, selectedOutputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      setOutputDevice('output1')
-      expect(selectedOutputDevice.value).toBe('output1')
+      result.setOutputDevice('output1')
+      expect(result.selectedOutputDevice.value).toBe('output1')
 
-      setOutputDevice('output2')
-      expect(selectedOutputDevice.value).toBe('output2')
+      result.setOutputDevice('output2')
+      expect(result.selectedOutputDevice.value).toBe('output2')
+
+      wrapper.unmount()
     })
 
     it('should set device even if it does not exist in list', () => {
-      const { setOutputDevice, selectedOutputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      setOutputDevice('non-existent')
+      result.setOutputDevice('non-existent')
 
-      expect(selectedOutputDevice.value).toBe('non-existent')
+      expect(result.selectedOutputDevice.value).toBe('non-existent')
+
+      wrapper.unmount()
     })
   })
 
@@ -304,14 +379,16 @@ describe('useAudioDevices', () => {
         createMockDevice('audioinput', 'input1', 'Microphone 1'),
       ])
 
-      const { refreshDevices, audioInputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      expect(audioInputDevices.value).toHaveLength(0)
+      expect(result.audioInputDevices.value).toHaveLength(0)
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value).toHaveLength(1)
+      expect(result.audioInputDevices.value).toHaveLength(1)
+
+      wrapper.unmount()
     })
 
     it('should have reactive audio output devices', async () => {
@@ -319,34 +396,40 @@ describe('useAudioDevices', () => {
         createMockDevice('audiooutput', 'output1', 'Speaker 1'),
       ])
 
-      const { refreshDevices, audioOutputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      expect(audioOutputDevices.value).toHaveLength(0)
+      expect(result.audioOutputDevices.value).toHaveLength(0)
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioOutputDevices.value).toHaveLength(1)
+      expect(result.audioOutputDevices.value).toHaveLength(1)
+
+      wrapper.unmount()
     })
 
     it('should have reactive selected input device', () => {
-      const { setInputDevice, selectedInputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      expect(selectedInputDevice.value).toBeNull()
+      expect(result.selectedInputDevice.value).toBeNull()
 
-      setInputDevice('input1')
+      result.setInputDevice('input1')
 
-      expect(selectedInputDevice.value).toBe('input1')
+      expect(result.selectedInputDevice.value).toBe('input1')
+
+      wrapper.unmount()
     })
 
     it('should have reactive selected output device', () => {
-      const { setOutputDevice, selectedOutputDevice } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      expect(selectedOutputDevice.value).toBeNull()
+      expect(result.selectedOutputDevice.value).toBeNull()
 
-      setOutputDevice('output1')
+      result.setOutputDevice('output1')
 
-      expect(selectedOutputDevice.value).toBe('output1')
+      expect(result.selectedOutputDevice.value).toBe('output1')
+
+      wrapper.unmount()
     })
   })
 
@@ -358,12 +441,14 @@ describe('useAudioDevices', () => {
         createMockDevice('audioinput', 'input3', 'Microphone 3'),
       ])
 
-      const { refreshDevices, audioInputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value).toHaveLength(3)
+      expect(result.audioInputDevices.value).toHaveLength(3)
+
+      wrapper.unmount()
     })
 
     it('should handle multiple output devices', async () => {
@@ -373,12 +458,14 @@ describe('useAudioDevices', () => {
         createMockDevice('audiooutput', 'output3', 'Speaker 3'),
       ])
 
-      const { refreshDevices, audioOutputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioOutputDevices.value).toHaveLength(3)
+      expect(result.audioOutputDevices.value).toHaveLength(3)
+
+      wrapper.unmount()
     })
 
     it('should handle mixed device types', async () => {
@@ -390,13 +477,15 @@ describe('useAudioDevices', () => {
         createMockDevice('audiooutput', 'output2', 'Speaker 2'),
       ])
 
-      const { refreshDevices, audioInputDevices, audioOutputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value).toHaveLength(2)
-      expect(audioOutputDevices.value).toHaveLength(2)
+      expect(result.audioInputDevices.value).toHaveLength(2)
+      expect(result.audioOutputDevices.value).toHaveLength(2)
+
+      wrapper.unmount()
     })
   })
 
@@ -406,15 +495,17 @@ describe('useAudioDevices', () => {
         createMockDevice('audioinput', 'input1', 'Microphone 1'),
       ])
 
-      const { refreshDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      const promise1 = refreshDevices()
-      const promise2 = refreshDevices()
+      const promise1 = result.refreshDevices()
+      const promise2 = result.refreshDevices()
 
       await Promise.all([promise1, promise2])
 
       // getUserMedia should be called multiple times
       expect(mockGetUserMedia).toHaveBeenCalled()
+
+      wrapper.unmount()
     })
 
     it('should handle devices with same deviceId but different kinds', async () => {
@@ -423,13 +514,15 @@ describe('useAudioDevices', () => {
         createMockDevice('audiooutput', 'same-id', 'Output'),
       ])
 
-      const { refreshDevices, audioInputDevices, audioOutputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value).toHaveLength(1)
-      expect(audioOutputDevices.value).toHaveLength(1)
+      expect(result.audioInputDevices.value).toHaveLength(1)
+      expect(result.audioOutputDevices.value).toHaveLength(1)
+
+      wrapper.unmount()
     })
 
     it('should preserve device groupId', async () => {
@@ -440,26 +533,30 @@ describe('useAudioDevices', () => {
 
       mockEnumerateDevices.mockResolvedValue([customDevice])
 
-      const { refreshDevices, audioInputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value[0]?.groupId).toBe('custom-group')
+      expect(result.audioInputDevices.value[0]?.groupId).toBe('custom-group')
+
+      wrapper.unmount()
     })
 
     it('should handle device changes during refresh', async () => {
-      // First call returns one device
+      // onMounted will call refreshDevices once, so we need two mockResolvedValueOnce
+      // First call (from onMounted) returns one device
       mockEnumerateDevices.mockResolvedValueOnce([
         createMockDevice('audioinput', 'input1', 'Microphone 1'),
       ])
 
-      const { refreshDevices, audioInputDevices } = useAudioDevices()
+      const { result, wrapper } = mountUseAudioDevices()
 
-      await refreshDevices()
-      await nextTick()
+      // Wait for onMounted's refreshDevices to complete
+      await wrapper.vm.$nextTick()
+      await new Promise(resolve => setTimeout(resolve, 0))
 
-      expect(audioInputDevices.value).toHaveLength(1)
+      expect(result.audioInputDevices.value).toHaveLength(1)
 
       // Second call returns different devices
       mockEnumerateDevices.mockResolvedValueOnce([
@@ -467,10 +564,12 @@ describe('useAudioDevices', () => {
         createMockDevice('audioinput', 'input3', 'Microphone 3'),
       ])
 
-      await refreshDevices()
+      await result.refreshDevices()
       await nextTick()
 
-      expect(audioInputDevices.value).toHaveLength(2)
+      expect(result.audioInputDevices.value).toHaveLength(2)
+
+      wrapper.unmount()
     })
   })
 })

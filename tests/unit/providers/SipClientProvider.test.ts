@@ -95,7 +95,7 @@ vi.mock('@/stores/registrationStore', () => ({
 describe('SipClientProvider - Phase 7.1 Implementation', () => {
   let mockConfig: SipClientConfig
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockConfig = {
       uri: 'wss://sip.example.com:7443',
       sipUri: 'sip:alice@example.com',
@@ -105,6 +105,14 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
     vi.clearAllMocks()
     globalHandlers.clear()
+
+    // Re-mock validateSipConfig after clearAllMocks to ensure it always returns valid
+    const { validateSipConfig } = await import('@/utils/validators')
+    vi.mocked(validateSipConfig).mockReturnValue({
+      valid: true,
+      errors: [],
+      warnings: [],
+    })
   })
 
   afterEach(() => {
@@ -183,6 +191,22 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
     it('should initialize SIP client with provided config', async () => {
       const { SipClient } = await import('@/core/SipClient')
 
+      // Track constructor calls
+      let capturedConfig: any = null
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        capturedConfig = config
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined),
+          register: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
+      })
+
       mount(SipClientProvider, {
         props: {
           config: mockConfig,
@@ -192,13 +216,11 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      expect(SipClient).toHaveBeenCalledWith(
-        expect.objectContaining({
-          uri: 'wss://sip.example.com:7443',
-          sipUri: 'sip:alice@example.com',
-        }),
-        expect.anything()
-      )
+      // Check that SipClient was called with correct config
+      expect(capturedConfig).toMatchObject({
+        uri: 'wss://sip.example.com:7443',
+        sipUri: 'sip:alice@example.com',
+      })
     })
 
     it('should validate configuration before initializing', async () => {
@@ -266,6 +288,23 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
     })
 
     it('should auto-connect when autoConnect is true', async () => {
+      const { SipClient } = await import('@/core/SipClient')
+
+      // Track calls before mounting
+      const startSpy = vi.fn().mockResolvedValue(undefined)
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: startSpy,
+          stop: vi.fn().mockResolvedValue(undefined),
+          register: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
+      })
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
@@ -276,11 +315,8 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       await flushPromises()
       await new Promise(resolve => setTimeout(resolve, 50))
 
-      const { SipClient } = await import('@/core/SipClient')
-      const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
-
       // Should call start()
-      expect(mockInstance?.start).toHaveBeenCalled()
+      expect(startSpy).toHaveBeenCalled()
     })
 
     it('should emit error if auto-connect fails', async () => {
@@ -321,6 +357,22 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
   describe('Cleanup', () => {
     it('should cleanup when autoCleanup is true on unmount', async () => {
+      const { SipClient } = await import('@/core/SipClient')
+
+      const stopSpy = vi.fn().mockResolvedValue(undefined)
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: stopSpy,
+          register: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
+      })
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
@@ -331,19 +383,32 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      const { SipClient } = await import('@/core/SipClient')
-      const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
-
       // Unmount
       wrapper.unmount()
 
       await flushPromises()
 
       // Should call stop()
-      expect(mockInstance?.stop).toHaveBeenCalled()
+      expect(stopSpy).toHaveBeenCalled()
     })
 
     it('should not cleanup when autoCleanup is false on unmount', async () => {
+      const { SipClient } = await import('@/core/SipClient')
+
+      const stopSpy = vi.fn().mockResolvedValue(undefined)
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: stopSpy,
+          register: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
+      })
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
@@ -354,16 +419,13 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      const { SipClient } = await import('@/core/SipClient')
-      const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
-
       // Unmount
       wrapper.unmount()
 
       await flushPromises()
 
       // Should NOT call stop()
-      expect(mockInstance?.stop).not.toHaveBeenCalled()
+      expect(stopSpy).not.toHaveBeenCalled()
     })
 
     it('should handle cleanup errors gracefully', async () => {
@@ -457,6 +519,29 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
     it('should not auto-register when autoRegister is false', async () => {
       let readyEmitted = false
 
+      const { SipClient } = await import('@/core/SipClient')
+      const { EventBus } = await import('@/core/EventBus')
+
+      const registerSpy = vi.fn().mockResolvedValue(undefined)
+      const mockEventBusInstance = new EventBus()
+
+      vi.mocked(EventBus).mockImplementationOnce(function () {
+        return mockEventBusInstance as any
+      })
+
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined),
+          register: registerSpy,
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
+      })
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
@@ -468,16 +553,12 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      const { SipClient } = await import('@/core/SipClient')
-      const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
-      const eventBus = mockInstance?.eventBus
-
       // Simulate connection (with autoRegister=false, should emit ready without registration)
-      eventBus?.emitSync('sip:connected')
+      mockEventBusInstance.emitSync('sip:connected')
       await nextTick()
 
       // Should NOT call register
-      expect(mockInstance?.register).not.toHaveBeenCalled()
+      expect(registerSpy).not.toHaveBeenCalled()
 
       // Should emit ready immediately after connection
       expect(readyEmitted).toBe(true)
@@ -487,7 +568,29 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
   describe('Event Handling', () => {
     it('should emit connected event when EventBus receives sip:connected', async () => {
       let connectedEmitted = false
-      
+
+      const { SipClient } = await import('@/core/SipClient')
+      const { EventBus } = await import('@/core/EventBus')
+
+      const mockEventBusInstance = new EventBus()
+
+      vi.mocked(EventBus).mockImplementationOnce(function () {
+        return mockEventBusInstance as any
+      })
+
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined),
+          register: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
+      })
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
@@ -498,13 +601,8 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      // Get the EventBus instance from the client
-      const { SipClient } = await import('@/core/SipClient')
-      const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
-      const eventBus = mockInstance?.eventBus
-
       // Simulate JsSIP firing connected event
-      eventBus?.emitSync('sip:connected')
+      mockEventBusInstance.emitSync('sip:connected')
       await nextTick() // Ensure Vue reactivity completes
 
       expect(connectedEmitted).toBe(true)
@@ -512,7 +610,29 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
     it('should emit registered event when EventBus receives sip:registered', async () => {
       let registeredUri = ''
-      
+
+      const { SipClient } = await import('@/core/SipClient')
+      const { EventBus } = await import('@/core/EventBus')
+
+      const mockEventBusInstance = new EventBus()
+
+      vi.mocked(EventBus).mockImplementationOnce(function () {
+        return mockEventBusInstance as any
+      })
+
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined),
+          register: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
+      })
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
@@ -523,12 +643,8 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      const { SipClient } = await import('@/core/SipClient')
-      const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
-      const eventBus = mockInstance?.eventBus
-
       // Simulate JsSIP firing registered event
-      eventBus?.emitSync('sip:registered', { uri: 'sip:alice@example.com' })
+      mockEventBusInstance.emitSync('sip:registered', { uri: 'sip:alice@example.com' })
       await nextTick()
 
       expect(registeredUri).toBe('sip:alice@example.com')
@@ -536,7 +652,29 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
     it('should emit ready event when fully initialized', async () => {
       let readyEmitted = false
-      
+
+      const { SipClient } = await import('@/core/SipClient')
+      const { EventBus } = await import('@/core/EventBus')
+
+      const mockEventBusInstance = new EventBus()
+
+      vi.mocked(EventBus).mockImplementationOnce(function () {
+        return mockEventBusInstance as any
+      })
+
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined),
+          register: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
+      })
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
@@ -547,12 +685,8 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      const { SipClient } = await import('@/core/SipClient')
-      const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
-      const eventBus = mockInstance?.eventBus
-
       // Simulate registration completing
-      eventBus?.emitSync('sip:registered', { uri: 'sip:alice@example.com' })
+      mockEventBusInstance.emitSync('sip:registered', { uri: 'sip:alice@example.com' })
       await nextTick()
 
       expect(readyEmitted).toBe(true)
@@ -560,7 +694,29 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
     it('should emit error event on registration failure', async () => {
       let errorMessage = ''
-      
+
+      const { SipClient } = await import('@/core/SipClient')
+      const { EventBus } = await import('@/core/EventBus')
+
+      const mockEventBusInstance = new EventBus()
+
+      vi.mocked(EventBus).mockImplementationOnce(function () {
+        return mockEventBusInstance as any
+      })
+
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined),
+          register: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
+      })
+
       const wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
@@ -571,12 +727,8 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
 
-      const { SipClient } = await import('@/core/SipClient')
-      const mockInstance = vi.mocked(SipClient).mock.results[0]?.value
-      const eventBus = mockInstance?.eventBus
-
       // Simulate registration failure
-      eventBus?.emitSync('sip:registration_failed', { cause: 'Authentication failed' })
+      mockEventBusInstance.emitSync('sip:registration_failed', { cause: 'Authentication failed' })
       await nextTick()
 
       expect(errorMessage).toContain('Authentication failed')
@@ -711,15 +863,35 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
   describe('Event Listener Cleanup', () => {
     it('should track and remove event listeners on unmount', async () => {
       const { EventBus } = await import('@/core/EventBus')
-      let mockEventBus: any
+      const { SipClient } = await import('@/core/SipClient')
+
+      const onSpy = vi.fn().mockReturnValue('listener-id-1')
+      const removeByIdSpy = vi.fn()
+
+      const mockEventBusInstance = {
+        on: onSpy,
+        off: vi.fn(),
+        removeById: removeByIdSpy,
+        once: vi.fn(),
+        emit: vi.fn(),
+        emitSync: vi.fn(),
+      }
 
       vi.mocked(EventBus).mockImplementationOnce(function () {
-        mockEventBus = {
-          on: vi.fn().mockReturnValue('listener-id-1'),
-          off: vi.fn(),
-          removeById: vi.fn(),
-        }
-        return mockEventBus
+        return mockEventBusInstance as any
+      })
+
+      vi.mocked(SipClient).mockImplementationOnce(function (config: any, eventBus: any) {
+        return {
+          config,
+          eventBus,
+          start: vi.fn().mockResolvedValue(undefined),
+          stop: vi.fn().mockResolvedValue(undefined),
+          register: vi.fn().mockResolvedValue(undefined),
+          unregister: vi.fn().mockResolvedValue(undefined),
+          connectionState: 'disconnected',
+          registrationState: 'unregistered',
+        } as any
       })
 
       const wrapper = mount(SipClientProvider, {
@@ -733,14 +905,14 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       await flushPromises()
 
       // Should have registered event listeners
-      expect(mockEventBus.on).toHaveBeenCalled()
+      expect(onSpy).toHaveBeenCalled()
 
       // Unmount
       wrapper.unmount()
       await flushPromises()
 
       // Should have removed all event listeners
-      expect(mockEventBus.removeById).toHaveBeenCalled()
+      expect(removeByIdSpy).toHaveBeenCalled()
     })
   })
 })
