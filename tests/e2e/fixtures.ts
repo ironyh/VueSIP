@@ -326,6 +326,11 @@ export function mockWebSocketResponses(page: Page) {
             const openEvent = new Event('open')
             this.emitEvent('open', openEvent)
 
+            // Emit EventBridge event
+            if (typeof (window as any).__emitSipEvent === 'function') {
+              ;(window as any).__emitSipEvent('connection:connected')
+            }
+
             // Also trigger 'message' event with empty data to help JsSIP detect connection
             // Some WebSocket implementations fire a message event on open
             setTimeout(() => {
@@ -502,6 +507,11 @@ export function mockWebSocketResponses(page: Page) {
               `Content-Length: 0\r\n\r\n`
 
             this.emitEvent('message', new MessageEvent('message', { data: response }))
+
+            // Emit EventBridge event
+            if (typeof (window as any).__emitSipEvent === 'function') {
+              ;(window as any).__emitSipEvent('registration:registered')
+            }
           }, delays.REGISTER_200)
         }
 
@@ -538,6 +548,11 @@ export function mockWebSocketResponses(page: Page) {
             console.log(trying)
             this.emitEvent('message', new MessageEvent('message', { data: trying }))
 
+            // Emit EventBridge event - call is initiating
+            if (typeof (window as any).__emitSipEvent === 'function') {
+              ;(window as any).__emitSipEvent('call:initiating', { callId, remoteUri: toUri, direction: 'outgoing' })
+            }
+
             // Send 180 Ringing
             setTimeout(() => {
               const ringing =
@@ -554,6 +569,11 @@ export function mockWebSocketResponses(page: Page) {
               console.log('[MockWebSocket] Full 180 Ringing response:')
               console.log(ringing)
               this.emitEvent('message', new MessageEvent('message', { data: ringing }))
+
+              // Emit EventBridge event - call is ringing
+              if (typeof (window as any).__emitSipEvent === 'function') {
+                ;(window as any).__emitSipEvent('call:ringing', { callId })
+              }
 
               // Auto-answer after ringing for E2E tests
               // This allows tests to verify call establishment without manual intervention
@@ -593,6 +613,11 @@ export function mockWebSocketResponses(page: Page) {
                 this.sentMessages.push(ok.substring(0, 200)) // Store first 200 chars
 
                 this.emitEvent('message', new MessageEvent('message', { data: ok }))
+
+                // Emit EventBridge event - call is answered
+                if (typeof (window as any).__emitSipEvent === 'function') {
+                  ;(window as any).__emitSipEvent('call:answered', { callId })
+                }
               }, delays.INVITE_200)
             }, delays.INVITE_180 - delays.INVITE_100)
           }, delays.INVITE_100)
@@ -952,6 +977,113 @@ export const test = base.extend<TestFixtures>({
       // (each Playwright test gets a fresh page) has the transport overrides.
       await mockWebSocketResponses(page)
       await mockRTCPeerConnection(page)
+
+      // Initialize EventBridge for E2E tests
+      await page.addInitScript(() => {
+        // Import and initialize EventBridge inline
+        class EventBridge {
+          private state: any
+          private eventLog: any[]
+          private listeners: Map<string, Set<(event: any) => void>>
+          private statePromises: Map<string, any[]>
+
+          constructor() {
+            this.state = {
+              connection: 'disconnected',
+              registration: 'unregistered',
+              call: null,
+              error: null,
+            }
+            this.eventLog = []
+            this.listeners = new Map()
+            this.statePromises = new Map()
+          }
+
+          getState() {
+            return { ...this.state }
+          }
+
+          getEventLog() {
+            return [...this.eventLog]
+          }
+
+          emit(type: string, data?: any): void {
+            const event = {
+              type,
+              timestamp: Date.now(),
+              data,
+            }
+            this.eventLog.push(event)
+            this.updateState(type, data)
+          }
+
+          private updateState(type: string, data?: any): void {
+            switch (type) {
+              case 'connection:connected':
+                this.state.connection = 'connected'
+                break
+              case 'connection:disconnected':
+                this.state.connection = 'disconnected'
+                this.state.registration = 'unregistered'
+                break
+              case 'registration:registered':
+                this.state.registration = 'registered'
+                break
+              case 'registration:unregistered':
+                this.state.registration = 'unregistered'
+                break
+              case 'call:initiating':
+                this.state.call = {
+                  id: data?.callId || `call-${Date.now()}`,
+                  direction: data?.direction || 'outgoing',
+                  state: 'initiating',
+                  remoteUri: data?.remoteUri || '',
+                  startTime: null,
+                  endTime: null,
+                  holdState: 'none',
+                  muted: false,
+                  dtmfBuffer: '',
+                }
+                break
+              case 'call:ringing':
+                if (this.state.call) {
+                  this.state.call.state = 'ringing'
+                }
+                break
+              case 'call:answered':
+                if (this.state.call) {
+                  this.state.call.state = 'answered'
+                  this.state.call.startTime = Date.now()
+                }
+                break
+              case 'call:ended':
+              case 'call:failed':
+                if (this.state.call) {
+                  this.state.call.state = 'ended'
+                  this.state.call.endTime = Date.now()
+                }
+                setTimeout(() => {
+                  if (this.state.call?.state === 'ended') {
+                    this.state.call = null
+                  }
+                }, 100)
+                break
+            }
+          }
+        }
+
+        // Initialize EventBridge
+        const bridge = new EventBridge()
+        ;(window as any).__sipEventBridge = bridge
+        ;(window as any).__sipState = () => bridge.getState()
+
+        // Helper function to emit state changes
+        ;(window as any).__emitSipEvent = (type: string, data?: any) => {
+          bridge.emit(type, data)
+        }
+
+        console.log('[E2E] EventBridge initialized for testing')
+      })
     })
   },
 
@@ -1035,10 +1167,48 @@ export const test = base.extend<TestFixtures>({
       // Wait for the connection status element to match the expected state exactly (case-insensitive)
       await page.waitForFunction(
         (expectedState) => {
-          // Prefer querying internal debug state for reliability
+          const expected = expectedState.toLowerCase()
+
+          // First try EventBridge (preferred method)
+          const bridge = (window as any).__sipEventBridge
+          if (bridge && typeof bridge.getState === 'function') {
+            const sipState = bridge.getState()
+            const connState = String(sipState.connection || '').toLowerCase()
+            if (
+              (expected === 'connected' && connState === 'connected') ||
+              (expected === 'disconnected' && connState === 'disconnected')
+            ) {
+              const debug =
+                (window as any).__connectionDebug || ((window as any).__connectionDebug = {})
+              debug.lastMatchedAt = Date.now()
+              debug.matchedVia = 'EventBridge'
+              debug.current = connState
+              return true
+            }
+          }
+
+          // Fallback to __sipState function
+          const sipStateFn = (window as any).__sipState
+          if (typeof sipStateFn === 'function') {
+            const sipState = sipStateFn()
+            const connected = !!sipState.isConnected
+            const current = String(sipState.connection || sipState.connectionState || '').toLowerCase()
+            if (
+              (expected === 'connected' && (connected || current === 'connected')) ||
+              (expected === 'disconnected' && !connected && current === 'disconnected')
+            ) {
+              const debug =
+                (window as any).__connectionDebug || ((window as any).__connectionDebug = {})
+              debug.lastMatchedAt = Date.now()
+              debug.matchedVia = '__sipState function'
+              debug.current = current
+              return true
+            }
+          }
+
+          // Fallback to old __sipState object
           const sipDbg = (window as any).__sipState
           if (sipDbg) {
-            const expected = expectedState.toLowerCase()
             const connected = !!sipDbg.isConnected
             const current = String(sipDbg.connectionState || '').toLowerCase()
             if (
@@ -1049,6 +1219,7 @@ export const test = base.extend<TestFixtures>({
                 (window as any).__connectionDebug || ((window as any).__connectionDebug = {})
               debug.lastMatchedAt = Date.now()
               debug.matchedVia = 'sipDbg'
+              debug.current = current
               return true
             }
           }
@@ -1056,7 +1227,6 @@ export const test = base.extend<TestFixtures>({
           const statusElement = document.querySelector('[data-testid="connection-status"]')
           if (!statusElement) return false
           const text = (statusElement.textContent || '').trim().toLowerCase()
-          const expected = expectedState.toLowerCase()
           // Primary check: text contains expected state
           if (text.includes(expected)) {
             const debug = (window as any).__connectionDebug
@@ -1124,7 +1294,44 @@ export const test = base.extend<TestFixtures>({
         (expectedState) => {
           const expected = expectedState.toLowerCase()
 
-          // Prefer internal debug state if available
+          // First try EventBridge (preferred method)
+          const bridge = (window as any).__sipEventBridge
+          if (bridge && typeof bridge.getState === 'function') {
+            const sipState = bridge.getState()
+            const regState = String(sipState.registration || '').toLowerCase()
+            if (
+              (expected === 'registered' && regState === 'registered') ||
+              (expected === 'unregistered' && regState === 'unregistered')
+            ) {
+              const debug =
+                (window as any).__registrationDebug || ((window as any).__registrationDebug = {})
+              debug.lastMatchedAt = Date.now()
+              debug.matchedVia = 'EventBridge'
+              debug.current = regState
+              return true
+            }
+          }
+
+          // Fallback to __sipState function
+          const sipStateFn = (window as any).__sipState
+          if (typeof sipStateFn === 'function') {
+            const sipState = sipStateFn()
+            const registered = !!sipState.isRegistered
+            const regState = String(sipState.registration || sipState.registrationState || '').toLowerCase()
+            if (
+              (expected === 'registered' && (registered || regState === 'registered')) ||
+              (expected === 'unregistered' && !registered && regState === 'unregistered')
+            ) {
+              const debug =
+                (window as any).__registrationDebug || ((window as any).__registrationDebug = {})
+              debug.lastMatchedAt = Date.now()
+              debug.matchedVia = '__sipState function'
+              debug.current = regState
+              return true
+            }
+          }
+
+          // Fallback to old __sipState object
           const sipDbg = (window as any).__sipState
           if (sipDbg) {
             const registered = !!sipDbg.isRegistered
@@ -1137,6 +1344,7 @@ export const test = base.extend<TestFixtures>({
                 (window as any).__registrationDebug || ((window as any).__registrationDebug = {})
               debug.lastMatchedAt = Date.now()
               debug.matchedVia = 'sipDbg'
+              debug.current = regState
               return true
             }
           }
@@ -1173,6 +1381,41 @@ export const test = base.extend<TestFixtures>({
         : [String(desired).toLowerCase()]
       await page.waitForFunction(
         (states) => {
+          // First try EventBridge (preferred method)
+          const bridge = (window as any).__sipEventBridge
+          if (bridge && typeof bridge.getState === 'function') {
+            const sipState = bridge.getState()
+            const callState = sipState.call?.state
+            if (callState) {
+              const current = String(callState).toLowerCase()
+              if (states.includes(current)) {
+                const debug = (window as any).__callDebug || ((window as any).__callDebug = {})
+                debug.lastMatchedAt = Date.now()
+                debug.current = current
+                debug.source = 'EventBridge'
+                return true
+              }
+            }
+          }
+
+          // Fallback to __sipState function (legacy)
+          const sipStateFn = (window as any).__sipState
+          if (typeof sipStateFn === 'function') {
+            const sipState = sipStateFn()
+            const callState = sipState.call?.state
+            if (callState) {
+              const current = String(callState).toLowerCase()
+              if (states.includes(current)) {
+                const debug = (window as any).__callDebug || ((window as any).__callDebug = {})
+                debug.lastMatchedAt = Date.now()
+                debug.current = current
+                debug.source = '__sipState function'
+                return true
+              }
+            }
+          }
+
+          // Fallback to old __callState object (legacy)
           const callDbg = (window as any).__callState
           if (callDbg) {
             const current = String(callDbg.callState || '').toLowerCase()
@@ -1180,15 +1423,25 @@ export const test = base.extend<TestFixtures>({
               const debug = (window as any).__callDebug || ((window as any).__callDebug = {})
               debug.lastMatchedAt = Date.now()
               debug.current = current
+              debug.source = '__callState object'
               return true
             }
-            // Log occasionally
-            const dbg = (window as any).__callDebug || ((window as any).__callDebug = {})
-            const now = Date.now()
-            if (!dbg.lastLogAt || now - dbg.lastLogAt > 1000) {
-              dbg.lastLogAt = now
-              console.debug('[waitForCallState] waiting', { expected: states, current })
-            }
+          }
+
+          // Log occasionally for debugging
+          const dbg = (window as any).__callDebug || ((window as any).__callDebug = {})
+          const now = Date.now()
+          if (!dbg.lastLogAt || now - dbg.lastLogAt > 1000) {
+            dbg.lastLogAt = now
+            const bridgeAvailable = !!(window as any).__sipEventBridge
+            const sipStateFnAvailable = typeof (window as any).__sipState === 'function'
+            const callDbgAvailable = !!(window as any).__callState
+            console.debug('[waitForCallState] waiting', {
+              expected: states,
+              bridgeAvailable,
+              sipStateFnAvailable,
+              callDbgAvailable,
+            })
           }
           return false
         },
