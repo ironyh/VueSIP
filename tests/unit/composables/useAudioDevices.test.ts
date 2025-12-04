@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useAudioDevices } from '@/composables/useAudioDevices'
 import { nextTick, defineComponent } from 'vue'
-import { mount, type VueWrapper } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 
 // Mock navigator.mediaDevices
 const mockEnumerateDevices = vi.fn()
@@ -243,27 +243,30 @@ describe('useAudioDevices', () => {
     })
 
     it('should handle permission denied error', async () => {
-      mockGetUserMedia.mockRejectedValue(new Error('Permission denied'))
-
       const { result, wrapper } = mountUseAudioDevices()
 
-      // Wait for onMounted to complete
+      // Wait for onMounted to complete with successful initial call
       await wrapper.vm.$nextTick()
+      await new Promise(resolve => setTimeout(resolve, 0))
 
-      // Now call refreshDevices explicitly
+      // Now mock error for explicit refreshDevices call
+      mockGetUserMedia.mockRejectedValue(new Error('Permission denied'))
+
+      // Call refreshDevices explicitly and expect error
       await expect(result.refreshDevices()).rejects.toThrow('Permission denied')
 
       wrapper.unmount()
     })
 
     it('should handle enumeration errors', async () => {
-      mockEnumerateDevices.mockRejectedValue(new Error('Enumeration failed'))
-
       const { result, wrapper } = mountUseAudioDevices()
 
-      // Wait for onMounted to complete (which calls refreshDevices)
-      // The error will be caught and logged, but not thrown
+      // Wait for onMounted to complete with successful initial call
       await wrapper.vm.$nextTick()
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      // Now mock error for explicit refreshDevices call
+      mockEnumerateDevices.mockRejectedValue(new Error('Enumeration failed'))
 
       // Call refreshDevices again to test error handling
       await expect(result.refreshDevices()).rejects.toThrow('Enumeration failed')
