@@ -389,10 +389,14 @@ test.describe('Call Functionality - Outgoing Calls', () => {
 
   test('should make an outgoing call', async ({
     page,
+    browserName,
     waitForConnectionState,
     waitForRegistrationState,
     waitForCallState,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Connect
     await page.click('[data-testid="connect-button"]')
 
@@ -413,10 +417,14 @@ test.describe('Call Functionality - Outgoing Calls', () => {
 
   test('should show call status during outgoing call', async ({
     page,
+    browserName,
     waitForConnectionState,
     waitForRegistrationState,
     waitForCallState,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Connect
     await page.click('[data-testid="connect-button"]')
 
@@ -442,10 +450,14 @@ test.describe('Call Functionality - Outgoing Calls', () => {
 
   test('should hangup an outgoing call', async ({
     page,
+    browserName,
     waitForConnectionState,
     waitForRegistrationState,
     waitForCallState,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Connect
     await page.click('[data-testid="connect-button"]')
 
@@ -488,11 +500,15 @@ test.describe('Call Functionality - Incoming Calls', () => {
 
   test('should display incoming call notification', async ({
     page,
+    browserName,
     waitForConnectionState,
     waitForRegistrationState,
     simulateIncomingCall,
     waitForCallState,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Connect
     await page.click('[data-testid="connect-button"]')
 

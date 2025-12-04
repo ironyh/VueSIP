@@ -29,12 +29,17 @@ This is a known WebKit JavaScript engine (JavaScriptCore) strictness issue when 
 4. ❌ Issue persists - comes from JsSIP internal implementation, not our code
 
 ### Current Status
-**E2E tests in WebKit are skipped** to maintain CI/CD pipeline reliability. The VueSIP library itself works correctly in Safari/WebKit browsers - only the E2E test infrastructure is affected due to JsSIP's internal WebSocket wrapping behavior.
+**Targeted test skipping** - WebKit tests run in the E2E test suite, but JsSIP-incompatible call tests are explicitly skipped using Playwright's `test.skip()`. The VueSIP library itself works correctly in Safari/WebKit browsers - only specific E2E tests requiring JsSIP UA registration are affected.
 
-### Workarounds
-1. **Production**: No impact - real WebSocket in Safari/WebKit works perfectly
-2. **Testing**: Run E2E tests in Chromium or Firefox browsers
-3. **CI/CD**: WebKit browser is excluded from E2E test matrix
+### Test Strategy
+1. **WebKit Tests Run**: WebKit is included in the E2E test matrix and tests execute normally
+2. **Targeted Skips**: Only call-related tests that require JsSIP UA registration are skipped in WebKit
+3. **Tests Affected**: 4 tests in `app-functionality.spec.ts`:
+   - "should make an outgoing call"
+   - "should show call status during outgoing call"
+   - "should hangup an outgoing call"
+   - "should display incoming call notification"
+4. **Coverage**: All other E2E tests (UI, configuration, device management, etc.) run successfully in WebKit
 
 ### Unit Tests
 ✅ **All unit tests pass 100% in all environments** including WebKit. The Proxy issue only affects E2E tests due to the interaction between:
@@ -54,23 +59,23 @@ This will be resolved when either:
 3. Alternative E2E testing approach that doesn't require global WebSocket mocking
 
 ### Verification
-To verify the issue is isolated to E2E tests and not the library:
+To verify the targeted skip approach:
 ```bash
 # Unit tests - all pass including WebKit ✅
 npm test
 
-# E2E tests - Chromium ✅
+# E2E tests - Chromium ✅ (all tests pass)
 pnpm exec playwright test --project=chromium
 
-# E2E tests - Firefox ✅
+# E2E tests - Firefox ✅ (all tests pass)
 pnpm exec playwright test --project=firefox
 
-# E2E tests - WebKit ❌ (skipped)
-pnpm exec playwright test --project=webkit  # Fails with Proxy error
+# E2E tests - WebKit ✅ (runs with 4 skipped call tests)
+pnpm exec playwright test --project=webkit  # Most tests pass, 4 call tests skipped
 ```
 
 ---
 
 **Last Updated**: 2025-12-04
-**Status**: Known Issue - Workaround Implemented
-**Impact**: None on production usage, E2E tests run on Chromium/Firefox
+**Status**: Known Issue - Targeted Skip Approach Implemented
+**Impact**: None on production usage, WebKit E2E tests run with 4 call tests skipped

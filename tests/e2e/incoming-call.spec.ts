@@ -9,6 +9,9 @@ import { test, expect, APP_URL } from './fixtures'
 import { SELECTORS, TEST_DATA } from './selectors'
 
 test.describe('Incoming Call Scenarios', () => {
+  // Skip all incoming call tests in WebKit due to JsSIP Proxy incompatibility
+  test.skip(({ browserName }) => browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit (see WEBKIT_KNOWN_ISSUES.md)')
+
   test.beforeEach(async ({ page, mockSipServer, mockMediaDevices }) => {
     // Setup mocks
     await mockSipServer()
