@@ -162,6 +162,9 @@ export interface AmiClientEvents {
   presenceChange: (event: AmiMessage<AmiPresenceStateChangeEvent>) => void
   // Queue events
   queueMemberStatus: (event: AmiMessage<AmiQueueMemberStatusEvent>) => void
+  queueMemberAdded: (event: AmiMessage<AmiEventData>) => void
+  queueMemberRemoved: (event: AmiMessage<AmiEventData>) => void
+  queueMemberPause: (event: AmiMessage<AmiEventData>) => void
   queueCallerJoin: (event: AmiMessage<AmiQueueCallerJoinEvent>) => void
   queueCallerLeave: (event: AmiMessage<AmiQueueCallerLeaveEvent>) => void
   queueCallerAbandon: (event: AmiMessage<AmiQueueCallerAbandonEvent>) => void
