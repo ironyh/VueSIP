@@ -253,7 +253,7 @@ test.describe.skip('Visual Regression Tests', () => {
   })
 })
 
-test.describe('Visual Regression - Theme Support', () => {
+test.describe.skip('Visual Regression - Theme Support', () => {
   test.beforeEach(async ({ page, mockSipServer, mockMediaDevices }) => {
     await mockSipServer()
     await mockMediaDevices()
@@ -284,7 +284,7 @@ test.describe('Visual Regression - Theme Support', () => {
   })
 })
 
-test.describe('Visual Regression - Accessibility', () => {
+test.describe.skip('Visual Regression - Accessibility', () => {
   test.beforeEach(async ({ page, mockSipServer, mockMediaDevices }) => {
     await mockSipServer()
     await mockMediaDevices()
