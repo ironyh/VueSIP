@@ -29,6 +29,10 @@ interface EventListener<T = any> {
 export class EventBus {
   private listeners: Map<string, EventListener[]> = new Map()
   private listenerIdCounter = 0
+  private eventBuffer: Map<string, Array<{ data: any; timestamp: number }>> = new Map()
+  private bufferEnabled = true
+  private readonly MAX_BUFFER_SIZE = 50
+  private readonly BUFFER_TTL = 5000 // 5 seconds
 
   /**
    * Add an event listener
@@ -62,6 +66,36 @@ export class EventBus {
     this.listeners.set(eventName, existingListeners)
 
     logger.debug(`Listener added for event: ${eventName} (id: ${id}, priority: ${priority})`)
+
+    // BUFFERING: Replay buffered events for this listener if any exist
+    if (this.bufferEnabled && this.eventBuffer.has(eventName)) {
+      const bufferedEvents = this.eventBuffer.get(eventName)!
+      const now = Date.now()
+
+      logger.debug(`Found ${bufferedEvents.length} buffered events for ${eventName}, replaying...`)
+
+      // Filter out expired events and replay valid ones
+      const validEvents = bufferedEvents.filter((e) => now - e.timestamp < this.BUFFER_TTL)
+
+      for (const bufferedEvent of validEvents) {
+        try {
+          logger.debug(`Replaying buffered event for ${eventName}`)
+          const result = handler(bufferedEvent.data)
+          if (result instanceof Promise) {
+            result.catch((error) => {
+              logger.error(`Error in replayed event handler for ${eventName}:`, error)
+            })
+          }
+        } catch (error) {
+          logger.error(`Error replaying buffered event for ${eventName}:`, error)
+        }
+      }
+
+      // Clean up expired events
+      if (validEvents.length < bufferedEvents.length) {
+        this.eventBuffer.set(eventName, validEvents)
+      }
+    }
 
     return id
   }
@@ -148,6 +182,22 @@ export class EventBus {
       (a, b) => b.priority - a.priority
     )
 
+    // BUFFERING: If no listeners and buffering is enabled, buffer this event
+    if (allListeners.length === 0 && this.bufferEnabled) {
+      logger.debug(`No listeners for ${eventName}, buffering event for future listeners`)
+
+      const bufferedEvents = this.eventBuffer.get(eventName) || []
+      bufferedEvents.push({ data, timestamp: Date.now() })
+
+      // Limit buffer size per event
+      if (bufferedEvents.length > this.MAX_BUFFER_SIZE) {
+        bufferedEvents.shift() // Remove oldest event
+      }
+
+      this.eventBuffer.set(eventName, bufferedEvents)
+      return
+    }
+
     // Execute handlers
     const handlersToRemove: Array<{ event: string; listener: EventListener }> = []
 
@@ -174,6 +224,12 @@ export class EventBus {
     // Remove one-time listeners
     for (const { event, listener } of handlersToRemove) {
       this.off(event as K, listener.id)
+    }
+
+    // BUFFERING: Clear buffer for this event after successful emission to listeners
+    if (this.bufferEnabled && this.eventBuffer.has(eventName)) {
+      logger.debug(`Clearing buffer for ${eventName} after successful emission`)
+      this.eventBuffer.delete(eventName)
     }
   }
 
@@ -207,7 +263,7 @@ export class EventBus {
   waitFor<K extends keyof EventMap>(event: K, timeout?: number): Promise<EventMap[K]> {
     return new Promise((resolve, reject) => {
       let timeoutId: NodeJS.Timeout | number | undefined
-      // eslint-disable-next-line prefer-const
+
       let listenerId: string | undefined
 
       // Setup timeout if specified
@@ -286,10 +342,24 @@ export class EventBus {
   }
 
   /**
+   * Enable or disable event buffering
+   */
+  setBufferingEnabled(enabled: boolean): void {
+    this.bufferEnabled = enabled
+    if (!enabled) {
+      this.eventBuffer.clear()
+      logger.debug('Event buffering disabled and buffer cleared')
+    } else {
+      logger.debug('Event buffering enabled')
+    }
+  }
+
+  /**
    * Clear all event listeners and reset state
    */
   destroy(): void {
     this.removeAllListeners()
+    this.eventBuffer.clear()
     this.listenerIdCounter = 0
     logger.debug('EventBus destroyed')
   }
@@ -304,5 +374,37 @@ export function createEventBus(): EventBus {
 
 /**
  * Global event bus singleton (can be used for application-wide events)
+ *
+ * WARNING: When using this singleton, ensure you call cleanupGlobalEventBus()
+ * when your application unmounts or during hot module replacement to prevent
+ * memory leaks from accumulated event listeners.
  */
 export const globalEventBus = createEventBus()
+
+/**
+ * Cleanup the global event bus
+ *
+ * Call this function when your Vue application unmounts or during
+ * hot module replacement (HMR) to prevent memory leaks from accumulated
+ * event listeners on the singleton.
+ *
+ * @example
+ * ```ts
+ * // In your main.ts or App.vue
+ * import { cleanupGlobalEventBus } from '@/core/EventBus'
+ *
+ * // Vue 3 app unmount hook
+ * app.unmount()
+ * cleanupGlobalEventBus()
+ *
+ * // Or in Vite HMR
+ * if (import.meta.hot) {
+ *   import.meta.hot.dispose(() => {
+ *     cleanupGlobalEventBus()
+ *   })
+ * }
+ * ```
+ */
+export function cleanupGlobalEventBus(): void {
+  globalEventBus.destroy()
+}

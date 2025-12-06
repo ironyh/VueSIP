@@ -182,11 +182,83 @@ export function useCallSession(
   // Internal AbortController for automatic cleanup on unmount
   const internalAbortController = ref(new AbortController())
 
+  // Session state version - incremented to force Vue reactivity updates
+  // when CallSession internal state changes (needed because Vue doesn't track
+  // internal properties of objects stored in refs)
+  const sessionStateVersion = ref(0)
+
+  // Cleanup function for session event listeners
+  let sessionEventCleanup: (() => void) | null = null
+
+  /**
+   * Set up event listeners on a CallSession to track state changes
+   * and force Vue reactivity updates when the internal state changes.
+   */
+  const setupSessionEventListeners = (callSession: CallSession): void => {
+    // Clean up previous listeners if any
+    if (sessionEventCleanup) {
+      sessionEventCleanup()
+      sessionEventCleanup = null
+    }
+
+    // Get the eventBus from the session
+    const eventBus = callSession.eventBus
+    if (!eventBus) {
+      log.warn('Session has no eventBus, state changes may not be reactive')
+      return
+    }
+
+    // Listen for state changes and increment version to trigger reactivity
+    // EventBus.on() returns a listener ID string
+    const stateChangedListenerId = eventBus.on('call:state_changed', () => {
+      sessionStateVersion.value++
+      log.debug(`Session state changed, version: ${sessionStateVersion.value}`)
+    })
+
+    // Also listen for confirmed, ended, hold, unhold events
+    const confirmedListenerId = eventBus.on('call:confirmed', () => {
+      sessionStateVersion.value++
+    })
+    const endedListenerId = eventBus.on('call:ended', () => {
+      sessionStateVersion.value++
+    })
+    const holdListenerId = eventBus.on('call:hold', () => {
+      sessionStateVersion.value++
+    })
+    const unholdListenerId = eventBus.on('call:unhold', () => {
+      sessionStateVersion.value++
+    })
+    const mutedListenerId = eventBus.on('call:muted', () => {
+      sessionStateVersion.value++
+    })
+    const unmutedListenerId = eventBus.on('call:unmuted', () => {
+      sessionStateVersion.value++
+    })
+
+    // Store cleanup function that removes listeners by their IDs
+    sessionEventCleanup = () => {
+      eventBus.off('call:state_changed', stateChangedListenerId)
+      eventBus.off('call:confirmed', confirmedListenerId)
+      eventBus.off('call:ended', endedListenerId)
+      eventBus.off('call:hold', holdListenerId)
+      eventBus.off('call:unhold', unholdListenerId)
+      eventBus.off('call:muted', mutedListenerId)
+      eventBus.off('call:unmuted', unmutedListenerId)
+    }
+  }
+
   // ============================================================================
   // Computed Values
   // ============================================================================
 
-  const state = computed<CallState>(() => session.value?.state ?? ('idle' as CallState))
+  // Include sessionStateVersion in the dependency to force re-computation
+  // when CallSession internal state changes
+  const state = computed<CallState>(() => {
+    // Access sessionStateVersion to create a dependency
+    const _version = sessionStateVersion.value
+    void _version // Explicitly mark as used
+    return session.value?.state ?? ('idle' as CallState)
+  })
 
   const callId = computed(() => session.value?.id ?? null)
   const direction = computed(() => session.value?.direction ?? null)
@@ -205,10 +277,26 @@ export function useCallSession(
     )
   })
 
-  const isOnHold = computed(() => session.value?.isOnHold ?? false)
-  const isMuted = computed(() => session.value?.isMuted ?? false)
-  const hasRemoteVideo = computed(() => session.value?.hasRemoteVideo ?? false)
-  const hasLocalVideo = computed(() => session.value?.hasLocalVideo ?? false)
+  const isOnHold = computed(() => {
+    const _version = sessionStateVersion.value
+    void _version // Force dependency on version for reactivity
+    return session.value?.isOnHold ?? false
+  })
+  const isMuted = computed(() => {
+    const _version = sessionStateVersion.value
+    void _version // Force dependency on version for reactivity
+    return session.value?.isMuted ?? false
+  })
+  const hasRemoteVideo = computed(() => {
+    const _version = sessionStateVersion.value
+    void _version // Force dependency on version for reactivity
+    return session.value?.hasRemoteVideo ?? false
+  })
+  const hasLocalVideo = computed(() => {
+    const _version = sessionStateVersion.value
+    void _version // Force dependency on version for reactivity
+    return session.value?.hasLocalVideo ?? false
+  })
 
   const localStream = computed(() => session.value?.localStream ?? null)
   const remoteStream = computed(() => session.value?.remoteStream ?? null)
@@ -366,10 +454,15 @@ export function useCallSession(
     const timer = createOperationTimer()
 
     try {
+      console.log('[useCallSession] makeCall STARTING', {
+        target,
+        hasMediaManager: !!mediaManager?.value,
+      })
       log.info(`Making call to ${target}`)
 
       // Clear any existing session
       clearSession()
+      console.log('[useCallSession] Session cleared')
 
       // Check if aborted after clearing session
       throwIfAborted(effectiveSignal)
@@ -377,8 +470,10 @@ export function useCallSession(
       // Acquire local media if mediaManager is provided
       if (mediaManager?.value) {
         const { audio = true, video = false } = options
+        console.log('[useCallSession] About to acquire media', { audio, video })
         log.debug(`Acquiring local media (audio: ${audio}, video: ${video})`)
         await mediaManager.value.getUserMedia({ audio, video })
+        console.log('[useCallSession] Media acquired successfully')
         mediaAcquired = true
         // Store reference to local stream for cleanup if call fails
         localStreamBeforeCall = mediaManager.value.getLocalStream() || null
@@ -387,6 +482,9 @@ export function useCallSession(
         throwIfAborted(effectiveSignal)
       }
 
+      console.log('[useCallSession] About to call sipClient.call()', {
+        hasSipClient: !!sipClient.value,
+      })
       // Initiate call via SIP client
       // call() method now properly returns CallSession instance
       const newSession = await sipClient.value.call(target, {
@@ -398,20 +496,36 @@ export function useCallSession(
         ...options.data,
       })
 
+      console.log('[useCallSession] sipClient.call() returned', { sessionId: newSession.id })
+
       // Check if aborted after call initiation
       throwIfAborted(effectiveSignal)
 
       // Store session
       session.value = newSession
+      console.log('[useCallSession] Session stored')
+
+      // Set up event listeners to track state changes for Vue reactivity
+      setupSessionEventListeners(newSession)
 
       // Add to call store
       callStore.addActiveCall(newSession)
+      console.log('[useCallSession] Added to call store')
 
       // Reset duration
       resetDuration()
 
       log.info(`Call initiated: ${newSession.id}`)
+      console.log('[useCallSession] makeCall COMPLETED successfully')
     } catch (error) {
+      console.error('[useCallSession] makeCall FAILED', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        mediaAcquired,
+        target,
+      })
+
       // Handle abort errors gracefully
       if (isAbortError(error)) {
         log.info('Call initiation aborted by user', {
@@ -944,6 +1058,12 @@ export function useCallSession(
       stopDurationTracking()
       resetDuration()
 
+      // Clean up session event listeners
+      if (sessionEventCleanup) {
+        sessionEventCleanup()
+        sessionEventCleanup = null
+      }
+
       // Clear session reference
       session.value = null
     }
@@ -958,12 +1078,116 @@ export function useCallSession(
     log.debug('Composable unmounting, cleaning up')
     stopDurationTracking()
 
+    // Clean up session event listeners
+    if (sessionEventCleanup) {
+      sessionEventCleanup()
+      sessionEventCleanup = null
+    }
+
+    // Clean up incoming call listener
+    if (incomingCallListenerCleanup) {
+      incomingCallListenerCleanup()
+      incomingCallListenerCleanup = null
+    }
+
     // Abort any pending async operations
     if (!internalAbortController.value.signal.aborted) {
       log.info('Aborting pending operations on unmount')
       internalAbortController.value.abort()
     }
   })
+
+  // ============================================================================
+  // Incoming Call Auto-Detection
+  // ============================================================================
+
+  // Cleanup function for incoming call listener
+  let incomingCallListenerCleanup: (() => void) | null = null
+
+  /**
+   * Set up listener for incoming calls from SipClient
+   * This automatically detects incoming calls and sets up the session
+   */
+  const setupIncomingCallListener = (client: SipClient): void => {
+    // Clean up previous listener if any
+    if (incomingCallListenerCleanup) {
+      incomingCallListenerCleanup()
+      incomingCallListenerCleanup = null
+    }
+
+    const eventBus = client.eventBus
+    if (!eventBus) {
+      log.warn('SipClient has no eventBus, incoming calls will not be detected')
+      return
+    }
+
+    // Listen for new sessions (incoming calls)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:new_session
+    const listenerId = eventBus.on('sip:new_session' as any, (event: any) => {
+      log.debug('Received sip:new_session event:', event)
+
+      // Only handle incoming calls - outgoing calls are handled by makeCall()
+      if (event?.originator !== 'remote') {
+        log.debug('Ignoring outgoing call session event')
+        return
+      }
+
+      // Don't overwrite existing active session
+      if (session.value && session.value.state !== 'terminated' && session.value.state !== 'idle') {
+        log.warn('Already have an active session, ignoring new incoming call')
+        return
+      }
+
+      // Get the CallSession from the event
+      // The SipClient emits this after creating the CallSession
+      const callId = event.callId
+      if (!callId) {
+        log.warn('Incoming call event missing callId')
+        return
+      }
+
+      // Get the CallSession from SipClient's activeCalls
+      const incomingSession = client.getActiveCall(callId)
+      if (!incomingSession) {
+        log.warn(`Could not find CallSession for incoming call ${callId}`)
+        return
+      }
+
+      log.info(`Detected incoming call: ${callId}`)
+
+      // Store the session - cast to CallSession class type since getActiveCall returns the interface type
+      // but the underlying object is always a CallSession class instance
+      session.value = incomingSession as CallSession
+
+      // Set up event listeners to track state changes
+      setupSessionEventListeners(incomingSession as CallSession)
+
+      // Force reactivity update
+      sessionStateVersion.value++
+    })
+
+    // Store cleanup function
+    incomingCallListenerCleanup = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:new_session
+      eventBus.off('sip:new_session' as any, listenerId)
+    }
+
+    log.debug('Incoming call listener set up')
+  }
+
+  // Watch for SipClient changes and set up incoming call listener
+  watch(
+    sipClient,
+    (newClient) => {
+      if (newClient) {
+        setupIncomingCallListener(newClient)
+      } else if (incomingCallListenerCleanup) {
+        incomingCallListenerCleanup()
+        incomingCallListenerCleanup = null
+      }
+    },
+    { immediate: true }
+  )
 
   // ============================================================================
   // Return Public API

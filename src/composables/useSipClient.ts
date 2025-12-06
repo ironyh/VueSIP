@@ -7,7 +7,16 @@
  * @module composables/useSipClient
  */
 
-import { ref, computed, onUnmounted, readonly, nextTick, watch, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  onUnmounted,
+  readonly,
+  nextTick,
+  watch,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import { SipClient } from '@/core/SipClient'
 import { EventBus } from '@/core/EventBus'
 import { configStore } from '@/stores/configStore'
@@ -168,12 +177,38 @@ export function useSipClient(
   // ============================================================================
 
   const {
-    eventBus = new EventBus(),
+    eventBus: _eventBus,
     autoConnect = false,
     autoCleanup = true,
     reconnectDelay = 1000,
     connectionTimeout = 30000,
   } = options ?? {}
+
+  // DIAGNOSTIC LOGGING: Track EventBus instance being used
+  console.log('[useSipClient] EventBus initialization:', {
+    receivedOptions: options,
+    extractedEventBus: _eventBus,
+    isEventBridgeFromWindow:
+      typeof (window as any).__sipEventBridge !== 'undefined' &&
+      _eventBus === (window as any).__sipEventBridge,
+    willCreateNew: !_eventBus,
+  })
+
+  // Priority: 1) passed eventBus, 2) window.__sipEventBridge (E2E tests), 3) new instance
+  // CRITICAL: Must check window.__sipEventBridge first, as App.vue may pass undefined options
+  // when EventBridge isn't available at initial render, but it exists later
+  const eventBus =
+    _eventBus ??
+    (typeof window !== 'undefined' ? (window as any).__sipEventBridge : undefined) ??
+    new EventBus()
+
+  // Log which EventBus instance we're actually using
+  console.log('[useSipClient] Using EventBus instance:', {
+    isSame: eventBus === (window as any).__sipEventBridge,
+    eventBusType: eventBus.constructor.name,
+    hasOnMethod: typeof eventBus.on === 'function',
+    hasEmitMethod: typeof eventBus.emit === 'function',
+  })
 
   // Track EventBus instance usage for conflict detection
   const currentCount = eventBusInstanceCounts.get(eventBus) ?? 0
@@ -265,20 +300,37 @@ export function useSipClient(
     const listeners: Array<{ event: string; id: string }> = []
 
     // Connection events
+    console.log('[useSipClient] Registering listener for sip:connected on EventBus:', {
+      eventBusInstance: eventBus,
+      isSameAsWindowBridge: eventBus === (window as any).__sipEventBridge,
+    })
+
+    console.log('[DIAGNOSTIC 3/3] useSipClient: Registering "sip:connected" listener...')
     listeners.push({
       event: 'sip:connected',
       id: eventBus.on('sip:connected', () => {
-        console.log('[useSipClient] sip:connected event received!')
+        console.log('[DIAGNOSTIC 3/3] useSipClient: ✅ "sip:connected" event RECEIVED by listener!')
         logger.debug('SIP client connected')
         error.value = null
         // Update reactive state
-        console.log('[useSipClient] Updating _connectionState to Connected')
+        console.log(
+          '[DIAGNOSTIC 3/3] useSipClient: Updating _isConnected.value from',
+          _isConnected.value,
+          'to true'
+        )
         _connectionState.value = ConnectionState.Connected
-        console.log('[useSipClient] Updating _isConnected to true')
         _isConnected.value = true
-        console.log('[useSipClient] State updated. connectionState:', _connectionState.value, 'isConnected:', _isConnected.value)
+        console.log(
+          '[DIAGNOSTIC 3/3] useSipClient: State updated! _isConnected.value =',
+          _isConnected.value
+        )
+        logger.debug('State updated', {
+          connectionState: _connectionState.value,
+          isConnected: _isConnected.value,
+        })
       }),
     })
+    console.log('[DIAGNOSTIC 3/3] useSipClient: "sip:connected" listener registered successfully')
 
     listeners.push({
       event: 'sip:disconnected',
@@ -302,6 +354,14 @@ export function useSipClient(
         const payload = data as SipEventPayloads['sip:registered']
         if (payload?.uri) {
           registrationStore.setRegistered(payload.uri, payload.expires)
+        }
+
+        // Emit to EventBridge for E2E tests
+        if (typeof (window as any).__emitSipEvent === 'function') {
+          console.log('[useSipClient] Emitting registration:registered to EventBridge')
+          ;(window as any).__emitSipEvent('registration:registered')
+        } else {
+          console.log('[useSipClient] __emitSipEvent not available')
         }
       }),
     })
@@ -332,6 +392,12 @@ export function useSipClient(
         // Auto-refresh will be handled by the SIP client
       }),
     })
+
+    // LISTENER-READY SIGNAL: Signal to E2E tests that all event listeners are registered
+    // This prevents the race condition where MockWebSocket fires events before listeners exist
+    console.log('[useSipClient] All event listeners registered! Setting __sipListenersReady = true')
+    ;(window as any).__sipListenersReady = true
+    console.log('[useSipClient] __sipListenersReady signal set successfully')
 
     // Return cleanup function
     return () => {
@@ -397,7 +463,10 @@ export function useSipClient(
         logger.info('Creating SIP client')
         // Extract raw config object from Vue reactivity system
         const plainConfig = JSON.parse(JSON.stringify(config)) as SipClientConfig
-        console.log('useSipClient.connect plainConfig', plainConfig)
+        logger.debug('Creating SIP client with config', {
+          uri: plainConfig.uri,
+          sipUri: plainConfig.sipUri,
+        })
         sipClient.value = new SipClient(plainConfig, eventBus)
       }
 
@@ -413,18 +482,33 @@ export function useSipClient(
         )
       })
 
+      console.log('[useSipClient] Waiting for start() to complete...')
       await Promise.race([connectPromise, timeoutPromise])
+      console.log('[useSipClient] start() completed successfully')
+
       // Clear the timeout if connect resolved first to avoid stray timers
       if (timeoutId) {
         clearTimeout(timeoutId)
         timeoutId = null
       }
-      
+
       // Manually sync state after connection (in case events don't fire immediately)
       // First, perform an immediate sync; if already connected, skip polling to avoid timer reliance
       if (sipClient.value) {
+        console.log('[useSipClient] Manual sync - BEFORE:', {
+          _connectionState: _connectionState.value,
+          _isConnected: _isConnected.value,
+          sipClientConnectionState: sipClient.value.connectionState,
+          sipClientIsConnected: sipClient.value.isConnected,
+        })
+
         _connectionState.value = sipClient.value.connectionState
         _isConnected.value = sipClient.value.isConnected
+
+        console.log('[useSipClient] Manual sync - AFTER:', {
+          _connectionState: _connectionState.value,
+          _isConnected: _isConnected.value,
+        })
       }
       // Skip additional polling to avoid timer interactions in tests; consumers
       // receive state updates via event listeners and this initial sync
@@ -458,7 +542,7 @@ export function useSipClient(
       sipClient.value.destroy()
       sipClient.value = null
       registrationStore.setUnregistered()
-      
+
       // Reset reactive state
       _connectionState.value = ConnectionState.Disconnected
       _isConnected.value = false
@@ -547,8 +631,7 @@ export function useSipClient(
 
       const hasExistingConfig = configStore.hasSipConfig
       let validationResult: ValidationResult
-      const configSnapshot = JSON.parse(JSON.stringify(config))
-      console.log('useSipClient.updateConfig', { hasExistingConfig, config: configSnapshot })
+      logger.debug('Updating config', { hasExistingConfig })
 
       if (hasExistingConfig) {
         validationResult = configStore.updateSipConfig(config, true)

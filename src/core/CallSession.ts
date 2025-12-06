@@ -18,8 +18,10 @@ import type {
   TerminationCause,
   CallSession as ICallSession,
 } from '@/types/call.types'
+// JsSIP types available in @/types/jssip.types for future type improvements
 import { createLogger } from '@/utils/logger'
 import { EventEmitter } from '@/utils/EventEmitter'
+import { CALL_SESSION } from '@/utils/constants'
 
 const logger = createLogger('CallSession')
 
@@ -98,7 +100,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
   private readonly _remoteUri: string
   private readonly _remoteDisplayName?: string
   private readonly rtcSession: any
-  private readonly eventBus: EventBus
+  private readonly _eventBus: EventBus
   private readonly _data: Record<string, any>
 
   // State
@@ -128,9 +130,6 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
   // DTMF queue
   private dtmfQueue: string[] = []
-
-  // Constants
-  private readonly HOLD_TIMEOUT_MS = 10000 // 10 seconds timeout for hold/unhold operations
   private isDtmfSending = false
 
   constructor(options: CallSessionOptions) {
@@ -146,7 +145,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     this._remoteUri = options.remoteUri
     this._remoteDisplayName = options.remoteDisplayName
     this.rtcSession = options.rtcSession
-    this.eventBus = options.eventBus
+    this._eventBus = options.eventBus
     this._data = options.data ?? {}
 
     // Set initial timing
@@ -173,6 +172,14 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
   get direction(): CallDirection {
     return this._direction
+  }
+
+  /**
+   * Get the event bus for subscribing to call events.
+   * Useful for reactivity systems that need to track state changes.
+   */
+  get eventBus(): EventBus {
+    return this._eventBus
   }
 
   get localUri(): string {
@@ -441,11 +448,13 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     // Set timeout to prevent flag from getting stuck
     this.holdTimeoutTimer = setTimeout(() => {
       if (this.isHoldPending) {
-        logger.error(`Hold operation timed out after ${this.HOLD_TIMEOUT_MS}ms: ${this._id}`)
+        logger.error(
+          `Hold operation timed out after ${CALL_SESSION.HOLD_TIMEOUT_MS}ms: ${this._id}`
+        )
         this.isHoldPending = false
         this.holdTimeoutTimer = undefined
       }
-    }, this.HOLD_TIMEOUT_MS)
+    }, CALL_SESSION.HOLD_TIMEOUT_MS)
 
     try {
       logger.info(`Putting call on hold: ${this._id}`)
@@ -480,11 +489,13 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     // Set timeout to prevent flag from getting stuck
     this.holdTimeoutTimer = setTimeout(() => {
       if (this.isHoldPending) {
-        logger.error(`Unhold operation timed out after ${this.HOLD_TIMEOUT_MS}ms: ${this._id}`)
+        logger.error(
+          `Unhold operation timed out after ${CALL_SESSION.HOLD_TIMEOUT_MS}ms: ${this._id}`
+        )
         this.isHoldPending = false
         this.holdTimeoutTimer = undefined
       }
-    }, this.HOLD_TIMEOUT_MS)
+    }, CALL_SESSION.HOLD_TIMEOUT_MS)
 
     try {
       logger.info(`Resuming call from hold: ${this._id}`)
@@ -824,6 +835,9 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
    * Setup JsSIP RTCSession event handlers
    */
   private setupEventHandlers(): void {
+    console.log(`[CallSession] setupEventHandlers() called for ${this._id}`)
+    console.log(`[CallSession] rtcSession.on type: ${typeof this.rtcSession?.on}`)
+
     // Progress event (provisional responses: 100, 180, 183)
     this.rtcSession.on('progress', (e: any) => {
       logger.debug(`Call progress: ${this._id}`, e)
@@ -861,9 +875,12 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
     // Confirmed event (ACK sent/received)
     this.rtcSession.on('confirmed', (_e: any) => {
+      console.log(`[CallSession] CONFIRMED EVENT RECEIVED for ${this._id}`)
       logger.info(`Call confirmed: ${this._id}`)
 
+      console.log(`[CallSession] About to updateState to 'active', current state: ${this._state}`)
       this.updateState('active' as CallState)
+      console.log(`[CallSession] State after updateState: ${this._state}`)
 
       this.emitCallEvent('call:confirmed')
     })
@@ -1075,11 +1092,35 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
    * Emit call event
    */
   private emitCallEvent(event: string, data?: any): void {
-    this.eventBus.emitSync(event, {
+    this._eventBus.emitSync(event, {
       session: this.toInterface(),
       timestamp: new Date(),
       ...data,
     })
+
+    // Emit to EventBridge for E2E tests
+    if (typeof (window as any).__emitSipEvent === 'function') {
+      // Map CallSession events to EventBridge event names
+      let bridgeEvent: string | null = null
+
+      if (event === 'call:progress') {
+        bridgeEvent = 'call:initiating'
+      } else if (event === 'call:accepted') {
+        bridgeEvent = 'call:ringing'
+      } else if (event === 'call:confirmed') {
+        bridgeEvent = 'call:answered'
+      } else if (event === 'call:ended' || event === 'call:failed') {
+        bridgeEvent = event // Keep these as-is
+      }
+
+      if (bridgeEvent) {
+        ;(window as any).__emitSipEvent(bridgeEvent, {
+          callId: this._id,
+          direction: this._direction,
+          remoteUri: this._remoteUri,
+        })
+      }
+    }
   }
 
   /**

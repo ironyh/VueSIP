@@ -341,6 +341,48 @@ export const PERFORMANCE = {
 } as const
 
 // ============================================================================
+// Validation Constants
+// ============================================================================
+
+/**
+ * Validation limits and boundaries
+ */
+export const VALIDATION = {
+  /** Maximum valid port number */
+  MAX_PORT_NUMBER: 65535,
+
+  /** Minimum valid port number */
+  MIN_PORT_NUMBER: 1,
+
+  /** Minimum SIP registration expires value in seconds */
+  MIN_REGISTRATION_EXPIRES: 60,
+
+  /** Minimum call timeout in milliseconds */
+  MIN_CALL_TIMEOUT: 10000,
+
+  /** Minimum concurrent calls allowed */
+  MIN_CONCURRENT_CALLS: 1,
+} as const
+
+// ============================================================================
+// Call Session Constants
+// ============================================================================
+
+/**
+ * Call session timing and operation constants
+ */
+export const CALL_SESSION = {
+  /** Timeout for hold/unhold operations in milliseconds (5 seconds for better UX) */
+  HOLD_TIMEOUT_MS: 5000,
+
+  /** Default PBKDF2 iterations for encryption (production) */
+  ENCRYPTION_ITERATIONS_PRODUCTION: 100000,
+
+  /** PBKDF2 iterations for test environment (faster tests) */
+  ENCRYPTION_ITERATIONS_TEST: 1000,
+} as const
+
+// ============================================================================
 // Regular Expressions
 // ============================================================================
 

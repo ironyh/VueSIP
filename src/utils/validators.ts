@@ -8,7 +8,7 @@
  */
 
 import type { SipClientConfig, MediaConfiguration, ValidationResult } from '../types/config.types'
-import { SIP_URI_REGEX, E164_PHONE_REGEX, WEBSOCKET_URL_REGEX } from './constants'
+import { SIP_URI_REGEX, E164_PHONE_REGEX, WEBSOCKET_URL_REGEX, VALIDATION } from './constants'
 
 /**
  * Result of a simple validation operation (for helper validators)
@@ -48,6 +48,7 @@ export function validateSipUri(uri: string): SimpleValidationResult {
   if (!uri || typeof uri !== 'string') {
     return {
       valid: false,
+      isValid: false,
       error: 'SIP URI must be a non-empty string',
       normalized: null,
     }
@@ -58,6 +59,7 @@ export function validateSipUri(uri: string): SimpleValidationResult {
   if (!trimmed) {
     return {
       valid: false,
+      isValid: false,
       error: 'SIP URI cannot be empty',
       normalized: null,
     }
@@ -68,6 +70,7 @@ export function validateSipUri(uri: string): SimpleValidationResult {
   if (!match) {
     return {
       valid: false,
+      isValid: false,
       error: 'Invalid SIP URI format. Expected: sip:user@domain or sips:user@domain',
       normalized: null,
     }
@@ -79,6 +82,7 @@ export function validateSipUri(uri: string): SimpleValidationResult {
   if (!user || user.length === 0) {
     return {
       valid: false,
+      isValid: false,
       error: 'SIP URI must include a user part',
       normalized: null,
     }
@@ -88,6 +92,7 @@ export function validateSipUri(uri: string): SimpleValidationResult {
   if (!domain || domain.length === 0) {
     return {
       valid: false,
+      isValid: false,
       error: 'SIP URI must include a domain',
       normalized: null,
     }
@@ -96,10 +101,15 @@ export function validateSipUri(uri: string): SimpleValidationResult {
   // Validate port if present
   if (port) {
     const portNum = parseInt(port, 10)
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+    if (
+      isNaN(portNum) ||
+      portNum < VALIDATION.MIN_PORT_NUMBER ||
+      portNum > VALIDATION.MAX_PORT_NUMBER
+    ) {
       return {
         valid: false,
-        error: 'Invalid port number. Must be between 1 and 65535',
+        isValid: false,
+        error: `Invalid port number. Must be between ${VALIDATION.MIN_PORT_NUMBER} and ${VALIDATION.MAX_PORT_NUMBER}`,
         normalized: null,
       }
     }
@@ -111,6 +121,7 @@ export function validateSipUri(uri: string): SimpleValidationResult {
 
   return {
     valid: true,
+    isValid: true,
     error: null,
     normalized,
   }
@@ -235,9 +246,11 @@ export function validateSipConfig(config: Partial<SipClientConfig>): ValidationR
     if (config.registrationOptions.expires !== undefined) {
       if (
         typeof config.registrationOptions.expires !== 'number' ||
-        config.registrationOptions.expires < 60
+        config.registrationOptions.expires < VALIDATION.MIN_REGISTRATION_EXPIRES
       ) {
-        errors.push('registrationOptions.expires must be a number >= 60 seconds')
+        errors.push(
+          `registrationOptions.expires must be a number >= ${VALIDATION.MIN_REGISTRATION_EXPIRES} seconds`
+        )
       }
     }
 
@@ -259,18 +272,22 @@ export function validateSipConfig(config: Partial<SipClientConfig>): ValidationR
     if (config.sessionOptions.callTimeout !== undefined) {
       if (
         typeof config.sessionOptions.callTimeout !== 'number' ||
-        config.sessionOptions.callTimeout < 10000
+        config.sessionOptions.callTimeout < VALIDATION.MIN_CALL_TIMEOUT
       ) {
-        errors.push('sessionOptions.callTimeout must be a number >= 10000 milliseconds')
+        errors.push(
+          `sessionOptions.callTimeout must be a number >= ${VALIDATION.MIN_CALL_TIMEOUT} milliseconds`
+        )
       }
     }
 
     if (config.sessionOptions.maxConcurrentCalls !== undefined) {
       if (
         typeof config.sessionOptions.maxConcurrentCalls !== 'number' ||
-        config.sessionOptions.maxConcurrentCalls < 1
+        config.sessionOptions.maxConcurrentCalls < VALIDATION.MIN_CONCURRENT_CALLS
       ) {
-        errors.push('sessionOptions.maxConcurrentCalls must be a number >= 1')
+        errors.push(
+          `sessionOptions.maxConcurrentCalls must be a number >= ${VALIDATION.MIN_CONCURRENT_CALLS}`
+        )
       }
     }
   }

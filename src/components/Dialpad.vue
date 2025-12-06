@@ -79,6 +79,15 @@ const handleCall = () => {
 const handleBackspace = () => {
   number.value = number.value.slice(0, -1)
 }
+
+// Expose method for testing purposes
+const setNumberForTest = (value: string) => {
+  number.value = value
+}
+
+defineExpose({
+  setNumberForTest,
+})
 </script>
 
 <style scoped>

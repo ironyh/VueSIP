@@ -179,7 +179,7 @@
 
               <!-- DTMF Pad (during call) -->
               <div
-                v-if="callState === 'confirmed'"
+                v-if="callState === 'active' || callState === 'held'"
                 class="dtmf-section"
                 aria-labelledby="dtmf-heading"
               >
@@ -256,7 +256,7 @@
                     Reject
                   </button>
                   <button
-                    v-if="callState === 'active'"
+                    v-if="callState === 'active' || callState === 'held'"
                     class="btn btn-secondary"
                     :data-testid="isLocalHeld ? 'unhold-button' : 'hold-button'"
                     :aria-pressed="isLocalHeld"
@@ -266,7 +266,7 @@
                     {{ isLocalHeld ? 'Unhold' : 'Hold' }}
                   </button>
                   <button
-                    v-if="callState === 'active'"
+                    v-if="callState === 'active' || callState === 'held'"
                     class="btn btn-secondary"
                     data-testid="mute-audio-button"
                     :aria-pressed="isMuted"
@@ -276,7 +276,7 @@
                     {{ isMuted ? 'Unmute' : 'Mute' }}
                   </button>
                   <button
-                    v-if="callState === 'active'"
+                    v-if="callState === 'active' || callState === 'held'"
                     class="btn btn-secondary"
                     data-testid="toggle-video-button"
                     :aria-pressed="videoEnabled"
@@ -472,6 +472,7 @@ import {
   validateWebSocketUrl,
   type SipClientConfig,
 } from '../src'
+// Store persistence now initialized in playground/main.ts before Vue app creation
 
 // Configuration
 const tempConfig = ref<Partial<SipClientConfig>>({
@@ -598,7 +599,7 @@ try {
 
   // DTMF
   console.log('TestApp: Initializing useDTMF...')
-  dtmf = useDTMF(callSession)
+  dtmf = useDTMF(callSession.session)
   console.log('TestApp: useDTMF initialized')
 
   // Media Devices - enable auto-enumerate in E2E tests (we have mocks)
@@ -630,6 +631,9 @@ try {
   console.log('TestApp: useCallControls initialized')
 
   console.log('TestApp: All composables initialized successfully')
+
+  // Note: Store persistence is now initialized in playground/main.ts BEFORE Vue app creation
+  // This ensures persistence is ready before any Vue reactive state is initialized
 
   // Watch for connection errors - must be inside try block after lastError is assigned
   watch(lastError, (error) => {
@@ -792,14 +796,27 @@ const handleDisconnect = async () => {
 }
 
 const handleMakeCall = async () => {
-  if (!dialNumber.value || isMakingCall.value) return
+  console.log('[TestApp] handleMakeCall CALLED', {
+    dialNumber: dialNumber.value,
+    isMakingCall: isMakingCall.value,
+  })
+  if (!dialNumber.value || isMakingCall.value) {
+    console.log('[TestApp] handleMakeCall EARLY RETURN', {
+      hasDialNumber: !!dialNumber.value,
+      isMakingCall: isMakingCall.value,
+    })
+    return
+  }
   isMakingCall.value = true
+  console.log('[TestApp] About to call makeCall() with', dialNumber.value)
   try {
     await makeCall(dialNumber.value)
+    console.log('[TestApp] makeCall() completed successfully')
   } catch (err) {
-    console.error('Call error:', err)
+    console.error('[TestApp] Call error:', err)
   } finally {
     isMakingCall.value = false
+    console.log('[TestApp] handleMakeCall FINISHED')
   }
 }
 

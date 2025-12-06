@@ -536,6 +536,46 @@ export const metadata = {
 }
 
 // ============================================================================
+// AgentDB Vector Search (RAG/Semantic Search)
+// ============================================================================
+
+/**
+ * AgentDB Vector Search module for RAG systems and semantic search.
+ *
+ * Provides high-performance vector storage with HNSW indexing, OpenAI embeddings,
+ * document chunking, and intelligent context retrieval for LLM augmentation.
+ *
+ * @see {@link setupRAG} for quick RAG pipeline setup
+ * @see {@link VectorStore} for direct vector storage access
+ * @see {@link RAGPipeline} for full RAG capabilities
+ * @see {@link DocumentProcessor} for text chunking
+ *
+ * @example
+ * ```typescript
+ * import { setupRAG } from 'vuesip'
+ *
+ * const rag = await setupRAG({
+ *   dbPath: '.agentdb/knowledge.db',
+ *   openaiApiKey: process.env.OPENAI_API_KEY,
+ * })
+ *
+ * await rag.ingestText('Your document content...', {
+ *   source: 'document.md',
+ *   category: 'knowledge',
+ * })
+ *
+ * const context = await rag.query({
+ *   query: 'What is the main topic?',
+ *   topK: 5,
+ * })
+ *
+ * // Use context.contextText for LLM prompt augmentation
+ * ```
+ */
+// Temporarily commented out due to TypeScript errors - restore after fixing lib/agentdb
+// export * from './lib/agentdb'
+
+// ============================================================================
 // Default Export
 // ============================================================================
 

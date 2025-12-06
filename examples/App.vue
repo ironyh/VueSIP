@@ -3,7 +3,11 @@
     <div class="container">
       <div style="display: flex; justify-content: space-between; align-items: center">
         <h1 style="margin: 0">VueSip - SIP Interface</h1>
-        <button class="btn btn-secondary" data-testid="settings-button" @click="showSettings = !showSettings">
+        <button
+          class="btn btn-secondary"
+          data-testid="settings-button"
+          @click="showSettings = !showSettings"
+        >
           ⚙️ Settings
         </button>
       </div>
@@ -38,7 +42,11 @@
             placeholder="wss://sip.example.com:7443"
           />
         </div>
-        <button class="btn btn-primary" data-testid="save-settings-button" @click="showSettings = false">
+        <button
+          class="btn btn-primary"
+          data-testid="save-settings-button"
+          @click="showSettings = false"
+        >
           Save Settings
         </button>
       </div>
@@ -48,49 +56,69 @@
         <div class="status-item">
           <span class="status-label">Connection:</span>
           <span
-            :class="['status-indicator', { connected: isConnected }]"
+            :class="['status-indicator', { connected: sipClient?.isConnected }]"
             data-testid="connection-status"
           >
-            {{ isConnected ? 'Connected' : 'Disconnected' }}
+            {{ sipClient?.isConnected ? 'Connected' : 'Disconnected' }}
           </span>
         </div>
         <div class="status-item">
           <span class="status-label">Registration:</span>
           <span
-            :class="['status-indicator', { connected: isRegistered }]"
+            :class="['status-indicator', { connected: sipClient?.isRegistered }]"
             data-testid="registration-status"
           >
-            {{ isRegistered ? 'Registered' : 'Not Registered' }}
+            {{ sipClient?.isRegistered ? 'Registered' : 'Not Registered' }}
           </span>
         </div>
       </div>
 
       <!-- Connection Form -->
-      <div v-if="!isConnected" class="connection-form">
+      <div v-if="!sipClient?.isConnected" class="connection-form">
         <h2>Connect to SIP Server</h2>
         <div class="form-group">
           <label>Server:</label>
-          <input v-model="config.server" type="text" placeholder="sip.example.com" />
+          <input
+            v-model="config.server"
+            type="text"
+            placeholder="sip.example.com"
+            data-testid="connection-server-input"
+          />
         </div>
         <div class="form-group">
           <label>Username:</label>
-          <input v-model="config.username" type="text" placeholder="1000" />
+          <input
+            v-model="config.username"
+            type="text"
+            placeholder="1000"
+            data-testid="connection-username-input"
+          />
         </div>
         <div class="form-group">
           <label>Password:</label>
-          <input v-model="config.password" type="password" placeholder="password" />
+          <input
+            v-model="config.password"
+            type="password"
+            placeholder="password"
+            data-testid="connection-password-input"
+          />
         </div>
         <div class="form-group">
           <label>Display Name:</label>
-          <input v-model="config.displayName" type="text" placeholder="John Doe" />
+          <input
+            v-model="config.displayName"
+            type="text"
+            placeholder="John Doe"
+            data-testid="connection-displayname-input"
+          />
         </div>
         <button
-          :disabled="isConnecting"
+          :disabled="sipClient?.isConnecting"
           class="btn btn-primary"
           data-testid="connect-button"
           @click="handleConnect"
         >
-          {{ isConnecting ? 'Connecting...' : 'Connect' }}
+          {{ sipClient?.isConnecting ? 'Connecting...' : 'Connect' }}
         </button>
       </div>
 
@@ -151,16 +179,16 @@
       </div>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-message" data-testid="error-message">
-        {{ error.message }}
+      <div v-if="sipClient?.error" class="error-message" data-testid="error-message">
+        {{ sipClient.error.message }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useSipConnection, useSipCall, useSipDtmf, useAudioDevices } from '../src'
+import { ref, onMounted } from 'vue'
+import { useSipClient, useCallSession, useSipDtmf, useAudioDevices } from '../src'
 import type { SipConfig } from '../src'
 import Dialpad from '../src/components/Dialpad.vue'
 import CallControls from '../src/components/CallControls.vue'
@@ -168,19 +196,56 @@ import CallControls from '../src/components/CallControls.vue'
 // UI State
 const showSettings = ref(false)
 
-// Configuration
-const config = ref<SipConfig>({
-  server: 'sip.example.com',
-  username: '1000',
-  password: '',
-  displayName: 'DailVue User',
-  autoRegister: true,
+// Configuration - check for test config injected via page.addInitScript
+const testConfig = typeof window !== 'undefined' ? (window as any).__TEST_SIP_CONFIG__ : null
+console.log('[App.vue] Test config check:', {
+  hasTestConfig: !!testConfig,
+  testConfigValue: testConfig,
 })
-
-// SIP Connection
-const { isConnected, isRegistered, isConnecting, error, connect, disconnect } = useSipConnection(
-  config.value
+const config = ref<SipConfig>(
+  testConfig || {
+    server: 'sip.example.com',
+    username: '1000',
+    password: '',
+    displayName: 'DailVue User',
+    autoRegister: true,
+  }
 )
+console.log('[App.vue] Final config value:', config.value)
+
+// SIP Client - store the entire client object to access computed refs
+const sipClient = ref<ReturnType<typeof useSipClient> | null>(null)
+
+// Initialize useSipClient in onMounted to ensure EventBridge is available
+onMounted(() => {
+  // Access EventBridge - CRITICAL: Must pass undefined if not available, not {}
+  const sipEventBridge =
+    typeof window !== 'undefined' ? (window as any).__sipEventBridge : undefined
+
+  console.log('[App.vue onMounted] EventBridge configuration:', {
+    eventBridgeExists: !!sipEventBridge,
+    eventBridgeType: sipEventBridge?.constructor?.name,
+    willPassToUseSipClient: !!sipEventBridge,
+  })
+
+  // Initialize sipClient and store it so we can access its computed refs
+  sipClient.value = useSipClient(
+    config.value,
+    sipEventBridge ? { eventBus: sipEventBridge } : undefined
+  )
+
+  console.log('[App.vue] Initial sipClient state:', {
+    isConnected: sipClient.value.isConnected.value,
+    isRegistered: sipClient.value.isRegistered.value,
+    isConnecting: sipClient.value.isConnecting.value,
+  })
+
+  // CRITICAL: Assign userAgent to ref so useCallSession can access it
+  const client = sipClient.value.getClient()
+  if (client) {
+    userAgentRef.value = client.userAgent
+  }
+})
 
 // SIP Call
 const userAgentRef = ref(null)
@@ -193,7 +258,7 @@ const {
   answerCall,
   endCall,
   rejectCall,
-} = useSipCall(userAgentRef)
+} = useCallSession(userAgentRef)
 
 // DTMF
 const currentSessionRef = ref(null)
@@ -212,7 +277,7 @@ const {
 // Handlers
 const handleConnect = async () => {
   try {
-    await connect()
+    await sipClient.value?.connect()
   } catch (err) {
     console.error('Connection failed:', err)
   }
@@ -220,7 +285,7 @@ const handleConnect = async () => {
 
 const handleDisconnect = async () => {
   try {
-    await disconnect()
+    await sipClient.value?.disconnect()
   } catch (err) {
     console.error('Disconnect failed:', err)
   }

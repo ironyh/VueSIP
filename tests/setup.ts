@@ -52,7 +52,7 @@ afterEach(() => {
   if (app) {
     try {
       app.unmount()
-    } catch (e) {
+    } catch (_e) {
       // Ignore unmount errors in tests
     }
     app = null
@@ -182,7 +182,7 @@ if (!global.crypto || !global.crypto.subtle) {
     if (cryptoModule.webcrypto) {
       ;(global as any).crypto = cryptoModule.webcrypto
     }
-  } catch (error) {
+  } catch (_error) {
     console.warn('Web Crypto API not available in test environment')
   }
 }

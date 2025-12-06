@@ -32,6 +32,7 @@ export interface SipEvent {
 }
 
 export type SipEventType =
+  // Unprefixed events (used by tests)
   | 'connection:connecting'
   | 'connection:connected'
   | 'connection:disconnected'
@@ -51,6 +52,20 @@ export type SipEventType =
   | 'dtmf:sent'
   | 'media:ready'
   | 'media:error'
+  // SIP-prefixed events (emitted by SipClient)
+  | 'sip:connected'
+  | 'sip:disconnected'
+  | 'sip:registered'
+  | 'sip:unregistered'
+  | 'sip:registrationFailed'
+  | 'sip:newRTCSession'
+  | 'sip:call:progress'
+  | 'sip:call:accepted'
+  | 'sip:call:confirmed'
+  | 'sip:call:ended'
+  | 'sip:call:failed'
+  | 'sip:call:hold'
+  | 'sip:call:unhold'
 
 /**
  * EventBridge class that gets injected into the browser context
@@ -90,17 +105,18 @@ export class EventBridge {
 
   /**
    * Emit an event and update state accordingly
+   * Returns a Promise to match the real EventBus interface
    */
-  emit(type: SipEventType, data?: Record<string, unknown>): void {
+  emit(type: SipEventType | string, data?: Record<string, unknown>): Promise<void> {
     const event: SipEvent = {
-      type,
+      type: type as SipEventType,
       timestamp: Date.now(),
       data,
     }
 
     this.eventLog.push(event)
-    this.updateState(type, data)
-    this.notifyListeners(type, event)
+    this.updateState(type as SipEventType, data)
+    this.notifyListeners(type as SipEventType, event)
     this.checkStatePromises()
 
     // Also emit to window for test debugging
@@ -111,6 +127,28 @@ export class EventBridge {
         })
       )
     }
+
+    return Promise.resolve()
+  }
+
+  /**
+   * Emit an event synchronously (fire and forget)
+   * Matches the real EventBus interface
+   */
+  emitSync(type: SipEventType | string, data?: Record<string, unknown>): void {
+    this.emit(type, data).catch(() => {
+      // Ignore errors in sync emit
+    })
+  }
+
+  /**
+   * Unsubscribe from an event by listener id
+   * Matches the real EventBus interface
+   */
+  off(_type: SipEventType | string, _listenerId: number): void {
+    // For simplicity, we don't track individual listener IDs in the test mock
+    // The real EventBus uses numeric IDs, but we use functions in Set
+    // This is a no-op for compatibility
   }
 
   /**
@@ -215,22 +253,130 @@ export class EventBridge {
           this.state.call.dtmfBuffer += (data?.tone as string) || ''
         }
         break
+
+      // Handle SIP-prefixed events from SipClient
+      case 'sip:connected':
+        this.state.connection = 'connected'
+        break
+      case 'sip:disconnected':
+        this.state.connection = 'disconnected'
+        this.state.registration = 'unregistered'
+        break
+      case 'sip:registered':
+        this.state.registration = 'registered'
+        break
+      case 'sip:unregistered':
+        this.state.registration = 'unregistered'
+        break
+      case 'sip:registrationFailed':
+        this.state.registration = 'failed'
+        this.state.error =
+          (data?.message as string) || (data?.cause as string) || 'Registration failed'
+        break
+      case 'sip:newRTCSession':
+        // New call session started (incoming or outgoing)
+        {
+          const session = data?.session as any
+          const direction =
+            session?.direction || (data?.originator === 'remote' ? 'incoming' : 'outgoing')
+          const remoteUri =
+            session?.remote_identity?.uri?.toString() || data?.request?.from?.uri?.toString() || ''
+          this.state.call = {
+            id: (data?.callId as string) || session?.id || `call-${Date.now()}`,
+            direction,
+            state: direction === 'incoming' ? 'ringing' : 'initiating',
+            remoteUri,
+            startTime: null,
+            endTime: null,
+            holdState: 'none',
+            muted: false,
+            dtmfBuffer: '',
+          }
+        }
+        break
+      case 'sip:call:progress':
+        // Outgoing call ringing (180 Ringing received)
+        if (this.state.call) {
+          this.state.call.state = 'ringing'
+        }
+        break
+      case 'sip:call:accepted':
+        // Call was accepted (200 OK received)
+        if (this.state.call) {
+          this.state.call.state = 'active'
+          this.state.call.startTime = Date.now()
+        }
+        break
+      case 'sip:call:confirmed':
+        // Call is fully established (ACK sent/received)
+        if (this.state.call && this.state.call.state !== 'active') {
+          this.state.call.state = 'active'
+          if (!this.state.call.startTime) {
+            this.state.call.startTime = Date.now()
+          }
+        }
+        break
+      case 'sip:call:ended':
+        if (this.state.call) {
+          this.state.call.state = 'ended'
+          this.state.call.endTime = Date.now()
+        }
+        setTimeout(() => {
+          if (this.state.call?.state === 'ended') {
+            this.state.call = null
+          }
+        }, 100)
+        break
+      case 'sip:call:failed':
+        if (this.state.call) {
+          this.state.call.state = 'ended'
+          this.state.call.endTime = Date.now()
+        }
+        this.state.error = (data?.message as string) || (data?.cause as string) || 'Call failed'
+        setTimeout(() => {
+          if (this.state.call?.state === 'ended') {
+            this.state.call = null
+          }
+        }, 100)
+        break
+      case 'sip:call:hold':
+        if (this.state.call) {
+          this.state.call.state = 'held'
+          this.state.call.holdState = 'local'
+        }
+        break
+      case 'sip:call:unhold':
+        if (this.state.call) {
+          this.state.call.state = 'active'
+          this.state.call.holdState = 'none'
+        }
+        break
     }
   }
 
   /**
    * Subscribe to specific event types
+   * Returns an object matching the real EventBus interface
    */
-  on(type: SipEventType | '*', callback: (event: SipEvent) => void): () => void {
+  on(
+    type: SipEventType | string | '*',
+    callback: (event: unknown) => void
+  ): { id: number; off: () => void } {
     const key = type
     if (!this.listeners.has(key)) {
       this.listeners.set(key, new Set())
     }
-    this.listeners.get(key)!.add(callback)
+    this.listeners.get(key)!.add(callback as (event: SipEvent) => void)
 
-    // Return unsubscribe function
-    return () => {
-      this.listeners.get(key)?.delete(callback)
+    // Generate a pseudo listener ID for compatibility
+    const id = Date.now() + Math.random()
+
+    // Return object matching EventBus interface
+    return {
+      id,
+      off: () => {
+        this.listeners.get(key)?.delete(callback as (event: SipEvent) => void)
+      },
     }
   }
 
