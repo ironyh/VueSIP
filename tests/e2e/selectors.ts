@@ -88,6 +88,13 @@ export const SELECTORS = {
     HISTORY_ENTRY: '[data-testid="history-entry"]',
   },
 
+  // Call history (alias for compatibility)
+  CALL_HISTORY: {
+    TOGGLE_BUTTON: '[data-testid="call-history-button"]',
+    PANEL: '[data-testid="call-history-panel"]',
+    CALL_ITEM: '[data-testid="history-entry"]',
+  },
+
   // Device settings
   DEVICES: {
     DEVICE_SETTINGS_BUTTON: '[data-testid="device-settings-button"]',

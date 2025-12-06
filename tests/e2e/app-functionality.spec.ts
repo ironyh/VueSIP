@@ -372,30 +372,131 @@ test.describe('Accessibility', () => {
 
 test.describe('Call Functionality - Outgoing Calls', () => {
   test.beforeEach(async ({ page, mockSipServer, mockMediaDevices, configureSip }) => {
+    console.log('[DEBUG beforeEach] Starting beforeEach hook')
+
     // Setup mocks
+    console.log('[DEBUG beforeEach] Calling mockSipServer()')
     await mockSipServer()
+    console.log('[DEBUG beforeEach] mockSipServer() completed')
+
+    console.log('[DEBUG beforeEach] Calling mockMediaDevices()')
     await mockMediaDevices()
+    console.log('[DEBUG beforeEach] mockMediaDevices() completed')
 
     // Navigate to the app
+    console.log('[DEBUG beforeEach] Navigating to APP_URL:', APP_URL)
     await page.goto(APP_URL)
+    console.log('[DEBUG beforeEach] Navigation completed')
+
+    // EventBridge is already injected by the fixture's addInitScript()
+    // No need to duplicate it here - the fixture handles this correctly
+
+    // Wait a moment for Vue to complete mounting
+    await page.waitForTimeout(500)
+
+    // Check if the connection form exists and what isConnected value is
+    const diagnostics = await page.evaluate(() => {
+      // Check for connection form
+      const connectionForm = document.querySelector('[data-testid="connection-server-input"]')
+      const settingsPanel = document.querySelector('[data-testid="settings-panel"]')
+      const connectButton = document.querySelector('[data-testid="connect-button"]')
+
+      // Check for connection form div
+      const connectionFormDiv = document.querySelector('.connection-form')
+
+      // Get all elements with v-if related classes
+      const mainInterface = document.querySelector('.main-interface')
+
+      // Get computed style to check if hidden
+      const connectionFormStyle = connectionFormDiv ? window.getComputedStyle(connectionFormDiv) : null
+
+      return {
+        connectionFormInputExists: !!connectionForm,
+        connectionFormDivExists: !!connectionFormDiv,
+        connectionFormDisplay: connectionFormStyle?.display || 'not-found',
+        connectionFormVisibility: connectionFormStyle?.visibility || 'not-found',
+        settingsPanelExists: !!settingsPanel,
+        connectButtonExists: !!connectButton,
+        mainInterfaceExists: !!mainInterface,
+        bodyText: document.body.textContent?.substring(0, 300),
+        allDataTestIds: Array.from(document.querySelectorAll('[data-testid]')).map(el => el.getAttribute('data-testid'))
+      }
+    })
+
+    // Write diagnostics to file using page.evaluate with localStorage
+    await page.evaluate((diag) => {
+      localStorage.setItem('e2e_diagnostics', JSON.stringify(diag, null, 2))
+    }, diagnostics)
+
+    console.log('[DEBUG beforeEach] Page diagnostics:', JSON.stringify(diagnostics, null, 2))
 
     // Configure and connect
+    console.log('[DEBUG beforeEach] About to call configureSip()')
     await configureSip({
       uri: 'wss://sip.example.com:7443',
       username: 'sip:testuser@example.com',
       password: 'testpassword',
+      autoRegister: true, // CRITICAL: Enable auto-registration for E2E tests
     })
+    console.log('[DEBUG beforeEach] configureSip() completed - beforeEach hook finished successfully')
+  })
+
+  test.afterEach(async ({ page }) => {
+    // Retrieve diagnostics from localStorage if test failed
+    const diagnosticsFromStorage = await page.evaluate(() => {
+      return localStorage.getItem('e2e_diagnostics')
+    }).catch(() => null)
+
+    if (diagnosticsFromStorage) {
+      console.log('[DIAGNOSTICS FROM LOCALSTORAGE]:', diagnosticsFromStorage)
+    }
   })
 
   test('should make an outgoing call', async ({
     page,
     browserName,
+    mockSipServer,
+    mockMediaDevices,
+    configureSip,
     waitForConnectionState,
     waitForRegistrationState,
     waitForCallState,
   }) => {
     // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
     test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
+    // Capture browser console messages for diagnostics
+    const consoleLogs: string[] = []
+    page.on('console', (msg) => {
+      const text = msg.text()
+      consoleLogs.push(text)
+      // Print ALL console messages to see diagnostic logging
+      console.log(`[BROWSER CONSOLE ${msg.type()}]: ${text}`)
+    })
+
+    // beforeEach has already:
+    // - Set up mocks (mockSipServer, mockMediaDevices)
+    // - Navigated to the app (page.goto)
+    // - Injected EventBridge
+    // - Configured SIP settings
+    // So we can proceed directly with the test steps
+
+    // Wait for page to be fully loaded and Vue app to mount
+    await page.waitForSelector('[data-testid="connect-button"]', { state: 'visible' })
+
+    // Now explicitly connect the MockWebSocket - this ensures listeners are registered before connection events fire
+    await page.evaluate(() => {
+      const mockSocket = (window as any).__mockWebSocket
+      if (mockSocket && typeof mockSocket.connect === 'function') {
+        console.log('[TEST] Calling mockSocket.connect() explicitly')
+        mockSocket.connect()
+      } else {
+        console.error('[TEST] MockWebSocket instance or connect() method not found!')
+      }
+    })
+
+    // Give a moment for connection event to propagate
+    await page.waitForTimeout(100)
 
     // Connect
     await page.click('[data-testid="connect-button"]')
@@ -404,8 +505,24 @@ test.describe('Call Functionality - Outgoing Calls', () => {
     await waitForConnectionState('connected')
     await waitForRegistrationState('registered')
 
-    // Enter destination and make call
-    await page.fill('[data-testid="dialpad-input"]', 'sip:destination@example.com')
+    // Give Vue time to process reactive updates after connection
+    await page.waitForTimeout(500)
+
+    // Wait for main interface to render (v-else block shows when connected)
+    // Use longer timeout to handle race condition where watch() may miss initial state change
+    await page.waitForSelector('.main-interface', { state: 'visible', timeout: 10000 })
+
+    // Wait for dialpad input to be visible
+    await page.waitForSelector('[data-testid="dialpad-input"]', { state: 'visible', timeout: 5000 })
+
+    // Enter a simple test number using the dialpad input
+    const testNumber = '123'
+    await page.fill('[data-testid="dialpad-input"]', testNumber)
+
+    // Wait for call button to be enabled after entering number
+    await page.waitForSelector('[data-testid="call-button"]:not([disabled])', { timeout: 5000 })
+
+    // Click the call button
     await page.click('[data-testid="call-button"]')
 
     // Wait for call to progress to ringing/active
@@ -413,6 +530,17 @@ test.describe('Call Functionality - Outgoing Calls', () => {
 
     // Verify active call interface appears
     await expect(page.locator('[data-testid="active-call"]')).toBeVisible()
+
+    // Print summary of diagnostic logs at end
+    console.log('\n===== DIAGNOSTIC LOGS SUMMARY =====')
+    console.log(`Total console messages: ${consoleLogs.length}`)
+    const diagnosticLogs = consoleLogs.filter(log => log.includes('[DIAGNOSTIC'))
+    console.log(`Diagnostic messages: ${diagnosticLogs.length}`)
+    if (diagnosticLogs.length > 0) {
+      console.log('\nDiagnostic messages:')
+      diagnosticLogs.forEach((log, i) => console.log(`${i + 1}. ${log}`))
+    }
+    console.log('===================================\n')
   })
 
   test('should show call status during outgoing call', async ({
@@ -425,7 +553,11 @@ test.describe('Call Functionality - Outgoing Calls', () => {
     // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
     test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
 
-    // Connect
+    // beforeEach already set up mocks and navigated to the page
+    // Wait for page to be fully loaded and Vue app to mount
+    await page.waitForSelector('[data-testid="connect-button"]', { state: 'visible' })
+
+    // Connect - MockWebSocket auto-connects after delay so this should work
     await page.click('[data-testid="connect-button"]')
 
     await waitForConnectionState('connected')
@@ -458,7 +590,11 @@ test.describe('Call Functionality - Outgoing Calls', () => {
     // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
     test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
 
-    // Connect
+    // beforeEach already set up mocks and navigated to the page
+    // Wait for page to be fully loaded and Vue app to mount
+    await page.waitForSelector('[data-testid="connect-button"]', { state: 'visible' })
+
+    // Connect - MockWebSocket auto-connects after delay so this should work
     await page.click('[data-testid="connect-button"]')
 
     await waitForConnectionState('connected')
@@ -495,6 +631,7 @@ test.describe('Call Functionality - Incoming Calls', () => {
       uri: 'wss://sip.example.com:7443',
       username: 'sip:testuser@example.com',
       password: 'testpassword',
+      autoRegister: true, // CRITICAL: Enable auto-registration for E2E tests
     })
   })
 

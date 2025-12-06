@@ -320,24 +320,6 @@ export function mockWebSocketResponses(page: Page) {
             this.protocol = 'sip'
           }
 
-          // Simulate connection
-          setTimeout(() => {
-            this.readyState = MockWebSocket.OPEN
-            const openEvent = new Event('open')
-            this.emitEvent('open', openEvent)
-
-            // Emit EventBridge event
-            if (typeof (window as any).__emitSipEvent === 'function') {
-              ;(window as any).__emitSipEvent('connection:connected')
-            }
-
-            // Also trigger 'message' event with empty data to help JsSIP detect connection
-            // Some WebSocket implementations fire a message event on open
-            setTimeout(() => {
-              this.emitEvent('message', new MessageEvent('message', { data: '' }))
-            }, 10)
-          }, delays.CONNECTION)
-
           // Store instance globally for incoming call simulation
           // Only store SIP WebSocket, not Vite HMR or other WebSockets
           if (url && url.includes('sip.example.com')) {
@@ -356,6 +338,47 @@ export function mockWebSocketResponses(page: Page) {
           // Initialize message tracking arrays
           this.receivedMessages = []
           this.sentMessages = []
+
+          // AUTO-CONNECT after a delay to allow app to register listeners
+          // This is more reliable than requiring explicit connect() calls in each test
+          if (url && url.includes('sip.example.com')) {
+            console.log('[MockWebSocket] Constructor complete - auto-connecting after delay')
+            setTimeout(() => {
+              if (this.readyState === MockWebSocket.CONNECTING) {
+                console.log('[MockWebSocket] Auto-connecting now...')
+                this.connect()
+              }
+            }, 100)
+          } else {
+            console.log('[MockWebSocket] Non-SIP WebSocket - no auto-connect')
+          }
+        }
+
+        /**
+         * Explicit connect method - test controls when connection happens
+         * This eliminates the race condition by ensuring listeners are registered
+         * before the connection event fires
+         */
+        connect() {
+          console.log('[MockWebSocket] connect() called - opening connection')
+          this.readyState = MockWebSocket.OPEN
+          const openEvent = new Event('open')
+          this.emitEvent('open', openEvent)
+          console.log('[MockWebSocket] "open" event emitted')
+
+          // Emit connection event - listeners should now be registered
+          if (typeof (window as any).__emitSipEvent === 'function') {
+            ;(window as any).__emitSipEvent('connection:connected')
+            console.log('[MockWebSocket] "connection:connected" event emitted via EventBridge')
+          } else {
+            console.error('[MockWebSocket] __emitSipEvent function NOT FOUND!')
+          }
+
+          // Also trigger 'message' event with empty data to help JsSIP detect connection
+          // Some WebSocket implementations fire a message event on open
+          setTimeout(() => {
+            this.emitEvent('message', new MessageEvent('message', { data: '' }))
+          }, 10)
         }
 
         private emitEvent(type: 'open' | 'message' | 'close' | 'error', event: Event) {
@@ -1007,6 +1030,29 @@ export const test = base.extend<TestFixtures>({
             return [...this.eventLog]
           }
 
+          // EventBus-compatible interface methods
+          on(event: string, handler: (data: any) => void): string {
+            if (!this.listeners.has(event)) {
+              this.listeners.set(event, new Set())
+            }
+            this.listeners.get(event)!.add(handler)
+            return `listener_${event}_${Date.now()}`
+          }
+
+          once(event: string, handler: (data: any) => void): string {
+            const wrappedHandler = (data: any) => {
+              handler(data)
+              this.off(event, wrappedHandler)
+            }
+            return this.on(event, wrappedHandler)
+          }
+
+          off(event: string, handler: (data: any) => void): boolean {
+            const eventListeners = this.listeners.get(event)
+            if (!eventListeners) return false
+            return eventListeners.delete(handler)
+          }
+
           emit(type: string, data?: any): void {
             const event = {
               type,
@@ -1015,6 +1061,58 @@ export const test = base.extend<TestFixtures>({
             }
             this.eventLog.push(event)
             this.updateState(type, data)
+
+            // Dispatch to registered listeners (EventBus compatibility)
+            const listeners = this.listeners.get(type)
+            if (listeners) {
+              listeners.forEach((handler) => {
+                try {
+                  handler(data)
+                } catch (error) {
+                  console.error(`[EventBridge] Error in listener for ${type}:`, error)
+                }
+              })
+            }
+
+            // Also emit SIP event format for compatibility with useSipClient
+            // Map connection events to sip events
+            const sipEvent = this.mapToSipEvent(type)
+            if (sipEvent && sipEvent !== type) {
+              const sipListeners = this.listeners.get(sipEvent)
+              console.log(`[DIAGNOSTIC 2/3] EventBridge: Found ${sipListeners?.length || 0} listeners for mapped event "${sipEvent}"`)
+              if (sipListeners && sipListeners.length > 0) {
+                console.log(`[DIAGNOSTIC 2/3] EventBridge: Notifying ${sipListeners.length} listeners for "${sipEvent}"`)
+                sipListeners.forEach((handler, index) => {
+                  try {
+                    console.log(`[DIAGNOSTIC 2/3] EventBridge: Calling listener ${index + 1}/${sipListeners.length} for "${sipEvent}"`)
+                    handler(data)
+                    console.log(`[DIAGNOSTIC 2/3] EventBridge: Listener ${index + 1} completed successfully`)
+                  } catch (error) {
+                    console.error(`[DIAGNOSTIC 2/3] EventBridge: Error in listener ${index + 1} for "${sipEvent}":`, error)
+                  }
+                })
+              } else {
+                console.warn(`[DIAGNOSTIC 2/3] EventBridge: NO LISTENERS for mapped event "${sipEvent}"! This is the problem!`)
+              }
+            }
+          }
+
+          private mapToSipEvent(eventType: string): string | null {
+            // Map E2E test event names to SIP client event names
+            const eventMap: Record<string, string> = {
+              'connection:connected': 'sip:connected',
+              'connection:disconnected': 'sip:disconnected',
+              'registration:registered': 'sip:registered',
+              'registration:unregistered': 'sip:unregistered',
+              'call:initiating': 'sip:call:initiating',
+              'call:ringing': 'sip:call:ringing',
+              'call:answered': 'sip:call:answered',
+              'call:ended': 'sip:call:ended',
+              'call:failed': 'sip:call:failed',
+            }
+            const mappedEvent = eventMap[eventType] || null
+            console.log(`[DIAGNOSTIC 2/3] EventBridge.mapToSipEvent: "${eventType}" → "${mappedEvent}"`)
+            return mappedEvent
           }
 
           private updateState(type: string, data?: any): void {
@@ -1052,7 +1150,7 @@ export const test = base.extend<TestFixtures>({
                 break
               case 'call:answered':
                 if (this.state.call) {
-                  this.state.call.state = 'answered'
+                  this.state.call.state = 'active'
                   this.state.call.startTime = Date.now()
                 }
                 break
@@ -1119,19 +1217,18 @@ export const test = base.extend<TestFixtures>({
 
   configureSip: async ({ page }, use) => {
     await use(async (config: MockSipServerConfig) => {
-      console.log('[fixture] configureSip applying config', config)
-      // Fill in SIP configuration
-      const settingsButton = page.locator('[data-testid="settings-button"]')
-      await settingsButton.scrollIntoViewIfNeeded()
-      await settingsButton.click()
-      await page.fill('[data-testid="sip-uri-input"]', config.username)
-      await page.fill('[data-testid="password-input"]', config.password)
-      await page.fill('[data-testid="server-uri-input"]', config.uri)
-      await page.click('[data-testid="save-settings-button"]')
-      // Close settings - use force:true for mobile viewports where main element
-      // may intercept pointer events due to mobile layout reflow
-      await settingsButton.scrollIntoViewIfNeeded()
-      await settingsButton.click({ force: true })
+      // Use addInitScript to inject config BEFORE Vue app loads
+      // This avoids timing issues with trying to modify config after initialization
+      await page.addInitScript((testConfig) => {
+        console.log('[Fixture addInitScript] Injecting test config:', testConfig)
+        ;(window as any).__TEST_SIP_CONFIG__ = testConfig
+      }, {
+        server: config.uri.replace('wss://', '').replace('ws://', ''),
+        username: config.username,
+        password: config.password,
+        displayName: 'Test User', // Add displayName field
+        autoRegister: config.autoRegister !== undefined ? config.autoRegister : true
+      })
     })
   },
 
