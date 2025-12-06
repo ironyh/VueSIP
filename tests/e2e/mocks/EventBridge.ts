@@ -16,7 +16,7 @@ export interface SipState {
 export interface CallState {
   id: string
   direction: 'incoming' | 'outgoing'
-  state: 'initiating' | 'ringing' | 'answered' | 'held' | 'ended'
+  state: 'initiating' | 'ringing' | 'active' | 'held' | 'ended'
   remoteUri: string
   startTime: number | null
   endTime: number | null
@@ -180,7 +180,7 @@ export class EventBridge {
         break
       case 'call:answered':
         if (this.state.call) {
-          this.state.call.state = 'answered'
+          this.state.call.state = 'active'
           this.state.call.startTime = Date.now()
         }
         break
@@ -192,7 +192,7 @@ export class EventBridge {
         break
       case 'call:unheld':
         if (this.state.call) {
-          this.state.call.state = 'answered'
+          this.state.call.state = 'active'
           this.state.call.holdState = 'none'
         }
         break

@@ -141,6 +141,8 @@ const SIP_DELAYS = {
   CANCEL_200: 20 * CI_DELAY_MULTIPLIER,
   ACK_PROCESS: 10 * CI_DELAY_MULTIPLIER,
   OPTIONS_200: 20 * CI_DELAY_MULTIPLIER,
+  // Auto-connect delay - allow app to register listeners and EventBridge to initialize
+  AUTO_CONNECT: 200 * CI_DELAY_MULTIPLIER,
 }
 
 /**
@@ -341,14 +343,24 @@ export function mockWebSocketResponses(page: Page) {
 
           // AUTO-CONNECT after a delay to allow app to register listeners
           // This is more reliable than requiring explicit connect() calls in each test
+          // Uses CI-aware delay to account for slower CI environments
           if (url && url.includes('sip.example.com')) {
-            console.log('[MockWebSocket] Constructor complete - auto-connecting after delay')
-            setTimeout(() => {
-              if (this.readyState === MockWebSocket.CONNECTING) {
-                console.log('[MockWebSocket] Auto-connecting now...')
-                this.connect()
+            console.log('[MockWebSocket] Constructor complete - auto-connecting after delay:', delays.AUTO_CONNECT, 'ms')
+            const attemptConnect = () => {
+              if (this.readyState !== MockWebSocket.CONNECTING) {
+                console.log('[MockWebSocket] Already connected or closed, skipping auto-connect')
+                return
               }
-            }, 100)
+              // Wait for EventBridge to be ready before connecting
+              if (typeof (window as any).__emitSipEvent !== 'function') {
+                console.log('[MockWebSocket] EventBridge not ready, retrying in 50ms...')
+                setTimeout(attemptConnect, 50)
+                return
+              }
+              console.log('[MockWebSocket] Auto-connecting now (EventBridge ready)...')
+              this.connect()
+            }
+            setTimeout(attemptConnect, delays.AUTO_CONNECT)
           } else {
             console.log('[MockWebSocket] Non-SIP WebSocket - no auto-connect')
           }
@@ -1217,18 +1229,45 @@ export const test = base.extend<TestFixtures>({
 
   configureSip: async ({ page }, use) => {
     await use(async (config: MockSipServerConfig) => {
-      // Use addInitScript to inject config BEFORE Vue app loads
-      // This avoids timing issues with trying to modify config after initialization
-      await page.addInitScript((testConfig) => {
-        console.log('[Fixture addInitScript] Injecting test config:', testConfig)
-        ;(window as any).__TEST_SIP_CONFIG__ = testConfig
-      }, {
+      const testConfig = {
         server: config.uri.replace('wss://', '').replace('ws://', ''),
         username: config.username,
         password: config.password,
-        displayName: 'Test User', // Add displayName field
+        displayName: 'Test User',
         autoRegister: config.autoRegister !== undefined ? config.autoRegister : true
-      })
+      }
+
+      // Use addInitScript for future navigations
+      await page.addInitScript((cfg) => {
+        console.log('[Fixture addInitScript] Injecting test config:', cfg)
+        ;(window as any).__TEST_SIP_CONFIG__ = cfg
+      }, testConfig)
+
+      // Also set directly via page.evaluate for current page (if already loaded)
+      // This handles the case where configureSip is called after page.goto
+      await page.evaluate((cfg) => {
+        console.log('[Fixture page.evaluate] Setting test config directly:', cfg)
+        ;(window as any).__TEST_SIP_CONFIG__ = cfg
+
+        // If the app is already initialized, try to update the configStore directly
+        const configStore = (window as any).__configStore
+        if (configStore && typeof configStore.setSipConfig === 'function') {
+          console.log('[Fixture page.evaluate] Updating configStore with SIP config')
+          const sipConfig = {
+            sipUri: cfg.username,
+            password: cfg.password,
+            uri: 'wss://' + cfg.server,
+            displayName: cfg.displayName,
+            registrationOptions: {
+              autoRegister: cfg.autoRegister
+            }
+          }
+          configStore.setSipConfig(sipConfig, false) // Skip validation since we're in test mode
+          console.log('[Fixture page.evaluate] configStore updated:', sipConfig)
+        } else {
+          console.warn('[Fixture page.evaluate] configStore not available')
+        }
+      }, testConfig)
     })
   },
 
