@@ -13,6 +13,9 @@ import { EventBus } from '../../../src/core/EventBus'
 import { checkEventBusListeners } from '../../utils/test-helpers'
 import * as loggerModule from '../../../src/utils/logger'
 
+// Mock fetch to prevent network requests during tests
+global.fetch = vi.fn().mockResolvedValue({ ok: true })
+
 describe('AnalyticsPlugin - Lifecycle', () => {
   describe('Multiple Install Protection', () => {
     let plugin: AnalyticsPlugin
@@ -24,11 +27,25 @@ describe('AnalyticsPlugin - Lifecycle', () => {
     })
 
     afterEach(async () => {
-      try {
-        await plugin.uninstall({ eventBus })
-      } catch {
-        // Ignore if already uninstalled
-      }
+      // Use a timeout to prevent hanging in CI
+      const uninstallWithTimeout = new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve() // Resolve after timeout to prevent hanging
+        }, 2000)
+
+        plugin
+          .uninstall({ eventBus })
+          .then(() => {
+            clearTimeout(timeout)
+            resolve()
+          })
+          .catch(() => {
+            clearTimeout(timeout)
+            resolve() // Ignore errors if already uninstalled
+          })
+      })
+
+      await uninstallWithTimeout
     })
 
     it('should prevent double installation', async () => {
