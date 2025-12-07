@@ -179,7 +179,11 @@ test.describe('Button State Management', () => {
     await page.goto(APP_URL)
   })
 
-  test('should disable connect button while connecting', async ({ page, configureSip }) => {
+  test('should disable connect button while connecting', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+  }) => {
     await configureSip({
       uri: TEST_DATA.VALID_WS_URI,
       username: TEST_DATA.VALID_SIP_URI,
@@ -187,17 +191,19 @@ test.describe('Button State Management', () => {
     })
 
     const connectButton = page.locator(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    const disconnectButton = page.locator(SELECTORS.CONNECTION.DISCONNECT_BUTTON)
 
     // Click connect
     await connectButton.click()
 
-    // Note: With mock WebSocket, connection happens almost instantly
-    // so we may not catch the "connecting" state. Instead, verify
-    // button changes to disconnect state or is briefly disabled.
-    // Wait briefly and check that either:
-    // 1. Button shows "connecting" (transitional state), OR
-    // 2. Button shows "disconnect" (already connected)
-    await expect(connectButton).toContainText(/connecting|disconnect/i)
+    // With mock WebSocket, connection happens almost instantly.
+    // After connection, the connect button is hidden and disconnect button appears.
+    // Verify that either:
+    // 1. Connect button is hidden (connection completed), OR
+    // 2. Disconnect button is now visible (connection completed)
+    await waitForConnectionState('connected')
+    await expect(disconnectButton).toBeVisible()
+    await expect(connectButton).not.toBeVisible()
   })
 
   test('should show loading state on call button when making call', async ({

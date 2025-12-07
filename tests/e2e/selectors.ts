@@ -40,6 +40,7 @@ export const SELECTORS = {
   // Dialpad
   DIALPAD: {
     NUMBER_INPUT: '[data-testid="dialpad-input"]',
+    DIALPAD_INPUT: '[data-testid="dialpad-input"]', // Alias
     CALL_BUTTON: '[data-testid="call-button"]',
     DIALPAD_TOGGLE: '[data-testid="dialpad-toggle"]',
   },
@@ -59,6 +60,19 @@ export const SELECTORS = {
     DTMF_STAR: '[data-testid="dtmf-*"]',
     DTMF_HASH: '[data-testid="dtmf-#"]',
     DTMF_FEEDBACK: '[data-testid="dtmf-feedback"]',
+    // Aliases for backward compatibility (DIGIT_X format)
+    DIGIT_1: '[data-testid="dtmf-1"]',
+    DIGIT_2: '[data-testid="dtmf-2"]',
+    DIGIT_3: '[data-testid="dtmf-3"]',
+    DIGIT_4: '[data-testid="dtmf-4"]',
+    DIGIT_5: '[data-testid="dtmf-5"]',
+    DIGIT_6: '[data-testid="dtmf-6"]',
+    DIGIT_7: '[data-testid="dtmf-7"]',
+    DIGIT_8: '[data-testid="dtmf-8"]',
+    DIGIT_9: '[data-testid="dtmf-9"]',
+    DIGIT_0: '[data-testid="dtmf-0"]',
+    DIGIT_STAR: '[data-testid="dtmf-*"]',
+    DIGIT_HASH: '[data-testid="dtmf-#"]',
   },
 
   // Call controls
@@ -71,6 +85,7 @@ export const SELECTORS = {
     UNHOLD_BUTTON: '[data-testid="unhold-button"]',
     MUTE_BUTTON: '[data-testid="mute-audio-button"]',
     TOGGLE_VIDEO_BUTTON: '[data-testid="toggle-video-button"]',
+    VIDEO_BUTTON: '[data-testid="toggle-video-button"]', // Alias for backward compatibility
   },
 
   // Call transfer

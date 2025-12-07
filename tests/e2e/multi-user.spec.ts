@@ -6,9 +6,15 @@
  * and conference calls.
  */
 
-import { test as base, expect, Browser, BrowserContext, Page } from '@playwright/test'
-import { test as fixtureTest, APP_URL } from './fixtures'
-import { SELECTORS, TEST_DATA, TEST_TIMEOUTS } from './selectors'
+import { test as base, expect, BrowserContext, Page } from '@playwright/test'
+import {
+  APP_URL,
+  mockWebSocketResponses,
+  mockGetUserMedia,
+  mockRTCPeerConnection,
+  defaultMockDevices,
+} from './fixtures'
+import { SELECTORS, TEST_TIMEOUTS } from './selectors'
 
 // Define user fixture type
 type MultiUserFixtures = {
@@ -17,18 +23,168 @@ type MultiUserFixtures = {
   userC: { page: Page; context: BrowserContext }
 }
 
-// Extend test with multi-user fixtures
+/**
+ * Apply all necessary mocks to a page before navigation
+ * This must be called BEFORE page.goto() to ensure mocks are in place
+ *
+ * IMPORTANT: Order matters! EventBridge must be set up FIRST because
+ * mockWebSocketResponses checks for __emitSipEvent before auto-connecting.
+ */
+async function applyMocksToPage(page: Page): Promise<void> {
+  // 1. Initialize EventBridge FIRST (needed by WebSocket mock for connection events)
+  await page.addInitScript(() => {
+    // EventBridge class for state tracking
+    class EventBridge {
+      private state: any
+      private eventLog: any[]
+      private listeners: Map<string, Set<(event: any) => void>>
+
+      constructor() {
+        this.state = {
+          connection: 'disconnected',
+          registration: 'unregistered',
+          call: null,
+          error: null,
+        }
+        this.eventLog = []
+        this.listeners = new Map()
+      }
+
+      getState() {
+        return { ...this.state }
+      }
+
+      on(event: string, handler: (data: any) => void): string {
+        if (!this.listeners.has(event)) {
+          this.listeners.set(event, new Set())
+        }
+        this.listeners.get(event)!.add(handler)
+        return `listener_${event}_${Date.now()}`
+      }
+
+      off(event: string, handler: (data: any) => void): boolean {
+        const eventListeners = this.listeners.get(event)
+        if (!eventListeners) return false
+        return eventListeners.delete(handler)
+      }
+
+      emit(type: string, data?: any): Promise<void> {
+        this.eventLog.push({ type, timestamp: Date.now(), data })
+        this.updateState(type, data)
+
+        const listeners = this.listeners.get(type)
+        if (listeners) {
+          listeners.forEach((handler) => {
+            try {
+              handler(data)
+            } catch (error) {
+              console.error(`[EventBridge] Error in listener for ${type}:`, error)
+            }
+          })
+        }
+        return Promise.resolve()
+      }
+
+      // SipClient uses emitSync for fire-and-forget events
+      emitSync(type: string, data?: any): void {
+        this.emit(type, data).catch((err) => {
+          console.error(`[EventBridge] Error in emitSync for ${type}:`, err)
+        })
+      }
+
+      private updateState(type: string, data?: any): void {
+        switch (type) {
+          case 'connection:connected':
+          case 'sip:connected':
+            this.state.connection = 'connected'
+            break
+          case 'connection:disconnected':
+          case 'sip:disconnected':
+            this.state.connection = 'disconnected'
+            this.state.registration = 'unregistered'
+            break
+          case 'registration:registered':
+          case 'sip:registered':
+            this.state.registration = 'registered'
+            break
+          case 'registration:unregistered':
+          case 'sip:unregistered':
+            this.state.registration = 'unregistered'
+            break
+          case 'call:initiating':
+            this.state.call = {
+              id: data?.callId || `call-${Date.now()}`,
+              direction: data?.direction || 'outgoing',
+              state: 'initiating',
+              remoteUri: data?.remoteUri || '',
+            }
+            break
+          case 'call:ringing':
+            if (this.state.call) this.state.call.state = 'ringing'
+            break
+          case 'call:answered':
+            if (this.state.call) {
+              this.state.call.state = 'active'
+              this.state.call.startTime = Date.now()
+            }
+            break
+          case 'call:ended':
+          case 'call:failed':
+            if (this.state.call) {
+              this.state.call.state = 'ended'
+            }
+            setTimeout(() => {
+              if (this.state.call?.state === 'ended') {
+                this.state.call = null
+              }
+            }, 100)
+            break
+        }
+      }
+    }
+
+    // Initialize EventBridge
+    const bridge = new EventBridge()
+    ;(window as any).__sipEventBridge = bridge
+    ;(window as any).__sipState = () => bridge.getState()
+    ;(window as any).__emitSipEvent = (type: string, data?: any) => {
+      bridge.emit(type, data)
+    }
+    console.log('[Multi-User E2E] EventBridge initialized for testing')
+  })
+
+  // 2. Apply RTC mock (needed for WebRTC operations)
+  await mockRTCPeerConnection(page)
+
+  // 3. Apply media device mocks
+  await mockGetUserMedia(page, defaultMockDevices)
+
+  // 4. Apply WebSocket mock LAST (it checks for EventBridge before auto-connecting)
+  await mockWebSocketResponses(page)
+}
+
+/**
+ * Helper to make a call - waits for call button to be enabled before clicking
+ * The call button is disabled when: !number || !isConnected || isMakingCall
+ */
+async function makeCall(page: Page, destination: string): Promise<void> {
+  await page.fill('[data-testid="dialpad-input"]', destination)
+  // Wait for call button to be enabled (requires both number and connection)
+  await page.waitForSelector('[data-testid="call-button"]:not([disabled])', { timeout: 10000 })
+  await page.click('[data-testid="call-button"]')
+}
+
+// Extend base test with multi-user fixtures
 const test = base.extend<MultiUserFixtures>({
   userA: async ({ browser }, use) => {
     const context = await browser.newContext()
     const page = await context.newPage()
 
-    // Setup mocks for user A
-    await setupMocksForPage(page)
+    // Apply mocks BEFORE navigating
+    await applyMocksToPage(page)
     await page.goto(APP_URL)
 
     await use({ page, context })
-
     await context.close()
   },
 
@@ -36,12 +192,11 @@ const test = base.extend<MultiUserFixtures>({
     const context = await browser.newContext()
     const page = await context.newPage()
 
-    // Setup mocks for user B
-    await setupMocksForPage(page)
+    // Apply mocks BEFORE navigating
+    await applyMocksToPage(page)
     await page.goto(APP_URL)
 
     await use({ page, context })
-
     await context.close()
   },
 
@@ -49,90 +204,52 @@ const test = base.extend<MultiUserFixtures>({
     const context = await browser.newContext()
     const page = await context.newPage()
 
-    // Setup mocks for user C
-    await setupMocksForPage(page)
+    // Apply mocks BEFORE navigating
+    await applyMocksToPage(page)
     await page.goto(APP_URL)
 
     await use({ page, context })
-
     await context.close()
   },
 })
 
-// Helper function to setup mocks
-async function setupMocksForPage(page: Page) {
-  // Import and execute mock setup scripts
-  await page.addInitScript(() => {
-    // Mock WebSocket (simplified version)
-    class MockWebSocket extends EventTarget {
-      url: string
-      readyState = 0
-
-      constructor(url: string) {
-        super()
-        this.url = url
-        setTimeout(() => {
-          this.readyState = 1
-          this.dispatchEvent(new Event('open'))
-        }, 50)
-      }
-
-      send(data: string) {
-        // Auto-respond to SIP messages
-        setTimeout(() => {
-          if (data.includes('REGISTER')) {
-            this.dispatchEvent(
-              new MessageEvent('message', {
-                data: 'SIP/2.0 200 OK\r\nCSeq: 1 REGISTER\r\n\r\n',
-              })
-            )
-          }
-        }, 100)
-      }
-
-      close() {
-        this.readyState = 3
-      }
-    }
-
-    ;(window as any).WebSocket = MockWebSocket
-  })
-
-  // Mock getUserMedia
-  await page.addInitScript(() => {
-    navigator.mediaDevices.getUserMedia = async () => {
-      const stream = new MediaStream()
-      const mockTrack = {
-        id: 'mock-audio',
-        kind: 'audio' as const,
-        label: 'Mock Audio',
-        enabled: true,
-        readyState: 'live' as const,
-        stop: () => {},
-      }
-      stream.addTrack(mockTrack as any)
-      return stream
-    }
-  })
-}
-
 test.describe('Two-Party Call Scenarios', () => {
   test('should establish call between User A and User B', async ({ userA, userB }) => {
-    // User A configuration
+    // User A configuration - use proper SIP URI format
     await userA.page.click('[data-testid="settings-button"]')
-    await userA.page.fill('[data-testid="sip-uri-input"]', 'userA')
+    await userA.page.waitForSelector('[data-testid="sip-uri-input"]', { state: 'visible' })
+    await userA.page.fill('[data-testid="sip-uri-input"]', 'sip:userA@sip.example.com')
     await userA.page.fill('[data-testid="password-input"]', 'passA')
-    await userA.page.fill('[data-testid="server-uri-input"]', 'wss://test.example.com')
+    await userA.page.fill('[data-testid="server-uri-input"]', 'wss://sip.example.com')
     await userA.page.click('[data-testid="save-settings-button"]')
+    // Wait for settings saved message
+    await userA.page.waitForSelector('[data-testid="settings-saved-message"]', {
+      state: 'visible',
+      timeout: 3000,
+    })
     await userA.page.click('[data-testid="settings-button"]')
+    await userA.page.waitForSelector('[data-testid="dialpad-input"]', {
+      state: 'visible',
+      timeout: 5000,
+    })
 
-    // User B configuration
+    // User B configuration - use proper SIP URI format
     await userB.page.click('[data-testid="settings-button"]')
-    await userB.page.fill('[data-testid="sip-uri-input"]', 'userB')
+    await userB.page.waitForSelector('[data-testid="sip-uri-input"]', { state: 'visible' })
+    await userB.page.fill('[data-testid="sip-uri-input"]', 'sip:userB@sip.example.com')
     await userB.page.fill('[data-testid="password-input"]', 'passB')
-    await userB.page.fill('[data-testid="server-uri-input"]', 'wss://test.example.com')
+    await userB.page.fill('[data-testid="server-uri-input"]', 'wss://sip.example.com')
     await userB.page.click('[data-testid="save-settings-button"]')
+    // Wait for settings saved message
+    await userB.page.waitForSelector('[data-testid="settings-saved-message"]', {
+      state: 'visible',
+      timeout: 3000,
+    })
     await userB.page.click('[data-testid="settings-button"]')
+    await userB.page.waitForSelector('[data-testid="dialpad-input"]', {
+      state: 'visible',
+      timeout: 5000,
+    })
 
     // Both users connect
     await userA.page.click('[data-testid="connect-button"]')
@@ -140,12 +257,21 @@ test.describe('Two-Party Call Scenarios', () => {
 
     // Wait for both users to be connected
     await Promise.all([
-      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
-      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
     ])
 
     // User A calls User B
-    await userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com')
+    await userA.page.fill('[data-testid="dialpad-input"]', 'sip:userB@example.com')
+
+    // Wait for call button to be enabled (requires both number and connection)
+    await userA.page.waitForSelector('[data-testid="call-button"]:not([disabled])', {
+      timeout: 10000,
+    })
     await userA.page.click('[data-testid="call-button"]')
 
     // Wait for call status to appear
@@ -161,7 +287,10 @@ test.describe('Two-Party Call Scenarios', () => {
     expect(userBStatus).toBeTruthy()
   })
 
-  test('should handle simultaneous calls (both users call each other)', async ({ userA, userB }) => {
+  test('should handle simultaneous calls (both users call each other)', async ({
+    userA,
+    userB,
+  }) => {
     // Setup both users
     await Promise.all([
       setupUser(userA.page, 'userA', 'passA'),
@@ -176,19 +305,18 @@ test.describe('Two-Party Call Scenarios', () => {
 
     // Wait for both users to be connected
     await Promise.all([
-      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
-      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
     ])
 
     // Both users call each other simultaneously
     await Promise.all([
-      userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com'),
-      userB.page.fill('[data-testid="number-input"]', 'sip:userA@example.com'),
-    ])
-
-    await Promise.all([
-      userA.page.click('[data-testid="call-button"]'),
-      userB.page.click('[data-testid="call-button"]'),
+      makeCall(userA.page, 'sip:userB@example.com'),
+      makeCall(userB.page, 'sip:userA@example.com'),
     ])
 
     // Wait for both call statuses to appear
@@ -228,14 +356,19 @@ test.describe('Two-Party Call Scenarios', () => {
 
     // Wait for all users to be connected
     await Promise.all([
-      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
-      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
-      expect(userC.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
+      expect(userC.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
     ])
 
     // User A calls User B
-    await userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com')
-    await userA.page.click('[data-testid="call-button"]')
+    await makeCall(userA.page, 'sip:userB@example.com')
     await expect(userA.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // User B transfers call to User C (if transfer UI exists)
@@ -273,13 +406,16 @@ test.describe('Two-Party Call Scenarios', () => {
 
     // Wait for both users to be connected
     await Promise.all([
-      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
-      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
     ])
 
     // User A calls User B
-    await userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com')
-    await userA.page.click('[data-testid="call-button"]')
+    await makeCall(userA.page, 'sip:userB@example.com')
     await expect(userA.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // User A puts call on hold
@@ -329,9 +465,7 @@ test.describe('Conference Call Scenarios', () => {
     // User A initiates calls to both B and C (if supported)
     // Note: This depends on implementation supporting multiple simultaneous calls
 
-    await userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com')
-    await userA.page.click('[data-testid="call-button"]')
-    await userA.page.waitForTimeout(500)
+    await makeCall(userA.page, 'sip:userB@example.com')
 
     // Verify all apps are functional
     const [statusA, statusB, statusC] = await Promise.all([
@@ -362,24 +496,27 @@ test.describe('Conference Call Scenarios', () => {
 
     // Wait for all users to be connected
     await Promise.all([
-      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
-      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
-      expect(userC.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
+      expect(userC.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
     ])
 
-    // Simulate conference scenario
-    await userA.page.fill('[data-testid="number-input"]', 'conference@example.com')
-    await userA.page.click('[data-testid="call-button"]')
+    // Simulate conference scenario - use proper sip: URI format
+    await makeCall(userA.page, 'sip:conference@example.com')
     await expect(userA.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // User B joins
-    await userB.page.fill('[data-testid="number-input"]', 'conference@example.com')
-    await userB.page.click('[data-testid="call-button"]')
+    await makeCall(userB.page, 'sip:conference@example.com')
     await expect(userB.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // User C joins
-    await userC.page.fill('[data-testid="number-input"]', 'conference@example.com')
-    await userC.page.click('[data-testid="call-button"]')
+    await makeCall(userC.page, 'sip:conference@example.com')
     await expect(userC.page.locator('[data-testid="call-status"]')).toBeVisible({ timeout: 5000 })
 
     // All should be in call state
@@ -423,9 +560,7 @@ test.describe('State Synchronization', () => {
     await Promise.all([userA.page.waitForTimeout(500), userB.page.waitForTimeout(500)])
 
     // User A calls
-    await userA.page.fill('[data-testid="number-input"]', 'sip:userB@example.com')
-    await userA.page.click('[data-testid="call-button"]')
-    await userA.page.waitForTimeout(500)
+    await makeCall(userA.page, 'sip:userB@example.com')
 
     // Both users should have consistent state
     const [callStatusA, connectionStatusB] = await Promise.all([
@@ -475,7 +610,11 @@ test.describe('State Synchronization', () => {
 })
 
 test.describe('Concurrent Operations', () => {
-  test('should handle multiple users connecting simultaneously', async ({ userA, userB, userC }) => {
+  test('should handle multiple users connecting simultaneously', async ({
+    userA,
+    userB,
+    userC,
+  }) => {
     // Setup all users
     await Promise.all([
       setupUser(userA.page, 'userA', 'passA'),
@@ -492,9 +631,15 @@ test.describe('Concurrent Operations', () => {
 
     // Wait for all users to be connected
     await Promise.all([
-      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
-      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
-      expect(userC.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, { timeout: 5000 }),
+      expect(userA.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
+      expect(userB.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
+      expect(userC.page.locator('[data-testid="connection-status"]')).toContainText(/connected/i, {
+        timeout: 5000,
+      }),
     ])
 
     // All should be connected
@@ -536,21 +681,9 @@ test.describe('Concurrent Operations', () => {
 
     // All make calls simultaneously
     await Promise.all([
-      userA.page.fill('[data-testid="number-input"]', 'sip:test1@example.com'),
-      userB.page.fill('[data-testid="number-input"]', 'sip:test2@example.com'),
-      userC.page.fill('[data-testid="number-input"]', 'sip:test3@example.com'),
-    ])
-
-    await Promise.all([
-      userA.page.click('[data-testid="call-button"]'),
-      userB.page.click('[data-testid="call-button"]'),
-      userC.page.click('[data-testid="call-button"]'),
-    ])
-
-    await Promise.all([
-      userA.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
-      userB.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
-      userC.page.waitForTimeout(TEST_TIMEOUTS.STANDARD),
+      makeCall(userA.page, 'sip:test1@example.com'),
+      makeCall(userB.page, 'sip:test2@example.com'),
+      makeCall(userC.page, 'sip:test3@example.com'),
     ])
 
     // All should have initiated calls
@@ -566,14 +699,24 @@ test.describe('Concurrent Operations', () => {
   })
 })
 
-// Helper function to setup a user
+// Helper function to setup a user with proper SIP URI format
 async function setupUser(page: Page, username: string, password: string) {
   await page.click('[data-testid="settings-button"]')
-  await page.fill('[data-testid="sip-uri-input"]', username)
+  await page.waitForSelector('[data-testid="sip-uri-input"]', { state: 'visible' })
+  // Use proper SIP URI format: sip:username@sip.example.com
+  await page.fill('[data-testid="sip-uri-input"]', `sip:${username}@sip.example.com`)
   await page.fill('[data-testid="password-input"]', password)
-  await page.fill('[data-testid="server-uri-input"]', 'wss://test.example.com')
+  // Use sip.example.com to match the mock WebSocket URL pattern in fixtures.ts
+  await page.fill('[data-testid="server-uri-input"]', 'wss://sip.example.com')
   await page.click('[data-testid="save-settings-button"]')
+  // Wait for settings saved message before closing
+  await page.waitForSelector('[data-testid="settings-saved-message"]', {
+    state: 'visible',
+    timeout: 3000,
+  })
   await page.click('[data-testid="settings-button"]')
+  // Wait for main interface with dialpad to be visible
+  await page.waitForSelector('[data-testid="dialpad-input"]', { state: 'visible', timeout: 5000 })
 }
 
 export { test, expect }
