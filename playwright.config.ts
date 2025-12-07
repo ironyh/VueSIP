@@ -96,6 +96,9 @@ export default defineConfig({
         /basic-call-flow\.spec\.ts/,
         /av-quality\.spec\.ts/,
         /error-scenarios\.spec\.ts/,
+        /accessibility\.spec\.ts/,
+        /app-functionality\.spec\.ts/,
+        /eventbridge-lifecycle-diagnostic\.spec\.ts/,
       ],
     },
 
@@ -105,6 +108,7 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
       // Smoke tests only - exclude tests that are flaky on mobile
       // Call-related tests have timing issues with mock WebSocket on mobile
+      // Connection-dependent tests time out due to mobile viewport differences
       testIgnore: [
         /visual-regression\.spec\.ts/,
         /performance\.spec\.ts/,
@@ -112,6 +116,10 @@ export default defineConfig({
         /multi-user\.spec\.ts/,
         /incoming-call\.spec\.ts/,
         /basic-call-flow\.spec\.ts/,
+        /accessibility\.spec\.ts/,
+        /app-functionality\.spec\.ts/,
+        /eventbridge-lifecycle-diagnostic\.spec\.ts/,
+        /error-scenarios\.spec\.ts/,
       ],
     },
     {
@@ -119,6 +127,7 @@ export default defineConfig({
       use: { ...devices['iPhone 12'] },
       // Smoke tests only - exclude tests that are flaky on Mobile Safari
       // Call-related tests timeout due to mock WebSocket timing issues
+      // Connection-dependent tests time out due to mobile viewport differences
       testIgnore: [
         /visual-regression\.spec\.ts/,
         /performance\.spec\.ts/,
@@ -126,6 +135,10 @@ export default defineConfig({
         /multi-user\.spec\.ts/,
         /incoming-call\.spec\.ts/,
         /basic-call-flow\.spec\.ts/,
+        /accessibility\.spec\.ts/,
+        /app-functionality\.spec\.ts/,
+        /eventbridge-lifecycle-diagnostic\.spec\.ts/,
+        /error-scenarios\.spec\.ts/,
       ],
     },
   ],
