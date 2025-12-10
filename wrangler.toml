@@ -3,3 +3,9 @@ compatibility_date = "2025-12-10"
 
 [assets]
 directory = "docs/.vitepress/dist"
+
+# Routes for custom domain
+routes = [
+  { pattern = "vuesip.com/*", zone_name = "vuesip.com" },
+  { pattern = "www.vuesip.com/*", zone_name = "vuesip.com" }
+]
