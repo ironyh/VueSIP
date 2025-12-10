@@ -43,3 +43,5 @@ export * from './provider.types'
 // Plugin types
 export * from './plugin.types'
 
+// OAuth2 types
+export * from './oauth.types'

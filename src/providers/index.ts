@@ -14,6 +14,16 @@ export {
 } from './SipClientProvider'
 export { ConfigProvider, useConfigProvider, CONFIG_PROVIDER_KEY } from './ConfigProvider'
 export { MediaProvider, useMediaProvider, MEDIA_PROVIDER_KEY } from './MediaProvider'
+export {
+  OAuth2Provider,
+  useOAuth2Provider,
+  useOAuth2Credentials,
+  OAuth2ProviderKey,
+  OAuth2AuthStateKey,
+  OAuth2CredentialsKey,
+  type OAuth2ProviderContext,
+  type OAuth2ProviderProps,
+} from './OAuth2Provider'
 export type {
   ConfigProviderContext,
   ConfigProviderProps,
