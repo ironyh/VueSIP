@@ -435,5 +435,3 @@ export function useOAuth2Credentials(): Ref<ProvisionedSipCredentials | null> {
 
   return credentials
 }
-
-export type { OAuth2ProviderContext, OAuth2ProviderProps }

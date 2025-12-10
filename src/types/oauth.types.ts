@@ -324,7 +324,7 @@ export interface UseOAuth2Return {
   /** Current authentication state */
   authState: import('vue').Ref<OAuth2AuthState>
   /** Whether user is authenticated */
-  isAuthenticated: import('vue').Ref<boolean>
+  isAuthenticated: import('vue').ComputedRef<boolean>
   /** Current error (null if none) */
   error: import('vue').Ref<OAuth2Error | null>
   /** Current OAuth2 user info */

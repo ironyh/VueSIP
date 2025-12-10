@@ -149,14 +149,15 @@ class TokenStorageManager {
         }
       }
     } else {
+      const storage = this.storage as Storage
       const keysToRemove: string[] = []
-      for (let i = 0; i < this.storage.length; i++) {
-        const key = this.storage.key(i)
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i)
         if (key?.startsWith(this.prefix)) {
           keysToRemove.push(key)
         }
       }
-      keysToRemove.forEach((key) => this.storage.removeItem(key))
+      keysToRemove.forEach((key) => storage.removeItem(key))
     }
   }
 
@@ -533,7 +534,7 @@ export function createOAuth2Service(config: OAuth2ServiceConfig): OAuth2ServiceR
       // Try to decode ID token if available
       if (tokens.value?.id_token) {
         const parts = tokens.value.id_token.split('.')
-        if (parts.length === 3) {
+        if (parts.length === 3 && parts[1]) {
           const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
           return payload as OAuth2UserInfo
         }

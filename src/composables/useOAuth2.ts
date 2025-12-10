@@ -402,4 +402,3 @@ export function createKeycloakOAuth2Config(params: {
 
 // Re-export utilities
 export { generatePKCE, generateState }
-export type { UseOAuth2Options, UseOAuth2ComposableReturn }
