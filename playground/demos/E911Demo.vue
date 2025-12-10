@@ -1,5 +1,25 @@
 <template>
   <div class="e911-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <div class="info-section">
       <p>
         E911 Emergency Call Handling demo. Configure locations, notification recipients,
@@ -442,7 +462,7 @@ startMonitoring()</code></pre>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onUnmounted } from 'vue'
+import { ref, computed, reactive, onUnmounted, watch } from 'vue'
 import type {
   E911Config,
   E911Location,
@@ -450,6 +470,12 @@ import type {
   E911ComplianceLog,
   E911NotificationRecipient,
 } from '../../src/types/e911.types'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // Simulated state
 const config = ref<E911Config>({

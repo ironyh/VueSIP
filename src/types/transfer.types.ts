@@ -41,6 +41,8 @@ export interface TransferOptions {
   type: TransferType
   /** Target URI for transfer */
   target: string
+  /** Consultation call ID (required for attended transfer) */
+  consultationCallId?: string
   /** Custom SIP headers */
   extraHeaders?: string[]
 }
@@ -50,17 +52,17 @@ export interface TransferOptions {
  */
 export interface TransferEvent {
   /** Event type */
-  type: string
+  type?: string
   /** Transfer ID */
   transferId: string
   /** Transfer state */
-  state: TransferState
+  state?: TransferState
   /** Transfer type */
-  transferType: TransferType
+  transferType?: TransferType
   /** Target URI */
-  target: string
+  target?: string
   /** Call ID being transferred */
-  callId: string
+  callId?: string
   /** Consultation call ID (for attended transfer) */
   consultationCallId?: string
   /** Timestamp */
@@ -83,4 +85,18 @@ export interface TransferProgress {
   target: string
   /** Progress percentage (0-100) */
   progress?: number
+}
+
+/**
+ * Transfer result
+ */
+export interface TransferResult {
+  /** Whether transfer was successful */
+  success: boolean
+  /** Transfer ID */
+  transferId?: string
+  /** Error message if failed */
+  error?: string
+  /** Transfer state */
+  state: TransferState
 }

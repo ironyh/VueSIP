@@ -1,5 +1,25 @@
 <template>
   <div class="ringtones-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <div class="info-section">
       <p>
         Customize your incoming call experience with different ringtones. Select from built-in
@@ -162,6 +182,12 @@ const changeRingtone = (ringtoneId: string) => {
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 interface Ringtone {
   id: string
@@ -175,7 +201,12 @@ const STORAGE_KEY = 'vuesip-ringtone-settings'
 // SIP Client and Call Session
 const { getClient } = useSipClient()
 const sipClientRef = computed(() => getClient())
-const { state: callState } = useCallSession(sipClientRef)
+const { state: realCallState } = useCallSession(sipClientRef)
+
+// Effective values for simulation
+const callState = computed(() =>
+  isSimulationMode.value ? simulation.state.value : realCallState.value
+)
 
 // Available ringtones (simulated with Web Audio API)
 const ringtones: Ringtone[] = [

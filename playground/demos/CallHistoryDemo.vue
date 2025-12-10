@@ -1,5 +1,25 @@
 <template>
   <div class="call-history-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <div class="info-section">
       <p>
         The Call History feature tracks all incoming and outgoing calls automatically. You can
@@ -221,6 +241,12 @@ await exportHistory({
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useCallHistory } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // Call History composable
 const {

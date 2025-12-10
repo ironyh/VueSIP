@@ -1,5 +1,25 @@
 <template>
   <div class="agent-stats-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <div class="info-section">
       <p>
         The Agent Statistics feature tracks individual agent performance metrics in real-time.
@@ -354,6 +374,12 @@ import type {
   AgentPerformanceLevel,
   AgentCallDirection,
 } from '../../src/types/agentstats.types'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // Simulated composable state (since AMI client is not available in playground)
 const stats = ref<any>(null)

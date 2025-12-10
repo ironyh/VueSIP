@@ -1,5 +1,25 @@
 <template>
   <div class="time-conditions-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <Card class="demo-card">
       <template #title>
         <div class="demo-header">
@@ -200,6 +220,8 @@
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useAmiTimeConditions } from '@/composables'
 import { playgroundAmiClient } from '../sipClient'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 import Card from 'primevue/card'
 import Panel from 'primevue/panel'
 import Button from 'primevue/button'
@@ -212,15 +234,24 @@ import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import Divider from 'primevue/divider'
 
-// AMI Connection
-const amiUrl = ref(localStorage.getItem('ami_url') || 'ws://localhost:8089/ws')
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
+
+// AMI Connection - use standardized storage key
+const amiUrl = ref(localStorage.getItem('vuesip-ami-url') || 'ws://localhost:8089/ws')
 const connecting = ref(false)
-const isConnected = computed(() => playgroundAmiClient.isConnected.value)
+const realIsConnected = computed(() => playgroundAmiClient.isConnected.value)
+
+// Effective values for simulation
+const isConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+)
 
 const connectAmi = async () => {
   connecting.value = true
   try {
-    localStorage.setItem('ami_url', amiUrl.value)
+    localStorage.setItem('vuesip-ami-url', amiUrl.value)
     await playgroundAmiClient.connect({ url: amiUrl.value })
   } catch (e) {
     console.error('Failed to connect:', e)

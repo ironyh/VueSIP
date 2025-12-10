@@ -1,5 +1,23 @@
 <template>
   <div class="call-waiting-demo">
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
     <h2>📱 Call Waiting & Switching</h2>
     <p class="description">Handle multiple calls, switch between active calls, and manage call waiting scenarios.</p>
 
@@ -12,26 +30,9 @@
         <span class="label">Active Calls:</span>
         <span class="value">{{ calls.length }}</span>
       </div>
-    </div>
-
-    <!-- SIP Configuration -->
-    <div class="config-section">
-      <h3>SIP Configuration</h3>
-      <div class="form-group">
-        <label>SIP Server URI</label>
-        <input v-model="sipServerUri" type="text" placeholder="sip:example.com" />
+      <div v-if="!isConnected" class="connection-hint">
+        Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo
       </div>
-      <div class="form-group">
-        <label>Username</label>
-        <input v-model="username" type="text" placeholder="user123" />
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input v-model="password" type="password" placeholder="password" />
-      </div>
-      <button @click="toggleConnection" :disabled="isConnecting">
-        {{ isConnected ? 'Disconnect' : isConnecting ? 'Connecting...' : 'Connect' }}
-      </button>
     </div>
 
     <!-- Call Control -->
@@ -254,17 +255,19 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { useSipClient } from '../../src/composables/useSipClient'
+import { playgroundSipClient } from '../sipClient'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 
-// SIP Configuration
-const sipServerUri = ref('sip:example.com')
-const username = ref('')
-const password = ref('')
+// Simulation
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
+
+// Call target
 const targetUri = ref('sip:1000@example.com')
 
-// SIP Client
-const { sipClient, connectionState, isConnected, isConnecting, connect, disconnect } =
-  useSipClient()
+// SIP Client - use shared playground instance (credentials managed globally)
+const { connectionState, isConnected } = playgroundSipClient
 
 // Call State
 interface Call {
@@ -312,20 +315,6 @@ const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-}
-
-// Connection Toggle
-const toggleConnection = async () => {
-  if (isConnected.value) {
-    await disconnect()
-    hangupAllCalls()
-  } else {
-    await connect({
-      uri: sipServerUri.value,
-      username: username.value,
-      password: password.value,
-    })
-  }
 }
 
 // Make Call
@@ -709,7 +698,19 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 
-.config-section,
+.connection-hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+  padding: 0.5rem 0.75rem;
+  background: #fef3c7;
+  border-radius: 6px;
+  border: 1px solid #fcd34d;
+}
+
+.connection-hint strong {
+  color: #92400e;
+}
+
 .call-section,
 .calls-list-section,
 .settings-section,
@@ -725,12 +726,14 @@ h3 {
   margin-top: 0;
   margin-bottom: 1rem;
   font-size: 1.125rem;
+  color: #111827;
 }
 
 h4 {
   margin-top: 0;
   margin-bottom: 1rem;
   font-size: 1rem;
+  color: #1f2937;
 }
 
 .form-group {
@@ -1019,6 +1022,7 @@ button.danger:hover:not(:disabled) {
   gap: 0.5rem;
   font-size: 0.875rem;
   cursor: pointer;
+  color: #374151;
 }
 
 .settings-grid input[type="checkbox"] {
@@ -1034,6 +1038,7 @@ button.danger:hover:not(:disabled) {
   margin-bottom: 0.5rem;
   font-weight: 500;
   font-size: 0.875rem;
+  color: #374151;
 }
 
 .setting-item input[type="range"] {

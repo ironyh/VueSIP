@@ -1,5 +1,25 @@
 <template>
   <div class="blf-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Configuration Panel -->
     <div v-if="!isConnected" class="config-panel">
       <h3>BLF (Busy Lamp Field) Demo</h3>
@@ -231,6 +251,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useSipClient } from '../../src'
 import { useDialog } from '../../src/composables/useDialog'
 import { DialogState, type DialogEvent, type DialogStatus } from '../../src/types/presence.types'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // localStorage keys
 const BLF_EXTENSIONS_KEY = 'vuesip-blf-extensions'
@@ -258,7 +284,15 @@ const savedExtensions = ref<string[]>([])
 const dialogStates = Object.values(DialogState)
 
 // SIP Client
-const { connect, disconnect, isConnected, isRegistered, updateConfig, getClient } = useSipClient()
+const { connect, disconnect, isConnected: realIsConnected, isRegistered: realIsRegistered, updateConfig, getClient } = useSipClient()
+
+// Effective values for simulation
+const isConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+)
+const isRegistered = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsRegistered.value
+)
 
 // Dialog/BLF
 const sipClientRef = computed(() => getClient())

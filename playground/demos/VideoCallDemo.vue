@@ -11,9 +11,128 @@
       </p>
     </div>
 
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="callState"
+      :duration="duration"
+      :remote-uri="remoteUri"
+      :remote-display-name="remoteDisplayName"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="isMuted"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
+    <!-- Camera Preview Section -->
+    <div class="camera-preview-section">
+      <div class="preview-header">
+        <h3>Camera Preview</h3>
+        <div class="preview-controls">
+          <button
+            v-if="!isPreviewActive"
+            class="btn btn-primary btn-sm"
+            @click="startPreview"
+            :disabled="videoInputDevices.length === 0"
+          >
+            📹 Start Preview
+          </button>
+          <button
+            v-else
+            class="btn btn-secondary btn-sm"
+            @click="stopPreview"
+          >
+            ⏹ Stop Preview
+          </button>
+          <button
+            v-if="videoInputDevices.length > 1"
+            class="btn btn-outline btn-sm"
+            :class="{ active: showMultiCameraGrid }"
+            @click="toggleMultiCameraView"
+            :disabled="!isPreviewActive"
+          >
+            {{ showMultiCameraGrid ? '📷 Single View' : '📷📷 Multi-Camera' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Single Camera Preview -->
+      <div v-if="isPreviewActive && !showMultiCameraGrid" class="single-preview">
+        <div class="preview-container">
+          <video
+            ref="previewVideoEl"
+            class="preview-video"
+            autoplay
+            playsinline
+            muted
+          ></video>
+          <div class="preview-label">
+            {{ currentCameraLabel }}
+          </div>
+        </div>
+        <div v-if="videoInputDevices.length > 1" class="camera-switcher">
+          <label>Switch Camera:</label>
+          <select v-model="previewCameraId" @change="switchPreviewCamera">
+            <option
+              v-for="device in videoInputDevices"
+              :key="device.deviceId"
+              :value="device.deviceId"
+            >
+              {{ device.label || `Camera ${device.deviceId.slice(0, 8)}` }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Multi-Camera Grid -->
+      <div v-if="isPreviewActive && showMultiCameraGrid" class="multi-camera-grid">
+        <div
+          v-for="(stream, deviceId) in cameraStreams"
+          :key="deviceId"
+          class="camera-tile"
+          :class="{ 'is-selected': deviceId === selectedVideoInputId }"
+          @click="selectCameraFromGrid(deviceId)"
+        >
+          <video
+            :ref="el => setCameraVideoRef(deviceId, el)"
+            autoplay
+            playsinline
+            muted
+          ></video>
+          <div class="tile-label">
+            {{ getCameraLabel(deviceId) }}
+          </div>
+          <div v-if="deviceId === selectedVideoInputId" class="selected-badge">
+            ✓ Selected
+          </div>
+        </div>
+      </div>
+
+      <!-- No Cameras Message -->
+      <div v-if="videoInputDevices.length === 0" class="no-cameras-message">
+        <span class="icon">📷</span>
+        <p>No cameras detected. Please connect a camera or grant camera permissions.</p>
+        <button class="btn btn-primary btn-sm" @click="requestCameraPermission">
+          Request Permission
+        </button>
+      </div>
+
+      <!-- Camera Count Info -->
+      <div v-if="videoInputDevices.length > 0" class="camera-info">
+        <span class="camera-count">{{ videoInputDevices.length }} camera{{ videoInputDevices.length > 1 ? 's' : '' }} available</span>
+      </div>
+    </div>
+
     <!-- Connection Status -->
     <div v-if="!isConnected" class="status-message info">
-      Connect to a SIP server to use video features (use the Basic Call demo to connect)
+      {{ isSimulationMode ? 'Enable simulation and run a scenario to test video call features' : 'Connect to a SIP server to use video features (use the Basic Call demo to connect)' }}
     </div>
 
     <!-- Video Call Interface -->
@@ -224,31 +343,67 @@ watch(localStream, (stream) => {
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSipClient, useCallSession, useMediaDevices } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // SIP Client
-const { isConnected, isRegistered, getClient } = useSipClient()
+const { isConnected: realIsConnected, isRegistered: realIsRegistered, getClient } = useSipClient()
 
 // Call Session
 const sipClientRef = computed(() => getClient())
 const {
-  state: callState,
-  remoteUri,
-  remoteDisplayName,
-  isMuted,
-  duration,
+  state: realCallState,
+  remoteUri: realRemoteUri,
+  remoteDisplayName: realRemoteDisplayName,
+  isMuted: realIsMuted,
+  duration: realDuration,
   localStream,
   remoteStream,
   session,
   makeCall,
-  answer,
-  hangup,
+  answer: realAnswer,
+  hangup: realHangup,
+  // Note: hangup and answer are aliased to avoid conflicts with simulation methods
   mute,
   unmute,
   toggleVideo,
   hasLocalVideo: hasLocalVideoFromSession,
 } = useCallSession(sipClientRef)
+
+// Effective values - use simulation or real data based on mode
+const isConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+)
+
+const isRegistered = computed(() =>
+  isSimulationMode.value ? simulation.isRegistered.value : realIsRegistered.value
+)
+
+const callState = computed(() =>
+  isSimulationMode.value ? simulation.state.value : realCallState.value
+)
+
+const remoteUri = computed(() =>
+  isSimulationMode.value ? simulation.remoteUri.value : realRemoteUri.value
+)
+
+const remoteDisplayName = computed(() =>
+  isSimulationMode.value ? simulation.remoteDisplayName.value : realRemoteDisplayName.value
+)
+
+const isMuted = computed(() =>
+  isSimulationMode.value ? simulation.isMuted.value : realIsMuted.value
+)
+
+const duration = computed(() =>
+  isSimulationMode.value ? simulation.duration.value : realDuration.value
+)
 
 // Media Devices
 const {
@@ -262,6 +417,15 @@ const {
 const dialNumber = ref('')
 const remoteVideoEl = ref<HTMLVideoElement>()
 const localVideoEl = ref<HTMLVideoElement>()
+
+// Camera Preview State
+const isPreviewActive = ref(false)
+const showMultiCameraGrid = ref(false)
+const previewVideoEl = ref<HTMLVideoElement>()
+const previewStream = ref<MediaStream | null>(null)
+const previewCameraId = ref('')
+const cameraStreams = ref<Record<string, MediaStream>>({})
+const cameraVideoRefs = ref<Record<string, HTMLVideoElement | null>>({})
 
 // Computed
 const callStateDisplay = computed(() => {
@@ -282,9 +446,167 @@ const hasLocalVideoDisplay = computed(() => {
   return videoTracks.length > 0 && videoTracks[0].enabled
 })
 
+// Camera Preview Computed
+const currentCameraLabel = computed(() => {
+  const device = videoInputDevices.value.find(d => d.deviceId === previewCameraId.value)
+  return device?.label || `Camera ${previewCameraId.value.slice(0, 8)}`
+})
+
+// Camera Preview Methods
+const getCameraLabel = (deviceId: string): string => {
+  const device = videoInputDevices.value.find(d => d.deviceId === deviceId)
+  return device?.label || `Camera ${deviceId.slice(0, 8)}`
+}
+
+const setCameraVideoRef = (deviceId: string, el: HTMLVideoElement | null) => {
+  if (el) {
+    cameraVideoRefs.value[deviceId] = el
+    // Attach stream if available
+    const stream = cameraStreams.value[deviceId]
+    if (stream) {
+      el.srcObject = stream
+    }
+  }
+}
+
+const startPreview = async () => {
+  try {
+    // Use selected camera or first available
+    const cameraId = previewCameraId.value || videoInputDevices.value[0]?.deviceId
+    if (!cameraId) return
+
+    previewCameraId.value = cameraId
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: cameraId } },
+      audio: false
+    })
+
+    previewStream.value = stream
+    isPreviewActive.value = true
+
+    // Attach to video element after next tick
+    setTimeout(() => {
+      if (previewVideoEl.value && previewStream.value) {
+        previewVideoEl.value.srcObject = previewStream.value
+      }
+    }, 0)
+  } catch (error) {
+    console.error('Failed to start preview:', error)
+    alert('Failed to access camera. Please check permissions.')
+  }
+}
+
+const stopPreview = () => {
+  // Stop single preview stream
+  if (previewStream.value) {
+    previewStream.value.getTracks().forEach(track => track.stop())
+    previewStream.value = null
+  }
+
+  // Stop all multi-camera streams
+  Object.values(cameraStreams.value).forEach(stream => {
+    stream.getTracks().forEach(track => track.stop())
+  })
+  cameraStreams.value = {}
+  cameraVideoRefs.value = {}
+
+  isPreviewActive.value = false
+  showMultiCameraGrid.value = false
+}
+
+const switchPreviewCamera = async () => {
+  if (!previewCameraId.value) return
+
+  // Stop current stream
+  if (previewStream.value) {
+    previewStream.value.getTracks().forEach(track => track.stop())
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: previewCameraId.value } },
+      audio: false
+    })
+
+    previewStream.value = stream
+
+    if (previewVideoEl.value) {
+      previewVideoEl.value.srcObject = stream
+    }
+  } catch (error) {
+    console.error('Failed to switch camera:', error)
+  }
+}
+
+const toggleMultiCameraView = async () => {
+  if (showMultiCameraGrid.value) {
+    // Switch to single view
+    showMultiCameraGrid.value = false
+
+    // Stop multi-camera streams
+    Object.values(cameraStreams.value).forEach(stream => {
+      stream.getTracks().forEach(track => track.stop())
+    })
+    cameraStreams.value = {}
+    cameraVideoRefs.value = {}
+
+    // Restart single preview
+    await startPreview()
+  } else {
+    // Switch to multi-camera view
+    showMultiCameraGrid.value = true
+
+    // Stop single preview
+    if (previewStream.value) {
+      previewStream.value.getTracks().forEach(track => track.stop())
+      previewStream.value = null
+    }
+
+    // Start all cameras
+    for (const device of videoInputDevices.value) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: device.deviceId } },
+          audio: false
+        })
+        cameraStreams.value[device.deviceId] = stream
+
+        // Attach to video element if already rendered
+        const videoEl = cameraVideoRefs.value[device.deviceId]
+        if (videoEl) {
+          videoEl.srcObject = stream
+        }
+      } catch (error) {
+        console.error(`Failed to access camera ${device.deviceId}:`, error)
+      }
+    }
+  }
+}
+
+const selectCameraFromGrid = (deviceId: string) => {
+  selectVideoInput(deviceId)
+  previewCameraId.value = deviceId
+}
+
+const requestCameraPermission = async () => {
+  try {
+    await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    await enumerateDevices()
+  } catch (error) {
+    console.error('Permission denied:', error)
+    alert('Camera permission denied. Please enable camera access in your browser settings.')
+  }
+}
+
 // Methods
 const handleMakeCall = async () => {
   if (!dialNumber.value.trim()) return
+
+  if (isSimulationMode.value) {
+    simulation.makeCall(dialNumber.value)
+    console.log('[Simulation] Video call started to:', dialNumber.value)
+    return
+  }
 
   try {
     await makeCall(dialNumber.value, {
@@ -298,8 +620,14 @@ const handleMakeCall = async () => {
 }
 
 const handleAnswer = async () => {
+  if (isSimulationMode.value) {
+    simulation.answer()
+    console.log('[Simulation] Answered video call')
+    return
+  }
+
   try {
-    await answer({
+    await realAnswer({
       audio: true,
       video: true,
     })
@@ -310,14 +638,26 @@ const handleAnswer = async () => {
 }
 
 const handleHangup = async () => {
+  if (isSimulationMode.value) {
+    simulation.hangup()
+    console.log('[Simulation] Video call ended')
+    return
+  }
+
   try {
-    await hangup()
+    await realHangup()
   } catch (error) {
     console.error('Hangup error:', error)
   }
 }
 
 const handleToggleMute = async () => {
+  if (isSimulationMode.value) {
+    simulation.toggleMute()
+    console.log('[Simulation] Toggled mute')
+    return
+  }
+
   try {
     if (isMuted.value) {
       await unmute()
@@ -330,6 +670,11 @@ const handleToggleMute = async () => {
 }
 
 const handleToggleVideo = () => {
+  if (isSimulationMode.value) {
+    console.log('[Simulation] Toggled video')
+    return
+  }
+
   try {
     toggleVideo()
   } catch (error) {
@@ -372,6 +717,11 @@ onMounted(async () => {
     console.warn('Could not get media permissions:', error)
   }
 })
+
+// Cleanup on unmount
+onUnmounted(() => {
+  stopPreview()
+})
 </script>
 
 <style scoped>
@@ -403,6 +753,224 @@ onMounted(async () => {
   border-left: 3px solid #667eea;
   border-radius: 4px;
   font-size: 0.875rem;
+}
+
+/* Camera Preview Section */
+.camera-preview-section {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.preview-header h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.125rem;
+}
+
+.preview-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
+
+.btn-outline {
+  background: white;
+  color: #667eea;
+  border: 1px solid #667eea;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+.btn-outline.active {
+  background: #667eea;
+  color: white;
+}
+
+.single-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.preview-container {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror effect */
+}
+
+.preview-label {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.camera-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.camera-switcher label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.camera-switcher select {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+  min-width: 200px;
+}
+
+.camera-switcher select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.multi-camera-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  max-width: 100%;
+}
+
+.camera-tile {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.camera-tile:hover {
+  border-color: #667eea;
+}
+
+.camera-tile.is-selected {
+  border-color: #10b981;
+}
+
+.camera-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror effect */
+}
+
+.tile-label {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.selected-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #10b981;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.no-cameras-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.no-cameras-message .icon {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+.no-cameras-message p {
+  margin: 0;
+  max-width: 300px;
+}
+
+.camera-info {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.camera-count {
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
 }
 
 .status-message {
@@ -763,6 +1331,40 @@ onMounted(async () => {
   .device-selector {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .preview-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .preview-controls {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .preview-controls .btn {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .preview-container {
+    max-width: 100%;
+  }
+
+  .camera-switcher {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .camera-switcher select {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .multi-camera-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -9,6 +9,7 @@
 
 import {
   ref,
+  shallowRef,
   computed,
   onUnmounted,
   readonly,
@@ -225,7 +226,9 @@ export function useSipClient(
   // Internal State
   // ============================================================================
 
-  const sipClient = ref<SipClient | null>(null)
+  // Use shallowRef to prevent Vue from deeply proxying the SipClient instance
+  // JsSIP internal objects have non-configurable properties that conflict with Vue's proxy
+  const sipClient = shallowRef<SipClient | null>(null)
   const error = ref<Error | null>(null)
   const isDisconnecting = ref(false)
 

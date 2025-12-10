@@ -1,5 +1,25 @@
 <template>
   <div class="dnd-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <div class="info-section">
       <p>
         Do Not Disturb mode automatically rejects all incoming calls. Perfect for when you need
@@ -163,6 +183,12 @@ onMounted(() => {
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 interface RejectedCall {
   uri: string
@@ -175,9 +201,17 @@ const DND_START_KEY = 'vuesip-dnd-start-time'
 const REJECTED_CALLS_KEY = 'vuesip-dnd-rejected'
 
 // SIP Client and Call Session
-const { isConnected, getClient } = useSipClient()
+const { isConnected: realIsConnected, getClient } = useSipClient()
 const sipClientRef = computed(() => getClient())
 const { state: callState, remoteUri, reject } = useCallSession(sipClientRef)
+
+// Effective values for simulation
+const isConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+)
+const effectiveCallState = computed(() =>
+  isSimulationMode.value ? simulation.state.value : callState.value
+)
 
 // State
 const dndEnabled = ref(false)

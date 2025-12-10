@@ -12,13 +12,33 @@
       </p>
     </div>
 
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="effectiveCallState"
+      :duration="effectiveDuration"
+      :remote-uri="effectiveRemoteUri"
+      :remote-display-name="effectiveRemoteDisplayName"
+      :is-on-hold="effectiveIsOnHold"
+      :is-muted="effectiveIsMuted"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Connection Status -->
-    <div v-if="!isConnected" class="status-message info">
-      Connect to a SIP server to view call quality metrics (use the Basic Call demo to connect)
+    <div v-if="!effectiveIsConnected" class="status-message info">
+      {{ isSimulationMode ? 'Enable simulation and run a scenario to see quality metrics' : 'Connect to a SIP server to view call quality metrics (use the Basic Call demo to connect)' }}
     </div>
 
-    <div v-else-if="callState !== 'active'" class="status-message warning">
-      Make or answer a call to see real-time quality metrics
+    <div v-else-if="effectiveCallState !== 'active'" class="status-message warning">
+      {{ isSimulationMode ? 'Run the "Active Call" scenario to see quality metrics' : 'Make or answer a call to see real-time quality metrics' }}
     </div>
 
     <!-- Quality Metrics -->
@@ -199,11 +219,46 @@ onUnmounted(() => {
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // SIP Client and Call Session
 const { isConnected, getClient } = useSipClient()
 const sipClientRef = computed(() => getClient())
-const { state: callState, session } = useCallSession(sipClientRef)
+const { state: realCallState, session, duration: realDuration, remoteUri: realRemoteUri, remoteDisplayName: realRemoteDisplayName } = useCallSession(sipClientRef)
+
+// Effective values - use simulation or real data based on mode
+const effectiveIsConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : isConnected.value
+)
+
+const effectiveCallState = computed(() =>
+  isSimulationMode.value ? simulation.state.value : realCallState.value
+)
+
+const effectiveDuration = computed(() =>
+  isSimulationMode.value ? simulation.duration.value : (realDuration.value || 0)
+)
+
+const effectiveRemoteUri = computed(() =>
+  isSimulationMode.value ? simulation.remoteUri.value : realRemoteUri.value
+)
+
+const effectiveRemoteDisplayName = computed(() =>
+  isSimulationMode.value ? simulation.remoteDisplayName.value : realRemoteDisplayName.value
+)
+
+const effectiveIsOnHold = computed(() =>
+  isSimulationMode.value ? simulation.isOnHold.value : false
+)
+
+const effectiveIsMuted = computed(() =>
+  isSimulationMode.value ? simulation.isMuted.value : false
+)
 
 // State
 const codecInfo = ref({
@@ -367,7 +422,7 @@ const updateStats = async () => {
 }
 
 // Watch for active calls and start polling stats
-watch(callState, (newState) => {
+watch(effectiveCallState, (newState) => {
   if (newState === 'active') {
     // Start polling stats
     updateStats()

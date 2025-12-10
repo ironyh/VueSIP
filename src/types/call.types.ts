@@ -238,6 +238,10 @@ export interface CallSession {
   terminationCause?: TerminationCause
   /** Custom data */
   data?: Record<string, any>
+  /** Hold the call (SIP re-INVITE with sendonly) */
+  hold?: () => void
+  /** Resume the call (SIP re-INVITE with sendrecv) */
+  unhold?: () => void
 }
 
 /**
@@ -321,4 +325,65 @@ export interface CallHoldEvent extends CallEvent {
  */
 export interface CallMuteEvent extends CallEvent {
   type: 'muted' | 'unmuted'
+}
+
+/**
+ * Hold state enumeration
+ */
+export enum HoldState {
+  /** Call is active (not on hold) */
+  Active = 'active',
+  /** Local hold in progress */
+  Holding = 'holding',
+  /** Call is on hold (local) */
+  Held = 'held',
+  /** Resume in progress */
+  Resuming = 'resuming',
+  /** Remote party has placed call on hold */
+  RemoteHeld = 'remote_held',
+}
+
+/**
+ * SDP direction values for hold state
+ */
+export type HoldDirection = 'sendrecv' | 'sendonly' | 'recvonly' | 'inactive'
+
+/**
+ * Hold options
+ */
+export interface HoldOptions {
+  /** SDP direction for hold state (default: 'sendonly') */
+  direction?: HoldDirection
+  /** Custom SIP headers */
+  extraHeaders?: string[]
+}
+
+/**
+ * Hold event
+ */
+export interface HoldEvent {
+  /** Event type */
+  type: 'hold' | 'unhold' | 'hold_failed' | 'unhold_failed'
+  /** Hold state */
+  state: HoldState
+  /** Originator of the hold/unhold */
+  originator: 'local' | 'remote'
+  /** Timestamp */
+  timestamp: Date
+  /** Error message (if failed) */
+  error?: string
+  /** Call ID */
+  callId: string
+}
+
+/**
+ * Hold result
+ */
+export interface HoldResult {
+  /** Whether operation was successful */
+  success: boolean
+  /** Hold state after operation */
+  state: HoldState
+  /** Error message if failed */
+  error?: string
 }

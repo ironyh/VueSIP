@@ -1,5 +1,25 @@
 <template>
   <div class="agent-login-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Configuration Panel -->
     <div v-if="!amiConnected" class="config-panel">
       <h3>AMI Server Configuration</h3>
@@ -22,7 +42,7 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="ami-username">Username</label>
+          <label for="ami-username">Username <small>(optional)</small></label>
           <input
             id="ami-username"
             v-model="config.username"
@@ -33,7 +53,7 @@
         </div>
 
         <div class="form-group">
-          <label for="ami-password">Password</label>
+          <label for="ami-password">Password <small>(optional)</small></label>
           <input
             id="ami-password"
             v-model="config.password"
@@ -323,8 +343,14 @@
 import { ref, computed, onUnmounted, reactive } from 'vue'
 import type { AmiClient } from '../../src/core/AmiClient'
 import type { AgentLoginStatus } from '../../src/types/agent.types'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 // Note: In production, import from the library
 // import { useAmiAgentLogin } from 'vuesip'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // Mock AMI client state (replace with actual useAmi when connected)
 const amiConnected = ref(false)
@@ -399,7 +425,7 @@ const loggedInQueues = computed(() => session.queues.filter(q => q.isMember).map
 const sessionDurationFormatted = computed(() => formatDuration(session.sessionDuration))
 
 const isConfigValid = computed(() =>
-  config.url && config.username && config.password &&
+  config.url && // username/password optional - some AMI setups allow unauthenticated connections
   agentConfig.agentId && agentConfig.interface
 )
 

@@ -1,5 +1,25 @@
 <template>
   <div class="recording-management-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <h2>🎙️ AMI Recording Management</h2>
     <p class="description">
       Server-side call recording using Asterisk MixMonitor via AMI.
@@ -251,8 +271,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onUnmounted } from 'vue'
+import { ref, reactive, computed, onUnmounted, watch } from 'vue'
 import { useAmiRecording } from '../../src/composables/useAmiRecording'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 import type {
   AmiRecordingOptions,
   AmiRecordingFormat,
@@ -261,12 +283,21 @@ import type {
   AmiRecordingStats,
 } from '../../src/types/recording.types'
 
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
+
 // AMI Connection State (simulated for demo)
 const amiUrl = ref('ws://localhost:8088/ami')
 const amiUsername = ref('admin')
 const amiSecret = ref('')
-const amiConnected = ref(false)
+const realAmiConnected = ref(false)
 const isConnecting = ref(false)
+
+// Effective values for simulation
+const amiConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realAmiConnected.value
+)
 
 // Mock AMI Client for demo
 const mockAmiClient = ref<{

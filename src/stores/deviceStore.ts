@@ -643,36 +643,45 @@ export const deviceStore = {
 
   /**
    * Set all devices at once (bulk update)
+   * Uses the individual setters to ensure auto-selection logic runs
    */
   setDevices(devices: MediaDeviceInfo[]): void {
-    state.audioInputDevices = devices
+    const audioInputs: MediaDevice[] = devices
       .filter((d) => d.kind === 'audioinput')
       .map((d) => ({
         deviceId: d.deviceId,
-        kind: d.kind as any,
-        label: d.label,
+        kind: d.kind as MediaDeviceKind,
+        label: d.label || `Microphone (${d.deviceId.slice(0, 8)})`,
         groupId: d.groupId,
         isDefault: d.deviceId === 'default',
       }))
-    state.audioOutputDevices = devices
+    const audioOutputs: MediaDevice[] = devices
       .filter((d) => d.kind === 'audiooutput')
       .map((d) => ({
         deviceId: d.deviceId,
-        kind: d.kind as any,
-        label: d.label,
+        kind: d.kind as MediaDeviceKind,
+        label: d.label || `Speaker (${d.deviceId.slice(0, 8)})`,
         groupId: d.groupId,
         isDefault: d.deviceId === 'default',
       }))
-    state.videoInputDevices = devices
+    const videoInputs: MediaDevice[] = devices
       .filter((d) => d.kind === 'videoinput')
       .map((d) => ({
         deviceId: d.deviceId,
-        kind: d.kind as any,
-        label: d.label,
+        kind: d.kind as MediaDeviceKind,
+        label: d.label || `Camera (${d.deviceId.slice(0, 8)})`,
         groupId: d.groupId,
         isDefault: d.deviceId === 'default',
       }))
-    state.lastEnumerationTime = new Date()
+
+    // Use the individual setters to ensure auto-selection logic runs
+    this.setAudioInputDevices(audioInputs)
+    this.setAudioOutputDevices(audioOutputs)
+    this.setVideoInputDevices(videoInputs)
+
+    log.info(
+      `Set devices: ${audioInputs.length} audio inputs, ${audioOutputs.length} audio outputs, ${videoInputs.length} video inputs`
+    )
   },
 }
 

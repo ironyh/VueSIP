@@ -12,8 +12,28 @@
       </p>
     </div>
 
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Permissions Status -->
-    <div v-if="!permissionsGranted" class="permissions-section">
+    <div v-if="!effectivePermissionsGranted" class="permissions-section">
       <div class="status-message warning">
         Microphone permissions needed to access audio devices
       </div>
@@ -26,7 +46,7 @@
     <div v-else class="devices-section">
       <!-- Audio Input Devices -->
       <div class="device-group">
-        <h3>🎤 Audio Input (Microphone)</h3>
+        <h3>Audio Input (Microphone)</h3>
         <div v-if="audioInputDevices.length === 0" class="no-devices">
           No microphones detected
         </div>
@@ -53,7 +73,7 @@
 
       <!-- Audio Output Devices -->
       <div class="device-group">
-        <h3>🔊 Audio Output (Speaker)</h3>
+        <h3>Audio Output (Speaker)</h3>
         <div v-if="audioOutputDevices.length === 0" class="no-devices">
           No speakers detected
         </div>
@@ -81,7 +101,7 @@
       <!-- Refresh Button -->
       <div class="refresh-section">
         <button class="btn btn-secondary" @click="refresh">
-          🔄 Refresh Devices
+          Refresh Devices
         </button>
         <small>Click to detect newly connected audio devices</small>
       </div>
@@ -125,26 +145,76 @@ watch(selectedAudioInputId, (deviceId) => {
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useMediaDevices } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // Media Devices
 const {
-  audioInputDevices,
-  audioOutputDevices,
-  selectedAudioInputId,
-  selectedAudioOutputId,
+  audioInputDevices: realAudioInputDevices,
+  audioOutputDevices: realAudioOutputDevices,
+  selectedAudioInputId: realSelectedAudioInputId,
+  selectedAudioOutputId: realSelectedAudioOutputId,
   selectAudioInput,
   selectAudioOutput,
   enumerateDevices,
 } = useMediaDevices()
 
+// Mock devices for simulation
+const mockAudioInputDevices = ref([
+  { deviceId: 'mock-mic-1', label: 'Built-in Microphone', kind: 'audioinput' as const, groupId: 'group1', toJSON: () => ({}) },
+  { deviceId: 'mock-mic-2', label: 'USB Headset Microphone', kind: 'audioinput' as const, groupId: 'group2', toJSON: () => ({}) },
+  { deviceId: 'mock-mic-3', label: 'Bluetooth Earbuds', kind: 'audioinput' as const, groupId: 'group3', toJSON: () => ({}) },
+])
+
+const mockAudioOutputDevices = ref([
+  { deviceId: 'mock-speaker-1', label: 'Built-in Speakers', kind: 'audiooutput' as const, groupId: 'group1', toJSON: () => ({}) },
+  { deviceId: 'mock-speaker-2', label: 'USB Headset', kind: 'audiooutput' as const, groupId: 'group2', toJSON: () => ({}) },
+  { deviceId: 'mock-speaker-3', label: 'HDMI Audio Output', kind: 'audiooutput' as const, groupId: 'group4', toJSON: () => ({}) },
+])
+
+const mockSelectedInputId = ref('mock-mic-1')
+const mockSelectedOutputId = ref('mock-speaker-1')
+
+// Effective values - use simulation or real data based on mode
+const audioInputDevices = computed(() =>
+  isSimulationMode.value ? mockAudioInputDevices.value : realAudioInputDevices.value
+)
+
+const audioOutputDevices = computed(() =>
+  isSimulationMode.value ? mockAudioOutputDevices.value : realAudioOutputDevices.value
+)
+
+const selectedAudioInputId = computed(() =>
+  isSimulationMode.value ? mockSelectedInputId.value : realSelectedAudioInputId.value
+)
+
+const selectedAudioOutputId = computed(() =>
+  isSimulationMode.value ? mockSelectedOutputId.value : realSelectedAudioOutputId.value
+)
+
 // State
 const permissionsGranted = ref(false)
 const changeMessage = ref('')
 
+// Effective permissions - always granted in simulation mode
+const effectivePermissionsGranted = computed(() =>
+  isSimulationMode.value ? true : permissionsGranted.value
+)
+
 // Methods
 const requestPermissions = async () => {
+  if (isSimulationMode.value) {
+    permissionsGranted.value = true
+    showChangeMessage('Simulated permissions granted')
+    return
+  }
+
   try {
     await navigator.mediaDevices.getUserMedia({ audio: true })
     permissionsGranted.value = true
@@ -156,6 +226,13 @@ const requestPermissions = async () => {
 }
 
 const selectInput = (deviceId: string) => {
+  if (isSimulationMode.value) {
+    mockSelectedInputId.value = deviceId
+    showChangeMessage('Microphone changed successfully (simulated)')
+    console.log('[Simulation] Selected input device:', deviceId)
+    return
+  }
+
   try {
     selectAudioInput(deviceId)
     showChangeMessage('Microphone changed successfully')
@@ -166,6 +243,13 @@ const selectInput = (deviceId: string) => {
 }
 
 const selectOutput = (deviceId: string) => {
+  if (isSimulationMode.value) {
+    mockSelectedOutputId.value = deviceId
+    showChangeMessage('Speaker changed successfully (simulated)')
+    console.log('[Simulation] Selected output device:', deviceId)
+    return
+  }
+
   try {
     selectAudioOutput(deviceId)
     showChangeMessage('Speaker changed successfully')
@@ -176,6 +260,12 @@ const selectOutput = (deviceId: string) => {
 }
 
 const refresh = async () => {
+  if (isSimulationMode.value) {
+    showChangeMessage('Device list refreshed (simulated)')
+    console.log('[Simulation] Refreshed device list')
+    return
+  }
+
   try {
     await enumerateDevices()
     showChangeMessage('Device list refreshed')

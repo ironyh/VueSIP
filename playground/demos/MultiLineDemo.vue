@@ -1,5 +1,25 @@
 <template>
   <div class="multi-line-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Configuration Panel -->
     <div v-if="!sipConnected" class="config-panel">
       <h3>Multi-Line Configuration</h3>
@@ -282,9 +302,20 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onUnmounted } from 'vue'
 import type { LineState, LineStatus } from '../../src/types/multiline.types'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // Configuration state
-const sipConnected = ref(false)
+const realSipConnected = ref(false)
+
+// Effective values for simulation
+const sipConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realSipConnected.value
+)
 const connecting = ref(false)
 const connectionError = ref('')
 const lineCountConfig = ref(4)

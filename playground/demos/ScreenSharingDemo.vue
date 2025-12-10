@@ -5,6 +5,26 @@
       Share your screen, application windows, or browser tabs during video calls.
     </p>
 
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="effectiveCallState"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Connection Status -->
     <div class="status-section">
       <div :class="['status-badge', connectionState]">
@@ -14,26 +34,9 @@
         <span class="indicator active"></span>
         <span>Screen Sharing Active</span>
       </div>
-    </div>
-
-    <!-- SIP Configuration -->
-    <div class="config-section">
-      <h3>SIP Configuration</h3>
-      <div class="form-group">
-        <label>SIP Server URI</label>
-        <input v-model="sipServerUri" type="text" placeholder="sip:example.com" />
+      <div v-if="!isConnected" class="connection-hint">
+        Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo
       </div>
-      <div class="form-group">
-        <label>Username</label>
-        <input v-model="username" type="text" placeholder="user123" />
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input v-model="password" type="password" placeholder="password" />
-      </div>
-      <button @click="toggleConnection" :disabled="isConnecting">
-        {{ isConnected ? 'Disconnect' : isConnecting ? 'Connecting...' : 'Connect' }}
-      </button>
     </div>
 
     <!-- Call Control -->
@@ -52,7 +55,7 @@
     </div>
 
     <!-- Active Call with Screen Sharing -->
-    <div v-if="hasActiveCall" class="active-call-section">
+    <div v-if="effectiveHasActiveCall" class="active-call-section">
       <h3>Active Video Call</h3>
 
       <div class="call-info">
@@ -209,8 +212,14 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
-import { useSipClient } from '../../src/composables/useSipClient'
 import { useCallSession } from '../../src/composables/useCallSession'
+import { playgroundSipClient } from '../sipClient'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // SIP Configuration
 const sipServerUri = ref('sip:example.com')
@@ -218,12 +227,26 @@ const username = ref('')
 const password = ref('')
 const targetUri = ref('sip:1000@example.com')
 
-// SIP Client
-const { sipClient, connectionState, isConnected, isConnecting, connect, disconnect } =
-  useSipClient()
+// SIP Client - use shared playground instance
+const { connectionState: realConnectionState, isConnected: realIsConnected, isConnecting, connect, disconnect, getClient } =
+  playgroundSipClient
+
+// Effective values - use simulation or real data based on mode
+const connectionState = computed(() =>
+  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+)
+const isConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+)
+const effectiveCallState = computed(() =>
+  isSimulationMode.value ? simulation.state.value : callState.value
+)
+const effectiveHasActiveCall = computed(() =>
+  isSimulationMode.value ? simulation.state.value === 'active' : hasActiveCall.value
+)
 
 // Call Management - useCallSession requires a Ref
-const sipClientRef = computed(() => sipClient.value)
+const sipClientRef = computed(() => getClient())
 const {
   makeCall: makeCallFn,
   answer,

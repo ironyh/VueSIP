@@ -1,5 +1,25 @@
 <template>
   <div class="queue-monitor-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Configuration Panel -->
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>AMI Queue Monitor</h3>
@@ -235,8 +255,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAmi, useAmiQueues } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 import type { QueueInfo } from '../../src/types/ami.types'
 import { QueueMemberStatus } from '../../src/types/ami.types'
 
@@ -245,13 +267,22 @@ const amiConfig = ref({ url: '' })
 const connecting = ref(false)
 const connectionError = ref('')
 
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
+
 // AMI Client
 const {
   connect: amiConnect,
   disconnect: amiDisconnect,
-  isConnected: isAmiConnected,
+  isConnected: realIsAmiConnected,
   getClient,
 } = useAmi()
+
+// Effective values for simulation
+const isAmiConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsAmiConnected.value
+)
 
 // Queue composable - initialized after connection
 const queuesComposable = ref<ReturnType<typeof useAmiQueues> | null>(null)

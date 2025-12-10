@@ -5,9 +5,9 @@
       <div class="container">
         <div class="header-content">
           <div class="header-title">
-            <h1>🎮 VueSip Interactive Playground</h1>
+            <h1>VueSIP Playground</h1>
             <p class="subtitle">
-              Explore and experiment with VueSip composables for building SIP/VoIP applications
+              Interactive demos for SIP/VoIP composables
             </p>
           </div>
           <div class="header-actions">
@@ -18,7 +18,7 @@
               :aria-label="isCompactMode ? 'Disable compact mode' : 'Enable compact mode'"
               type="button"
             >
-              <span class="theme-icon">{{ isCompactMode ? '🧩' : '🗜️' }}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             </button>
             <button
               @click="toggleTheme"
@@ -26,7 +26,8 @@
               :aria-label="`Switch to ${isDarkMode ? 'light' : 'dark'} mode`"
               type="button"
             >
-              <span class="theme-icon">{{ isDarkMode ? '☀️' : '🌙' }}</span>
+              <svg v-if="isDarkMode" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             </button>
           </div>
         </div>
@@ -34,7 +35,7 @@
     </header>
 
     <!-- Call Toolbar -->
-    <CallToolbar />
+    <CallToolbar @open-settings="selectExample('settings')" />
 
     <!-- Main Content -->
     <div class="playground-content">
@@ -43,12 +44,49 @@
         <nav>
           <h2>Examples</h2>
 
+          <!-- Category Filter - Segmented Control -->
+          <div class="category-filter" role="tablist" aria-label="Filter by category">
+            <div class="filter-track">
+              <div
+                class="filter-indicator"
+                :style="{
+                  '--segment-count': categoryOrder.length + 1,
+                  '--active-index': activeCategory === 'all' ? 0 : categoryOrder.indexOf(activeCategory as ExampleCategory) + 1
+                }"
+              ></div>
+              <button
+                :class="['filter-segment', { active: activeCategory === 'all' }]"
+                @click="selectCategory('all')"
+                type="button"
+                role="tab"
+                :aria-selected="activeCategory === 'all'"
+              >
+                <span class="segment-label">All</span>
+                <span class="segment-count">{{ categoryCounts.all }}</span>
+              </button>
+              <button
+                v-for="cat in categoryOrder"
+                :key="cat"
+                :class="['filter-segment', { active: activeCategory === cat }]"
+                @click="selectCategory(cat)"
+                type="button"
+                role="tab"
+                :aria-selected="activeCategory === cat"
+                :title="categoryInfo[cat].description"
+              >
+                <span class="segment-icon">{{ categoryInfo[cat].icon }}</span>
+                <span class="segment-label">{{ categoryInfo[cat].label }}</span>
+                <span class="segment-count">{{ categoryCounts[cat] }}</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Search Input -->
           <div class="search-box">
             <input
               v-model="searchQuery"
               type="search"
-              placeholder="Search demos..."
+              :placeholder="activeCategory === 'all' ? 'Search all demos...' : `Search ${categoryInfo[activeCategory]?.label || 'demos'}...`"
               class="search-input"
               aria-label="Search demos"
             />
@@ -64,8 +102,11 @@
           </div>
 
           <!-- Filter Stats -->
-          <div v-if="searchQuery" class="filter-stats">
-            Showing {{ filteredExamples.length }} of {{ examples.length }} demos
+          <div v-if="searchQuery || activeCategory !== 'all'" class="filter-stats">
+            Showing {{ filteredExamples.length }} of {{ categoryCounts[activeCategory] }} demos
+            <span v-if="activeCategory !== 'all'" class="active-filter">
+              in {{ categoryInfo[activeCategory]?.label }}
+            </span>
           </div>
 
           <!-- Example List -->
@@ -76,7 +117,6 @@
               :class="{ active: currentExample === example.id }"
               @click="selectExample(example.id)"
             >
-              <span class="example-icon">{{ example.icon }}</span>
               <div class="example-info">
                 <h3 v-html="highlightMatch(example.title)"></h3>
                 <p v-html="highlightMatch(example.description)"></p>
@@ -106,13 +146,13 @@
           <h3>Resources</h3>
           <ul>
             <li>
-              <a href="/docs" target="_blank">📚 Documentation</a>
+              <a href="/docs" target="_blank">Documentation</a>
             </li>
             <li>
-              <a href="https://github.com/ironyh/VueSip" target="_blank">💻 GitHub Repository</a>
+              <a href="https://github.com/anthropics/VueSip" target="_blank">GitHub</a>
             </li>
             <li>
-              <a href="https://www.npmjs.com/package/vuesip" target="_blank">📦 NPM Package</a>
+              <a href="https://www.npmjs.com/package/vuesip" target="_blank">NPM</a>
             </li>
           </ul>
         </div>
@@ -122,7 +162,20 @@
       <main class="playground-main">
         <!-- Example Header -->
         <div class="example-header">
-          <h2>{{ activeExample.title }}</h2>
+          <div class="example-title-row">
+            <h2>{{ activeExample.title }}</h2>
+            <button
+              @click="copyShareLink"
+              class="share-link-btn"
+              :class="{ copied: linkCopied }"
+              :aria-label="linkCopied ? 'Link copied!' : 'Copy link to this demo'"
+              type="button"
+            >
+              <svg v-if="!linkCopied" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>{{ linkCopied ? 'Copied!' : 'Share' }}</span>
+            </button>
+          </div>
           <p>{{ activeExample.description }}</p>
           <div class="example-tags">
             <span v-for="tag in activeExample.tags" :key="tag" class="tag">{{ tag }}</span>
@@ -133,33 +186,42 @@
         <div class="tab-navigation">
           <button
             :class="{ active: activeTab === 'demo' }"
-            @click="activeTab = 'demo'"
+            @click="selectTab('demo')"
           >
-            🎯 Live Demo
+            Demo
           </button>
           <button
             :class="{ active: activeTab === 'code' }"
-            @click="activeTab = 'code'"
+            @click="selectTab('code')"
           >
-            💻 Code Examples
+            Code
           </button>
           <button
             :class="{ active: activeTab === 'setup' }"
-            @click="activeTab = 'setup'"
+            @click="selectTab('setup')"
           >
-            ⚙️ Setup Guide
+            Setup
           </button>
         </div>
 
         <!-- Tab Content -->
         <div class="tab-content">
           <!-- Live Demo Tab -->
-          <div v-if="activeTab === 'demo'" class="demo-container">
-            <component :is="activeExample.component" />
+          <div v-show="activeTab === 'demo'" class="demo-container">
+            <KeepAlive>
+              <component
+                v-if="activeExample?.component"
+                :is="activeExample.component"
+                :key="activeExample.id"
+              />
+            </KeepAlive>
+            <div v-if="!activeExample?.component" class="error-message">
+              Component not found for this example.
+            </div>
           </div>
 
           <!-- Code Examples Tab -->
-          <div v-if="activeTab === 'code'" class="code-container">
+          <div v-show="activeTab === 'code'" class="code-container">
             <div v-for="(snippet, index) in activeExample.codeSnippets" :key="index" class="code-snippet">
               <h3>{{ snippet.title }}</h3>
               <p v-if="snippet.description" class="snippet-description">
@@ -173,10 +235,8 @@
                   :aria-label="copiedSnippets[index] ? 'Copied!' : 'Copy code'"
                   type="button"
                 >
-                  <span v-if="copiedSnippets[index]" class="copy-icon">✓</span>
-                  <span v-else class="copy-icon">📋</span>
                   <span class="copy-text">
-                    {{ copiedSnippets[index] ? 'Copied!' : 'Copy' }}
+                    {{ copiedSnippets[index] ? 'Copied' : 'Copy' }}
                   </span>
                 </button>
                 <pre><code>{{ snippet.code }}</code></pre>
@@ -185,7 +245,7 @@
           </div>
 
           <!-- Setup Guide Tab -->
-          <div v-if="activeTab === 'setup'" class="setup-container">
+          <div v-show="activeTab === 'setup'" class="setup-container">
             <div class="setup-content">
               <h3>Prerequisites</h3>
               <ul>
@@ -222,8 +282,9 @@ const { makeCall, answer, hangup } = useCallSession()</code></pre>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { allExamples } from './examples'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { allExamples, examplesByCategory, categoryInfo } from './examples'
+import type { ExampleCategory } from './examples'
 import CallToolbar from './components/CallToolbar.vue'
 import { playgroundSipClient } from './sipClient'
 
@@ -247,7 +308,7 @@ interface CredentialsOptions {
 // Use imported examples
 const examples = allExamples
 
-// Get shared SIP client for global auto-connect
+// Get shared SIP client for global auto-connect (lazy-loaded via Proxy)
 const { connect, disconnect, isConnected, updateConfig } = playgroundSipClient
 
 // State
@@ -257,15 +318,55 @@ const searchQuery = ref('')
 const copiedSnippets = ref<Record<number, boolean>>({})
 const isDarkMode = ref(false)
 const isCompactMode = ref(false)
+const linkCopied = ref(false)
+const activeCategory = ref<ExampleCategory | 'all'>('all')
 
-// Computed
-const filteredExamples = computed(() => {
-  if (!searchQuery.value.trim()) {
+// Category order for display
+const categoryOrder: ExampleCategory[] = ['sip', 'ami', 'utility']
+
+// URL Hash Routing
+const parseHashRoute = () => {
+  const hash = window.location.hash.slice(1) // Remove the #
+  if (!hash) return { example: 'basic-call', tab: 'demo' as const }
+
+  // Support formats: #basic-call, #basic-call/code, #basic-call/setup
+  const parts = hash.split('/')
+  const example = parts[0] || 'basic-call'
+  const tab = (parts[1] as 'demo' | 'code' | 'setup') || 'demo'
+
+  // Validate example exists
+  const validExample = examples.find(ex => ex.id === example) ? example : 'basic-call'
+  // Validate tab
+  const validTab = ['demo', 'code', 'setup'].includes(tab) ? tab : 'demo'
+
+  return { example: validExample, tab: validTab as 'demo' | 'code' | 'setup' }
+}
+
+const updateHashRoute = () => {
+  const tab = activeTab.value === 'demo' ? '' : `/${activeTab.value}`
+  const newHash = `#${currentExample.value}${tab}`
+  if (window.location.hash !== newHash) {
+    window.history.pushState(null, '', newHash)
+  }
+}
+
+// Computed - get examples based on active category
+const categoryExamples = computed(() => {
+  if (activeCategory.value === 'all') {
     return examples
+  }
+  return examplesByCategory[activeCategory.value] || []
+})
+
+const filteredExamples = computed(() => {
+  const baseExamples = categoryExamples.value
+
+  if (!searchQuery.value.trim()) {
+    return baseExamples
   }
 
   const query = searchQuery.value.toLowerCase()
-  return examples.filter(example => {
+  return baseExamples.filter(example => {
     // Search in title
     if (example.title.toLowerCase().includes(query)) return true
 
@@ -279,6 +380,14 @@ const filteredExamples = computed(() => {
   })
 })
 
+// Get count of examples per category
+const categoryCounts = computed(() => ({
+  all: examples.length,
+  sip: examplesByCategory.sip.length,
+  ami: examplesByCategory.ami.length,
+  utility: examplesByCategory.utility.length,
+}))
+
 const activeExample = computed(() => {
   return examples.find((ex) => ex.id === currentExample.value) || examples[0]
 })
@@ -287,6 +396,45 @@ const activeExample = computed(() => {
 const selectExample = (id: string) => {
   currentExample.value = id
   activeTab.value = 'demo'
+  updateHashRoute()
+  // Scroll to top of main content area
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const selectCategory = (category: ExampleCategory | 'all') => {
+  activeCategory.value = category
+  // Clear search when switching categories
+  searchQuery.value = ''
+}
+
+const selectTab = (tab: 'demo' | 'code' | 'setup') => {
+  activeTab.value = tab
+  updateHashRoute()
+}
+
+const copyShareLink = async () => {
+  try {
+    const url = window.location.href
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(url)
+    } else {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea')
+      textarea.value = url
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    linkCopied.value = true
+    setTimeout(() => {
+      linkCopied.value = false
+    }, 2000)
+  } catch (error) {
+    console.error('Failed to copy link:', error)
+  }
 }
 
 const highlightMatch = (text: string): string => {
@@ -423,12 +571,29 @@ const loadAndConnectCredentials = async () => {
   }
 }
 
+// Handle browser back/forward navigation
+const handleHashChange = () => {
+  const { example, tab } = parseHashRoute()
+  currentExample.value = example
+  activeTab.value = tab
+  // Scroll to top when navigating via browser history
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 // Initialize theme from localStorage or system preference
 onMounted(async () => {
-  // 1. Try to auto-connect with saved credentials (global for all demos)
+  // 1. Initialize URL hash routing - load state from URL
+  const { example, tab } = parseHashRoute()
+  currentExample.value = example
+  activeTab.value = tab
+
+  // Listen for browser back/forward navigation
+  window.addEventListener('hashchange', handleHashChange)
+
+  // 2. Try to auto-connect with saved credentials (global for all demos)
   await loadAndConnectCredentials()
 
-  // 2. Initialize theme
+  // 3. Initialize theme
   const stored = localStorage.getItem('vuesip-theme')
   if (stored) {
     isDarkMode.value = stored === 'dark'
@@ -437,11 +602,16 @@ onMounted(async () => {
   }
   applyTheme(isDarkMode.value)
 
-  // 3. Initialize compact mode
+  // 4. Initialize compact mode
   const compactStored = localStorage.getItem('vuesip-compact')
   if (compactStored) {
     isCompactMode.value = compactStored === 'on'
   }
+})
+
+// Cleanup
+onUnmounted(() => {
+  window.removeEventListener('hashchange', handleHashChange)
 })
 
 // Watch for theme changes
@@ -463,13 +633,10 @@ watch(isCompactMode, (newVal) => {
 
 .playground-header {
   position: relative;
-  background: linear-gradient(120deg, #667eea 0%, #764ba2 50%, #4f46e5 100%);
-  background-size: 200% 200%;
-  animation: headerGradient 12s ease infinite;
+  background: #1a1a2e;
   color: white;
-  padding: 2.5rem 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-  overflow: hidden;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .playground-header .container {
@@ -587,6 +754,91 @@ watch(isCompactMode, (newVal) => {
   margin: 0 0 1rem 0;
   font-size: 1.25rem;
   color: var(--text-primary);
+}
+
+/* Category Filter - Segmented Control */
+.category-filter {
+  margin-bottom: 0.75rem;
+}
+
+.filter-track {
+  display: flex;
+  position: relative;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.filter-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / var(--segment-count) - 2px);
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  border-radius: 7px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  z-index: 0;
+  transform: translateX(calc(var(--active-index) * (100% + 4px)));
+}
+
+.filter-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+}
+
+.filter-segment:hover:not(.active) {
+  color: var(--text-primary);
+}
+
+.filter-segment.active {
+  color: white;
+}
+
+.segment-icon {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.segment-label {
+  display: inline;
+}
+
+.segment-count {
+  font-size: 0.55rem;
+  padding: 0.1rem 0.3rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+  min-width: 1rem;
+  text-align: center;
+}
+
+.filter-segment.active .segment-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.filter-stats .active-filter {
+  font-weight: 600;
+  color: var(--primary);
 }
 
 /* Search Box */
@@ -815,6 +1067,52 @@ watch(isCompactMode, (newVal) => {
   margin: 0 0 0.5rem 0;
   font-size: 2rem;
   color: var(--text-primary);
+}
+
+/* Share Link Button */
+.example-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.example-title-row h2 {
+  margin: 0;
+}
+
+.share-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.share-link-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.share-link-btn.copied {
+  background: var(--success);
+  color: white;
+  border-color: var(--success);
+}
+
+.share-link-btn svg {
+  flex-shrink: 0;
 }
 
 .example-header p {
@@ -1058,6 +1356,24 @@ watch(isCompactMode, (newVal) => {
     font-size: 0.875rem;
     white-space: nowrap;
   }
+
+  /* Mobile filter adjustments - hide labels, show only icons + counts */
+  .filter-segment {
+    padding: 0.35rem 0.4rem;
+    gap: 0.2rem;
+  }
+
+  .segment-label {
+    display: none;
+  }
+
+  .segment-icon {
+    font-size: 0.9rem;
+  }
+
+  .segment-count {
+    font-size: 0.55rem;
+  }
 }
 
 /* Compact mode adjustments */
@@ -1081,6 +1397,46 @@ watch(isCompactMode, (newVal) => {
 
 .compact .playground-sidebar {
   padding: 1rem;
+}
+
+.compact .category-filter {
+  margin-bottom: 0.5rem;
+}
+
+.compact .filter-track {
+  padding: 2px;
+  border-radius: 8px;
+  gap: 1px;
+}
+
+.compact .filter-indicator {
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / var(--segment-count) - 1px);
+  border-radius: 6px;
+  transform: translateX(calc(var(--active-index) * (100% + 2px)));
+}
+
+.compact .filter-segment {
+  padding: 0.3rem 0.35rem;
+  font-size: 0.6rem;
+  gap: 0.15rem;
+  border-radius: 6px;
+}
+
+.compact .segment-icon {
+  font-size: 0.7rem;
+}
+
+.compact .segment-label {
+  display: none;
+}
+
+.compact .segment-count {
+  font-size: 0.5rem;
+  padding: 0.05rem 0.2rem;
+  min-width: 0.85rem;
 }
 
 .compact .search-input {

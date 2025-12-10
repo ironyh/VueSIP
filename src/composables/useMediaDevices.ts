@@ -318,14 +318,8 @@ export function useMediaDevices(
       return enumerationPromise
     }
 
-    // Check if cached devices are available and return them immediately
-    const cachedDevices = allDevices.value
-    const hasCachedDevices = cachedDevices.length > 0 && deviceStore.lastEnumerationTime !== null
-    
-    if (hasCachedDevices) {
-      log.debug('Returning cached devices', { count: cachedDevices.length })
-      return cachedDevices
-    }
+    // Note: We no longer return cached devices early - always enumerate fresh
+    // This ensures we pick up new devices and permission changes
 
     const timer = createOperationTimer()
 

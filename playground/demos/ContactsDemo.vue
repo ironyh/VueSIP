@@ -1,5 +1,25 @@
 <template>
   <div class="contacts-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Configuration Panel -->
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>Contacts/Phonebook Demo</h3>
@@ -231,8 +251,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAmi, useAmiDatabase } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 import type { AmiContact } from '../../src/types/ami.types'
 
 // AMI Configuration
@@ -261,13 +283,22 @@ const contactForm = ref({
   notes: '',
 })
 
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
+
 // AMI Client
 const {
   connect: amiConnect,
   disconnect: amiDisconnect,
-  isConnected: isAmiConnected,
+  isConnected: realIsAmiConnected,
   getClient,
 } = useAmi()
+
+// Effective values for simulation
+const isAmiConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsAmiConnected.value
+)
 
 // Database composable
 const dbComposable = ref<ReturnType<typeof useAmiDatabase> | null>(null)

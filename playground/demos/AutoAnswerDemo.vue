@@ -1,5 +1,25 @@
 <template>
   <div class="auto-answer-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <div class="info-section">
       <p>
         Auto-Answer mode automatically answers incoming calls based on configurable rules.
@@ -298,9 +318,20 @@ import { ref, computed, watch } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
 import { useSipAutoAnswer } from '../../src/composables/useSipAutoAnswer'
 import type { AutoAnswerMode, IntercomMode as _IntercomMode } from '../../src/types/autoanswer.types'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // SIP Client
-const { isConnected, getClient } = useSipClient()
+const { isConnected: realIsConnected, getClient } = useSipClient()
+
+// Effective values for simulation
+const isConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+)
 const sipClientRef = computed(() => getClient())
 const { state: callState, remoteUri, answer } = useCallSession(sipClientRef)
 

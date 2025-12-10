@@ -12,19 +12,39 @@
       </p>
     </div>
 
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="effectiveCallState"
+      :duration="effectiveDuration"
+      :remote-uri="effectiveRemoteUri"
+      :remote-display-name="effectiveRemoteDisplayName"
+      :is-on-hold="effectiveIsOnHold"
+      :is-muted="effectiveIsMuted"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Connection Status -->
-    <div v-if="!isConnected" class="status-message info">
-      Connect to a SIP server to use DTMF features (use the Basic Call demo to connect)
+    <div v-if="!effectiveIsConnected" class="status-message info">
+      {{ isSimulationMode ? 'Enable simulation and run a scenario to test DTMF' : 'Connect to a SIP server to use DTMF features (use the Basic Call demo to connect)' }}
     </div>
 
-    <div v-else-if="callState !== 'active'" class="status-message warning">
-      Make or answer a call to send DTMF tones
+    <div v-else-if="effectiveCallState !== 'active'" class="status-message warning">
+      {{ isSimulationMode ? 'Run the "Active Call" scenario to test DTMF tones' : 'Make or answer a call to send DTMF tones' }}
     </div>
 
     <!-- DTMF Keypad -->
     <div v-else class="dtmf-active">
       <div class="call-info">
-        <div class="info-badge">In Call: {{ remoteUri || 'Unknown' }}</div>
+        <div class="info-badge">In Call: {{ effectiveRemoteDisplayName || effectiveRemoteUri || 'Unknown' }}</div>
       </div>
 
       <div class="dtmf-keypad">
@@ -88,16 +108,55 @@ for (const digit of sequence) {
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useSipClient, useCallSession, useDTMF } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // Get SIP client
 const { isConnected, getClient } = useSipClient()
 
 // Get call session
 const sipClientRef = computed(() => getClient())
-const { state: callState, remoteUri, session } = useCallSession(sipClientRef)
+const { state: realCallState, remoteUri: realRemoteUri, session, duration: realDuration, remoteDisplayName: realRemoteDisplayName } = useCallSession(sipClientRef)
 
 // DTMF
 const { sendTone: sendDtmfTone, canSendDTMF } = useDTMF(session)
+
+// Effective values - use simulation or real data based on mode
+const effectiveIsConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : isConnected.value
+)
+
+const effectiveCallState = computed(() =>
+  isSimulationMode.value ? simulation.state.value : realCallState.value
+)
+
+const effectiveDuration = computed(() =>
+  isSimulationMode.value ? simulation.duration.value : (realDuration.value || 0)
+)
+
+const effectiveRemoteUri = computed(() =>
+  isSimulationMode.value ? simulation.remoteUri.value : realRemoteUri.value
+)
+
+const effectiveRemoteDisplayName = computed(() =>
+  isSimulationMode.value ? simulation.remoteDisplayName.value : realRemoteDisplayName.value
+)
+
+const effectiveIsOnHold = computed(() =>
+  isSimulationMode.value ? simulation.isOnHold.value : false
+)
+
+const effectiveIsMuted = computed(() =>
+  isSimulationMode.value ? simulation.isMuted.value : false
+)
+
+const effectiveCanSendDTMF = computed(() =>
+  isSimulationMode.value ? simulation.state.value === 'active' : canSendDTMF.value
+)
 
 // State
 const lastTone = ref('')
@@ -109,11 +168,17 @@ const dialpadKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 
 // Methods
 const sendTone = async (tone: string) => {
-  if (!canSendDTMF.value) return
+  if (!effectiveCanSendDTMF.value) return
 
   try {
-    await sendDtmfTone(tone)
-    lastTone.value = tone
+    // In simulation mode, just show feedback
+    if (isSimulationMode.value) {
+      lastTone.value = tone
+      console.log(`[Simulation] DTMF tone sent: ${tone}`)
+    } else {
+      await sendDtmfTone(tone)
+      lastTone.value = tone
+    }
 
     // Clear feedback after 2 seconds
     setTimeout(() => {
@@ -128,15 +193,20 @@ const sendTone = async (tone: string) => {
 }
 
 const sendSequence = async () => {
-  if (!toneSequence.value.trim() || !canSendDTMF.value || sending.value) return
+  if (!toneSequence.value.trim() || !effectiveCanSendDTMF.value || sending.value) return
 
   sending.value = true
   try {
     const sequence = toneSequence.value.replace(/[^0-9*#]/g, '') // Only allow valid DTMF chars
 
     for (const digit of sequence) {
-      await sendDtmfTone(digit)
-      lastTone.value = digit
+      if (isSimulationMode.value) {
+        lastTone.value = digit
+        console.log(`[Simulation] DTMF tone sent: ${digit}`)
+      } else {
+        await sendDtmfTone(digit)
+        lastTone.value = digit
+      }
 
       // Wait 150ms between tones
       await new Promise(resolve => setTimeout(resolve, 150))

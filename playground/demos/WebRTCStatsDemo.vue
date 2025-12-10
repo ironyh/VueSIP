@@ -1,5 +1,25 @@
 <template>
   <div class="webrtc-stats-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <Card class="demo-card">
       <template #title>
         <div class="demo-header">
@@ -223,6 +243,8 @@
 import { computed, watch } from 'vue'
 import { useSipWebRTCStats, useCallSession } from '@/composables'
 import { playgroundSipClient } from '../sipClient'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 import Card from 'primevue/card'
 import Panel from 'primevue/panel'
 import Button from 'primevue/button'
@@ -231,10 +253,19 @@ import ProgressBar from 'primevue/progressbar'
 import Message from 'primevue/message'
 import Divider from 'primevue/divider'
 
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
+
 // Get call session from playground SIP client
 const callSession = useCallSession(playgroundSipClient)
 const sessionRef = computed(() => callSession.session.value)
-const hasActiveSession = computed(() => callSession.callState.value === 'active')
+const realHasActiveSession = computed(() => callSession.callState.value === 'active')
+
+// Effective values for simulation
+const hasActiveSession = computed(() =>
+  isSimulationMode.value ? simulation.state.value === 'active' : realHasActiveSession.value
+)
 
 // WebRTC Stats composable
 const {

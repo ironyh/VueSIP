@@ -1,5 +1,7 @@
 import type { Component } from 'vue'
 
+export type ExampleCategory = 'sip' | 'ami' | 'utility'
+
 export interface CodeSnippet {
   title: string
   description: string
@@ -11,6 +13,7 @@ export interface ExampleDefinition {
   icon: string
   title: string
   description: string
+  category: ExampleCategory
   tags: string[]
   component: Component
   setupGuide: string

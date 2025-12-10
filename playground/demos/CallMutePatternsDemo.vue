@@ -1,5 +1,25 @@
 <template>
   <div class="call-mute-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <h2>🔇 Call Mute Patterns</h2>
     <p class="description">
       Advanced mute/unmute patterns with push-to-talk, auto-mute, and visual indicators.
@@ -10,26 +30,9 @@
       <div :class="['status-badge', connectionState]">
         {{ connectionState.toUpperCase() }}
       </div>
-    </div>
-
-    <!-- SIP Configuration -->
-    <div class="config-section">
-      <h3>SIP Configuration</h3>
-      <div class="form-group">
-        <label>SIP Server URI</label>
-        <input v-model="sipServerUri" type="text" placeholder="sip:example.com" />
+      <div v-if="!isConnected" class="connection-hint">
+        Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo
       </div>
-      <div class="form-group">
-        <label>Username</label>
-        <input v-model="username" type="text" placeholder="user123" />
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input v-model="password" type="password" placeholder="password" />
-      </div>
-      <button @click="toggleConnection" :disabled="isConnecting">
-        {{ isConnected ? 'Disconnect' : isConnecting ? 'Connecting...' : 'Connect' }}
-      </button>
     </div>
 
     <!-- Call Control -->
@@ -235,21 +238,32 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useSipClient } from '../../src/composables/useSipClient'
 import { useCallSession } from '../../src/composables/useCallSession'
+import { playgroundSipClient } from '../sipClient'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // SIP Configuration
-const sipServerUri = ref('sip:example.com')
-const username = ref('')
-const password = ref('')
 const targetUri = ref('sip:1000@example.com')
 
-// SIP Client
-const { sipClient, connectionState, isConnected, isConnecting, connect, disconnect } =
-  useSipClient()
+// SIP Client - use shared playground instance (credentials managed globally)
+const { connectionState: realConnectionState, isConnected: realIsConnected, getClient } =
+  playgroundSipClient
+
+// Effective values for simulation
+const isConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+)
+const connectionState = computed(() =>
+  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+)
 
 // Call Management - useCallSession requires a Ref
-const sipClientRef = computed(() => sipClient.value)
+const sipClientRef = computed(() => getClient())
 const {
   makeCall: makeCallFn,
   answer,
@@ -317,19 +331,6 @@ const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-}
-
-// Connection Toggle
-const toggleConnection = async () => {
-  if (isConnected.value) {
-    await disconnect()
-  } else {
-    await connect({
-      uri: sipServerUri.value,
-      username: username.value,
-      password: password.value,
-    })
-  }
 }
 
 // Make Call
@@ -588,7 +589,23 @@ onUnmounted(() => {
 }
 
 .status-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 2rem;
+}
+
+.connection-hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+  padding: 0.5rem 0.75rem;
+  background: #fef3c7;
+  border-radius: 6px;
+  border: 1px solid #fcd34d;
+}
+
+.connection-hint strong {
+  color: #92400e;
 }
 
 .status-badge {

@@ -1,7 +1,27 @@
 <template>
   <div class="presence-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="effectiveCallState"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Configuration Panel -->
-    <div v-if="!isConnected" class="config-panel">
+    <div v-if="!effectiveIsConnected" class="config-panel">
       <h3>SIP Server Configuration</h3>
       <p class="info-text">
         Configure your SIP server details to test SIP Presence (SUBSCRIBE/NOTIFY) functionality.
@@ -78,11 +98,11 @@
       <div class="status-bar">
         <div class="status-item">
           <span class="status-dot connected"></span>
-          <span>Connected</span>
+          <span>Connected{{ isSimulationMode ? ' (Simulated)' : '' }}</span>
         </div>
         <div class="status-item">
-          <span class="status-dot" :class="{ connected: isRegistered }"></span>
-          <span>{{ isRegistered ? 'Registered' : 'Not Registered' }}</span>
+          <span class="status-dot" :class="{ connected: effectiveIsRegistered }"></span>
+          <span>{{ effectiveIsRegistered ? 'Registered' : 'Not Registered' }}</span>
         </div>
         <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
           Disconnect
@@ -256,6 +276,23 @@
 import { ref, computed } from 'vue'
 import { useSipClient, usePresence } from '../../src'
 import { PresenceState, type PresenceEvent } from '../../src/types/presence.types'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
+
+// Effective values - use simulation or real data based on mode
+const effectiveIsConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : isConnected.value
+)
+const effectiveIsRegistered = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : isRegistered.value
+)
+const effectiveCallState = computed(() =>
+  isSimulationMode.value ? simulation.state.value : 'idle'
+)
 
 // Configuration
 const config = ref({

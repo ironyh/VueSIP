@@ -23,13 +23,33 @@
       </div>
     </div>
 
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="effectiveCallState"
+      :duration="effectiveDuration"
+      :remote-uri="effectiveRemoteUri"
+      :remote-display-name="effectiveRemoteDisplayName"
+      :is-on-hold="effectiveIsOnHold"
+      :is-muted="effectiveIsMuted"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Connection Status -->
-    <div v-if="!isConnected" class="status-message info">
-      Connect to a SIP server to use transfer features (use the Basic Call demo to connect)
+    <div v-if="!effectiveIsConnected" class="status-message info">
+      {{ isSimulationMode ? 'Enable simulation and run a scenario to test transfers' : 'Connect to a SIP server to use transfer features (use the Basic Call demo to connect)' }}
     </div>
 
-    <div v-else-if="callState !== 'active'" class="status-message warning">
-      You need an active call to perform transfers
+    <div v-else-if="effectiveCallState !== 'active'" class="status-message warning">
+      {{ isSimulationMode ? 'Run the "Active Call" or "Transfer" scenario to test transfers' : 'You need an active call to perform transfers' }}
     </div>
 
     <!-- Transfer Interface -->
@@ -40,11 +60,11 @@
         <div class="call-details">
           <div class="detail-row">
             <span class="label">Connected to:</span>
-            <span class="value">{{ remoteUri || 'Unknown' }}</span>
+            <span class="value">{{ effectiveRemoteDisplayName || effectiveRemoteUri || 'Unknown' }}</span>
           </div>
           <div class="detail-row">
             <span class="label">Status:</span>
-            <span class="value">{{ isOnHold ? 'On Hold' : 'Active' }}</span>
+            <span class="value">{{ effectiveIsOnHold ? 'On Hold' : 'Active' }}</span>
           </div>
         </div>
       </div>
@@ -225,11 +245,46 @@ await cancelTransfer()</code></pre>
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useSipClient, useCallSession, useCallControls } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // Get SIP client and call session
 const { isConnected, getClient } = useSipClient()
 const sipClientRef = computed(() => getClient())
-const { state: callState, remoteUri, isOnHold, session } = useCallSession(sipClientRef)
+const { state: realCallState, remoteUri: realRemoteUri, isOnHold: realIsOnHold, session, duration: realDuration, remoteDisplayName: realRemoteDisplayName } = useCallSession(sipClientRef)
+
+// Effective values - use simulation or real data based on mode
+const effectiveIsConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : isConnected.value
+)
+
+const effectiveCallState = computed(() =>
+  isSimulationMode.value ? simulation.state.value : realCallState.value
+)
+
+const effectiveDuration = computed(() =>
+  isSimulationMode.value ? simulation.duration.value : (realDuration.value || 0)
+)
+
+const effectiveRemoteUri = computed(() =>
+  isSimulationMode.value ? simulation.remoteUri.value : realRemoteUri.value
+)
+
+const effectiveRemoteDisplayName = computed(() =>
+  isSimulationMode.value ? simulation.remoteDisplayName.value : realRemoteDisplayName.value
+)
+
+const effectiveIsOnHold = computed(() =>
+  isSimulationMode.value ? simulation.isOnHold.value : realIsOnHold.value
+)
+
+const effectiveIsMuted = computed(() =>
+  isSimulationMode.value ? simulation.isMuted.value : false
+)
 
 // Call Controls
 const {

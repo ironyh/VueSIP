@@ -1,7 +1,28 @@
 <template>
   <div class="settings-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- SIP Configuration Panel -->
-    <Panel header="SIP Server Configuration" class="config-panel">
+    <div class="config-panel">
+      <h3>SIP Server Configuration</h3>
       <p class="info-text">
         Configure your SIP server details here. These settings will be used across all playground demos.
       </p>
@@ -9,140 +30,132 @@
       <div class="connection-status" :class="{ connected: isConnected }">
         <span class="status-indicator"></span>
         <span class="status-text">{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
-        <Badge v-if="isRegistered" value="Registered" severity="success" />
+        <span v-if="isRegistered" class="badge badge-success">Registered</span>
+      </div>
+
+      <!-- Connection Info when connected (shown prominently) -->
+      <div v-if="isConnected && activeConnectionInfo" class="connection-info">
+        <h4>Connection Details</h4>
+        <dl>
+          <dt>Server</dt>
+          <dd>{{ activeConnectionInfo.uri }}</dd>
+          <dt>SIP URI</dt>
+          <dd>{{ activeConnectionInfo.sipUri }}</dd>
+          <dt>Display Name</dt>
+          <dd>{{ activeConnectionInfo.displayName }}</dd>
+          <dt>Status</dt>
+          <dd>{{ isRegistered ? 'Registered' : 'Connected (not registered)' }}</dd>
+        </dl>
       </div>
 
       <div class="form-group">
-        <FloatLabel>
-          <InputText
-            id="server-uri"
-            v-model="config.uri"
-            :disabled="connecting || isConnected"
-            class="w-full"
-          />
-          <label for="server-uri">Server URI (WebSocket)</label>
-        </FloatLabel>
+        <label for="server-uri">Server URI (WebSocket)</label>
+        <input
+          id="server-uri"
+          v-model="config.uri"
+          type="text"
+          placeholder="wss://sip.example.com:7443"
+          :disabled="connecting || isConnected"
+        />
         <small>Example: wss://sip.yourdomain.com:7443</small>
       </div>
 
       <div class="form-group">
-        <FloatLabel>
-          <InputText
-            id="sip-uri"
-            v-model="config.sipUri"
-            :disabled="connecting || isConnected"
-            class="w-full"
-          />
-          <label for="sip-uri">SIP URI</label>
-        </FloatLabel>
+        <label for="sip-uri">SIP URI</label>
+        <input
+          id="sip-uri"
+          v-model="config.sipUri"
+          type="text"
+          placeholder="sip:username@example.com"
+          :disabled="connecting || isConnected"
+        />
         <small>Example: sip:1000@yourdomain.com</small>
       </div>
 
       <div class="form-group">
-        <FloatLabel>
-          <InputText
-            id="password"
-            v-model="config.password"
-            type="password"
-            :disabled="connecting || isConnected"
-            class="w-full"
-          />
-          <label for="password">Password</label>
-        </FloatLabel>
+        <label for="password">Password</label>
+        <input
+          id="password"
+          v-model="config.password"
+          type="password"
+          placeholder="Enter your SIP password"
+          :disabled="connecting || isConnected"
+        />
       </div>
 
       <div class="form-group">
-        <FloatLabel>
-          <InputText
-            id="display-name"
-            v-model="config.displayName"
-            :disabled="connecting || isConnected"
-            class="w-full"
-          />
-          <label for="display-name">Display Name (Optional)</label>
-        </FloatLabel>
+        <label for="display-name">Display Name (Optional)</label>
+        <input
+          id="display-name"
+          v-model="config.displayName"
+          type="text"
+          placeholder="Your Name"
+          :disabled="connecting || isConnected"
+        />
       </div>
 
       <!-- Remember Me Section -->
-      <div class="form-group checkbox-group">
-        <Checkbox v-model="rememberMe" :binary="true" inputId="remember-me" :disabled="connecting" />
-        <label for="remember-me" class="checkbox-label">Remember me (persist credentials across sessions)</label>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="rememberMe" :disabled="connecting" />
+          <span>Remember me (persist credentials across sessions)</span>
+        </label>
       </div>
 
       <!-- Save Password Section (conditional) -->
       <div v-if="rememberMe" class="form-group nested">
-        <div class="checkbox-group">
-          <Checkbox v-model="savePassword" :binary="true" inputId="save-password" :disabled="connecting" />
-          <label for="save-password" class="checkbox-label">Save password</label>
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="savePassword" :disabled="connecting" />
+          <span>Save password</span>
+        </label>
+        <div class="security-warning">
+          <p>
+            <strong>Security Warning:</strong> Saving your password in browser
+            localStorage is not secure. Only use this on trusted devices.
+          </p>
         </div>
-        <Message severity="warn" :closable="false" class="security-warning">
-          <strong>Security Warning:</strong> Saving your password in browser
-          localStorage is not secure. Only use this on trusted devices.
-        </Message>
       </div>
 
       <!-- Clear Credentials Button (conditional) -->
       <div v-if="rememberMe" class="form-actions">
-        <Button
-          label="Clear Saved Credentials"
-          severity="secondary"
-          size="small"
-          outlined
-          @click="clearCredentials"
-        />
+        <button type="button" class="btn btn-secondary btn-sm" @click="clearCredentials">
+          Clear Saved Credentials
+        </button>
       </div>
 
       <!-- Connect/Disconnect Buttons -->
       <div class="connection-buttons">
-        <Button
+        <button
           v-if="!isConnected"
-          :label="connecting ? 'Connecting...' : 'Connect to Server'"
+          class="btn btn-primary w-full"
           :disabled="!isConfigValid || connecting"
-          :loading="connecting"
-          icon="pi pi-link"
-          class="w-full"
           @click="handleConnect"
-        />
-        <Button
+        >
+          {{ connecting ? 'Connecting...' : 'Connect to Server' }}
+        </button>
+        <button
           v-else
-          label="Disconnect"
-          severity="danger"
-          icon="pi pi-times"
-          class="w-full"
+          class="btn btn-danger w-full"
           @click="handleDisconnect"
-        />
+        >
+          Disconnect
+        </button>
       </div>
 
-      <Message v-if="connectionError" severity="error" :closable="false" class="error-message">
+      <div v-if="connectionError" class="error-message">
         {{ connectionError }}
-      </Message>
+      </div>
 
-      <Message severity="info" :closable="false" class="demo-tip">
+      <div class="demo-tip">
         <strong>Tip:</strong> Don't have a SIP server? You can use a free SIP service like
         <a href="https://www.antisip.com/" target="_blank">Antisip</a> or set up a local
         Asterisk server for testing.
-      </Message>
-
-      <!-- Connection Info when connected -->
-      <Card v-if="isConnected" class="connection-info">
-        <template #title>Connection Details</template>
-        <template #content>
-          <dl>
-            <dt>Server</dt>
-            <dd>{{ config.uri }}</dd>
-            <dt>SIP URI</dt>
-            <dd>{{ config.sipUri }}</dd>
-            <dt>Display Name</dt>
-            <dd>{{ config.displayName || 'Not set' }}</dd>
-            <dt>Status</dt>
-            <dd>{{ isRegistered ? 'Registered' : 'Connected (not registered)' }}</dd>
-          </dl>
-        </template>
-      </Card>
-    </Panel>
+      </div>
+    </div>
 
     <!-- AMI Configuration Panel -->
-    <Panel header="Asterisk Manager Interface (AMI)" class="config-panel ami-panel">
+    <div class="config-panel ami-panel">
+      <h3>Asterisk Manager Interface (AMI)</h3>
       <p class="info-text">
         Configure your Asterisk Manager Interface connection for advanced features like
         presence monitoring, queue management, and call supervision.
@@ -153,75 +166,78 @@
         <span class="status-text">{{ isAmiConnected ? 'Connected' : 'Disconnected' }}</span>
       </div>
 
+      <!-- AMI Connection Info when connected -->
+      <div v-if="isAmiConnected" class="connection-info">
+        <h4>AMI Connection Details</h4>
+        <dl>
+          <dt>URL</dt>
+          <dd>{{ amiConfig.url }}</dd>
+          <dt>Status</dt>
+          <dd>Connected</dd>
+        </dl>
+      </div>
+
       <div class="form-group">
-        <FloatLabel>
-          <InputText
-            id="ami-url"
-            v-model="amiConfig.url"
-            :disabled="amiConnecting || isAmiConnected"
-            class="w-full"
-          />
-          <label for="ami-url">AMI WebSocket URL</label>
-        </FloatLabel>
+        <label for="ami-url">AMI WebSocket URL</label>
+        <input
+          id="ami-url"
+          v-model="amiConfig.url"
+          type="text"
+          placeholder="ws://your-asterisk-server:8088/ami"
+          :disabled="amiConnecting || isAmiConnected"
+        />
         <small>Example: ws://your-asterisk-server:8088/ami</small>
       </div>
 
       <!-- Remember AMI URL -->
-      <div class="form-group checkbox-group">
-        <Checkbox v-model="rememberAmi" :binary="true" inputId="remember-ami" :disabled="amiConnecting" />
-        <label for="remember-ami" class="checkbox-label">Remember AMI URL</label>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="rememberAmi" :disabled="amiConnecting" />
+          <span>Remember AMI URL</span>
+        </label>
       </div>
 
       <!-- Connect/Disconnect Buttons -->
       <div class="connection-buttons">
-        <Button
+        <button
           v-if="!isAmiConnected"
-          :label="amiConnecting ? 'Connecting...' : 'Connect to AMI'"
+          class="btn btn-secondary w-full"
           :disabled="!amiConfig.url || amiConnecting"
-          :loading="amiConnecting"
-          icon="pi pi-link"
-          severity="help"
-          class="w-full"
           @click="handleAmiConnect"
-        />
-        <Button
+        >
+          {{ amiConnecting ? 'Connecting...' : 'Connect to AMI' }}
+        </button>
+        <button
           v-else
-          label="Disconnect AMI"
-          severity="danger"
-          icon="pi pi-times"
-          class="w-full"
+          class="btn btn-danger w-full"
           @click="handleAmiDisconnect"
-        />
+        >
+          Disconnect AMI
+        </button>
       </div>
 
-      <Message v-if="amiError" severity="error" :closable="false" class="error-message">
+      <div v-if="amiError" class="error-message">
         {{ amiError }}
-      </Message>
+      </div>
 
-      <Message severity="info" :closable="false" class="demo-tip">
+      <div class="demo-tip">
         <strong>Note:</strong> AMI connection requires a WebSocket proxy to your Asterisk server.
         This is typically set up using <code>asterisk-ami-ws-proxy</code> or similar tools.
-      </Message>
-
-      <!-- AMI Connection Info when connected -->
-      <Card v-if="isAmiConnected" class="connection-info">
-        <template #title>AMI Connection Details</template>
-        <template #content>
-          <dl>
-            <dt>URL</dt>
-            <dd>{{ amiConfig.url }}</dd>
-            <dt>Status</dt>
-            <dd>Connected</dd>
-          </dl>
-        </template>
-      </Card>
-    </Panel>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { playgroundSipClient, playgroundAmiClient } from '../sipClient'
+import { configStore } from '../../src/stores/configStore'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // localStorage keys
 const CREDENTIALS_STORAGE_KEY = 'vuesip-credentials'
@@ -279,6 +295,18 @@ const {
 // Computed
 const isConfigValid = computed(() => {
   return config.value.uri && config.value.sipUri && config.value.password
+})
+
+// Get active connection info from the store (for display when connected)
+// Access sipConfig directly for reactivity (method calls aren't tracked by Vue)
+const activeConnectionInfo = computed(() => {
+  if (!isConnected.value) return null
+  const storeConfig = configStore.sipConfig
+  return {
+    uri: storeConfig?.uri || config.value.uri,
+    sipUri: storeConfig?.sipUri || config.value.sipUri,
+    displayName: storeConfig?.displayName || config.value.displayName || 'Not set',
+  }
 })
 
 // SIP Credential Persistence
@@ -429,7 +457,7 @@ const handleAmiConnect = async () => {
       saveAmiConfig()
     }
 
-    console.log('✅ AMI connected successfully')
+    console.log('AMI connected successfully')
   } catch (error) {
     amiError.value = error instanceof Error ? error.message : 'AMI connection failed'
     console.error('AMI connection error:', error)
@@ -446,10 +474,24 @@ const handleAmiDisconnect = async () => {
   }
 }
 
+// Sync local form config with connected values if already connected
+const syncConfigFromStore = () => {
+  if (isConnected.value) {
+    const storeConfig = configStore.sipConfig
+    if (storeConfig) {
+      config.value.uri = storeConfig.uri || config.value.uri
+      config.value.sipUri = storeConfig.sipUri || config.value.sipUri
+      config.value.displayName = storeConfig.displayName || config.value.displayName
+    }
+  }
+}
+
 // Load all settings on mount
 onMounted(() => {
   loadCredentials()
   loadAmiConfig()
+  // If already connected (e.g., auto-connect happened), sync the form with actual values
+  syncConfigFromStore()
 })
 
 // Watch rememberMe checkbox
@@ -503,10 +545,20 @@ watch(
 }
 
 .config-panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
-.ami-panel :deep(.p-panel-title) {
+.config-panel h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.ami-panel h3 {
   color: var(--primary);
 }
 
@@ -522,26 +574,26 @@ watch(
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: var(--surface-100);
+  background: rgba(239, 68, 68, 0.1);
   border-radius: 8px;
   margin-bottom: 1.5rem;
-  border: 1px solid var(--surface-200);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .connection-status.connected {
-  background: var(--status-connected-bg);
-  border-color: var(--status-connected-border);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .status-indicator {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--danger);
+  background: #ef4444;
 }
 
 .connection-status.connected .status-indicator {
-  background: var(--success);
+  background: #10b981;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
 
@@ -551,8 +603,87 @@ watch(
   flex: 1;
 }
 
-.form-group {
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: #10b981;
+  color: white;
+}
+
+/* Connection Info Card */
+.connection-info {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
+}
+
+.connection-info h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #10b981;
+}
+
+.connection-info dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+}
+
+.connection-info dt {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.connection-info dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"] {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.form-group input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--bg-secondary);
 }
 
 .form-group small {
@@ -562,33 +693,45 @@ watch(
   font-size: 0.75rem;
 }
 
-.w-full {
-  width: 100%;
-}
-
-/* Checkbox group styling */
-.checkbox-group {
+/* Checkbox styling */
+.checkbox-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
 }
 
-.checkbox-label {
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.checkbox-label span {
   font-size: 0.875rem;
-  color: var(--text-primary);
-  cursor: pointer;
 }
 
 .form-group.nested {
   margin-left: 1.5rem;
-  background: var(--surface-50);
+  background: var(--bg-secondary);
   padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid var(--surface-200);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 
 .security-warning {
   margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+}
+
+.security-warning p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #b45309;
 }
 
 .form-actions {
@@ -600,48 +743,89 @@ watch(
   margin-bottom: 1rem;
 }
 
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-primary);
+  border-color: var(--primary);
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.w-full {
+  width: 100%;
+}
+
 .error-message {
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
   margin-top: 1rem;
 }
 
 .demo-tip {
   margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
 .demo-tip a {
-  color: var(--primary-color);
+  color: var(--primary);
   text-decoration: underline;
 }
 
 .demo-tip code {
-  background: var(--surface-100);
+  background: var(--bg-secondary);
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
   font-size: 0.8125rem;
-}
-
-/* Connection Info */
-.connection-info {
-  margin-top: 1.5rem;
-}
-
-.connection-info dl {
-  margin: 0;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.5rem 1rem;
-}
-
-.connection-info dt {
-  color: var(--status-connected-text);
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.connection-info dd {
-  margin: 0;
-  color: var(--success);
-  font-size: 0.875rem;
-  word-break: break-all;
 }
 </style>

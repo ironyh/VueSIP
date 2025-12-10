@@ -1,5 +1,25 @@
 <template>
   <div class="feature-codes-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Not Connected State -->
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>Feature Codes</h3>
@@ -284,17 +304,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { playgroundAmiClient } from '../sipClient'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 
-// AMI connection state
-const amiUrl = ref(localStorage.getItem('playground_ami_url') || '')
+// AMI connection state - use standardized storage key
+const amiUrl = ref(localStorage.getItem('vuesip-ami-url') || '')
 const extension = ref(localStorage.getItem('playground_extension') || '')
 const connecting = ref(false)
 const connectionError = ref('')
 const loading = ref(false)
 
-const { isConnected: isAmiConnected, connect, disconnect } = playgroundAmiClient
+const { isConnected: realIsAmiConnected, connect, disconnect } = playgroundAmiClient
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
+
+// Effective values for simulation
+const isAmiConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsAmiConnected.value
+)
 
 // Feature state
 const dndEnabled = ref(false)
@@ -315,7 +346,7 @@ async function handleConnect() {
   connectionError.value = ''
 
   try {
-    localStorage.setItem('playground_ami_url', amiUrl.value)
+    localStorage.setItem('vuesip-ami-url', amiUrl.value)
     localStorage.setItem('playground_extension', extension.value)
     await connect(amiUrl.value)
   } catch (err) {

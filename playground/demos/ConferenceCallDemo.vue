@@ -1,5 +1,25 @@
 <template>
   <div class="conference-call-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <h2>👥 Conference Call Management</h2>
     <p class="description">Manage multiple simultaneous calls and create conference sessions.</p>
 
@@ -12,26 +32,9 @@
         <span>Active Calls: {{ activeCalls.length }}</span>
         <span>Conference: {{ isConferenceActive ? 'Active' : 'Inactive' }}</span>
       </div>
-    </div>
-
-    <!-- SIP Configuration -->
-    <div class="config-section">
-      <h3>SIP Configuration</h3>
-      <div class="form-group">
-        <label>SIP Server URI</label>
-        <input v-model="sipServerUri" type="text" placeholder="sip:example.com" />
+      <div v-if="!isConnected" class="connection-hint">
+        Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo
       </div>
-      <div class="form-group">
-        <label>Username</label>
-        <input v-model="username" type="text" placeholder="user123" />
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input v-model="password" type="password" placeholder="password" />
-      </div>
-      <button @click="toggleConnection" :disabled="isConnecting">
-        {{ isConnected ? 'Disconnect' : isConnecting ? 'Connecting...' : 'Connect' }}
-      </button>
     </div>
 
     <!-- Add Participant -->
@@ -210,7 +213,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
-import { useSipClient } from '../../src/composables/useSipClient'
+import { playgroundSipClient } from '../sipClient'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // SIP Configuration
 const sipServerUri = ref('sip:example.com')
@@ -218,9 +227,17 @@ const username = ref('')
 const password = ref('')
 const newParticipantUri = ref('sip:1000@example.com')
 
-// SIP Client
-const { sipClient, connectionState, isConnected, isConnecting, connect, disconnect } =
-  useSipClient()
+// SIP Client - use shared playground instance
+const { connectionState: realConnectionState, isConnected: realIsConnected, isConnecting, connect, disconnect, getClient } =
+  playgroundSipClient
+
+// Effective values for simulation
+const connectionState = computed(() =>
+  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+)
+const isConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+)
 
 // Conference State
 interface ConferenceCall {

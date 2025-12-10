@@ -1,5 +1,25 @@
 <template>
   <div class="supervisor-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Configuration Panel -->
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>Supervisor Demo</h3>
@@ -228,7 +248,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAmi, useAmiCalls, useAmiSupervisor, type SupervisionMode } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 import { ChannelState } from '../../src/types/ami.types'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 // AMI Configuration
 const amiConfig = ref({ url: '' })
@@ -243,7 +269,7 @@ const error = ref('')
 const {
   connect: amiConnect,
   disconnect: amiDisconnect,
-  isConnected: isAmiConnected,
+  isConnected: realIsAmiConnected,
   getClient,
 } = useAmi()
 

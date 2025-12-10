@@ -4,7 +4,6 @@
       <input
         v-model="number"
         type="text"
-        readonly
         class="dialpad-input"
         data-testid="dialpad-input"
         placeholder="Enter number"

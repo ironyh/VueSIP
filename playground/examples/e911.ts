@@ -6,6 +6,7 @@ export const e911Example: ExampleDefinition = {
   icon: '🆘',
   title: 'E911 Emergency',
   description: 'Enhanced 911 emergency call handling with location',
+  category: 'utility',
   tags: ['Emergency', 'Safety', 'Compliance'],
   component: E911Demo,
   setupGuide: '<p>Configure E911 emergency call handling with automatic location transmission. Ensure compliance with emergency services requirements.</p>',

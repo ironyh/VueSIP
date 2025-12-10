@@ -1,0 +1,679 @@
+/**
+ * Multi-line Manager
+ *
+ * Manages multiple concurrent SIP call lines (like traditional PBX line buttons):
+ * - Support for multiple concurrent SIP lines (configurable, default 4)
+ * - Line state management (idle, ringing, active, held, transferring)
+ * - Line switching between active calls
+ * - Line parking and retrieval
+ * - Conference bridging between lines
+ * - Line-specific audio routing
+ * - Automatic line selection for incoming calls
+ */
+
+import { EventBus } from '@/lib/eventBus'
+import type { CallSession } from '@/types/call.types'
+
+/**
+ * Represents the current state of a line
+ */
+export enum LineState {
+  /** Line is available and not in use */
+  IDLE = 'idle',
+  /** Incoming call ringing on this line */
+  RINGING = 'ringing',
+  /** Active call in progress on this line */
+  ACTIVE = 'active',
+  /** Call is on hold on this line */
+  HELD = 'held',
+  /** Call transfer in progress on this line */
+  TRANSFERRING = 'transferring',
+  /** Call is parked on this line */
+  PARKED = 'parked'
+}
+
+/**
+ * Ring policy for handling incoming calls
+ */
+export type RingPolicy = 'sequential' | 'parallel' | 'round-robin'
+
+/**
+ * Represents a single line in the multi-line system
+ */
+export interface Line {
+  /** Unique line identifier (1-based) */
+  id: number
+  /** Current state of the line */
+  state: LineState
+  /** Associated call session if active */
+  callSession: CallSession | null
+  /** Remote party identifier (phone number or SIP URI) */
+  remoteParty: string | null
+  /** Call duration in seconds */
+  duration: number
+  /** Call start timestamp */
+  startTime: Date | null
+  /** Whether this line is part of a conference */
+  isConference: boolean
+  /** Conference ID if part of a conference */
+  conferenceId?: string
+  /** Park slot identifier if parked */
+  parkSlot?: string
+}
+
+/**
+ * Configuration options for multi-line manager
+ */
+export interface MultiLineConfig {
+  /** Maximum number of lines to support */
+  maxLines: number
+  /** Automatically answer incoming calls */
+  autoAnswer: boolean
+  /** Policy for distributing incoming calls */
+  ringPolicy: RingPolicy
+  /** Default line to use for outgoing calls */
+  defaultLine: number
+  /** Enable conference bridging */
+  conferenceEnabled: boolean
+  /** Enable call parking */
+  parkingEnabled: boolean
+}
+
+/**
+ * Conference state tracking
+ */
+export interface ConferenceState {
+  /** Unique conference identifier */
+  id: string
+  /** Lines participating in the conference */
+  lines: number[]
+  /** Whether the conference is active */
+  active: boolean
+  /** Whether all lines are bridged together */
+  bridged: boolean
+  /** Conference start time */
+  startTime: Date
+  /** Number of participants */
+  participantCount: number
+}
+
+/**
+ * Line state change event data
+ */
+export interface LineStateChangeEvent {
+  /** Line that changed state */
+  lineId: number
+  /** Previous state */
+  previousState: LineState
+  /** New state */
+  newState: LineState
+  /** Associated call session if applicable */
+  callSession?: CallSession
+  /** Event timestamp */
+  timestamp: Date
+}
+
+/**
+ * Conference event data
+ */
+export interface ConferenceEvent {
+  /** Conference identifier */
+  conferenceId: string
+  /** Event type */
+  type: 'created' | 'participant-added' | 'participant-removed' | 'ended'
+  /** Affected line ID */
+  lineId?: number
+  /** Current participant line IDs */
+  participants: number[]
+  /** Event timestamp */
+  timestamp: Date
+}
+
+/**
+ * Line selection criteria
+ */
+export interface LineSelectionCriteria {
+  /** Prefer specific line ID */
+  preferredLine?: number
+  /** Require idle line */
+  requireIdle?: boolean
+  /** Exclude specific lines */
+  excludeLines?: number[]
+  /** Allow held lines */
+  allowHeld?: boolean
+}
+
+/**
+ * Park slot information
+ */
+export interface ParkSlot {
+  /** Slot identifier */
+  id: string
+  /** Line ID that is parked */
+  lineId: number
+  /** Remote party information */
+  remoteParty: string
+  /** Park timestamp */
+  parkedAt: Date
+  /** Retrieval code */
+  retrievalCode?: string
+}
+
+/**
+ * Multi-line statistics
+ */
+export interface MultiLineStats {
+  /** Total number of lines */
+  totalLines: number
+  /** Number of active lines */
+  activeLines: number
+  /** Number of held lines */
+  heldLines: number
+  /** Number of idle lines */
+  idleLines: number
+  /** Active conferences */
+  activeConferences: number
+  /** Parked calls */
+  parkedCalls: number
+  /** Total calls handled */
+  totalCallsHandled: number
+}
+
+/**
+ * Line event types for EventBus integration
+ */
+export enum LineEventType {
+  LINE_STATE_CHANGED = 'line:state-changed',
+  LINE_ASSIGNED = 'line:assigned',
+  LINE_RELEASED = 'line:released',
+  LINE_SWITCHED = 'line:switched',
+  CONFERENCE_CREATED = 'conference:created',
+  CONFERENCE_PARTICIPANT_ADDED = 'conference:participant-added',
+  CONFERENCE_PARTICIPANT_REMOVED = 'conference:participant-removed',
+  CONFERENCE_ENDED = 'conference:ended',
+  CALL_PARKED = 'call:parked',
+  CALL_RETRIEVED = 'call:retrieved'
+}
+
+/**
+ * Error codes specific to multi-line operations
+ */
+export enum MultiLineErrorCode {
+  LINE_NOT_FOUND = 'LINE_NOT_FOUND',
+  LINE_BUSY = 'LINE_BUSY',
+  LINE_NOT_IDLE = 'LINE_NOT_IDLE',
+  NO_AVAILABLE_LINES = 'NO_AVAILABLE_LINES',
+  INVALID_LINE_ID = 'INVALID_LINE_ID',
+  CONFERENCE_ALREADY_EXISTS = 'CONFERENCE_ALREADY_EXISTS',
+  CONFERENCE_NOT_FOUND = 'CONFERENCE_NOT_FOUND',
+  PARK_SLOT_NOT_FOUND = 'PARK_SLOT_NOT_FOUND',
+  PARK_SLOT_OCCUPIED = 'PARK_SLOT_OCCUPIED',
+  INVALID_CONFERENCE_OPERATION = 'INVALID_CONFERENCE_OPERATION',
+  MAX_LINES_REACHED = 'MAX_LINES_REACHED'
+}
+
+/**
+ * Multi-line specific error
+ */
+export class MultiLineError extends Error {
+  constructor(
+    public code: MultiLineErrorCode,
+    message: string,
+    public details?: Record<string, unknown>
+  ) {
+    super(message)
+    this.name = 'MultiLineError'
+  }
+}
+
+/**
+ * Default configuration for multi-line manager
+ */
+const DEFAULT_CONFIG: MultiLineConfig = {
+  maxLines: 4,
+  autoAnswer: false,
+  ringPolicy: 'sequential',
+  defaultLine: 1,
+  conferenceEnabled: true,
+  parkingEnabled: true
+}
+
+/**
+ * MultiLineManager manages multiple concurrent SIP lines
+ * Provides line switching, conferencing, parking, and state management
+ */
+export class MultiLineManager {
+  private lines: Map<number, Line>
+  private activeLine: number
+  private config: MultiLineConfig
+  private conferences: Map<string, ConferenceState>
+  private parkSlots: Map<string, ParkSlot>
+  private callCounter: number
+  private eventBus: EventBus
+
+  constructor(config?: Partial<MultiLineConfig>, eventBus?: EventBus) {
+    this.config = { ...DEFAULT_CONFIG, ...config }
+    this.lines = new Map()
+    this.activeLine = this.config.defaultLine
+    this.conferences = new Map()
+    this.parkSlots = new Map()
+    this.callCounter = 0
+    this.eventBus = eventBus || EventBus.getInstance()
+
+    this.initializeLines()
+  }
+
+  /**
+   * Initialize all lines to idle state
+   */
+  private initializeLines(): void {
+    for (let i = 1; i <= this.config.maxLines; i++) {
+      this.lines.set(i, {
+        id: i,
+        state: LineState.IDLE,
+        callSession: null,
+        remoteParty: null,
+        duration: 0,
+        startTime: null,
+        isConference: false
+      })
+    }
+  }
+
+  /**
+   * Add a new line
+   */
+  async addLine(config: LineConfig): Promise<string> {
+    if (this.lines.size >= this.config.maxLines) {
+      throw new Error(`Maximum number of lines (${this.config.maxLines}) reached`)
+    }
+
+    // Validate line configuration
+    if (!config.uri || !config.password) {
+      throw new Error('Line URI and password are required')
+    }
+
+    // Check for duplicate URI
+    for (const line of this.lines.values()) {
+      if (line.uri === config.uri) {
+        throw new Error(`Line with URI ${config.uri} already exists`)
+      }
+    }
+
+    const lineId = `line-${++this.lineIdCounter}-${Date.now()}`
+    const line: Line = {
+      id: lineId,
+      uri: config.uri,
+      displayName: config.displayName,
+      registrationState: 'unregistered' as LineState,
+      calls: [],
+      config,
+      priority: config.priority ?? 100
+    }
+
+    this.lines.set(lineId, line)
+
+    // Set as default line if it's the first one
+    if (this.lines.size === 1) {
+      this.activeLine = lineId
+    }
+
+    // Auto-register if configured
+    if (config.autoRegister) {
+      await this.registerLine(lineId)
+    }
+
+    this.emit('line:added', { lineId, line })
+    return lineId
+  }
+
+  /**
+   * Remove a line
+   */
+  async removeLine(lineId: string): Promise<void> {
+    const line = this.lines.get(lineId)
+    if (!line) {
+      throw new Error(`Line ${lineId} not found`)
+    }
+
+    // Cannot remove line with active calls
+    if (line.calls.length > 0) {
+      throw new Error(`Cannot remove line ${lineId} with ${line.calls.length} active call(s)`)
+    }
+
+    // Unregister if registered
+    if (line.registrationState === 'registered') {
+      await this.unregisterLine(lineId)
+    }
+
+    this.lines.delete(lineId)
+
+    // Switch active line if this was the active one
+    if (this.activeLine === lineId) {
+      const remainingLines = Array.from(this.lines.keys())
+      this.activeLine = remainingLines.length > 0 ? remainingLines[0] : null
+    }
+
+    this.emit('line:removed', { lineId })
+  }
+
+  /**
+   * Register a line
+   */
+  async registerLine(lineId: string): Promise<void> {
+    const line = this.lines.get(lineId)
+    if (!line) {
+      throw new Error(`Line ${lineId} not found`)
+    }
+
+    if (line.registrationState === 'registered') {
+      return // Already registered
+    }
+
+    line.registrationState = 'registering' as LineState
+    this.emitRegistrationEvent(lineId, 'registering' as LineState)
+
+    try {
+      // Simulate registration process
+      await this.performRegistration(line)
+
+      line.registrationState = 'registered' as LineState
+      line.registeredAt = Date.now()
+      delete line.lastError
+
+      this.emitRegistrationEvent(lineId, 'registered' as LineState)
+    } catch (error) {
+      line.registrationState = 'error' as LineState
+      line.lastError = error instanceof Error ? error.message : 'Registration failed'
+
+      this.emitRegistrationEvent(lineId, 'error' as LineState, line.lastError)
+      throw error
+    }
+  }
+
+  /**
+   * Unregister a line
+   */
+  async unregisterLine(lineId: string): Promise<void> {
+    const line = this.lines.get(lineId)
+    if (!line) {
+      throw new Error(`Line ${lineId} not found`)
+    }
+
+    if (line.registrationState === 'unregistered') {
+      return // Already unregistered
+    }
+
+    try {
+      await this.performUnregistration(line)
+
+      line.registrationState = 'unregistered' as LineState
+      delete line.registeredAt
+      delete line.lastError
+
+      this.emitRegistrationEvent(lineId, 'unregistered' as LineState)
+    } catch (error) {
+      line.registrationState = 'error' as LineState
+      line.lastError = error instanceof Error ? error.message : 'Unregistration failed'
+      throw error
+    }
+  }
+
+  /**
+   * Set active line
+   */
+  async setActiveLine(lineId: string): Promise<void> {
+    const line = this.lines.get(lineId)
+    if (!line) {
+      throw new Error(`Line ${lineId} not found`)
+    }
+
+    const previousLineId = this.activeLine
+
+    if (previousLineId === lineId) {
+      return // Already active
+    }
+
+    this.activeLine = lineId
+
+    const event: LineSwitchEvent = {
+      previousLineId,
+      newLineId: lineId,
+      timestamp: Date.now()
+    }
+
+    this.emit('line:switched', event)
+  }
+
+  /**
+   * Get line by ID
+   */
+  getLine(lineId: string): Line | undefined {
+    return this.lines.get(lineId)
+  }
+
+  /**
+   * Get all lines
+   */
+  getAllLines(): Line[] {
+    return Array.from(this.lines.values())
+  }
+
+  /**
+   * Get active line
+   */
+  getActiveLine(): Line | null {
+    return this.activeLine ? this.lines.get(this.activeLine) ?? null : null
+  }
+
+  /**
+   * Get line for a specific call
+   */
+  getLineForCall(callId: string): Line | undefined {
+    const lineId = this.callLineMap.get(callId)
+    return lineId ? this.lines.get(lineId) : undefined
+  }
+
+  /**
+   * Associate a call with a line
+   */
+  associateCall(callId: string, lineId: string, call: CallSession): void {
+    const line = this.lines.get(lineId)
+    if (!line) {
+      throw new Error(`Line ${lineId} not found`)
+    }
+
+    this.callLineMap.set(callId, lineId)
+    line.calls.push(call)
+
+    this.emit('call:associated', { callId, lineId, call })
+  }
+
+  /**
+   * Disassociate a call from a line
+   */
+  disassociateCall(callId: string): void {
+    const lineId = this.callLineMap.get(callId)
+    if (!lineId) {
+      return
+    }
+
+    const line = this.lines.get(lineId)
+    if (line) {
+      line.calls = line.calls.filter(c => c.id !== callId)
+    }
+
+    this.callLineMap.delete(callId)
+    this.emit('call:disassociated', { callId, lineId })
+  }
+
+  /**
+   * Transfer call between lines
+   */
+  async transferCallBetweenLines(options: LineTransferOptions): Promise<void> {
+    const { fromLineId, toLineId, callId, attended } = options
+
+    const fromLine = this.lines.get(fromLineId)
+    const toLine = this.lines.get(toLineId)
+
+    if (!fromLine) {
+      throw new Error(`Source line ${fromLineId} not found`)
+    }
+
+    if (!toLine) {
+      throw new Error(`Target line ${toLineId} not found`)
+    }
+
+    if (toLine.registrationState !== 'registered') {
+      throw new Error(`Target line ${toLineId} is not registered`)
+    }
+
+    const call = fromLine.calls.find(c => c.id === callId)
+    if (!call) {
+      throw new Error(`Call ${callId} not found on line ${fromLineId}`)
+    }
+
+    // Simulate transfer process
+    await this.performLineTransfer(call, fromLine, toLine, attended ?? false)
+
+    // Update associations
+    this.disassociateCall(callId)
+    this.associateCall(callId, toLineId, call)
+
+    this.emit('call:transferred', { callId, fromLineId, toLineId, attended })
+  }
+
+  /**
+   * Get multi-line statistics
+   */
+  getStats(): MultiLineStats {
+    const stats: MultiLineStats = {
+      totalLines: this.lines.size,
+      registeredLines: 0,
+      totalCalls: 0,
+      callsPerLine: {},
+      activeLineId: this.activeLine
+    }
+
+    for (const [lineId, line] of this.lines) {
+      if (line.registrationState === 'registered') {
+        stats.registeredLines++
+      }
+      stats.totalCalls += line.calls.length
+      stats.callsPerLine[lineId] = line.calls.length
+    }
+
+    return stats
+  }
+
+  /**
+   * Get lines by state
+   */
+  getLinesByState(state: LineState): Line[] {
+    return Array.from(this.lines.values()).filter(line => line.registrationState === state)
+  }
+
+  /**
+   * Get line for incoming call based on routing strategy
+   */
+  selectLineForIncomingCall(): Line | null {
+    const registeredLines = this.getLinesByState('registered' as LineState)
+
+    if (registeredLines.length === 0) {
+      return null
+    }
+
+    switch (this.config.routingStrategy) {
+      case 'priority':
+        return registeredLines.sort((a, b) => a.priority - b.priority)[0]
+
+      case 'round_robin':
+        // Simple round-robin: find line with least recent call
+        return registeredLines.sort((a, b) => {
+          const aLastCall = Math.max(...a.calls.map(c => c.startTime ?? 0), 0)
+          const bLastCall = Math.max(...b.calls.map(c => c.startTime ?? 0), 0)
+          return aLastCall - bLastCall
+        })[0]
+
+      case 'least_active':
+        return registeredLines.sort((a, b) => a.calls.length - b.calls.length)[0]
+
+      default:
+        return registeredLines[0]
+    }
+  }
+
+  /**
+   * Get configuration
+   */
+  getConfig(): MultiLineConfig {
+    return { ...this.config }
+  }
+
+  /**
+   * Update configuration
+   */
+  updateConfig(config: Partial<MultiLineConfig>): void {
+    this.config = { ...this.config, ...config }
+    this.emit('config:updated', this.config)
+  }
+
+  // Private helper methods
+
+  private async performRegistration(line: Line): Promise<void> {
+    // Simulate async registration
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Simulate potential registration failure
+    if (line.config.uri.includes('invalid')) {
+      throw new Error('Invalid credentials')
+    }
+  }
+
+  private async performUnregistration(line: Line): Promise<void> {
+    // Simulate async unregistration
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
+
+  private async performLineTransfer(
+    call: CallSession,
+    fromLine: Line,
+    toLine: Line,
+    attended: boolean
+  ): Promise<void> {
+    // Simulate async transfer
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+
+  private emitRegistrationEvent(lineId: string, state: LineState, error?: string): void {
+    const line = this.lines.get(lineId)
+    if (!line) return
+
+    const event: LineRegistrationEvent = {
+      lineId,
+      uri: line.uri,
+      state,
+      timestamp: Date.now(),
+      error
+    }
+
+    this.emit('line:registration', event)
+  }
+
+  /**
+   * Cleanup and destroy manager
+   */
+  async destroy(): Promise<void> {
+    // Unregister all lines
+    const unregisterPromises = Array.from(this.lines.keys()).map(lineId =>
+      this.unregisterLine(lineId).catch(() => {}) // Ignore errors during cleanup
+    )
+
+    await Promise.all(unregisterPromises)
+
+    this.lines.clear()
+    this.callLineMap.clear()
+    this.activeLine = null
+    this.removeAllListeners()
+  }
+}

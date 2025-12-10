@@ -21,6 +21,7 @@ import type {
   CallStatistics,
   TerminationCause,
 } from '../types/call.types'
+import type { TransferOptions, TransferResult } from '../types/transfer.types'
 import { createLogger } from '../utils/logger'
 import { validateSipUri } from '@/utils/validators'
 import { throwIfAborted, isAbortError } from '../utils/abortController'
@@ -121,6 +122,8 @@ export interface UseCallSessionReturn {
   getStats: () => Promise<CallStatistics | null>
   /** Clear current session */
   clearSession: () => void
+  /** Transfer call (blind or attended) */
+  transferCall: (target: string, options: TransferOptions) => Promise<TransferResult>
 }
 
 /**
@@ -1045,6 +1048,96 @@ export function useCallSession(
   }
 
   /**
+   * Transfer call (blind or attended)
+   *
+   * @param target - Target SIP URI for transfer
+   * @param options - Transfer options (type, consultationCallId, extraHeaders)
+   * @returns Transfer result
+   * @throws {Error} If no active session
+   * @throws {Error} If invalid target URI
+   * @throws {Error} If call state is not suitable for transfer
+   */
+  const transferCall = async (
+    target: string,
+    options: TransferOptions
+  ): Promise<TransferResult> => {
+    if (!session.value) {
+      const error = 'No active session to transfer'
+      log.error(error)
+      return {
+        success: false,
+        error,
+        state: 'failed' as any,
+      }
+    }
+
+    const timer = createOperationTimer()
+
+    try {
+      log.info(`Transferring call to ${target} (type: ${options.type})`)
+
+      // Validate target URI
+      if (!target || target.trim() === '') {
+        throw new Error('Target URI cannot be empty')
+      }
+
+      const validation = validateSipUri(target)
+      if (!validation.isValid) {
+        throw new Error(
+          `Invalid target URI: ${validation.errors?.join(', ') || validation.error || 'Unknown error'}`
+        )
+      }
+
+      // Execute transfer based on type
+      if (options.type === 'blind') {
+        await session.value.transfer(target, options.extraHeaders)
+      } else if (options.type === 'attended') {
+        if (!options.consultationCallId) {
+          throw new Error('Consultation call ID required for attended transfer')
+        }
+        await session.value.attendedTransfer(target, options.consultationCallId)
+      } else {
+        throw new Error(`Unsupported transfer type: ${options.type}`)
+      }
+
+      log.info(`Call transfer initiated successfully (${timer.elapsed()}ms)`)
+
+      return {
+        success: true,
+        transferId: `transfer-${Date.now()}`,
+        state: 'initiated' as any,
+      }
+    } catch (error) {
+      logErrorWithContext(
+        log,
+        'Failed to transfer call',
+        error,
+        'transferCall',
+        'useCallSession',
+        ErrorSeverity.HIGH,
+        {
+          context: {
+            target,
+            transferType: options.type,
+            consultationCallId: options.consultationCallId,
+          },
+          state: {
+            sessionId: session.value?.id,
+            sessionState: session.value?.state,
+          },
+          duration: timer.elapsed(),
+        }
+      )
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        state: 'failed' as any,
+      }
+    }
+  }
+
+  /**
    * Clear current session
    */
   const clearSession = (): void => {
@@ -1230,5 +1323,6 @@ export function useCallSession(
     sendDTMF,
     getStats,
     clearSession,
+    transferCall,
   }
 }

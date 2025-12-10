@@ -1,5 +1,25 @@
 <template>
   <div class="speed-dial-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <div class="info-section">
       <p>
         Speed Dial allows you to save frequently called contacts for quick access. Click any
@@ -157,8 +177,14 @@ onMounted(() => {
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
+
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
 
 interface SpeedDialContact {
   name: string
@@ -169,9 +195,20 @@ const STORAGE_KEY = 'vuesip-speed-dial'
 const MAX_SLOTS = 9
 
 // SIP Client and Call Session
-const { isConnected, isRegistered, getClient } = useSipClient()
+const { isConnected: realIsConnected, isRegistered: realIsRegistered, getClient } = useSipClient()
 const sipClientRef = computed(() => getClient())
 const { state: callState, remoteUri, makeCall } = useCallSession(sipClientRef)
+
+// Effective values for simulation
+const isConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+)
+const isRegistered = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsRegistered.value
+)
+const effectiveCallState = computed(() =>
+  isSimulationMode.value ? simulation.state.value : callState.value
+)
 
 // State
 const speedDialSlots = ref<(SpeedDialContact | null)[]>(Array(MAX_SLOTS).fill(null))

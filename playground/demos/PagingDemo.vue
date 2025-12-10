@@ -1,5 +1,25 @@
 <template>
   <div class="paging-demo">
+    <!-- Simulation Controls -->
+    <SimulationControls
+      :is-simulation-mode="isSimulationMode"
+      :active-scenario="activeScenario"
+      :state="simulation.state.value"
+      :duration="simulation.duration.value"
+      :remote-uri="simulation.remoteUri.value"
+      :remote-display-name="simulation.remoteDisplayName.value"
+      :is-on-hold="simulation.isOnHold.value"
+      :is-muted="simulation.isMuted.value"
+      :scenarios="simulation.scenarios"
+      @toggle="simulation.toggleSimulation"
+      @run-scenario="simulation.runScenario"
+      @reset="simulation.resetCall"
+      @answer="simulation.answer"
+      @hangup="simulation.hangup"
+      @toggle-hold="simulation.toggleHold"
+      @toggle-mute="simulation.toggleMute"
+    />
+
     <!-- Not Connected State -->
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>Paging & Intercom</h3>
@@ -199,16 +219,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { playgroundAmiClient } from '../sipClient'
+import { useSimulation } from '../composables/useSimulation'
+import SimulationControls from '../components/SimulationControls.vue'
 import { type PageGroup } from '../../src'
 
-// AMI connection state
-const amiUrl = ref(localStorage.getItem('playground_ami_url') || '')
+// Simulation system
+const simulation = useSimulation()
+const { isSimulationMode, activeScenario } = simulation
+
+// AMI connection state - use standardized storage key
+const amiUrl = ref(localStorage.getItem('vuesip-ami-url') || '')
 const connecting = ref(false)
 const connectionError = ref('')
 
-const { isConnected: isAmiConnected, connect, disconnect, getClient: _getClient } = playgroundAmiClient
+const { isConnected: realIsAmiConnected, connect, disconnect, getClient: _getClient } = playgroundAmiClient
+
+// Effective values for simulation
+const isAmiConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : realIsAmiConnected.value
+)
 
 // Paging composable - will be initialized when connected
 const pageTarget = ref('')
@@ -233,7 +264,7 @@ async function handleConnect() {
   connectionError.value = ''
 
   try {
-    localStorage.setItem('playground_ami_url', amiUrl.value)
+    localStorage.setItem('vuesip-ami-url', amiUrl.value)
     await connect(amiUrl.value)
   } catch (err) {
     connectionError.value = err instanceof Error ? err.message : 'Connection failed'

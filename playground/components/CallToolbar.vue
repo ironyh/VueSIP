@@ -2,24 +2,32 @@
   <div class="call-toolbar">
     <div class="container">
       <div class="toolbar-content">
-        <!-- Left: Connection Status -->
+        <!-- Left: Combined Connection Status -->
         <div class="status-section">
-          <div class="status-item">
-            <span
-              class="status-dot"
-              :class="{ connected: isConnected }"
-              :aria-label="`Connection status: ${isConnected ? 'Connected' : 'Disconnected'}`"
-            ></span>
-            <span class="status-label">{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
-          </div>
-
-          <div class="status-item">
-            <span
-              class="status-dot"
-              :class="{ connected: isRegistered }"
-              :aria-label="`Registration status: ${isRegistered ? 'Registered' : 'Not Registered'}`"
-            ></span>
-            <span class="status-label">{{ isRegistered ? 'Registered' : 'Not Registered' }}</span>
+          <!-- Combined SIP Status Indicator -->
+          <div
+            class="combined-status"
+            :class="combinedStatusClass"
+            :title="combinedStatusTooltip"
+          >
+            <!-- Offline Icon (X in circle) -->
+            <svg v-if="!isConnected" class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <!-- Connecting Icon (Exclamation in circle) -->
+            <svg v-else-if="isConnected && !isRegistered" class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <!-- Ready Icon (Checkmark in circle) -->
+            <svg v-else class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span class="status-label">{{ combinedStatusLabel }}</span>
           </div>
         </div>
 
@@ -41,7 +49,7 @@
             @click="handleAnswer"
             aria-label="Answer call"
           >
-            📞 Answer
+            Answer
           </button>
 
           <button
@@ -52,7 +60,7 @@
             :aria-label="isMuted ? 'Unmute audio' : 'Mute audio'"
             :aria-pressed="isMuted"
           >
-            {{ isMuted ? '🔇' : '🔊' }} {{ isMuted ? 'Unmute' : 'Mute' }}
+            {{ isMuted ? 'Unmute' : 'Mute' }}
           </button>
 
           <button
@@ -63,7 +71,7 @@
             :aria-label="isOnHold ? 'Resume call' : 'Hold call'"
             :aria-pressed="isOnHold"
           >
-            {{ isOnHold ? '▶️' : '⏸️' }} {{ isOnHold ? 'Resume' : 'Hold' }}
+            {{ isOnHold ? 'Resume' : 'Hold' }}
           </button>
 
           <button
@@ -72,7 +80,7 @@
             @click="handleHangup"
             aria-label="Hangup call"
           >
-            ❌ Hangup
+            Hangup
           </button>
 
           <!-- Disconnect button when connected but no active call -->
@@ -82,7 +90,17 @@
             @click="handleDisconnect"
             aria-label="Disconnect from SIP server"
           >
-            🔌 Disconnect
+            Disconnect
+          </button>
+
+          <!-- Settings button - always visible on the right -->
+          <button
+            class="btn btn-settings btn-sm"
+            @click="$emit('openSettings')"
+            aria-label="Open settings"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Settings
           </button>
         </div>
       </div>
@@ -91,11 +109,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
+
+// Define emits
+defineEmits<{
+  openSettings: []
+}>()
 import { useCallSession } from '../../src'
 import { playgroundSipClient } from '../sipClient'
 
-// Use shared SIP client instance
+// Use shared SIP client instance (lazy-loaded via Proxy)
 const { isConnected, isRegistered, getClient, disconnect } = playgroundSipClient
 
 // Get client reference for composables
@@ -124,6 +147,25 @@ const {
 const hasActiveCall = computed(() => session.value !== null)
 
 const showAnswerButton = computed(() => state.value === 'ringing' && direction.value === 'incoming')
+
+// Combined SIP Status (red/orange/green)
+const combinedStatusClass = computed(() => {
+  if (!isConnected.value) return 'status-red'
+  if (!isRegistered.value) return 'status-orange'
+  return 'status-green'
+})
+
+const combinedStatusLabel = computed(() => {
+  if (!isConnected.value) return 'Offline'
+  if (!isRegistered.value) return 'Connecting'
+  return 'Ready'
+})
+
+const combinedStatusTooltip = computed(() => {
+  if (!isConnected.value) return 'Disconnected - Not connected to SIP server'
+  if (!isRegistered.value) return 'Connected but not registered - Cannot receive calls yet'
+  return 'Connected and registered - Ready for calls'
+})
 
 const callerDisplay = computed(() => remoteDisplayName.value || remoteUri.value || 'Unknown')
 
@@ -221,8 +263,58 @@ const handleDisconnect = async () => {
 /* Status Section */
 .status-section {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   align-items: center;
+}
+
+/* Combined Status Indicator */
+.combined-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.combined-status .status-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.combined-status .status-label {
+  white-space: nowrap;
+}
+
+.combined-status.status-red {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.combined-status.status-orange {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.combined-status.status-orange .status-icon {
+  animation: pulse-orange 2s ease-in-out infinite;
+}
+
+@keyframes pulse-orange {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.combined-status.status-green {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
 }
 
 .status-item {
@@ -367,6 +459,22 @@ const handleDisconnect = async () => {
 .btn-secondary.active {
   background: rgba(255, 255, 255, 0.4);
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+.btn-settings {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  margin-left: 1rem;
+}
+
+.btn-settings:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-settings svg {
+  opacity: 0.9;
 }
 
 .btn:active {
