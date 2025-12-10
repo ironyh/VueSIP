@@ -43,6 +43,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && tsc --project tsconfig.build.json",
+    "build:playground": "vite build --config vite.config.playground.ts",
     "preview": "vite preview",
     "test": "vitest",
     "test:unit": "vitest run tests/unit",

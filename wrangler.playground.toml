@@ -1,0 +1,10 @@
+name = "vuesip-playground"
+compatibility_date = "2025-12-10"
+
+[assets]
+directory = "dist-playground"
+
+# Routes for playground subdomain
+routes = [
+  { pattern = "play.vuesip.com/*", zone_name = "vuesip.com" }
+]
