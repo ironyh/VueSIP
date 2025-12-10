@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'VueSip',
   description: 'A headless Vue.js component library for SIP/VoIP applications',
-  base: '/VueSIP/',
+  base: '/',
   lang: 'en-US',
   lastUpdated: true,
   cleanUrls: true,
@@ -50,6 +50,11 @@ export default defineConfig({
           ],
         },
         {
+          text: 'Authentication',
+          collapsed: false,
+          items: [{ text: 'OAuth2 Authentication', link: '/guide/oauth2-authentication' }],
+        },
+        {
           text: 'Advanced Topics',
           collapsed: false,
           items: [
@@ -72,9 +77,7 @@ export default defineConfig({
       '/api/': [
         {
           text: 'API Reference',
-          items: [
-            { text: 'Overview', link: '/api/' },
-          ],
+          items: [{ text: 'Overview', link: '/api/' }],
         },
         {
           text: 'Core APIs',
@@ -97,18 +100,14 @@ export default defineConfig({
         {
           text: 'Generated API Docs',
           collapsed: false,
-          items: [
-            { text: 'Full API Reference (TypeDoc)', link: '/api/generated/' },
-          ],
+          items: [{ text: 'Full API Reference (TypeDoc)', link: '/api/generated/' }],
         },
       ],
 
       '/examples/': [
         {
           text: 'Examples',
-          items: [
-            { text: 'Overview', link: '/examples/' },
-          ],
+          items: [{ text: 'Overview', link: '/examples/' }],
         },
       ],
 
@@ -127,9 +126,7 @@ export default defineConfig({
       ],
     },
 
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/ironyh/VueSip' },
-    ],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/ironyh/VueSip' }],
 
     search: {
       provider: 'local',
