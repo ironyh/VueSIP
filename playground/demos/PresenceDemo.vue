@@ -87,8 +87,8 @@
       </div>
 
       <div class="demo-tip">
-        <strong>💡 Tip:</strong> Presence (SUBSCRIBE/NOTIFY) functionality requires server
-        support. Make sure your SIP server has presence features enabled.
+        <strong>Tip:</strong> Presence (SUBSCRIBE/NOTIFY) functionality requires server support.
+        Make sure your SIP server has presence features enabled.
       </div>
     </div>
 
@@ -104,9 +104,7 @@
           <span class="status-dot" :class="{ connected: effectiveIsRegistered }"></span>
           <span>{{ effectiveIsRegistered ? 'Registered' : 'Not Registered' }}</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Presence Controls -->
@@ -115,9 +113,7 @@
         <div class="status-section">
           <h3>Your Presence Status</h3>
           <div class="status-display">
-            <span class="status-icon" :class="`status-${currentState}`">
-              {{ getStatusIcon(currentState) }}
-            </span>
+            <span class="status-indicator" :class="`status-${currentState}`"></span>
             <span class="status-text">{{ formatStatus(currentState) }}</span>
             <span v-if="currentStatus?.statusMessage" class="status-message">
               - {{ currentStatus.statusMessage }}
@@ -126,36 +122,36 @@
 
           <div class="status-buttons">
             <button
-              class="btn btn-status"
+              class="btn btn-status status-available"
               :class="{ active: currentState === 'available' }"
               @click="handleSetStatus('available')"
               :disabled="!isRegistered"
             >
-              🟢 Available
+              <span class="status-dot available"></span> Available
             </button>
             <button
-              class="btn btn-status"
+              class="btn btn-status status-away"
               :class="{ active: currentState === 'away' }"
               @click="handleSetStatus('away')"
               :disabled="!isRegistered"
             >
-              🟡 Away
+              <span class="status-dot away"></span> Away
             </button>
             <button
-              class="btn btn-status"
+              class="btn btn-status status-busy"
               :class="{ active: currentState === 'busy' }"
               @click="handleSetStatus('busy')"
               :disabled="!isRegistered"
             >
-              🔴 Busy
+              <span class="status-dot busy"></span> Busy
             </button>
             <button
-              class="btn btn-status"
+              class="btn btn-status status-offline"
               :class="{ active: currentState === 'offline' }"
               @click="handleSetStatus('offline')"
               :disabled="!isRegistered"
             >
-              ⚫ Offline
+              <span class="status-dot offline"></span> Offline
             </button>
           </div>
 
@@ -192,7 +188,7 @@
               :disabled="!targetUser.trim() || !isRegistered || isWatching"
               @click="handleWatchUser"
             >
-              {{ isWatching ? 'Subscribing...' : '👁️ Watch User' }}
+              {{ isWatching ? 'Subscribing...' : 'Watch User' }}
             </button>
           </div>
 
@@ -211,9 +207,7 @@
               class="watched-user"
             >
               <div class="user-info">
-                <span class="status-icon" :class="`status-${status.state}`">
-                  {{ getStatusIcon(status.state) }}
-                </span>
+                <span class="status-indicator" :class="`status-${status.state}`"></span>
                 <div class="user-details">
                   <div class="user-uri">{{ uri }}</div>
                   <div class="user-status">
@@ -232,23 +226,19 @@
                 @click="handleUnwatch(uri)"
                 title="Stop watching this user"
               >
-                ✕ Unwatch
+                Unwatch
               </button>
             </div>
           </div>
 
-          <button
-            v-if="watchedUsers.size > 1"
-            class="btn btn-secondary"
-            @click="handleUnwatchAll"
-          >
+          <button v-if="watchedUsers.size > 1" class="btn btn-secondary" @click="handleUnwatchAll">
             Unwatch All
           </button>
         </div>
 
         <!-- Empty State -->
         <div v-else class="empty-state">
-          <p>👁️ No users being watched</p>
+          <p>No users being watched</p>
           <p class="info-text">Enter a SIP URI above to start watching a user's presence.</p>
         </div>
 
@@ -312,7 +302,15 @@ const watchError = ref('')
 const presenceEvents = ref<PresenceEvent[]>([])
 
 // SIP Client
-const { connect, disconnect, isConnected, isRegistered, error: sipError, updateConfig, getClient } = useSipClient()
+const {
+  connect,
+  disconnect,
+  isConnected,
+  isRegistered,
+  error: _sipError,
+  updateConfig,
+  getClient,
+} = useSipClient()
 
 // Presence
 const sipClientRef = computed(() => getClient())
@@ -320,7 +318,7 @@ const {
   currentStatus,
   currentState,
   watchedUsers,
-  subscriptionCount,
+  subscriptionCount: _subscriptionCount,
   setStatus,
   subscribe,
   unsubscribe,
@@ -425,17 +423,6 @@ async function handleUnwatchAll() {
 }
 
 // Utility Functions
-function getStatusIcon(state: string): string {
-  const icons: Record<string, string> = {
-    available: '🟢',
-    away: '🟡',
-    busy: '🔴',
-    offline: '⚫',
-    custom: '🔵',
-  }
-  return icons[state] || '⚪'
-}
-
 function formatStatus(state: string): string {
   const labels: Record<string, string> = {
     available: 'Available',
@@ -654,8 +641,31 @@ function formatEvent(event: PresenceEvent): string {
   margin-bottom: 1rem;
 }
 
-.status-icon {
-  font-size: 1.5rem;
+.status-indicator {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-indicator.status-available {
+  background: var(--color-success, #10b981);
+}
+
+.status-indicator.status-away {
+  background: var(--color-warning, #f59e0b);
+}
+
+.status-indicator.status-busy {
+  background: var(--color-error, #ef4444);
+}
+
+.status-indicator.status-offline {
+  background: var(--color-gray, #6b7280);
+}
+
+.status-indicator.status-custom {
+  background: var(--color-info, #3b82f6);
 }
 
 .status-text {
@@ -682,6 +692,33 @@ function formatEvent(event: PresenceEvent): string {
   background: #f3f4f6;
   color: #374151;
   border: 2px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.status-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.available {
+  background: var(--color-success, #10b981);
+}
+
+.status-dot.away {
+  background: var(--color-warning, #f59e0b);
+}
+
+.status-dot.busy {
+  background: var(--color-error, #ef4444);
+}
+
+.status-dot.offline {
+  background: var(--color-gray, #6b7280);
 }
 
 .btn-status:hover:not(:disabled) {

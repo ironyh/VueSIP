@@ -22,10 +22,28 @@
 
     <!-- AMI Info Banner -->
     <div class="ami-info-banner">
-      <div class="banner-icon">🏢</div>
+      <div class="banner-icon">
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+          <line x1="9" y1="7" x2="15" y2="7" />
+          <line x1="9" y1="11" x2="15" y2="11" />
+          <line x1="9" y1="15" x2="15" y2="15" />
+        </svg>
+      </div>
       <div class="banner-content">
         <h4>AMI Feature</h4>
-        <p>This demo requires an AMI WebSocket connection to your Asterisk/FreePBX server. AMI (Asterisk Manager Interface) enables advanced PBX management features like user provisioning, queue management, and system monitoring.</p>
+        <p>
+          This demo requires an AMI WebSocket connection to your Asterisk/FreePBX server. AMI
+          (Asterisk Manager Interface) enables advanced PBX management features like user
+          provisioning, queue management, and system monitoring.
+        </p>
       </div>
     </div>
 
@@ -33,8 +51,8 @@
     <div v-if="!amiConnected" key="config-panel" class="config-panel">
       <h3>AMI Server Configuration</h3>
       <p class="info-text">
-        Connect to your AMI WebSocket server to manage SIP users. You can add, edit, and remove
-        SIP extensions directly from this interface.
+        Connect to your AMI WebSocket server to manage SIP users. You can add, edit, and remove SIP
+        extensions directly from this interface.
       </p>
 
       <div class="form-group">
@@ -86,9 +104,9 @@
       </div>
 
       <div class="demo-tip">
-        <strong>Tip:</strong> This demo requires an AMI WebSocket proxy. Make sure your
-        Asterisk server has the AMI interface configured and a WebSocket proxy is running.
-        You need admin privileges to manage users.
+        <strong>Tip:</strong> This demo requires an AMI WebSocket proxy. Make sure your Asterisk
+        server has the AMI interface configured and a WebSocket proxy is running. You need admin
+        privileges to manage users.
       </div>
     </div>
 
@@ -102,13 +120,11 @@
             <span>AMI Connected</span>
           </div>
           <div class="status-item">
-            <span class="status-icon">👥</span>
-            <span>{{ users.length }} Users</span>
+            <span class="status-icon">Users:</span>
+            <span>{{ users.length }}</span>
           </div>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Main Panel -->
@@ -171,11 +187,7 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="user-context">Dial Context</label>
-                <select
-                  id="user-context"
-                  v-model="newUser.context"
-                  :disabled="isLoading"
-                >
+                <select id="user-context" v-model="newUser.context" :disabled="isLoading">
                   <option value="from-internal">from-internal (Internal calls)</option>
                   <option value="from-internal-additional">from-internal-additional</option>
                   <option value="from-pstn">from-pstn (External calls)</option>
@@ -184,11 +196,7 @@
 
               <div class="form-group">
                 <label for="user-transport">Transport</label>
-                <select
-                  id="user-transport"
-                  v-model="newUser.transport"
-                  :disabled="isLoading"
-                >
+                <select id="user-transport" v-model="newUser.transport" :disabled="isLoading">
                   <option value="udp">UDP</option>
                   <option value="tcp">TCP</option>
                   <option value="tls">TLS</option>
@@ -199,29 +207,17 @@
 
             <div class="form-row checkbox-row">
               <label class="checkbox-label">
-                <input
-                  type="checkbox"
-                  v-model="newUser.voicemailEnabled"
-                  :disabled="isLoading"
-                />
+                <input type="checkbox" v-model="newUser.voicemailEnabled" :disabled="isLoading" />
                 <span>Enable Voicemail</span>
               </label>
 
               <label class="checkbox-label">
-                <input
-                  type="checkbox"
-                  v-model="newUser.callWaitingEnabled"
-                  :disabled="isLoading"
-                />
+                <input type="checkbox" v-model="newUser.callWaitingEnabled" :disabled="isLoading" />
                 <span>Enable Call Waiting</span>
               </label>
 
               <label class="checkbox-label">
-                <input
-                  type="checkbox"
-                  v-model="newUser.enabled"
-                  :disabled="isLoading"
-                />
+                <input type="checkbox" v-model="newUser.enabled" :disabled="isLoading" />
                 <span>User Enabled</span>
               </label>
             </div>
@@ -240,7 +236,7 @@
                 :disabled="!isUserFormValid || isLoading"
                 @click="editingUser ? handleUpdateUser() : handleAddUser()"
               >
-                {{ isLoading ? 'Saving...' : (editingUser ? 'Update User' : 'Add User') }}
+                {{ isLoading ? 'Saving...' : editingUser ? 'Update User' : 'Add User' }}
               </button>
             </div>
           </div>
@@ -261,9 +257,25 @@
           </div>
 
           <div v-if="filteredUsers.length === 0" key="no-users" class="no-users">
-            <span class="no-users-icon">👥</span>
+            <span class="no-users-icon">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </span>
             <p>{{ searchQuery ? 'No users match your search' : 'No users configured yet' }}</p>
-            <p class="hint">{{ searchQuery ? 'Try a different search term' : 'Add your first SIP user above' }}</p>
+            <p class="hint">
+              {{ searchQuery ? 'Try a different search term' : 'Add your first SIP user above' }}
+            </p>
           </div>
 
           <div v-else key="users-list" class="users-list">
@@ -283,23 +295,25 @@
                 </div>
                 <div class="user-details">
                   <span v-if="user.email" class="detail">
-                    <span class="detail-icon">📧</span>
+                    <span class="detail-icon">Email:</span>
                     {{ user.email }}
                   </span>
                   <span class="detail">
-                    <span class="detail-icon">📡</span>
+                    <span class="detail-icon">Transport:</span>
                     {{ user.transport.toUpperCase() }}
                   </span>
                   <span v-if="user.voicemailEnabled" class="detail">
-                    <span class="detail-icon">📬</span>
-                    Voicemail
+                    <span class="detail-icon">VM</span>
                   </span>
                 </div>
                 <div class="user-status">
                   <span :class="['status-badge', user.enabled ? 'enabled' : 'disabled']">
                     {{ user.enabled ? 'Active' : 'Disabled' }}
                   </span>
-                  <span v-if="user.registrationStatus" :class="['status-badge', user.registrationStatus]">
+                  <span
+                    v-if="user.registrationStatus"
+                    :class="['status-badge', user.registrationStatus]"
+                  >
                     {{ formatRegistrationStatus(user.registrationStatus) }}
                   </span>
                 </div>
@@ -311,7 +325,7 @@
                   :disabled="isLoading"
                   @click="handleEditUser(user)"
                 >
-                  ✏️
+                  Edit
                 </button>
                 <button
                   class="btn btn-sm btn-icon"
@@ -319,7 +333,7 @@
                   :disabled="isLoading"
                   @click="handleToggleUser(user)"
                 >
-                  {{ user.enabled ? '🚫' : '✅' }}
+                  {{ user.enabled ? 'Disable' : 'Enable' }}
                 </button>
                 <button
                   class="btn btn-sm btn-icon btn-danger"
@@ -327,7 +341,7 @@
                   :disabled="isLoading"
                   @click="handleDeleteUser(user)"
                 >
-                  🗑️
+                  Delete
                 </button>
               </div>
             </div>
@@ -338,19 +352,15 @@
         <div v-if="users.length > 0" class="bulk-actions">
           <h4>Bulk Actions</h4>
           <div class="actions-row">
-            <button
-              class="btn btn-secondary"
-              :disabled="isLoading"
-              @click="handleExportUsers"
-            >
-              📥 Export Users
+            <button class="btn btn-secondary" :disabled="isLoading" @click="handleExportUsers">
+              Export Users
             </button>
             <button
               class="btn btn-secondary"
               :disabled="isLoading"
               @click="handleRefreshRegistrations"
             >
-              🔄 Refresh Status
+              Refresh Status
             </button>
           </div>
         </div>
@@ -427,7 +437,7 @@ onMounted(() => {
         includeSip: true,
         includePjsip: true,
         onPeerUpdate: (peer) => {
-          const idx = users.value.findIndex(u => u.extension === peer.objectName)
+          const idx = users.value.findIndex((u) => u.extension === peer.objectName)
           if (idx >= 0) {
             users.value[idx] = peerInfoToSipUser(peer)
           }
@@ -460,23 +470,24 @@ const newUser = reactive({
 })
 
 // Computed
-const isConfigValid = computed(() =>
-  !!config.url // username/password optional - some AMI setups allow unauthenticated connections
+const isConfigValid = computed(
+  () => !!config.url // username/password optional - some AMI setups allow unauthenticated connections
 )
 
-const isUserFormValid = computed(() =>
-  newUser.extension && newUser.displayName && newUser.secret &&
-  /^\d+$/.test(newUser.extension)
+const isUserFormValid = computed(
+  () =>
+    newUser.extension && newUser.displayName && newUser.secret && /^\d+$/.test(newUser.extension)
 )
 
 const filteredUsers = computed(() => {
   if (!searchQuery.value.trim()) return users.value
 
   const query = searchQuery.value.toLowerCase()
-  return users.value.filter(user =>
-    user.extension.includes(query) ||
-    user.displayName.toLowerCase().includes(query) ||
-    (user.email && user.email.toLowerCase().includes(query))
+  return users.value.filter(
+    (user) =>
+      user.extension.includes(query) ||
+      user.displayName.toLowerCase().includes(query) ||
+      (user.email && user.email.toLowerCase().includes(query))
   )
 })
 
@@ -484,7 +495,7 @@ const filteredUsers = computed(() => {
 function getInitials(name: string): string {
   return name
     .split(' ')
-    .map(n => n[0])
+    .map((n) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
@@ -526,9 +537,18 @@ function peerInfoToSipUser(peer: PeerInfo): SipUser {
   // Determine registration status from peer status
   let registrationStatus: 'registered' | 'unregistered' | 'unknown' = 'unknown'
   const status = peer.status?.toLowerCase() || ''
-  if (status.includes('ok') || status.includes('registered') || status.includes('reachable') || status.includes('not in use')) {
+  if (
+    status.includes('ok') ||
+    status.includes('registered') ||
+    status.includes('reachable') ||
+    status.includes('not in use')
+  ) {
     registrationStatus = 'registered'
-  } else if (status.includes('unreachable') || status.includes('unavailable') || status.includes('unknown')) {
+  } else if (
+    status.includes('unreachable') ||
+    status.includes('unavailable') ||
+    status.includes('unknown')
+  ) {
     registrationStatus = 'unregistered'
   }
 
@@ -600,7 +620,7 @@ async function handleConnect() {
         includePjsip: true,
         onPeerUpdate: (peer) => {
           // Update user list when peer status changes
-          const idx = users.value.findIndex(u => u.extension === peer.objectName)
+          const idx = users.value.findIndex((u) => u.extension === peer.objectName)
           if (idx >= 0) {
             users.value[idx] = peerInfoToSipUser(peer)
           }
@@ -636,7 +656,7 @@ async function handleAddUser() {
   if (!isUserFormValid.value) return
 
   // Check for duplicate extension
-  if (users.value.some(u => u.extension === newUser.extension)) {
+  if (users.value.some((u) => u.extension === newUser.extension)) {
     error.value = `Extension ${newUser.extension} already exists`
     return
   }
@@ -646,7 +666,7 @@ async function handleAddUser() {
 
   try {
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     const user: SipUser = {
       extension: newUser.extension,
@@ -697,9 +717,9 @@ async function handleUpdateUser() {
   error.value = null
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
-    const idx = users.value.findIndex(u => u.extension === editingUser.value!.extension)
+    const idx = users.value.findIndex((u) => u.extension === editingUser.value!.extension)
     if (idx >= 0) {
       users.value[idx] = {
         ...users.value[idx],
@@ -728,9 +748,9 @@ async function handleToggleUser(user: SipUser) {
   error.value = null
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await new Promise((resolve) => setTimeout(resolve, 300))
 
-    const idx = users.value.findIndex(u => u.extension === user.extension)
+    const idx = users.value.findIndex((u) => u.extension === user.extension)
     if (idx >= 0) {
       users.value[idx].enabled = !users.value[idx].enabled
       users.value[idx].updatedAt = new Date()
@@ -745,7 +765,9 @@ async function handleToggleUser(user: SipUser) {
 }
 
 async function handleDeleteUser(user: SipUser) {
-  if (!confirm(`Are you sure you want to delete user ${user.displayName} (ext. ${user.extension})?`)) {
+  if (
+    !confirm(`Are you sure you want to delete user ${user.displayName} (ext. ${user.extension})?`)
+  ) {
     return
   }
 
@@ -753,9 +775,9 @@ async function handleDeleteUser(user: SipUser) {
   error.value = null
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
-    const idx = users.value.findIndex(u => u.extension === user.extension)
+    const idx = users.value.findIndex((u) => u.extension === user.extension)
     if (idx >= 0) {
       users.value.splice(idx, 1)
     }
@@ -769,7 +791,7 @@ async function handleDeleteUser(user: SipUser) {
 }
 
 function handleExportUsers() {
-  const exportData = users.value.map(u => ({
+  const exportData = users.value.map((u) => ({
     extension: u.extension,
     displayName: u.displayName,
     email: u.email,
@@ -890,7 +912,7 @@ async function handleRefreshRegistrations() {
   color: #374151;
 }
 
-.checkbox-label input[type="checkbox"] {
+.checkbox-label input[type='checkbox'] {
   width: auto;
 }
 
@@ -946,16 +968,34 @@ async function handleRefreshRegistrations() {
   cursor: not-allowed;
 }
 
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5568d3; }
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
 
-.btn-secondary { background: #6b7280; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #4b5563; }
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
 
-.btn-danger { background: #ef4444; color: white; }
-.btn-danger:hover:not(:disabled) { background: #dc2626; }
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
 
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
 
 .btn-icon {
   padding: 0.5rem;
@@ -1043,9 +1083,13 @@ async function handleRefreshRegistrations() {
   background: #ef4444;
 }
 
-.status-dot.connected { background: #10b981; }
+.status-dot.connected {
+  background: #10b981;
+}
 
-.status-icon { font-size: 1.25rem; }
+.status-icon {
+  font-size: 1.25rem;
+}
 
 /* Main Panel */
 .main-panel {

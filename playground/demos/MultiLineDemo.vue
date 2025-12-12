@@ -24,8 +24,8 @@
     <div v-if="!sipConnected" class="config-panel">
       <h3>Multi-Line Configuration</h3>
       <p class="info-text">
-        Configure your SIP connection to test multi-line call functionality.
-        This demo supports multiple concurrent calls across different lines.
+        Configure your SIP connection to test multi-line call functionality. This demo supports
+        multiple concurrent calls across different lines.
       </p>
 
       <div class="form-group">
@@ -94,8 +94,8 @@
       </div>
 
       <div class="demo-tip">
-        <strong>Tip:</strong> Multi-line support allows handling multiple calls simultaneously.
-        Each line can be independently controlled (hold, mute, transfer).
+        <strong>Tip:</strong> Multi-line support allows handling multiple calls simultaneously. Each
+        line can be independently controlled (hold, mute, transfer).
       </div>
     </div>
 
@@ -109,17 +109,15 @@
             <span>SIP Connected</span>
           </div>
           <div class="status-item">
-            <span class="status-icon">📞</span>
-            <span>{{ activeCallCount }} Active</span>
+            <span class="status-icon">Active:</span>
+            <span>{{ activeCallCount }}</span>
           </div>
           <div v-if="incomingCallCount > 0" class="status-item ringing">
-            <span class="status-icon">🔔</span>
-            <span>{{ incomingCallCount }} Incoming</span>
+            <span class="status-icon">Incoming:</span>
+            <span>{{ incomingCallCount }}</span>
           </div>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Lines Grid -->
@@ -147,7 +145,20 @@
 
           <div class="line-content">
             <div v-if="line.status === 'idle'" class="line-idle">
-              <span class="idle-icon">📱</span>
+              <span class="idle-icon">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                  />
+                </svg>
+              </span>
               <span class="idle-text">Available</span>
             </div>
 
@@ -155,16 +166,10 @@
               <span class="caller-name">{{ line.remoteDisplayName || 'Unknown' }}</span>
               <span class="caller-uri">{{ line.remoteUri }}</span>
               <div class="ringing-actions">
-                <button
-                  class="btn btn-sm btn-success"
-                  @click.stop="answerCall(line.lineNumber)"
-                >
+                <button class="btn btn-sm btn-success" @click.stop="answerCall(line.lineNumber)">
                   Answer
                 </button>
-                <button
-                  class="btn btn-sm btn-danger"
-                  @click.stop="rejectCall(line.lineNumber)"
-                >
+                <button class="btn btn-sm btn-danger" @click.stop="rejectCall(line.lineNumber)">
                   Reject
                 </button>
               </div>
@@ -174,9 +179,9 @@
               <span class="remote-party">{{ line.remoteDisplayName || line.remoteUri }}</span>
               <span class="call-duration">{{ formatDuration(line.duration) }}</span>
               <div class="call-indicators">
-                <span v-if="line.isOnHold" class="indicator hold">🔇 Hold</span>
-                <span v-if="line.isMuted" class="indicator mute">🔈 Muted</span>
-                <span v-if="line.hasVideo" class="indicator video">📹 Video</span>
+                <span v-if="line.isOnHold" class="indicator hold">Hold</span>
+                <span v-if="line.isMuted" class="indicator mute">Muted</span>
+                <span v-if="line.hasVideo" class="indicator video">Video</span>
               </div>
             </div>
           </div>
@@ -189,7 +194,7 @@
               :title="line.isOnHold ? 'Resume' : 'Hold'"
               @click.stop="toggleHoldLine(line.lineNumber)"
             >
-              {{ line.isOnHold ? '▶️' : '⏸️' }}
+              {{ line.isOnHold ? 'Resume' : 'Hold' }}
             </button>
 
             <button
@@ -199,7 +204,7 @@
               :title="line.isMuted ? 'Unmute' : 'Mute'"
               @click.stop="toggleMuteLine(line.lineNumber)"
             >
-              {{ line.isMuted ? '🔊' : '🔇' }}
+              {{ line.isMuted ? 'Unmute' : 'Mute' }}
             </button>
 
             <button
@@ -208,7 +213,7 @@
               title="Hangup"
               @click.stop="hangupCall(line.lineNumber)"
             >
-              📵
+              End
             </button>
           </div>
         </div>
@@ -227,11 +232,7 @@
           />
           <select v-model.number="dialLine" :disabled="isLoading || availableLines.length === 0">
             <option :value="0">Auto-select line</option>
-            <option
-              v-for="line in availableLines"
-              :key="line.lineNumber"
-              :value="line.lineNumber"
-            >
+            <option v-for="line in availableLines" :key="line.lineNumber" :value="line.lineNumber">
               Line {{ line.lineNumber }}
             </option>
           </select>
@@ -259,11 +260,7 @@
           >
             Hold All
           </button>
-          <button
-            class="btn btn-danger"
-            :disabled="activeCallCount === 0"
-            @click="hangupAll"
-          >
+          <button class="btn btn-danger" :disabled="activeCallCount === 0" @click="hangupAll">
             Hangup All
           </button>
           <button
@@ -344,37 +341,25 @@ const dtmfDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 const durationTimers = new Map<number, ReturnType<typeof setInterval>>()
 
 // Computed
-const isConfigValid = computed(() =>
-  config.server && config.username && config.password
+const isConfigValid = computed(() => config.server && config.username && config.password)
+
+const selectedLineState = computed(
+  () => lines.value.find((l) => l.lineNumber === selectedLine.value) ?? null
 )
 
-const selectedLineState = computed(() =>
-  lines.value.find(l => l.lineNumber === selectedLine.value) ?? null
+const activeCallCount = computed(
+  () => lines.value.filter((l) => l.status === 'active' || l.status === 'held').length
 )
 
-const activeCallCount = computed(() =>
-  lines.value.filter(l => l.status === 'active' || l.status === 'held').length
-)
+const incomingCallCount = computed(() => lines.value.filter((l) => l.status === 'ringing').length)
 
-const incomingCallCount = computed(() =>
-  lines.value.filter(l => l.status === 'ringing').length
-)
+const allLinesBusy = computed(() => lines.value.every((l) => l.status !== 'idle'))
 
-const allLinesBusy = computed(() =>
-  lines.value.every(l => l.status !== 'idle')
-)
+const availableLines = computed(() => lines.value.filter((l) => l.status === 'idle'))
 
-const availableLines = computed(() =>
-  lines.value.filter(l => l.status === 'idle')
-)
+const activeLines = computed(() => lines.value.filter((l) => l.status === 'active'))
 
-const activeLines = computed(() =>
-  lines.value.filter(l => l.status === 'active')
-)
-
-const heldLines = computed(() =>
-  lines.value.filter(l => l.status === 'held')
-)
+const heldLines = computed(() => lines.value.filter((l) => l.status === 'held'))
 
 // Helpers
 function formatStatus(status: LineStatus): string {
@@ -457,7 +442,7 @@ async function handleConnect(): Promise<void> {
 
   try {
     // Simulate connection
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
     initializeLines(lineCountConfig.value)
     sipConnected.value = true
@@ -511,7 +496,7 @@ async function handleDial(): Promise<void> {
     }
 
     // Simulate call initiation
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     const idx = lineNumber - 1
     lines.value[idx] = {
@@ -555,7 +540,7 @@ async function answerCall(lineNumber: number): Promise<void> {
       }
     }
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await new Promise((resolve) => setTimeout(resolve, 300))
 
     lines.value[idx] = {
       ...lines.value[idx],
@@ -779,7 +764,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.checkbox-group input[type="checkbox"] {
+.checkbox-group input[type='checkbox'] {
   width: auto;
 }
 
@@ -798,19 +783,42 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5568d3; }
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
 
-.btn-secondary { background: #6b7280; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #4b5563; }
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
 
-.btn-success { background: #10b981; color: white; }
-.btn-success:hover:not(:disabled) { background: #059669; }
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+.btn-success:hover:not(:disabled) {
+  background: #059669;
+}
 
-.btn-danger { background: #ef4444; color: white; }
-.btn-danger:hover:not(:disabled) { background: #dc2626; }
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
 
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
 
 .error-message {
   margin-top: 1rem;
@@ -873,8 +881,13 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .status-dot {
@@ -884,9 +897,13 @@ onUnmounted(() => {
   background: #ef4444;
 }
 
-.status-dot.connected { background: #10b981; }
+.status-dot.connected {
+  background: #10b981;
+}
 
-.status-icon { font-size: 1.25rem; }
+.status-icon {
+  font-size: 1.25rem;
+}
 
 /* Lines Grid */
 .lines-grid {
@@ -914,19 +931,35 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
 }
 
-.line-card.idle { background: #f9fafb; }
+.line-card.idle {
+  background: #f9fafb;
+}
 .line-card.ringing {
   background: #fef3c7;
   border-color: #f59e0b;
   animation: ring-pulse 1s ease-in-out infinite;
 }
-.line-card.active { background: #d1fae5; border-color: #10b981; }
-.line-card.held { background: #fef3c7; border-color: #f59e0b; }
-.line-card.busy { background: #fee2e2; border-color: #ef4444; }
+.line-card.active {
+  background: #d1fae5;
+  border-color: #10b981;
+}
+.line-card.held {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+.line-card.busy {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
 
 @keyframes ring-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.02); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
 }
 
 .line-header {
@@ -949,11 +982,26 @@ onUnmounted(() => {
   text-transform: uppercase;
 }
 
-.line-status.idle { background: #e5e7eb; color: #6b7280; }
-.line-status.ringing { background: #f59e0b; color: white; }
-.line-status.active { background: #10b981; color: white; }
-.line-status.held { background: #6b7280; color: white; }
-.line-status.busy { background: #ef4444; color: white; }
+.line-status.idle {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+.line-status.ringing {
+  background: #f59e0b;
+  color: white;
+}
+.line-status.active {
+  background: #10b981;
+  color: white;
+}
+.line-status.held {
+  background: #6b7280;
+  color: white;
+}
+.line-status.busy {
+  background: #ef4444;
+  color: white;
+}
 
 .line-content {
   min-height: 60px;
@@ -968,8 +1016,12 @@ onUnmounted(() => {
   color: #9ca3af;
 }
 
-.idle-icon { font-size: 1.5rem; }
-.idle-text { font-size: 0.75rem; }
+.idle-icon {
+  font-size: 1.5rem;
+}
+.idle-text {
+  font-size: 0.75rem;
+}
 
 .line-ringing {
   display: flex;

@@ -2,8 +2,8 @@
   <div class="call-timer-demo">
     <div class="info-section">
       <p>
-        Display call duration in various formats. This demo shows how to format and display
-        elapsed time during calls using VueSip's built-in duration tracking.
+        Display call duration in various formats. This demo shows how to format and display elapsed
+        time during calls using VueSip's built-in duration tracking.
       </p>
     </div>
 
@@ -32,8 +32,24 @@
       <h3>Timer Formats</h3>
 
       <div v-if="effectiveCallState !== 'active' || !effectiveDuration" class="timer-placeholder">
-        <div class="placeholder-icon">⏱️</div>
-        <p>{{ isSimulationMode ? 'Run a simulation scenario to see the timer' : 'Start a call to see the timer in action' }}</p>
+        <svg
+          class="placeholder-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="13" r="8" />
+          <path d="M12 9v4l2 2" />
+          <path d="M16.24 7.76l1.42-1.42M6.34 7.76L4.92 6.34M12 2v2" />
+        </svg>
+        <p>
+          {{
+            isSimulationMode
+              ? 'Run a simulation scenario to see the timer'
+              : 'Start a call to see the timer in action'
+          }}
+        </p>
       </div>
 
       <div v-else class="timer-displays">
@@ -72,9 +88,19 @@
       <h3>Call Status Display Example</h3>
       <div class="status-card" :class="{ active: effectiveCallState === 'active' }">
         <div class="status-header">
-          <span class="status-icon">
-            {{ effectiveCallState === 'active' ? '📞' : '⏸️' }}
-          </span>
+          <svg
+            v-if="effectiveCallState === 'active'"
+            class="status-icon"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path
+              d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"
+            />
+          </svg>
+          <svg v-else class="status-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+          </svg>
           <span class="status-text">
             {{ effectiveCallState === 'active' ? 'In Call' : 'No Active Call' }}
           </span>
@@ -92,7 +118,11 @@
         </div>
 
         <div v-else class="empty-status">
-          {{ isSimulationMode ? 'Use simulation controls above to start a call' : 'Connect to a SIP server and make a call to see the timer' }}
+          {{
+            isSimulationMode
+              ? 'Use simulation controls above to start a call'
+              : 'Connect to a SIP server and make a call to see the timer'
+          }}
         </div>
       </div>
     </div>
@@ -186,7 +216,7 @@ const effectiveCallState = computed(() =>
 )
 
 const effectiveDuration = computed(() =>
-  isSimulationMode.value ? simulation.duration.value : (realDuration.value || 0)
+  isSimulationMode.value ? simulation.duration.value : realDuration.value || 0
 )
 
 const effectiveRemoteUri = computed(() =>
@@ -201,9 +231,7 @@ const effectiveIsOnHold = computed(() =>
   isSimulationMode.value ? simulation.isOnHold.value : false
 )
 
-const effectiveIsMuted = computed(() =>
-  isSimulationMode.value ? simulation.isMuted.value : false
-)
+const effectiveIsMuted = computed(() => (isSimulationMode.value ? simulation.isMuted.value : false))
 
 // Formatting functions
 const formatMMSS = (seconds: number): string => {
@@ -290,9 +318,11 @@ const formatCompact = (seconds: number): string => {
 }
 
 .placeholder-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
   opacity: 0.5;
+  color: var(--text-secondary, #64748b);
 }
 
 .timer-placeholder p {
@@ -377,7 +407,9 @@ const formatCompact = (seconds: number): string => {
 }
 
 .status-icon {
-  font-size: 2rem;
+  width: 32px;
+  height: 32px;
+  color: var(--primary, #6366f1);
 }
 
 .status-text {

@@ -22,13 +22,12 @@
 
     <div class="info-section">
       <p>
-        Ring Groups allow multiple extensions to ring simultaneously or in sequence when a
-        single number is dialed. Configure ring strategies, manage members, and monitor
-        call distribution.
+        Ring Groups allow multiple extensions to ring simultaneously or in sequence when a single
+        number is dialed. Configure ring strategies, manage members, and monitor call distribution.
       </p>
       <p class="note">
-        <strong>Note:</strong> This demo simulates ring group management. In production,
-        changes would be applied to your Asterisk dialplan configuration.
+        <strong>Note:</strong> This demo simulates ring group management. In production, changes
+        would be applied to your Asterisk dialplan configuration.
       </p>
     </div>
 
@@ -36,33 +35,14 @@
     <div class="controls-section">
       <div class="input-group">
         <label>Ring Group ID</label>
-        <input
-          v-model="newGroupId"
-          type="text"
-          placeholder="e.g., 600"
-          :disabled="isMonitoring"
-        />
+        <input v-model="newGroupId" type="text" placeholder="e.g., 600" :disabled="isMonitoring" />
       </div>
       <div class="action-buttons">
-        <button
-          v-if="!isMonitoring"
-          class="btn btn-primary"
-          @click="handleStartMonitoring"
-        >
+        <button v-if="!isMonitoring" class="btn btn-primary" @click="handleStartMonitoring">
           Start Monitoring
         </button>
-        <button
-          v-else
-          class="btn btn-danger"
-          @click="handleStopMonitoring"
-        >
-          Stop Monitoring
-        </button>
-        <button
-          class="btn btn-secondary"
-          :disabled="!isMonitoring"
-          @click="handleRefresh"
-        >
+        <button v-else class="btn btn-danger" @click="handleStopMonitoring">Stop Monitoring</button>
+        <button class="btn btn-secondary" :disabled="!isMonitoring" @click="handleRefresh">
           Refresh
         </button>
         <button
@@ -123,19 +103,8 @@
           >
             Disable
           </button>
-          <button
-            v-else
-            class="btn btn-sm btn-success"
-            @click="handleEnableGroup"
-          >
-            Enable
-          </button>
-          <button
-            class="btn btn-sm btn-secondary"
-            @click="handleClearStats"
-          >
-            Clear Stats
-          </button>
+          <button v-else class="btn btn-sm btn-success" @click="handleEnableGroup">Enable</button>
+          <button class="btn btn-sm btn-secondary" @click="handleClearStats">Clear Stats</button>
         </div>
       </div>
 
@@ -176,16 +145,8 @@
         <div class="members-header">
           <h4>Members</h4>
           <div class="add-member-form">
-            <input
-              v-model="newMemberExt"
-              type="text"
-              placeholder="Extension"
-            />
-            <input
-              v-model="newMemberName"
-              type="text"
-              placeholder="Name (optional)"
-            />
+            <input v-model="newMemberExt" type="text" placeholder="Extension" />
+            <input v-model="newMemberName" type="text" placeholder="Name (optional)" />
             <button
               class="btn btn-sm btn-primary"
               :disabled="!newMemberExt"
@@ -205,7 +166,7 @@
           >
             <div class="member-info">
               <div class="member-status" :class="member.status">
-                {{ getStatusIcon(member.status) }}
+                <span class="status-indicator">{{ getStatusIcon(member.status) }}</span>
               </div>
               <div class="member-details">
                 <span class="member-extension">{{ member.extension }}</span>
@@ -233,7 +194,7 @@
                 title="Disable"
                 @click="handleDisableMember(member.extension)"
               >
-                ⏸️
+                Pause
               </button>
               <button
                 v-else
@@ -241,21 +202,19 @@
                 title="Enable"
                 @click="handleEnableMember(member.extension)"
               >
-                ▶️
+                Play
               </button>
               <button
                 class="btn-icon danger"
                 title="Remove"
                 @click="handleRemoveMember(member.extension)"
               >
-                ❌
+                Remove
               </button>
             </div>
           </div>
         </div>
-        <div v-else class="empty-members">
-          No members in this ring group. Add members above.
-        </div>
+        <div v-else class="empty-members">No members in this ring group. Add members above.</div>
       </div>
 
       <!-- Statistics -->
@@ -297,18 +256,14 @@
         <button class="btn btn-secondary" @click="simulateIncomingCall">
           Simulate Incoming Call
         </button>
-        <button class="btn btn-secondary" @click="simulateCallAnswer">
-          Simulate Call Answer
-        </button>
-        <button class="btn btn-secondary" @click="simulateCallEnd">
-          Simulate Call End
-        </button>
+        <button class="btn btn-secondary" @click="simulateCallAnswer">Simulate Call Answer</button>
+        <button class="btn btn-secondary" @click="simulateCallEnd">Simulate Call End</button>
       </div>
     </div>
 
     <!-- Empty State -->
     <div v-if="!isMonitoring" class="empty-state">
-      <div class="empty-icon">📞</div>
+      <div class="empty-icon">PHONE</div>
       <h4>Ring Group Management</h4>
       <p>Enter a ring group ID and click "Start Monitoring" to manage ring groups.</p>
     </div>
@@ -415,13 +370,13 @@ function getAvailableCount(group: RingGroup): number {
 
 function getStatusIcon(status: RingGroupMemberStatus): string {
   const icons: Record<RingGroupMemberStatus, string> = {
-    available: '🟢',
-    busy: '🔴',
-    ringing: '🟡',
-    unavailable: '⚫',
-    unknown: '⚪',
+    available: 'Available',
+    busy: 'Busy',
+    ringing: 'Ringing',
+    unavailable: 'Unavailable',
+    unknown: 'Unknown',
   }
-  return icons[status] || '⚪'
+  return icons[status] || 'Unknown'
 }
 
 function formatServiceLevel(level: number): string {

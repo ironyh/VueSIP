@@ -20,10 +20,10 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <h2>📊 CDR Dashboard</h2>
+    <h2>CDR Dashboard</h2>
     <p class="description">
-      Real-time Call Detail Record (CDR) processing and analytics via AMI.
-      View call statistics, agent performance, and export data.
+      Real-time Call Detail Record (CDR) processing and analytics via AMI. View call statistics,
+      agent performance, and export data.
     </p>
 
     <!-- AMI Connection Status -->
@@ -165,9 +165,9 @@
       <div class="section-header">
         <h3>Recent CDR Records</h3>
         <div class="export-buttons">
-          <button @click="handleExportCSV" class="export-btn">📥 Export CSV</button>
-          <button @click="handleExportJSON" class="export-btn">📥 Export JSON</button>
-          <button @click="clearRecords" class="clear-btn">🗑️ Clear</button>
+          <button @click="handleExportCSV" class="export-btn">Export CSV</button>
+          <button @click="handleExportJSON" class="export-btn">Export JSON</button>
+          <button @click="clearRecords" class="clear-btn">Clear</button>
         </div>
       </div>
 
@@ -220,7 +220,7 @@
               <td class="time-col">{{ formatTime(record.startTime) }}</td>
               <td class="direction-col">
                 <span :class="['direction-badge', record.direction]">
-                  {{ getDirectionIcon(record.direction) }}
+                  {{ getDirectionLabel(record.direction) }}
                 </span>
               </td>
               <td class="source-col">{{ record.source || '-' }}</td>
@@ -246,13 +246,11 @@
       <h3>Simulate CDR (Demo)</h3>
       <p class="hint">Generate sample CDR records to test the dashboard.</p>
       <div class="simulate-buttons">
-        <button @click="simulateCdr('ANSWERED')" class="sim-btn answered">
-          ✓ Answered Call
-        </button>
-        <button @click="simulateCdr('NO ANSWER')" class="sim-btn missed">⚪ Missed Call</button>
-        <button @click="simulateCdr('BUSY')" class="sim-btn busy">📵 Busy</button>
-        <button @click="simulateCdr('FAILED')" class="sim-btn failed">❌ Failed</button>
-        <button @click="simulateMultiple" class="sim-btn multiple">📊 Generate 10 Random</button>
+        <button @click="simulateCdr('ANSWERED')" class="sim-btn answered">Answered Call</button>
+        <button @click="simulateCdr('NO ANSWER')" class="sim-btn missed">Missed Call</button>
+        <button @click="simulateCdr('BUSY')" class="sim-btn busy">Busy</button>
+        <button @click="simulateCdr('FAILED')" class="sim-btn failed">Failed</button>
+        <button @click="simulateMultiple" class="sim-btn multiple">Generate 10 Random</button>
       </div>
     </div>
 
@@ -338,8 +336,7 @@ const filteredRecords = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(
-      (r) =>
-        r.source.toLowerCase().includes(query) || r.destination.toLowerCase().includes(query)
+      (r) => r.source.toLowerCase().includes(query) || r.destination.toLowerCase().includes(query)
     )
   }
 
@@ -358,8 +355,10 @@ const toggleAmiConnection = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // Create mock AMI client with event triggering
-      const eventListeners: Map<string, Set<(data: { data: Record<string, string> }) => void>> =
-        new Map()
+      const eventListeners: Map<
+        string,
+        Set<(data: { data: Record<string, string> }) => void>
+      > = new Map()
 
       mockAmiClient.value = {
         sendAction: async () => {
@@ -393,7 +392,10 @@ const simulateCdr = (disposition: CdrDisposition) => {
   if (!mockAmiClient.value) return
 
   const now = new Date()
-  const duration = disposition === 'ANSWERED' ? Math.floor(Math.random() * 300) + 30 : Math.floor(Math.random() * 30)
+  const duration =
+    disposition === 'ANSWERED'
+      ? Math.floor(Math.random() * 300) + 30
+      : Math.floor(Math.random() * 30)
   const billable = disposition === 'ANSWERED' ? duration - Math.floor(Math.random() * 10) : 0
 
   const sources = ['1001', '1002', '1003', '1004', '1005']
@@ -440,7 +442,18 @@ const simulateCdr = (disposition: CdrDisposition) => {
 }
 
 const simulateMultiple = () => {
-  const dispositions: CdrDisposition[] = ['ANSWERED', 'ANSWERED', 'ANSWERED', 'NO ANSWER', 'BUSY', 'ANSWERED', 'ANSWERED', 'CANCEL', 'ANSWERED', 'FAILED']
+  const dispositions: CdrDisposition[] = [
+    'ANSWERED',
+    'ANSWERED',
+    'ANSWERED',
+    'NO ANSWER',
+    'BUSY',
+    'ANSWERED',
+    'ANSWERED',
+    'CANCEL',
+    'ANSWERED',
+    'FAILED',
+  ]
   dispositions.forEach((disp, i) => {
     setTimeout(() => simulateCdr(disp), i * 100)
   })
@@ -489,16 +502,16 @@ const formatTime = (date: Date): string => {
   return date.toLocaleTimeString()
 }
 
-const getDirectionIcon = (direction: CdrDirection): string => {
+const getDirectionLabel = (direction: CdrDirection): string => {
   switch (direction) {
     case 'inbound':
-      return '📥'
+      return 'IN'
     case 'outbound':
-      return '📤'
+      return 'OUT'
     case 'internal':
-      return '🔄'
+      return 'INT'
     default:
-      return '❓'
+      return '?'
   }
 }
 

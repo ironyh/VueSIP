@@ -64,8 +64,8 @@
       </div>
 
       <div class="demo-tip">
-        <strong>Tip:</strong> Feature codes must be configured in your PBX dialplan.
-        Common codes: *76 (DND On), *77 (DND Off), *72 (CF), *73 (CF Off).
+        <strong>Tip:</strong> Feature codes must be configured in your PBX dialplan. Common codes:
+        *76 (DND On), *77 (DND Off), *72 (CF), *73 (CF Off).
       </div>
     </div>
 
@@ -80,21 +80,17 @@
         <div class="status-item">
           <span>Extension: {{ extension }}</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="refreshStatus">
-          🔄 Refresh
-        </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="refreshStatus">Refresh</button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- DND Section -->
       <div class="feature-section">
-        <h3>🚫 Do Not Disturb</h3>
+        <h3>Do Not Disturb</h3>
         <div class="dnd-controls">
           <div class="dnd-status">
             <span class="status-badge" :class="{ enabled: dndEnabled, disabled: !dndEnabled }">
-              {{ dndEnabled ? '🔴 DND Enabled' : '🟢 DND Disabled' }}
+              {{ dndEnabled ? 'DND Enabled' : 'DND Disabled' }}
             </span>
           </div>
           <div class="dnd-buttons">
@@ -112,7 +108,7 @@
 
       <!-- Call Forward Section -->
       <div class="feature-section">
-        <h3>📞 Call Forwarding</h3>
+        <h3>Call Forwarding</h3>
 
         <div class="cf-types">
           <!-- Unconditional -->
@@ -120,7 +116,7 @@
             <div class="cf-header">
               <span class="cf-title">Unconditional (All Calls)</span>
               <span class="cf-status" :class="{ active: cfAllEnabled }">
-                {{ cfAllEnabled ? '✓ Active' : 'Inactive' }}
+                {{ cfAllEnabled ? 'Active' : 'Inactive' }}
               </span>
             </div>
             <div class="cf-body">
@@ -154,7 +150,7 @@
             <div class="cf-header">
               <span class="cf-title">When Busy</span>
               <span class="cf-status" :class="{ active: cfBusyEnabled }">
-                {{ cfBusyEnabled ? '✓ Active' : 'Inactive' }}
+                {{ cfBusyEnabled ? 'Active' : 'Inactive' }}
               </span>
             </div>
             <div class="cf-body">
@@ -188,7 +184,7 @@
             <div class="cf-header">
               <span class="cf-title">No Answer</span>
               <span class="cf-status" :class="{ active: cfNoAnswerEnabled }">
-                {{ cfNoAnswerEnabled ? '✓ Active' : 'Inactive' }}
+                {{ cfNoAnswerEnabled ? 'Active' : 'Inactive' }}
               </span>
             </div>
             <div class="cf-body">
@@ -221,19 +217,10 @@
 
       <!-- Custom Feature Codes -->
       <div class="feature-section">
-        <h3>*️⃣ Execute Custom Feature Code</h3>
+        <h3>Execute Custom Feature Code</h3>
         <div class="custom-code">
-          <input
-            v-model="customCode"
-            type="text"
-            placeholder="*72 or *98..."
-            :disabled="loading"
-          />
-          <button
-            class="btn btn-primary"
-            @click="executeCode"
-            :disabled="!customCode || loading"
-          >
+          <input v-model="customCode" type="text" placeholder="*72 or *98..." :disabled="loading" />
+          <button class="btn btn-primary" @click="executeCode" :disabled="!customCode || loading">
             Execute
           </button>
         </div>
@@ -279,7 +266,7 @@
 
       <!-- Execution History -->
       <div v-if="executionHistory.length > 0" class="feature-section">
-        <h3>📋 Recent Executions</h3>
+        <h3>Recent Executions</h3>
         <div class="history-list">
           <div
             v-for="(item, index) in executionHistory.slice(0, 10)"
@@ -288,7 +275,12 @@
             :class="{ success: item.success, error: !item.success }"
           >
             <span class="history-code">{{ item.code }}</span>
-            <span class="history-result">{{ item.success ? '✓' : '✗' }} {{ item.message }}</span>
+            <span class="history-result">
+              <span class="result-badge" :class="{ success: item.success, error: !item.success }">
+                {{ item.success ? 'OK' : 'FAIL' }}
+              </span>
+              {{ item.message }}
+            </span>
             <span class="history-time">{{ formatTime(item.time) }}</span>
           </div>
         </div>
@@ -304,7 +296,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch as _watch } from 'vue'
 import { playgroundAmiClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
@@ -336,7 +328,9 @@ const cfBusyNumber = ref('')
 const cfNoAnswerEnabled = ref(false)
 const cfNoAnswerNumber = ref('')
 const customCode = ref('')
-const executionHistory = ref<Array<{ code: string; success: boolean; message: string; time: Date }>>([])
+const executionHistory = ref<
+  Array<{ code: string; success: boolean; message: string; time: Date }>
+>([])
 
 // Connect to AMI
 async function handleConnect() {
@@ -364,7 +358,7 @@ async function refreshStatus() {
   loading.value = true
   // In real implementation, this would query the feature status via AMI
   // For demo, we just simulate a refresh
-  await new Promise(resolve => setTimeout(resolve, 500))
+  await new Promise((resolve) => setTimeout(resolve, 500))
   loading.value = false
 }
 
@@ -439,7 +433,7 @@ async function executeCode() {
 
   try {
     // Simulate feature code execution
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     executionHistory.value.unshift({
       code: customCode.value,
@@ -655,13 +649,15 @@ if (amiUrl.value && extension.value && !isAmiConnected.value) {
 }
 
 .status-badge.enabled {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--red-50, #fef2f2);
+  color: var(--red-600, #dc2626);
+  border: 1px solid var(--red-200, #fecaca);
 }
 
 .status-badge.disabled {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--green-50, #dcfce7);
+  color: var(--green-600, #16a34a);
+  border: 1px solid var(--green-200, #bbf7d0);
 }
 
 .cf-types {
@@ -693,8 +689,18 @@ if (amiUrl.value && extension.value && !isAmiConnected.value) {
   color: var(--text-secondary);
 }
 
+.cf-status {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: var(--surface-100, #f3f4f6);
+  color: var(--text-color-secondary, #6b7280);
+}
+
 .cf-status.active {
-  color: #16a34a;
+  background: var(--green-50, #dcfce7);
+  color: var(--green-700, #15803d);
+  border: 1px solid var(--green-200, #bbf7d0);
 }
 
 .cf-body input {
@@ -780,11 +786,31 @@ if (amiUrl.value && extension.value && !isAmiConnected.value) {
 }
 
 .history-item.success {
-  background: #dcfce7;
+  background: var(--green-50, #dcfce7);
+  border-left: 3px solid var(--green-500, #22c55e);
 }
 
 .history-item.error {
-  background: #fef2f2;
+  background: var(--red-50, #fef2f2);
+  border-left: 3px solid var(--red-500, #ef4444);
+}
+
+.result-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 3px;
+  margin-right: 0.5rem;
+}
+
+.result-badge.success {
+  background: var(--green-100, #d1fae5);
+  color: var(--green-800, #166534);
+}
+
+.result-badge.error {
+  background: var(--red-100, #fee2e2);
+  color: var(--red-800, #991b1b);
 }
 
 .history-code {

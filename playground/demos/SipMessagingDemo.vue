@@ -1,6 +1,6 @@
 <template>
   <div class="sip-messaging-demo">
-    <h2>📨 SIP Instant Messaging</h2>
+    <h2>SIP Instant Messaging</h2>
     <p class="description">Send and receive instant messages over SIP using the MESSAGE method.</p>
 
     <!-- Simulation Controls -->
@@ -28,9 +28,7 @@
       <div :class="['status-badge', connectionState]">
         {{ connectionState.toUpperCase() }}
       </div>
-      <div class="unread-badge" v-if="unreadCount > 0">
-        {{ unreadCount }} unread
-      </div>
+      <div class="unread-badge" v-if="unreadCount > 0">{{ unreadCount }} unread</div>
       <div v-if="!isConnected" class="connection-hint">
         Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo
       </div>
@@ -43,9 +41,7 @@
         <aside class="conversations-sidebar">
           <div class="sidebar-header">
             <h3>Conversations</h3>
-            <button @click="showNewConversation = true" class="new-chat-btn">
-              ➕
-            </button>
+            <button @click="showNewConversation = true" class="new-chat-btn">+</button>
           </div>
 
           <div class="conversations-list">
@@ -76,9 +72,7 @@
           <!-- Quick Actions -->
           <div class="quick-contacts">
             <h4>Quick Start</h4>
-            <button @click="simulateIncomingMessage" class="quick-btn">
-              💬 Simulate Incoming
-            </button>
+            <button @click="simulateIncomingMessage" class="quick-btn">Simulate Incoming</button>
           </div>
         </aside>
 
@@ -97,8 +91,8 @@
                 </div>
               </div>
               <div class="chat-actions">
-                <button @click="clearConversation" class="icon-btn">
-                  🗑️
+                <button @click="clearConversation" class="icon-btn" title="Clear conversation">
+                  Clear
                 </button>
               </div>
             </div>
@@ -143,20 +137,15 @@
                 rows="1"
                 ref="messageInput"
               ></textarea>
-              <button
-                @click="sendMessage"
-                :disabled="!messageText.trim()"
-                class="send-btn"
-              >
-                ➤
+              <button @click="sendMessage" :disabled="!messageText.trim()" class="send-btn">
+                Send
               </button>
             </div>
           </div>
 
           <!-- Empty State -->
           <div v-else class="empty-state">
-            <div class="empty-icon">💬</div>
-            <h3>No conversation selected</h3>
+            <div class="empty-icon">No conversation selected</div>
             <p>Select a conversation from the sidebar or start a new one</p>
           </div>
         </main>
@@ -180,9 +169,7 @@
           <button @click="startNewConversation" :disabled="!newConversationUri.trim()">
             Start Chat
           </button>
-          <button @click="showNewConversation = false" class="cancel-btn">
-            Cancel
-          </button>
+          <button @click="showNewConversation = false" class="cancel-btn">Cancel</button>
         </div>
       </div>
     </div>
@@ -211,7 +198,10 @@
     </div>
 
     <!-- Message Statistics -->
-    <div v-if="isConnected && messageStats.totalSent + messageStats.totalReceived > 0" class="stats-section">
+    <div
+      v-if="isConnected && messageStats.totalSent + messageStats.totalReceived > 0"
+      class="stats-section"
+    >
       <h3>Message Statistics</h3>
       <div class="stats-grid">
         <div class="stat-card">
@@ -236,7 +226,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch as _watch, nextTick, onMounted } from 'vue'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
@@ -251,12 +241,22 @@ const username = ref('')
 const password = ref('')
 
 // SIP Client - use shared playground instance
-const { connectionState: realConnectionState, isConnected: realIsConnected, isConnecting, connect, disconnect, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  isConnecting: _isConnecting,
+  connect,
+  disconnect,
+  getClient: _getClient,
+} = playgroundSipClient
 
 // Effective values - use simulation or real data based on mode
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
@@ -313,7 +313,7 @@ let typingTimer: number | null = null
 
 // Computed
 const currentConversation = computed(() => {
-  return conversations.value.find(c => c.id === currentConversationId.value)
+  return conversations.value.find((c) => c.id === currentConversationId.value)
 })
 
 const unreadCount = computed(() => {
@@ -321,7 +321,7 @@ const unreadCount = computed(() => {
 })
 
 // Connection Toggle
-const toggleConnection = async () => {
+const _toggleConnection = async () => {
   if (isConnected.value) {
     await disconnect()
   } else {
@@ -338,7 +338,7 @@ const selectConversation = (convId: string) => {
   currentConversationId.value = convId
 
   // Mark as read
-  const conv = conversations.value.find(c => c.id === convId)
+  const conv = conversations.value.find((c) => c.id === convId)
   if (conv) {
     conv.unreadCount = 0
   }
@@ -357,7 +357,7 @@ const startNewConversation = () => {
   const uri = newConversationUri.value.trim()
 
   // Check if conversation already exists
-  const existing = conversations.value.find(c => c.uri === uri)
+  const existing = conversations.value.find((c) => c.uri === uri)
   if (existing) {
     currentConversationId.value = existing.id
     showNewConversation.value = false
@@ -447,7 +447,7 @@ const handleTyping = () => {
 // Receive Message
 const receiveMessage = (fromUri: string, content: string) => {
   // Find or create conversation
-  let conv = conversations.value.find(c => c.uri === fromUri)
+  let conv = conversations.value.find((c) => c.uri === fromUri)
 
   if (!conv) {
     const convId = `conv-${Date.now()}`
@@ -529,7 +529,7 @@ const simulateIncomingMessage = () => {
   receiveMessage(fromUri, randomMessage)
 
   // Simulate typing indicator
-  const conv = conversations.value.find(c => c.uri === fromUri)
+  const conv = conversations.value.find((c) => c.uri === fromUri)
   if (conv && Math.random() > 0.5) {
     conv.isTyping = true
     setTimeout(() => {
@@ -537,7 +537,7 @@ const simulateIncomingMessage = () => {
 
       // Send another message
       setTimeout(() => {
-        const followUp = 'Let me know when you\'re free!'
+        const followUp = "Let me know when you're free!"
         receiveMessage(fromUri, followUp)
       }, 1500)
     }, 2000)
@@ -565,7 +565,7 @@ const requestNotificationPermission = () => {
 const getInitials = (name: string): string => {
   return name
     .split(' ')
-    .map(word => word[0])
+    .map((word) => word[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
@@ -573,11 +573,16 @@ const getInitials = (name: string): string => {
 
 const getMessageStatusIcon = (status: string): string => {
   switch (status) {
-    case 'sending': return '○'
-    case 'sent': return '✓'
-    case 'delivered': return '✓✓'
-    case 'failed': return '✗'
-    default: return ''
+    case 'sending':
+      return '○'
+    case 'sent':
+      return '✓'
+    case 'delivered':
+      return '✓✓'
+    case 'failed':
+      return '✗'
+    default:
+      return ''
   }
 }
 
@@ -1005,7 +1010,9 @@ button:disabled {
 }
 
 @keyframes typing {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     opacity: 0.3;
     transform: translateY(0);
   }
@@ -1056,12 +1063,9 @@ button:disabled {
 }
 
 .empty-icon {
-  font-size: 4rem;
+  font-size: 1.5rem;
+  font-weight: 600;
   margin-bottom: 1rem;
-}
-
-.empty-state h3 {
-  margin: 0 0 0.5rem 0;
   color: #6b7280;
 }
 
@@ -1121,7 +1125,7 @@ button:disabled {
   cursor: pointer;
 }
 
-.settings-grid input[type="checkbox"] {
+.settings-grid input[type='checkbox'] {
   width: auto;
 }
 

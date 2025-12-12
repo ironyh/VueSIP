@@ -54,32 +54,14 @@
       </div>
 
       <div class="action-buttons">
-        <button
-          v-if="!isTracking"
-          class="btn btn-primary"
-          @click="handleStartTracking"
-        >
+        <button v-if="!isTracking" class="btn btn-primary" @click="handleStartTracking">
           Start Tracking
         </button>
-        <button
-          v-else
-          class="btn btn-danger"
-          @click="handleStopTracking"
-        >
-          Stop Tracking
-        </button>
-        <button
-          class="btn btn-secondary"
-          :disabled="!isTracking"
-          @click="handleSimulateCall"
-        >
+        <button v-else class="btn btn-danger" @click="handleStopTracking">Stop Tracking</button>
+        <button class="btn btn-secondary" :disabled="!isTracking" @click="handleSimulateCall">
           Simulate Call
         </button>
-        <button
-          class="btn btn-secondary"
-          :disabled="!isTracking || !stats"
-          @click="handleRefresh"
-        >
+        <button class="btn btn-secondary" :disabled="!isTracking || !stats" @click="handleRefresh">
           Refresh
         </button>
       </div>
@@ -87,57 +69,52 @@
 
     <!-- Performance Level Badge -->
     <div v-if="stats" class="performance-badge-container">
-      <div
-        class="performance-badge"
-        :class="performanceLevel || 'average'"
-      >
+      <div class="performance-badge" :class="performanceLevel || 'average'">
         <span class="badge-icon">{{ performanceIcon }}</span>
         <span class="badge-text">{{ formatPerformanceLevel(performanceLevel) }}</span>
       </div>
-      <div class="last-updated">
-        Last updated: {{ formatTime(stats.lastUpdated) }}
-      </div>
+      <div class="last-updated">Last updated: {{ formatTime(stats.lastUpdated) }}</div>
     </div>
 
     <!-- KPI Cards -->
     <div v-if="stats" class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-icon">📞</div>
+        <div class="kpi-icon">CALLS</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ callsPerHour.toFixed(1) }}</div>
           <div class="kpi-label">Calls/Hour</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">⏱️</div>
+        <div class="kpi-icon">TIME</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ formatSeconds(avgHandleTime) }}</div>
           <div class="kpi-label">Avg Handle Time</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">🎯</div>
+        <div class="kpi-icon">TARGET</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ serviceLevel.toFixed(1) }}%</div>
           <div class="kpi-label">Service Level</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">📊</div>
+        <div class="kpi-icon">CHART</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ occupancy.toFixed(1) }}%</div>
           <div class="kpi-label">Occupancy</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">⚡</div>
+        <div class="kpi-icon">POWER</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ utilization.toFixed(1) }}%</div>
           <div class="kpi-label">Utilization</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">🗣️</div>
+        <div class="kpi-icon">TALK</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ formattedTalkTime }}</div>
           <div class="kpi-label">Total Talk Time</div>
@@ -190,7 +167,7 @@
           :class="{ [alert.level]: true, acknowledged: alert.acknowledged }"
         >
           <div class="alert-icon">
-            {{ alert.level === 'critical' ? '🚨' : '⚠️' }}
+            {{ alert.level === 'critical' ? 'CRITICAL' : 'WARNING' }}
           </div>
           <div class="alert-content">
             <div class="alert-message">{{ alert.message }}</div>
@@ -202,15 +179,11 @@
             title="Acknowledge"
             @click="acknowledgeAlert(alert.id)"
           >
-            ✓
+            OK
           </button>
         </div>
       </div>
-      <button
-        v-if="alertCount > 0"
-        class="btn btn-sm btn-secondary"
-        @click="acknowledgeAllAlerts"
-      >
+      <button v-if="alertCount > 0" class="btn btn-sm btn-secondary" @click="acknowledgeAllAlerts">
         Acknowledge All
       </button>
     </div>
@@ -219,11 +192,7 @@
     <div v-if="stats && topQueues.length > 0" class="queue-stats-section">
       <h3>Queue Performance</h3>
       <div class="queue-list">
-        <div
-          v-for="queue in topQueues"
-          :key="queue.queue"
-          class="queue-item"
-        >
+        <div v-for="queue in topQueues" :key="queue.queue" class="queue-item">
           <div class="queue-name">{{ queue.queue }}</div>
           <div class="queue-metrics">
             <span class="queue-metric">
@@ -244,11 +213,7 @@
     <div v-if="stats && hasHourlyData" class="hourly-section">
       <h3>Hourly Distribution</h3>
       <div class="hourly-chart">
-        <div
-          v-for="hour in getHourlyBreakdown()"
-          :key="hour.hour"
-          class="hour-bar-container"
-        >
+        <div v-for="hour in getHourlyBreakdown()" :key="hour.hour" class="hour-bar-container">
           <div
             class="hour-bar"
             :style="{ height: getBarHeight(hour.callCount) + '%' }"
@@ -258,7 +223,7 @@
         </div>
       </div>
       <div v-if="peakHours.length > 0" class="peak-hours">
-        Peak hours: {{ peakHours.map(h => `${h}:00`).join(', ') }}
+        Peak hours: {{ peakHours.map((h) => `${h}:00`).join(', ') }}
       </div>
     </div>
 
@@ -273,7 +238,7 @@
           :class="{ missed: call.disposition === 'missed' }"
         >
           <div class="call-icon">
-            {{ call.direction === 'inbound' ? '📥' : '📤' }}
+            {{ call.direction === 'inbound' ? 'IN' : 'OUT' }}
           </div>
           <div class="call-info">
             <div class="call-party">{{ call.remoteParty }}</div>
@@ -298,21 +263,15 @@
     <div v-if="stats" class="export-section">
       <h3>Export Data</h3>
       <div class="export-buttons">
-        <button class="btn btn-secondary" @click="handleExportCsv">
-          📥 Export CSV
-        </button>
-        <button class="btn btn-secondary" @click="handleExportJson">
-          📥 Export JSON
-        </button>
-        <button class="btn btn-danger-outline" @click="handleResetStats">
-          🗑️ Reset Stats
-        </button>
+        <button class="btn btn-secondary" @click="handleExportCsv">Export CSV</button>
+        <button class="btn btn-secondary" @click="handleExportJson">Export JSON</button>
+        <button class="btn btn-danger-outline" @click="handleResetStats">Reset Stats</button>
       </div>
     </div>
 
     <!-- Empty State -->
     <div v-if="!stats && !isTracking" class="empty-state">
-      <div class="empty-icon">📊</div>
+      <div class="empty-icon">STATS</div>
       <h4>No Statistics Available</h4>
       <p>Enter an agent ID and click "Start Tracking" to begin monitoring agent performance.</p>
     </div>
@@ -404,7 +363,7 @@ const serviceLevel = computed(() => stats.value?.performance.serviceLevel ?? 100
 const occupancy = computed(() => stats.value?.performance.occupancy ?? 0)
 const utilization = computed(() => stats.value?.performance.utilization ?? 0)
 const formattedTalkTime = computed(() => formatDuration(stats.value?.totalTalkTime ?? 0))
-const alertCount = computed(() => alerts.value.filter(a => !a.acknowledged).length)
+const alertCount = computed(() => alerts.value.filter((a) => !a.acknowledged).length)
 
 const topQueues = computed(() => {
   if (!stats.value?.queueStats.length) return []
@@ -427,12 +386,18 @@ const hasHourlyData = computed(() => {
 
 const performanceIcon = computed(() => {
   switch (performanceLevel.value) {
-    case 'excellent': return '🌟'
-    case 'good': return '👍'
-    case 'average': return '📊'
-    case 'needs_improvement': return '📉'
-    case 'critical': return '🚨'
-    default: return '📊'
+    case 'excellent':
+      return 'STAR'
+    case 'good':
+      return 'GOOD'
+    case 'average':
+      return 'AVG'
+    case 'needs_improvement':
+      return 'LOW'
+    case 'critical':
+      return 'CRIT'
+    default:
+      return 'AVG'
   }
 })
 
@@ -528,7 +493,9 @@ function handleSimulateCall() {
   const call = {
     callId: `call-${Date.now()}`,
     queue: direction === 'inbound' ? queue : undefined,
-    remoteParty: `+1555${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`,
+    remoteParty: `+1555${Math.floor(Math.random() * 10000000)
+      .toString()
+      .padStart(7, '0')}`,
     direction,
     startTime: new Date(Date.now() - (talkTime + waitTime) * 1000),
     answerTime: disposition === 'answered' ? new Date(Date.now() - talkTime * 1000) : undefined,
@@ -603,7 +570,14 @@ function handleSimulateCall() {
 function updatePerformance() {
   if (!stats.value) return
 
-  const { totalCalls, totalTalkTime, totalHandleTime, totalWrapTime, totalLoginTime, transferredCalls } = stats.value
+  const {
+    totalCalls,
+    totalTalkTime,
+    totalHandleTime,
+    totalWrapTime,
+    totalLoginTime,
+    transferredCalls,
+  } = stats.value
   const loginHours = totalLoginTime / 3600
 
   stats.value.performance = {
@@ -629,7 +603,9 @@ function calculateServiceLevel(): number {
   const answeredInTime = stats.value.recentCalls.filter(
     (c: any) => c.disposition === 'answered' && c.waitTime <= 20
   ).length
-  const totalAnswered = stats.value.recentCalls.filter((c: any) => c.disposition === 'answered').length
+  const totalAnswered = stats.value.recentCalls.filter(
+    (c: any) => c.disposition === 'answered'
+  ).length
   return totalAnswered > 0 ? (answeredInTime / totalAnswered) * 100 : 100
 }
 
@@ -695,7 +671,12 @@ function checkThresholds() {
   if (!stats.value) return
 
   const thresholds = [
-    { metric: 'avgHandleTime', warningThreshold: 300, criticalThreshold: 600, higherIsBetter: false },
+    {
+      metric: 'avgHandleTime',
+      warningThreshold: 300,
+      criticalThreshold: 600,
+      higherIsBetter: false,
+    },
     { metric: 'serviceLevel', warningThreshold: 80, criticalThreshold: 60, higherIsBetter: true },
     { metric: 'occupancy', warningThreshold: 30, criticalThreshold: 20, higherIsBetter: true },
   ]
@@ -714,7 +695,7 @@ function checkThresholds() {
 
     if (level) {
       const existingAlert = alerts.value.find(
-        a => a.agentId === stats.value.agentId && a.metric === threshold.metric && !a.acknowledged
+        (a) => a.agentId === stats.value.agentId && a.metric === threshold.metric && !a.acknowledged
       )
 
       if (!existingAlert) {
@@ -723,7 +704,8 @@ function checkThresholds() {
           agentId: stats.value.agentId,
           metric: threshold.metric,
           currentValue: value,
-          thresholdValue: level === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold,
+          thresholdValue:
+            level === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold,
           level,
           message: `${threshold.metric} is ${threshold.higherIsBetter ? 'below' : 'above'} ${level} threshold: ${value.toFixed(1)}`,
           timestamp: new Date(),
@@ -748,14 +730,14 @@ function handlePeriodChange() {
 }
 
 function acknowledgeAlert(alertId: string) {
-  const alert = alerts.value.find(a => a.id === alertId)
+  const alert = alerts.value.find((a) => a.id === alertId)
   if (alert) {
     alert.acknowledged = true
   }
 }
 
 function acknowledgeAllAlerts() {
-  alerts.value.forEach(alert => {
+  alerts.value.forEach((alert) => {
     alert.acknowledged = true
   })
 }
@@ -774,21 +756,30 @@ function handleExportCsv() {
   if (!stats.value) return
 
   const headers = [
-    'Call ID', 'Queue', 'Remote Party', 'Direction', 'Start Time',
-    'End Time', 'Wait Time', 'Talk Time', 'Disposition'
+    'Call ID',
+    'Queue',
+    'Remote Party',
+    'Direction',
+    'Start Time',
+    'End Time',
+    'Wait Time',
+    'Talk Time',
+    'Disposition',
   ]
 
-  const rows = stats.value.recentCalls.map((call: any) => [
-    call.callId,
-    call.queue || '',
-    call.remoteParty,
-    call.direction,
-    call.startTime.toISOString(),
-    call.endTime?.toISOString() || '',
-    call.waitTime,
-    call.talkTime,
-    call.disposition,
-  ].join(','))
+  const rows = stats.value.recentCalls.map((call: any) =>
+    [
+      call.callId,
+      call.queue || '',
+      call.remoteParty,
+      call.direction,
+      call.startTime.toISOString(),
+      call.endTime?.toISOString() || '',
+      call.waitTime,
+      call.talkTime,
+      call.disposition,
+    ].join(',')
+  )
 
   const csv = [headers.join(','), ...rows].join('\n')
   downloadFile(csv, 'agent-stats.csv', 'text/csv')
@@ -840,7 +831,10 @@ function formatTime(date: Date): string {
 
 function formatPerformanceLevel(level: AgentPerformanceLevel | null): string {
   if (!level) return 'Unknown'
-  return level.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  return level
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
 }
 
 onUnmounted(() => {

@@ -34,11 +34,19 @@
 
     <!-- Connection Status -->
     <div v-if="!effectiveIsConnected" class="status-message info">
-      {{ isSimulationMode ? 'Enable simulation and run a scenario to see quality metrics' : 'Connect to a SIP server to view call quality metrics (use the Basic Call demo to connect)' }}
+      {{
+        isSimulationMode
+          ? 'Enable simulation and run a scenario to see quality metrics'
+          : 'Connect to a SIP server to view call quality metrics (use the Basic Call demo to connect)'
+      }}
     </div>
 
     <div v-else-if="effectiveCallState !== 'active'" class="status-message warning">
-      {{ isSimulationMode ? 'Run the "Active Call" scenario to see quality metrics' : 'Make or answer a call to see real-time quality metrics' }}
+      {{
+        isSimulationMode
+          ? 'Run the "Active Call" scenario to see quality metrics'
+          : 'Make or answer a call to see real-time quality metrics'
+      }}
     </div>
 
     <!-- Quality Metrics -->
@@ -52,7 +60,11 @@
           </div>
           <div class="score-indicator">
             <div class="indicator-bar">
-              <div class="indicator-fill" :style="{ width: qualityScore + '%' }" :class="qualityLevel"></div>
+              <div
+                class="indicator-fill"
+                :style="{ width: qualityScore + '%' }"
+                :class="qualityLevel"
+              ></div>
             </div>
             <div class="indicator-text">{{ qualityText }}</div>
           </div>
@@ -61,7 +73,7 @@
 
       <!-- Audio Codec Information -->
       <div class="metrics-section">
-        <h3>📡 Audio Codec</h3>
+        <h3>Audio Codec</h3>
         <div class="info-grid">
           <div class="info-item">
             <span class="info-label">Codec:</span>
@@ -84,10 +96,9 @@
 
       <!-- Network Statistics -->
       <div class="metrics-section">
-        <h3>🌐 Network Statistics</h3>
+        <h3>Network Statistics</h3>
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-icon">📊</div>
             <div class="stat-content">
               <div class="stat-value">{{ networkStats.packetLoss }}%</div>
               <div class="stat-label">Packet Loss</div>
@@ -98,7 +109,6 @@
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon">⏱️</div>
             <div class="stat-content">
               <div class="stat-value">{{ networkStats.jitter }}ms</div>
               <div class="stat-label">Jitter</div>
@@ -109,7 +119,6 @@
           </div>
 
           <div class="stat-card">
-            <div class="stat-icon">🔄</div>
             <div class="stat-content">
               <div class="stat-value">{{ networkStats.rtt }}ms</div>
               <div class="stat-label">Round Trip Time</div>
@@ -123,7 +132,7 @@
 
       <!-- Packet Information -->
       <div class="metrics-section">
-        <h3>📦 Packet Statistics</h3>
+        <h3>Packet Statistics</h3>
         <div class="packet-stats">
           <div class="packet-row">
             <span class="packet-label">Packets Sent:</span>
@@ -150,7 +159,7 @@
 
       <!-- Recommendations -->
       <div v-if="recommendations.length > 0" class="recommendations">
-        <h3>💡 Recommendations</h3>
+        <h3>Recommendations</h3>
         <ul>
           <li v-for="(rec, index) in recommendations" :key="index">{{ rec }}</li>
         </ul>
@@ -229,7 +238,13 @@ const { isSimulationMode, activeScenario } = simulation
 // SIP Client and Call Session
 const { isConnected, getClient } = useSipClient()
 const sipClientRef = computed(() => getClient())
-const { state: realCallState, session, duration: realDuration, remoteUri: realRemoteUri, remoteDisplayName: realRemoteDisplayName } = useCallSession(sipClientRef)
+const {
+  state: realCallState,
+  session: _session,
+  duration: realDuration,
+  remoteUri: realRemoteUri,
+  remoteDisplayName: realRemoteDisplayName,
+} = useCallSession(sipClientRef)
 
 // Effective values - use simulation or real data based on mode
 const effectiveIsConnected = computed(() =>
@@ -241,7 +256,7 @@ const effectiveCallState = computed(() =>
 )
 
 const effectiveDuration = computed(() =>
-  isSimulationMode.value ? simulation.duration.value : (realDuration.value || 0)
+  isSimulationMode.value ? simulation.duration.value : realDuration.value || 0
 )
 
 const effectiveRemoteUri = computed(() =>
@@ -256,9 +271,7 @@ const effectiveIsOnHold = computed(() =>
   isSimulationMode.value ? simulation.isOnHold.value : false
 )
 
-const effectiveIsMuted = computed(() =>
-  isSimulationMode.value ? simulation.isMuted.value : false
-)
+const effectiveIsMuted = computed(() => (isSimulationMode.value ? simulation.isMuted.value : false))
 
 // State
 const codecInfo = ref({
@@ -323,11 +336,15 @@ const recommendations = computed(() => {
   const recs: string[] = []
 
   if (networkStats.value.packetLoss > 2) {
-    recs.push('High packet loss detected. Check network congestion or switch to a wired connection.')
+    recs.push(
+      'High packet loss detected. Check network congestion or switch to a wired connection.'
+    )
   }
 
   if (networkStats.value.jitter > 30) {
-    recs.push('High jitter may cause choppy audio. Consider closing bandwidth-intensive applications.')
+    recs.push(
+      'High jitter may cause choppy audio. Consider closing bandwidth-intensive applications.'
+    )
   }
 
   if (networkStats.value.rtt > 200) {
@@ -393,7 +410,7 @@ const formatBytes = (bytes: number): string => {
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
 }
 
 const updateStats = async () => {
@@ -650,11 +667,6 @@ onUnmounted(() => {
 
 .stat-card:hover {
   border-color: #667eea;
-}
-
-.stat-icon {
-  font-size: 2rem;
-  flex-shrink: 0;
 }
 
 .stat-content {

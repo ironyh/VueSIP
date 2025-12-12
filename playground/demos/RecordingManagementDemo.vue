@@ -20,10 +20,10 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <h2>🎙️ AMI Recording Management</h2>
+    <h2>AMI Recording Management</h2>
     <p class="description">
-      Server-side call recording using Asterisk MixMonitor via AMI.
-      Start, stop, pause, and resume recordings on active channels.
+      Server-side call recording using Asterisk MixMonitor via AMI. Start, stop, pause, and resume
+      recordings on active channels.
     </p>
 
     <!-- AMI Connection Status -->
@@ -135,7 +135,7 @@
         </div>
       </div>
       <button @click="startNewRecording" :disabled="!targetChannel || isLoading" class="record-btn">
-        {{ isLoading ? 'Starting...' : '🎙️ Start Recording' }}
+        {{ isLoading ? 'Starting...' : 'Start Recording' }}
       </button>
     </div>
 
@@ -151,11 +151,13 @@
         >
           <div class="recording-header">
             <span class="recording-state">
-              <span v-if="recording.state === 'recording'" class="pulse">🔴</span>
-              <span v-else-if="recording.state === 'paused'">⏸️</span>
-              <span v-else-if="recording.state === 'stopped'">⏹️</span>
-              <span v-else-if="recording.state === 'failed'">❌</span>
-              <span v-else>⚪</span>
+              <span
+                :class="[
+                  'state-indicator',
+                  recording.state,
+                  { pulse: recording.state === 'recording' },
+                ]"
+              ></span>
               {{ recording.state.toUpperCase() }}
             </span>
             <span class="recording-duration">
@@ -196,21 +198,21 @@
               @click="handlePause(recording.channel)"
               class="pause-btn"
             >
-              ⏸️ Pause
+              Pause
             </button>
             <button
               v-if="recording.state === 'paused'"
               @click="handleResume(recording.channel)"
               class="resume-btn"
             >
-              ▶️ Resume
+              Resume
             </button>
             <button
               v-if="recording.state === 'recording' || recording.state === 'paused'"
               @click="handleStop(recording.channel)"
               class="stop-btn"
             >
-              ⏹️ Stop
+              Stop
             </button>
           </div>
         </div>
@@ -271,7 +273,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onUnmounted, watch as _watch } from 'vue'
 import { useAmiRecording } from '../../src/composables/useAmiRecording'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
@@ -701,7 +703,31 @@ button:disabled {
   font-weight: 600;
 }
 
-.pulse {
+.state-indicator {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+.state-indicator.recording {
+  background: var(--color-error, #ef4444);
+}
+
+.state-indicator.paused {
+  background: var(--color-warning, #f59e0b);
+}
+
+.state-indicator.stopped {
+  background: var(--color-gray, #6b7280);
+}
+
+.state-indicator.failed {
+  background: var(--color-error, #dc2626);
+}
+
+.state-indicator.pulse {
   animation: pulse 1.5s ease-in-out infinite;
 }
 

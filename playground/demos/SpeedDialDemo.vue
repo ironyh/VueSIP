@@ -22,9 +22,9 @@
 
     <div class="info-section">
       <p>
-        Speed Dial allows you to save frequently called contacts for quick access. Click any
-        contact to instantly initiate a call. Contacts are saved in localStorage and persist
-        across sessions.
+        Speed Dial allows you to save frequently called contacts for quick access. Click any contact
+        to instantly initiate a call. Contacts are saved in localStorage and persist across
+        sessions.
       </p>
     </div>
 
@@ -45,7 +45,7 @@
         >
           <!-- Empty Slot -->
           <div v-if="!contact" class="empty-slot" @click="showAddDialog(index)">
-            <div class="slot-icon">➕</div>
+            <div class="slot-icon">+</div>
             <div class="slot-label">Add Contact</div>
           </div>
 
@@ -104,9 +104,7 @@
             >
               Save
             </button>
-            <button class="btn btn-secondary" @click="handleDialogClose">
-              Cancel
-            </button>
+            <button class="btn btn-secondary" @click="handleDialogClose">Cancel</button>
           </div>
         </div>
       </div>
@@ -114,11 +112,9 @@
       <!-- Current Call Status -->
       <div v-if="callState !== 'idle'" class="call-status">
         <div class="status-badge">
-          {{ callState === 'active' ? '📞 In Call' : '📱 Calling...' }}
+          {{ callState === 'active' ? 'In Call' : 'Calling...' }}
         </div>
-        <div v-if="remoteUri" class="status-info">
-          Connected to: {{ remoteUri }}
-        </div>
+        <div v-if="remoteUri" class="status-info">Connected to: {{ remoteUri }}</div>
       </div>
     </div>
 
@@ -206,7 +202,7 @@ const isConnected = computed(() =>
 const isRegistered = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsRegistered.value
 )
-const effectiveCallState = computed(() =>
+const _effectiveCallState = computed(() =>
   isSimulationMode.value ? simulation.state.value : callState.value
 )
 
@@ -287,7 +283,9 @@ const handleSpeedDial = async (contact: SpeedDialContact, index: number) => {
     await makeCall(contact.number)
   } catch (error) {
     console.error('Speed dial call failed:', error)
-    alert(`Failed to call ${contact.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    alert(
+      `Failed to call ${contact.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   } finally {
     // Reset calling index after a short delay
     setTimeout(() => {
@@ -299,7 +297,7 @@ const handleSpeedDial = async (contact: SpeedDialContact, index: number) => {
 const getInitials = (name: string): string => {
   return name
     .split(' ')
-    .map(part => part[0])
+    .map((part) => part[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
@@ -371,7 +369,8 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {

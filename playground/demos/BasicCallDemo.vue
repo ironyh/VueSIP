@@ -24,9 +24,9 @@
     <div v-if="!effectiveIsConnected" class="config-panel">
       <h3>SIP Server Configuration</h3>
       <p class="info-text">
-        Configure your SIP server details to get started. You'll need access to a SIP server
-        (like Asterisk, FreeSWITCH, or a hosted SIP service).
-        <br><br>
+        Configure your SIP server details to get started. You'll need access to a SIP server (like
+        Asterisk, FreeSWITCH, or a hosted SIP service).
+        <br /><br />
         <strong>Or enable Simulation Mode above to test without a connection!</strong>
       </p>
 
@@ -92,8 +92,8 @@
         </label>
         <div class="security-warning">
           <p>
-            ⚠️ <strong>Security Warning:</strong> Saving your password in browser
-            localStorage is not secure. Only use this on trusted devices.
+            <strong>Security Warning:</strong> Saving your password in browser localStorage is not
+            secure. Only use this on trusted devices.
           </p>
         </div>
       </div>
@@ -119,17 +119,15 @@
 
       <div class="demo-tip">
         <strong>Tip:</strong> Don't have a SIP server? You can use a free SIP service like
-        <a href="https://www.antisip.com/" target="_blank">Antisip</a> or set up a local
-        Asterisk server for testing.
+        <a href="https://www.antisip.com/" target="_blank">Antisip</a> or set up a local Asterisk
+        server for testing.
       </div>
     </div>
 
     <!-- Connected Interface (show when connected OR in simulation mode) -->
     <div v-else class="connected-interface">
       <!-- Simulation indicator -->
-      <div v-if="isSimulationMode" class="simulation-badge">
-        🎭 Simulation Mode Active
-      </div>
+      <div v-if="isSimulationMode" class="simulation-badge">Simulation Mode Active</div>
 
       <!-- Call Interface (Idle state) -->
       <div v-if="effectiveCallState === 'idle'" class="call-panel">
@@ -155,26 +153,42 @@
         <div v-if="isSimulationMode" class="quick-dial">
           <p class="quick-dial-label">Quick Dial (Simulation):</p>
           <div class="quick-dial-buttons">
-            <button class="quick-btn" @click="quickDial('sip:sales@company.com', 'Sales Department')">
-              📞 Sales
+            <button
+              class="quick-btn"
+              @click="quickDial('sip:sales@company.com', 'Sales Department')"
+            >
+              Sales
             </button>
             <button class="quick-btn" @click="quickDial('sip:support@company.com', 'Tech Support')">
-              🛠️ Support
+              Support
             </button>
             <button class="quick-btn" @click="quickDial('sip:reception@company.com', 'Reception')">
-              🏢 Reception
+              Reception
             </button>
           </div>
         </div>
       </div>
 
       <!-- Incoming Call -->
-      <div v-else-if="effectiveCallState === 'ringing' || effectiveCallState === 'incoming'" class="incoming-call">
+      <div
+        v-else-if="effectiveCallState === 'ringing' || effectiveCallState === 'incoming'"
+        class="incoming-call"
+      >
         <div class="incoming-animation">
           <div class="ring-circle"></div>
           <div class="ring-circle delay-1"></div>
           <div class="ring-circle delay-2"></div>
-          <span class="phone-icon">📞</span>
+          <svg
+            class="phone-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+            />
+          </svg>
         </div>
         <div class="incoming-info">
           <div class="incoming-label">Incoming Call</div>
@@ -182,12 +196,8 @@
           <div class="caller-uri">{{ effectiveRemoteUri }}</div>
         </div>
         <div class="incoming-actions">
-          <button class="btn btn-success btn-lg" @click="handleAnswer">
-            ✓ Answer
-          </button>
-          <button class="btn btn-danger btn-lg" @click="handleReject">
-            ✕ Reject
-          </button>
+          <button class="btn btn-success btn-lg" @click="handleAnswer">Answer</button>
+          <button class="btn btn-danger btn-lg" @click="handleReject">Reject</button>
         </div>
       </div>
 
@@ -196,16 +206,17 @@
         <div class="connecting-spinner"></div>
         <div class="connecting-text">Connecting...</div>
         <div class="remote-uri">{{ effectiveRemoteUri }}</div>
-        <button class="btn btn-danger" @click="handleHangup">
-          Cancel
-        </button>
+        <button class="btn btn-danger" @click="handleHangup">Cancel</button>
       </div>
 
       <!-- Active Call -->
-      <div v-else-if="effectiveCallState === 'active' || effectiveCallState === 'on-hold'" class="active-call">
+      <div
+        v-else-if="effectiveCallState === 'active' || effectiveCallState === 'on-hold'"
+        class="active-call"
+      >
         <div class="call-status">
           <div class="call-state" :class="{ 'on-hold': effectiveIsOnHold }">
-            {{ effectiveIsOnHold ? '⏸️ On Hold' : '📞 In Call' }}
+            {{ effectiveIsOnHold ? 'On Hold' : 'In Call' }}
           </div>
           <div class="remote-info">
             <div class="remote-name">
@@ -225,7 +236,7 @@
             :class="{ active: effectiveIsMuted }"
             @click="handleToggleMute"
           >
-            {{ effectiveIsMuted ? '🔇 Unmute' : '🎤 Mute' }}
+            {{ effectiveIsMuted ? 'Unmute' : 'Mute' }}
           </button>
 
           <button
@@ -233,21 +244,27 @@
             :class="{ active: effectiveIsOnHold }"
             @click="handleToggleHold"
           >
-            {{ effectiveIsOnHold ? '▶️ Resume' : '⏸️ Hold' }}
+            {{ effectiveIsOnHold ? 'Resume' : 'Hold' }}
           </button>
 
-          <button
-            class="btn btn-danger"
-            @click="handleHangup"
-          >
-            📵 Hang Up
-          </button>
+          <button class="btn btn-danger" @click="handleHangup">Hang Up</button>
         </div>
       </div>
 
       <!-- Call Ended -->
       <div v-else-if="effectiveCallState === 'ended'" class="call-ended">
-        <div class="ended-icon">📵</div>
+        <svg
+          class="ended-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+          />
+          <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
         <div class="ended-text">Call Ended</div>
         <div v-if="effectiveDuration" class="ended-duration">
           Duration: {{ formatDuration(effectiveDuration) }}
@@ -301,7 +318,15 @@ const rememberMe = ref(false)
 const savePassword = ref(false)
 
 // Use shared SIP Client instance
-const { connect, disconnect, isConnected, isRegistered, error: sipError, updateConfig, getClient } = playgroundSipClient
+const {
+  connect,
+  disconnect: _disconnect,
+  isConnected,
+  isRegistered: _isRegistered,
+  error: _sipError,
+  updateConfig,
+  getClient,
+} = playgroundSipClient
 
 // Call Session
 const sipClientRef = computed(() => getClient())
@@ -323,16 +348,14 @@ const {
 } = useCallSession(sipClientRef)
 
 // Effective values - use simulation or real data based on mode
-const effectiveIsConnected = computed(() =>
-  isSimulationMode.value ? true : isConnected.value
-)
+const effectiveIsConnected = computed(() => (isSimulationMode.value ? true : isConnected.value))
 
 const effectiveCallState = computed(() =>
   isSimulationMode.value ? simulation.state.value : realCallState.value
 )
 
 const effectiveDuration = computed(() =>
-  isSimulationMode.value ? simulation.duration.value : (realDuration.value || 0)
+  isSimulationMode.value ? simulation.duration.value : realDuration.value || 0
 )
 
 const effectiveRemoteUri = computed(() =>
@@ -860,13 +883,20 @@ watch(
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 3rem;
+  width: 48px;
+  height: 48px;
+  color: #10b981;
   animation: phone-shake 0.5s ease-in-out infinite;
 }
 
 @keyframes phone-shake {
-  0%, 100% { transform: translate(-50%, -50%) rotate(-10deg); }
-  50% { transform: translate(-50%, -50%) rotate(10deg); }
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(-10deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(10deg);
+  }
 }
 
 .incoming-info {
@@ -913,7 +943,9 @@ watch(
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .connecting-text {
@@ -985,9 +1017,11 @@ watch(
 }
 
 .ended-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
   opacity: 0.5;
+  color: var(--text-secondary, #64748b);
 }
 
 .ended-text {

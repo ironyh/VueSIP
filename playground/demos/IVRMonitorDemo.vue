@@ -22,12 +22,12 @@
 
     <div class="info-section">
       <p>
-        Monitor IVR (Interactive Voice Response) systems in real-time. Track callers,
-        view menu navigation, and breakout callers to live agents when needed.
+        Monitor IVR (Interactive Voice Response) systems in real-time. Track callers, view menu
+        navigation, and breakout callers to live agents when needed.
       </p>
       <p class="note">
-        <strong>Note:</strong> This demo simulates IVR monitoring. In production,
-        data comes from AMI events tracking IVR activity.
+        <strong>Note:</strong> This demo simulates IVR monitoring. In production, data comes from
+        AMI events tracking IVR activity.
       </p>
     </div>
 
@@ -43,25 +43,11 @@
         />
       </div>
       <div class="action-buttons">
-        <button
-          v-if="!isMonitoring"
-          class="btn btn-primary"
-          @click="handleStartMonitoring"
-        >
+        <button v-if="!isMonitoring" class="btn btn-primary" @click="handleStartMonitoring">
           Start Monitoring
         </button>
-        <button
-          v-else
-          class="btn btn-danger"
-          @click="handleStopMonitoring"
-        >
-          Stop Monitoring
-        </button>
-        <button
-          class="btn btn-secondary"
-          :disabled="!isMonitoring"
-          @click="handleRefresh"
-        >
+        <button v-else class="btn btn-danger" @click="handleStopMonitoring">Stop Monitoring</button>
+        <button class="btn btn-secondary" :disabled="!isMonitoring" @click="handleRefresh">
           Refresh
         </button>
         <button
@@ -87,7 +73,10 @@
         >
           <div class="ivr-header">
             <span class="ivr-id">{{ ivr.id }}</span>
-            <span class="ivr-status" :class="{ active: ivr.callers.size > 0, disabled: !ivr.enabled }">
+            <span
+              class="ivr-status"
+              :class="{ active: ivr.callers.size > 0, disabled: !ivr.enabled }"
+            >
               {{ ivr.enabled ? (ivr.callers.size > 0 ? 'Active' : 'Idle') : 'Disabled' }}
             </span>
           </div>
@@ -119,19 +108,8 @@
           >
             Disable
           </button>
-          <button
-            v-else
-            class="btn btn-sm btn-success"
-            @click="handleEnableIVR"
-          >
-            Enable
-          </button>
-          <button
-            class="btn btn-sm btn-secondary"
-            @click="handleClearStats"
-          >
-            Clear Stats
-          </button>
+          <button v-else class="btn btn-sm btn-success" @click="handleEnableIVR">Enable</button>
+          <button class="btn btn-sm btn-secondary" @click="handleClearStats">Clear Stats</button>
         </div>
       </div>
 
@@ -175,18 +153,13 @@
               <span class="dtmf-value">{{ caller.dtmfInput || '-' }}</span>
             </div>
             <div class="caller-actions">
-              <button
-                class="btn btn-sm btn-primary"
-                @click="openBreakoutModal(caller)"
-              >
+              <button class="btn btn-sm btn-primary" @click="openBreakoutModal(caller)">
                 Breakout
               </button>
             </div>
           </div>
         </div>
-        <div v-else class="empty-callers">
-          No callers currently in this IVR.
-        </div>
+        <div v-else class="empty-callers">No callers currently in this IVR.</div>
       </div>
 
       <!-- Statistics -->
@@ -236,15 +209,9 @@
         <button class="btn btn-secondary" @click="simulateCallerEnter">
           Simulate Caller Enter
         </button>
-        <button class="btn btn-secondary" @click="simulateDTMF">
-          Simulate DTMF
-        </button>
-        <button class="btn btn-secondary" @click="simulateCallerExit">
-          Simulate Caller Exit
-        </button>
-        <button class="btn btn-secondary" @click="simulateAbandon">
-          Simulate Abandon
-        </button>
+        <button class="btn btn-secondary" @click="simulateDTMF">Simulate DTMF</button>
+        <button class="btn btn-secondary" @click="simulateCallerExit">Simulate Caller Exit</button>
+        <button class="btn btn-secondary" @click="simulateAbandon">Simulate Abandon</button>
       </div>
     </div>
 
@@ -253,20 +220,10 @@
       <div class="modal">
         <h4>Breakout Caller</h4>
         <p>Transfer {{ breakoutTarget?.callerIdNum }} to:</p>
-        <input
-          v-model="breakoutDestination"
-          type="text"
-          placeholder="Extension (e.g., 1001)"
-        />
+        <input v-model="breakoutDestination" type="text" placeholder="Extension (e.g., 1001)" />
         <div class="modal-actions">
-          <button class="btn btn-secondary" @click="showBreakoutModal = false">
-            Cancel
-          </button>
-          <button
-            class="btn btn-primary"
-            :disabled="!breakoutDestination"
-            @click="handleBreakout"
-          >
+          <button class="btn btn-secondary" @click="showBreakoutModal = false">Cancel</button>
+          <button class="btn btn-primary" :disabled="!breakoutDestination" @click="handleBreakout">
             Breakout
           </button>
         </div>
@@ -274,19 +231,17 @@
     </div>
 
     <!-- Breakout All Modal -->
-    <div v-if="showBreakoutAllModal" class="modal-overlay" @click.self="showBreakoutAllModal = false">
+    <div
+      v-if="showBreakoutAllModal"
+      class="modal-overlay"
+      @click.self="showBreakoutAllModal = false"
+    >
       <div class="modal">
         <h4>Breakout All Callers</h4>
         <p>Transfer all {{ callersInSelectedIVR.length }} callers to:</p>
-        <input
-          v-model="breakoutDestination"
-          type="text"
-          placeholder="Extension (e.g., 1001)"
-        />
+        <input v-model="breakoutDestination" type="text" placeholder="Extension (e.g., 1001)" />
         <div class="modal-actions">
-          <button class="btn btn-secondary" @click="showBreakoutAllModal = false">
-            Cancel
-          </button>
+          <button class="btn btn-secondary" @click="showBreakoutAllModal = false">Cancel</button>
           <button
             class="btn btn-primary"
             :disabled="!breakoutDestination"
@@ -300,7 +255,7 @@
 
     <!-- Empty State -->
     <div v-if="!isMonitoring" class="empty-state">
-      <div class="empty-icon">📞</div>
+      <div class="empty-icon">IVR</div>
       <h4>IVR Monitoring</h4>
       <p>Enter an IVR ID and click "Start Monitoring" to track IVR activity.</p>
     </div>
@@ -345,13 +300,8 @@ await breakoutAllCallers('ivr-main', '1001')</code></pre>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watch } from 'vue'
-import type {
-  IVR,
-  IVRCaller,
-  IVRCallerState,
-  IVRStats,
-} from '../../src/types/ivr.types'
+import { ref, computed, onUnmounted, watch as _watch } from 'vue'
+import type { IVR, IVRCaller, IVRCallerState, IVRStats } from '../../src/types/ivr.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 
@@ -399,16 +349,16 @@ const callersInSelectedIVR = computed(() =>
 // Utility functions
 function getStateIcon(state: IVRCallerState): string {
   const icons: Record<IVRCallerState, string> = {
-    entering: '➡️',
-    listening: '👂',
-    inputting: '🔢',
-    navigating: '🔄',
-    transferring: '📤',
-    exiting: '🚪',
-    timeout: '⏰',
-    error: '❌',
+    entering: 'ENTER',
+    listening: 'LISTEN',
+    inputting: 'INPUT',
+    navigating: 'NAV',
+    transferring: 'XFER',
+    exiting: 'EXIT',
+    timeout: 'TIME',
+    error: 'ERR',
   }
-  return icons[state] || '❓'
+  return icons[state] || 'UNKN'
 }
 
 function formatDuration(date: Date): string {
@@ -675,13 +625,34 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.btn-primary { background: var(--color-primary, #007bff); color: white; }
-.btn-secondary { background: var(--color-secondary, #6c757d); color: white; }
-.btn-danger { background: var(--color-danger, #dc3545); color: white; }
-.btn-success { background: var(--color-success, #28a745); color: white; }
-.btn-warning { background: var(--color-warning, #ffc107); color: #212529; }
-.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary {
+  background: var(--color-primary, #007bff);
+  color: white;
+}
+.btn-secondary {
+  background: var(--color-secondary, #6c757d);
+  color: white;
+}
+.btn-danger {
+  background: var(--color-danger, #dc3545);
+  color: white;
+}
+.btn-success {
+  background: var(--color-success, #28a745);
+  color: white;
+}
+.btn-warning {
+  background: var(--color-warning, #ffc107);
+  color: #212529;
+}
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .ivrs-section {
   margin-bottom: 2rem;
@@ -706,9 +677,16 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 
-.ivr-card:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
-.ivr-card.selected { border-color: var(--color-primary, #007bff); background: var(--color-primary-bg, #e7f1ff); }
-.ivr-card.disabled { opacity: 0.6; }
+.ivr-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.ivr-card.selected {
+  border-color: var(--color-primary, #007bff);
+  background: var(--color-primary-bg, #e7f1ff);
+}
+.ivr-card.disabled {
+  opacity: 0.6;
+}
 
 .ivr-header {
   display: flex;
@@ -717,7 +695,10 @@ onUnmounted(() => {
   margin-bottom: 0.5rem;
 }
 
-.ivr-id { font-weight: 600; font-size: 1.1rem; }
+.ivr-id {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
 
 .ivr-status {
   font-size: 0.75rem;
@@ -727,8 +708,12 @@ onUnmounted(() => {
   color: white;
 }
 
-.ivr-status.active { background: var(--color-success, #28a745); }
-.ivr-status.disabled { background: var(--color-danger, #dc3545); }
+.ivr-status.active {
+  background: var(--color-success, #28a745);
+}
+.ivr-status.disabled {
+  background: var(--color-danger, #dc3545);
+}
 
 .ivr-name {
   color: var(--color-text-secondary, #666);
@@ -768,8 +753,13 @@ onUnmounted(() => {
   margin-bottom: 1.5rem;
 }
 
-.details-header h3 { margin: 0; }
-.details-actions { display: flex; gap: 0.5rem; }
+.details-header h3 {
+  margin: 0;
+}
+.details-actions {
+  display: flex;
+  gap: 0.5rem;
+}
 
 .callers-section {
   margin-bottom: 1.5rem;
@@ -782,7 +772,9 @@ onUnmounted(() => {
   margin-bottom: 1rem;
 }
 
-.callers-header h4 { margin: 0; }
+.callers-header h4 {
+  margin: 0;
+}
 
 .callers-list {
   display: flex;
@@ -800,8 +792,12 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
-.caller-item.timeout { background: var(--color-warning-bg, #fff3cd); }
-.caller-item.error { background: var(--color-danger-bg, #f8d7da); }
+.caller-item.timeout {
+  background: var(--color-warning-bg, #fff3cd);
+}
+.caller-item.error {
+  background: var(--color-danger-bg, #f8d7da);
+}
 
 .caller-info {
   display: flex;
@@ -811,15 +807,29 @@ onUnmounted(() => {
   min-width: 150px;
 }
 
-.caller-state-icon { font-size: 1.2rem; }
+.caller-state-icon {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  background: var(--primary-100, #dbeafe);
+  color: var(--primary-800, #1e40af);
+  border-radius: 4px;
+  min-width: 50px;
+  text-align: center;
+}
 
 .caller-details {
   display: flex;
   flex-direction: column;
 }
 
-.caller-id { font-weight: 600; }
-.caller-name { font-size: 0.85rem; color: var(--color-text-secondary, #666); }
+.caller-id {
+  font-weight: 600;
+}
+.caller-name {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, #666);
+}
 
 .caller-menu,
 .caller-time,
@@ -834,8 +844,13 @@ onUnmounted(() => {
   margin-right: 0.25rem;
 }
 
-.menu-id { font-family: monospace; }
-.dtmf-value { font-family: monospace; font-weight: 600; }
+.menu-id {
+  font-family: monospace;
+}
+.dtmf-value {
+  font-family: monospace;
+  font-weight: 600;
+}
 
 .empty-callers {
   text-align: center;
@@ -843,7 +858,9 @@ onUnmounted(() => {
   color: var(--color-text-secondary, #666);
 }
 
-.stats-section h4 { margin-bottom: 0.75rem; }
+.stats-section h4 {
+  margin-bottom: 0.75rem;
+}
 
 .stats-grid {
   display: grid;
@@ -876,8 +893,14 @@ onUnmounted(() => {
   margin-bottom: 2rem;
 }
 
-.simulation-section h4 { margin-bottom: 0.75rem; }
-.simulation-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.simulation-section h4 {
+  margin-bottom: 0.75rem;
+}
+.simulation-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
 
 .modal-overlay {
   position: fixed;
@@ -899,7 +922,9 @@ onUnmounted(() => {
   min-width: 300px;
 }
 
-.modal h4 { margin-top: 0; }
+.modal h4 {
+  margin-top: 0;
+}
 
 .modal input {
   width: 100%;
@@ -921,7 +946,16 @@ onUnmounted(() => {
   color: var(--color-text-secondary, #666);
 }
 
-.empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+.empty-icon {
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 1rem 2rem;
+  margin-bottom: 1rem;
+  background: var(--surface-100, #f3f4f6);
+  color: var(--text-color-secondary, #6b7280);
+  border-radius: 8px;
+  display: inline-block;
+}
 
 .code-example {
   margin-top: 2rem;
@@ -936,7 +970,9 @@ onUnmounted(() => {
   margin-bottom: 0.75rem;
 }
 
-.code-example pre { margin: 0; }
+.code-example pre {
+  margin: 0;
+}
 
 .code-example code {
   color: var(--color-code-text, #d4d4d4);

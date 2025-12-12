@@ -39,7 +39,13 @@
           :class="{ active: selectedRingtone === tone.id }"
           @click="selectRingtone(tone.id)"
         >
-          <div class="ringtone-icon">🎵</div>
+          <div class="ringtone-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+              />
+            </svg>
+          </div>
           <div class="ringtone-info">
             <div class="ringtone-name">{{ tone.name }}</div>
             <div class="ringtone-desc">{{ tone.description }}</div>
@@ -49,7 +55,14 @@
             @click.stop="playPreview(tone.id)"
             :disabled="isPlaying && playingTone === tone.id"
           >
-            {{ isPlaying && playingTone === tone.id ? '⏸️' : '▶️' }}
+            <svg
+              v-if="isPlaying && playingTone === tone.id"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
           </button>
         </div>
       </div>
@@ -58,7 +71,9 @@
       <div class="volume-control">
         <h4>Volume</h4>
         <div class="slider-control">
-          <span class="slider-icon">🔈</span>
+          <svg class="slider-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 9v6h4l5 5V4L7 9H3z" />
+          </svg>
           <input
             type="range"
             min="0"
@@ -67,7 +82,11 @@
             @input="handleVolumeChange"
             class="volume-slider"
           />
-          <span class="slider-icon">🔊</span>
+          <svg class="slider-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+            />
+          </svg>
           <span class="slider-value">{{ volume }}%</span>
         </div>
       </div>
@@ -105,7 +124,15 @@
           Click the button below to simulate an incoming call and hear how your ringtone sounds.
         </p>
         <button class="btn btn-primary" @click="testRingtone" :disabled="isPlaying">
-          {{ isPlaying ? '⏸️ Stop Test' : '🔔 Test Ringtone' }}
+          <svg v-if="isPlaying" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+          </svg>
+          <svg v-else class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M13 7.83c1.33 1.33 1.33 3.51 0 4.83l1.42 1.42c2.12-2.12 2.12-5.57 0-7.7L13 7.83zM7.76 16.59C6.67 15.5 6 14.04 6 12.5s.67-3 1.76-4.09L6.34 7c-1.51 1.51-2.34 3.52-2.34 5.5s.83 3.99 2.34 5.5l1.42-1.41zM18 12.5c0 1.71-.71 3.26-1.86 4.36l1.42 1.42C18.95 16.89 20 14.81 20 12.5c0-2.31-1.05-4.39-2.64-5.78l-1.42 1.42c1.15 1.1 1.86 2.65 1.86 4.36z"
+            />
+          </svg>
+          {{ isPlaying ? 'Stop Test' : 'Test Ringtone' }}
         </button>
       </div>
 
@@ -442,14 +469,14 @@ onUnmounted(() => {
 
 .info-section {
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--bg-secondary, #f9fafb);
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
 
 .info-section p {
   margin: 0;
-  color: #666;
+  color: var(--text-secondary, #666);
   line-height: 1.6;
 }
 
@@ -459,12 +486,12 @@ onUnmounted(() => {
 
 .ringtone-interface h3 {
   margin: 0 0 1.5rem 0;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .ringtone-interface h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-primary, #333);
   font-size: 1rem;
 }
 
@@ -480,26 +507,33 @@ onUnmounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--bg-primary, white);
+  border: 2px solid var(--border-color, #e5e7eb);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .ringtone-item:hover {
-  border-color: #667eea;
+  border-color: var(--primary, #667eea);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .ringtone-item.active {
-  border-color: #667eea;
-  background: #eff6ff;
+  border-color: var(--primary, #667eea);
+  background: var(--primary-bg, #eff6ff);
 }
 
 .ringtone-icon {
-  font-size: 2rem;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
+  color: var(--primary, #667eea);
+}
+
+.ringtone-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .ringtone-info {
@@ -509,13 +543,13 @@ onUnmounted(() => {
 
 .ringtone-name {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary, #333);
   margin-bottom: 0.25rem;
 }
 
 .ringtone-desc {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .play-button {
@@ -523,16 +557,24 @@ onUnmounted(() => {
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: #667eea;
+  background: var(--primary, #667eea);
   color: white;
-  font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.play-button svg {
+  width: 20px;
+  height: 20px;
 }
 
 .play-button:hover:not(:disabled) {
-  background: #5568d3;
+  background: var(--primary-hover, #5568d3);
   transform: scale(1.05);
 }
 
@@ -542,9 +584,9 @@ onUnmounted(() => {
 }
 
 .volume-control {
-  background: white;
+  background: var(--bg-primary, white);
   border-radius: 8px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color, #e5e7eb);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -556,15 +598,25 @@ onUnmounted(() => {
 }
 
 .slider-icon {
-  font-size: 1.25rem;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
+  color: var(--text-secondary, #6b7280);
+}
+
+.icon-inline {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
 }
 
 .volume-slider {
   flex: 1;
   height: 6px;
   border-radius: 3px;
-  background: #e5e7eb;
+  background: var(--slider-bg, #e5e7eb);
   outline: none;
   -webkit-appearance: none;
 }
@@ -575,7 +627,7 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #667eea;
+  background: var(--primary, #667eea);
   cursor: pointer;
 }
 
@@ -583,7 +635,7 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #667eea;
+  background: var(--primary, #667eea);
   cursor: pointer;
   border: none;
 }
@@ -591,15 +643,15 @@ onUnmounted(() => {
 .slider-value {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #667eea;
+  color: var(--primary, #667eea);
   min-width: 45px;
   text-align: right;
 }
 
 .ringtone-options {
-  background: white;
+  background: var(--bg-primary, white);
   border-radius: 8px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color, #e5e7eb);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -617,7 +669,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: #333;
+  color: var(--text-primary, #333);
   cursor: pointer;
 }
 
@@ -628,8 +680,8 @@ onUnmounted(() => {
 }
 
 .test-section {
-  background: #eff6ff;
-  border: 2px solid #3b82f6;
+  background: var(--info-bg, #eff6ff);
+  border: 2px solid var(--info-border, #3b82f6);
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
@@ -638,7 +690,7 @@ onUnmounted(() => {
 
 .test-desc {
   margin: 0 0 1rem 0;
-  color: #1e40af;
+  color: var(--info-text, #1e40af);
   font-size: 0.875rem;
   line-height: 1.6;
 }
@@ -659,17 +711,17 @@ onUnmounted(() => {
 }
 
 .btn-primary {
-  background: #667eea;
+  background: var(--primary, #667eea);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #5568d3;
+  background: var(--primary-hover, #5568d3);
 }
 
 .incoming-call-demo {
-  background: #d1fae5;
-  border: 2px solid #10b981;
+  background: var(--success-bg, #d1fae5);
+  border: 2px solid var(--success, #10b981);
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
@@ -678,7 +730,7 @@ onUnmounted(() => {
 .demo-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
-  background: #10b981;
+  background: var(--success, #10b981);
   color: white;
   border-radius: 6px;
   font-size: 0.875rem;
@@ -688,25 +740,25 @@ onUnmounted(() => {
 
 .incoming-call-demo p {
   margin: 0;
-  color: #065f46;
+  color: var(--success-text, #065f46);
   font-size: 0.875rem;
 }
 
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--bg-secondary, #f9fafb);
   border-radius: 8px;
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--code-bg, #1e1e1e);
+  color: var(--code-text, #d4d4d4);
   padding: 1.5rem;
   border-radius: 6px;
   overflow-x: auto;

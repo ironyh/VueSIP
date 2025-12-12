@@ -20,7 +20,7 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <h2>🔇 Call Mute Patterns</h2>
+    <h2>Call Mute Patterns</h2>
     <p class="description">
       Advanced mute/unmute patterns with push-to-talk, auto-mute, and visual indicators.
     </p>
@@ -47,7 +47,7 @@
           @keyup.enter="makeCall"
         />
       </div>
-      <button @click="makeCall" :disabled="hasActiveCall">📞 Make Call</button>
+      <button @click="makeCall" :disabled="hasActiveCall">Make Call</button>
     </div>
 
     <!-- Active Call with Mute Patterns -->
@@ -67,9 +67,6 @@
 
       <!-- Mute Status Indicator -->
       <div :class="['mute-status', { muted: isMuted, 'push-to-talk': isPushToTalkActive }]">
-        <div class="status-icon">
-          {{ isMuted ? '🔇' : '🔊' }}
-        </div>
         <div class="status-text">
           <div class="primary">
             {{ isMuted ? 'MICROPHONE MUTED' : 'MICROPHONE ACTIVE' }}
@@ -97,7 +94,7 @@
           </div>
           <p class="pattern-description">Click to toggle mute on/off</p>
           <button @click="toggleMute" :disabled="muteMode !== 'standard'" class="mute-btn">
-            {{ isMuted ? '🔊 Unmute' : '🔇 Mute' }}
+            {{ isMuted ? 'Unmute' : 'Mute' }}
           </button>
         </div>
 
@@ -122,7 +119,7 @@
             :disabled="muteMode !== 'push-to-talk'"
             :class="['ptt-btn', { active: isPushToTalkActive }]"
           >
-            {{ isPushToTalkActive ? '🎤 TALKING' : '🔇 HOLD TO TALK' }}
+            {{ isPushToTalkActive ? 'TALKING' : 'HOLD TO TALK' }}
           </button>
           <div class="keyboard-hint">Keyboard: Hold <kbd>Space</kbd> to talk</div>
         </div>
@@ -229,8 +226,8 @@
 
       <!-- Call Controls -->
       <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">✅ Answer</button>
-        <button @click="hangup" class="danger">📞 Hang Up</button>
+        <button @click="answer" v-if="callState === 'incoming'">Answer</button>
+        <button @click="hangup" class="danger">Hang Up</button>
       </div>
     </div>
   </div>
@@ -251,15 +248,22 @@ const { isSimulationMode, activeScenario } = simulation
 const targetUri = ref('sip:1000@example.com')
 
 // SIP Client - use shared playground instance (credentials managed globally)
-const { connectionState: realConnectionState, isConnected: realIsConnected, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  getClient,
+} = playgroundSipClient
 
 // Effective values for simulation
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
 )
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 
 // Call Management - useCallSession requires a Ref
@@ -270,10 +274,10 @@ const {
   hangup,
   mute,
   unmute,
-  session: currentCall,
+  session: _currentCall,
   state: callState,
   isActive: hasActiveCall,
-  isMuted: isCallMuted,
+  isMuted: _isCallMuted,
 } = useCallSession(sipClientRef)
 
 // Mute State
@@ -761,10 +765,6 @@ button.danger:hover:not(:disabled) {
 .mute-status.push-to-talk {
   background: #dbeafe;
   border-color: #3b82f6;
-}
-
-.status-icon {
-  font-size: 3rem;
 }
 
 .status-text .primary {

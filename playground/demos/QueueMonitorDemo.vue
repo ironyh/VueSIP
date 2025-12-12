@@ -54,8 +54,8 @@
       </div>
 
       <div class="demo-tip">
-        <strong>💡 Tip:</strong> This demo requires Asterisk with queues configured
-        and an amiws proxy running to expose AMI via WebSocket.
+        <strong>Tip:</strong> This demo requires Asterisk with queues configured and an amiws proxy
+        running to expose AMI via WebSocket.
       </div>
     </div>
 
@@ -83,23 +83,19 @@
           <span class="stat-sl">SL: {{ overallServiceLevel }}%</span>
         </div>
         <button class="btn btn-sm btn-secondary" @click="handleRefresh" :disabled="loading">
-          {{ loading ? 'Refreshing...' : '🔄 Refresh' }}
+          {{ loading ? 'Refreshing...' : 'Refresh' }}
         </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Queue Overview -->
       <div class="queue-overview">
         <h3>Queue Overview</h3>
 
-        <div v-if="loading" class="loading-state">
-          Loading queue data...
-        </div>
+        <div v-if="loading" class="loading-state">Loading queue data...</div>
 
         <div v-else-if="queueList.length === 0" class="empty-state">
-          <p>📭 No queues found</p>
+          <p>No queues found</p>
           <p class="info-text">Make sure you have queues configured in Asterisk.</p>
         </div>
 
@@ -115,14 +111,10 @@
               <div class="queue-name">{{ queue.name }}</div>
               <div class="queue-stats">
                 <span class="stat callers" :class="{ alert: queue.calls > 5 }">
-                  📞 {{ queue.calls }} waiting
+                  {{ queue.calls }} waiting
                 </span>
-                <span class="stat members">
-                  👥 {{ queue.members.length }} agents
-                </span>
-                <span class="stat available">
-                  ✅ {{ availableCount(queue) }} available
-                </span>
+                <span class="stat members"> {{ queue.members.length }} agents </span>
+                <span class="stat available"> {{ availableCount(queue) }} available </span>
               </div>
             </div>
 
@@ -170,7 +162,7 @@
                         {{ member.statusLabel }}
                       </span>
                       <span v-if="member.paused" class="paused-badge">
-                        ⏸️ {{ member.pausedReason || 'Paused' }}
+                        {{ member.pausedReason || 'Paused' }}
                       </span>
                     </div>
                     <div class="member-stats">
@@ -185,14 +177,14 @@
                         class="btn btn-sm btn-warning"
                         @click.stop="handlePause(queue.name, member.interface)"
                       >
-                        ⏸️ Pause
+                        Pause
                       </button>
                       <button
                         v-else
                         class="btn btn-sm btn-success"
                         @click.stop="handleUnpause(queue.name, member.interface)"
                       >
-                        ▶️ Unpause
+                        Unpause
                       </button>
                     </div>
                   </div>
@@ -217,7 +209,7 @@
                       <div class="caller-number">{{ entry.callerIdNum }}</div>
                     </div>
                     <div class="caller-wait" :class="{ alert: entry.wait > 120 }">
-                      ⏱️ {{ formatTime(entry.wait) }}
+                      {{ formatTime(entry.wait) }}
                     </div>
                   </div>
                 </div>
@@ -255,7 +247,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch as _watch } from 'vue'
 import { useAmi, useAmiQueues } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
@@ -300,13 +292,14 @@ const totalCallers = computed(() => queuesComposable.value?.totalCallers.value ?
 const totalAvailable = computed(() => queuesComposable.value?.totalAvailable.value ?? 0)
 const totalPaused = computed(() => queuesComposable.value?.totalPaused.value ?? 0)
 const overallServiceLevel = computed(() => queuesComposable.value?.overallServiceLevel.value ?? 0)
-const pauseReasons = computed(() => queuesComposable.value?.getPauseReasons() ?? ['Break', 'Lunch', 'Meeting', 'Training', 'Other'])
+const pauseReasons = computed(
+  () =>
+    queuesComposable.value?.getPauseReasons() ?? ['Break', 'Lunch', 'Meeting', 'Training', 'Other']
+)
 
 // Helpers
 const availableCount = (queue: QueueInfo): number => {
-  return queue.members.filter(
-    (m) => !m.paused && m.status === QueueMemberStatus.NotInUse
-  ).length
+  return queue.members.filter((m) => !m.paused && m.status === QueueMemberStatus.NotInUse).length
 }
 
 const getStatusClass = (status: QueueMemberStatus): string => {
@@ -505,15 +498,38 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5568d3; }
-.btn-secondary { background: #6b7280; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #4b5563; }
-.btn-success { background: #10b981; color: white; }
-.btn-success:hover:not(:disabled) { background: #059669; }
-.btn-warning { background: #f59e0b; color: white; }
-.btn-warning:hover:not(:disabled) { background: #d97706; }
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+.btn-success:hover:not(:disabled) {
+  background: #059669;
+}
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+.btn-warning:hover:not(:disabled) {
+  background: #d97706;
+}
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
 
 .error-message {
   margin-top: 1rem;
@@ -744,12 +760,30 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.status-badge.available { background: #d1fae5; color: #065f46; }
-.status-badge.busy { background: #fee2e2; color: #991b1b; }
-.status-badge.ringing { background: #dbeafe; color: #1e40af; }
-.status-badge.hold { background: #fef3c7; color: #92400e; }
-.status-badge.offline { background: #f3f4f6; color: #6b7280; }
-.status-badge.unknown { background: #e5e7eb; color: #374151; }
+.status-badge.available {
+  background: #d1fae5;
+  color: #065f46;
+}
+.status-badge.busy {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.status-badge.ringing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.status-badge.hold {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status-badge.offline {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.status-badge.unknown {
+  background: #e5e7eb;
+  color: #374151;
+}
 
 .paused-badge {
   font-size: 0.75rem;

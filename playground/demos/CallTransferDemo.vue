@@ -7,14 +7,42 @@
       </p>
       <div class="transfer-types">
         <div class="type-card">
-          <h4>🔀 Blind Transfer</h4>
+          <h4>
+            <svg
+              class="icon-inline"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="17 1 21 5 17 9" />
+              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+              <polyline points="7 23 3 19 7 15" />
+              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+            </svg>
+            Blind Transfer
+          </h4>
           <p>
-            Instantly transfer the call to another number without talking to them first. The call
-            is immediately connected to the transfer target.
+            Instantly transfer the call to another number without talking to them first. The call is
+            immediately connected to the transfer target.
           </p>
         </div>
         <div class="type-card">
-          <h4>👥 Attended Transfer</h4>
+          <h4>
+            <svg
+              class="icon-inline"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Attended Transfer
+          </h4>
           <p>
             Consult with the transfer target before completing the transfer. You can talk to both
             parties before connecting them.
@@ -45,11 +73,19 @@
 
     <!-- Connection Status -->
     <div v-if="!effectiveIsConnected" class="status-message info">
-      {{ isSimulationMode ? 'Enable simulation and run a scenario to test transfers' : 'Connect to a SIP server to use transfer features (use the Basic Call demo to connect)' }}
+      {{
+        isSimulationMode
+          ? 'Enable simulation and run a scenario to test transfers'
+          : 'Connect to a SIP server to use transfer features (use the Basic Call demo to connect)'
+      }}
     </div>
 
     <div v-else-if="effectiveCallState !== 'active'" class="status-message warning">
-      {{ isSimulationMode ? 'Run the "Active Call" or "Transfer" scenario to test transfers' : 'You need an active call to perform transfers' }}
+      {{
+        isSimulationMode
+          ? 'Run the "Active Call" or "Transfer" scenario to test transfers'
+          : 'You need an active call to perform transfers'
+      }}
     </div>
 
     <!-- Transfer Interface -->
@@ -60,7 +96,9 @@
         <div class="call-details">
           <div class="detail-row">
             <span class="label">Connected to:</span>
-            <span class="value">{{ effectiveRemoteDisplayName || effectiveRemoteUri || 'Unknown' }}</span>
+            <span class="value">{{
+              effectiveRemoteDisplayName || effectiveRemoteUri || 'Unknown'
+            }}</span>
           </div>
           <div class="detail-row">
             <span class="label">Status:</span>
@@ -74,12 +112,34 @@
         <h3>Choose Transfer Type</h3>
         <div class="transfer-buttons">
           <button class="transfer-type-btn blind" @click="startBlindTransfer">
-            <span class="icon">🔀</span>
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="17 1 21 5 17 9" />
+              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+              <polyline points="7 23 3 19 7 15" />
+              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+            </svg>
             <span class="title">Blind Transfer</span>
             <span class="desc">Direct transfer</span>
           </button>
           <button class="transfer-type-btn attended" @click="startAttendedTransfer">
-            <span class="icon">👥</span>
+            <svg
+              class="icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
             <span class="title">Attended Transfer</span>
             <span class="desc">With consultation</span>
           </button>
@@ -109,11 +169,22 @@
             :disabled="!blindTransferTarget.trim() || executing"
             @click="executeBlindTransfer"
           >
-            {{ executing ? 'Transferring...' : '🔀 Transfer Call' }}
+            <svg
+              v-if="!executing"
+              class="icon-inline"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="17 1 21 5 17 9" />
+              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+              <polyline points="7 23 3 19 7 15" />
+              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+            </svg>
+            {{ executing ? 'Transferring...' : 'Transfer Call' }}
           </button>
-          <button class="btn btn-secondary" @click="cancelTransferForm">
-            Cancel
-          </button>
+          <button class="btn btn-secondary" @click="cancelTransferForm">Cancel</button>
         </div>
       </div>
 
@@ -143,11 +214,14 @@
               :disabled="!attendedTransferTarget.trim() || executing"
               @click="initiateConsultation"
             >
-              {{ executing ? 'Calling...' : '📞 Start Consultation' }}
+              <svg v-if="!executing" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"
+                />
+              </svg>
+              {{ executing ? 'Calling...' : 'Start Consultation' }}
             </button>
-            <button class="btn btn-secondary" @click="cancelTransferForm">
-              Cancel
-            </button>
+            <button class="btn btn-secondary" @click="cancelTransferForm">Cancel</button>
           </div>
         </div>
 
@@ -162,28 +236,37 @@
           </div>
 
           <div class="consultation-info">
-            <div class="info-item">
-              <strong>Original Call:</strong> {{ remoteUri }} (On Hold)
-            </div>
-            <div class="info-item">
-              <strong>Consultation:</strong> {{ attendedTransferTarget }}
-            </div>
+            <div class="info-item"><strong>Original Call:</strong> {{ remoteUri }} (On Hold)</div>
+            <div class="info-item"><strong>Consultation:</strong> {{ attendedTransferTarget }}</div>
           </div>
 
           <div class="form-actions">
-            <button
-              class="btn btn-success"
-              :disabled="executing"
-              @click="completeTransfer"
-            >
-              {{ executing ? 'Completing...' : '✓ Complete Transfer' }}
+            <button class="btn btn-success" :disabled="executing" @click="completeTransfer">
+              <svg
+                v-if="!executing"
+                class="icon-inline"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {{ executing ? 'Completing...' : 'Complete Transfer' }}
             </button>
-            <button
-              class="btn btn-danger"
-              :disabled="executing"
-              @click="cancelAttendedTransfer"
-            >
-              ✕ Cancel Transfer
+            <button class="btn btn-danger" :disabled="executing" @click="cancelAttendedTransfer">
+              <svg
+                v-if="!executing"
+                class="icon-inline"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              Cancel Transfer
             </button>
           </div>
         </div>
@@ -193,9 +276,51 @@
       <div v-if="activeTransfer" class="transfer-status">
         <div class="status-card" :class="transferState">
           <div class="status-header">
-            <span class="status-icon">
-              {{ getStatusIcon(transferState) }}
-            </span>
+            <svg
+              v-if="transferState === 'initiated' || transferState === 'in_progress'"
+              class="status-icon spin"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+            <svg
+              v-else-if="transferState === 'completed' || transferState === 'accepted'"
+              class="status-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <svg
+              v-else-if="transferState === 'failed'"
+              class="status-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+            <svg
+              v-else
+              class="status-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
             <span class="status-text">{{ getStatusText(transferState) }}</span>
           </div>
           <div v-if="activeTransfer.error" class="status-error">
@@ -255,7 +380,14 @@ const { isSimulationMode, activeScenario } = simulation
 // Get SIP client and call session
 const { isConnected, getClient } = useSipClient()
 const sipClientRef = computed(() => getClient())
-const { state: realCallState, remoteUri: realRemoteUri, isOnHold: realIsOnHold, session, duration: realDuration, remoteDisplayName: realRemoteDisplayName } = useCallSession(sipClientRef)
+const {
+  state: realCallState,
+  remoteUri: realRemoteUri,
+  isOnHold: realIsOnHold,
+  session,
+  duration: realDuration,
+  remoteDisplayName: realRemoteDisplayName,
+} = useCallSession(sipClientRef)
 
 // Effective values - use simulation or real data based on mode
 const effectiveIsConnected = computed(() =>
@@ -267,7 +399,7 @@ const effectiveCallState = computed(() =>
 )
 
 const effectiveDuration = computed(() =>
-  isSimulationMode.value ? simulation.duration.value : (realDuration.value || 0)
+  isSimulationMode.value ? simulation.duration.value : realDuration.value || 0
 )
 
 const effectiveRemoteUri = computed(() =>
@@ -282,9 +414,7 @@ const effectiveIsOnHold = computed(() =>
   isSimulationMode.value ? simulation.isOnHold.value : realIsOnHold.value
 )
 
-const effectiveIsMuted = computed(() =>
-  isSimulationMode.value ? simulation.isMuted.value : false
-)
+const effectiveIsMuted = computed(() => (isSimulationMode.value ? simulation.isMuted.value : false))
 
 // Call Controls
 const {
@@ -381,18 +511,6 @@ const cancelTransferForm = () => {
   showAttendedTransferForm.value = false
   blindTransferTarget.value = ''
   attendedTransferTarget.value = ''
-}
-
-const getStatusIcon = (state: string): string => {
-  const icons: Record<string, string> = {
-    initiated: '⏳',
-    in_progress: '🔄',
-    accepted: '✓',
-    completed: '✅',
-    failed: '❌',
-    canceled: '⚠️',
-  }
-  return icons[state] || '⏳'
 }
 
 const getStatusText = (state: string): string => {
@@ -540,8 +658,18 @@ const getStatusText = (state: string): string => {
 }
 
 .transfer-type-btn .icon {
-  font-size: 3rem;
+  width: 48px;
+  height: 48px;
   margin-bottom: 1rem;
+  color: var(--primary, #667eea);
+}
+
+.icon-inline {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
 }
 
 .transfer-type-btn .title {
@@ -749,7 +877,22 @@ const getStatusText = (state: string): string => {
 }
 
 .status-icon {
-  font-size: 1.5rem;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.status-icon.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .status-text {

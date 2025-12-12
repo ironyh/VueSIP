@@ -24,8 +24,8 @@
     <div v-if="!isConnected" class="config-panel">
       <h3>BLF (Busy Lamp Field) Demo</h3>
       <p class="info-text">
-        Monitor extension states from Asterisk/FreePBX using SIP dialog subscriptions.
-        This demo shows real-time BLF status for multiple extensions.
+        Monitor extension states from Asterisk/FreePBX using SIP dialog subscriptions. This demo
+        shows real-time BLF status for multiple extensions.
       </p>
 
       <div class="form-group">
@@ -75,8 +75,8 @@
       </div>
 
       <div class="demo-tip">
-        <strong>💡 Tip:</strong> This demo uses SIP SUBSCRIBE with Event: dialog
-        to monitor extension states. Requires Asterisk/FreePBX with hints configured.
+        <strong>Tip:</strong> This demo uses SIP SUBSCRIBE with Event: dialog to monitor extension
+        states. Requires Asterisk/FreePBX with hints configured.
       </div>
     </div>
 
@@ -92,9 +92,7 @@
           <span class="status-dot" :class="{ connected: isRegistered }"></span>
           <span>{{ isRegistered ? 'Registered' : 'Not Registered' }}</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- BLF Panel -->
@@ -102,9 +100,7 @@
         <!-- Add Extensions Section -->
         <div class="add-section">
           <h3>Monitor Extensions (BLF)</h3>
-          <p class="info-text">
-            Enter extension URIs to monitor their call state in real-time.
-          </p>
+          <p class="info-text">Enter extension URIs to monitor their call state in real-time.</p>
 
           <div class="add-form">
             <input
@@ -161,7 +157,7 @@
           <h3>
             Extension Status ({{ watchedExtensions.size }})
             <button class="btn btn-sm btn-secondary" @click="toggleDisplayMode">
-              {{ showIcons ? '🎨 Hide Icons' : '🎨 Show Icons' }}
+              {{ showIcons ? 'Hide Icons' : 'Show Icons' }}
             </button>
           </h3>
 
@@ -176,7 +172,10 @@
               <div class="blf-icon" v-if="showIcons">
                 {{ getDisplayOptions(status.state).icon }}
               </div>
-              <div class="blf-indicator" :style="{ backgroundColor: getDisplayOptions(status.state).color }"></div>
+              <div
+                class="blf-indicator"
+                :style="{ backgroundColor: getDisplayOptions(status.state).color }"
+              ></div>
               <div class="blf-info">
                 <div class="blf-extension">{{ extractExtension(uri) }}</div>
                 <div class="blf-state">{{ getDisplayOptions(status.state).label }}</div>
@@ -190,21 +189,19 @@
                 @click.stop="handleRemoveExtension(uri)"
                 title="Stop monitoring"
               >
-                ✕
+                X
               </button>
             </div>
           </div>
 
           <div class="grid-actions">
-            <button class="btn btn-secondary" @click="handleRemoveAll">
-              Remove All
-            </button>
+            <button class="btn btn-secondary" @click="handleRemoveAll">Remove All</button>
           </div>
         </div>
 
         <!-- Empty State -->
         <div v-else class="empty-state">
-          <p>📞 No extensions being monitored</p>
+          <p>No extensions being monitored</p>
           <p class="info-text">Add extension URIs above to start monitoring their BLF status.</p>
         </div>
 
@@ -212,9 +209,7 @@
         <div v-if="dialogEvents.length > 0" class="events-log">
           <h3>
             Recent Events ({{ dialogEvents.length }})
-            <button class="btn btn-sm btn-secondary" @click="dialogEvents = []">
-              Clear
-            </button>
+            <button class="btn btn-sm btn-secondary" @click="dialogEvents = []">Clear</button>
           </h3>
           <div class="events-list">
             <div
@@ -236,7 +231,10 @@
           <div class="legend-grid">
             <div class="legend-item" v-for="state in dialogStates" :key="state">
               <span class="legend-icon">{{ getDisplayOptions(state).icon }}</span>
-              <span class="legend-indicator" :style="{ backgroundColor: getDisplayOptions(state).color }"></span>
+              <span
+                class="legend-indicator"
+                :style="{ backgroundColor: getDisplayOptions(state).color }"
+              ></span>
               <span class="legend-label">{{ getDisplayOptions(state).label }}</span>
             </div>
           </div>
@@ -284,7 +282,14 @@ const savedExtensions = ref<string[]>([])
 const dialogStates = Object.values(DialogState)
 
 // SIP Client
-const { connect, disconnect, isConnected: realIsConnected, isRegistered: realIsRegistered, updateConfig, getClient } = useSipClient()
+const {
+  connect,
+  disconnect,
+  isConnected: realIsConnected,
+  isRegistered: realIsRegistered,
+  updateConfig,
+  getClient,
+} = useSipClient()
 
 // Effective values for simulation
 const isConnected = computed(() =>
@@ -854,7 +859,8 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4);
   }

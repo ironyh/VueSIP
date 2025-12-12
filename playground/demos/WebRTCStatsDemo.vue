@@ -23,7 +23,20 @@
     <Card class="demo-card">
       <template #title>
         <div class="demo-header">
-          <span class="demo-icon">📊</span>
+          <span class="demo-icon">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="12" y1="20" x2="12" y2="10" />
+              <line x1="18" y1="20" x2="18" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="16" />
+            </svg>
+          </span>
           <span>WebRTC Statistics</span>
         </div>
       </template>
@@ -47,7 +60,10 @@
         <template v-else>
           <!-- Status Bar -->
           <div class="status-bar">
-            <Tag :severity="isCollecting ? 'success' : 'secondary'" :value="isCollecting ? 'Collecting' : 'Stopped'" />
+            <Tag
+              :severity="isCollecting ? 'success' : 'secondary'"
+              :value="isCollecting ? 'Collecting' : 'Stopped'"
+            />
             <Tag :severity="getQualitySeverity(quality)" :value="quality" />
             <Tag v-if="mosScore" severity="info" :value="`MOS: ${mosScore.value.toFixed(1)}`" />
             <Tag v-if="alerts.length > 0" severity="warning" :value="`${alerts.length} alerts`" />
@@ -81,7 +97,7 @@
           <Panel header="Call Quality" class="section-panel">
             <div class="quality-grid">
               <div class="quality-card" :class="getQualityClass('packetLoss')">
-                <div class="quality-icon">📦</div>
+                <div class="quality-icon">PKT</div>
                 <div class="quality-info">
                   <span class="quality-label">Packet Loss</span>
                   <span class="quality-value">{{ avgPacketLoss.toFixed(2) }}%</span>
@@ -92,7 +108,7 @@
               </div>
 
               <div class="quality-card" :class="getQualityClass('jitter')">
-                <div class="quality-icon">〰️</div>
+                <div class="quality-icon">JTR</div>
                 <div class="quality-info">
                   <span class="quality-label">Jitter</span>
                   <span class="quality-value">{{ avgJitter.toFixed(1) }} ms</span>
@@ -103,7 +119,7 @@
               </div>
 
               <div class="quality-card" :class="getQualityClass('rtt')">
-                <div class="quality-icon">🔄</div>
+                <div class="quality-icon">RTT</div>
                 <div class="quality-info">
                   <span class="quality-label">Round Trip</span>
                   <span class="quality-value">{{ avgRtt ? avgRtt.toFixed(0) : 'N/A' }} ms</span>
@@ -114,7 +130,7 @@
               </div>
 
               <div class="quality-card">
-                <div class="quality-icon">📶</div>
+                <div class="quality-icon">BPS</div>
                 <div class="quality-info">
                   <span class="quality-label">Bitrate</span>
                   <span class="quality-value">{{ currentBitrate.toFixed(0) }} kbps</span>
@@ -125,7 +141,10 @@
             <!-- MOS Score Display -->
             <div v-if="mosScore" class="mos-display">
               <div class="mos-gauge">
-                <div class="mos-value" :style="{ '--mos-percentage': getMosPercentage(mosScore.value) + '%' }">
+                <div
+                  class="mos-value"
+                  :style="{ '--mos-percentage': getMosPercentage(mosScore.value) + '%' }"
+                >
                   {{ mosScore.value.toFixed(2) }}
                 </div>
                 <div class="mos-label">MOS Score</div>
@@ -145,9 +164,18 @@
           </Panel>
 
           <!-- Alerts -->
-          <Panel v-if="alerts.length > 0" header="Quality Alerts" class="section-panel alerts-panel">
+          <Panel
+            v-if="alerts.length > 0"
+            header="Quality Alerts"
+            class="section-panel alerts-panel"
+          >
             <div class="alerts-list">
-              <div v-for="alert in alerts" :key="alert.id" class="alert-item" :class="alert.severity">
+              <div
+                v-for="alert in alerts"
+                :key="alert.id"
+                class="alert-item"
+                :class="alert.severity"
+              >
                 <i :class="getAlertIcon(alert.severity)"></i>
                 <div class="alert-content">
                   <span class="alert-message">{{ alert.message }}</span>
@@ -167,7 +195,12 @@
           </Panel>
 
           <!-- Detailed Stats -->
-          <Panel header="Detailed Statistics" :toggleable="true" :collapsed="true" class="section-panel">
+          <Panel
+            header="Detailed Statistics"
+            :toggleable="true"
+            :collapsed="true"
+            class="section-panel"
+          >
             <div v-if="stats" class="stats-detail">
               <h5>Audio</h5>
               <div class="stats-grid">
@@ -211,10 +244,17 @@
           </Panel>
 
           <!-- History Chart Placeholder -->
-          <Panel header="Quality History" :toggleable="true" :collapsed="true" class="section-panel">
+          <Panel
+            header="Quality History"
+            :toggleable="true"
+            :collapsed="true"
+            class="section-panel"
+          >
             <div class="history-info">
               <Tag severity="info" :value="`${history.length} samples`" />
-              <span class="text-muted">Last {{ Math.min(history.length, 300) / 60 }} minutes of data</span>
+              <span class="text-muted"
+                >Last {{ Math.min(history.length, 300) / 60 }} minutes of data</span
+              >
             </div>
             <div class="history-preview">
               <div class="mini-chart">
@@ -297,13 +337,16 @@ const {
 const recentHistory = computed(() => history.value.slice(-60))
 
 // Auto-start when call becomes active
-watch(() => callSession.callState.value, (state) => {
-  if (state === 'active') {
-    start()
-  } else {
-    stop()
+watch(
+  () => callSession.callState.value,
+  (state) => {
+    if (state === 'active') {
+      start()
+    } else {
+      stop()
+    }
   }
-})
+)
 
 // Register listeners
 onAlert((alert) => {
@@ -317,19 +360,28 @@ onQualityChange((newQuality, oldQuality) => {
 // Helpers
 const getQualitySeverity = (q: string) => {
   switch (q) {
-    case 'excellent': return 'success'
-    case 'good': return 'info'
-    case 'fair': return 'warning'
-    case 'poor': return 'danger'
-    default: return 'secondary'
+    case 'excellent':
+      return 'success'
+    case 'good':
+      return 'info'
+    case 'fair':
+      return 'warning'
+    case 'poor':
+      return 'danger'
+    default:
+      return 'secondary'
   }
 }
 
 const getQualityClass = (metric: string) => {
-  const value = metric === 'packetLoss' ? avgPacketLoss.value
-    : metric === 'jitter' ? avgJitter.value
-    : metric === 'rtt' ? (avgRtt.value ?? 0)
-    : 0
+  const value =
+    metric === 'packetLoss'
+      ? avgPacketLoss.value
+      : metric === 'jitter'
+        ? avgJitter.value
+        : metric === 'rtt'
+          ? (avgRtt.value ?? 0)
+          : 0
 
   if (metric === 'packetLoss') {
     if (value < 1) return 'excellent'
@@ -388,17 +440,23 @@ const getQualityClassFromMos = (mos: number | undefined) => {
 
 const getAlertIcon = (severity: string) => {
   switch (severity) {
-    case 'critical': return 'pi pi-exclamation-triangle'
-    case 'warning': return 'pi pi-exclamation-circle'
-    default: return 'pi pi-info-circle'
+    case 'critical':
+      return 'pi pi-exclamation-triangle'
+    case 'warning':
+      return 'pi pi-exclamation-circle'
+    default:
+      return 'pi pi-info-circle'
   }
 }
 
 const getAlertTagSeverity = (severity: string) => {
   switch (severity) {
-    case 'critical': return 'danger'
-    case 'warning': return 'warning'
-    default: return 'info'
+    case 'critical':
+      return 'danger'
+    case 'warning':
+      return 'warning'
+    default:
+      return 'info'
   }
 }
 
@@ -528,10 +586,18 @@ console.log('RTT:', avgRtt.value + 'ms')`
   border-left: 4px solid var(--surface-border);
 }
 
-.quality-card.excellent { border-left-color: var(--green-500); }
-.quality-card.good { border-left-color: var(--blue-500); }
-.quality-card.fair { border-left-color: var(--orange-500); }
-.quality-card.poor { border-left-color: var(--red-500); }
+.quality-card.excellent {
+  border-left-color: var(--green-500);
+}
+.quality-card.good {
+  border-left-color: var(--blue-500);
+}
+.quality-card.fair {
+  border-left-color: var(--orange-500);
+}
+.quality-card.poor {
+  border-left-color: var(--red-500);
+}
 
 .quality-icon {
   font-size: 1.5rem;
@@ -553,9 +619,15 @@ console.log('RTT:', avgRtt.value + 'ms')`
   font-weight: 600;
 }
 
-.text-success { color: var(--green-500); }
-.text-warning { color: var(--orange-500); }
-.text-danger { color: var(--red-500); }
+.text-success {
+  color: var(--green-500);
+}
+.text-warning {
+  color: var(--orange-500);
+}
+.text-danger {
+  color: var(--red-500);
+}
 
 .mos-display {
   display: flex;
@@ -621,15 +693,23 @@ console.log('RTT:', avgRtt.value + 'ms')`
   background: var(--surface-ground);
 }
 
-.alert-item.critical { background: var(--red-50); }
-.alert-item.warning { background: var(--orange-50); }
+.alert-item.critical {
+  background: var(--red-50);
+}
+.alert-item.warning {
+  background: var(--orange-50);
+}
 
 .alert-item i {
   font-size: 1.25rem;
 }
 
-.alert-item.critical i { color: var(--red-500); }
-.alert-item.warning i { color: var(--orange-500); }
+.alert-item.critical i {
+  color: var(--red-500);
+}
+.alert-item.warning i {
+  color: var(--orange-500);
+}
 
 .alert-content {
   flex: 1;
@@ -705,10 +785,18 @@ console.log('RTT:', avgRtt.value + 'ms')`
   transition: height 0.2s;
 }
 
-.chart-bar.excellent { background: var(--green-500); }
-.chart-bar.good { background: var(--blue-500); }
-.chart-bar.fair { background: var(--orange-500); }
-.chart-bar.poor { background: var(--red-500); }
+.chart-bar.excellent {
+  background: var(--green-500);
+}
+.chart-bar.good {
+  background: var(--blue-500);
+}
+.chart-bar.fair {
+  background: var(--orange-500);
+}
+.chart-bar.poor {
+  background: var(--red-500);
+}
 
 .empty-state {
   display: flex;

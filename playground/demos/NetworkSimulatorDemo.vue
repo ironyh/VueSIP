@@ -20,7 +20,7 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <h2>📡 Network Condition Simulator</h2>
+    <h2>Network Condition Simulator</h2>
     <p class="description">
       Simulate various network conditions to test call quality and resilience.
     </p>
@@ -49,7 +49,9 @@
           :class="['profile-card', { active: activeProfile === profile.name }]"
           @click="applyProfile(profile)"
         >
-          <div class="profile-icon">{{ profile.icon }}</div>
+          <div class="profile-icon">
+            <span :class="['profile-indicator', getProfileClass(profile.name)]"></span>
+          </div>
           <div class="profile-name">{{ profile.name }}</div>
           <div class="profile-stats">
             <div class="stat">
@@ -137,7 +139,7 @@
           @keyup.enter="makeCall"
         />
       </div>
-      <button @click="makeCall" :disabled="hasActiveCall">📞 Make Test Call</button>
+      <button @click="makeCall" :disabled="hasActiveCall">Make Test Call</button>
     </div>
 
     <!-- Active Call with Network Stats -->
@@ -149,7 +151,7 @@
         <h4>Real-time Network Metrics</h4>
         <div class="metrics-grid">
           <div class="metric-card">
-            <div class="metric-icon">⏱️</div>
+            <div class="metric-icon latency-icon"></div>
             <div class="metric-value">{{ currentMetrics.latency }}ms</div>
             <div class="metric-label">Current Latency</div>
             <div :class="['quality-indicator', getQualityClass(currentMetrics.latency, 'latency')]">
@@ -158,7 +160,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="metric-icon">📉</div>
+            <div class="metric-icon packet-loss-icon"></div>
             <div class="metric-value">{{ currentMetrics.packetLoss.toFixed(1) }}%</div>
             <div class="metric-label">Packet Loss</div>
             <div
@@ -172,7 +174,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="metric-icon">📊</div>
+            <div class="metric-icon jitter-icon"></div>
             <div class="metric-value">{{ currentMetrics.jitter }}ms</div>
             <div class="metric-label">Jitter</div>
             <div :class="['quality-indicator', getQualityClass(currentMetrics.jitter, 'jitter')]">
@@ -181,7 +183,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="metric-icon">🎯</div>
+            <div class="metric-icon quality-icon"></div>
             <div class="metric-value">{{ currentMetrics.quality }}</div>
             <div class="metric-label">Overall Quality</div>
             <div :class="['quality-score', currentMetrics.quality.toLowerCase()]">
@@ -227,14 +229,14 @@
 
       <!-- Call Controls -->
       <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">✅ Answer</button>
-        <button @click="hangup" class="danger">📞 Hang Up</button>
+        <button @click="answer" v-if="callState === 'incoming'">Answer</button>
+        <button @click="hangup" class="danger">Hang Up</button>
       </div>
     </div>
 
     <!-- Recommendations -->
     <div v-if="recommendations.length > 0" class="recommendations-section">
-      <h3>💡 Recommendations</h3>
+      <h3>Recommendations</h3>
       <ul>
         <li v-for="(rec, index) in recommendations" :key="index">
           {{ rec }}
@@ -259,15 +261,22 @@ const { isSimulationMode, activeScenario } = simulation
 const targetUri = ref('sip:1000@example.com')
 
 // SIP Client - use shared playground instance (credentials managed globally)
-const { connectionState: realConnectionState, isConnected: realIsConnected, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  getClient,
+} = playgroundSipClient
 
 // Effective values for simulation
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
 )
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 
 // Call Management - useCallSession requires a Ref
@@ -276,7 +285,7 @@ const {
   makeCall: makeCallFn,
   answer,
   hangup,
-  session: currentCall,
+  session: _currentCall,
   state: callState,
   isActive: hasActiveCall,
 } = useCallSession(sipClientRef)
@@ -294,7 +303,7 @@ interface NetworkProfile {
 const networkProfiles: NetworkProfile[] = [
   {
     name: 'Excellent',
-    icon: '🟢',
+    icon: 'excellent',
     latency: 20,
     packetLoss: 0,
     jitter: 5,
@@ -302,7 +311,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: 'Good',
-    icon: '🟡',
+    icon: 'good',
     latency: 80,
     packetLoss: 1,
     jitter: 15,
@@ -310,7 +319,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: '4G Mobile',
-    icon: '📱',
+    icon: 'mobile4g',
     latency: 100,
     packetLoss: 2,
     jitter: 25,
@@ -318,7 +327,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: '3G Mobile',
-    icon: '📶',
+    icon: 'mobile3g',
     latency: 200,
     packetLoss: 5,
     jitter: 50,
@@ -326,7 +335,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: 'Poor WiFi',
-    icon: '📡',
+    icon: 'wifi-poor',
     latency: 300,
     packetLoss: 10,
     jitter: 100,
@@ -334,13 +343,26 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: 'Congested',
-    icon: '🔴',
+    icon: 'congested',
     latency: 500,
     packetLoss: 20,
     jitter: 150,
     bandwidth: 64,
   },
 ]
+
+// Helper for profile indicator class
+const getProfileClass = (profileName: string): string => {
+  const mapping: Record<string, string> = {
+    Excellent: 'excellent',
+    Good: 'good',
+    '4G Mobile': 'mobile4g',
+    '3G Mobile': 'mobile3g',
+    'Poor WiFi': 'wifi-poor',
+    Congested: 'congested',
+  }
+  return mapping[profileName] || 'default'
+}
 
 const activeProfile = ref('Excellent')
 const customLatency = ref(20)
@@ -738,8 +760,58 @@ button.danger:hover:not(:disabled) {
 }
 
 .profile-icon {
-  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 0.5rem;
+  height: 2rem;
+}
+
+.profile-indicator {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.profile-indicator.excellent {
+  background: var(--color-success, #10b981);
+  border-color: var(--color-success, #10b981);
+}
+
+.profile-indicator.good {
+  background: var(--color-warning, #f59e0b);
+  border-color: var(--color-warning, #f59e0b);
+}
+
+.profile-indicator.mobile4g,
+.profile-indicator.mobile3g {
+  background: var(--color-info, #3b82f6);
+  border-color: var(--color-info, #3b82f6);
+  position: relative;
+}
+
+.profile-indicator.mobile4g::after,
+.profile-indicator.mobile3g::after {
+  content: '';
+  position: absolute;
+  width: 0.5rem;
+  height: 0.75rem;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
+}
+
+.profile-indicator.wifi-poor {
+  background: var(--color-warning, #f59e0b);
+  border-color: var(--color-warning, #f59e0b);
+}
+
+.profile-indicator.congested {
+  background: var(--color-error, #ef4444);
+  border-color: var(--color-error, #ef4444);
 }
 
 .profile-name {
@@ -839,8 +911,42 @@ button.danger:hover:not(:disabled) {
 }
 
 .metric-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0 auto 0.5rem;
+  border-radius: 4px;
+}
+
+.metric-icon.latency-icon {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary, #3b82f6) 0%,
+    var(--color-primary-dark, #2563eb) 100%
+  );
+}
+
+.metric-icon.packet-loss-icon {
+  background: linear-gradient(
+    135deg,
+    var(--color-warning, #f59e0b) 0%,
+    var(--color-warning-dark, #d97706) 100%
+  );
+}
+
+.metric-icon.jitter-icon {
+  background: linear-gradient(
+    135deg,
+    var(--color-info, #06b6d4) 0%,
+    var(--color-info-dark, #0891b2) 100%
+  );
+}
+
+.metric-icon.quality-icon {
+  background: linear-gradient(
+    135deg,
+    var(--color-success, #10b981) 0%,
+    var(--color-success-dark, #059669) 100%
+  );
 }
 
 .metric-value {

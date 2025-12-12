@@ -1,6 +1,18 @@
 <template>
   <div class="call-recording-demo">
-    <h2>📹 Call Recording</h2>
+    <h2>
+      <svg
+        class="icon-inline"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="3" fill="currentColor" />
+      </svg>
+      Call Recording
+    </h2>
     <p class="description">
       Record and playback call audio with duration tracking and file management.
     </p>
@@ -47,7 +59,14 @@
           @keyup.enter="makeCall"
         />
       </div>
-      <button @click="makeCall" :disabled="hasActiveCall">📞 Make Call</button>
+      <button @click="makeCall" :disabled="hasActiveCall">
+        <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"
+          />
+        </svg>
+        Make Call
+      </button>
     </div>
 
     <!-- Active Call with Recording -->
@@ -70,17 +89,29 @@
         <h4>Recording</h4>
 
         <div v-if="!isRecording && !recordedBlob" class="recording-status">
-          <span class="indicator idle">⚪</span>
+          <svg class="indicator idle" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="10" />
+          </svg>
           <span>Ready to record</span>
         </div>
 
         <div v-if="isRecording" class="recording-status recording">
-          <span class="indicator pulse">🔴</span>
+          <svg class="indicator pulse" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="10" />
+          </svg>
           <span>Recording: {{ recordingDuration }}</span>
         </div>
 
         <div v-if="recordedBlob && !isRecording" class="recording-status">
-          <span class="indicator">✅</span>
+          <svg
+            class="indicator"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
           <span>Recording saved ({{ recordingSize }})</span>
         </div>
 
@@ -91,10 +122,18 @@
             :disabled="!canRecord"
             class="record-btn"
           >
-            🎙️ Start Recording
+            <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"
+              />
+            </svg>
+            Start Recording
           </button>
           <button v-if="isRecording" @click="stopRecording" class="stop-btn">
-            ⏹️ Stop Recording
+            <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" />
+            </svg>
+            Stop Recording
           </button>
         </div>
 
@@ -113,8 +152,26 @@
 
       <!-- Call Controls -->
       <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">✅ Answer</button>
-        <button @click="hangup" class="danger">📞 Hang Up</button>
+        <button @click="answer" v-if="callState === 'incoming'">
+          <svg
+            class="icon-inline"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Answer
+        </button>
+        <button @click="hangup" class="danger">
+          <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"
+            />
+          </svg>
+          Hang Up
+        </button>
       </div>
     </div>
 
@@ -139,10 +196,35 @@
               :disabled="currentlyPlaying === recording.id"
               class="play-btn"
             >
-              {{ currentlyPlaying === recording.id ? '⏸️ Playing' : '▶️ Play' }}
+              <svg
+                v-if="currentlyPlaying === recording.id"
+                class="icon-inline"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+              </svg>
+              <svg v-else class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              {{ currentlyPlaying === recording.id ? 'Playing' : 'Play' }}
             </button>
-            <button @click="downloadRecording(recording)" class="download-btn">💾 Download</button>
-            <button @click="deleteRecording(recording.id)" class="delete-btn">🗑️</button>
+            <button @click="downloadRecording(recording)" class="download-btn">
+              <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"
+                />
+              </svg>
+              Download
+            </button>
+            <button @click="deleteRecording(recording.id)" class="delete-btn">
+              <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                />
+              </svg>
+              Delete
+            </button>
           </div>
         </div>
       </div>
@@ -172,12 +254,19 @@ const { isSimulationMode, activeScenario } = simulation
 const targetUri = ref('sip:1000@example.com')
 
 // SIP Client - use shared playground instance (credentials managed globally)
-const { connectionState: realConnectionState, isConnected: realIsConnected, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  getClient,
+} = playgroundSipClient
 
 // Effective values - use simulation or real data based on mode
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
@@ -652,7 +741,21 @@ button.danger:hover:not(:disabled) {
 }
 
 .indicator {
-  font-size: 1.25rem;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.indicator.idle {
+  color: #9ca3af;
+}
+
+.icon-inline {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
 }
 
 .indicator.pulse {

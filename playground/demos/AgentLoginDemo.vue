@@ -24,8 +24,8 @@
     <div v-if="!amiConnected" class="config-panel">
       <h3>AMI Server Configuration</h3>
       <p class="info-text">
-        Configure your AMI WebSocket connection to test agent queue login/logout functionality.
-        This demo allows agents to log in/out of queues, pause/unpause, and track session metrics.
+        Configure your AMI WebSocket connection to test agent queue login/logout functionality. This
+        demo allows agents to log in/out of queues, pause/unpause, and track session metrics.
       </p>
 
       <div class="form-group">
@@ -124,8 +124,8 @@
       </div>
 
       <div class="demo-tip">
-        <strong>Tip:</strong> This demo requires an AMI WebSocket proxy. Make sure your
-        Asterisk server has the AMI interface configured and a WebSocket proxy is running.
+        <strong>Tip:</strong> This demo requires an AMI WebSocket proxy. Make sure your Asterisk
+        server has the AMI interface configured and a WebSocket proxy is running.
       </div>
     </div>
 
@@ -140,20 +140,18 @@
           </div>
           <div class="status-item">
             <span class="status-icon" :class="getStatusClass(status)">
-              {{ getStatusIcon(status) }}
+              <span class="status-badge">{{ getStatusIcon(status) }}</span>
             </span>
             <span>{{ formatStatus(status) }}</span>
           </div>
           <div v-if="isOnShift !== undefined" class="status-item">
             <span class="status-icon" :class="{ 'on-shift': isOnShift }">
-              {{ isOnShift ? '🕐' : '🕑' }}
+              <span class="shift-badge">{{ isOnShift ? 'ON' : 'OFF' }}</span>
             </span>
             <span>{{ isOnShift ? 'On Shift' : 'Off Shift' }}</span>
           </div>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Agent Panel -->
@@ -279,17 +277,13 @@
 
           <div v-else class="paused-state">
             <div class="paused-info">
-              <span class="paused-icon">⏸️</span>
+              <span class="paused-icon">PAUSED</span>
               <div class="paused-details">
                 <span class="paused-label">Currently Paused</span>
                 <span class="paused-reason">{{ session.pauseReason || 'No reason' }}</span>
               </div>
             </div>
-            <button
-              class="btn btn-success"
-              :disabled="isLoading"
-              @click="handleUnpause"
-            >
+            <button class="btn btn-success" :disabled="isLoading" @click="handleUnpause">
               Unpause Agent
             </button>
           </div>
@@ -300,7 +294,7 @@
           <h3>Queue Memberships ({{ loggedInQueues.length }})</h3>
           <div class="membership-list">
             <div
-              v-for="membership in session.queues.filter(q => q.isMember)"
+              v-for="membership in session.queues.filter((q) => q.isMember)"
               :key="membership.queue"
               class="membership-item"
             >
@@ -376,7 +370,10 @@ const queuesInput = ref('sales,support,billing')
 
 // Derived state
 const availableQueues = computed(() =>
-  queuesInput.value.split(',').map(q => q.trim()).filter(q => q.length > 0)
+  queuesInput.value
+    .split(',')
+    .map((q) => q.trim())
+    .filter((q) => q.length > 0)
 )
 
 // Agent state (simulated - would come from useAmiAgentLogin)
@@ -418,24 +415,26 @@ let sessionTimer: ReturnType<typeof setInterval> | null = null
 
 // Computed
 const status = computed(() => session.status)
-const isLoggedIn = computed(() => session.queues.some(q => q.isMember))
+const isLoggedIn = computed(() => session.queues.some((q) => q.isMember))
 const isPaused = computed(() => session.isPaused)
 const isOnShift = computed(() => session.isOnShift)
-const loggedInQueues = computed(() => session.queues.filter(q => q.isMember).map(q => q.queue))
+const loggedInQueues = computed(() => session.queues.filter((q) => q.isMember).map((q) => q.queue))
 const sessionDurationFormatted = computed(() => formatDuration(session.sessionDuration))
 
-const isConfigValid = computed(() =>
-  config.url && // username/password optional - some AMI setups allow unauthenticated connections
-  agentConfig.agentId && agentConfig.interface
+const isConfigValid = computed(
+  () =>
+    config.url && // username/password optional - some AMI setups allow unauthenticated connections
+    agentConfig.agentId &&
+    agentConfig.interface
 )
 
 // Methods
 function isLoggedIntoQueue(queue: string): boolean {
-  return session.queues.some(q => q.queue === queue && q.isMember)
+  return session.queues.some((q) => q.queue === queue && q.isMember)
 }
 
 function getQueueStatusText(queue: string): string {
-  const membership = session.queues.find(q => q.queue === queue)
+  const membership = session.queues.find((q) => q.queue === queue)
   if (!membership) return ''
   if (membership.isPaused) return 'Paused'
   if (membership.inCall) return 'On Call'
@@ -454,12 +453,12 @@ function formatStatus(status: AgentLoginStatus): string {
 
 function getStatusIcon(status: AgentLoginStatus): string {
   const icons: Record<AgentLoginStatus, string> = {
-    logged_out: '⚫',
-    logged_in: '🟢',
-    paused: '🟡',
-    on_call: '🔵',
+    logged_out: 'OFF',
+    logged_in: 'ON',
+    paused: 'PAUSE',
+    on_call: 'CALL',
   }
-  return icons[status] || '⚪'
+  return icons[status] || 'UNK'
 }
 
 function getStatusClass(status: AgentLoginStatus): string {
@@ -483,9 +482,9 @@ function formatTimestamp(ts: number): string {
 }
 
 function updateStatus(): void {
-  if (!session.queues.some(q => q.isMember)) {
+  if (!session.queues.some((q) => q.isMember)) {
     session.status = 'logged_out'
-  } else if (session.queues.some(q => q.inCall)) {
+  } else if (session.queues.some((q) => q.inCall)) {
     session.status = 'on_call'
   } else if (session.isPaused) {
     session.status = 'paused'
@@ -517,7 +516,7 @@ async function handleConnect() {
 
   try {
     // Simulate connection (in production, use actual AMI client)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
     // Initialize agent session
     session.agentId = agentConfig.agentId
@@ -549,7 +548,7 @@ async function handleLoginQueue(queue: string) {
 
   try {
     // Simulate login (in production, use actual AMI client)
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     session.queues.push({
       queue,
@@ -581,14 +580,14 @@ async function handleLogoutQueue(queue: string) {
   error.value = null
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
-    const idx = session.queues.findIndex(q => q.queue === queue)
+    const idx = session.queues.findIndex((q) => q.queue === queue)
     if (idx >= 0) {
       session.queues.splice(idx, 1)
     }
 
-    if (!session.queues.some(q => q.isMember)) {
+    if (!session.queues.some((q) => q.isMember)) {
       session.loginTime = null
       stopSessionTimer()
     }
@@ -623,7 +622,7 @@ async function handlePause() {
   error.value = null
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     session.isPaused = true
     session.pauseReason = selectedPauseReason.value
@@ -649,7 +648,7 @@ async function handleUnpause() {
   error.value = null
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     session.isPaused = false
     session.pauseReason = undefined
@@ -755,22 +754,50 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5568d3; }
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
 
-.btn-secondary { background: #6b7280; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #4b5563; }
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
 
-.btn-success { background: #10b981; color: white; }
-.btn-success:hover:not(:disabled) { background: #059669; }
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+.btn-success:hover:not(:disabled) {
+  background: #059669;
+}
 
-.btn-danger { background: #ef4444; color: white; }
-.btn-danger:hover:not(:disabled) { background: #dc2626; }
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
 
-.btn-warning { background: #f59e0b; color: white; }
-.btn-warning:hover:not(:disabled) { background: #d97706; }
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+.btn-warning:hover:not(:disabled) {
+  background: #d97706;
+}
 
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
 
 .error-message {
   margin-top: 1rem;
@@ -825,10 +852,16 @@ onUnmounted(() => {
   background: #ef4444;
 }
 
-.status-dot.connected { background: #10b981; }
+.status-dot.connected {
+  background: #10b981;
+}
 
-.status-icon { font-size: 1.25rem; }
-.status-icon.on-shift { color: #10b981; }
+.status-icon {
+  font-size: 1.25rem;
+}
+.status-icon.on-shift {
+  color: #10b981;
+}
 
 /* Agent Panel */
 .agent-panel {
@@ -1041,10 +1074,18 @@ onUnmounted(() => {
 }
 
 /* Status Colors */
-.status-logged-out { color: #6b7280; }
-.status-logged-in { color: #10b981; }
-.status-paused { color: #f59e0b; }
-.status-on-call { color: #3b82f6; }
+.status-logged-out {
+  color: #6b7280;
+}
+.status-logged-in {
+  color: #10b981;
+}
+.status-paused {
+  color: #f59e0b;
+}
+.status-on-call {
+  color: #3b82f6;
+}
 
 /* Responsive */
 @media (max-width: 768px) {

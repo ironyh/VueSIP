@@ -24,8 +24,8 @@
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>Supervisor Demo</h3>
       <p class="info-text">
-        Monitor, whisper, and barge into active calls. This demo demonstrates
-        call center supervisor features using Asterisk's ChanSpy application.
+        Monitor, whisper, and barge into active calls. This demo demonstrates call center supervisor
+        features using Asterisk's ChanSpy application.
       </p>
 
       <div class="form-group">
@@ -53,7 +53,7 @@
       </div>
 
       <div class="demo-tip">
-        <strong>💡 Supervisor Features:</strong>
+        <strong>Supervisor Features:</strong>
         <ul>
           <li><strong>Monitor:</strong> Silent listen to agent calls</li>
           <li><strong>Whisper:</strong> Speak to agent only (coaching)</li>
@@ -77,11 +77,9 @@
           <span>Sessions: {{ sessionCount }}</span>
         </div>
         <button class="btn btn-sm btn-secondary" @click="handleRefresh" :disabled="loading">
-          🔄 Refresh
+          Refresh
         </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Supervisor Extension -->
@@ -111,7 +109,6 @@
             :class="session.mode"
           >
             <div class="session-mode">
-              <span class="mode-icon">{{ getModeIcon(session.mode) }}</span>
               <span class="mode-label">{{ getModeLabel(session.mode) }}</span>
             </div>
             <div class="session-info">
@@ -127,7 +124,7 @@
                   @click="handleSwitchMode(session.id, 'monitor')"
                   title="Switch to silent monitor"
                 >
-                  👁️
+                  Monitor
                 </button>
                 <button
                   v-if="session.mode !== 'whisper'"
@@ -135,7 +132,7 @@
                   @click="handleSwitchMode(session.id, 'whisper')"
                   title="Switch to whisper"
                 >
-                  🗣️
+                  Whisper
                 </button>
                 <button
                   v-if="session.mode !== 'barge'"
@@ -143,13 +140,10 @@
                   @click="handleSwitchMode(session.id, 'barge')"
                   title="Switch to barge"
                 >
-                  📢
+                  Barge
                 </button>
               </div>
-              <button
-                class="btn btn-sm btn-danger"
-                @click="handleEndSession(session.id)"
-              >
+              <button class="btn btn-sm btn-danger" @click="handleEndSession(session.id)">
                 End Session
               </button>
             </div>
@@ -168,12 +162,10 @@
       <div class="calls-panel">
         <h4>Active Calls</h4>
 
-        <div v-if="loading" class="loading-state">
-          Loading calls...
-        </div>
+        <div v-if="loading" class="loading-state">Loading calls...</div>
 
         <div v-else-if="callList.length === 0" class="empty-state">
-          <p>📭 No active calls</p>
+          <p>No active calls</p>
           <p class="info-text">Waiting for calls to monitor...</p>
         </div>
 
@@ -188,7 +180,9 @@
               <div class="call-parties">
                 <span class="caller">{{ call.callerIdName || call.callerIdNum || 'Unknown' }}</span>
                 <span class="arrow">↔</span>
-                <span class="callee">{{ call.connectedLineName || call.connectedLineNum || 'Unknown' }}</span>
+                <span class="callee">{{
+                  call.connectedLineName || call.connectedLineNum || 'Unknown'
+                }}</span>
               </div>
               <div class="call-details">
                 <span class="channel">{{ call.channel }}</span>
@@ -210,7 +204,7 @@
                   @click="handleMonitor(call.channel)"
                   title="Silent listen"
                 >
-                  👁️ Monitor
+                  Monitor
                 </button>
                 <button
                   class="btn btn-sm btn-whisper"
@@ -218,7 +212,7 @@
                   @click="handleWhisper(call.channel)"
                   title="Speak to agent only"
                 >
-                  🗣️ Whisper
+                  Whisper
                 </button>
                 <button
                   class="btn btn-sm btn-barge"
@@ -226,12 +220,10 @@
                   @click="handleBarge(call.channel)"
                   title="Join the call"
                 >
-                  📢 Barge
+                  Barge
                 </button>
               </div>
-              <div v-else class="hint">
-                Enter supervisor channel to enable
-              </div>
+              <div v-else class="hint">Enter supervisor channel to enable</div>
             </div>
           </div>
         </div>
@@ -269,7 +261,7 @@ const error = ref('')
 const {
   connect: amiConnect,
   disconnect: amiDisconnect,
-  isConnected: realIsAmiConnected,
+  isConnected: _realIsAmiConnected,
   getClient,
 } = useAmi()
 
@@ -278,42 +270,41 @@ const callsComposable = ref<ReturnType<typeof useAmiCalls> | null>(null)
 const supervisorComposable = ref<ReturnType<typeof useAmiSupervisor> | null>(null)
 
 // Computed
+const isAmiConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : _realIsAmiConnected.value
+)
 const loading = computed(() => callsComposable.value?.loading.value ?? false)
 const callList = computed(() => callsComposable.value?.callList.value ?? [])
 const callCount = computed(() => callsComposable.value?.callCount.value ?? 0)
 const sessionList = computed(() =>
-  supervisorComposable.value
-    ? Array.from(supervisorComposable.value.sessions.value.values())
-    : []
+  supervisorComposable.value ? Array.from(supervisorComposable.value.sessions.value.values()) : []
 )
 const sessionCount = computed(() => supervisorComposable.value?.activeSessionCount.value ?? 0)
 const canSupervise = computed(() => supervisorChannel.value.trim().length > 0)
 
 // Helpers
-const getModeIcon = (mode: SupervisionMode): string => {
-  switch (mode) {
-    case 'monitor': return '👁️'
-    case 'whisper': return '🗣️'
-    case 'barge': return '📢'
-    default: return '❓'
-  }
-}
-
 const getModeLabel = (mode: SupervisionMode): string => {
   switch (mode) {
-    case 'monitor': return 'Monitoring'
-    case 'whisper': return 'Whispering'
-    case 'barge': return 'Barging'
-    default: return 'Unknown'
+    case 'monitor':
+      return 'Monitoring'
+    case 'whisper':
+      return 'Whispering'
+    case 'barge':
+      return 'Barging'
+    default:
+      return 'Unknown'
   }
 }
 
 const getCallStateClass = (state: ChannelState): string => {
   switch (state) {
-    case ChannelState.Up: return 'connected'
+    case ChannelState.Up:
+      return 'connected'
     case ChannelState.Ringing:
-    case ChannelState.Ring: return 'ringing'
-    default: return 'unknown'
+    case ChannelState.Ring:
+      return 'ringing'
+    default:
+      return 'unknown'
   }
 }
 
@@ -333,7 +324,7 @@ const isSupervising = (channel: string): boolean => {
 
 const getSessionMode = (channel: string): string => {
   const session = supervisorComposable.value?.getSessionForChannel(channel)
-  return session ? `${getModeIcon(session.mode)} ${getModeLabel(session.mode)}` : ''
+  return session ? getModeLabel(session.mode) : ''
 }
 
 // Handlers
@@ -541,21 +532,57 @@ watch(supervisorChannel, (value) => {
   transition: all 0.2s;
 }
 
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5568d3; }
-.btn-secondary { background: #6b7280; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #4b5563; }
-.btn-danger { background: #ef4444; color: white; }
-.btn-danger:hover:not(:disabled) { background: #dc2626; }
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
 
-.btn-monitor { background: #3b82f6; color: white; }
-.btn-monitor:hover:not(:disabled) { background: #2563eb; }
-.btn-whisper { background: #f59e0b; color: white; }
-.btn-whisper:hover:not(:disabled) { background: #d97706; }
-.btn-barge { background: #ef4444; color: white; }
-.btn-barge:hover:not(:disabled) { background: #dc2626; }
+.btn-monitor {
+  background: #3b82f6;
+  color: white;
+}
+.btn-monitor:hover:not(:disabled) {
+  background: #2563eb;
+}
+.btn-whisper {
+  background: #f59e0b;
+  color: white;
+}
+.btn-whisper:hover:not(:disabled) {
+  background: #d97706;
+}
+.btn-barge {
+  background: #ef4444;
+  color: white;
+}
+.btn-barge:hover:not(:disabled) {
+  background: #dc2626;
+}
 
 .error-message {
   margin-top: 1rem;
@@ -665,9 +692,15 @@ watch(supervisorChannel, (value) => {
   border-left: 4px solid #f59e0b;
 }
 
-.session-card.monitor { border-left-color: #3b82f6; }
-.session-card.whisper { border-left-color: #f59e0b; }
-.session-card.barge { border-left-color: #ef4444; }
+.session-card.monitor {
+  border-left-color: #3b82f6;
+}
+.session-card.whisper {
+  border-left-color: #f59e0b;
+}
+.session-card.barge {
+  border-left-color: #ef4444;
+}
 
 .session-mode {
   display: flex;
@@ -677,13 +710,12 @@ watch(supervisorChannel, (value) => {
   min-width: 80px;
 }
 
-.mode-icon {
-  font-size: 1.5rem;
-}
-
 .mode-label {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 6px;
 }
 
 .session-info {
@@ -793,9 +825,18 @@ watch(supervisorChannel, (value) => {
   font-weight: 500;
 }
 
-.state-badge.connected { background: #d1fae5; color: #065f46; }
-.state-badge.ringing { background: #dbeafe; color: #1e40af; }
-.state-badge.unknown { background: #e5e7eb; color: #374151; }
+.state-badge.connected {
+  background: #d1fae5;
+  color: #065f46;
+}
+.state-badge.ringing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.state-badge.unknown {
+  background: #e5e7eb;
+  color: #374151;
+}
 
 .supervision-actions {
   display: flex;
