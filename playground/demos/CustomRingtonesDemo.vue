@@ -22,8 +22,8 @@
 
     <div class="info-section">
       <p>
-        Customize your incoming call experience with different ringtones. Select from built-in
-        tones or upload your own audio files. Volume and vibration can be adjusted independently.
+        Customize your incoming call experience with different ringtones. Select from built-in tones
+        or upload your own audio files. Volume and vibration can be adjusted independently.
       </p>
     </div>
 
@@ -104,11 +104,7 @@
         <p class="test-desc">
           Click the button below to simulate an incoming call and hear how your ringtone sounds.
         </p>
-        <button
-          class="btn btn-primary"
-          @click="testRingtone"
-          :disabled="isPlaying"
-        >
+        <button class="btn btn-primary" @click="testRingtone" :disabled="isPlaying">
           {{ isPlaying ? '⏸️ Stop Test' : '🔔 Test Ringtone' }}
         </button>
       </div>
@@ -117,7 +113,8 @@
       <div v-if="callState === 'incoming'" class="incoming-call-demo">
         <div class="demo-badge">Live Incoming Call</div>
         <p>
-          A real incoming call is using your selected ringtone: <strong>{{ activeRingtoneName }}</strong>
+          A real incoming call is using your selected ringtone:
+          <strong>{{ activeRingtoneName }}</strong>
         </p>
       </div>
     </div>
@@ -193,7 +190,7 @@ interface Ringtone {
   id: string
   name: string
   description: string
-  frequency: number
+  file: string
 }
 
 const STORAGE_KEY = 'vuesip-ringtone-settings'
@@ -208,17 +205,55 @@ const callState = computed(() =>
   isSimulationMode.value ? simulation.state.value : realCallState.value
 )
 
-// Available ringtones (simulated with Web Audio API)
+// Available ringtones (using real MP3 files)
 const ringtones: Ringtone[] = [
-  { id: 'classic', name: 'Classic', description: 'Traditional phone ring', frequency: 440 },
-  { id: 'digital', name: 'Digital', description: 'Modern digital tone', frequency: 523.25 },
-  { id: 'gentle', name: 'Gentle', description: 'Soft and pleasant', frequency: 349.23 },
-  { id: 'urgent', name: 'Urgent', description: 'Attention-grabbing', frequency: 659.25 },
-  { id: 'melody', name: 'Melody', description: 'Musical ringtone', frequency: 392 },
+  {
+    id: 'classic-ring',
+    name: 'Classic Ring',
+    description: 'Traditional phone ring',
+    file: '/ringtones/classic-ring.mp3',
+  },
+  {
+    id: 'phone-ring',
+    name: 'Phone Ring',
+    description: 'Modern phone sound',
+    file: '/ringtones/phone-ring.mp3',
+  },
+  {
+    id: 'landline',
+    name: 'Landline',
+    description: 'Old-school landline ring',
+    file: '/ringtones/landline.mp3',
+  },
+  {
+    id: 'marimba',
+    name: 'Marimba',
+    description: 'Pleasant marimba melody',
+    file: '/ringtones/marimba.mp3',
+  },
+  { id: 'sonar', name: 'Sonar', description: 'Sonar-like tone', file: '/ringtones/sonar.mp3' },
+  {
+    id: 'intercom',
+    name: 'Intercom',
+    description: 'Intercom buzzer',
+    file: '/ringtones/intercom.mp3',
+  },
+  {
+    id: 'message',
+    name: 'Message',
+    description: 'Message alert tone',
+    file: '/ringtones/message.mp3',
+  },
+  {
+    id: 'ouverture',
+    name: 'Ouverture',
+    description: 'Classical opening theme',
+    file: '/ringtones/ouverture.mp3',
+  },
 ]
 
 // State
-const selectedRingtone = ref('classic')
+const selectedRingtone = ref('classic-ring')
 const volume = ref(80)
 const loopRingtone = ref(true)
 const vibrateEnabled = ref(true)
@@ -226,54 +261,38 @@ const showNotification = ref(false)
 const isPlaying = ref(false)
 const playingTone = ref<string | null>(null)
 
-// Audio context for generating tones
-let audioContext: AudioContext | null = null
-let oscillator: OscillatorNode | null = null
-let gainNode: GainNode | null = null
+// Audio element for playing ringtones
+let audioElement: HTMLAudioElement | null = null
 
 // Computed
 const activeRingtoneName = computed(() => {
-  return ringtones.find(t => t.id === selectedRingtone.value)?.name || 'Unknown'
+  return ringtones.find((t) => t.id === selectedRingtone.value)?.name || 'Unknown'
 })
 
 // Methods
-const initAudioContext = () => {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+const initAudio = (filePath: string) => {
+  if (audioElement) {
+    audioElement.pause()
+    audioElement.currentTime = 0
   }
+  audioElement = new Audio(filePath)
+  audioElement.loop = loopRingtone.value
+  audioElement.volume = volume.value / 100
 }
 
-const playTone = (frequency: number) => {
-  if (!audioContext) return
-
-  // Create oscillator
-  oscillator = audioContext.createOscillator()
-  gainNode = audioContext.createGain()
-
-  oscillator.type = 'sine'
-  oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime)
-
-  // Set volume
-  gainNode.gain.setValueAtTime(volume.value / 100, audioContext.currentTime)
-
-  // Connect nodes
-  oscillator.connect(gainNode)
-  gainNode.connect(audioContext.destination)
-
-  // Start playing
-  oscillator.start()
+const playTone = (filePath: string) => {
+  initAudio(filePath)
+  if (audioElement) {
+    audioElement.play().catch((error) => {
+      console.error('Failed to play ringtone:', error)
+    })
+  }
 }
 
 const stopTone = () => {
-  if (oscillator) {
-    oscillator.stop()
-    oscillator.disconnect()
-    oscillator = null
-  }
-
-  if (gainNode) {
-    gainNode.disconnect()
-    gainNode = null
+  if (audioElement) {
+    audioElement.pause()
+    audioElement.currentTime = 0
   }
 }
 
@@ -291,11 +310,10 @@ const playPreview = (id: string) => {
   }
 
   stopTone()
-  initAudioContext()
 
-  const tone = ringtones.find(t => t.id === id)
+  const tone = ringtones.find((t) => t.id === id)
   if (tone) {
-    playTone(tone.frequency)
+    playTone(tone.file)
     isPlaying.value = true
     playingTone.value = id
 
@@ -318,11 +336,10 @@ const testRingtone = () => {
     return
   }
 
-  initAudioContext()
-  const tone = ringtones.find(t => t.id === selectedRingtone.value)
+  const tone = ringtones.find((t) => t.id === selectedRingtone.value)
 
   if (tone) {
-    playTone(tone.frequency)
+    playTone(tone.file)
     isPlaying.value = true
     playingTone.value = selectedRingtone.value
 
@@ -344,8 +361,8 @@ const handleVolumeChange = () => {
   saveSettings()
 
   // Update playing audio volume
-  if (gainNode && audioContext) {
-    gainNode.gain.setValueAtTime(volume.value / 100, audioContext.currentTime)
+  if (audioElement) {
+    audioElement.volume = volume.value / 100
   }
 }
 
@@ -365,7 +382,7 @@ const loadSettings = () => {
   if (saved) {
     try {
       const settings = JSON.parse(saved)
-      selectedRingtone.value = settings.ringtone || 'classic'
+      selectedRingtone.value = settings.ringtone || 'classic-ring'
       volume.value = settings.volume ?? 80
       loopRingtone.value = settings.loop ?? true
       vibrateEnabled.value = settings.vibrate ?? true
@@ -380,10 +397,9 @@ const loadSettings = () => {
 watch(callState, (newState, oldState) => {
   if (newState === 'incoming' && oldState !== 'incoming') {
     // Start ringing
-    initAudioContext()
-    const tone = ringtones.find(t => t.id === selectedRingtone.value)
+    const tone = ringtones.find((t) => t.id === selectedRingtone.value)
     if (tone) {
-      playTone(tone.frequency)
+      playTone(tone.file)
       isPlaying.value = true
 
       // Vibrate if enabled
@@ -414,9 +430,7 @@ onMounted(() => {
 // Cleanup on unmount
 onUnmounted(() => {
   stopTone()
-  if (audioContext) {
-    audioContext.close()
-  }
+  audioElement = null
 })
 </script>
 
