@@ -25,8 +25,38 @@ import {
 } from '@/utils/constants'
 import { createLogger } from '@/utils/logger'
 import { EventNames } from '@/types/events.types'
+import { formatError } from '@/utils/errorHelpers'
 
 const logger = createLogger('MediaManager')
+
+/**
+ * MediaManager Configuration Constants
+ */
+const MEDIA_CONSTANTS = {
+  // Statistics Collection
+  STATS_COLLECTION_INTERVAL_MS: STATS_COLLECTION_INTERVAL,
+
+  // Quality Monitoring
+  QUALITY_CHECK_INTERVAL_MS: 5000,
+  PACKET_LOSS_THRESHOLD_PERCENT: 5,
+  RTT_THRESHOLD_MS: 300,
+
+  // Audio Level Testing
+  AUDIO_LEVEL_SAMPLE_DURATION_MS: 250,
+
+  // DTMF Configuration (defaults when not specified)
+  DTMF_TONE_DURATION_MS: 100,
+  DTMF_TONE_GAP_MS: 70,
+
+  // Device Caching
+  DEVICE_CACHE_TTL_MS: 5000,
+
+  // ICE Gathering
+  ICE_GATHERING_CHECK_INTERVAL_MS: 100,
+
+  // Wait for ICE gathering
+  ICE_GATHERING_WAIT_TIMEOUT_MS: ICE_GATHERING_TIMEOUT,
+} as const
 
 /**
  * ICE connection state
@@ -119,6 +149,12 @@ export class MediaManager {
   private selectedAudioInputId?: string
   private selectedAudioOutputId?: string
   private selectedVideoInputId?: string
+
+  // Device enumeration cache
+  private deviceCache: {
+    devices: MediaDevice[]
+    timestamp: number
+  } | null = null
 
   // Permissions
   private permissions: MediaPermissions = {
@@ -225,14 +261,13 @@ export class MediaManager {
           sdpMid: event.candidate.sdpMid,
           sdpMLineIndex: event.candidate.sdpMLineIndex,
         })
-        ;(this.eventBus as any).emitSync('media:ice:candidate', {
-          // eslint-disable-line @typescript-eslint/no-explicit-any
+        this.eventBus.emitSync('media:ice:candidate', {
           candidate: event.candidate,
         })
       } else {
         logger.debug('ICE gathering complete (null candidate)')
         this.iceGatheringComplete = true
-        ;(this.eventBus as any).emitSync('media:ice:gathering:complete', {}) // eslint-disable-line @typescript-eslint/no-explicit-any
+        this.eventBus.emitSync('media:ice:gathering:complete', {})
       }
     }
 
@@ -240,7 +275,7 @@ export class MediaManager {
     pc.oniceconnectionstatechange = () => {
       const state = pc.iceConnectionState as IceConnectionState
       logger.info('ICE connection state changed', { state })
-      ;(this.eventBus as any).emitSync('media:ice:connection:state', { state }) // eslint-disable-line @typescript-eslint/no-explicit-any
+      this.eventBus.emitSync('media:ice:connection:state', { state })
 
       // Handle connection failures
       if (state === 'failed' || state === 'disconnected') {
@@ -254,7 +289,7 @@ export class MediaManager {
     pc.onicegatheringstatechange = () => {
       const state = pc.iceGatheringState as IceGatheringState
       logger.info('ICE gathering state changed', { state })
-      ;(this.eventBus as any).emitSync('media:ice:gathering:state', { state }) // eslint-disable-line @typescript-eslint/no-explicit-any
+      this.eventBus.emitSync('media:ice:gathering:state', { state })
 
       if (state === 'complete') {
         this.iceGatheringComplete = true
@@ -271,17 +306,17 @@ export class MediaManager {
 
       // Set remote stream (take first stream)
       if (event.streams.length > 0) {
-        this.remoteStream = event.streams[0]
-        ;(this.eventBus as any).emitSync(EventNames.MEDIA_STREAM_ADDED, {
-          // eslint-disable-line @typescript-eslint/no-explicit-any
-          stream: this.remoteStream,
+        // Safe: We just verified streams.length > 0
+        const remoteStream = event.streams[0]!
+        this.remoteStream = remoteStream
+        this.eventBus.emitSync(EventNames.MEDIA_STREAM_ADDED, {
+          stream: remoteStream,
           track: event.track,
           direction: 'remote',
         })
       }
 
-      ;(this.eventBus as any).emitSync(EventNames.MEDIA_TRACK_ADDED, {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+      this.eventBus.emitSync(EventNames.MEDIA_TRACK_ADDED, {
         track: event.track,
         streams: event.streams,
         direction: 'remote',
@@ -309,7 +344,7 @@ export class MediaManager {
     // Negotiation needed
     pc.onnegotiationneeded = () => {
       logger.debug('Negotiation needed')
-      ;(this.eventBus as any).emitSync('media:negotiation:needed', {}) // eslint-disable-line @typescript-eslint/no-explicit-any
+      this.eventBus.emitSync('media:negotiation:needed', {})
     }
   }
 
@@ -335,8 +370,7 @@ export class MediaManager {
    */
   private handleConnectionFailure(state: IceConnectionState | string): void {
     logger.error('Connection failure', { state })
-    ;(this.eventBus as any).emitSync('media:connection:failed', {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    this.eventBus.emitSync('media:connection:failed', {
       state,
       reason: 'ICE connection failed',
     })
@@ -464,7 +498,7 @@ export class MediaManager {
       if (!this.iceGatheringComplete) {
         logger.warn('ICE gathering timeout, proceeding anyway')
         this.iceGatheringComplete = true
-        ;(this.eventBus as any).emitSync('media:ice:gathering:timeout', {}) // eslint-disable-line @typescript-eslint/no-explicit-any
+        this.eventBus.emitSync('media:ice:gathering:timeout', {})
       }
     }, ICE_GATHERING_TIMEOUT)
   }
@@ -483,13 +517,13 @@ export class MediaManager {
           clearInterval(checkInterval)
           resolve()
         }
-      }, 100)
+      }, MEDIA_CONSTANTS.ICE_GATHERING_CHECK_INTERVAL_MS)
 
       // Also resolve on timeout
       setTimeout(() => {
         clearInterval(checkInterval)
         resolve()
-      }, ICE_GATHERING_TIMEOUT)
+      }, MEDIA_CONSTANTS.ICE_GATHERING_WAIT_TIMEOUT_MS)
     })
   }
 
@@ -545,27 +579,27 @@ export class MediaManager {
           track.stop()
         })
 
-        ;(this.eventBus as any).emitSync(EventNames.MEDIA_STREAM_REMOVED, {
-          // eslint-disable-line @typescript-eslint/no-explicit-any
+        this.eventBus.emitSync(EventNames.MEDIA_STREAM_REMOVED, {
           stream: previousStream,
           direction: 'local',
         })
       }
 
       // Emit event
-      ;(this.eventBus as any).emitSync(EventNames.MEDIA_STREAM_ADDED, {
-        // eslint-disable-line @typescript-eslint/no-explicit-any
+      this.eventBus.emitSync(EventNames.MEDIA_STREAM_ADDED, {
         stream,
         direction: 'local',
       })
 
       return stream
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      logger.error('Failed to get user media', { error })
+    } catch (error: unknown) {
+      logger.error('Failed to get user media', formatError(error))
 
       // Update permissions on error
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      if (
+        error instanceof Error &&
+        (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError')
+      ) {
         if (constraints?.audio) {
           this.permissions.audio = PermissionStatus.Denied
         }
@@ -650,8 +684,7 @@ export class MediaManager {
       logger.debug('Stopping track', { kind: track.kind, id: track.id })
       track.stop()
     })
-    ;(this.eventBus as any).emitSync(EventNames.MEDIA_STREAM_REMOVED, {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    this.eventBus.emitSync(EventNames.MEDIA_STREAM_REMOVED, {
       stream: this.localStream,
       direction: 'local',
     })
@@ -709,9 +742,22 @@ export class MediaManager {
 
   /**
    * Enumerate media devices
+   * @param forceRefresh - Force refresh from native API, bypassing cache
    */
-  async enumerateDevices(): Promise<MediaDevice[]> {
-    logger.info('Enumerating media devices')
+  async enumerateDevices(forceRefresh = false): Promise<MediaDevice[]> {
+    // Check cache validity
+    const now = Date.now()
+    const cacheValid =
+      this.deviceCache && now - this.deviceCache.timestamp < MEDIA_CONSTANTS.DEVICE_CACHE_TTL_MS
+
+    if (!forceRefresh && cacheValid) {
+      logger.debug('Returning cached devices', {
+        cacheAge: now - this.deviceCache!.timestamp,
+      })
+      return this.deviceCache!.devices
+    }
+
+    logger.info('Enumerating media devices from native API')
 
     try {
       const devices = await navigator.mediaDevices.enumerateDevices()
@@ -723,6 +769,12 @@ export class MediaManager {
         groupId: device.groupId,
         isDefault: device.deviceId === 'default',
       }))
+
+      // Update cache
+      this.deviceCache = {
+        devices: this.devices,
+        timestamp: now,
+      }
 
       logger.info('Devices enumerated', {
         total: this.devices.length,
@@ -839,12 +891,14 @@ export class MediaManager {
 
       logger.info('Permissions granted', this.permissions)
       return this.permissions
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      logger.error('Permission request failed', { error })
+    } catch (error: unknown) {
+      logger.error('Permission request failed', formatError(error))
 
       // Update permissions on error
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      if (
+        error instanceof Error &&
+        (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError')
+      ) {
         if (audio) {
           this.permissions.audio = PermissionStatus.Denied
         }
@@ -878,8 +932,11 @@ export class MediaManager {
     this.deviceChangeListener = async () => {
       logger.info('Device change detected')
 
+      // Invalidate cache on device change
+      this.deviceCache = null
+
       const previousDevices = [...this.devices]
-      await this.enumerateDevices()
+      await this.enumerateDevices(true) // Force refresh
 
       // Detect added and removed devices
       const addedDevices = this.devices.filter(
@@ -939,13 +996,12 @@ export class MediaManager {
         deviceId,
         success: true,
       }
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      logger.error('Audio input test failed', { error })
+    } catch (error: unknown) {
+      logger.error('Audio input test failed', formatError(error))
       return {
         deviceId,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       }
     }
   }
@@ -968,13 +1024,12 @@ export class MediaManager {
         deviceId,
         success: true,
       }
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-      logger.error('Video input test failed', { error })
+    } catch (error: unknown) {
+      logger.error('Video input test failed', formatError(error))
       return {
         deviceId,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       }
     }
   }
@@ -996,11 +1051,11 @@ export class MediaManager {
     this.statsInterval = setInterval(async () => {
       try {
         const stats = await this.getStatistics()
-        ;(this.eventBus as any).emitSync('media:statistics', stats) // eslint-disable-line @typescript-eslint/no-explicit-any
+        this.eventBus.emitSync('media:statistics', stats)
       } catch (error) {
         logger.error('Failed to collect statistics', { error })
       }
-    }, STATS_COLLECTION_INTERVAL)
+    }, MEDIA_CONSTANTS.STATS_COLLECTION_INTERVAL_MS)
   }
 
   /**
@@ -1118,7 +1173,7 @@ export class MediaManager {
       } catch (error) {
         logger.error('Failed to adjust quality', { error })
       }
-    }, 5000) // Check every 5 seconds
+    }, MEDIA_CONSTANTS.QUALITY_CHECK_INTERVAL_MS)
   }
 
   /**
@@ -1144,9 +1199,10 @@ export class MediaManager {
     if (stats.audio?.packetLossPercentage) {
       const loss = stats.audio.packetLossPercentage
 
-      if (loss > 5) {
+      if (loss > MEDIA_CONSTANTS.PACKET_LOSS_THRESHOLD_PERCENT) {
         logger.warn('High audio packet loss detected', {
           loss: loss.toFixed(2) + '%',
+          threshold: MEDIA_CONSTANTS.PACKET_LOSS_THRESHOLD_PERCENT + '%',
         })
         // Could reduce bitrate here
       }
@@ -1156,9 +1212,10 @@ export class MediaManager {
     if (stats.video?.packetLossPercentage) {
       const loss = stats.video.packetLossPercentage
 
-      if (loss > 5) {
+      if (loss > MEDIA_CONSTANTS.PACKET_LOSS_THRESHOLD_PERCENT) {
         logger.warn('High video packet loss detected', {
           loss: loss.toFixed(2) + '%',
+          threshold: MEDIA_CONSTANTS.PACKET_LOSS_THRESHOLD_PERCENT + '%',
         })
         // Could reduce video bitrate or resolution here
       }
@@ -1168,9 +1225,10 @@ export class MediaManager {
     if (stats.network?.currentRoundTripTime) {
       const rtt = stats.network.currentRoundTripTime * 1000 // Convert to ms
 
-      if (rtt > 300) {
+      if (rtt > MEDIA_CONSTANTS.RTT_THRESHOLD_MS) {
         logger.warn('High round trip time detected', {
           rtt: rtt.toFixed(0) + 'ms',
+          threshold: MEDIA_CONSTANTS.RTT_THRESHOLD_MS + 'ms',
         })
       }
     }
@@ -1316,6 +1374,7 @@ export class MediaManager {
 
     // Clear state
     this.devices = []
+    this.deviceCache = null
     this.remoteStream = undefined
   }
 
@@ -1389,7 +1448,9 @@ export class MediaManager {
   /**
    * Test audio input device with audio level measurement
    */
-  private async testAudioInputWithLevel(deviceId: string): Promise<{ success: boolean; audioLevel?: number }> {
+  private async testAudioInputWithLevel(
+    deviceId: string
+  ): Promise<{ success: boolean; audioLevel?: number }> {
     logger.info('Testing audio input device with level', { deviceId })
 
     try {
@@ -1424,7 +1485,7 @@ export class MediaManager {
             source.disconnect()
             audioContext.close()
             resolve()
-          }, 250) // Sample for 250ms for more accurate measurement
+          }, MEDIA_CONSTANTS.AUDIO_LEVEL_SAMPLE_DURATION_MS)
         })
       } catch (audioContextError) {
         logger.warn('Failed to measure audio level:', audioContextError)
@@ -1438,8 +1499,8 @@ export class MediaManager {
         success: true,
         audioLevel,
       }
-    } catch (error: any) {
-      logger.error('Audio input test with level failed', { error })
+    } catch (error: unknown) {
+      logger.error('Audio input test with level failed', formatError(error))
       return {
         success: false,
         audioLevel: undefined,

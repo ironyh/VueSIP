@@ -220,29 +220,27 @@ export interface RecordingData {
 }
 
 /**
- * Media stream event
+ * Media stream event payload
  */
 export interface MediaStreamEvent {
-  /** Event type */
-  type: 'addtrack' | 'removetrack' | 'active' | 'inactive'
   /** Media stream */
   stream: MediaStream
   /** Track (if applicable) */
   track?: MediaStreamTrack
-  /** Timestamp */
-  timestamp: Date
+  /** Stream direction (local or remote) */
+  direction?: 'local' | 'remote'
 }
 
 /**
- * Media track event
+ * Media track event payload
  */
 export interface MediaTrackEvent {
-  /** Event type */
-  type: 'mute' | 'unmute' | 'ended'
   /** Track */
   track: MediaStreamTrack
-  /** Timestamp */
-  timestamp: Date
+  /** Track direction (local or remote) */
+  direction?: 'local' | 'remote'
+  /** Associated streams (if applicable) */
+  streams?: readonly MediaStream[]
 }
 
 /**
