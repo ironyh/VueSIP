@@ -2,8 +2,6 @@
  * MediaManager Unit Tests
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { MediaManager } from '@/core/MediaManager'
 import { EventBus } from '@/core/EventBus'
@@ -358,8 +356,8 @@ describe('MediaManager', () => {
       const eventPromise = eventBus.waitFor('media:ice:candidate')
       pc.onicecandidate?.({ candidate: mockCandidate } as any)
 
-      const payload = await eventPromise
-      expect(payload.candidate).toBeDefined()
+      const event = await eventPromise
+      expect(event.payload.candidate).toBeDefined()
     })
 
     it('should emit ICE gathering complete event on null candidate', async () => {
@@ -379,8 +377,8 @@ describe('MediaManager', () => {
       pc.iceConnectionState = 'connected'
       pc.oniceconnectionstatechange?.()
 
-      const payload = await eventPromise
-      expect(payload.state).toBe('connected')
+      const event = await eventPromise
+      expect(event.payload.state).toBe('connected')
     })
 
     it('should handle connection failure', async () => {
@@ -391,8 +389,8 @@ describe('MediaManager', () => {
       pc.iceConnectionState = 'failed'
       pc.oniceconnectionstatechange?.()
 
-      const payload = await eventPromise
-      expect(payload.state).toBe('failed')
+      const event = await eventPromise
+      expect(event.payload.state).toBe('failed')
     })
 
     it('should emit track added event', async () => {
