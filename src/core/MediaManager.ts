@@ -262,12 +262,17 @@ export class MediaManager {
           sdpMLineIndex: event.candidate.sdpMLineIndex,
         })
         this.eventBus.emitSync('media:ice:candidate', {
-          candidate: event.candidate,
+          type: 'ice:candidate',
+          timestamp: new Date(),
+          payload: { candidate: event.candidate },
         })
       } else {
         logger.debug('ICE gathering complete (null candidate)')
         this.iceGatheringComplete = true
-        this.eventBus.emitSync('media:ice:gathering:complete', {})
+        this.eventBus.emitSync('media:ice:gathering:complete', {
+          type: 'ice:gathering:complete',
+          timestamp: new Date(),
+        })
       }
     }
 
@@ -275,7 +280,11 @@ export class MediaManager {
     pc.oniceconnectionstatechange = () => {
       const state = pc.iceConnectionState as IceConnectionState
       logger.info('ICE connection state changed', { state })
-      this.eventBus.emitSync('media:ice:connection:state', { state })
+      this.eventBus.emitSync('media:ice:connection:state', {
+        type: 'ice:connection:state',
+        timestamp: new Date(),
+        payload: { state },
+      })
 
       // Handle connection failures
       if (state === 'failed' || state === 'disconnected') {
@@ -289,7 +298,11 @@ export class MediaManager {
     pc.onicegatheringstatechange = () => {
       const state = pc.iceGatheringState as IceGatheringState
       logger.info('ICE gathering state changed', { state })
-      this.eventBus.emitSync('media:ice:gathering:state', { state })
+      this.eventBus.emitSync('media:ice:gathering:state', {
+        type: 'ice:gathering:state',
+        timestamp: new Date(),
+        payload: { state },
+      })
 
       if (state === 'complete') {
         this.iceGatheringComplete = true
@@ -348,7 +361,10 @@ export class MediaManager {
     // Negotiation needed
     pc.onnegotiationneeded = () => {
       logger.debug('Negotiation needed')
-      this.eventBus.emitSync('media:negotiation:needed', {})
+      this.eventBus.emitSync('media:negotiation:needed', {
+        type: 'negotiation:needed',
+        timestamp: new Date(),
+      })
     }
   }
 
@@ -375,8 +391,12 @@ export class MediaManager {
   private handleConnectionFailure(state: IceConnectionState | string): void {
     logger.error('Connection failure', { state })
     this.eventBus.emitSync('media:connection:failed', {
-      state,
-      reason: 'ICE connection failed',
+      type: 'connection:failed',
+      timestamp: new Date(),
+      payload: {
+        state,
+        reason: 'ICE connection failed',
+      },
     })
 
     // Stop intervals
@@ -502,7 +522,10 @@ export class MediaManager {
       if (!this.iceGatheringComplete) {
         logger.warn('ICE gathering timeout, proceeding anyway')
         this.iceGatheringComplete = true
-        this.eventBus.emitSync('media:ice:gathering:timeout', {})
+        this.eventBus.emitSync('media:ice:gathering:timeout', {
+          type: 'ice:gathering:timeout',
+          timestamp: new Date(),
+        })
       }
     }, ICE_GATHERING_TIMEOUT)
   }
@@ -1061,7 +1084,11 @@ export class MediaManager {
     this.statsInterval = setInterval(async () => {
       try {
         const stats = await this.getStatistics()
-        this.eventBus.emitSync('media:statistics', stats)
+        this.eventBus.emitSync('media:statistics', {
+          type: 'statistics',
+          timestamp: stats.timestamp,
+          payload: stats,
+        })
       } catch (error) {
         logger.error('Failed to collect statistics', { error })
       }
