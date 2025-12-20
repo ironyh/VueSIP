@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * useDTMF composable unit tests
  * Tests for Phase 6.11 improvements: DTMF queue size limit enforcement

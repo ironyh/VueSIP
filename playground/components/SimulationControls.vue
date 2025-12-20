@@ -17,9 +17,7 @@
     <div v-if="isSimulationMode" key="simulation-panel" class="simulation-panel">
       <div class="panel-header">
         <h4>Simulation Scenarios</h4>
-        <button class="reset-btn" @click="resetCall" title="Reset to idle">
-          🔄 Reset
-        </button>
+        <button class="reset-btn" @click="resetCall" title="Reset to idle">🔄 Reset</button>
       </div>
 
       <!-- Scenario Buttons -->
@@ -50,11 +48,7 @@
 
         <!-- Quick Actions -->
         <div class="quick-actions">
-          <button
-            v-if="state === 'ringing'"
-            class="action-btn answer"
-            @click="answer"
-          >
+          <button v-if="state === 'ringing'" class="action-btn answer" @click="answer">
             ✅ Answer
           </button>
           <button
@@ -95,11 +89,10 @@
 </template>
 
 <script setup lang="ts">
-import { toRefs } from 'vue'
 import type { SimulationScenario } from '../composables/useSimulation'
 
 // Props - receive simulation state from parent
-const props = defineProps<{
+defineProps<{
   isSimulationMode: boolean
   activeScenario: string | null
   state: string
@@ -303,12 +296,30 @@ const formatDuration = (seconds: number): string => {
   text-transform: uppercase;
 }
 
-.state-badge.idle { background: #e2e8f0; color: #64748b; }
-.state-badge.ringing { background: #fef3c7; color: #d97706; }
-.state-badge.connecting { background: #dbeafe; color: #2563eb; }
-.state-badge.active { background: #dcfce7; color: #16a34a; }
-.state-badge.on-hold { background: #fce7f3; color: #db2777; }
-.state-badge.ended { background: #fee2e2; color: #dc2626; }
+.state-badge.idle {
+  background: #e2e8f0;
+  color: #64748b;
+}
+.state-badge.ringing {
+  background: #fef3c7;
+  color: #d97706;
+}
+.state-badge.connecting {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.state-badge.active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.state-badge.on-hold {
+  background: #fce7f3;
+  color: #db2777;
+}
+.state-badge.ended {
+  background: #fee2e2;
+  color: #dc2626;
+}
 
 .state-duration {
   font-family: 'SF Mono', 'Fira Code', monospace;

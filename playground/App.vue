@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import CallTransferDemo from './components/CallTransferDemo.vue'
 import CallHoldDemo from './components/CallHoldDemo.vue'
 import DTMFDemo from './components/DTMFDemo.vue'
@@ -17,8 +17,6 @@ const features = [
   { id: 'audio' as const, name: 'Audio Devices', icon: '🎧', status: 'new' },
   { id: 'multiline' as const, name: 'Multi-Line', icon: '📱', status: 'new' },
 ]
-
-const currentFeature = computed(() => features.find(f => f.id === activeTab.value))
 </script>
 
 <template>
@@ -50,12 +48,14 @@ const currentFeature = computed(() => features.find(f => f.id === activeTab.valu
       </Transition>
     </main>
 
-    <footer style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.9rem;">
+    <footer
+      style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.9rem"
+    >
       <p>VueSIP v1.0.0 • Vue 3 Headless SIP Client Library</p>
-      <p style="margin-top: 0.5rem;">
-        <a href="https://github.com/ironyh/VueSIP" style="color: var(--primary);">GitHub</a>
+      <p style="margin-top: 0.5rem">
+        <a href="https://github.com/ironyh/VueSIP" style="color: var(--primary)">GitHub</a>
         •
-        <a href="/docs" style="color: var(--primary);">Documentation</a>
+        <a href="/docs" style="color: var(--primary)">Documentation</a>
       </p>
     </footer>
   </div>

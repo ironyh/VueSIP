@@ -1,39 +1,19 @@
 <template>
   <div class="conference-room" role="main" aria-labelledby="conference-title">
     <!-- ARIA Live Regions for Screen Reader Announcements -->
-    <div
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      class="sr-only"
-    >
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
       {{ participantAnnouncement }}
     </div>
 
-    <div
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      class="sr-only"
-    >
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
       {{ speakingAnnouncement }}
     </div>
 
-    <div
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      class="sr-only"
-    >
+    <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
       {{ muteAnnouncement }}
     </div>
 
-    <div
-      role="status"
-      aria-live="assertive"
-      aria-atomic="true"
-      class="sr-only"
-    >
+    <div role="status" aria-live="assertive" aria-atomic="true" class="sr-only">
       {{ conferenceStatusAnnouncement }}
     </div>
 
@@ -83,7 +63,9 @@
           @click="handleCreateConference"
           class="primary"
           :disabled="creatingConference"
-          :aria-label="creatingConference ? 'Creating conference, please wait' : 'Create conference'"
+          :aria-label="
+            creatingConference ? 'Creating conference, please wait' : 'Create conference'
+          "
         >
           {{ creatingConference ? 'Creating...' : 'Create Conference' }}
         </button>
@@ -93,7 +75,11 @@
             @click="handleToggleLock"
             class="primary"
             :aria-pressed="isLocked"
-            :aria-label="isLocked ? 'Unlock conference to allow new participants' : 'Lock conference to prevent new participants'"
+            :aria-label="
+              isLocked
+                ? 'Unlock conference to allow new participants'
+                : 'Lock conference to prevent new participants'
+            "
           >
             <span aria-hidden="true">{{ isLocked ? '🔒' : '🔓' }}</span>
             {{ isLocked ? 'Unlock Conference' : 'Lock Conference' }}
@@ -150,14 +136,15 @@
     />
 
     <!-- Conference Events Log -->
-    <div v-if="eventLog.length > 0" class="card events-log" role="log" aria-label="Conference event log">
+    <div
+      v-if="eventLog.length > 0"
+      class="card events-log"
+      role="log"
+      aria-label="Conference event log"
+    >
       <h3>Conference Events</h3>
       <div class="events-list" aria-live="polite">
-        <div
-          v-for="(event, index) in eventLog"
-          :key="index"
-          class="event-item"
-        >
+        <div v-for="(event, index) in eventLog" :key="index" class="event-item">
           <span class="event-time">{{ formatTime(event.timestamp) }}</span>
           <span class="event-message">{{ event.message }}</span>
         </div>
@@ -194,7 +181,6 @@ const props = defineProps<{
 const sipClientRef = computed(() => props.sipClient)
 const {
   conference,
-  state,
   participants,
   localParticipant,
   participantCount,
@@ -307,7 +293,9 @@ const handleCreateConference = async () => {
     console.log('Conference created:', conferenceId)
   } catch (error) {
     console.error('Failed to create conference:', error)
-    alert(`Failed to create conference: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    alert(
+      `Failed to create conference: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   } finally {
     creatingConference.value = false
   }
@@ -336,7 +324,9 @@ const handleRemoveParticipant = async (participantId: string) => {
     addEventLog(`Participant removed`)
   } catch (error) {
     console.error('Failed to remove participant:', error)
-    alert(`Failed to remove participant: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    alert(
+      `Failed to remove participant: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   }
 }
 
@@ -360,7 +350,9 @@ const handleUnmuteParticipant = async (participantId: string) => {
     await unmuteParticipant(participantId)
   } catch (error) {
     console.error('Failed to unmute participant:', error)
-    alert(`Failed to unmute participant: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    alert(
+      `Failed to unmute participant: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   }
 }
 
@@ -371,8 +363,8 @@ const handleMuteAll = async () => {
   try {
     // Mute all participants except local
     const mutePromises = participants.value
-      .filter(p => !p.isSelf && !p.isMuted)
-      .map(p => muteParticipant(p.id))
+      .filter((p) => !p.isSelf && !p.isMuted)
+      .map((p) => muteParticipant(p.id))
 
     await Promise.all(mutePromises)
     addEventLog('All participants muted')

@@ -653,6 +653,9 @@ describe('OAuth2Provider', () => {
 
   describe('Readonly State', () => {
     it('should provide readonly authState', async () => {
+      // Suppress Vue readonly warnings for this intentional mutation test
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
       const config = createMockConfig()
       const ConsumerComponent = createConsumerComponent()
 
@@ -679,6 +682,8 @@ describe('OAuth2Provider', () => {
 
       // Value should remain unchanged (readonly protection)
       expect(consumer.vm.oauth2.authState.value).toBe(originalValue)
+
+      warnSpy.mockRestore()
     })
   })
 

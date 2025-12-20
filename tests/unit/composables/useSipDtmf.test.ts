@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * useSipDtmf composable unit tests
  * Tests for AbortController integration in DTMF sequence sending

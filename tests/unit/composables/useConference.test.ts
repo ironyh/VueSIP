@@ -21,7 +21,6 @@ vi.mock('@/utils/logger', () => ({
 }))
 
 describe('useConference', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockSipClient: any
   let sipClientRef: ReturnType<typeof ref<SipClient | null>>
 
@@ -294,7 +293,7 @@ describe('useConference', () => {
 
     it('should emit participant:joined event', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => {
@@ -404,7 +403,6 @@ describe('useConference', () => {
 
       await result.createConference()
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       await expect(result.removeParticipant(result.localParticipant.value!.id)).rejects.toThrow(
         'Cannot remove yourself, use endConference() instead'
       )
@@ -414,7 +412,7 @@ describe('useConference', () => {
 
     it('should emit participant:left event', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => {
@@ -472,7 +470,7 @@ describe('useConference', () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
 
       await result.createConference()
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       await result.muteParticipant(result.localParticipant.value!.id)
 
       expect(result.localParticipant.value?.isMuted).toBe(true)
@@ -519,7 +517,7 @@ describe('useConference', () => {
 
     it('should emit participant:updated event', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => {
@@ -558,9 +556,9 @@ describe('useConference', () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
 
       await result.createConference()
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       await result.muteParticipant(result.localParticipant.value!.id)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       await result.unmuteParticipant(result.localParticipant.value!.id)
 
       expect(result.localParticipant.value?.isMuted).toBe(false)
@@ -625,7 +623,7 @@ describe('useConference', () => {
 
     it('should emit state:changed events', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => {
@@ -720,7 +718,7 @@ describe('useConference', () => {
 
     it('should emit locked event', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => {
@@ -772,7 +770,7 @@ describe('useConference', () => {
 
     it('should emit unlocked event', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => {
@@ -834,7 +832,7 @@ describe('useConference', () => {
 
     it('should emit recording:started event', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => {
@@ -890,7 +888,7 @@ describe('useConference', () => {
 
     it('should emit recording:stopped event', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => {
@@ -958,7 +956,7 @@ describe('useConference', () => {
   describe('onConferenceEvent() method', () => {
     it('should register event listener', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => events.push(event))
@@ -973,7 +971,7 @@ describe('useConference', () => {
 
     it('should return unsubscribe function', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       const unsubscribe = result.onConferenceEvent((event) => events.push(event))
@@ -992,9 +990,9 @@ describe('useConference', () => {
 
     it('should handle multiple listeners', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events1: any[] = []
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events2: any[] = []
 
       result.onConferenceEvent((event) => events1.push(event))
@@ -1010,7 +1008,7 @@ describe('useConference', () => {
 
     it('should handle listener errors gracefully', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent(() => {
@@ -1065,7 +1063,7 @@ describe('useConference', () => {
 
     it('should emit audio:level events', async () => {
       const { result, unmount } = withSetup(() => useConference(sipClientRef))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const events: any[] = []
 
       result.onConferenceEvent((event) => {

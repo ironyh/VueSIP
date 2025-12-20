@@ -18,7 +18,11 @@
         <div class="filter-row">
           <div class="filter-group">
             <label for="filter-direction">Direction</label>
-            <select id="filter-direction" v-model="filters.direction" aria-label="Filter by call direction">
+            <select
+              id="filter-direction"
+              v-model="filters.direction"
+              aria-label="Filter by call direction"
+            >
               <option :value="null">All</option>
               <option value="incoming">Incoming</option>
               <option value="outgoing">Outgoing</option>
@@ -38,19 +42,27 @@
         <div class="filter-row">
           <div class="filter-group">
             <label for="filter-date-from">From Date</label>
-            <input id="filter-date-from" v-model="filters.dateFrom" type="date" aria-label="Filter from date" />
+            <input
+              id="filter-date-from"
+              v-model="filters.dateFrom"
+              type="date"
+              aria-label="Filter from date"
+            />
           </div>
 
           <div class="filter-group">
             <label for="filter-date-to">To Date</label>
-            <input id="filter-date-to" v-model="filters.dateTo" type="date" aria-label="Filter to date" />
+            <input
+              id="filter-date-to"
+              v-model="filters.dateTo"
+              type="date"
+              aria-label="Filter to date"
+            />
           </div>
         </div>
 
         <div class="filter-actions">
-          <button type="submit" class="btn btn-primary btn-sm">
-            Apply Filters
-          </button>
+          <button type="submit" class="btn btn-primary btn-sm">Apply Filters</button>
           <button type="button" class="btn btn-secondary btn-sm" @click="clearFilters">
             Clear
           </button>
@@ -60,9 +72,7 @@
 
     <!-- Export Button -->
     <div class="export-section">
-      <button class="btn btn-secondary btn-sm" @click="handleExport">
-        Export History
-      </button>
+      <button class="btn btn-secondary btn-sm" @click="handleExport">Export History</button>
     </div>
 
     <!-- History List -->
@@ -74,7 +84,13 @@
       <div v-else class="history-table">
         <table>
           <caption class="sr-only">
-            Call history showing {{ history.length }} {{ history.length === 1 ? 'entry' : 'entries' }}
+            Call history showing
+            {{
+              history.length
+            }}
+            {{
+              history.length === 1 ? 'entry' : 'entries'
+            }}
           </caption>
           <thead>
             <tr>
@@ -101,13 +117,33 @@
               </td>
               <td>
                 <span class="type-badge" :class="entry.direction">
-                  <svg v-if="entry.direction === 'incoming'" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <polyline points="17 11 12 6 7 11"></polyline>
-                    <polyline points="17 18 12 13 7 18"></polyline>
+                  <svg
+                    v-if="entry.direction === 'incoming'"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <polyline points="17 11 12 6 7 11" />
+                    <polyline points="17 18 12 13 7 18" />
                   </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <polyline points="7 13 12 18 17 13"></polyline>
-                    <polyline points="7 6 12 11 17 6"></polyline>
+                  <svg
+                    v-else
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <polyline points="7 13 12 18 17 13" />
+                    <polyline points="7 6 12 11 17 6" />
                   </svg>
                   {{ entry.direction }}
                 </span>
@@ -141,7 +177,12 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="pagination" role="navigation" aria-label="Call history pagination">
+      <div
+        v-if="totalPages > 1"
+        class="pagination"
+        role="navigation"
+        aria-label="Call history pagination"
+      >
         <button
           class="btn btn-sm btn-secondary"
           :disabled="currentPage === 1"

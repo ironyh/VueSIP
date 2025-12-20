@@ -846,7 +846,7 @@ watch(isDarkMode, (newValue) => {
   border-radius: 7px;
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--gray-700);
   cursor: pointer;
   transition:
     color 0.2s ease,

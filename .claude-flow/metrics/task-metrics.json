@@ -1,10 +1,26 @@
 [
   {
-    "id": "cmd-hooks-1766099244528",
+    "id": "cmd-hooks-1766268221251",
     "type": "hooks",
     "success": true,
-    "duration": 7.002343999999994,
-    "timestamp": 1766099244535,
+    "duration": 7.677258999999992,
+    "timestamp": 1766268221259,
+    "metadata": {}
+  },
+  {
+    "id": "cmd-memory-1766268304656",
+    "type": "memory",
+    "success": true,
+    "duration": 348.633564,
+    "timestamp": 1766268305005,
+    "metadata": {}
+  },
+  {
+    "id": "cmd-memory-1766268315215",
+    "type": "memory",
+    "success": true,
+    "duration": 264.857441,
+    "timestamp": 1766268315480,
     "metadata": {}
   }
 ]

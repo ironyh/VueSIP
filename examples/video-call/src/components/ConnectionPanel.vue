@@ -5,7 +5,11 @@
       <p id="form-description">Enter your SIP credentials to start making video calls</p>
     </div>
 
-    <form @submit.prevent="handleSubmit" class="connection-form" aria-describedby="form-description">
+    <form
+      @submit.prevent="handleSubmit"
+      class="connection-form"
+      aria-describedby="form-description"
+    >
       <!-- SIP URI -->
       <div class="form-group">
         <label for="sipUri">
@@ -72,7 +76,9 @@
           aria-describedby="displayName-hint"
           :disabled="isConnecting"
         />
-        <span id="displayName-hint" class="hint sr-only">Optional field for your display name during calls</span>
+        <span id="displayName-hint" class="hint sr-only"
+          >Optional field for your display name during calls</span
+        >
       </div>
 
       <!-- Error Message -->
@@ -140,7 +146,7 @@ interface Props {
   error?: string | null
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   isConnecting: false,
   error: null,
 })

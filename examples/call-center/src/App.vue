@@ -25,9 +25,17 @@
     </div>
 
     <!-- Notification Toast -->
-    <div v-if="notification" class="notification-toast" :class="notification.type" role="status" aria-live="polite">
+    <div
+      v-if="notification"
+      class="notification-toast"
+      :class="notification.type"
+      role="status"
+      aria-live="polite"
+    >
       <span>{{ notification.message }}</span>
-      <button class="close-btn" @click="notification = null" aria-label="Close notification">×</button>
+      <button class="close-btn" @click="notification = null" aria-label="Close notification">
+        ×
+      </button>
     </div>
 
     <!-- Connected State - Main Dashboard -->
@@ -38,9 +46,7 @@
           <h1>Call Center Dashboard</h1>
           <div class="header-actions">
             <AgentStatusToggle :agent-status="agentStatus" @update:status="updateAgentStatus" />
-            <button class="btn btn-danger btn-sm" @click="handleDisconnect">
-              Disconnect
-            </button>
+            <button class="btn btn-danger btn-sm" @click="handleDisconnect">Disconnect</button>
           </div>
         </div>
       </header>
@@ -181,13 +187,6 @@ const announceStatus = (message: string) => {
   }, 1000)
 }
 
-const announceError = (message: string) => {
-  errorAnnouncement.value = message
-  setTimeout(() => {
-    errorAnnouncement.value = ''
-  }, 1000)
-}
-
 // Show notification helper
 const showNotification = (type: 'success' | 'error' | 'info', message: string, duration = 5000) => {
   notification.value = { type, message }
@@ -200,12 +199,7 @@ const showNotification = (type: 'success' | 'error' | 'info', message: string, d
 // SIP Client Setup
 // ============================================================================
 
-const {
-  isConnected,
-  disconnect,
-  getClient,
-  getEventBus,
-} = useSipClient()
+const { isConnected, disconnect, getClient, getEventBus } = useSipClient()
 
 // ============================================================================
 // Call Session Management
@@ -215,7 +209,6 @@ const sipClient = computed(() => getClient())
 
 const {
   session,
-  state,
   callId,
   remoteUri,
   remoteDisplayName,
@@ -224,7 +217,6 @@ const {
   isMuted,
   isOnHold,
   makeCall,
-  answer,
   hangup,
   toggleMute,
   toggleHold,
@@ -235,15 +227,8 @@ const {
 // Call History
 // ============================================================================
 
-const {
-  history,
-  filteredHistory,
-  totalCalls,
-  getStatistics,
-  setFilter,
-  exportHistory,
-  updateCallMetadata,
-} = useCallHistory()
+const { filteredHistory, totalCalls, getStatistics, setFilter, exportHistory, updateCallMetadata } =
+  useCallHistory()
 
 // Statistics
 const statistics = computed(() => getStatistics())
@@ -277,7 +262,7 @@ const startQueueSimulation = () => {
     }
 
     // Update wait times for queued calls
-    callQueue.value.forEach(call => {
+    callQueue.value.forEach((call) => {
       call.waitTime++
     })
   }, 5000) // Check every 5 seconds
@@ -321,7 +306,10 @@ const handleDisconnect = async () => {
     showNotification('success', 'Disconnected from call center')
   } catch (error) {
     console.error('Disconnect failed:', error)
-    showNotification('error', 'Failed to disconnect: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    showNotification(
+      'error',
+      'Failed to disconnect: ' + (error instanceof Error ? error.message : 'Unknown error')
+    )
   }
 }
 
@@ -355,7 +343,7 @@ const handleCallStateChange = (announcement: string) => {
 const handleQueuedCallAnswer = async (queuedCall: QueuedCall) => {
   try {
     // Remove from queue
-    callQueue.value = callQueue.value.filter(c => c.id !== queuedCall.id)
+    callQueue.value = callQueue.value.filter((c) => c.id !== queuedCall.id)
 
     // Set agent to busy
     agentStatus.value = 'busy'
@@ -365,7 +353,10 @@ const handleQueuedCallAnswer = async (queuedCall: QueuedCall) => {
     showNotification('success', `Connected to ${queuedCall.displayName || queuedCall.from}`)
   } catch (error) {
     console.error('Failed to answer queued call:', error)
-    showNotification('error', 'Failed to answer call: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    showNotification(
+      'error',
+      'Failed to answer call: ' + (error instanceof Error ? error.message : 'Unknown error')
+    )
     // Re-add to queue if failed
     callQueue.value.push(queuedCall)
   }
@@ -415,7 +406,11 @@ const handleHistoryFilter = (filter: Record<string, unknown> | null) => {
   setFilter(filter)
 }
 
-const handleHistoryExport = async (options: { format: string; filename?: string; includeMetadata?: boolean }) => {
+const handleHistoryExport = async (options: {
+  format: string
+  filename?: string
+  includeMetadata?: boolean
+}) => {
   try {
     await exportHistory(options)
   } catch (error) {
@@ -429,7 +424,10 @@ const handleCallBack = async (uri: string) => {
     showNotification('info', `Calling ${uri}...`)
   } catch (error) {
     console.error('Failed to make callback:', error)
-    showNotification('error', 'Failed to make call: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    showNotification(
+      'error',
+      'Failed to make call: ' + (error instanceof Error ? error.message : 'Unknown error')
+    )
   }
 }
 
@@ -450,22 +448,21 @@ watch(isConnected, (connected) => {
     const eventBus = getEventBus()
 
     // Handle incoming calls
-    eventBus.on('call:incoming', (event: any) => {
+    eventBus.on('call:incoming', (_event: any) => {
       // Auto-answer if agent is available
       if (agentStatus.value === 'available' && !isActive.value) {
-        console.log('Incoming call from:', event.remoteUri)
         // The call will be automatically handled by useCallSession
       }
     })
 
     // Handle call failures
-    eventBus.on('call:failed', (event: any) => {
-      console.error('Call failed:', event.cause)
-      showNotification('error', `Call failed: ${event.cause || 'Unknown error'}`)
+    eventBus.on('call:failed', (_event: any) => {
+      console.error('Call failed:', _event.cause)
+      showNotification('error', `Call failed: ${_event.cause || 'Unknown error'}`)
     })
 
     // Handle call ended
-    eventBus.on('call:ended', (event: any) => {
+    eventBus.on('call:ended', () => {
       showNotification('info', 'Call ended')
     })
   }

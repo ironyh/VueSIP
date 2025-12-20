@@ -23,10 +23,22 @@ vi.mock('@/utils/logger', () => ({
 vi.mock('@/utils/validators', () => ({
   validateSipUri: (uri: string) => {
     if (!uri || uri.trim() === '') {
-      return { valid: false, isValid: false, error: 'URI is empty', errors: ['URI is empty'], normalized: null }
+      return {
+        valid: false,
+        isValid: false,
+        error: 'URI is empty',
+        errors: ['URI is empty'],
+        normalized: null,
+      }
     }
     if (!uri.includes('@') && !uri.startsWith('sip:')) {
-      return { valid: false, isValid: false, error: 'Invalid SIP URI format', errors: ['Invalid SIP URI format'], normalized: null }
+      return {
+        valid: false,
+        isValid: false,
+        error: 'Invalid SIP URI format',
+        errors: ['Invalid SIP URI format'],
+        normalized: null,
+      }
     }
     return { valid: true, isValid: true, error: null, errors: [], normalized: uri }
   },
@@ -229,6 +241,9 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
     })
 
     it('should reset guard even if operation fails', async () => {
+      // Suppress expected error logging during failure test
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
 
@@ -250,6 +265,7 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
 
       expect(callAttempts).toBe(2)
       unmount()
+      errorSpy.mockRestore()
     })
 
     it('should prevent concurrent reject attempts', async () => {
@@ -366,6 +382,9 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
 
   describe('Media Stream Cleanup', () => {
     it('should cleanup media on call failure', async () => {
+      // Suppress expected error logging during failure test
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       const sipClientRef = ref<SipClient>(mockSipClient)
 
       // Create mock tracks that we can verify were stopped
@@ -398,11 +417,15 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
       expect(mockAudioTrack.stop).toHaveBeenCalled()
       expect(mockVideoTrack.stop).toHaveBeenCalled()
       unmount()
+      errorSpy.mockRestore()
     })
   })
 
   describe('Error Messages', () => {
     it('should provide clear error for no SIP client', async () => {
+      // Suppress expected error logging during test
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       const sipClientRef = ref<SipClient | null>(null)
       const { result, unmount } = withSetup(() => useCallSession(sipClientRef as any))
 
@@ -410,6 +433,7 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
         'SIP client not initialized'
       )
       unmount()
+      errorSpy.mockRestore()
     })
 
     it('should provide clear error for no active session on answer', async () => {
@@ -1285,6 +1309,9 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
 
   describe('AbortController Integration', () => {
     it('should abort makeCall when AbortSignal is triggered before call', async () => {
+      // Suppress expected error logging during abort test
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
 
@@ -1296,9 +1323,13 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
       )
       expect(mockSipClient.call).not.toHaveBeenCalled()
       unmount()
+      errorSpy.mockRestore()
     })
 
     it('should abort makeCall when AbortSignal is triggered during call setup', async () => {
+      // Suppress expected error logging during abort test
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
 
@@ -1314,9 +1345,13 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
         'Operation aborted'
       )
       unmount()
+      errorSpy.mockRestore()
     })
 
     it('should cleanup media when makeCall is aborted', async () => {
+      // Suppress expected error logging during abort test
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       const sipClientRef = ref<SipClient>(mockSipClient)
       const mockMediaManager = {
         getUserMedia: vi.fn().mockResolvedValue(undefined),
@@ -1345,6 +1380,7 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
       // Verify media was acquired
       expect(mockMediaManager.getUserMedia).toHaveBeenCalled()
       unmount()
+      errorSpy.mockRestore()
     })
 
     it('should work without AbortSignal (backward compatibility)', async () => {
@@ -1359,6 +1395,9 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
     })
 
     it('should differentiate abort errors from other errors', async () => {
+      // Suppress expected error logging during failure test
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
 
@@ -1372,6 +1411,7 @@ describe('useCallSession - Phase 6.11 Improvements', () => {
       )
       expect(mockSipClient.call).toHaveBeenCalled()
       unmount()
+      errorSpy.mockRestore()
     })
   })
 })

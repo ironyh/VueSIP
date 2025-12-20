@@ -21,7 +21,6 @@ vi.mock('@/utils/logger', () => ({
 }))
 
 describe('usePresence', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockSipClient: any
 
   beforeEach(() => {
@@ -865,9 +864,9 @@ describe('usePresence', () => {
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { setStatus } = usePresence(sipClientRef)
 
-      await expect(
-        setStatus(PresenceState.Available, { expires: 0 })
-      ).rejects.toThrow('Expires must be between')
+      await expect(setStatus(PresenceState.Available, { expires: 0 })).rejects.toThrow(
+        'Expires must be between'
+      )
 
       expect(mockSipClient.publishPresence).not.toHaveBeenCalled()
     })
@@ -876,9 +875,9 @@ describe('usePresence', () => {
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { setStatus } = usePresence(sipClientRef)
 
-      await expect(
-        setStatus(PresenceState.Available, { expires: -100 })
-      ).rejects.toThrow('Expires must be between')
+      await expect(setStatus(PresenceState.Available, { expires: -100 })).rejects.toThrow(
+        'Expires must be between'
+      )
 
       expect(mockSipClient.publishPresence).not.toHaveBeenCalled()
     })
@@ -887,9 +886,9 @@ describe('usePresence', () => {
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { setStatus } = usePresence(sipClientRef)
 
-      await expect(
-        setStatus(PresenceState.Available, { expires: 100000 })
-      ).rejects.toThrow('Expires must be between')
+      await expect(setStatus(PresenceState.Available, { expires: 100000 })).rejects.toThrow(
+        'Expires must be between'
+      )
 
       expect(mockSipClient.publishPresence).not.toHaveBeenCalled()
     })
@@ -924,9 +923,9 @@ describe('usePresence', () => {
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { subscribe } = usePresence(sipClientRef)
 
-      await expect(
-        subscribe('sip:user@example.com', { expires: 0 })
-      ).rejects.toThrow('Expires must be between')
+      await expect(subscribe('sip:user@example.com', { expires: 0 })).rejects.toThrow(
+        'Expires must be between'
+      )
 
       expect(mockSipClient.subscribePresence).not.toHaveBeenCalled()
     })
@@ -935,9 +934,9 @@ describe('usePresence', () => {
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { subscribe } = usePresence(sipClientRef)
 
-      await expect(
-        subscribe('sip:user@example.com', { expires: 100000 })
-      ).rejects.toThrow('Expires must be between')
+      await expect(subscribe('sip:user@example.com', { expires: 100000 })).rejects.toThrow(
+        'Expires must be between'
+      )
 
       expect(mockSipClient.subscribePresence).not.toHaveBeenCalled()
     })
@@ -952,7 +951,9 @@ describe('usePresence', () => {
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { subscribe } = usePresence(sipClientRef)
 
-      await expect(subscribe('')).rejects.toThrow('Invalid target URI: SIP URI must be a non-empty string')
+      await expect(subscribe('')).rejects.toThrow(
+        'Invalid target URI: SIP URI must be a non-empty string'
+      )
 
       expect(mockSipClient.subscribePresence).not.toHaveBeenCalled()
     })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 
 const callState = reactive({
   id: 'call-456',
@@ -7,7 +7,7 @@ const callState = reactive({
   duration: 67,
   isOnHold: false,
   holdDuration: 0,
-  musicOnHold: true
+  musicOnHold: true,
 })
 
 const holdHistory = ref<Array<{ action: string; time: string; duration?: number }>>([])
@@ -21,7 +21,7 @@ const addEvent = (type: string, data: string) => {
   events.value.unshift({
     time: now.toLocaleTimeString(),
     type,
-    data
+    data,
   })
   if (events.value.length > 20) events.value.pop()
 }
@@ -33,7 +33,7 @@ const toggleHold = () => {
     holdHistory.value.unshift({
       action: 'resumed',
       time: new Date().toLocaleTimeString(),
-      duration: callState.holdDuration
+      duration: callState.holdDuration,
     })
 
     addEvent('HOLD', `Call resumed after ${callState.holdDuration}s`)
@@ -58,7 +58,7 @@ const toggleHold = () => {
     callState.isOnHold = true
     holdHistory.value.unshift({
       action: 'held',
-      time: new Date().toLocaleTimeString()
+      time: new Date().toLocaleTimeString(),
     })
 
     holdTimer = setInterval(() => {
@@ -100,40 +100,42 @@ addEvent('INFO', `Active call with ${callState.remoteNumber}`)
       <div class="status-item">
         <span>Call: {{ formatDuration(callState.duration) }}</span>
       </div>
-      <div v-if="callState.isOnHold" class="status-item" style="color: var(--warning);">
+      <div v-if="callState.isOnHold" class="status-item" style="color: var(--warning)">
         <span>⏸️ On Hold: {{ formatDuration(callState.holdDuration) }}</span>
       </div>
     </div>
 
     <div class="demo-section">
       <h3>Hold Control</h3>
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem;">
+      <div
+        style="display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem"
+      >
         <button
           :class="['btn', callState.isOnHold ? 'btn-success' : 'btn-warning']"
-          style="font-size: 1.25rem; padding: 1rem 2rem;"
+          style="font-size: 1.25rem; padding: 1rem 2rem"
           @click="toggleHold"
         >
           {{ callState.isOnHold ? '▶️ Resume Call' : '⏸️ Hold Call' }}
         </button>
 
-        <div v-if="callState.isOnHold" style="text-align: center;">
-          <div style="font-size: 3rem; margin: 1rem 0;">⏸️</div>
-          <p style="color: var(--warning);">Call is on hold</p>
-          <p style="color: var(--text-muted); font-size: 0.85rem;">
+        <div v-if="callState.isOnHold" style="text-align: center">
+          <div style="font-size: 3rem; margin: 1rem 0">⏸️</div>
+          <p style="color: var(--warning)">Call is on hold</p>
+          <p style="color: var(--text-muted); font-size: 0.85rem">
             {{ callState.musicOnHold ? '🎵 Music on hold playing' : 'Silence on hold' }}
           </p>
         </div>
 
-        <div v-else style="text-align: center;">
-          <div style="font-size: 3rem; margin: 1rem 0;">📞</div>
-          <p style="color: var(--success);">Call is active</p>
+        <div v-else style="text-align: center">
+          <div style="font-size: 3rem; margin: 1rem 0">📞</div>
+          <p style="color: var(--success)">Call is active</p>
         </div>
       </div>
     </div>
 
     <div class="demo-section">
       <h3>Settings</h3>
-      <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+      <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer">
         <input type="checkbox" v-model="callState.musicOnHold" />
         <span>Enable Music on Hold</span>
       </label>
@@ -141,16 +143,20 @@ addEvent('INFO', `Active call with ${callState.remoteNumber}`)
 
     <div class="demo-section">
       <h3>Hold History</h3>
-      <div v-if="holdHistory.length === 0" style="color: var(--text-muted); font-size: 0.9rem;">
+      <div v-if="holdHistory.length === 0" style="color: var(--text-muted); font-size: 0.9rem">
         No hold events yet
       </div>
       <div v-else>
-        <div v-for="(entry, i) in holdHistory" :key="i" style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+        <div
+          v-for="(entry, i) in holdHistory"
+          :key="i"
+          style="padding: 0.5rem 0; border-bottom: 1px solid var(--border)"
+        >
           <span :style="{ color: entry.action === 'held' ? 'var(--warning)' : 'var(--success)' }">
             {{ entry.action === 'held' ? '⏸️' : '▶️' }} {{ entry.action }}
           </span>
-          <span style="color: var(--text-muted); margin-left: 0.5rem;">{{ entry.time }}</span>
-          <span v-if="entry.duration" style="color: var(--text-muted);">
+          <span style="color: var(--text-muted); margin-left: 0.5rem">{{ entry.time }}</span>
+          <span v-if="entry.duration" style="color: var(--text-muted)">
             ({{ entry.duration }}s)
           </span>
         </div>
@@ -163,16 +169,18 @@ addEvent('INFO', `Active call with ${callState.remoteNumber}`)
 
     <div class="demo-section">
       <h3>Current Media Direction</h3>
-      <div class="code-preview" style="font-size: 0.9rem;">
+      <div class="code-preview" style="font-size: 0.9rem">
         <code v-if="!callState.isOnHold">
-m=audio 49170 RTP/AVP 0
-<span class="keyword">a=sendrecv</span>  <span class="comment">← Active bidirectional audio</span>
-a=rtpmap:0 PCMU/8000
+          m=audio 49170 RTP/AVP 0
+          <span class="keyword">a=sendrecv</span>
+          <span class="comment">← Active bidirectional audio</span>
+          a=rtpmap:0 PCMU/8000
         </code>
         <code v-else>
-m=audio 49170 RTP/AVP 0
-<span class="keyword">a=sendonly</span>  <span class="comment">← Local hold (or a=inactive)</span>
-a=rtpmap:0 PCMU/8000
+          m=audio 49170 RTP/AVP 0
+          <span class="keyword">a=sendonly</span>
+          <span class="comment">← Local hold (or a=inactive)</span>
+          a=rtpmap:0 PCMU/8000
         </code>
       </div>
     </div>
@@ -192,22 +200,21 @@ a=rtpmap:0 PCMU/8000
       <h3>API Usage</h3>
       <div class="code-preview">
         <code>
-<span class="keyword">import</span> { useCallHold } <span class="keyword">from</span> <span class="string">'vuesip'</span>
+          <span class="keyword">import</span> { useCallHold } <span class="keyword">from</span>
+          <span class="string">'vuesip'</span>
 
-<span class="keyword">const</span> {
-  isOnHold,
-  holdDuration,
-  <span class="function">hold</span>,
-  <span class="function">resume</span>,
-  <span class="function">toggleHold</span>
-} = <span class="function">useCallHold</span>(callSession)
+          <span class="keyword">const</span> { isOnHold, holdDuration,
+          <span class="function">hold</span>, <span class="function">resume</span>,
+          <span class="function">toggleHold</span>
+          } = <span class="function">useCallHold</span>(callSession)
 
-<span class="comment">// Toggle hold state</span>
-<span class="keyword">await</span> <span class="function">toggleHold</span>()
+          <span class="comment">// Toggle hold state</span>
+          <span class="keyword">await</span> <span class="function">toggleHold</span>()
 
-<span class="comment">// Or explicitly</span>
-<span class="keyword">await</span> <span class="function">hold</span>({ musicOnHold: <span class="keyword">true</span> })
-<span class="keyword">await</span> <span class="function">resume</span>()
+          <span class="comment">// Or explicitly</span>
+          <span class="keyword">await</span> <span class="function">hold</span>({ musicOnHold:
+          <span class="keyword">true</span> }) <span class="keyword">await</span>
+          <span class="function">resume</span>()
         </code>
       </div>
     </div>

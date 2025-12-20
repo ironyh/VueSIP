@@ -26,11 +26,10 @@ vi.mock('@/utils/logger', () => ({
 }))
 
 describe('useMessaging', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockSipClient: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let incomingMessageHandler: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let composingIndicatorHandler: any
 
   beforeEach(() => {
@@ -240,7 +239,9 @@ describe('useMessaging', () => {
       mockSipClient.sendMessage.mockRejectedValue(new Error('Network error'))
       const { result, unmount } = withSetup(() => useMessaging(sipClientRef))
 
-      await expect(result.sendMessage('sip:bob@example.com', 'Hello!')).rejects.toThrow('Network error')
+      await expect(result.sendMessage('sip:bob@example.com', 'Hello!')).rejects.toThrow(
+        'Network error'
+      )
 
       expect(result.messages.value[0].status).toBe(MessageStatus.Failed)
 
@@ -409,7 +410,10 @@ describe('useMessaging', () => {
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { result, unmount } = withSetup(() => useMessaging(sipClientRef))
 
-      result.messages.value.push(createMockMessage({ isRead: true }), createMockMessage({ isRead: true }))
+      result.messages.value.push(
+        createMockMessage({ isRead: true }),
+        createMockMessage({ isRead: true })
+      )
 
       expect(() => result.markAllAsRead()).not.toThrow()
 
@@ -527,7 +531,9 @@ describe('useMessaging', () => {
 
       expect(messages).toHaveLength(2)
       expect(
-        messages.every((m) => m.from === 'sip:alice@example.com' || m.to === 'sip:alice@example.com')
+        messages.every(
+          (m) => m.from === 'sip:alice@example.com' || m.to === 'sip:alice@example.com'
+        )
       ).toBe(true)
 
       unmount()
@@ -790,7 +796,9 @@ describe('useMessaging', () => {
       const { result, unmount } = withSetup(() => useMessaging(sipClientRef))
 
       // Should not throw
-      await expect(result.sendComposingIndicator('sip:bob@example.com', true)).resolves.toBeUndefined()
+      await expect(
+        result.sendComposingIndicator('sip:bob@example.com', true)
+      ).resolves.toBeUndefined()
 
       unmount()
     })
@@ -1220,7 +1228,6 @@ describe('useMessaging', () => {
   // ==========================================================================
 
   describe('Edge Cases', () => {
-
     it('should handle very long message content', async () => {
       const sipClientRef = ref<SipClient>(mockSipClient)
       const { result, unmount } = withSetup(() => useMessaging(sipClientRef))

@@ -2,7 +2,7 @@
  * Simulation composable for demo pages
  * Provides mock call states, events, and data for testing UI without a real SIP connection
  */
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 
 export type SimulatedCallState = 'idle' | 'ringing' | 'connecting' | 'active' | 'on-hold' | 'ended'
 
@@ -30,7 +30,12 @@ export const SIMULATION_SCENARIOS: SimulationScenario[] = [
   { id: 'active', name: 'Active Call', description: 'Jump to active call state', icon: '📞' },
   { id: 'hold', name: 'Call on Hold', description: 'Simulate a held call', icon: '⏸️' },
   { id: 'transfer', name: 'Call Transfer', description: 'Simulate transfer scenario', icon: '↔️' },
-  { id: 'conference', name: 'Conference Call', description: 'Multi-party call simulation', icon: '👥' },
+  {
+    id: 'conference',
+    name: 'Conference Call',
+    description: 'Multi-party call simulation',
+    icon: '👥',
+  },
 ]
 
 export function useSimulation() {
