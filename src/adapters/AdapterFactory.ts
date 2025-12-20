@@ -172,7 +172,7 @@ export class AdapterFactory {
       await adapter.destroy()
 
       return info
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }

@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DTMFManager } from '@/core/DTMFManager';
 import type { RTCSession } from 'jssip/lib/RTCSession';
-import type { DTMFMethod, DTMFTone, DTMFEvent } from '@/types/dtmf.types';
+import type { DTMFMethod as _DTMFMethod, DTMFTone, DTMFEvent } from '@/types/dtmf.types';
 import { DTMF_CONSTANTS } from '@/types/dtmf.types';
 
 // Mock RTCSession
@@ -29,7 +29,7 @@ const createMockSession = (rfc2833Enabled = true): RTCSession => {
   return {
     connection: mockConnection,
     isEstablished: () => true,
-    sendDTMF: vi.fn((tone: string, options?: any) => {
+    sendDTMF: vi.fn((_tone: string, _options?: any) => {
       // Simulate successful DTMF send
     }),
     sendInfo: vi.fn((contentType: string, body: string, options?: any) => {
@@ -103,7 +103,7 @@ describe('DTMFManager', () => {
       const sendPromise = manager.sendDTMF('1');
 
       // Check state is updated
-      const stateWhileSending = manager.getState();
+      const _stateWhileSending = manager.getState();
       // State might already be false if sending completes quickly
       // so we don't assert on isSending
 

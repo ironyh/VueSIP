@@ -2,8 +2,6 @@
  * Configuration Provider Unit Tests
  */
 
-/* eslint-disable vue/one-component-per-file */
-
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'

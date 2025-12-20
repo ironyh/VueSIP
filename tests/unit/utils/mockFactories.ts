@@ -20,6 +20,8 @@ export interface MockAmiClient extends AmiClient {
   _triggerEvent: (event: string, ...args: unknown[]) => void
   /** Access to registered event handlers */
   _eventHandlers: Record<string, Function[]>
+  /** Mock sendAction */
+  sendAction: ReturnType<typeof vi.fn>
 }
 
 export interface MockCallSession extends CallSession {

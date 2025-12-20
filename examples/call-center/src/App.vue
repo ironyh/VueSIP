@@ -181,7 +181,7 @@ const announceStatus = (message: string) => {
   }, 1000)
 }
 
-const announceError = (message: string) => {
+const _announceError = (message: string) => {
   errorAnnouncement.value = message
   setTimeout(() => {
     errorAnnouncement.value = ''
@@ -224,7 +224,7 @@ const {
   isMuted,
   isOnHold,
   makeCall,
-  answer,
+  answer: _answer,
   hangup,
   toggleMute,
   toggleHold,
@@ -236,7 +236,7 @@ const {
 // ============================================================================
 
 const {
-  history,
+  history: _history,
   filteredHistory,
   totalCalls,
   getStatistics,
@@ -465,7 +465,7 @@ watch(isConnected, (connected) => {
     })
 
     // Handle call ended
-    eventBus.on('call:ended', (event: any) => {
+    eventBus.on('call:ended', (_event: any) => {
       showNotification('info', 'Call ended')
     })
   }

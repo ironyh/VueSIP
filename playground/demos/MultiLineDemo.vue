@@ -21,108 +21,141 @@
     />
 
     <!-- Configuration Panel -->
-    <div v-if="!sipConnected" class="config-panel">
-      <h3>Multi-Line Configuration</h3>
-      <p class="info-text">
-        Configure your SIP connection to test multi-line call functionality. This demo supports
-        multiple concurrent calls across different lines.
-      </p>
-
-      <div class="form-group">
-        <label for="sip-server">SIP Server</label>
-        <input
-          id="sip-server"
-          v-model="config.server"
-          type="text"
-          placeholder="wss://sip.example.com"
-          :disabled="connecting"
-        />
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="sip-username">Username</label>
-          <input
-            id="sip-username"
-            v-model="config.username"
-            type="text"
-            placeholder="1001"
-            :disabled="connecting"
-          />
+    <Card v-if="!sipConnected" class="demo-card config-card">
+      <template #title>
+        <div class="demo-header">
+          <i class="pi pi-phone" style="font-size: 1.5rem; color: var(--primary-500)"></i>
+          <span>Multi-Line Configuration</span>
         </div>
+      </template>
+      <template #content>
+        <Message severity="info" :closable="false" class="config-message">
+          Configure your SIP connection to test multi-line call functionality. This demo supports
+          multiple concurrent calls across different lines.
+        </Message>
 
-        <div class="form-group">
-          <label for="sip-password">Password</label>
-          <input
-            id="sip-password"
-            v-model="config.password"
-            type="password"
-            placeholder="Enter password"
-            :disabled="connecting"
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="sip-server">SIP Server</label>
+            <InputText
+              id="sip-server"
+              v-model="config.server"
+              placeholder="wss://sip.example.com"
+              :disabled="connecting"
+              class="w-full"
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="sip-username">Username</label>
+              <InputText
+                id="sip-username"
+                v-model="config.username"
+                placeholder="1001"
+                :disabled="connecting"
+                class="w-full"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="sip-password">Password</label>
+              <Password
+                id="sip-password"
+                v-model="config.password"
+                placeholder="Enter password"
+                :disabled="connecting"
+                :feedback="false"
+                toggle-mask
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="line-count">Number of Lines</label>
+            <Dropdown
+              id="line-count"
+              v-model="lineCountConfig"
+              :options="lineCountOptions"
+              option-label="label"
+              option-value="value"
+              :disabled="connecting"
+              placeholder="Select number of lines"
+              class="w-full"
+            />
+            <small class="field-hint">Number of simultaneous call lines to support</small>
+          </div>
+
+          <div class="form-field checkbox-field">
+            <Checkbox
+              id="auto-hold"
+              v-model="autoHoldEnabled"
+              :binary="true"
+              :disabled="connecting"
+            />
+            <label for="auto-hold">Auto-hold other lines when making/answering calls</label>
+          </div>
+
+          <Button
+            label="Connect"
+            icon="pi pi-plug"
+            :loading="connecting"
+            :disabled="!isConfigValid"
+            @click="handleConnect"
+            class="w-full"
           />
+
+          <Message v-if="connectionError" severity="error" :closable="false">
+            {{ connectionError }}
+          </Message>
+
+          <Message severity="info" :closable="false" class="demo-tip">
+            <strong>Tip:</strong> Multi-line support allows handling multiple calls simultaneously.
+            Each line can be independently controlled (hold, mute, transfer).
+          </Message>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label for="line-count">Number of Lines</label>
-        <select id="line-count" v-model.number="lineCountConfig" :disabled="connecting">
-          <option :value="2">2 Lines</option>
-          <option :value="3">3 Lines</option>
-          <option :value="4">4 Lines</option>
-          <option :value="6">6 Lines</option>
-        </select>
-        <small>Number of simultaneous call lines to support</small>
-      </div>
-
-      <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" v-model="autoHoldEnabled" :disabled="connecting" />
-          Auto-hold other lines when making/answering calls
-        </label>
-      </div>
-
-      <button
-        class="btn btn-primary"
-        :disabled="!isConfigValid || connecting"
-        @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect' }}
-      </button>
-
-      <div v-if="connectionError" class="error-message">
-        {{ connectionError }}
-      </div>
-
-      <div class="demo-tip">
-        <strong>Tip:</strong> Multi-line support allows handling multiple calls simultaneously. Each
-        line can be independently controlled (hold, mute, transfer).
-      </div>
-    </div>
+      </template>
+    </Card>
 
     <!-- Connected Interface -->
     <div v-else class="connected-interface">
-      <!-- Status Bar -->
-      <div class="status-bar">
-        <div class="status-items">
-          <div class="status-item">
-            <span class="status-dot connected"></span>
-            <span>SIP Connected</span>
+      <!-- Status Toolbar -->
+      <Card class="demo-card status-card">
+        <template #content>
+          <div class="status-toolbar">
+            <div class="status-items">
+              <div class="status-item">
+                <span class="status-indicator connected"></span>
+                <span>SIP Connected</span>
+              </div>
+              <Divider layout="vertical" />
+              <div class="status-item">
+                <i class="pi pi-phone"></i>
+                <span>Active: {{ activeCallCount }}</span>
+              </div>
+              <Divider layout="vertical" v-if="incomingCallCount > 0" />
+              <div v-if="incomingCallCount > 0" class="status-item ringing">
+                <i class="pi pi-bell"></i>
+                <span>Incoming: {{ incomingCallCount }}</span>
+              </div>
+            </div>
+            <div class="status-actions">
+              <Button
+                label="Disconnect"
+                icon="pi pi-times"
+                severity="danger"
+                size="small"
+                @click="handleDisconnect"
+              />
+            </div>
           </div>
-          <div class="status-item">
-            <span class="status-icon">Active:</span>
-            <span>{{ activeCallCount }}</span>
-          </div>
-          <div v-if="incomingCallCount > 0" class="status-item ringing">
-            <span class="status-icon">Incoming:</span>
-            <span>{{ incomingCallCount }}</span>
-          </div>
-        </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
-      </div>
+        </template>
+      </Card>
 
       <!-- Lines Grid -->
       <div class="lines-grid">
-        <div
+        <Card
           v-for="line in lines"
           :key="line.lineNumber"
           class="line-card"
@@ -136,168 +169,217 @@
           }"
           @click="selectLine(line.lineNumber)"
         >
-          <div class="line-header">
-            <span class="line-number">Line {{ line.lineNumber }}</span>
-            <span class="line-status" :class="line.status">
-              {{ formatStatus(line.status) }}
-            </span>
-          </div>
+          <template #title>
+            <div class="line-header">
+              <span class="line-number">Line {{ line.lineNumber }}</span>
+              <Tag :value="formatStatus(line.status)" :severity="getLineSeverity(line.status)" />
+            </div>
+          </template>
+          <template #content>
+            <div class="line-content">
+              <!-- Idle State -->
+              <div v-if="line.status === 'idle'" class="line-idle">
+                <i class="pi pi-phone idle-icon"></i>
+                <span class="idle-text">Available</span>
+              </div>
 
-          <div class="line-content">
-            <div v-if="line.status === 'idle'" class="line-idle">
-              <span class="idle-icon">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+              <!-- Ringing State -->
+              <div v-else-if="line.status === 'ringing'" class="line-ringing">
+                <div class="caller-info">
+                  <span class="caller-name">{{ line.remoteDisplayName || 'Unknown' }}</span>
+                  <span class="caller-uri">{{ line.remoteUri }}</span>
+                </div>
+                <div class="ringing-actions">
+                  <Button
+                    label="Answer"
+                    icon="pi pi-check"
+                    severity="success"
+                    size="small"
+                    @click.stop="answerCall(line.lineNumber)"
                   />
-                </svg>
-              </span>
-              <span class="idle-text">Available</span>
-            </div>
+                  <Button
+                    label="Reject"
+                    icon="pi pi-times"
+                    severity="danger"
+                    size="small"
+                    @click.stop="rejectCall(line.lineNumber)"
+                  />
+                </div>
+              </div>
 
-            <div v-else-if="line.status === 'ringing'" class="line-ringing">
-              <span class="caller-name">{{ line.remoteDisplayName || 'Unknown' }}</span>
-              <span class="caller-uri">{{ line.remoteUri }}</span>
-              <div class="ringing-actions">
-                <button class="btn btn-sm btn-success" @click.stop="answerCall(line.lineNumber)">
-                  Answer
-                </button>
-                <button class="btn btn-sm btn-danger" @click.stop="rejectCall(line.lineNumber)">
-                  Reject
-                </button>
+              <!-- Active/Held State -->
+              <div v-else class="line-active">
+                <div class="remote-info">
+                  <span class="remote-party">{{ line.remoteDisplayName || line.remoteUri }}</span>
+                  <span class="call-duration">{{ formatDuration(line.duration) }}</span>
+                </div>
+                <div class="call-indicators">
+                  <Tag v-if="line.isOnHold" value="Hold" severity="warning" size="small" />
+                  <Tag v-if="line.isMuted" value="Muted" severity="secondary" size="small" />
+                  <Tag v-if="line.hasVideo" value="Video" severity="info" size="small" />
+                </div>
               </div>
             </div>
 
-            <div v-else class="line-active">
-              <span class="remote-party">{{ line.remoteDisplayName || line.remoteUri }}</span>
-              <span class="call-duration">{{ formatDuration(line.duration) }}</span>
-              <div class="call-indicators">
-                <span v-if="line.isOnHold" class="indicator hold">Hold</span>
-                <span v-if="line.isMuted" class="indicator mute">Muted</span>
-                <span v-if="line.hasVideo" class="indicator video">Video</span>
-              </div>
+            <!-- Line Controls -->
+            <div v-if="line.status !== 'idle'" class="line-controls">
+              <Button
+                v-if="line.status === 'active' || line.status === 'held'"
+                :icon="line.isOnHold ? 'pi pi-play' : 'pi pi-pause'"
+                :severity="line.isOnHold ? 'info' : 'warning'"
+                :label="line.isOnHold ? 'Resume' : 'Hold'"
+                size="small"
+                text
+                rounded
+                v-tooltip.top="line.isOnHold ? 'Resume call' : 'Put on hold'"
+                @click.stop="toggleHoldLine(line.lineNumber)"
+              />
+
+              <Button
+                v-if="line.status === 'active'"
+                :icon="line.isMuted ? 'pi pi-volume-up' : 'pi pi-volume-off'"
+                :severity="line.isMuted ? 'info' : 'secondary'"
+                :label="line.isMuted ? 'Unmute' : 'Mute'"
+                size="small"
+                text
+                rounded
+                v-tooltip.top="line.isMuted ? 'Unmute microphone' : 'Mute microphone'"
+                @click.stop="toggleMuteLine(line.lineNumber)"
+              />
+
+              <Button
+                v-if="line.status !== 'ringing'"
+                icon="pi pi-phone"
+                severity="danger"
+                label="End"
+                size="small"
+                text
+                rounded
+                v-tooltip.top="'End call'"
+                @click.stop="hangupCall(line.lineNumber)"
+              />
             </div>
-          </div>
-
-          <div v-if="line.status !== 'idle'" class="line-controls">
-            <button
-              v-if="line.status === 'active' || line.status === 'held'"
-              class="btn-icon"
-              :class="{ active: line.isOnHold }"
-              :title="line.isOnHold ? 'Resume' : 'Hold'"
-              @click.stop="toggleHoldLine(line.lineNumber)"
-            >
-              {{ line.isOnHold ? 'Resume' : 'Hold' }}
-            </button>
-
-            <button
-              v-if="line.status === 'active'"
-              class="btn-icon"
-              :class="{ active: line.isMuted }"
-              :title="line.isMuted ? 'Unmute' : 'Mute'"
-              @click.stop="toggleMuteLine(line.lineNumber)"
-            >
-              {{ line.isMuted ? 'Unmute' : 'Mute' }}
-            </button>
-
-            <button
-              v-if="line.status !== 'ringing'"
-              class="btn-icon hangup"
-              title="Hangup"
-              @click.stop="hangupCall(line.lineNumber)"
-            >
-              End
-            </button>
-          </div>
-        </div>
+          </template>
+        </Card>
       </div>
 
-      <!-- Dial Pad -->
-      <div class="dial-section">
-        <h3>Make Call</h3>
-        <div class="dial-form">
-          <input
-            v-model="dialTarget"
-            type="text"
-            placeholder="Enter number or SIP URI"
-            :disabled="isLoading || allLinesBusy"
-            @keyup.enter="handleDial"
-          />
-          <select v-model.number="dialLine" :disabled="isLoading || availableLines.length === 0">
-            <option :value="0">Auto-select line</option>
-            <option v-for="line in availableLines" :key="line.lineNumber" :value="line.lineNumber">
-              Line {{ line.lineNumber }}
-            </option>
-          </select>
-          <button
-            class="btn btn-primary"
-            :disabled="!dialTarget || isLoading || allLinesBusy"
-            @click="handleDial"
-          >
-            {{ isLoading ? 'Calling...' : 'Call' }}
-          </button>
-        </div>
-        <div v-if="allLinesBusy" class="warning-message">
-          All lines are busy. Hangup a call to make a new one.
-        </div>
-      </div>
+      <!-- Dial Section -->
+      <Card class="demo-card dial-card">
+        <template #title>
+          <div class="section-header">
+            <i class="pi pi-phone" style="color: var(--primary-500)"></i>
+            <span>Make Call</span>
+          </div>
+        </template>
+        <template #content>
+          <div class="dial-form">
+            <InputText
+              v-model="dialTarget"
+              placeholder="Enter number or SIP URI"
+              :disabled="isLoading || allLinesBusy"
+              class="dial-input"
+              @keyup.enter="handleDial"
+            />
+            <Dropdown
+              v-model="dialLine"
+              :options="dialLineOptions"
+              option-label="label"
+              option-value="value"
+              :disabled="isLoading || availableLines.length === 0"
+              placeholder="Line"
+              class="line-select"
+            />
+            <Button
+              label="Call"
+              icon="pi pi-phone"
+              :loading="isLoading"
+              :disabled="!dialTarget || isLoading || allLinesBusy"
+              @click="handleDial"
+            />
+          </div>
+          <Message v-if="allLinesBusy" severity="warn" :closable="false" class="busy-message">
+            All lines are busy. Hangup a call to make a new one.
+          </Message>
+        </template>
+      </Card>
 
       <!-- Quick Actions -->
-      <div class="actions-section">
-        <h3>Quick Actions</h3>
-        <div class="action-buttons">
-          <button
-            class="btn btn-secondary"
-            :disabled="activeLines.length === 0"
-            @click="holdAllLines"
-          >
-            Hold All
-          </button>
-          <button class="btn btn-danger" :disabled="activeCallCount === 0" @click="hangupAll">
-            Hangup All
-          </button>
-          <button
-            class="btn btn-secondary"
-            :disabled="heldLines.length < 2 && activeLines.length < 1"
-            @click="handleSwap"
-          >
-            Swap Lines
-          </button>
-        </div>
-      </div>
+      <Card class="demo-card actions-card">
+        <template #title>
+          <div class="section-header">
+            <i class="pi pi-bolt" style="color: var(--primary-500)"></i>
+            <span>Quick Actions</span>
+          </div>
+        </template>
+        <template #content>
+          <div class="action-buttons">
+            <Button
+              label="Hold All"
+              icon="pi pi-pause"
+              severity="warning"
+              :disabled="activeLines.length === 0"
+              @click="holdAllLines"
+            />
+            <Button
+              label="Hangup All"
+              icon="pi pi-times"
+              severity="danger"
+              :disabled="activeCallCount === 0"
+              @click="hangupAll"
+            />
+            <Button
+              label="Swap Lines"
+              icon="pi pi-arrows-h"
+              severity="secondary"
+              :disabled="heldLines.length < 2 && activeLines.length < 1"
+              @click="handleSwap"
+            />
+          </div>
+        </template>
+      </Card>
 
-      <!-- DTMF Pad (for selected line) -->
-      <div v-if="selectedLineState?.status === 'active'" class="dtmf-section">
-        <h3>DTMF (Line {{ selectedLine }})</h3>
-        <div class="dtmf-pad">
-          <button
-            v-for="digit in dtmfDigits"
-            :key="digit"
-            class="dtmf-btn"
-            @click="handleDTMF(digit)"
-          >
-            {{ digit }}
-          </button>
-        </div>
-      </div>
+      <!-- DTMF Pad -->
+      <Card v-if="selectedLineState?.status === 'active'" class="demo-card dtmf-card">
+        <template #title>
+          <div class="section-header">
+            <i class="pi pi-th" style="color: var(--primary-500)"></i>
+            <span>DTMF (Line {{ selectedLine }})</span>
+          </div>
+        </template>
+        <template #content>
+          <div class="dtmf-pad">
+            <Button
+              v-for="digit in dtmfDigits"
+              :key="digit"
+              :label="digit"
+              severity="secondary"
+              outlined
+              @click="handleDTMF(digit)"
+              class="dtmf-button"
+            />
+          </div>
+        </template>
+      </Card>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-message">
+      <Message v-if="error" severity="error" :closable="true" @close="error = null">
         {{ error }}
-      </div>
+      </Message>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive, onUnmounted } from 'vue'
+import Card from 'primevue/card'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
+import Dropdown from 'primevue/dropdown'
+import Checkbox from 'primevue/checkbox'
+import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+import Divider from 'primevue/divider'
 import type { LineState, LineStatus } from '../../src/types/multiline.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
@@ -323,6 +405,14 @@ const config = reactive({
   username: '',
   password: '',
 })
+
+// Line count options
+const lineCountOptions = [
+  { label: '2 Lines', value: 2 },
+  { label: '3 Lines', value: 3 },
+  { label: '4 Lines', value: 4 },
+  { label: '6 Lines', value: 6 },
+]
 
 // Simulated multi-line state
 const lines = ref<LineState[]>([])
@@ -361,6 +451,14 @@ const activeLines = computed(() => lines.value.filter((l) => l.status === 'activ
 
 const heldLines = computed(() => lines.value.filter((l) => l.status === 'held'))
 
+const dialLineOptions = computed(() => [
+  { label: 'Auto-select line', value: 0 },
+  ...availableLines.value.map((line) => ({
+    label: `Line ${line.lineNumber}`,
+    value: line.lineNumber,
+  })),
+])
+
 // Helpers
 function formatStatus(status: LineStatus): string {
   const labels: Record<LineStatus, string> = {
@@ -372,6 +470,18 @@ function formatStatus(status: LineStatus): string {
     error: 'Error',
   }
   return labels[status] || status
+}
+
+function getLineSeverity(status: LineStatus): 'success' | 'info' | 'warning' | 'danger' | 'secondary' {
+  const severities: Record<LineStatus, 'success' | 'info' | 'warning' | 'danger' | 'secondary'> = {
+    idle: 'secondary',
+    ringing: 'warning',
+    active: 'success',
+    held: 'info',
+    busy: 'danger',
+    error: 'danger',
+  }
+  return severities[status] || 'secondary'
 }
 
 function formatDuration(seconds: number): string {
@@ -445,7 +555,7 @@ async function handleConnect(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     initializeLines(lineCountConfig.value)
-    sipConnected.value = true
+    realSipConnected.value = true
 
     // Simulate an incoming call after 3 seconds
     setTimeout(() => {
@@ -464,7 +574,7 @@ function handleDisconnect(): void {
     stopDurationTimer(lineNumber)
   }
   lines.value = []
-  sipConnected.value = false
+  realSipConnected.value = false
 }
 
 // Line selection
@@ -694,178 +804,104 @@ onUnmounted(() => {
 
 <style scoped>
 .multi-line-demo {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-/* Config Panel */
-.config-panel {
-  padding: 2rem;
+/* Demo Card */
+.demo-card {
+  margin: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.config-panel h3 {
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-.info-text {
-  margin-bottom: 1.5rem;
-  color: #666;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-row {
+.demo-header {
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
-.form-row .form-group {
-  flex: 1;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.form-group input:disabled,
-.form-group select:disabled {
-  background: #f3f4f6;
-  cursor: not-allowed;
-}
-
-.form-group small {
-  display: block;
-  margin-top: 0.25rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-}
-
-.checkbox-group label {
+.section-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
-.checkbox-group input[type='checkbox'] {
-  width: auto;
+/* Configuration Card */
+.config-card {
+  max-width: 600px;
+  margin: 2rem auto;
 }
 
-/* Buttons */
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
+.config-message {
+  margin-bottom: 1.5rem;
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-field label {
   font-weight: 500;
+  color: var(--text-color);
+}
+
+.field-hint {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.checkbox-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.checkbox-field label {
+  margin: 0;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-
-.btn-success {
-  background: #10b981;
-  color: white;
-}
-.btn-success:hover:not(:disabled) {
-  background: #059669;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
-  font-size: 0.875rem;
-}
-
-.warning-message {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: #fef3c7;
-  border-radius: 4px;
-  color: #92400e;
-  font-size: 0.75rem;
 }
 
 .demo-tip {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
-  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
 
-/* Connected Interface */
-.connected-interface {
-  padding: 2rem;
+/* Status Toolbar */
+.status-card {
+  margin-bottom: 1.5rem;
 }
 
-.status-bar {
+.status-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .status-items {
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .status-item {
@@ -876,7 +912,7 @@ onUnmounted(() => {
 }
 
 .status-item.ringing {
-  color: #f59e0b;
+  color: var(--orange-500);
   animation: pulse 1s ease-in-out infinite;
 }
 
@@ -890,66 +926,69 @@ onUnmounted(() => {
   }
 }
 
-.status-dot {
+.status-indicator {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--red-500);
 }
 
-.status-dot.connected {
-  background: #10b981;
+.status-indicator.connected {
+  background: var(--green-500);
 }
 
-.status-icon {
-  font-size: 1.25rem;
+.status-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* Lines Grid */
 .lines-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin: 0 1.5rem 1.5rem;
 }
 
 .line-card {
-  padding: 1rem;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .line-card:hover {
-  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .line-card.selected {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  border: 2px solid var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(var(--primary-500-rgb), 0.2);
 }
 
 .line-card.idle {
-  background: #f9fafb;
+  background: linear-gradient(135deg, var(--surface-50) 0%, var(--surface-100) 100%);
 }
+
 .line-card.ringing {
-  background: #fef3c7;
-  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: var(--orange-400);
   animation: ring-pulse 1s ease-in-out infinite;
 }
+
 .line-card.active {
-  background: #d1fae5;
-  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-color: var(--green-400);
 }
+
 .line-card.held {
-  background: #fef3c7;
-  border-color: #f59e0b;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: var(--blue-400);
 }
+
 .line-card.busy {
-  background: #fee2e2;
-  border-color: #ef4444;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-color: var(--red-400);
 }
 
 @keyframes ring-pulse {
@@ -966,94 +1005,79 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
 }
 
 .line-number {
   font-weight: 600;
-  color: #374151;
-}
-
-.line-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-.line-status.idle {
-  background: #e5e7eb;
-  color: #6b7280;
-}
-.line-status.ringing {
-  background: #f59e0b;
-  color: white;
-}
-.line-status.active {
-  background: #10b981;
-  color: white;
-}
-.line-status.held {
-  background: #6b7280;
-  color: white;
-}
-.line-status.busy {
-  background: #ef4444;
-  color: white;
+  font-size: 0.875rem;
 }
 
 .line-content {
-  min-height: 60px;
-  margin-bottom: 0.75rem;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .line-idle {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  color: #9ca3af;
+  gap: 0.5rem;
+  color: var(--text-color-secondary);
 }
 
 .idle-icon {
-  font-size: 1.5rem;
+  font-size: 2rem;
+  opacity: 0.5;
 }
+
 .idle-text {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
 }
 
 .line-ringing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.caller-info {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
 .caller-name {
-  font-weight: 500;
-  color: #1f2937;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 .caller-uri {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .ringing-actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 0.5rem;
 }
 
 .line-active {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.remote-info {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
 .remote-party {
-  font-weight: 500;
-  color: #1f2937;
+  font-weight: 600;
+  color: var(--text-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1061,8 +1085,9 @@ onUnmounted(() => {
 
 .call-duration {
   font-family: monospace;
-  font-size: 1.25rem;
-  color: #059669;
+  font-size: 1.5rem;
+  color: var(--green-600);
+  font-weight: 600;
 }
 
 .call-indicators {
@@ -1071,99 +1096,35 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
-.indicator {
-  padding: 0.125rem 0.375rem;
-  background: #e5e7eb;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  color: #4b5563;
-}
-
 .line-controls {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
-  padding-top: 0.5rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.btn-icon {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: #f3f4f6;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s;
-}
-
-.btn-icon:hover {
-  background: #e5e7eb;
-}
-
-.btn-icon.active {
-  background: #667eea;
-}
-
-.btn-icon.hangup {
-  background: #fee2e2;
-}
-
-.btn-icon.hangup:hover {
-  background: #fecaca;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--surface-border);
+  margin-top: 0.75rem;
 }
 
 /* Dial Section */
-.dial-section {
-  padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-}
-
-.dial-section h3 {
-  margin-bottom: 1rem;
-  color: #111827;
-}
-
 .dial-form {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 
-.dial-form input {
+.dial-input {
   flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
 }
 
-.dial-form select {
-  width: 140px;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
+.line-select {
+  min-width: 160px;
+}
+
+.busy-message {
+  margin-top: 1rem;
 }
 
 /* Actions Section */
-.actions-section {
-  padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-}
-
-.actions-section h3 {
-  margin-bottom: 1rem;
-  color: #111827;
-}
-
 .action-buttons {
   display: flex;
   gap: 0.5rem;
@@ -1171,71 +1132,45 @@ onUnmounted(() => {
 }
 
 /* DTMF Section */
-.dtmf-section {
-  padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-
-.dtmf-section h3 {
-  margin-bottom: 1rem;
-  color: #111827;
-}
-
 .dtmf-pad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
-  max-width: 240px;
+  max-width: 300px;
 }
 
-.dtmf-btn {
-  padding: 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: white;
+.dtmf-button {
+  aspect-ratio: 1;
   font-size: 1.25rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.1s;
-}
-
-.dtmf-btn:hover {
-  background: #f3f4f6;
-}
-
-.dtmf-btn:active {
-  background: #667eea;
-  color: white;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
+  .demo-card {
+    margin: 1rem;
+  }
+
   .form-row {
-    flex-direction: column;
-    gap: 0;
+    grid-template-columns: 1fr;
   }
 
-  .status-bar {
+  .status-toolbar {
     flex-direction: column;
-    gap: 1rem;
-  }
-
-  .status-items {
-    flex-direction: column;
-    gap: 0.5rem;
+    align-items: flex-start;
   }
 
   .lines-grid {
     grid-template-columns: 1fr;
+    margin: 0 1rem 1.5rem;
   }
 
   .dial-form {
     flex-direction: column;
   }
 
-  .dial-form select {
+  .dial-input,
+  .line-select {
     width: 100%;
   }
 
@@ -1243,7 +1178,7 @@ onUnmounted(() => {
     flex-direction: column;
   }
 
-  .action-buttons .btn {
+  .action-buttons .p-button {
     width: 100%;
   }
 }

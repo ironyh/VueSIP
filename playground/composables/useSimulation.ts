@@ -2,7 +2,7 @@
  * Simulation composable for demo pages
  * Provides mock call states, events, and data for testing UI without a real SIP connection
  */
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch as _watch, onUnmounted } from 'vue'
 
 export type SimulatedCallState = 'idle' | 'ringing' | 'connecting' | 'active' | 'on-hold' | 'ended'
 

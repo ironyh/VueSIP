@@ -21,7 +21,7 @@ vi.mock('@/utils/logger', () => ({
 }))
 
 describe('usePresence', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let mockSipClient: any
 
   beforeEach(() => {

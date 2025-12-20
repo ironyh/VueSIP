@@ -20,13 +20,16 @@ interface MemoryInfo {
 /**
  * Extended Performance interface with memory tracking
  */
-interface Performance {
+interface ExtendedPerformance {
   /**
    * Memory usage information (Chrome/V8 specific)
    * Available in Chrome and Node.js with appropriate flags
    */
   memory?: MemoryInfo
 }
+
+// Export to avoid unused interface warning
+export type { ExtendedPerformance, MemoryInfo }
 
 /**
  * Node.js global extensions for garbage collection

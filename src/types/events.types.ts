@@ -172,6 +172,16 @@ export interface EventMap {
   [EventNames.MEDIA_TRACK_UNMUTED]: MediaTrackEvent
   [EventNames.MEDIA_DEVICE_CHANGED]: MediaDeviceChangeEvent
 
+  // MediaManager ICE and connection events
+  'media:ice:candidate': MediaIceCandidateEvent
+  'media:ice:gathering:complete': MediaIceGatheringCompleteEvent
+  'media:ice:connection:state': MediaIceConnectionStateEvent
+  'media:ice:gathering:state': MediaIceGatheringStateEvent
+  'media:ice:gathering:timeout': MediaIceGatheringTimeoutEvent
+  'media:negotiation:needed': MediaNegotiationNeededEvent
+  'media:connection:failed': MediaConnectionFailedEvent
+  'media:statistics': MediaStatisticsEvent
+
   // Transfer events
   'call:transfer_initiated': CallTransferInitiatedEvent
   'call:transfer_accepted': CallTransferAcceptedEvent
@@ -216,7 +226,7 @@ export interface EventMap {
   'sip:presence:unsubscribe': PresenceUnsubscribeEvent
 
   // Generic event fallback
-  [key: string]: BaseEvent
+  [key: string]: any
 }
 
 /**
@@ -552,6 +562,60 @@ export interface CallTransferCompletedEvent extends BaseEvent {
   /** Transfer target URI */
   target: string
 }
+
+/**
+ * Media ICE Candidate event payload
+ */
+export interface MediaIceCandidateEvent {
+  /** ICE candidate or null for end-of-candidates */
+  candidate: RTCIceCandidate | null
+}
+
+/**
+ * Media ICE Gathering Complete event payload
+ */
+export type MediaIceGatheringCompleteEvent = Record<string, never>
+
+/**
+ * Media ICE Connection State event payload
+ */
+export interface MediaIceConnectionStateEvent {
+  /** ICE connection state */
+  state: string
+}
+
+/**
+ * Media ICE Gathering State event payload
+ */
+export interface MediaIceGatheringStateEvent {
+  /** ICE gathering state */
+  state: string
+}
+
+/**
+ * Media ICE Gathering Timeout event payload
+ */
+export type MediaIceGatheringTimeoutEvent = Record<string, never>
+
+/**
+ * Media Negotiation Needed event payload
+ */
+export type MediaNegotiationNeededEvent = Record<string, never>
+
+/**
+ * Media Connection Failed event payload
+ */
+export interface MediaConnectionFailedEvent {
+  /** Connection state */
+  state: string
+  /** Failure reason */
+  reason: string
+}
+
+/**
+ * Media Statistics event payload
+ */
+export type MediaStatisticsEvent = any
 
 /**
  * Event emitter interface

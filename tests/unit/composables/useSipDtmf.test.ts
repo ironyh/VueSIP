@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * useSipDtmf composable unit tests
  * Tests for AbortController integration in DTMF sequence sending
@@ -159,7 +159,7 @@ describe('useSipDtmf - AbortController Integration', () => {
       const controller = new AbortController()
 
       await expect(sendDtmfSequence('X', 160, controller.signal)).rejects.toThrow(
-        'Invalid DTMF sequence'
+        /Invalid tone/
       )
       expect(mockDtmfSender.insertDTMF).not.toHaveBeenCalled()
     })
@@ -240,7 +240,7 @@ describe('useSipDtmf - AbortController Integration', () => {
       const { sendDtmfSequence } = useSipDtmf(sessionRef)
 
       // Sequence with invalid digit at the end
-      await expect(sendDtmfSequence('12X', 160)).rejects.toThrow('Invalid DTMF sequence')
+      await expect(sendDtmfSequence('12X', 160)).rejects.toThrow(/Invalid tone/)
 
       // Should not have sent any digits
       expect(mockDtmfSender.insertDTMF).not.toHaveBeenCalled()
@@ -251,9 +251,9 @@ describe('useSipDtmf - AbortController Integration', () => {
       const { sendDtmfSequence } = useSipDtmf(sessionRef)
 
       // Various invalid sequences
-      await expect(sendDtmfSequence('1Z3', 160)).rejects.toThrow('Invalid DTMF sequence')
-      await expect(sendDtmfSequence('$123', 160)).rejects.toThrow('Invalid DTMF sequence')
-      await expect(sendDtmfSequence('12!', 160)).rejects.toThrow('Invalid DTMF sequence')
+      await expect(sendDtmfSequence('1Z3', 160)).rejects.toThrow(/Invalid tone/)
+      await expect(sendDtmfSequence('$123', 160)).rejects.toThrow(/Invalid tone/)
+      await expect(sendDtmfSequence('12!', 160)).rejects.toThrow(/Invalid tone/)
 
       // Should not have sent any digits for any of these
       expect(mockDtmfSender.insertDTMF).not.toHaveBeenCalled()
@@ -301,7 +301,7 @@ describe('useSipDtmf - AbortController Integration', () => {
       const sessionRef = ref(mockSession)
       const { sendDtmf } = useSipDtmf(sessionRef)
 
-      await expect(sendDtmf('Z')).rejects.toThrow('Invalid DTMF digit')
+      await expect(sendDtmf('Z')).rejects.toThrow(/Invalid DTMF tone/)
       expect(mockDtmfSender.insertDTMF).not.toHaveBeenCalled()
     })
 

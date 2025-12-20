@@ -4,7 +4,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { EventBus, createEventBus } from '@/core/EventBus'
-import type { EventMap } from '@/types/events.types'
 
 describe('EventBus', () => {
   let eventBus: EventBus

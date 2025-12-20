@@ -1,8 +1,5 @@
 <template>
   <div class="sip-messaging-demo">
-    <h2>SIP Instant Messaging</h2>
-    <p class="description">Send and receive instant messages over SIP using the MESSAGE method.</p>
-
     <!-- Simulation Controls -->
     <SimulationControls
       :is-simulation-mode="isSimulationMode"
@@ -23,92 +20,134 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <!-- Connection Status -->
-    <div class="status-section">
-      <div :class="['status-badge', connectionState]">
+    <Message severity="info" :closable="false" class="mb-4">
+      <p class="m-0 line-height-3">
+        Send and receive instant messages over SIP using the MESSAGE method. Messages are
+        displayed in a familiar chat interface with conversation history.
+      </p>
+    </Message>
+
+    <!-- Connection Status Bar -->
+    <div class="flex align-items-center gap-3 mb-4">
+      <Tag :severity="getConnectionSeverity(connectionState)" class="text-sm">
         {{ connectionState.toUpperCase() }}
-      </div>
-      <div class="unread-badge" v-if="unreadCount > 0">{{ unreadCount }} unread</div>
-      <div v-if="!isConnected" class="connection-hint">
-        Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo
-      </div>
+      </Tag>
+      <Tag v-if="unreadCount > 0" severity="danger" class="text-sm">
+        {{ unreadCount }} unread
+      </Tag>
+      <Message v-if="!isConnected" severity="warn" :closable="false" class="flex-1 m-0">
+        <span class="text-sm">Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo</span>
+      </Message>
     </div>
 
     <!-- Messaging Interface -->
-    <div v-if="isConnected" class="messaging-container">
+    <Panel v-if="isConnected" class="mb-4">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-comments"></i>
+          <span class="font-semibold">Messages</span>
+        </div>
+      </template>
       <div class="messaging-layout">
         <!-- Conversations Sidebar -->
-        <aside class="conversations-sidebar">
-          <div class="sidebar-header">
-            <h3>Conversations</h3>
-            <button @click="showNewConversation = true" class="new-chat-btn">+</button>
+        <aside class="conversations-sidebar surface-50 border-right-1 surface-border">
+          <div class="flex justify-content-between align-items-center p-3 border-bottom-1 surface-border">
+            <span class="font-semibold">Conversations</span>
+            <Button
+              icon="pi pi-plus"
+              severity="primary"
+              rounded
+              size="small"
+              @click="showNewConversation = true"
+              v-tooltip.left="'New conversation'"
+            />
           </div>
 
           <div class="conversations-list">
             <div
               v-for="conv in conversations"
               :key="conv.id"
-              :class="['conversation-item', { active: currentConversationId === conv.id }]"
+              class="flex gap-3 p-3 cursor-pointer border-bottom-1 surface-border"
+              :class="{ 'surface-100 border-left-3 border-primary': currentConversationId === conv.id }"
               @click="selectConversation(conv.id)"
             >
-              <div class="conversation-avatar">
-                {{ getInitials(conv.name) }}
-              </div>
-              <div class="conversation-info">
-                <div class="conversation-header">
-                  <div class="conversation-name">{{ conv.name }}</div>
-                  <div class="conversation-time">{{ conv.lastMessageTime }}</div>
+              <Avatar
+                :label="getInitials(conv.name)"
+                shape="circle"
+                class="bg-primary text-white flex-shrink-0"
+              />
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-content-between align-items-center mb-1">
+                  <span class="font-semibold text-sm text-overflow-ellipsis overflow-hidden white-space-nowrap">{{ conv.name }}</span>
+                  <span class="text-xs text-500">{{ conv.lastMessageTime }}</span>
                 </div>
-                <div class="conversation-preview">
-                  <span v-if="conv.unreadCount > 0" class="unread-indicator">
+                <div class="flex align-items-center gap-2">
+                  <Tag v-if="conv.unreadCount > 0" severity="info" class="text-xs" rounded>
                     {{ conv.unreadCount }}
-                  </span>
-                  <span class="preview-text">{{ conv.lastMessage }}</span>
+                  </Tag>
+                  <span class="text-sm text-500 text-overflow-ellipsis overflow-hidden white-space-nowrap">{{ conv.lastMessage }}</span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Quick Actions -->
-          <div class="quick-contacts">
-            <h4>Quick Start</h4>
-            <button @click="simulateIncomingMessage" class="quick-btn">Simulate Incoming</button>
+          <div class="p-3 border-top-1 surface-border">
+            <div class="text-xs text-500 font-semibold uppercase mb-2">Quick Start</div>
+            <Button
+              label="Simulate Incoming"
+              icon="pi pi-envelope"
+              severity="secondary"
+              size="small"
+              class="w-full"
+              @click="simulateIncomingMessage"
+            />
           </div>
         </aside>
 
         <!-- Chat Area -->
-        <main class="chat-area">
-          <div v-if="currentConversation" class="chat-container">
+        <main class="chat-area surface-0">
+          <div v-if="currentConversation" class="flex flex-column h-full">
             <!-- Chat Header -->
-            <div class="chat-header">
-              <div class="chat-info">
-                <div class="chat-avatar">
-                  {{ getInitials(currentConversation.name) }}
-                </div>
-                <div class="chat-details">
-                  <div class="chat-name">{{ currentConversation.name }}</div>
-                  <div class="chat-uri">{{ currentConversation.uri }}</div>
+            <div class="flex justify-content-between align-items-center p-3 border-bottom-1 surface-border">
+              <div class="flex gap-3 align-items-center">
+                <Avatar
+                  :label="getInitials(currentConversation.name)"
+                  shape="circle"
+                  class="bg-primary text-white"
+                />
+                <div>
+                  <div class="font-semibold">{{ currentConversation.name }}</div>
+                  <div class="text-xs text-500">{{ currentConversation.uri }}</div>
                 </div>
               </div>
-              <div class="chat-actions">
-                <button @click="clearConversation" class="icon-btn" title="Clear conversation">
-                  Clear
-                </button>
-              </div>
+              <Button
+                label="Clear"
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                size="small"
+                @click="clearConversation"
+                v-tooltip.left="'Clear conversation'"
+              />
             </div>
 
             <!-- Messages -->
-            <div class="messages-container" ref="messagesContainer">
+            <div class="messages-container flex-1 overflow-auto p-3" ref="messagesContainer">
               <div
                 v-for="message in currentConversation.messages"
                 :key="message.id"
-                :class="['message', message.direction]"
+                class="flex mb-3"
+                :class="{ 'justify-content-end': message.direction === 'outbound' }"
               >
-                <div class="message-bubble">
-                  <div class="message-content">{{ message.content }}</div>
-                  <div class="message-meta">
-                    <span class="message-time">{{ message.timestamp }}</span>
-                    <span v-if="message.direction === 'outbound'" class="message-status">
+                <div
+                  class="message-bubble max-w-25rem p-3 border-round-lg"
+                  :class="message.direction === 'outbound' ? 'bg-primary text-white' : 'surface-100'"
+                >
+                  <div class="line-height-3 mb-1">{{ message.content }}</div>
+                  <div class="flex justify-content-end gap-2 text-xs opacity-70">
+                    <span>{{ message.timestamp }}</span>
+                    <span v-if="message.direction === 'outbound'">
                       {{ getMessageStatusIcon(message.status) }}
                     </span>
                   </div>
@@ -116,9 +155,9 @@
               </div>
 
               <!-- Typing Indicator -->
-              <div v-if="currentConversation.isTyping" class="typing-indicator">
-                <div class="typing-bubble">
-                  <div class="typing-dots">
+              <div v-if="currentConversation.isTyping" class="flex">
+                <div class="typing-bubble surface-100 p-3 border-round-lg">
+                  <div class="typing-dots flex gap-1">
                     <span></span>
                     <span></span>
                     <span></span>
@@ -128,100 +167,150 @@
             </div>
 
             <!-- Message Input -->
-            <div class="message-input-container">
-              <textarea
+            <div class="flex gap-3 p-3 border-top-1 surface-border">
+              <Textarea
                 v-model="messageText"
                 @keydown.enter.exact.prevent="sendMessage"
                 @input="handleTyping"
                 placeholder="Type a message..."
+                :autoResize="true"
                 rows="1"
+                class="flex-1"
                 ref="messageInput"
-              ></textarea>
-              <button @click="sendMessage" :disabled="!messageText.trim()" class="send-btn">
-                Send
-              </button>
+              />
+              <Button
+                icon="pi pi-send"
+                severity="primary"
+                rounded
+                :disabled="!messageText.trim()"
+                @click="sendMessage"
+                v-tooltip.left="'Send message'"
+              />
             </div>
           </div>
 
           <!-- Empty State -->
-          <div v-else class="empty-state">
-            <div class="empty-icon">No conversation selected</div>
-            <p>Select a conversation from the sidebar or start a new one</p>
+          <div v-else class="flex flex-column align-items-center justify-content-center h-full py-6 text-500">
+            <i class="pi pi-comments text-5xl mb-3 opacity-50"></i>
+            <h4 class="m-0 mb-2 text-700">No Conversation Selected</h4>
+            <p class="m-0 text-sm">Select a conversation from the sidebar or start a new one</p>
           </div>
         </main>
       </div>
-    </div>
+    </Panel>
 
-    <!-- New Conversation Modal -->
-    <div v-if="showNewConversation" class="modal-overlay" @click="showNewConversation = false">
-      <div class="modal-content" @click.stop>
-        <h3>New Conversation</h3>
-        <div class="form-group">
-          <label>Recipient SIP URI</label>
-          <input
+    <!-- New Conversation Dialog -->
+    <Dialog
+      v-model:visible="showNewConversation"
+      header="New Conversation"
+      modal
+      :style="{ width: '400px' }"
+    >
+      <div class="flex flex-column gap-3">
+        <div class="flex flex-column gap-2">
+          <label for="recipient-uri" class="font-medium text-sm">Recipient SIP URI</label>
+          <InputText
+            id="recipient-uri"
             v-model="newConversationUri"
-            type="text"
             placeholder="sip:user@example.com"
+            class="w-full"
             @keyup.enter="startNewConversation"
           />
         </div>
-        <div class="modal-actions">
-          <button @click="startNewConversation" :disabled="!newConversationUri.trim()">
-            Start Chat
-          </button>
-          <button @click="showNewConversation = false" class="cancel-btn">Cancel</button>
-        </div>
       </div>
-    </div>
+      <template #footer>
+        <div class="flex justify-content-end gap-2">
+          <Button
+            label="Cancel"
+            severity="secondary"
+            @click="showNewConversation = false"
+          />
+          <Button
+            label="Start Chat"
+            icon="pi pi-comments"
+            :disabled="!newConversationUri.trim()"
+            @click="startNewConversation"
+          />
+        </div>
+      </template>
+    </Dialog>
 
     <!-- Messaging Settings -->
-    <div v-if="isConnected" class="settings-section">
-      <h3>Messaging Settings</h3>
-      <div class="settings-grid">
-        <label>
-          <input type="checkbox" v-model="sendTypingIndicator" />
-          Send typing indicator
-        </label>
-        <label>
-          <input type="checkbox" v-model="sendDeliveryReceipt" />
-          Send delivery receipts
-        </label>
-        <label>
-          <input type="checkbox" v-model="playNotificationSound" />
-          Play notification sound
-        </label>
-        <label>
-          <input type="checkbox" v-model="showNotifications" />
-          Show desktop notifications
-        </label>
+    <Panel v-if="isConnected" class="mb-4">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-cog"></i>
+          <span class="font-semibold">Messaging Settings</span>
+        </div>
+      </template>
+      <div class="grid">
+        <div class="col-12 md:col-6 lg:col-3">
+          <div class="flex align-items-center gap-2">
+            <Checkbox v-model="sendTypingIndicator" :binary="true" inputId="typing-indicator" />
+            <label for="typing-indicator" class="text-sm cursor-pointer">Send typing indicator</label>
+          </div>
+        </div>
+        <div class="col-12 md:col-6 lg:col-3">
+          <div class="flex align-items-center gap-2">
+            <Checkbox v-model="sendDeliveryReceipt" :binary="true" inputId="delivery-receipt" />
+            <label for="delivery-receipt" class="text-sm cursor-pointer">Send delivery receipts</label>
+          </div>
+        </div>
+        <div class="col-12 md:col-6 lg:col-3">
+          <div class="flex align-items-center gap-2">
+            <Checkbox v-model="playNotificationSound" :binary="true" inputId="notification-sound" />
+            <label for="notification-sound" class="text-sm cursor-pointer">Play notification sound</label>
+          </div>
+        </div>
+        <div class="col-12 md:col-6 lg:col-3">
+          <div class="flex align-items-center gap-2">
+            <Checkbox v-model="showNotifications" :binary="true" inputId="desktop-notifications" />
+            <label for="desktop-notifications" class="text-sm cursor-pointer">Show desktop notifications</label>
+          </div>
+        </div>
       </div>
-    </div>
+    </Panel>
 
     <!-- Message Statistics -->
-    <div
+    <Panel
       v-if="isConnected && messageStats.totalSent + messageStats.totalReceived > 0"
-      class="stats-section"
+      class="mb-4"
     >
-      <h3>Message Statistics</h3>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value">{{ messageStats.totalSent }}</div>
-          <div class="stat-label">Messages Sent</div>
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-chart-bar"></i>
+          <span class="font-semibold">Message Statistics</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ messageStats.totalReceived }}</div>
-          <div class="stat-label">Messages Received</div>
+      </template>
+      <div class="grid">
+        <div class="col-6 md:col-3">
+          <div class="surface-100 border-round p-3 text-center">
+            <div class="text-3xl font-bold text-primary mb-2">{{ messageStats.totalSent }}</div>
+            <div class="text-sm text-500">Messages Sent</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ conversations.length }}</div>
-          <div class="stat-label">Conversations</div>
+        <div class="col-6 md:col-3">
+          <div class="surface-100 border-round p-3 text-center">
+            <div class="text-3xl font-bold text-primary mb-2">{{ messageStats.totalReceived }}</div>
+            <div class="text-sm text-500">Messages Received</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ messageStats.failedMessages }}</div>
-          <div class="stat-label">Failed</div>
+        <div class="col-6 md:col-3">
+          <div class="surface-100 border-round p-3 text-center">
+            <div class="text-3xl font-bold text-primary mb-2">{{ conversations.length }}</div>
+            <div class="text-sm text-500">Conversations</div>
+          </div>
+        </div>
+        <div class="col-6 md:col-3">
+          <div class="surface-100 border-round p-3 text-center">
+            <div class="text-3xl font-bold mb-2" :class="messageStats.failedMessages > 0 ? 'text-red-500' : 'text-primary'">
+              {{ messageStats.failedMessages }}
+            </div>
+            <div class="text-sm text-500">Failed</div>
+          </div>
         </div>
       </div>
-    </div>
+    </Panel>
   </div>
 </template>
 
@@ -230,6 +319,17 @@ import { ref, computed, watch as _watch, nextTick, onMounted } from 'vue'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+
+// PrimeVue components
+import Panel from 'primevue/panel'
+import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+import Button from 'primevue/button'
+import Avatar from 'primevue/avatar'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
+import Checkbox from 'primevue/checkbox'
 
 // Simulation system
 const simulation = useSimulation()
@@ -247,8 +347,12 @@ const {
   isConnecting: _isConnecting,
   connect,
   disconnect,
+  updateConfig,
   getClient: _getClient,
 } = playgroundSipClient
+
+// ... (existing code)
+
 
 // Effective values - use simulation or real data based on mode
 const connectionState = computed(() =>
@@ -325,13 +429,61 @@ const _toggleConnection = async () => {
   if (isConnected.value) {
     await disconnect()
   } else {
-    await connect({
+    updateConfig({
       uri: sipServerUri.value,
       username: username.value,
       password: password.value,
     })
+    await connect()
   }
 }
+
+// Subscribe to incoming messages
+let cleanupIncomingMessage: (() => void) | null = null
+
+const setupMessageListener = () => {
+  // Clean up existing listener
+  if (cleanupIncomingMessage) {
+    cleanupIncomingMessage()
+    cleanupIncomingMessage = null
+  }
+
+  const client = playgroundSipClient.getClient()
+  if (client) {
+    console.log('Setting up SIP message listener')
+    const handler = (from: string, content: string, contentType?: string) => {
+      console.log('Received SIP message:', { from, content, contentType })
+      // Only handle text/plain for now, or assume text if not specified
+      if (!contentType || contentType.startsWith('text/')) {
+        receiveMessage(from, content)
+      }
+    }
+    
+    // Register handler
+    client.onIncomingMessage(handler)
+    
+    // Create cleanup function using offIncomingMessage
+    cleanupIncomingMessage = () => {
+      console.log('Removing SIP message listener')
+      client.offIncomingMessage(handler)
+    }
+  }
+}
+
+// Watch connection state to setup listeners
+_watch(isConnected, (connected) => {
+  if (connected) {
+    // Small delay to ensure client is fully ready
+    setTimeout(() => {
+      setupMessageListener()
+    }, 100)
+  } else {
+    if (cleanupIncomingMessage) {
+      cleanupIncomingMessage()
+      cleanupIncomingMessage = null
+    }
+  }
+}, { immediate: true })
 
 // Select Conversation
 const selectConversation = (convId: string) => {
@@ -394,9 +546,12 @@ const startNewConversation = () => {
 const sendMessage = async () => {
   if (!messageText.value.trim() || !currentConversation.value) return
 
+  const content = messageText.value.trim()
+  const target = currentConversation.value.uri
+
   const message: Message = {
     id: `msg-${Date.now()}`,
-    content: messageText.value.trim(),
+    content,
     direction: 'outbound',
     timestamp: new Date().toLocaleTimeString(),
     status: 'sending',
@@ -407,23 +562,38 @@ const sendMessage = async () => {
   currentConversation.value.lastMessageTime = message.timestamp
 
   messageStats.value.totalSent++
-
   messageText.value = ''
-
   scrollToBottom()
 
-  // Simulate message sending
-  setTimeout(() => {
-    message.status = 'sent'
-
-    if (sendDeliveryReceipt.value) {
-      setTimeout(() => {
-        message.status = 'delivered'
-      }, 1000)
+  try {
+    const client = playgroundSipClient.getClient()
+    if (!client) {
+      throw new Error('SIP Client not connected')
     }
-  }, 500)
 
-  console.log('Sent MESSAGE to:', currentConversation.value.uri, message.content)
+    if (isSimulationMode.value) {
+      // Simulate message sending
+      setTimeout(() => {
+        message.status = 'sent'
+        if (sendDeliveryReceipt.value) {
+          setTimeout(() => {
+            message.status = 'delivered'
+          }, 1000)
+        }
+      }, 500)
+    } else {
+      // Real SIP Message
+      await client.sendMessage(target, content, {
+        contentType: 'text/plain'
+      })
+      message.status = 'sent'
+      console.log('Sent SIP MESSAGE to:', target)
+    }
+  } catch (error) {
+    console.error('Failed to send message:', error)
+    message.status = 'failed'
+    // Optional: show error notification
+  }
 }
 
 // Handle Typing
@@ -436,11 +606,12 @@ const handleTyping = () => {
   }
 
   // Send typing notification
-  console.log('Sending typing indicator to:', currentConversation.value.uri)
+  // Note: Real SIP typing indicators (RFC 3994) not yet implemented in SipClient
+  // console.log('Sending typing indicator to:', currentConversation.value.uri)
 
   // Stop typing after 2 seconds of inactivity
   typingTimer = window.setTimeout(() => {
-    console.log('Stopped typing')
+    // console.log('Stopped typing')
   }, 2000)
 }
 
@@ -527,21 +698,8 @@ const simulateIncomingMessage = () => {
   const fromUri = `sip:user${Math.floor(Math.random() * 100)}@example.com`
 
   receiveMessage(fromUri, randomMessage)
-
-  // Simulate typing indicator
-  const conv = conversations.value.find((c) => c.uri === fromUri)
-  if (conv && Math.random() > 0.5) {
-    conv.isTyping = true
-    setTimeout(() => {
-      conv.isTyping = false
-
-      // Send another message
-      setTimeout(() => {
-        const followUp = "Let me know when you're free!"
-        receiveMessage(fromUri, followUp)
-      }, 1500)
-    }, 2000)
-  }
+  
+  // Note: Simulation typing logic removed for simplicity as it's separate from real SIP logic
 }
 
 // Desktop Notification
@@ -562,6 +720,19 @@ const requestNotificationPermission = () => {
 }
 
 // Helpers
+const getConnectionSeverity = (state: string): 'success' | 'warn' | 'danger' | 'secondary' => {
+  switch (state) {
+    case 'connected':
+      return 'success'
+    case 'connecting':
+      return 'warn'
+    case 'disconnected':
+      return 'secondary'
+    default:
+      return 'secondary'
+  }
+}
+
 const getInitials = (name: string): string => {
   return name
     .split(' ')
@@ -597,165 +768,31 @@ const scrollToBottom = () => {
 // Lifecycle
 onMounted(() => {
   requestNotificationPermission()
+  
+  // Initial check if already connected
+  if (isConnected.value) {
+    setupMessageListener()
+  }
 })
 </script>
 
 <style scoped>
 .sip-messaging-demo {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-.description {
-  color: #666;
-  margin-bottom: 2rem;
-}
-
-.status-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.status-badge.connected {
-  background-color: #10b981;
-  color: white;
-}
-
-.status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
-}
-
-.status-badge.connecting {
-  background-color: #f59e0b;
-  color: white;
-}
-
-.unread-badge {
-  background: #ef4444;
-  color: white;
-  padding: 0.375rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.config-section,
-.settings-section,
-.stats-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.125rem;
-}
-
-h4 {
-  margin-top: 0;
-  margin-bottom: 0.75rem;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  color: #6b7280;
-  letter-spacing: 0.05em;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-button {
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.messaging-container {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 1.5rem;
-}
-
+/* Messaging Layout */
 .messaging-layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  height: 600px;
+  grid-template-columns: 280px 1fr;
+  height: 500px;
 }
 
-/* Sidebar */
+/* Conversations Sidebar */
 .conversations-sidebar {
-  border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
-  background: white;
-}
-
-.sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.sidebar-header h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.new-chat-btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border-radius: 50%;
-  font-size: 1.25rem;
 }
 
 .conversations-list {
@@ -763,241 +800,27 @@ button:disabled {
   overflow-y: auto;
 }
 
-.conversation-item {
-  display: flex;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.conversation-item:hover {
-  background: #f9fafb;
-}
-
-.conversation-item.active {
-  background: #eff6ff;
-  border-left: 3px solid #3b82f6;
-}
-
-.conversation-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.875rem;
-  flex-shrink: 0;
-}
-
-.conversation-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.conversation-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.25rem;
-}
-
-.conversation-name {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #111827;
-}
-
-.conversation-time {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.conversation-preview {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 0.875rem;
-}
-
-.unread-indicator {
-  background: #3b82f6;
-  color: white;
-  padding: 0.125rem 0.5rem;
-  border-radius: 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.preview-text {
-  color: #6b7280;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quick-contacts {
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.quick-btn {
-  width: 100%;
-  font-size: 0.75rem;
-}
-
 /* Chat Area */
 .chat-area {
-  background: white;
   display: flex;
   flex-direction: column;
 }
 
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.chat-info {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.chat-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.875rem;
-}
-
-.chat-name {
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.chat-uri {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.chat-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  font-size: 1rem;
-  background: transparent;
-  color: #6b7280;
-}
-
-.icon-btn:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-.messages-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.message {
-  display: flex;
-}
-
-.message.outbound {
-  justify-content: flex-end;
-}
-
-.message.inbound {
-  justify-content: flex-start;
-}
-
+/* Message bubble styling */
 .message-bubble {
-  max-width: 70%;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
   word-wrap: break-word;
 }
 
-.message.outbound .message-bubble {
-  background: #3b82f6;
-  color: white;
-  border-bottom-right-radius: 4px;
+.max-w-25rem {
+  max-width: 25rem;
 }
 
-.message.inbound .message-bubble {
-  background: #f3f4f6;
-  color: #111827;
-  border-bottom-left-radius: 4px;
-}
-
-.message-content {
-  margin-bottom: 0.25rem;
-  line-height: 1.5;
-}
-
-.message-meta {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  opacity: 0.8;
-}
-
-.message.inbound .message-meta {
-  justify-content: flex-start;
-}
-
-.typing-indicator {
-  display: flex;
-}
-
-.typing-bubble {
-  background: #f3f4f6;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  border-bottom-left-radius: 4px;
-}
-
-.typing-dots {
-  display: flex;
-  gap: 0.25rem;
-}
-
+/* Typing Animation */
 .typing-dots span {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #9ca3af;
+  background: var(--text-color-secondary);
   animation: typing 1.4s ease-in-out infinite;
 }
 
@@ -1020,141 +843,6 @@ button:disabled {
     opacity: 1;
     transform: translateY(-4px);
   }
-}
-
-.message-input-container {
-  display: flex;
-  gap: 0.75rem;
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.message-input-container textarea {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  resize: none;
-  font-family: inherit;
-  font-size: 0.875rem;
-  max-height: 120px;
-}
-
-.send-btn {
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  border-radius: 50%;
-  font-size: 1.25rem;
-  background: #3b82f6;
-}
-
-.send-btn:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #9ca3af;
-}
-
-.empty-icon {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: #6b7280;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  padding: 2rem;
-  min-width: 400px;
-  max-width: 90vw;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-.cancel-btn {
-  background: #6b7280;
-}
-
-.cancel-btn:hover {
-  background: #4b5563;
-}
-
-/* Settings */
-.settings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.settings-grid label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.settings-grid input[type='checkbox'] {
-  width: auto;
-}
-
-/* Stats */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-.stat-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #3b82f6;
-  margin-bottom: 0.5rem;
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 /* Responsive */

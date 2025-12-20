@@ -1,11 +1,91 @@
 /**
  * Unit tests for useAmiRingGroups composable
+ *
+ * Tests ring group management functionality:
+ * - Ring group lifecycle (initialization, monitoring, cleanup)
+ * - Member management (add, remove, enable, disable, priority)
+ * - Ring group configuration (strategy, timeout, enable/disable)
+ * - Event handling (status changes, call flow)
+ * - Statistics tracking and computed values
+ *
+ * @see src/composables/useAmiRingGroups.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { useAmiRingGroups } from '@/composables/useAmiRingGroups'
 import type { AmiClient } from '@/core/AmiClient'
+
+/**
+ * Test fixtures for consistent test data across all test suites
+ */
+const TEST_FIXTURES = {
+  groupIds: {
+    single: ['600'],
+    multiple: ['600', '601', '602'],
+    pair: ['600', '601'],
+  },
+  members: {
+    basic: { extension: '1001', name: 'Alice', priority: 1 },
+    alternate: { extension: '1002', name: 'Bob', priority: 2 },
+    withPriority: { extension: '1003', name: 'Charlie', priority: 3 },
+  },
+  extensions: {
+    valid: ['1001', '1002', '1003'],
+    invalid: '<script>alert(1)</script>',
+    nonExistent: '9999',
+  },
+  strategies: {
+    valid: ['ringall', 'hunt', 'random'] as const,
+    invalid: 'invalid' as any,
+  },
+  timeouts: {
+    valid: [10, 20, 30, 60],
+    tooLow: 3,
+    tooHigh: 500,
+  },
+  events: {
+    extensionStatus: {
+      Event: 'ExtensionStatus',
+      Exten: '1001',
+      Status: 'NOT_INUSE',
+    },
+    dial: {
+      Event: 'Dial',
+      Channel: 'PJSIP/trunk-0001',
+      DestChannel: 'PJSIP/1001-0002',
+      CallerIDNum: '5551234567',
+    },
+    bridge: {
+      Event: 'Bridge',
+      Channel1: 'PJSIP/trunk-0001',
+      Channel2: 'PJSIP/1001-0002',
+      CallerIDNum: '5551234567',
+    },
+    hangup: {
+      Event: 'Hangup',
+      Channel: 'PJSIP/1001-0002',
+      Cause: '16',
+    },
+    hangupNoAnswer: {
+      Event: 'Hangup',
+      Channel: 'PJSIP/1001-0002',
+      Cause: '21', // No answer
+    },
+  },
+} as const
+
+/**
+ * Factory function: Create mock options with sensible defaults
+ */
+function createMockOptions(overrides?: any) {
+  return {
+    autoStart: false,
+    groupIds: [],
+    ...overrides,
+  }
+}
+
 
 // Mock logger
 vi.mock('@/utils/logger', () => ({
@@ -57,42 +137,92 @@ describe('useAmiRingGroups', () => {
     handlers?.forEach((handler) => handler(amiMessage))
   }
 
+  /**
+   * Initialization Tests
+   * Verify composable starts with correct initial state and configuration
+   */
   describe('Initialization', () => {
-    it('should initialize with empty state', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { ringGroups, isMonitoring, isLoading, error } = useAmiRingGroups(clientRef)
+    describe.each([
+      {
+        description: 'empty state with no options',
+        options: createMockOptions(),
+        expectedGroupSize: 0,
+        expectedMonitoring: false,
+        expectedLoading: false,
+      },
+      {
+        description: 'single group without auto-start',
+        options: createMockOptions({ groupIds: TEST_FIXTURES.groupIds.single }),
+        expectedGroupSize: 0, // Groups not initialized until startMonitoring
+        expectedMonitoring: false,
+        expectedLoading: false,
+      },
+      {
+        description: 'multiple groups without auto-start',
+        options: createMockOptions({ groupIds: TEST_FIXTURES.groupIds.multiple }),
+        expectedGroupSize: 0,
+        expectedMonitoring: false,
+        expectedLoading: false,
+      },
+    ])('with $description', ({ options, expectedGroupSize, expectedMonitoring, expectedLoading }) => {
+      it(`should initialize with ${expectedGroupSize} groups, monitoring=${expectedMonitoring}`, () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const { ringGroups, isMonitoring, isLoading, error } = useAmiRingGroups(clientRef, options)
 
-      expect(ringGroups.value.size).toBe(0)
-      expect(isMonitoring.value).toBe(false)
-      expect(isLoading.value).toBe(false)
-      expect(error.value).toBeNull()
+        expect(ringGroups.value.size).toBe(expectedGroupSize)
+        expect(isMonitoring.value).toBe(expectedMonitoring)
+        expect(isLoading.value).toBe(expectedLoading)
+        expect(error.value).toBeNull()
+      })
     })
 
     it('should auto-start when autoStart option is true', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { isMonitoring } = useAmiRingGroups(clientRef, {
         autoStart: true,
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
       })
 
       expect(isMonitoring.value).toBe(true)
     })
 
-    it('should initialize groups from groupIds option', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { ringGroups, startMonitoring } = useAmiRingGroups(clientRef, {
-        groupIds: ['600', '601', '602'],
+    describe.each([
+      {
+        description: 'single group',
+        groupIds: TEST_FIXTURES.groupIds.single,
+        expectedSize: 1,
+      },
+      {
+        description: 'pair of groups',
+        groupIds: TEST_FIXTURES.groupIds.pair,
+        expectedSize: 2,
+      },
+      {
+        description: 'multiple groups',
+        groupIds: TEST_FIXTURES.groupIds.multiple,
+        expectedSize: 3,
+      },
+    ])('with $description from groupIds option', ({ groupIds, expectedSize }) => {
+      it(`should initialize ${expectedSize} group(s) after startMonitoring`, () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const { ringGroups, startMonitoring } = useAmiRingGroups(clientRef, {
+          groupIds,
+        })
+
+        startMonitoring()
+
+        expect(ringGroups.value.size).toBe(expectedSize)
+        groupIds.forEach(id => {
+          expect(ringGroups.value.has(id)).toBe(true)
+        })
       })
-
-      startMonitoring()
-
-      expect(ringGroups.value.size).toBe(3)
-      expect(ringGroups.value.has('600')).toBe(true)
-      expect(ringGroups.value.has('601')).toBe(true)
-      expect(ringGroups.value.has('602')).toBe(true)
     })
   })
 
+  /**
+   * Monitoring Control Tests
+   * Verify monitoring lifecycle (start, stop, prevent duplicate initialization)
+   */
   describe('Monitoring Control', () => {
     it('should start monitoring when startMonitoring is called', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
@@ -127,6 +257,10 @@ describe('useAmiRingGroups', () => {
     })
   })
 
+  /**
+   * Member Management Tests
+   * Verify member lifecycle operations (add, remove, enable, disable, priority)
+   */
   describe('Member Management', () => {
     it('should add a member to a ring group', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
@@ -269,64 +403,112 @@ describe('useAmiRingGroups', () => {
     })
   })
 
+  /**
+   * Ring Group Configuration Tests
+   * Verify ring group settings can be configured and validated
+   */
   describe('Ring Group Configuration', () => {
-    it('should update ring strategy', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { ringGroups, startMonitoring, setStrategy } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+    /**
+     * Ring strategy configuration tests
+     * Test valid and invalid strategy values
+     */
+    describe.each([
+      {
+        description: 'ringall strategy',
+        strategy: 'ringall' as const,
+        expectedSuccess: true,
+        expectedError: undefined,
+      },
+      {
+        description: 'hunt strategy',
+        strategy: 'hunt' as const,
+        expectedSuccess: true,
+        expectedError: undefined,
+      },
+      {
+        description: 'random strategy',
+        strategy: 'random' as const,
+        expectedSuccess: true,
+        expectedError: undefined,
+      },
+      {
+        description: 'invalid strategy',
+        strategy: TEST_FIXTURES.strategies.invalid,
+        expectedSuccess: false,
+        expectedError: 'Invalid ring strategy',
+      },
+    ])('setStrategy with $description', ({ strategy, expectedSuccess, expectedError }) => {
+      it(`should ${expectedSuccess ? 'accept' : 'reject'} strategy`, async () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const { ringGroups, startMonitoring, setStrategy } = useAmiRingGroups(clientRef, {
+          groupIds: TEST_FIXTURES.groupIds.single,
+        })
+
+        startMonitoring()
+        const result = await setStrategy('600', strategy)
+
+        expect(result.success).toBe(expectedSuccess)
+        if (expectedSuccess) {
+          expect(result.strategy).toBe(strategy)
+          expect(ringGroups.value.get('600')?.strategy).toBe(strategy)
+        } else {
+          expect(result.error).toBe(expectedError)
+        }
       })
-
-      startMonitoring()
-      const result = await setStrategy('600', 'hunt')
-
-      expect(result.success).toBe(true)
-      expect(result.strategy).toBe('hunt')
-      expect(ringGroups.value.get('600')?.strategy).toBe('hunt')
     })
 
-    it('should reject invalid ring strategy', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startMonitoring, setStrategy } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+    /**
+     * Ring timeout configuration tests
+     * Test valid and invalid timeout values
+     */
+    describe.each([
+      {
+        description: 'minimum valid timeout (10s)',
+        timeout: 10,
+        expectedResult: true,
+      },
+      {
+        description: 'medium timeout (30s)',
+        timeout: 30,
+        expectedResult: true,
+      },
+      {
+        description: 'high timeout (60s)',
+        timeout: 60,
+        expectedResult: true,
+      },
+      {
+        description: 'too low timeout',
+        timeout: TEST_FIXTURES.timeouts.tooLow,
+        expectedResult: false,
+      },
+      {
+        description: 'too high timeout',
+        timeout: TEST_FIXTURES.timeouts.tooHigh,
+        expectedResult: false,
+      },
+    ])('setRingTimeout with $description', ({ timeout, expectedResult }) => {
+      it(`should ${expectedResult ? 'accept' : 'reject'} timeout of ${timeout}s`, async () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const { ringGroups, startMonitoring, setRingTimeout } = useAmiRingGroups(clientRef, {
+          groupIds: TEST_FIXTURES.groupIds.single,
+        })
+
+        startMonitoring()
+        const result = await setRingTimeout('600', timeout)
+
+        expect(result).toBe(expectedResult)
+        if (expectedResult) {
+          expect(ringGroups.value.get('600')?.ringTimeout).toBe(timeout)
+        }
       })
-
-      startMonitoring()
-      const result = await setStrategy('600', 'invalid' as any)
-
-      expect(result.success).toBe(false)
-      expect(result.error).toBe('Invalid ring strategy')
-    })
-
-    it('should update ring timeout', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { ringGroups, startMonitoring, setRingTimeout } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
-      })
-
-      startMonitoring()
-      const result = await setRingTimeout('600', 30)
-
-      expect(result).toBe(true)
-      expect(ringGroups.value.get('600')?.ringTimeout).toBe(30)
-    })
-
-    it('should reject invalid ring timeout', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startMonitoring, setRingTimeout } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
-      })
-
-      startMonitoring()
-
-      expect(await setRingTimeout('600', 3)).toBe(false) // Too low
-      expect(await setRingTimeout('600', 500)).toBe(false) // Too high
     })
 
     it('should enable a ring group', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, disableGroup, enableGroup } = useAmiRingGroups(
         clientRef,
-        { groupIds: ['600'] }
+        { groupIds: TEST_FIXTURES.groupIds.single }
       )
 
       startMonitoring()
@@ -341,7 +523,7 @@ describe('useAmiRingGroups', () => {
     it('should disable a ring group', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, disableGroup } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
       })
 
       startMonitoring()
@@ -353,23 +535,29 @@ describe('useAmiRingGroups', () => {
     })
   })
 
+  /**
+   * Event Handling Tests
+   * Verify AMI event processing for ring groups
+   *
+   * Event flow:
+   * 1. ExtensionStatus → Updates member availability
+   * 2. Dial → Member starts ringing
+   * 3. Bridge → Call connected
+   * 4. Hangup → Call ended, update statistics
+   */
   describe('Event Handling', () => {
     it('should update member status on ExtensionStatus event', async () => {
       const onMemberStatusChange = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
         onMemberStatusChange,
       })
 
       startMonitoring()
       await addMember('600', '1001')
 
-      emitEvent({
-        Event: 'ExtensionStatus',
-        Exten: '1001',
-        Status: 'NOT_INUSE',
-      })
+      emitEvent(TEST_FIXTURES.events.extensionStatus)
 
       const member = ringGroups.value.get('600')?.members[0]
       expect(member?.status).toBe('available')
@@ -379,19 +567,14 @@ describe('useAmiRingGroups', () => {
       const onEvent = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
         onEvent,
       })
 
       startMonitoring()
       await addMember('600', '1001')
 
-      emitEvent({
-        Event: 'Dial',
-        Channel: 'PJSIP/trunk-0001',
-        DestChannel: 'PJSIP/1001-0002',
-        CallerIDNum: '5551234567',
-      })
+      emitEvent(TEST_FIXTURES.events.dial)
 
       const group = ringGroups.value.get('600')
       expect(group?.state).toBe('ringing')
@@ -410,7 +593,7 @@ describe('useAmiRingGroups', () => {
       const onStatsUpdate = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
         onEvent,
         onStatsUpdate,
       })
@@ -425,12 +608,7 @@ describe('useAmiRingGroups', () => {
       })
 
       // Then bridge
-      emitEvent({
-        Event: 'Bridge',
-        Channel1: 'PJSIP/trunk-0001',
-        Channel2: 'PJSIP/1001-0002',
-        CallerIDNum: '5551234567',
-      })
+      emitEvent(TEST_FIXTURES.events.bridge)
 
       const group = ringGroups.value.get('600')
       expect(group?.state).toBe('connected')
@@ -448,7 +626,7 @@ describe('useAmiRingGroups', () => {
       const onEvent = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
         onEvent,
       })
 
@@ -462,11 +640,7 @@ describe('useAmiRingGroups', () => {
         Channel1: 'PJSIP/trunk-0001',
         Channel2: 'PJSIP/1001-0002',
       })
-      emitEvent({
-        Event: 'Hangup',
-        Channel: 'PJSIP/1001-0002',
-        Cause: '16',
-      })
+      emitEvent(TEST_FIXTURES.events.hangup)
 
       const group = ringGroups.value.get('600')
       expect(group?.state).toBe('idle')
@@ -480,12 +654,16 @@ describe('useAmiRingGroups', () => {
     })
   })
 
+  /**
+   * Statistics Tests
+   * Verify call statistics tracking and management
+   */
   describe('Statistics', () => {
     it('should track call statistics', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups: _ringGroups, startMonitoring, addMember, getStats } = useAmiRingGroups(
         clientRef,
-        { groupIds: ['600'] }
+        { groupIds: TEST_FIXTURES.groupIds.single }
       )
 
       startMonitoring()
@@ -512,7 +690,7 @@ describe('useAmiRingGroups', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, addMember, clearStats } = useAmiRingGroups(
         clientRef,
-        { groupIds: ['600'] }
+        { groupIds: TEST_FIXTURES.groupIds.single }
       )
 
       startMonitoring()
@@ -534,7 +712,7 @@ describe('useAmiRingGroups', () => {
     it('should track missed calls', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
       })
 
       startMonitoring()
@@ -542,11 +720,7 @@ describe('useAmiRingGroups', () => {
 
       // Ring but no answer
       emitEvent({ Event: 'Dial', DestChannel: 'PJSIP/1001-0002' })
-      emitEvent({
-        Event: 'Hangup',
-        Channel: 'PJSIP/1001-0002',
-        Cause: '21', // No answer
-      })
+      emitEvent(TEST_FIXTURES.events.hangupNoAnswer)
 
       const group = ringGroups.value.get('600')
       expect(group?.members[0].callsMissed).toBe(1)
@@ -554,11 +728,15 @@ describe('useAmiRingGroups', () => {
     })
   })
 
+  /**
+   * Computed Values Tests
+   * Verify computed properties for ring groups
+   */
   describe('Computed Values', () => {
     it('should compute groupList', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { groupList, startMonitoring } = useAmiRingGroups(clientRef, {
-        groupIds: ['600', '601'],
+        groupIds: TEST_FIXTURES.groupIds.pair,
       })
 
       startMonitoring()
@@ -571,7 +749,7 @@ describe('useAmiRingGroups', () => {
     it('should compute totalMembers', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { totalMembers, startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600', '601'],
+        groupIds: TEST_FIXTURES.groupIds.pair,
       })
 
       startMonitoring()
@@ -585,7 +763,7 @@ describe('useAmiRingGroups', () => {
     it('should compute availableMembers', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { availableMembers, ringGroups, startMonitoring, addMember } =
-        useAmiRingGroups(clientRef, { groupIds: ['600'] })
+        useAmiRingGroups(clientRef, { groupIds: TEST_FIXTURES.groupIds.single })
 
       startMonitoring()
       await addMember('600', '1001')
@@ -602,7 +780,7 @@ describe('useAmiRingGroups', () => {
     it('should compute activeGroups', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { activeGroups, ringGroups, startMonitoring } = useAmiRingGroups(clientRef, {
-        groupIds: ['600', '601'],
+        groupIds: TEST_FIXTURES.groupIds.pair,
       })
 
       startMonitoring()
@@ -618,7 +796,7 @@ describe('useAmiRingGroups', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { disabledGroups, startMonitoring, disableGroup } = useAmiRingGroups(
         clientRef,
-        { groupIds: ['600', '601'] }
+        { groupIds: TEST_FIXTURES.groupIds.pair }
       )
 
       startMonitoring()
@@ -629,11 +807,15 @@ describe('useAmiRingGroups', () => {
     })
   })
 
+  /**
+   * Selection Tests
+   * Verify ring group selection functionality
+   */
   describe('Selection', () => {
     it('should select a ring group', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { selectedGroup, startMonitoring, selectGroup } = useAmiRingGroups(clientRef, {
-        groupIds: ['600', '601'],
+        groupIds: TEST_FIXTURES.groupIds.pair,
       })
 
       startMonitoring()
@@ -645,7 +827,7 @@ describe('useAmiRingGroups', () => {
     it('should deselect when null is passed', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { selectedGroup, startMonitoring, selectGroup } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
       })
 
       startMonitoring()
@@ -656,11 +838,15 @@ describe('useAmiRingGroups', () => {
     })
   })
 
+  /**
+   * Get Methods Tests
+   * Verify ring group and member lookup functionality
+   */
   describe('Get Methods', () => {
     it('should get ring group by ID', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, getRingGroup } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
       })
 
       startMonitoring()
@@ -673,7 +859,7 @@ describe('useAmiRingGroups', () => {
     it('should return null for non-existent group', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, getRingGroup } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
       })
 
       startMonitoring()
@@ -685,7 +871,7 @@ describe('useAmiRingGroups', () => {
     it('should get member status', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, addMember, getMemberStatus } =
-        useAmiRingGroups(clientRef, { groupIds: ['600'] })
+        useAmiRingGroups(clientRef, { groupIds: TEST_FIXTURES.groupIds.single })
 
       startMonitoring()
       await addMember('600', '1001')
@@ -699,16 +885,20 @@ describe('useAmiRingGroups', () => {
     it('should return null for non-existent member status', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, getMemberStatus } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
       })
 
       startMonitoring()
-      const status = getMemberStatus('600', '9999')
+      const status = getMemberStatus('600', TEST_FIXTURES.extensions.nonExistent)
 
       expect(status).toBeNull()
     })
   })
 
+  /**
+   * Input Validation Tests
+   * Verify security measures for input sanitization
+   */
   describe('Input Validation', () => {
     it('should reject invalid group IDs', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
@@ -727,17 +917,21 @@ describe('useAmiRingGroups', () => {
     it('should sanitize input for member names', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
       })
 
       startMonitoring()
-      await addMember('600', '1001', { name: '<script>alert(1)</script>' })
+      await addMember('600', '1001', { name: TEST_FIXTURES.extensions.invalid })
 
       const member = ringGroups.value.get('600')?.members[0]
       expect(member?.name).not.toContain('<script>')
     })
   })
 
+  /**
+   * Error Handling Tests
+   * Verify graceful error handling and recovery
+   */
   describe('Error Handling', () => {
     it('should handle AMI client not available', async () => {
       const onError = vi.fn()
@@ -762,12 +956,16 @@ describe('useAmiRingGroups', () => {
     })
   })
 
+  /**
+   * Callback Tests
+   * Verify callback functions are invoked correctly
+   */
   describe('Callbacks', () => {
     it('should call onEvent callback', async () => {
       const onEvent = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
         onEvent,
       })
 
@@ -787,7 +985,7 @@ describe('useAmiRingGroups', () => {
       const onStatsUpdate = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
         onStatsUpdate,
       })
 
@@ -809,7 +1007,7 @@ describe('useAmiRingGroups', () => {
       const onMemberStatusChange = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { ringGroups, startMonitoring, addMember } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
         onMemberStatusChange,
       })
 
@@ -819,16 +1017,16 @@ describe('useAmiRingGroups', () => {
       // Set initial status
       ringGroups.value.get('600')!.members[0].status = 'busy'
 
-      emitEvent({
-        Event: 'ExtensionStatus',
-        Exten: '1001',
-        Status: 'NOT_INUSE',
-      })
+      emitEvent(TEST_FIXTURES.events.extensionStatus)
 
       expect(onMemberStatusChange).toHaveBeenCalledWith('600', '1001', 'available')
     })
   })
 
+  /**
+   * Refresh Tests
+   * Verify data refresh functionality and error handling
+   */
   describe('Refresh', () => {
     it('should refresh ring group data', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
@@ -841,7 +1039,7 @@ describe('useAmiRingGroups', () => {
 
       const { ringGroups, startMonitoring, addMember, refresh } = useAmiRingGroups(
         clientRef,
-        { groupIds: ['600'] }
+        { groupIds: TEST_FIXTURES.groupIds.single }
       )
 
       startMonitoring()
@@ -865,7 +1063,7 @@ describe('useAmiRingGroups', () => {
       mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Network error'))
 
       const { startMonitoring, addMember, refresh, error } = useAmiRingGroups(clientRef, {
-        groupIds: ['600'],
+        groupIds: TEST_FIXTURES.groupIds.single,
         onError,
       })
 
@@ -878,6 +1076,10 @@ describe('useAmiRingGroups', () => {
     })
   })
 
+  /**
+   * Cleanup Tests
+   * Verify proper cleanup on client changes
+   */
   describe('Cleanup', () => {
     it('should clean up on client change', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)

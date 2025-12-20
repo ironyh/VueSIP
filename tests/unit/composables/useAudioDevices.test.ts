@@ -1,7 +1,5 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { ref } from 'vue';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAudioDevices } from '@/composables/useAudioDevices';
-import type { AudioDevice } from '@/types/audio.types';
 
 // Mock navigator.mediaDevices - configurable behavior
 const mockMediaStream = {
@@ -282,7 +280,7 @@ describe('useAudioDevices', () => {
 
   describe('Device Selection', () => {
     it('should select microphone by device ID', async () => {
-      const { selectMicrophone, currentMicrophone, refreshDevices } = useAudioDevices();
+      const { selectMicrophone, refreshDevices } = useAudioDevices();
 
       await refreshDevices();
       await selectMicrophone('mic-1');
@@ -653,7 +651,7 @@ describe('useAudioDevices', () => {
       const { onDeviceAdded, cleanup } = useAudioDevices();
       const callback = vi.fn();
 
-      const unsubscribe = onDeviceAdded(callback);
+      const _unsubscribe = onDeviceAdded(callback);
       cleanup();
 
       expect(true).toBe(true); // Listeners removed

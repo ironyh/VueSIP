@@ -18,7 +18,7 @@ const features = [
   { id: 'multiline' as const, name: 'Multi-Line', icon: '📱', status: 'new' },
 ]
 
-const currentFeature = computed(() => features.find(f => f.id === activeTab.value))
+const _currentFeature = computed(() => features.find(f => f.id === activeTab.value))
 </script>
 
 <template>
@@ -60,6 +60,11 @@ const currentFeature = computed(() => features.find(f => f.id === activeTab.valu
     </footer>
   </div>
 </template>
+
+<style>
+/* Import global theme system for light/dark mode support */
+@import './styles/themes.css';
+</style>
 
 <style scoped>
 .fade-enter-active,

@@ -258,7 +258,7 @@ describe('Multi-Agent Conference Integration Tests', () => {
       const agents = await createAgents(4)
       const agentIds = agents.map(a => a.getId())
 
-      const conference = await manager.createConference('sip:conf@example.com', agentIds)
+      const _conference = await manager.createConference('sip:conf@example.com', agentIds)
 
       // Agent 0 leaves (terminates all calls)
       const calls = agents[0].call.getActiveCalls()
@@ -279,7 +279,7 @@ describe('Multi-Agent Conference Integration Tests', () => {
       const initialIds = initialAgents.map(a => a.getId())
 
       // Create initial conference
-      const conference = await manager.createConference('sip:conf@example.com', initialIds)
+      const _conference = await manager.createConference('sip:conf@example.com', initialIds)
 
       // Create additional agents
       const newAgent = await manager.createAgent({

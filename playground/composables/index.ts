@@ -10,3 +10,10 @@ export type {
   ErrorSeverity,
   ErrorNotification,
 } from './useErrorNotifications'
+
+export { useConnectionManager } from './useConnectionManager'
+export type {
+  SavedConnection,
+  ConnectionManagerState,
+  ConnectionManager,
+} from './useConnectionManager'

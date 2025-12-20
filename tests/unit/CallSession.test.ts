@@ -2,14 +2,15 @@
  * CallSession unit tests
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+ 
+ 
 // Note: Test mocks use 'any' for flexibility and non-null assertions for test setup
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { CallSession, createCallSession } from '@/core/CallSession'
 import { EventBus } from '@/core/EventBus'
 import { CallDirection } from '@/types/call.types'
+import type { MediaManager } from '@/core/MediaManager'
 
 // Mock RTCSession
 class MockRTCSession {
@@ -163,10 +164,14 @@ class MockRTCPeerConnection {
 describe('CallSession', () => {
   let eventBus: EventBus
   let mockRtcSession: MockRTCSession
+  let mockMediaManager: MediaManager
 
   beforeEach(() => {
     eventBus = new EventBus()
     mockRtcSession = new MockRTCSession()
+    mockMediaManager = {
+      getUserMedia: vi.fn().mockResolvedValue('mock-stream'),
+    } as unknown as MediaManager
   })
 
   afterEach(() => {
@@ -183,6 +188,7 @@ describe('CallSession', () => {
         remoteDisplayName: 'Alice',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
         data: { custom: 'value' },
       })
 
@@ -206,6 +212,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
       const afterTime = new Date()
 
@@ -224,6 +231,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       expect(onSpy).toHaveBeenCalledWith('progress', expect.any(Function))
@@ -246,6 +254,7 @@ describe('CallSession', () => {
         remoteDisplayName: 'Alice',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       const iface = session.toInterface()
@@ -272,6 +281,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       // Set initial state to ringing
@@ -281,10 +291,14 @@ describe('CallSession', () => {
     it('should answer incoming call', async () => {
       const answerPromise = session.answer()
 
-      expect(mockRtcSession.answer).toHaveBeenCalled()
       expect(session.state).toBe('answering')
-
+      
       await answerPromise
+      
+      expect(mockMediaManager.getUserMedia).toHaveBeenCalled()
+      expect(mockRtcSession.answer).toHaveBeenCalledWith(expect.objectContaining({
+        mediaStream: 'mock-stream'
+      }))
     })
 
     it('should answer with custom options', async () => {
@@ -297,7 +311,7 @@ describe('CallSession', () => {
 
       expect(mockRtcSession.answer).toHaveBeenCalledWith(
         expect.objectContaining({
-          mediaConstraints: options.mediaConstraints,
+          mediaStream: 'mock-stream',
           extraHeaders: options.extraHeaders,
         })
       )
@@ -311,6 +325,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       await expect(outgoingSession.answer()).rejects.toThrow('Cannot answer outgoing call')
@@ -359,6 +374,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
     })
 
@@ -423,6 +439,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       // Set to active state
@@ -519,6 +536,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       // Set to active state
@@ -673,6 +691,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       mockPeerConnection = new MockRTCPeerConnection()
@@ -729,6 +748,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       // Mock peer connection
@@ -768,6 +788,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
     })
 
@@ -807,6 +828,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
     })
 
@@ -852,6 +874,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
     })
 
@@ -889,6 +912,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       ;(session as any)._state = 'active'
@@ -906,6 +930,7 @@ describe('CallSession', () => {
         remoteUri: 'sip:alice@example.com',
         rtcSession: mockRtcSession,
         eventBus,
+        mediaManager: mockMediaManager,
       })
 
       ;(session as any)._state = 'terminated'
@@ -922,7 +947,8 @@ describe('CallSession', () => {
         mockRtcSession,
         'incoming' as CallDirection,
         'sip:bob@example.com',
-        eventBus
+        eventBus,
+        mockMediaManager
       )
 
       expect(session.id).toBe('test-session-id')
@@ -937,7 +963,8 @@ describe('CallSession', () => {
         mockRtcSession,
         'outgoing' as CallDirection,
         'sip:bob@example.com',
-        eventBus
+        eventBus,
+        mockMediaManager
       )
 
       expect(session.direction).toBe('outgoing')
@@ -951,7 +978,8 @@ describe('CallSession', () => {
         mockRtcSession,
         'incoming' as CallDirection,
         'sip:bob@example.com',
-        eventBus
+        eventBus,
+        mockMediaManager
       )
 
       expect(session.remoteUri).toBe('sip:unknown@unknown')
@@ -964,6 +992,7 @@ describe('CallSession', () => {
         'incoming' as CallDirection,
         'sip:bob@example.com',
         eventBus,
+        mockMediaManager,
         { custom: 'value' }
       )
 

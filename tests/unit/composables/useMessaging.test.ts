@@ -26,11 +26,11 @@ vi.mock('@/utils/logger', () => ({
 }))
 
 describe('useMessaging', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let mockSipClient: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let incomingMessageHandler: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let composingIndicatorHandler: any
 
   beforeEach(() => {

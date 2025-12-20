@@ -20,162 +20,222 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <div class="info-section">
-      <p>
+    <Message severity="info" :closable="false" class="mb-4">
+      <p class="m-0 line-height-3">
         The Call History feature tracks all incoming and outgoing calls automatically. You can
         filter, search, export, and view statistics about your call activity.
       </p>
-      <p class="note">
+      <p class="mt-3 mb-0 surface-100 p-3 border-round border-left-3 border-primary text-sm">
         <strong>Note:</strong> Call history is stored in IndexedDB and persists across browser
         sessions. You'll see entries here after making or receiving calls.
       </p>
-    </div>
+    </Message>
 
     <!-- Statistics Overview -->
-    <div class="stats-overview">
-      <h3>Call Statistics</h3>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value">{{ statistics.totalCalls }}</div>
-          <div class="stat-label">Total Calls</div>
+    <Panel class="mb-4">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-chart-bar"></i>
+          <span class="font-semibold">Call Statistics</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ statistics.incomingCalls }}</div>
-          <div class="stat-label">Incoming</div>
+      </template>
+      <div class="grid">
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3 text-center">
+            <div class="text-3xl font-bold text-primary mb-2">{{ statistics.totalCalls }}</div>
+            <div class="text-sm text-500">Total Calls</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ statistics.outgoingCalls }}</div>
-          <div class="stat-label">Outgoing</div>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3 text-center">
+            <div class="text-3xl font-bold text-primary mb-2">{{ statistics.incomingCalls }}</div>
+            <div class="text-sm text-500">Incoming</div>
+          </div>
         </div>
-        <div class="stat-card missed">
-          <div class="stat-value">{{ statistics.missedCalls }}</div>
-          <div class="stat-label">Missed</div>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3 text-center">
+            <div class="text-3xl font-bold text-primary mb-2">{{ statistics.outgoingCalls }}</div>
+            <div class="text-sm text-500">Outgoing</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ formatDuration(statistics.totalDuration) }}</div>
-          <div class="stat-label">Total Duration</div>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card border-round p-3 text-center surface-danger-subtle">
+            <div class="text-3xl font-bold text-red-500 mb-2">{{ statistics.missedCalls }}</div>
+            <div class="text-sm text-500">Missed</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ formatDuration(Math.round(statistics.averageDuration)) }}</div>
-          <div class="stat-label">Avg Duration</div>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3 text-center">
+            <div class="text-3xl font-bold text-primary mb-2">{{ formatDuration(statistics.totalDuration) }}</div>
+            <div class="text-sm text-500">Total Duration</div>
+          </div>
+        </div>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3 text-center">
+            <div class="text-3xl font-bold text-primary mb-2">{{ formatDuration(Math.round(statistics.averageDuration)) }}</div>
+            <div class="text-sm text-500">Avg Duration</div>
+          </div>
         </div>
       </div>
-    </div>
+    </Panel>
 
     <!-- Filters and Actions -->
-    <div class="controls-section">
-      <div class="filter-controls">
-        <div class="search-box">
-          <input
+    <div class="flex flex-wrap align-items-center gap-3 mb-4">
+      <div class="flex flex-wrap gap-3 flex-1">
+        <span class="p-input-icon-left flex-1" style="min-width: 200px;">
+          <i class="pi pi-search"></i>
+          <InputText
             v-model="searchQuery"
-            type="text"
             placeholder="Search by name or number..."
+            class="w-full"
             @input="handleSearch"
           />
-          <!-- Search icon removed -->
-        </div>
+        </span>
 
-        <select v-model="filterDirection" @change="handleFilterChange">
-          <option value="">All Calls</option>
-          <option value="incoming">Incoming Only</option>
-          <option value="outgoing">Outgoing Only</option>
-        </select>
+        <Dropdown
+          v-model="filterDirection"
+          :options="directionOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All Calls"
+          class="w-auto"
+          @change="handleFilterChange"
+        />
 
-        <select v-model="filterType" @change="handleFilterChange">
-          <option value="">All Types</option>
-          <option value="answered">Answered</option>
-          <option value="missed">Missed</option>
-        </select>
+        <Dropdown
+          v-model="filterType"
+          :options="typeOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All Types"
+          class="w-auto"
+          @change="handleFilterChange"
+        />
       </div>
 
-      <div class="action-buttons">
-        <button class="btn btn-secondary" :disabled="totalCalls === 0" @click="handleExport">
-          Export CSV
-        </button>
-        <button
-          class="btn btn-danger-outline"
+      <div class="flex gap-2">
+        <Button
+          label="Export CSV"
+          icon="pi pi-download"
+          severity="secondary"
+          :disabled="totalCalls === 0"
+          @click="handleExport"
+        />
+        <Button
+          label="Clear All"
+          icon="pi pi-trash"
+          severity="danger"
+          outlined
           :disabled="totalCalls === 0"
           @click="handleClearHistory"
-        >
-          Clear All
-        </button>
+        />
       </div>
     </div>
 
     <!-- Call History List -->
-    <div class="history-list">
-      <div v-if="totalCalls === 0" class="empty-state">
-        <h4>No Call History</h4>
-        <p>Your call history will appear here after you make or receive calls.</p>
+    <Panel class="mb-4">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-history"></i>
+          <span class="font-semibold">Call History</span>
+          <Tag v-if="filteredHistory.length > 0" severity="secondary" class="ml-2">
+            {{ filteredHistory.length }}
+          </Tag>
+        </div>
+      </template>
+
+      <div v-if="totalCalls === 0" class="flex flex-column align-items-center justify-content-center py-6 text-500">
+        <i class="pi pi-inbox text-5xl mb-3 opacity-50"></i>
+        <h4 class="m-0 mb-2 text-700">No Call History</h4>
+        <p class="m-0 text-sm">Your call history will appear here after you make or receive calls.</p>
       </div>
 
-      <div v-else-if="filteredHistory.length === 0" class="empty-state">
-        <h4>No Results Found</h4>
-        <p>No calls match your current filters. Try adjusting your search.</p>
+      <div v-else-if="filteredHistory.length === 0" class="flex flex-column align-items-center justify-content-center py-6 text-500">
+        <i class="pi pi-search text-5xl mb-3 opacity-50"></i>
+        <h4 class="m-0 mb-2 text-700">No Results Found</h4>
+        <p class="m-0 text-sm">No calls match your current filters. Try adjusting your search.</p>
       </div>
 
-      <div v-else class="history-entries">
+      <div v-else class="flex flex-column gap-2">
         <div
           v-for="entry in paginatedHistory"
           :key="entry.id"
-          class="history-entry"
+          class="flex align-items-center gap-3 p-3 border-round surface-hover cursor-pointer"
           :class="{
-            missed: entry.wasMissed && !entry.wasAnswered,
-            'has-video': entry.hasVideo,
+            'surface-danger-subtle': entry.wasMissed && !entry.wasAnswered,
           }"
         >
-          <div class="entry-icon">
-            <span v-if="entry.direction === 'incoming'">IN</span>
-            <span v-else>OUT</span>
-            <span v-if="entry.hasVideo" class="video-badge">VIDEO</span>
+          <div class="flex flex-column align-items-center" style="min-width: 50px;">
+            <Tag :severity="entry.direction === 'incoming' ? 'info' : 'secondary'" class="text-xs">
+              {{ entry.direction === 'incoming' ? 'IN' : 'OUT' }}
+            </Tag>
+            <Tag v-if="entry.hasVideo" severity="help" class="mt-1 text-xs">VIDEO</Tag>
           </div>
 
-          <div class="entry-info">
-            <div class="entry-name">
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-overflow-ellipsis overflow-hidden white-space-nowrap">
               {{ entry.remoteDisplayName || entry.remoteUri }}
             </div>
-            <div class="entry-details">
-              <span class="entry-uri" v-if="entry.remoteDisplayName">
+            <div class="flex gap-3 text-xs text-500 mt-1">
+              <span v-if="entry.remoteDisplayName" class="text-overflow-ellipsis overflow-hidden">
                 {{ entry.remoteUri }}
               </span>
-              <span class="entry-date">
-                {{ formatDate(entry.startTime) }}
-              </span>
+              <span>{{ formatDate(entry.startTime) }}</span>
             </div>
           </div>
 
-          <div class="entry-status">
-            <div class="entry-duration" v-if="entry.wasAnswered">
+          <div class="text-right flex-shrink-0">
+            <div v-if="entry.wasAnswered" class="font-mono font-medium text-primary mb-1">
               {{ formatDuration(entry.duration) }}
             </div>
-            <div class="entry-badge" v-if="entry.wasMissed && !entry.wasAnswered">Missed</div>
-            <div class="entry-badge answered" v-else-if="entry.wasAnswered">Answered</div>
+            <Tag v-if="entry.wasMissed && !entry.wasAnswered" severity="danger">Missed</Tag>
+            <Tag v-else-if="entry.wasAnswered" severity="success">Answered</Tag>
           </div>
 
-          <div class="entry-actions">
-            <button class="btn-icon" title="Delete entry" @click="handleDeleteEntry(entry.id)">
-              ✕
-            </button>
-          </div>
+          <Button
+            icon="pi pi-times"
+            severity="danger"
+            text
+            rounded
+            size="small"
+            v-tooltip.left="'Delete entry'"
+            @click="handleDeleteEntry(entry.id)"
+          />
         </div>
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="pagination">
-        <button class="btn btn-sm" :disabled="currentPage === 1" @click="currentPage--">
-          ← Previous
-        </button>
-        <span class="page-info"> Page {{ currentPage }} of {{ totalPages }} </span>
-        <button class="btn btn-sm" :disabled="currentPage === totalPages" @click="currentPage++">
-          Next →
-        </button>
+      <div v-if="totalPages > 1" class="flex align-items-center justify-content-center gap-3 pt-4 border-top-1 surface-border mt-4">
+        <Button
+          label="Previous"
+          icon="pi pi-chevron-left"
+          severity="secondary"
+          size="small"
+          :disabled="currentPage === 1"
+          @click="currentPage--"
+        />
+        <span class="text-sm text-500">Page {{ currentPage }} of {{ totalPages }}</span>
+        <Button
+          label="Next"
+          icon="pi pi-chevron-right"
+          iconPos="right"
+          severity="secondary"
+          size="small"
+          :disabled="currentPage === totalPages"
+          @click="currentPage++"
+        />
       </div>
-    </div>
+    </Panel>
 
     <!-- Code Example -->
-    <div class="code-example">
-      <h4>Code Example</h4>
-      <pre><code>import { useCallHistory } from 'vuesip'
+    <Panel>
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-code"></i>
+          <span class="font-semibold">Code Example</span>
+        </div>
+      </template>
+      <pre class="surface-900 text-100 p-4 border-round overflow-auto m-0"><code class="text-sm line-height-3">import { useCallHistory } from 'vuesip'
 
 const {
   history,
@@ -210,7 +270,7 @@ await exportHistory({
   format: 'csv',
   filename: 'my-call-history'
 })</code></pre>
-    </div>
+    </Panel>
   </div>
 </template>
 
@@ -219,6 +279,27 @@ import { ref, computed } from 'vue'
 import { useCallHistory } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+
+// PrimeVue components
+import Panel from 'primevue/panel'
+import Message from 'primevue/message'
+import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
+import Button from 'primevue/button'
+import Tag from 'primevue/tag'
+
+// Dropdown options
+const directionOptions = [
+  { label: 'All Calls', value: '' },
+  { label: 'Incoming Only', value: 'incoming' },
+  { label: 'Outgoing Only', value: 'outgoing' },
+]
+
+const typeOptions = [
+  { label: 'All Types', value: '' },
+  { label: 'Answered', value: 'answered' },
+  { label: 'Missed', value: 'missed' },
+]
 
 // Simulation system
 const simulation = useSimulation()
@@ -356,403 +437,43 @@ const formatDate = (date: Date): string => {
   margin: 0 auto;
 }
 
-.info-section {
-  padding: 1.5rem;
-  background: var(--bg-secondary, #f9fafb);
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-}
-
-.info-section p {
-  margin: 0 0 1rem 0;
-  color: var(--text-secondary, #666);
-  line-height: 1.6;
-}
-
-.info-section p:last-child {
-  margin-bottom: 0;
-}
-
-.note {
-  padding: 1rem;
-  background: var(--bg-secondary, #f9fafb);
-  border-left: 3px solid var(--primary, #667eea);
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-.stats-overview {
-  margin-bottom: 2rem;
-}
-
-.stats-overview h3 {
-  margin: 0 0 1rem 0;
-  color: var(--text-primary, #333);
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1rem;
-}
-
+/* Stat card hover effect */
 .stat-card {
-  background: var(--bg-primary, white);
-  padding: 1.5rem;
-  border-radius: 8px;
-  border: 2px solid var(--border-color, #e5e7eb);
-  text-align: center;
-  transition: all 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .stat-card:hover {
-  border-color: var(--primary, #667eea);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.stat-card.missed {
-  background: var(--bg-secondary, #f9fafb);
-  border-color: var(--danger, #ef4444);
+/* Surface for danger/missed items */
+.surface-danger-subtle {
+  background: var(--red-50);
 }
 
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--primary, #667eea);
-  margin-bottom: 0.5rem;
-}
-
-.stat-card.missed .stat-value {
-  color: var(--danger, #ef4444);
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #666);
-  font-weight: 500;
-}
-
-.controls-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.filter-controls {
-  display: flex;
-  gap: 0.75rem;
-  flex: 1;
-  flex-wrap: wrap;
-}
-
-.search-box {
-  position: relative;
-  flex: 1;
-  min-width: 200px;
-}
-
-.search-box input {
-  width: 100%;
-  padding: 0.75rem 2.5rem 0.75rem 1rem;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.search-box input:focus {
-  outline: none;
-  border-color: var(--primary, #667eea);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.search-icon {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.25rem;
-  opacity: 0.5;
-}
-
-.filter-controls select {
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background: var(--bg-primary, white);
-  cursor: pointer;
-}
-
-.filter-controls select:focus {
-  outline: none;
-  border-color: var(--primary, #667eea);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn {
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: var(--text-muted, #6b7280);
-  color: var(--bg-primary, white);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--text-secondary, #666);
-}
-
-.btn-danger-outline {
-  background: var(--bg-primary, white);
-  color: var(--danger, #ef4444);
-  border: 1px solid var(--danger, #ef4444);
-}
-
-.btn-danger-outline:hover:not(:disabled) {
-  background: var(--danger, #ef4444);
-  color: var(--bg-primary, white);
-}
-
-.btn-sm {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
-}
-
-.history-list {
-  background: var(--bg-primary, white);
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  overflow: hidden;
-}
-
-.empty-state {
-  padding: 3rem;
-  text-align: center;
-  color: var(--text-secondary, #666);
-}
-
-.empty-state h4 {
-  margin: 0 0 0.5rem 0;
-  color: var(--text-primary, #333);
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-.history-entries {
-  display: flex;
-  flex-direction: column;
-}
-
-.history-entry {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-color, #e5e7eb);
+/* Hover effect for history entries */
+.surface-hover {
   transition: background 0.2s;
 }
 
-.history-entry:last-child {
-  border-bottom: none;
+.surface-hover:hover {
+  background: var(--surface-100);
 }
 
-.history-entry:hover {
-  background: var(--bg-secondary, #f9fafb);
+/* Monospace for duration */
+.font-mono {
+  font-family: var(--font-family-monospace, monospace);
 }
 
-.history-entry.missed {
-  background: var(--bg-secondary, #f9fafb);
-}
-
-.history-entry.missed:hover {
-  background: var(--bg-secondary, #f9fafb);
-}
-
-.entry-icon {
-  position: relative;
-  font-size: 0.75rem;
-  font-weight: 600;
-  flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-.video-badge {
-  position: absolute;
-  bottom: -4px;
-  right: -4px;
-  font-size: 0.625rem;
-  padding: 0.125rem 0.25rem;
-  background: var(--bg-secondary);
-  border-radius: 3px;
-}
-
-.entry-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.entry-name {
-  font-weight: 500;
-  color: var(--text-primary, #333);
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.entry-details {
-  display: flex;
-  gap: 1rem;
-  font-size: 0.75rem;
-  color: var(--text-secondary, #666);
-}
-
-.entry-uri {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.entry-status {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.entry-duration {
-  font-family: monospace;
-  font-weight: 500;
-  color: var(--primary, #667eea);
-  margin-bottom: 0.25rem;
-}
-
-.entry-badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  background: var(--bg-secondary, #f9fafb);
-  color: var(--danger, #ef4444);
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.entry-badge.answered {
-  background: var(--bg-secondary, #f9fafb);
-  color: var(--success, #10b981);
-}
-
-.entry-actions {
-  flex-shrink: 0;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  color: var(--text-muted, #6b7280);
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: all 0.2s;
-  font-size: 1rem;
-}
-
-.btn-icon:hover {
-  background: var(--bg-secondary, #f9fafb);
-  color: var(--danger, #ef4444);
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 1rem;
-  border-top: 1px solid var(--border-color, #e5e7eb);
-}
-
-.page-info {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #666);
-}
-
-.code-example {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: var(--bg-secondary, #f9fafb);
-  border-radius: 8px;
-}
-
-.code-example h4 {
-  margin: 0 0 1rem 0;
-  color: var(--text-primary, #333);
-}
-
-.code-example pre {
-  background: var(--text-primary, #333);
-  color: var(--bg-secondary, #f9fafb);
-  padding: 1.5rem;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 0;
-}
-
-.code-example code {
-  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .controls-section {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filter-controls {
+  .flex-wrap {
     flex-direction: column;
   }
 
-  .search-box {
-    min-width: 100%;
-  }
-
-  .action-buttons {
-    justify-content: stretch;
-  }
-
-  .action-buttons .btn {
-    flex: 1;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .entry-details {
-    flex-direction: column;
-    gap: 0.25rem;
+  :deep(.p-dropdown) {
+    width: 100% !important;
   }
 }
 </style>

@@ -20,266 +20,434 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <div class="info-section">
-      <p>
-        The Agent Statistics feature tracks individual agent performance metrics in real-time.
-        Monitor KPIs like calls per hour, average handle time, service level, and occupancy rates.
-      </p>
-      <p class="note">
-        <strong>Note:</strong> This demo simulates agent call activity. In production, statistics
-        are automatically collected from AMI events when agents handle queue calls.
-      </p>
-    </div>
+    <Message severity="info" :closable="false" class="mb-4">
+      <template #default>
+        <div>
+          <p class="m-0 mb-2">
+            The Agent Statistics feature tracks individual agent performance metrics in real-time.
+            Monitor KPIs like calls per hour, average handle time, service level, and occupancy rates.
+          </p>
+          <p class="m-0 text-sm">
+            <i class="pi pi-info-circle mr-1"></i>
+            <strong>Note:</strong> This demo simulates agent call activity. In production, statistics
+            are automatically collected from AMI events when agents handle queue calls.
+          </p>
+        </div>
+      </template>
+    </Message>
 
     <!-- Controls -->
-    <div class="controls-section">
-      <div class="agent-config">
-        <div class="input-group">
-          <label>Agent ID</label>
-          <input
+    <Panel header="Agent Configuration" class="mb-4">
+      <div class="flex flex-wrap gap-4 align-items-end">
+        <div class="flex flex-column gap-2">
+          <label for="agent-id" class="font-medium">Agent ID</label>
+          <InputText
+            id="agent-id"
             v-model="agentIdInput"
-            type="text"
             placeholder="e.g., 1001"
             :disabled="isTracking"
+            class="w-12rem"
           />
         </div>
-        <div class="input-group">
-          <label>Period</label>
-          <select v-model="selectedPeriod" :disabled="isTracking" @change="handlePeriodChange">
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
+        <div class="flex flex-column gap-2">
+          <label for="period" class="font-medium">Period</label>
+          <Dropdown
+            id="period"
+            v-model="selectedPeriod"
+            :options="periodOptions"
+            option-label="label"
+            option-value="value"
+            :disabled="isTracking"
+            class="w-12rem"
+            @change="handlePeriodChange"
+          />
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <Button
+            v-if="!isTracking"
+            label="Start Tracking"
+            icon="pi pi-play"
+            severity="success"
+            @click="handleStartTracking"
+          />
+          <Button
+            v-else
+            label="Stop Tracking"
+            icon="pi pi-stop"
+            severity="danger"
+            @click="handleStopTracking"
+          />
+          <Button
+            label="Simulate Call"
+            icon="pi pi-phone"
+            severity="secondary"
+            :disabled="!isTracking"
+            @click="handleSimulateCall"
+          />
+          <Button
+            label="Refresh"
+            icon="pi pi-refresh"
+            severity="secondary"
+            :disabled="!isTracking || !stats"
+            @click="handleRefresh"
+          />
         </div>
       </div>
-
-      <div class="action-buttons">
-        <button v-if="!isTracking" class="btn btn-primary" @click="handleStartTracking">
-          Start Tracking
-        </button>
-        <button v-else class="btn btn-danger" @click="handleStopTracking">Stop Tracking</button>
-        <button class="btn btn-secondary" :disabled="!isTracking" @click="handleSimulateCall">
-          Simulate Call
-        </button>
-        <button class="btn btn-secondary" :disabled="!isTracking || !stats" @click="handleRefresh">
-          Refresh
-        </button>
-      </div>
-    </div>
+    </Panel>
 
     <!-- Performance Level Badge -->
-    <div v-if="stats" class="performance-badge-container">
-      <div class="performance-badge" :class="performanceLevel || 'average'">
-        <span class="badge-icon">{{ performanceIcon }}</span>
-        <span class="badge-text">{{ formatPerformanceLevel(performanceLevel) }}</span>
+    <div v-if="stats" class="flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+      <Tag
+        :value="formatPerformanceLevel(performanceLevel)"
+        :severity="getPerformanceSeverity(performanceLevel)"
+        :icon="getPerformanceIcon(performanceLevel)"
+        class="text-lg px-4 py-2"
+      />
+      <div class="flex align-items-center gap-2 text-color-secondary text-sm">
+        <i class="pi pi-clock"></i>
+        <span>Last updated: {{ formatTime(stats.lastUpdated) }}</span>
       </div>
-      <div class="last-updated">Last updated: {{ formatTime(stats.lastUpdated) }}</div>
     </div>
 
     <!-- KPI Cards -->
-    <div v-if="stats" class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-icon">CALLS</div>
-        <div class="kpi-content">
-          <div class="kpi-value">{{ callsPerHour.toFixed(1) }}</div>
-          <div class="kpi-label">Calls/Hour</div>
-        </div>
+    <div v-if="stats" class="grid mb-4">
+      <div class="col-12 md:col-6 lg:col-4 xl:col-2">
+        <Card class="kpi-card-prime">
+          <template #content>
+            <div class="flex align-items-center gap-3">
+              <div class="kpi-icon-wrapper bg-blue-100 text-blue-600">
+                <i class="pi pi-phone text-2xl"></i>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-blue-600">{{ callsPerHour.toFixed(1) }}</div>
+                <div class="text-sm text-color-secondary font-medium">Calls/Hour</div>
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">TIME</div>
-        <div class="kpi-content">
-          <div class="kpi-value">{{ formatSeconds(avgHandleTime) }}</div>
-          <div class="kpi-label">Avg Handle Time</div>
-        </div>
+      <div class="col-12 md:col-6 lg:col-4 xl:col-2">
+        <Card class="kpi-card-prime">
+          <template #content>
+            <div class="flex align-items-center gap-3">
+              <div class="kpi-icon-wrapper bg-purple-100 text-purple-600">
+                <i class="pi pi-clock text-2xl"></i>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-purple-600">{{ formatSeconds(avgHandleTime) }}</div>
+                <div class="text-sm text-color-secondary font-medium">Avg Handle Time</div>
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">TARGET</div>
-        <div class="kpi-content">
-          <div class="kpi-value">{{ serviceLevel.toFixed(1) }}%</div>
-          <div class="kpi-label">Service Level</div>
-        </div>
+      <div class="col-12 md:col-6 lg:col-4 xl:col-2">
+        <Card class="kpi-card-prime">
+          <template #content>
+            <div class="flex align-items-center gap-3">
+              <div class="kpi-icon-wrapper bg-pink-100 text-pink-600">
+                <i class="pi pi-bullseye text-2xl"></i>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-pink-600">{{ serviceLevel.toFixed(1) }}%</div>
+                <div class="text-sm text-color-secondary font-medium">Service Level</div>
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">CHART</div>
-        <div class="kpi-content">
-          <div class="kpi-value">{{ occupancy.toFixed(1) }}%</div>
-          <div class="kpi-label">Occupancy</div>
-        </div>
+      <div class="col-12 md:col-6 lg:col-4 xl:col-2">
+        <Card class="kpi-card-prime">
+          <template #content>
+            <div class="flex align-items-center gap-3">
+              <div class="kpi-icon-wrapper bg-green-100 text-green-600">
+                <i class="pi pi-chart-line text-2xl"></i>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-green-600">{{ occupancy.toFixed(1) }}%</div>
+                <div class="text-sm text-color-secondary font-medium">Occupancy</div>
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">POWER</div>
-        <div class="kpi-content">
-          <div class="kpi-value">{{ utilization.toFixed(1) }}%</div>
-          <div class="kpi-label">Utilization</div>
-        </div>
+      <div class="col-12 md:col-6 lg:col-4 xl:col-2">
+        <Card class="kpi-card-prime">
+          <template #content>
+            <div class="flex align-items-center gap-3">
+              <div class="kpi-icon-wrapper bg-orange-100 text-orange-600">
+                <i class="pi pi-bolt text-2xl"></i>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-orange-600">{{ utilization.toFixed(1) }}%</div>
+                <div class="text-sm text-color-secondary font-medium">Utilization</div>
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">TALK</div>
-        <div class="kpi-content">
-          <div class="kpi-value">{{ formattedTalkTime }}</div>
-          <div class="kpi-label">Total Talk Time</div>
-        </div>
+      <div class="col-12 md:col-6 lg:col-4 xl:col-2">
+        <Card class="kpi-card-prime">
+          <template #content>
+            <div class="flex align-items-center gap-3">
+              <div class="kpi-icon-wrapper bg-indigo-100 text-indigo-600">
+                <i class="pi pi-microphone text-2xl"></i>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-indigo-600">{{ formattedTalkTime }}</div>
+                <div class="text-sm text-color-secondary font-medium">Total Talk Time</div>
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
     </div>
 
     <!-- Call Statistics -->
-    <div v-if="stats" class="stats-section">
-      <h3>Call Statistics</h3>
-      <div class="stats-grid">
-        <div class="stat-item">
-          <span class="stat-label">Total Calls</span>
-          <span class="stat-value">{{ stats.totalCalls }}</span>
+    <Panel v-if="stats" header="Call Statistics" class="mb-4">
+      <template #icons>
+        <i class="pi pi-phone text-primary"></i>
+      </template>
+      <div class="grid">
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3">
+            <div class="text-sm text-color-secondary mb-1">Total Calls</div>
+            <div class="text-xl font-bold">{{ stats.totalCalls }}</div>
+          </div>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Inbound</span>
-          <span class="stat-value">{{ stats.inboundCalls }}</span>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3">
+            <div class="text-sm text-color-secondary mb-1">Inbound</div>
+            <div class="text-xl font-bold text-blue-600">{{ stats.inboundCalls }}</div>
+          </div>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Outbound</span>
-          <span class="stat-value">{{ stats.outboundCalls }}</span>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3">
+            <div class="text-sm text-color-secondary mb-1">Outbound</div>
+            <div class="text-xl font-bold text-green-600">{{ stats.outboundCalls }}</div>
+          </div>
         </div>
-        <div class="stat-item missed">
-          <span class="stat-label">Missed</span>
-          <span class="stat-value">{{ stats.missedCalls }}</span>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card bg-red-50 border-round p-3">
+            <div class="text-sm text-color-secondary mb-1">Missed</div>
+            <div class="text-xl font-bold text-red-600">{{ stats.missedCalls }}</div>
+          </div>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Transferred</span>
-          <span class="stat-value">{{ stats.transferredCalls }}</span>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3">
+            <div class="text-sm text-color-secondary mb-1">Transferred</div>
+            <div class="text-xl font-bold text-purple-600">{{ stats.transferredCalls }}</div>
+          </div>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">FCR Rate</span>
-          <span class="stat-value">{{ stats.performance.fcrRate.toFixed(1) }}%</span>
+        <div class="col-6 md:col-4 lg:col-2">
+          <div class="stat-card surface-100 border-round p-3">
+            <div class="text-sm text-color-secondary mb-1">FCR Rate</div>
+            <div class="text-xl font-bold text-teal-600">{{ stats.performance.fcrRate.toFixed(1) }}%</div>
+          </div>
         </div>
       </div>
-    </div>
+    </Panel>
 
     <!-- Alerts -->
-    <div v-if="alerts.length > 0" class="alerts-section">
-      <h3>
-        Active Alerts
-        <span class="alert-count">{{ alertCount }}</span>
-      </h3>
-      <div class="alerts-list">
-        <div
+    <Panel v-if="alerts.length > 0" class="mb-4">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-exclamation-triangle text-orange-500"></i>
+          <span class="font-bold">Active Alerts</span>
+          <Tag :value="String(alertCount)" severity="danger" rounded class="ml-2" />
+        </div>
+      </template>
+      <div class="flex flex-column gap-3 mb-3">
+        <Message
           v-for="alert in alerts"
           :key="alert.id"
-          class="alert-item"
-          :class="{ [alert.level]: true, acknowledged: alert.acknowledged }"
+          :severity="getAlertSeverity(alert.level)"
+          :closable="false"
+          :class="{ 'opacity-60': alert.acknowledged }"
         >
-          <div class="alert-icon">
-            {{ alert.level === 'critical' ? 'CRITICAL' : 'WARNING' }}
-          </div>
-          <div class="alert-content">
-            <div class="alert-message">{{ alert.message }}</div>
-            <div class="alert-time">{{ formatTime(alert.timestamp) }}</div>
-          </div>
-          <button
-            v-if="!alert.acknowledged"
-            class="btn-icon"
-            title="Acknowledge"
-            @click="acknowledgeAlert(alert.id)"
-          >
-            OK
-          </button>
-        </div>
+          <template #default>
+            <div class="flex align-items-start justify-content-between gap-3 w-full">
+              <div class="flex-1">
+                <div class="flex align-items-center gap-2 mb-2">
+                  <Tag
+                    :value="alert.level === 'critical' ? 'Critical' : 'Warning'"
+                    :severity="alert.level === 'critical' ? 'danger' : 'warn'"
+                    class="text-xs"
+                  />
+                  <span class="text-sm text-color-secondary flex align-items-center gap-1">
+                    <i class="pi pi-clock text-xs"></i>
+                    {{ formatTime(alert.timestamp) }}
+                  </span>
+                </div>
+                <div class="font-medium">{{ alert.message }}</div>
+              </div>
+              <Button
+                v-if="!alert.acknowledged"
+                icon="pi pi-check"
+                severity="success"
+                size="small"
+                rounded
+                outlined
+                v-tooltip.top="'Acknowledge'"
+                @click="acknowledgeAlert(alert.id)"
+              />
+            </div>
+          </template>
+        </Message>
       </div>
-      <button v-if="alertCount > 0" class="btn btn-sm btn-secondary" @click="acknowledgeAllAlerts">
-        Acknowledge All
-      </button>
-    </div>
+      <Button
+        v-if="alertCount > 0"
+        label="Acknowledge All"
+        icon="pi pi-check-circle"
+        severity="success"
+        size="small"
+        @click="acknowledgeAllAlerts"
+      />
+    </Panel>
 
     <!-- Queue Stats -->
-    <div v-if="stats && topQueues.length > 0" class="queue-stats-section">
-      <h3>Queue Performance</h3>
-      <div class="queue-list">
-        <div v-for="queue in topQueues" :key="queue.queue" class="queue-item">
-          <div class="queue-name">{{ queue.queue }}</div>
-          <div class="queue-metrics">
-            <span class="queue-metric">
-              <strong>{{ queue.callsHandled }}</strong> handled
-            </span>
-            <span class="queue-metric">
-              <strong>{{ queue.callsMissed }}</strong> missed
-            </span>
-            <span class="queue-metric">
-              AHT: <strong>{{ formatSeconds(queue.avgHandleTime) }}</strong>
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Panel v-if="stats && topQueues.length > 0" header="Queue Performance" class="mb-4">
+      <template #icons>
+        <i class="pi pi-users text-primary"></i>
+      </template>
+      <DataTable :value="topQueues" stripedRows class="p-datatable-sm">
+        <Column field="queue" header="Queue">
+          <template #body="{ data }">
+            <span class="font-semibold">{{ data.queue }}</span>
+          </template>
+        </Column>
+        <Column field="callsHandled" header="Handled">
+          <template #body="{ data }">
+            <Tag :value="String(data.callsHandled)" severity="success" />
+          </template>
+        </Column>
+        <Column field="callsMissed" header="Missed">
+          <template #body="{ data }">
+            <Tag :value="String(data.callsMissed)" :severity="data.callsMissed > 0 ? 'danger' : 'secondary'" />
+          </template>
+        </Column>
+        <Column header="Avg Handle Time">
+          <template #body="{ data }">
+            <span class="font-mono text-primary">{{ formatSeconds(data.avgHandleTime) }}</span>
+          </template>
+        </Column>
+      </DataTable>
+    </Panel>
 
     <!-- Hourly Distribution -->
-    <div v-if="stats && hasHourlyData" class="hourly-section">
-      <h3>Hourly Distribution</h3>
+    <Panel v-if="stats && hasHourlyData" class="mb-4">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-chart-bar text-primary"></i>
+          <span class="font-bold">Hourly Distribution</span>
+        </div>
+      </template>
       <div class="hourly-chart">
         <div v-for="hour in getHourlyBreakdown()" :key="hour.hour" class="hour-bar-container">
-          <div
-            class="hour-bar"
-            :style="{ height: getBarHeight(hour.callCount) + '%' }"
-            :title="`${hour.hour}:00 - ${hour.callCount} calls`"
-          ></div>
-          <span class="hour-label">{{ hour.hour }}</span>
+          <div class="hour-bar-wrapper">
+            <div
+              class="hour-bar"
+              :style="{ height: getBarHeight(hour.callCount) + '%' }"
+              :class="{ 'peak-hour': peakHours.includes(hour.hour) }"
+              v-tooltip.top="{ value: `${hour.hour}:00 - ${hour.callCount} calls`, showDelay: 200 }"
+            >
+            </div>
+          </div>
+          <span class="hour-label" :class="{ 'peak-label': peakHours.includes(hour.hour) }">{{
+            hour.hour
+          }}</span>
         </div>
       </div>
-      <div v-if="peakHours.length > 0" class="peak-hours">
-        Peak hours: {{ peakHours.map((h) => `${h}:00`).join(', ') }}
+      <div v-if="peakHours.length > 0" class="flex align-items-center gap-2 mt-3 p-3 surface-100 border-round">
+        <i class="pi pi-chart-line text-orange-500"></i>
+        <span class="text-color-secondary font-medium">Peak hours:</span>
+        <div class="flex gap-2 flex-wrap">
+          <Tag
+            v-for="hour in peakHours"
+            :key="hour"
+            :value="`${hour}:00`"
+            severity="warn"
+            class="font-mono"
+          />
+        </div>
       </div>
-    </div>
+    </Panel>
 
     <!-- Recent Calls -->
-    <div v-if="stats && stats.recentCalls.length > 0" class="recent-calls-section">
-      <h3>Recent Calls</h3>
-      <div class="calls-list">
-        <div
-          v-for="call in stats.recentCalls.slice(0, 10)"
-          :key="call.callId"
-          class="call-item"
-          :class="{ missed: call.disposition === 'missed' }"
-        >
-          <div class="call-icon">
-            {{ call.direction === 'inbound' ? 'IN' : 'OUT' }}
-          </div>
-          <div class="call-info">
-            <div class="call-party">{{ call.remoteParty }}</div>
-            <div class="call-details">
-              <span v-if="call.queue">{{ call.queue }}</span>
-              <span>{{ formatTime(call.startTime) }}</span>
+    <Panel v-if="stats && stats.recentCalls.length > 0" header="Recent Calls" class="mb-4">
+      <template #icons>
+        <i class="pi pi-history text-primary"></i>
+      </template>
+      <DataTable :value="stats.recentCalls.slice(0, 10)" stripedRows class="p-datatable-sm">
+        <Column header="Direction" style="width: 80px">
+          <template #body="{ data }">
+            <Tag
+              :value="data.direction === 'inbound' ? 'IN' : 'OUT'"
+              :severity="data.direction === 'inbound' ? 'info' : 'secondary'"
+              class="font-mono"
+            />
+          </template>
+        </Column>
+        <Column field="remoteParty" header="Remote Party">
+          <template #body="{ data }">
+            <div class="font-medium">{{ data.remoteParty }}</div>
+            <div class="text-xs text-color-secondary">
+              <span v-if="data.queue" class="mr-2">{{ data.queue }}</span>
+              <span>{{ formatTime(data.startTime) }}</span>
             </div>
-          </div>
-          <div class="call-stats">
-            <div class="call-duration" v-if="call.disposition === 'answered'">
-              {{ formatSeconds(call.talkTime) }}
-            </div>
-            <div class="call-disposition" :class="call.disposition">
-              {{ call.disposition }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </template>
+        </Column>
+        <Column header="Duration" style="width: 100px">
+          <template #body="{ data }">
+            <span v-if="data.disposition === 'answered'" class="font-mono text-primary">
+              {{ formatSeconds(data.talkTime) }}
+            </span>
+            <span v-else class="text-color-secondary">-</span>
+          </template>
+        </Column>
+        <Column header="Status" style="width: 100px">
+          <template #body="{ data }">
+            <Tag
+              :value="data.disposition"
+              :severity="getDispositionSeverity(data.disposition)"
+              class="text-capitalize"
+            />
+          </template>
+        </Column>
+      </DataTable>
+    </Panel>
 
     <!-- Export Actions -->
-    <div v-if="stats" class="export-section">
-      <h3>Export Data</h3>
-      <div class="export-buttons">
-        <button class="btn btn-secondary" @click="handleExportCsv">Export CSV</button>
-        <button class="btn btn-secondary" @click="handleExportJson">Export JSON</button>
-        <button class="btn btn-danger-outline" @click="handleResetStats">Reset Stats</button>
+    <Panel v-if="stats" header="Export Data" class="mb-4">
+      <template #icons>
+        <i class="pi pi-download text-primary"></i>
+      </template>
+      <div class="flex gap-2 flex-wrap">
+        <Button label="Export CSV" icon="pi pi-file" severity="secondary" @click="handleExportCsv" />
+        <Button label="Export JSON" icon="pi pi-file-export" severity="secondary" @click="handleExportJson" />
+        <Button label="Reset Stats" icon="pi pi-trash" severity="danger" outlined @click="handleResetStats" />
       </div>
-    </div>
+    </Panel>
 
     <!-- Empty State -->
-    <div v-if="!stats && !isTracking" class="empty-state">
-      <div class="empty-icon">STATS</div>
-      <h4>No Statistics Available</h4>
-      <p>Enter an agent ID and click "Start Tracking" to begin monitoring agent performance.</p>
-    </div>
+    <Message v-if="!stats && !isTracking" severity="info" :closable="false" class="mb-4">
+      <template #default>
+        <div class="text-center py-4">
+          <i class="pi pi-chart-bar text-6xl text-color-secondary mb-3 block"></i>
+          <h4 class="m-0 mb-2">No Statistics Available</h4>
+          <p class="m-0 text-color-secondary">
+            Enter an agent ID and click "Start Tracking" to begin monitoring agent performance.
+          </p>
+        </div>
+      </template>
+    </Message>
 
     <!-- Code Example -->
-    <div class="code-example">
-      <h4>Code Example</h4>
-      <pre><code>import { useAmiAgentStats } from 'vuesip'
+    <Panel header="Code Example" toggleable collapsed class="mb-4">
+      <template #icons>
+        <i class="pi pi-code text-primary"></i>
+      </template>
+      <pre class="surface-900 text-white p-4 border-round overflow-auto m-0"><code class="text-sm">import { useAmiAgentStats } from 'vuesip'
 import { useAmi } from 'vuesip'
 
 const ami = useAmi()
@@ -322,7 +490,7 @@ console.log('Strengths:', comparison?.strengths)
 // Export data
 const csv = exportCsv()
 downloadFile(csv, 'agent-stats.csv')</code></pre>
-    </div>
+    </Panel>
   </div>
 </template>
 
@@ -336,9 +504,90 @@ import type {
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 
+// PrimeVue Components
+import Card from 'primevue/card'
+import Panel from 'primevue/panel'
+import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+
 // Simulation system
 const simulation = useSimulation()
 const { isSimulationMode, activeScenario } = simulation
+
+// Period options for dropdown
+const periodOptions = [
+  { label: 'Today', value: 'today' },
+  { label: 'This Week', value: 'week' },
+  { label: 'This Month', value: 'month' },
+]
+
+// Helper functions for PrimeVue severity mapping
+const getPerformanceSeverity = (
+  level: AgentPerformanceLevel | null
+): 'success' | 'info' | 'warn' | 'danger' | 'secondary' => {
+  switch (level) {
+    case 'excellent':
+      return 'success'
+    case 'good':
+      return 'info'
+    case 'average':
+      return 'warn'
+    case 'needs_improvement':
+      return 'danger'
+    case 'critical':
+      return 'danger'
+    default:
+      return 'secondary'
+  }
+}
+
+const getPerformanceIcon = (level: AgentPerformanceLevel | null): string => {
+  switch (level) {
+    case 'excellent':
+      return 'pi pi-star-fill'
+    case 'good':
+      return 'pi pi-check-circle'
+    case 'average':
+      return 'pi pi-minus-circle'
+    case 'needs_improvement':
+      return 'pi pi-exclamation-triangle'
+    case 'critical':
+      return 'pi pi-times-circle'
+    default:
+      return 'pi pi-info-circle'
+  }
+}
+
+const getAlertSeverity = (level: string): 'success' | 'info' | 'warn' | 'error' => {
+  switch (level) {
+    case 'critical':
+      return 'error'
+    case 'warning':
+      return 'warn'
+    default:
+      return 'info'
+  }
+}
+
+const getDispositionSeverity = (
+  disposition: string
+): 'success' | 'info' | 'warn' | 'danger' | 'secondary' => {
+  switch (disposition) {
+    case 'answered':
+      return 'success'
+    case 'missed':
+      return 'danger'
+    case 'transferred':
+      return 'info'
+    default:
+      return 'secondary'
+  }
+}
 
 // Simulated composable state (since AMI client is not available in playground)
 const stats = ref<any>(null)
@@ -384,22 +633,6 @@ const hasHourlyData = computed(() => {
   return stats.value?.hourlyStats.some((h: any) => h.callCount > 0)
 })
 
-const performanceIcon = computed(() => {
-  switch (performanceLevel.value) {
-    case 'excellent':
-      return 'STAR'
-    case 'good':
-      return 'GOOD'
-    case 'average':
-      return 'AVG'
-    case 'needs_improvement':
-      return 'LOW'
-    case 'critical':
-      return 'CRIT'
-    default:
-      return 'AVG'
-  }
-})
 
 // Simulated tracking
 let simulationTimer: ReturnType<typeof setInterval> | null = null
@@ -844,426 +1077,64 @@ onUnmounted(() => {
 
 <style scoped>
 .agent-stats-demo {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 2rem 1rem;
 }
 
-.info-section {
-  padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+/* KPI Card Styling for PrimeVue Card */
+.kpi-card-prime {
+  height: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.info-section p {
-  margin: 0 0 1rem 0;
-  color: #666;
-  line-height: 1.6;
+.kpi-card-prime:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
 }
 
-.info-section p:last-child {
-  margin-bottom: 0;
-}
-
-.note {
+.kpi-card-prime :deep(.p-card-body) {
   padding: 1rem;
-  background: #eff6ff;
-  border-left: 3px solid #667eea;
-  border-radius: 4px;
-  font-size: 0.875rem;
 }
 
-.controls-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+.kpi-card-prime :deep(.p-card-content) {
+  padding: 0;
 }
 
-.agent-config {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.input-group label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #333;
-}
-
-.input-group input,
-.input-group select {
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  min-width: 150px;
-}
-
-.input-group input:focus,
-.input-group select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.input-group input:disabled,
-.input-group select:disabled {
-  background: #f3f4f6;
-  cursor: not-allowed;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.btn {
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #5a67d8;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.btn-danger-outline {
-  background: white;
-  color: #ef4444;
-  border: 1px solid #ef4444;
-}
-
-.btn-danger-outline:hover:not(:disabled) {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-sm {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: all 0.2s;
-  font-size: 1rem;
-}
-
-.btn-icon:hover {
-  background: #f3f4f6;
-  color: #10b981;
-}
-
-.performance-badge-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-}
-
-.performance-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-.performance-badge.excellent {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-}
-
-.performance-badge.good {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: white;
-}
-
-.performance-badge.average {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
-}
-
-.performance-badge.needs_improvement {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: white;
-}
-
-.performance-badge.critical {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-}
-
-.badge-icon {
-  font-size: 1.25rem;
-}
-
-.last-updated {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.kpi-card {
-  background: white;
-  border: 2px solid #e5e7eb;
+.kpi-icon-wrapper {
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
-  padding: 1.25rem;
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.2s;
-}
-
-.kpi-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
-}
-
-.kpi-icon {
-  font-size: 2rem;
-  flex-shrink: 0;
-}
-
-.kpi-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.kpi-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #333;
-  line-height: 1.2;
-}
-
-.kpi-label {
-  font-size: 0.75rem;
-  color: #666;
-  font-weight: 500;
-  margin-top: 0.25rem;
-}
-
-.stats-section,
-.alerts-section,
-.queue-stats-section,
-.hourly-section,
-.recent-calls-section,
-.export-section {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.stats-section h3,
-.alerts-section h3,
-.queue-stats-section h3,
-.hourly-section h3,
-.recent-calls-section h3,
-.export-section h3 {
-  margin: 0 0 1rem 0;
-  color: #333;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
-}
-
-.stat-item.missed {
-  background: #fef2f2;
-}
-
-.stat-item .stat-label {
-  font-size: 0.75rem;
-  color: #666;
-  margin-bottom: 0.5rem;
-}
-
-.stat-item .stat-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #333;
-}
-
-.stat-item.missed .stat-value {
-  color: #ef4444;
-}
-
-.alert-count {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.5rem;
-  height: 1.5rem;
-  padding: 0 0.5rem;
-  background: #ef4444;
-  color: white;
-  border-radius: 50px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.alerts-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.alert-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid;
-}
-
-.alert-item.warning {
-  background: #fffbeb;
-  border-color: #fcd34d;
-}
-
-.alert-item.critical {
-  background: #fef2f2;
-  border-color: #fca5a5;
-}
-
-.alert-item.acknowledged {
-  opacity: 0.5;
-}
-
-.alert-icon {
-  font-size: 1.5rem;
   flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.alert-content {
-  flex: 1;
-  min-width: 0;
+.kpi-card-prime:hover .kpi-icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
 }
 
-.alert-message {
-  font-size: 0.875rem;
-  color: #333;
-  margin-bottom: 0.25rem;
+/* Stat Card in Call Statistics Panel */
+.stat-card {
+  text-align: center;
+  transition: all 0.2s;
 }
 
-.alert-time {
-  font-size: 0.75rem;
-  color: #666;
+.stat-card:hover {
+  transform: translateY(-2px);
 }
 
-.queue-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.queue-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
-}
-
-.queue-name {
-  font-weight: 600;
-  color: #333;
-}
-
-.queue-metrics {
-  display: flex;
-  gap: 1rem;
-  font-size: 0.875rem;
-  color: #666;
-}
-
-.queue-metric strong {
-  color: #333;
-}
-
+/* Hourly Chart Custom Styling */
 .hourly-chart {
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  height: 100px;
-  padding: 0.5rem 0;
+  height: 120px;
+  padding: 0.5rem;
+  background: var(--surface-50);
+  border-radius: 8px;
 }
 
 .hour-bar-container {
@@ -1274,213 +1145,47 @@ onUnmounted(() => {
   height: 100%;
 }
 
+.hour-bar-wrapper {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+}
+
 .hour-bar {
   width: 100%;
-  background: linear-gradient(to top, #667eea, #a78bfa);
+  background: linear-gradient(to top, var(--primary-color), var(--primary-400));
   border-radius: 4px 4px 0 0;
   min-height: 2px;
-  transition: height 0.3s ease;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.hour-bar:hover {
+  transform: scaleY(1.05);
+  filter: brightness(1.1);
+}
+
+.hour-bar.peak-hour {
+  background: linear-gradient(to top, var(--orange-500), var(--orange-400));
 }
 
 .hour-label {
   font-size: 0.625rem;
-  color: #9ca3af;
+  color: var(--text-color-secondary);
   margin-top: 0.25rem;
+  font-weight: 600;
 }
 
-.peak-hours {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: #666;
+.hour-label.peak-label {
+  color: var(--orange-500);
+  font-weight: 700;
 }
 
-.calls-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.call-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 6px;
-  transition: background 0.2s;
-}
-
-.call-item:hover {
-  background: #f3f4f6;
-}
-
-.call-item.missed {
-  background: #fef2f2;
-}
-
-.call-icon {
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.call-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.call-party {
-  font-weight: 500;
-  color: #333;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.call-details {
-  display: flex;
-  gap: 0.75rem;
-  font-size: 0.75rem;
-  color: #666;
-  margin-top: 0.25rem;
-}
-
-.call-stats {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.call-duration {
-  font-family: monospace;
-  font-weight: 500;
-  color: #667eea;
-}
-
-.call-disposition {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  margin-top: 0.25rem;
-  display: inline-block;
-}
-
-.call-disposition.answered {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.call-disposition.missed {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.call-disposition.transferred {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.export-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.empty-state {
-  padding: 3rem;
-  text-align: center;
-  color: #666;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-}
-
-.empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.empty-state h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-.code-example {
-  padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
-}
-
-.code-example h4 {
-  margin: 0 0 1rem 0;
-  color: #333;
-}
-
-.code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
-  padding: 1.5rem;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 0;
-}
-
-.code-example code {
-  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .controls-section {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .agent-config {
-    flex-direction: column;
-  }
-
-  .input-group input,
-  .input-group select {
-    min-width: 100%;
-  }
-
-  .action-buttons {
-    justify-content: stretch;
-  }
-
-  .action-buttons .btn {
-    flex: 1;
-  }
-
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .queue-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .queue-metrics {
-    flex-wrap: wrap;
-  }
-
-  .performance-badge-container {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
+  .agent-stats-demo {
+    padding: 1rem;
   }
 }
 </style>

@@ -1,5 +1,13 @@
 /**
  * useAmiCDR composable unit tests
+ *
+ * CDR (Call Detail Records) composable providing:
+ * - Real-time CDR event processing
+ * - Call statistics and analytics
+ * - Filtering and export capabilities
+ * - Agent and queue statistics
+ *
+ * @see src/composables/useAmiCDR.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -10,33 +18,93 @@ import type { CdrRecord } from '@/types/cdr.types'
 import { createMockAmiClient, createAmiEvent, type MockAmiClient } from '../utils/mockFactories'
 
 /**
- * Create a mock CDR event
+ * Test fixtures for consistent CDR test data
+ */
+const TEST_FIXTURES = {
+  dispositions: {
+    answered: 'ANSWERED',
+    noAnswer: 'NO ANSWER',
+    busy: 'BUSY',
+    failed: 'FAILED',
+    cancel: 'CANCEL',
+  },
+  channels: {
+    standard: 'PJSIP/1001-00000001',
+    trunk: 'PJSIP/trunk-00000001',
+    destination: 'PJSIP/1002-00000002',
+  },
+  numbers: {
+    source: '1001',
+    destination: '1002',
+    external: '5551234',
+  },
+  durations: {
+    short: '30',
+    medium: '120',
+    long: '300',
+  },
+  times: {
+    now: () => new Date(),
+    twoMinutesAgo: () => new Date(Date.now() - 120000),
+    tenSecondsAfter: (baseTime: Date) => new Date(baseTime.getTime() + 10000),
+  },
+} as const
+
+/**
+ * Factory function: Create CDR event with sensible defaults
+ *
+ * Creates a complete CDR event with all required fields.
+ * Override any field by passing them in the overrides object.
+ *
+ * @param overrides - Optional field overrides
+ * @returns Complete CDR event object
  */
 function createCdrEvent(overrides: Partial<Record<string, string>> = {}) {
-  const now = new Date()
-  const startTime = new Date(now.getTime() - 120000) // 2 minutes ago
-  const answerTime = new Date(startTime.getTime() + 10000) // 10 seconds after start
+  const now = TEST_FIXTURES.times.now()
+  const startTime = TEST_FIXTURES.times.twoMinutesAgo()
+  const answerTime = TEST_FIXTURES.times.tenSecondsAfter(startTime)
 
   return createAmiEvent('Cdr', {
     AccountCode: '',
-    Source: '1001',
-    Destination: '1002',
+    Source: TEST_FIXTURES.numbers.source,
+    Destination: TEST_FIXTURES.numbers.destination,
     DestinationContext: 'default',
-    CallerID: '"User 1001" <1001>',
-    Channel: 'PJSIP/1001-00000001',
-    DestinationChannel: 'PJSIP/1002-00000002',
+    CallerID: `"User ${TEST_FIXTURES.numbers.source}" <${TEST_FIXTURES.numbers.source}>`,
+    Channel: TEST_FIXTURES.channels.standard,
+    DestinationChannel: TEST_FIXTURES.channels.destination,
     LastApplication: 'Dial',
     LastData: 'PJSIP/1002',
     StartTime: startTime.toISOString(),
     AnswerTime: answerTime.toISOString(),
     EndTime: now.toISOString(),
-    Duration: '120',
+    Duration: TEST_FIXTURES.durations.medium,
     BillableSeconds: '110',
-    Disposition: 'ANSWERED',
+    Disposition: TEST_FIXTURES.dispositions.answered,
     AMAFlags: 'DOCUMENTATION',
     UniqueID: `${Date.now()}.${Math.floor(Math.random() * 1000)}`,
     UserField: '',
     ...overrides,
+  })
+}
+
+/**
+ * Factory function: Create answered CDR event
+ */
+function createAnsweredCdr(billableSeconds: string = '110') {
+  return createCdrEvent({
+    Disposition: TEST_FIXTURES.dispositions.answered,
+    BillableSeconds: billableSeconds,
+  })
+}
+
+/**
+ * Factory function: Create unanswered CDR event
+ */
+function createUnansweredCdr(disposition: string = TEST_FIXTURES.dispositions.noAnswer) {
+  return createCdrEvent({
+    Disposition: disposition,
+    AnswerTime: '',
+    BillableSeconds: '0',
   })
 }
 
@@ -56,25 +124,47 @@ describe('useAmiCDR', () => {
     vi.useRealTimers()
   })
 
-  describe('initial state', () => {
-    it('should have empty records initially', () => {
-      const { records } = useAmiCDR(clientRef)
-      expect(records.value).toHaveLength(0)
-    })
+  /**
+   * Initial State Tests
+   * Verify composable starts with correct initial state
+   */
+  describe('Initial State', () => {
+    describe.each([
+      {
+        description: 'records',
+        getter: (composable: ReturnType<typeof useAmiCDR>) => composable.records.value,
+        expected: [],
+        matcher: 'toEqual',
+      },
+      {
+        description: 'error',
+        getter: (composable: ReturnType<typeof useAmiCDR>) => composable.error.value,
+        expected: null,
+        matcher: 'toBe',
+      },
+      {
+        description: 'isProcessing',
+        getter: (composable: ReturnType<typeof useAmiCDR>) => composable.isProcessing.value,
+        expected: false,
+        matcher: 'toBe',
+      },
+      {
+        description: 'totalCount',
+        getter: (composable: ReturnType<typeof useAmiCDR>) => composable.totalCount.value,
+        expected: 0,
+        matcher: 'toBe',
+      },
+    ])('$description initialization', ({ getter, expected, matcher }) => {
+      it(`should initialize ${matcher === 'toBe' ? 'as' : 'with'} ${JSON.stringify(expected)}`, () => {
+        const composable = useAmiCDR(clientRef)
+        const value = getter(composable)
 
-    it('should have no error initially', () => {
-      const { error } = useAmiCDR(clientRef)
-      expect(error.value).toBeNull()
-    })
-
-    it('should not be processing initially', () => {
-      const { isProcessing } = useAmiCDR(clientRef)
-      expect(isProcessing.value).toBe(false)
-    })
-
-    it('should have zero total count initially', () => {
-      const { totalCount } = useAmiCDR(clientRef)
-      expect(totalCount.value).toBe(0)
+        if (matcher === 'toBe') {
+          expect(value).toBe(expected)
+        } else {
+          expect(value).toEqual(expected)
+        }
+      })
     })
 
     it('should have zero stats initially', () => {
@@ -121,46 +211,41 @@ describe('useAmiCDR', () => {
       expect(record.disposition).toBe('ANSWERED')
     })
 
-    it('should handle NO ANSWER disposition', async () => {
-      const { records } = useAmiCDR(clientRef)
+    /**
+     * Disposition Handling Tests
+     * Verify correct processing of different call dispositions
+     */
+    describe.each([
+      {
+        disposition: TEST_FIXTURES.dispositions.noAnswer,
+        expectAnswerTime: null,
+        expectBillableSeconds: 0,
+        description: 'NO ANSWER',
+      },
+      {
+        disposition: TEST_FIXTURES.dispositions.busy,
+        expectAnswerTime: null,
+        expectBillableSeconds: 0,
+        description: 'BUSY',
+      },
+      {
+        disposition: TEST_FIXTURES.dispositions.failed,
+        expectAnswerTime: null,
+        expectBillableSeconds: 0,
+        description: 'FAILED',
+      },
+    ])('$description disposition', ({ disposition, expectAnswerTime, expectBillableSeconds }) => {
+      it(`should handle ${disposition} correctly`, async () => {
+        const { records } = useAmiCDR(clientRef)
 
-      const cdrEvent = createCdrEvent({
-        Disposition: 'NO ANSWER',
-        AnswerTime: '',
-        BillableSeconds: '0',
+        const cdrEvent = createUnansweredCdr(disposition)
+        mockClient._triggerEvent('event', cdrEvent)
+        await nextTick()
+
+        expect(records.value[0].disposition).toBe(disposition)
+        expect(records.value[0].answerTime).toBe(expectAnswerTime)
+        expect(records.value[0].billableSeconds).toBe(expectBillableSeconds)
       })
-      mockClient._triggerEvent('event', cdrEvent)
-      await nextTick()
-
-      expect(records.value[0].disposition).toBe('NO ANSWER')
-      expect(records.value[0].answerTime).toBeNull()
-      expect(records.value[0].billableSeconds).toBe(0)
-    })
-
-    it('should handle BUSY disposition', async () => {
-      const { records } = useAmiCDR(clientRef)
-
-      const cdrEvent = createCdrEvent({
-        Disposition: 'BUSY',
-        AnswerTime: '',
-        BillableSeconds: '0',
-      })
-      mockClient._triggerEvent('event', cdrEvent)
-      await nextTick()
-
-      expect(records.value[0].disposition).toBe('BUSY')
-    })
-
-    it('should handle FAILED disposition', async () => {
-      const { records } = useAmiCDR(clientRef)
-
-      const cdrEvent = createCdrEvent({
-        Disposition: 'FAILED',
-      })
-      mockClient._triggerEvent('event', cdrEvent)
-      await nextTick()
-
-      expect(records.value[0].disposition).toBe('FAILED')
     })
 
     it('should add new records at the beginning', async () => {
@@ -244,13 +329,21 @@ describe('useAmiCDR', () => {
     })
   })
 
-  describe('statistics calculation', () => {
+  /**
+   * Statistics Calculation Tests
+   * Verify correct calculation of call statistics and analytics
+   *
+   * NOTE: These tests have pre-existing failures (7 stats tests fail).
+   * We're not fixing the failures, just improving code quality while
+   * maintaining the current pass/fail status.
+   */
+  describe('Statistics Calculation', () => {
     it('should calculate total calls', async () => {
       const { stats } = useAmiCDR(clientRef)
 
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'NO ANSWER' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'BUSY' }))
+      mockClient._triggerEvent('event', createAnsweredCdr())
+      mockClient._triggerEvent('event', createUnansweredCdr(TEST_FIXTURES.dispositions.noAnswer))
+      mockClient._triggerEvent('event', createUnansweredCdr(TEST_FIXTURES.dispositions.busy))
       await nextTick()
 
       expect(stats.value.totalCalls).toBe(3)
@@ -259,9 +352,9 @@ describe('useAmiCDR', () => {
     it('should calculate answered calls', async () => {
       const { stats } = useAmiCDR(clientRef)
 
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'NO ANSWER' }))
+      mockClient._triggerEvent('event', createAnsweredCdr())
+      mockClient._triggerEvent('event', createAnsweredCdr())
+      mockClient._triggerEvent('event', createUnansweredCdr())
       await nextTick()
 
       expect(stats.value.answeredCalls).toBe(2)
@@ -270,9 +363,9 @@ describe('useAmiCDR', () => {
     it('should calculate missed calls', async () => {
       const { stats } = useAmiCDR(clientRef)
 
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'NO ANSWER' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'CANCEL' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
+      mockClient._triggerEvent('event', createUnansweredCdr(TEST_FIXTURES.dispositions.noAnswer))
+      mockClient._triggerEvent('event', createUnansweredCdr(TEST_FIXTURES.dispositions.cancel))
+      mockClient._triggerEvent('event', createAnsweredCdr())
       await nextTick()
 
       expect(stats.value.missedCalls).toBe(2)
@@ -281,10 +374,10 @@ describe('useAmiCDR', () => {
     it('should calculate answer rate', async () => {
       const { stats } = useAmiCDR(clientRef)
 
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'NO ANSWER' }))
+      mockClient._triggerEvent('event', createAnsweredCdr())
+      mockClient._triggerEvent('event', createAnsweredCdr())
+      mockClient._triggerEvent('event', createAnsweredCdr())
+      mockClient._triggerEvent('event', createUnansweredCdr())
       await nextTick()
 
       expect(stats.value.answerRate).toBe(75)
@@ -293,8 +386,8 @@ describe('useAmiCDR', () => {
     it('should calculate average talk time', async () => {
       const { stats } = useAmiCDR(clientRef)
 
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED', BillableSeconds: '100' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED', BillableSeconds: '200' }))
+      mockClient._triggerEvent('event', createAnsweredCdr('100'))
+      mockClient._triggerEvent('event', createAnsweredCdr('200'))
       await nextTick()
 
       expect(stats.value.averageTalkTime).toBe(150)
@@ -303,19 +396,30 @@ describe('useAmiCDR', () => {
     it('should track disposition breakdown', async () => {
       const { stats } = useAmiCDR(clientRef)
 
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'NO ANSWER' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'BUSY' }))
+      mockClient._triggerEvent('event', createAnsweredCdr())
+      mockClient._triggerEvent('event', createAnsweredCdr())
+      mockClient._triggerEvent('event', createUnansweredCdr(TEST_FIXTURES.dispositions.noAnswer))
+      mockClient._triggerEvent('event', createUnansweredCdr(TEST_FIXTURES.dispositions.busy))
       await nextTick()
 
-      expect(stats.value.byDisposition['ANSWERED']).toBe(2)
-      expect(stats.value.byDisposition['NO ANSWER']).toBe(1)
-      expect(stats.value.byDisposition['BUSY']).toBe(1)
+      expect(stats.value.byDisposition[TEST_FIXTURES.dispositions.answered]).toBe(2)
+      expect(stats.value.byDisposition[TEST_FIXTURES.dispositions.noAnswer]).toBe(1)
+      expect(stats.value.byDisposition[TEST_FIXTURES.dispositions.busy]).toBe(1)
     })
   })
 
-  describe('filtering', () => {
+  /**
+   * Filtering Tests
+   * Verify record filtering by various criteria
+   *
+   * Supports filtering by:
+   * - Direction (inbound/outbound/internal)
+   * - Disposition (answered/missed/busy/failed)
+   * - Source and destination numbers
+   * - Duration ranges
+   * - Sorting and pagination
+   */
+  describe('Filtering', () => {
     beforeEach(async () => {
       // Add test data
       const { records: _records } = useAmiCDR(clientRef)
@@ -425,29 +529,53 @@ describe('useAmiCDR', () => {
     })
   })
 
-  describe('export', () => {
-    it('should export to CSV', async () => {
-      const { exportRecords } = useAmiCDR(clientRef)
+  /**
+   * Export Tests
+   * Verify CDR export functionality
+   *
+   * Supports:
+   * - CSV and JSON export formats
+   * - Field selection
+   * - Filtering before export
+   * - CSV injection attack prevention
+   */
+  describe('Export', () => {
+    /**
+     * Format-specific export tests
+     * Verify different export formats produce correct output
+     */
+    describe.each([
+      {
+        format: 'csv' as const,
+        description: 'CSV format',
+        expectedContains: ['uniqueId', TEST_FIXTURES.numbers.source, TEST_FIXTURES.numbers.destination],
+        parser: (data: string) => data,
+      },
+      {
+        format: 'json' as const,
+        description: 'JSON format',
+        expectedContains: [],
+        parser: (data: string) => JSON.parse(data),
+      },
+    ])('$description export', ({ format, expectedContains, parser }) => {
+      it(`should export to ${format.toUpperCase()}`, async () => {
+        const { exportRecords } = useAmiCDR(clientRef)
 
-      mockClient._triggerEvent('event', createCdrEvent({ Source: '1001', Destination: '1002' }))
-      await nextTick()
+        mockClient._triggerEvent('event', createCdrEvent())
+        await nextTick()
 
-      const csv = exportRecords({ format: 'csv' })
-      expect(csv).toContain('uniqueId')
-      expect(csv).toContain('1001')
-      expect(csv).toContain('1002')
-    })
+        const exported = exportRecords({ format })
+        const parsed = parser(exported)
 
-    it('should export to JSON', async () => {
-      const { exportRecords } = useAmiCDR(clientRef)
-
-      mockClient._triggerEvent('event', createCdrEvent({ Source: '1001' }))
-      await nextTick()
-
-      const json = exportRecords({ format: 'json' })
-      const parsed = JSON.parse(json)
-      expect(parsed).toHaveLength(1)
-      expect(parsed[0].source).toBe('1001')
+        if (format === 'csv') {
+          expectedContains.forEach(item => {
+            expect(exported).toContain(item)
+          })
+        } else if (format === 'json') {
+          expect(parsed).toHaveLength(1)
+          expect(parsed[0].source).toBe(TEST_FIXTURES.numbers.source)
+        }
+      })
     })
 
     it('should export specific fields', async () => {
@@ -468,15 +596,22 @@ describe('useAmiCDR', () => {
     it('should export with filter', async () => {
       const { exportRecords } = useAmiCDR(clientRef)
 
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'ANSWERED' }))
-      mockClient._triggerEvent('event', createCdrEvent({ Disposition: 'NO ANSWER' }))
+      mockClient._triggerEvent('event', createAnsweredCdr())
+      mockClient._triggerEvent('event', createUnansweredCdr())
       await nextTick()
 
-      const json = exportRecords({ format: 'json' }, { disposition: 'ANSWERED' })
+      const json = exportRecords({ format: 'json' }, { disposition: TEST_FIXTURES.dispositions.answered })
       const parsed = JSON.parse(json)
       expect(parsed).toHaveLength(1)
     })
 
+    /**
+     * CSV Injection Prevention Tests
+     * Verify CSV export prevents formula injection attacks
+     *
+     * Dangerous prefixes: =, +, -, @
+     * Should be escaped with single quote prefix
+     */
     it('should sanitize CSV values to prevent injection attacks', async () => {
       const { exportRecords } = useAmiCDR(clientRef)
 
@@ -501,7 +636,11 @@ describe('useAmiCDR', () => {
     })
   })
 
-  describe('helper methods', () => {
+  /**
+   * Helper Methods Tests
+   * Verify utility methods for record access and analytics
+   */
+  describe('Helper Methods', () => {
     it('should get today calls', async () => {
       const { getTodayCalls } = useAmiCDR(clientRef)
 
@@ -512,22 +651,28 @@ describe('useAmiCDR', () => {
       expect(todayCalls).toHaveLength(1)
     })
 
-    it('should get call detail by uniqueId', async () => {
-      const { getCallDetail, records } = useAmiCDR(clientRef)
+    /**
+     * Call Detail Retrieval Tests
+     * Verify retrieving specific CDR by unique ID
+     */
+    describe('getCallDetail', () => {
+      it('should get call detail by uniqueId', async () => {
+        const { getCallDetail, records } = useAmiCDR(clientRef)
 
-      mockClient._triggerEvent('event', createCdrEvent())
-      await nextTick()
+        mockClient._triggerEvent('event', createCdrEvent())
+        await nextTick()
 
-      const uniqueId = records.value[0].uniqueId
-      const detail = getCallDetail(uniqueId)
-      expect(detail).toBeDefined()
-      expect(detail?.uniqueId).toBe(uniqueId)
-    })
+        const uniqueId = records.value[0].uniqueId
+        const detail = getCallDetail(uniqueId)
+        expect(detail).toBeDefined()
+        expect(detail?.uniqueId).toBe(uniqueId)
+      })
 
-    it('should return undefined for unknown uniqueId', () => {
-      const { getCallDetail } = useAmiCDR(clientRef)
-      const detail = getCallDetail('unknown-id')
-      expect(detail).toBeUndefined()
+      it('should return undefined for unknown uniqueId', () => {
+        const { getCallDetail } = useAmiCDR(clientRef)
+        const detail = getCallDetail('unknown-id')
+        expect(detail).toBeUndefined()
+      })
     })
 
     it('should calculate service level', async () => {
@@ -591,7 +736,16 @@ describe('useAmiCDR', () => {
     })
   })
 
-  describe('agent stats', () => {
+  /**
+   * Agent Statistics Tests
+   * Verify agent performance tracking and metrics
+   *
+   * Tracks per-agent:
+   * - Calls handled
+   * - Total talk time
+   * - Average talk time
+   */
+  describe('Agent Statistics', () => {
     it('should track agent statistics', async () => {
       const { agentStats } = useAmiCDR(clientRef)
 
@@ -599,7 +753,7 @@ describe('useAmiCDR', () => {
       mockClient._triggerEvent(
         'event',
         createCdrEvent({
-          Disposition: 'ANSWERED',
+          Disposition: TEST_FIXTURES.dispositions.answered,
           DestinationChannel: 'PJSIP/1001-00000001',
           BillableSeconds: '120',
         })
@@ -607,7 +761,7 @@ describe('useAmiCDR', () => {
       mockClient._triggerEvent(
         'event',
         createCdrEvent({
-          Disposition: 'ANSWERED',
+          Disposition: TEST_FIXTURES.dispositions.answered,
           DestinationChannel: 'PJSIP/1001-00000002',
           BillableSeconds: '180',
         })
@@ -625,7 +779,7 @@ describe('useAmiCDR', () => {
       mockClient._triggerEvent(
         'event',
         createCdrEvent({
-          Disposition: 'ANSWERED',
+          Disposition: TEST_FIXTURES.dispositions.answered,
           DestinationChannel: 'PJSIP/1002-00000001',
           BillableSeconds: '60',
         })
@@ -645,7 +799,17 @@ describe('useAmiCDR', () => {
     })
   })
 
-  describe('queue stats', () => {
+  /**
+   * Queue Statistics Tests
+   * Verify queue performance tracking and metrics
+   *
+   * Tracks per-queue:
+   * - Calls offered
+   * - Calls answered
+   * - Calls abandoned
+   * - Service level
+   */
+  describe('Queue Statistics', () => {
     it('should track queue statistics', async () => {
       const { queueStats } = useAmiCDR(clientRef)
 
@@ -654,7 +818,7 @@ describe('useAmiCDR', () => {
         createCdrEvent({
           LastApplication: 'Queue',
           LastData: 'sales',
-          Disposition: 'ANSWERED',
+          Disposition: TEST_FIXTURES.dispositions.answered,
         })
       )
       mockClient._triggerEvent(
@@ -662,7 +826,7 @@ describe('useAmiCDR', () => {
         createCdrEvent({
           LastApplication: 'Queue',
           LastData: 'sales',
-          Disposition: 'NO ANSWER',
+          Disposition: TEST_FIXTURES.dispositions.noAnswer,
         })
       )
       await nextTick()
@@ -681,7 +845,7 @@ describe('useAmiCDR', () => {
         createCdrEvent({
           LastApplication: 'Queue',
           LastData: 'support',
-          Disposition: 'ANSWERED',
+          Disposition: TEST_FIXTURES.dispositions.answered,
         })
       )
       await nextTick()
@@ -698,7 +862,11 @@ describe('useAmiCDR', () => {
     })
   })
 
-  describe('event listeners', () => {
+  /**
+   * Event Listener Tests
+   * Verify CDR event subscription and cleanup
+   */
+  describe('Event Listeners', () => {
     it('should subscribe to CDR events', async () => {
       const listener = vi.fn()
       const { onCdrEvent } = useAmiCDR(clientRef)
@@ -727,7 +895,16 @@ describe('useAmiCDR', () => {
     })
   })
 
-  describe('direction detection', () => {
+  /**
+   * Direction Detection Tests
+   * Verify call direction classification
+   *
+   * Supports:
+   * - Custom detection logic
+   * - Inbound/outbound/internal classification
+   * - Trunk-based detection
+   */
+  describe('Direction Detection', () => {
     it('should use custom direction detection', async () => {
       const { records } = useAmiCDR(clientRef, {
         detectDirection: (cdr) => {
@@ -736,7 +913,7 @@ describe('useAmiCDR', () => {
         },
       })
 
-      mockClient._triggerEvent('event', createCdrEvent({ Channel: 'PJSIP/trunk-00000001' }))
+      mockClient._triggerEvent('event', createCdrEvent({ Channel: TEST_FIXTURES.channels.trunk }))
       await nextTick()
 
       expect(records.value[0].direction).toBe('inbound')
@@ -753,7 +930,11 @@ describe('useAmiCDR', () => {
     })
   })
 
-  describe('client changes', () => {
+  /**
+   * Client Lifecycle Tests
+   * Verify handling of client disconnect and reconnect
+   */
+  describe('Client Changes', () => {
     it('should handle client disconnect', async () => {
       const { records } = useAmiCDR(clientRef)
 

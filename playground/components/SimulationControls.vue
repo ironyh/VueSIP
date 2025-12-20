@@ -95,11 +95,11 @@
 </template>
 
 <script setup lang="ts">
-import { toRefs } from 'vue'
+import { toRefs as _toRefs } from 'vue'
 import type { SimulationScenario } from '../composables/useSimulation'
 
 // Props - receive simulation state from parent
-const props = defineProps<{
+const _props = defineProps<{
   isSimulationMode: boolean
   activeScenario: string | null
   state: string

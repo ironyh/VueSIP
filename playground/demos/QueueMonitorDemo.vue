@@ -21,227 +21,320 @@
     />
 
     <!-- Configuration Panel -->
-    <div v-if="!isAmiConnected" class="config-panel">
-      <h3>AMI Queue Monitor</h3>
-      <p class="info-text">
-        Connect to Asterisk via
-        <a href="https://github.com/staskobzar/amiws" target="_blank">amiws</a>
-        WebSocket proxy to monitor call queues in real-time.
-      </p>
+    <Panel v-if="!isAmiConnected" header="AMI Queue Monitor" class="mb-4">
+      <template #icons>
+        <i class="pi pi-server text-primary"></i>
+      </template>
 
-      <div class="form-group">
-        <label for="ami-url">AMI WebSocket URL</label>
-        <input
+      <Message severity="info" :closable="false" class="mb-4">
+        Connect to Asterisk via
+        <a href="https://github.com/staskobzar/amiws" target="_blank" class="text-primary font-medium">amiws</a>
+        WebSocket proxy to monitor call queues in real-time.
+      </Message>
+
+      <div class="flex flex-column gap-2 mb-4">
+        <label for="ami-url" class="font-medium">AMI WebSocket URL</label>
+        <InputText
           id="ami-url"
           v-model="amiConfig.url"
           type="text"
           placeholder="ws://pbx.example.com:8080"
           :disabled="connecting"
+          class="w-full"
         />
-        <small>amiws WebSocket proxy URL</small>
+        <small class="text-color-secondary">amiws WebSocket proxy URL</small>
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
+        :label="connecting ? 'Connecting...' : 'Connect to AMI'"
+        icon="pi pi-link"
         :disabled="!amiConfig.url || connecting"
+        :loading="connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
+        class="mb-3"
+      />
 
-      <div v-if="connectionError" class="error-message">
+      <Message v-if="connectionError" severity="error" :closable="false" class="mt-3">
         {{ connectionError }}
-      </div>
+      </Message>
 
-      <div class="demo-tip">
+      <Message severity="warn" :closable="false" class="mt-3">
+        <i class="pi pi-lightbulb mr-2"></i>
         <strong>Tip:</strong> This demo requires Asterisk with queues configured and an amiws proxy
         running to expose AMI via WebSocket.
-      </div>
-    </div>
+      </Message>
+    </Panel>
 
     <!-- Connected Interface -->
     <div v-else class="connected-interface">
       <!-- Status Bar -->
-      <div class="status-bar">
-        <div class="status-item">
-          <span class="status-dot connected"></span>
-          <span>AMI Connected</span>
+      <div class="flex flex-wrap align-items-center gap-3 p-3 surface-card border-round mb-4">
+        <Tag severity="success" class="px-3 py-2">
+          <i class="pi pi-shield mr-2"></i>
+          AMI Connected
+        </Tag>
+        <Tag severity="secondary" class="px-3 py-2">
+          <i class="pi pi-th-large mr-2"></i>
+          {{ queueList.length }} Queues
+        </Tag>
+        <Tag severity="info" class="px-3 py-2">
+          <i class="pi pi-users mr-2"></i>
+          {{ totalCallers }} Callers
+        </Tag>
+        <Tag severity="success" class="px-3 py-2">
+          <i class="pi pi-user-plus mr-2"></i>
+          {{ totalAvailable }} Available
+        </Tag>
+        <Tag severity="warn" class="px-3 py-2">
+          <i class="pi pi-pause mr-2"></i>
+          {{ totalPaused }} Paused
+        </Tag>
+        <Tag :severity="overallServiceLevel >= 80 ? 'success' : overallServiceLevel >= 60 ? 'warn' : 'danger'" class="px-3 py-2">
+          <i class="pi pi-chart-line mr-2"></i>
+          {{ overallServiceLevel }}% SL
+        </Tag>
+        <div class="flex gap-2 ml-auto">
+          <Button
+            :label="loading ? 'Refreshing...' : 'Refresh'"
+            icon="pi pi-refresh"
+            size="small"
+            severity="secondary"
+            :loading="loading"
+            @click="handleRefresh"
+          />
+          <Button
+            label="Disconnect"
+            icon="pi pi-sign-out"
+            size="small"
+            severity="secondary"
+            @click="handleDisconnect"
+          />
         </div>
-        <div class="status-item">
-          <span>Queues: {{ queueList.length }}</span>
-        </div>
-        <div class="status-item">
-          <span>Total Callers: {{ totalCallers }}</span>
-        </div>
-        <div class="status-item">
-          <span>Available Agents: {{ totalAvailable }}</span>
-        </div>
-        <div class="status-item">
-          <span class="stat-paused">Paused: {{ totalPaused }}</span>
-        </div>
-        <div class="status-item">
-          <span class="stat-sl">SL: {{ overallServiceLevel }}%</span>
-        </div>
-        <button class="btn btn-sm btn-secondary" @click="handleRefresh" :disabled="loading">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
-        </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Queue Overview -->
-      <div class="queue-overview">
-        <h3>Queue Overview</h3>
+      <Panel header="Queue Overview" class="mb-4">
+        <template #icons>
+          <i class="pi pi-th-large text-primary"></i>
+        </template>
 
-        <div v-if="loading" class="loading-state">Loading queue data...</div>
-
-        <div v-else-if="queueList.length === 0" class="empty-state">
-          <p>No queues found</p>
-          <p class="info-text">Make sure you have queues configured in Asterisk.</p>
+        <div v-if="loading" class="flex align-items-center justify-content-center p-5">
+          <i class="pi pi-spin pi-spinner text-4xl text-primary mr-3"></i>
+          <span class="text-lg">Loading queue data...</span>
         </div>
 
-        <div v-else class="queue-cards">
-          <div
+        <Message v-else-if="queueList.length === 0" severity="info" :closable="false" class="text-center">
+          <div class="flex flex-column align-items-center">
+            <i class="pi pi-inbox text-4xl mb-3"></i>
+            <p class="font-semibold mb-2">No queues found</p>
+            <p class="text-color-secondary">Make sure you have queues configured in Asterisk.</p>
+          </div>
+        </Message>
+
+        <div v-else class="flex flex-column gap-3">
+          <Card
             v-for="queue in queueList"
             :key="queue.name"
-            class="queue-card"
-            :class="{ expanded: expandedQueue === queue.name }"
+            class="queue-card cursor-pointer"
+            :class="{ 'border-primary': expandedQueue === queue.name }"
             @click="toggleQueue(queue.name)"
           >
-            <div class="queue-header">
-              <div class="queue-name">{{ queue.name }}</div>
-              <div class="queue-stats">
-                <span class="stat callers" :class="{ alert: queue.calls > 5 }">
-                  {{ queue.calls }} waiting
-                </span>
-                <span class="stat members"> {{ queue.members.length }} agents </span>
-                <span class="stat available"> {{ availableCount(queue) }} available </span>
+            <template #header>
+              <div class="flex justify-content-between align-items-center p-3 surface-50 border-round-top">
+                <div class="flex align-items-center gap-2">
+                  <i class="pi pi-server text-primary text-xl"></i>
+                  <span class="font-bold text-lg">{{ queue.name }}</span>
+                </div>
+                <div class="flex gap-2">
+                  <Tag :severity="queue.calls > 5 ? 'danger' : 'info'">
+                    {{ queue.calls }} waiting
+                  </Tag>
+                  <Tag severity="secondary">
+                    {{ queue.members.length }} agents
+                  </Tag>
+                  <Tag severity="success">
+                    {{ availableCount(queue) }} available
+                  </Tag>
+                </div>
               </div>
-            </div>
+            </template>
 
-            <div class="queue-metrics">
-              <div class="metric">
-                <label>Hold Time</label>
-                <span>{{ formatTime(queue.holdtime) }}</span>
-              </div>
-              <div class="metric">
-                <label>Talk Time</label>
-                <span>{{ formatTime(queue.talktime) }}</span>
-              </div>
-              <div class="metric">
-                <label>Completed</label>
-                <span>{{ queue.completed }}</span>
-              </div>
-              <div class="metric">
-                <label>Abandoned</label>
-                <span class="abandoned">{{ queue.abandoned }}</span>
-              </div>
-              <div class="metric">
-                <label>SL %</label>
-                <span>{{ queue.serviceLevelPerf.toFixed(1) }}%</span>
-              </div>
-            </div>
-
-            <!-- Expanded Details -->
-            <div v-if="expandedQueue === queue.name" class="queue-details">
-              <!-- Members Section -->
-              <div class="members-section">
-                <h4>Agents ({{ queue.members.length }})</h4>
-                <div class="members-list">
-                  <div
-                    v-for="member in queue.members"
-                    :key="member.interface"
-                    class="member-card"
-                    :class="{ paused: member.paused }"
-                  >
-                    <div class="member-info">
-                      <div class="member-name">{{ member.name || member.interface }}</div>
-                      <div class="member-interface">{{ member.interface }}</div>
+            <template #content>
+              <div class="grid">
+                <div class="col-12 md:col-6 lg:col-2">
+                  <div class="metric-card hold-time">
+                    <div class="metric-icon">
+                      <i class="pi pi-clock"></i>
                     </div>
-                    <div class="member-status">
-                      <span class="status-badge" :class="getStatusClass(member.status)">
-                        {{ member.statusLabel }}
-                      </span>
-                      <span v-if="member.paused" class="paused-badge">
-                        {{ member.pausedReason || 'Paused' }}
-                      </span>
+                    <div class="metric-content">
+                      <div class="metric-value">{{ formatTime(queue.holdtime) }}</div>
+                      <div class="metric-label">Hold Time</div>
                     </div>
-                    <div class="member-stats">
-                      <span>Calls: {{ member.callsTaken }}</span>
-                      <span v-if="member.lastCall">
-                        Last: {{ formatTimestamp(member.lastCall) }}
-                      </span>
+                  </div>
+                </div>
+                <div class="col-12 md:col-6 lg:col-2">
+                  <div class="metric-card talk-time">
+                    <div class="metric-icon">
+                      <i class="pi pi-comments"></i>
                     </div>
-                    <div class="member-actions">
-                      <button
-                        v-if="!member.paused"
-                        class="btn btn-sm btn-warning"
-                        @click.stop="handlePause(queue.name, member.interface)"
-                      >
-                        Pause
-                      </button>
-                      <button
-                        v-else
-                        class="btn btn-sm btn-success"
-                        @click.stop="handleUnpause(queue.name, member.interface)"
-                      >
-                        Unpause
-                      </button>
+                    <div class="metric-content">
+                      <div class="metric-value">{{ formatTime(queue.talktime) }}</div>
+                      <div class="metric-label">Talk Time</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 md:col-6 lg:col-2">
+                  <div class="metric-card completed">
+                    <div class="metric-icon">
+                      <i class="pi pi-check-circle"></i>
+                    </div>
+                    <div class="metric-content">
+                      <div class="metric-value">{{ queue.completed }}</div>
+                      <div class="metric-label">Completed</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 md:col-6 lg:col-2">
+                  <div class="metric-card abandoned">
+                    <div class="metric-icon">
+                      <i class="pi pi-times-circle"></i>
+                    </div>
+                    <div class="metric-content">
+                      <div class="metric-value">{{ queue.abandoned }}</div>
+                      <div class="metric-label">Abandoned</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12 md:col-6 lg:col-2">
+                  <div class="metric-card service-level">
+                    <div class="metric-icon">
+                      <i class="pi pi-bullseye"></i>
+                    </div>
+                    <div class="metric-content">
+                      <div class="metric-value">{{ queue.serviceLevelPerf.toFixed(1) }}%</div>
+                      <div class="metric-label">Service Level</div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Callers Section -->
-              <div v-if="queue.entries.length > 0" class="callers-section">
-                <h4>Waiting Callers ({{ queue.entries.length }})</h4>
-                <div class="callers-list">
-                  <div
-                    v-for="entry in queue.entries"
-                    :key="entry.uniqueId"
-                    class="caller-card"
-                    :class="{ long: entry.wait > 60 }"
-                  >
-                    <div class="caller-position">#{{ entry.position }}</div>
-                    <div class="caller-info">
-                      <div class="caller-id">
-                        {{ entry.callerIdName || entry.callerIdNum || 'Unknown' }}
+              <!-- Expanded Details -->
+              <div v-if="expandedQueue === queue.name" class="mt-4 pt-4 border-top-1 surface-border">
+                <!-- Members Section -->
+                <div class="mb-4">
+                  <div class="flex align-items-center gap-2 mb-3">
+                    <i class="pi pi-users text-primary"></i>
+                    <span class="font-semibold">Agents ({{ queue.members.length }})</span>
+                  </div>
+                  <div class="flex flex-column gap-2">
+                    <div
+                      v-for="member in queue.members"
+                      :key="member.interface"
+                      class="flex align-items-center gap-3 p-3 border-round"
+                      :class="member.paused ? 'bg-yellow-50 border-1 border-yellow-300' : 'surface-100'"
+                    >
+                      <div class="flex-1">
+                        <div class="font-medium">{{ member.name || member.interface }}</div>
+                        <small class="text-color-secondary">{{ member.interface }}</small>
                       </div>
-                      <div class="caller-number">{{ entry.callerIdNum }}</div>
+                      <div class="flex gap-2 align-items-center">
+                        <Tag :severity="getTagSeverity(member.status)">
+                          {{ member.statusLabel }}
+                        </Tag>
+                        <Tag v-if="member.paused" severity="warn">
+                          {{ member.pausedReason || 'Paused' }}
+                        </Tag>
+                      </div>
+                      <div class="flex flex-column text-right text-sm">
+                        <span>Calls: {{ member.callsTaken }}</span>
+                        <span v-if="member.lastCall" class="text-color-secondary">
+                          Last: {{ formatTimestamp(member.lastCall) }}
+                        </span>
+                      </div>
+                      <div>
+                        <Button
+                          v-if="!member.paused"
+                          label="Pause"
+                          icon="pi pi-pause"
+                          size="small"
+                          severity="warn"
+                          @click.stop="handlePause(queue.name, member.interface)"
+                        />
+                        <Button
+                          v-else
+                          label="Unpause"
+                          icon="pi pi-play"
+                          size="small"
+                          severity="success"
+                          @click.stop="handleUnpause(queue.name, member.interface)"
+                        />
+                      </div>
                     </div>
-                    <div class="caller-wait" :class="{ alert: entry.wait > 120 }">
-                      {{ formatTime(entry.wait) }}
+                  </div>
+                </div>
+
+                <!-- Callers Section -->
+                <div v-if="queue.entries.length > 0">
+                  <div class="flex align-items-center gap-2 mb-3">
+                    <i class="pi pi-phone text-primary"></i>
+                    <span class="font-semibold">Waiting Callers ({{ queue.entries.length }})</span>
+                  </div>
+                  <div class="flex flex-column gap-2">
+                    <div
+                      v-for="entry in queue.entries"
+                      :key="entry.uniqueId"
+                      class="flex align-items-center gap-3 p-3 border-round"
+                      :class="entry.wait > 60 ? 'bg-yellow-50 border-1 border-yellow-300' : 'surface-100'"
+                    >
+                      <Tag severity="info" class="text-lg font-bold">#{{ entry.position }}</Tag>
+                      <div class="flex-1">
+                        <div class="font-medium">
+                          {{ entry.callerIdName || entry.callerIdNum || 'Unknown' }}
+                        </div>
+                        <small class="text-color-secondary">{{ entry.callerIdNum }}</small>
+                      </div>
+                      <Tag :severity="entry.wait > 120 ? 'danger' : entry.wait > 60 ? 'warn' : 'secondary'">
+                        <i class="pi pi-clock mr-1"></i>
+                        {{ formatTime(entry.wait) }}
+                      </Tag>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </template>
+          </Card>
         </div>
-      </div>
+      </Panel>
 
       <!-- Pause Reason Dialog -->
-      <div v-if="showPauseDialog" class="dialog-overlay" @click.self="cancelPause">
-        <div class="dialog">
-          <h3>Pause Agent</h3>
-          <p>Select a reason for pausing:</p>
-          <div class="pause-reasons">
-            <button
-              v-for="reason in pauseReasons"
-              :key="reason"
-              class="btn btn-reason"
-              @click="confirmPause(reason)"
-            >
-              {{ reason }}
-            </button>
-          </div>
-          <button class="btn btn-secondary" @click="cancelPause">Cancel</button>
+      <Dialog
+        v-model:visible="showPauseDialog"
+        header="Pause Agent"
+        :modal="true"
+        :style="{ width: '400px' }"
+        :closable="true"
+        @hide="cancelPause"
+      >
+        <p class="text-color-secondary mb-4">Select a reason for pausing:</p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <Button
+            v-for="reason in pauseReasons"
+            :key="reason"
+            :label="reason"
+            severity="secondary"
+            outlined
+            @click="confirmPause(reason)"
+          />
         </div>
-      </div>
+        <template #footer>
+          <Button label="Cancel" severity="secondary" @click="cancelPause" />
+        </template>
+      </Dialog>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-message">
+      <Message v-if="error" severity="error" :closable="false" class="mt-3">
         {{ error }}
-      </div>
+      </Message>
     </div>
   </div>
 </template>
@@ -253,6 +346,15 @@ import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 import type { QueueInfo } from '../../src/types/ami.types'
 import { QueueMemberStatus } from '../../src/types/ami.types'
+
+// PrimeVue Components
+import Panel from 'primevue/panel'
+import Card from 'primevue/card'
+import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Dialog from 'primevue/dialog'
 
 // AMI Configuration
 const amiConfig = ref({ url: '' })
@@ -302,24 +404,26 @@ const availableCount = (queue: QueueInfo): number => {
   return queue.members.filter((m) => !m.paused && m.status === QueueMemberStatus.NotInUse).length
 }
 
-const getStatusClass = (status: QueueMemberStatus): string => {
+
+// PrimeVue Tag severity helper
+const getTagSeverity = (status: QueueMemberStatus): 'success' | 'info' | 'warn' | 'danger' | 'secondary' => {
   switch (status) {
     case QueueMemberStatus.NotInUse:
-      return 'available'
+      return 'success'
     case QueueMemberStatus.InUse:
     case QueueMemberStatus.Busy:
     case QueueMemberStatus.RingInUse:
-      return 'busy'
+      return 'danger'
     case QueueMemberStatus.Ringing:
     case QueueMemberStatus.Ring:
-      return 'ringing'
+      return 'info'
     case QueueMemberStatus.Unavailable:
     case QueueMemberStatus.Invalid:
-      return 'offline'
+      return 'secondary'
     case QueueMemberStatus.OnHold:
-      return 'hold'
+      return 'warn'
     default:
-      return 'unknown'
+      return 'secondary'
   }
 }
 
@@ -436,492 +540,134 @@ onMounted(() => {
 .queue-monitor-demo {
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.config-panel {
-  padding: 2rem;
-}
-
-.config-panel h3 {
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-.info-text {
-  margin-bottom: 1.5rem;
-  color: #666;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.info-text a {
-  color: #667eea;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.form-group small {
-  display: block;
-  margin-top: 0.25rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-.btn-success {
-  background: #10b981;
-  color: white;
-}
-.btn-success:hover:not(:disabled) {
-  background: #059669;
-}
-.btn-warning {
-  background: #f59e0b;
-  color: white;
-}
-.btn-warning:hover:not(:disabled) {
-  background: #d97706;
-}
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
-  font-size: 0.875rem;
-}
-
-.demo-tip {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
-  font-size: 0.875rem;
+  padding: 2rem 1rem;
 }
 
 /* Connected Interface */
 .connected-interface {
-  padding: 2rem;
+  padding: 0;
 }
 
-.status-bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ef4444;
-}
-
-.status-dot.connected {
-  background: #10b981;
-}
-
-.stat-paused {
-  color: #f59e0b;
-  font-weight: 500;
-}
-
-.stat-sl {
-  color: #10b981;
-  font-weight: 500;
-}
-
-/* Queue Overview */
-.queue-overview h3 {
-  margin-bottom: 1rem;
-  color: #111827;
-}
-
-.loading-state,
-.empty-state {
-  padding: 2rem;
-  text-align: center;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
-  color: #6b7280;
-}
-
-/* Queue Cards */
-.queue-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
+/* Queue Card PrimeVue styling */
 .queue-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .queue-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
-.queue-card.expanded {
-  border-color: #667eea;
-}
-
-.queue-header {
+/* Metric Cards */
+.metric-card {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--border-radius);
+  padding: 1rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-}
-
-.queue-name {
-  font-weight: 600;
-  font-size: 1.125rem;
-  color: #111827;
-}
-
-.queue-stats {
-  display: flex;
-  gap: 1rem;
-}
-
-.stat {
-  font-size: 0.875rem;
-  padding: 0.25rem 0.5rem;
-  background: #f3f4f6;
-  border-radius: 4px;
-}
-
-.stat.callers.alert {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.stat.available {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.queue-metrics {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.metric {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.metric label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-}
-
-.metric span {
-  font-weight: 500;
-  color: #111827;
-}
-
-.metric .abandoned {
-  color: #dc2626;
-}
-
-/* Queue Details */
-.queue-details {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.members-section h4,
-.callers-section h4 {
-  margin-bottom: 1rem;
-  color: #374151;
-}
-
-.members-list,
-.callers-list {
-  display: flex;
-  flex-direction: column;
   gap: 0.75rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Member Card */
-.member-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
-.member-card.paused {
-  background: #fef3c7;
-  border: 1px solid #fbbf24;
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
-.member-info {
-  flex: 1;
+.metric-card:hover::before {
+  opacity: 1;
 }
 
-.member-name {
-  font-weight: 500;
-  color: #111827;
-}
+/* Card-specific styling */
+.metric-card.hold-time .metric-icon { background: linear-gradient(135deg, var(--orange-500), var(--orange-400)); }
+.metric-card.hold-time::before { background: linear-gradient(90deg, var(--orange-500), var(--orange-400)); }
 
-.member-interface {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
+.metric-card.talk-time .metric-icon { background: linear-gradient(135deg, var(--blue-500), var(--blue-400)); }
+.metric-card.talk-time::before { background: linear-gradient(90deg, var(--blue-500), var(--blue-400)); }
 
-.member-status {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
+.metric-card.completed .metric-icon { background: linear-gradient(135deg, var(--green-500), var(--green-400)); }
+.metric-card.completed::before { background: linear-gradient(90deg, var(--green-500), var(--green-400)); }
 
-.status-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
+.metric-card.abandoned .metric-icon { background: linear-gradient(135deg, var(--red-500), var(--red-400)); }
+.metric-card.abandoned::before { background: linear-gradient(90deg, var(--red-500), var(--red-400)); }
 
-.status-badge.available {
-  background: #d1fae5;
-  color: #065f46;
-}
-.status-badge.busy {
-  background: #fee2e2;
-  color: #991b1b;
-}
-.status-badge.ringing {
-  background: #dbeafe;
-  color: #1e40af;
-}
-.status-badge.hold {
-  background: #fef3c7;
-  color: #92400e;
-}
-.status-badge.offline {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-.status-badge.unknown {
-  background: #e5e7eb;
-  color: #374151;
-}
+.metric-card.service-level .metric-icon { background: linear-gradient(135deg, var(--purple-500), var(--purple-400)); }
+.metric-card.service-level::before { background: linear-gradient(90deg, var(--purple-500), var(--purple-400)); }
 
-.paused-badge {
-  font-size: 0.75rem;
-  color: #92400e;
-}
-
-.member-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.member-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-/* Caller Card */
-.caller-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
-}
-
-.caller-card.long {
-  background: #fef3c7;
-  border: 1px solid #fbbf24;
-}
-
-.caller-position {
-  font-weight: 600;
-  font-size: 1.25rem;
-  color: #667eea;
-  min-width: 40px;
-}
-
-.caller-info {
-  flex: 1;
-}
-
-.caller-id {
-  font-weight: 500;
-  color: #111827;
-}
-
-.caller-number {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.caller-wait {
-  font-weight: 500;
-}
-
-.caller-wait.alert {
-  color: #dc2626;
-}
-
-/* Callers Section */
-.callers-section {
-  margin-top: 1.5rem;
-}
-
-/* Dialog */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+/* Metric icon */
+.metric-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
-}
-
-.dialog {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 400px;
-  width: 90%;
-}
-
-.dialog h3 {
-  margin-bottom: 0.5rem;
-}
-
-.dialog p {
-  color: #6b7280;
-  margin-bottom: 1rem;
-}
-
-.pause-reasons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.btn-reason {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #e5e7eb;
-}
-
-.btn-reason:hover {
-  background: #667eea;
+  flex-shrink: 0;
   color: white;
-  border-color: #667eea;
+  font-size: 1.125rem;
+}
+
+/* Metric content */
+.metric-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+  line-height: 1.2;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+/* Gradient text for specific metrics */
+.metric-card.completed .metric-value {
+  background: linear-gradient(135deg, var(--green-600), var(--green-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.metric-card.abandoned .metric-value {
+  background: linear-gradient(135deg, var(--red-600), var(--red-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.metric-card.service-level .metric-value {
+  background: linear-gradient(135deg, var(--purple-600), var(--purple-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .queue-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .queue-stats {
-    flex-wrap: wrap;
-  }
-
-  .queue-metrics {
-    justify-content: space-between;
-  }
-
-  .member-card {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .status-bar {
-    flex-direction: column;
+  .queue-monitor-demo {
+    padding: 1rem 0.5rem;
   }
 }
 </style>

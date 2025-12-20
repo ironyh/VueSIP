@@ -1,26 +1,69 @@
 /**
  * useAmiDatabase composable unit tests
+ *
+ * Tests database-backed contact management functionality:
+ * - Contact CRUD operations (save, get, delete)
+ * - Search and filtering (by name, number, email, group)
+ * - Import/export functionality
+ * - Group management
+ * - Field validation
+ * - Known ID tracking and refresh
+ *
+ * @see src/composables/useAmiDatabase.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { nextTick } from 'vue'
 import { useAmiDatabase } from '@/composables/useAmiDatabase'
+import { createMockAmiClient } from '../../utils/test-helpers'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiContact } from '@/types/ami.types'
 
-// Create mock AMI client
+/**
+ * Test fixtures for consistent test data across all test suites
+ */
+const TEST_FIXTURES = {
+  contacts: {
+    john: { name: 'John Doe', number: '+1234567890', email: 'john@example.com' },
+    jane: { name: 'Jane Smith', number: '+0987654321', email: 'jane@other.com' },
+    bob: { name: 'Bob Johnson', number: '+1111111111', email: 'bob@example.com' },
+  },
+  groups: {
+    default: ['Default'],
+    custom: ['Sales', 'Support', 'VIP'],
+    mixed: ['Sales', 'Support'],
+  },
+  fields: {
+    required: [
+      { key: 'name', label: 'Name', type: 'text' as const, required: true },
+      { key: 'number', label: 'Phone', type: 'tel' as const, required: true },
+    ],
+    custom: [
+      { key: 'name', label: 'Full Name', type: 'text' as const, required: true },
+      { key: 'ext', label: 'Extension', type: 'text' as const },
+    ],
+  },
+  errors: {
+    nullClient: 'AMI client not connected',
+    requiredField: 'Required field missing: Name',
+  },
+} as const
+
+/**
+ * Factory function: Create mock AMI client with database operations
+ */
 const createMockClient = (): AmiClient => {
-  return {
+  return createMockAmiClient({
     dbGet: vi.fn().mockResolvedValue(null),
     dbPut: vi.fn().mockResolvedValue(undefined),
     dbDel: vi.fn().mockResolvedValue(undefined),
     dbDelTree: vi.fn().mockResolvedValue(undefined),
-    on: vi.fn(),
-    off: vi.fn(),
-  } as unknown as AmiClient
+  })
 }
 
-// Helper to create mock contact
+/**
+ * Factory function: Create mock contact with sensible defaults
+ */
 function createMockContact(id: string, overrides?: Partial<AmiContact>): AmiContact {
   return {
     id,
@@ -44,41 +87,41 @@ describe('useAmiDatabase', () => {
     vi.clearAllMocks()
   })
 
-  describe('initial state', () => {
-    it('should have empty contacts initially', () => {
-      const { contacts, contactList, contactCount } = useAmiDatabase(mockClient)
+  /**
+   * Initial State Tests
+   * Verify composable starts with correct initial state
+   */
+  describe('Initial State', () => {
+    describe.each([
+      {
+        description: 'default groups',
+        options: undefined,
+        expectedGroups: TEST_FIXTURES.groups.default,
+        expectedContactCount: 0,
+        expectedLoading: false,
+        expectedError: null,
+      },
+      {
+        description: 'custom groups',
+        options: { groups: TEST_FIXTURES.groups.custom },
+        expectedGroups: TEST_FIXTURES.groups.custom,
+        expectedContactCount: 0,
+        expectedLoading: false,
+        expectedError: null,
+      },
+    ])('with $description', ({ options, expectedGroups, expectedContactCount, expectedLoading, expectedError }) => {
+      it(`should have ${expectedGroups.length} group(s), ${expectedContactCount} contacts, loading=${expectedLoading}`, () => {
+        const { groups, contacts, contactList, contactCount, loading, error } = useAmiDatabase(mockClient, options)
 
-      expect(contacts.value.size).toBe(0)
-      expect(contactList.value).toEqual([])
-      expect(contactCount.value).toBe(0)
-    })
-
-    it('should have default groups', () => {
-      const { groups } = useAmiDatabase(mockClient)
-
-      expect(groups.value).toContain('Default')
-    })
-
-    it('should have custom groups when provided', () => {
-      const { groups } = useAmiDatabase(mockClient, {
-        groups: ['Sales', 'Support', 'VIP'],
+        expect(contacts.value.size).toBe(expectedContactCount)
+        expect(contactList.value).toEqual([])
+        expect(contactCount.value).toBe(expectedContactCount)
+        expect(loading.value).toBe(expectedLoading)
+        expect(error.value).toBe(expectedError)
+        expectedGroups.forEach(group => {
+          expect(groups.value).toContain(group)
+        })
       })
-
-      expect(groups.value).toContain('Sales')
-      expect(groups.value).toContain('Support')
-      expect(groups.value).toContain('VIP')
-    })
-
-    it('should have loading as false initially', () => {
-      const { loading } = useAmiDatabase(mockClient)
-
-      expect(loading.value).toBe(false)
-    })
-
-    it('should have no error initially', () => {
-      const { error } = useAmiDatabase(mockClient)
-
-      expect(error.value).toBeNull()
     })
 
     it('should handle null client gracefully', () => {
@@ -89,15 +132,23 @@ describe('useAmiDatabase', () => {
     })
   })
 
+  /**
+   * Save Contact Tests
+   * Verify contact creation, updates, group management, and validation
+   *
+   * Save operations should:
+   * - Generate unique IDs for new contacts
+   * - Update existing contacts when ID provided
+   * - Add new groups automatically
+   * - Validate required fields
+   * - Persist to database via dbPut
+   */
   describe('saveContact', () => {
     it('should save a new contact', async () => {
       const onContactSaved = vi.fn()
       const { saveContact, contacts, contactList } = useAmiDatabase(mockClient, { onContactSaved })
 
-      const contact = await saveContact({
-        name: 'John Doe',
-        number: '+1234567890',
-      })
+      const contact = await saveContact(TEST_FIXTURES.contacts.john)
 
       expect(contact.id).toBeDefined()
       expect(contact.name).toBe('John Doe')
@@ -112,10 +163,7 @@ describe('useAmiDatabase', () => {
       const { saveContact, contacts } = useAmiDatabase(mockClient)
 
       // Create contact
-      const contact = await saveContact({
-        name: 'John Doe',
-        number: '+1234567890',
-      })
+      const contact = await saveContact(TEST_FIXTURES.contacts.john)
 
       // Update contact
       const updatedContact = await saveContact({
@@ -143,36 +191,36 @@ describe('useAmiDatabase', () => {
 
     it('should validate required fields', async () => {
       const { saveContact } = useAmiDatabase(mockClient, {
-        fields: [
-          { key: 'name', label: 'Name', type: 'text', required: true },
-          { key: 'number', label: 'Phone', type: 'tel', required: true },
-        ],
+        fields: TEST_FIXTURES.fields.required,
       })
 
       await expect(saveContact({
         name: '',
         number: '+1234567890',
-      })).rejects.toThrow('Required field missing: Name')
+      })).rejects.toThrow(TEST_FIXTURES.errors.requiredField)
     })
 
     it('should throw when client is null', async () => {
       const { saveContact } = useAmiDatabase(null)
 
-      await expect(saveContact({
-        name: 'John Doe',
-        number: '+1234567890',
-      })).rejects.toThrow('AMI client not connected')
+      await expect(saveContact(TEST_FIXTURES.contacts.john)).rejects.toThrow(TEST_FIXTURES.errors.nullClient)
     })
   })
 
+  /**
+   * Get Contact Tests
+   * Verify contact retrieval from cache and database
+   *
+   * getContact should:
+   * - Return cached contacts without database call
+   * - Fetch from database when not cached
+   * - Return null for non-existent contacts
+   */
   describe('getContact', () => {
     it('should get contact from cache', async () => {
       const { saveContact, getContact } = useAmiDatabase(mockClient)
 
-      const saved = await saveContact({
-        name: 'John Doe',
-        number: '+1234567890',
-      })
+      const saved = await saveContact(TEST_FIXTURES.contacts.john)
 
       const contact = await getContact(saved.id)
 
@@ -206,19 +254,20 @@ describe('useAmiDatabase', () => {
     it('should throw when client is null', async () => {
       const { getContact } = useAmiDatabase(null)
 
-      await expect(getContact('test-123')).rejects.toThrow('AMI client not connected')
+      await expect(getContact('test-123')).rejects.toThrow(TEST_FIXTURES.errors.nullClient)
     })
   })
 
+  /**
+   * Delete Contact Tests
+   * Verify contact deletion from cache and database
+   */
   describe('deleteContact', () => {
     it('should delete contact', async () => {
       const onContactDeleted = vi.fn()
       const { saveContact, deleteContact, contacts } = useAmiDatabase(mockClient, { onContactDeleted })
 
-      const contact = await saveContact({
-        name: 'John Doe',
-        number: '+1234567890',
-      })
+      const contact = await saveContact(TEST_FIXTURES.contacts.john)
 
       await deleteContact(contact.id)
 
@@ -230,52 +279,69 @@ describe('useAmiDatabase', () => {
     it('should throw when client is null', async () => {
       const { deleteContact } = useAmiDatabase(null)
 
-      await expect(deleteContact('test-123')).rejects.toThrow('AMI client not connected')
+      await expect(deleteContact('test-123')).rejects.toThrow(TEST_FIXTURES.errors.nullClient)
     })
   })
 
-  describe('search', () => {
-    it('should search by name', async () => {
-      const { saveContact, search } = useAmiDatabase(mockClient)
+  /**
+   * Search Functionality Tests
+   * Verify search by name, number, email, and empty query handling
+   */
+  describe('Search', () => {
+    describe.each([
+      {
+        description: 'search by name',
+        contacts: [
+          TEST_FIXTURES.contacts.john,
+          TEST_FIXTURES.contacts.jane,
+          TEST_FIXTURES.contacts.bob,
+        ],
+        query: 'john',
+        expectedCount: 2, // John Doe and Bob Johnson
+        expectedMatch: (result: AmiContact) => result.name.toLowerCase().includes('john'),
+      },
+      {
+        description: 'search by number',
+        contacts: [
+          TEST_FIXTURES.contacts.john,
+          TEST_FIXTURES.contacts.jane,
+        ],
+        query: '1234',
+        expectedCount: 1,
+        expectedMatch: (result: AmiContact) => result.name === 'John Doe',
+      },
+      {
+        description: 'search by email',
+        contacts: [
+          TEST_FIXTURES.contacts.john,
+          TEST_FIXTURES.contacts.jane,
+        ],
+        query: 'example.com',
+        expectedCount: 1,
+        expectedMatch: (result: AmiContact) => result.email === 'john@example.com',
+      },
+    ])('$description', ({ contacts, query, expectedCount, expectedMatch }) => {
+      it(`should find ${expectedCount} contact(s) matching "${query}"`, async () => {
+        const { saveContact, search } = useAmiDatabase(mockClient)
 
-      await saveContact({ name: 'John Doe', number: '+1111' })
-      await saveContact({ name: 'Jane Smith', number: '+2222' })
-      await saveContact({ name: 'Bob Johnson', number: '+3333' })
+        for (const contact of contacts) {
+          await saveContact(contact)
+        }
 
-      const results = search('john')
+        const results = search(query)
 
-      expect(results.length).toBe(2) // John Doe and Bob Johnson
-    })
-
-    it('should search by number', async () => {
-      const { saveContact, search } = useAmiDatabase(mockClient)
-
-      await saveContact({ name: 'John Doe', number: '+1234567890' })
-      await saveContact({ name: 'Jane Smith', number: '+0987654321' })
-
-      const results = search('1234')
-
-      expect(results.length).toBe(1)
-      expect(results[0].name).toBe('John Doe')
-    })
-
-    it('should search by email', async () => {
-      const { saveContact, search } = useAmiDatabase(mockClient)
-
-      await saveContact({ name: 'John Doe', number: '+1111', email: 'john@example.com' })
-      await saveContact({ name: 'Jane Smith', number: '+2222', email: 'jane@other.com' })
-
-      const results = search('example.com')
-
-      expect(results.length).toBe(1)
-      expect(results[0].email).toBe('john@example.com')
+        expect(results.length).toBe(expectedCount)
+        results.forEach(result => {
+          expect(expectedMatch(result)).toBe(true)
+        })
+      })
     })
 
     it('should return all contacts when query is empty', async () => {
       const { saveContact, search, contactList } = useAmiDatabase(mockClient)
 
-      await saveContact({ name: 'John Doe', number: '+1111' })
-      await saveContact({ name: 'Jane Smith', number: '+2222' })
+      await saveContact(TEST_FIXTURES.contacts.john)
+      await saveContact(TEST_FIXTURES.contacts.jane)
 
       const results = search('')
 
@@ -283,6 +349,10 @@ describe('useAmiDatabase', () => {
     })
   })
 
+  /**
+   * Group Filtering Tests
+   * Verify contact retrieval by group
+   */
   describe('getByGroup', () => {
     it('should get contacts by group', async () => {
       const { saveContact, getByGroup } = useAmiDatabase(mockClient)
@@ -298,10 +368,14 @@ describe('useAmiDatabase', () => {
     })
   })
 
-  describe('groups management', () => {
+  /**
+   * Group Management Tests
+   * Verify group creation and duplicate prevention
+   */
+  describe('Groups Management', () => {
     it('should get groups', () => {
       const { getGroups } = useAmiDatabase(mockClient, {
-        groups: ['Sales', 'Support'],
+        groups: TEST_FIXTURES.groups.mixed,
       })
 
       const groups = getGroups()
@@ -330,10 +404,14 @@ describe('useAmiDatabase', () => {
     })
   })
 
+  /**
+   * Group Aggregation Tests
+   * Verify computed property for grouping contacts
+   */
   describe('contactsByGroup computed', () => {
     it('should group contacts correctly', async () => {
       const { saveContact, contactsByGroup } = useAmiDatabase(mockClient, {
-        groups: ['Sales', 'Support'],
+        groups: TEST_FIXTURES.groups.mixed,
       })
 
       await saveContact({ name: 'John', number: '+1111', group: 'Sales' })
@@ -347,53 +425,74 @@ describe('useAmiDatabase', () => {
     })
   })
 
-  describe('raw DB operations', () => {
-    it('should perform dbGet', async () => {
-      ;(mockClient.dbGet as ReturnType<typeof vi.fn>).mockResolvedValue('test-value')
+  /**
+   * Raw Database Operations Tests
+   * Verify direct database operations and null client handling
+   */
+  describe('Raw DB Operations', () => {
+    describe.each([
+      {
+        operation: 'dbGet',
+        args: ['test-family', 'test-key'],
+        setupMock: (client: AmiClient) => {
+          (client.dbGet as ReturnType<typeof vi.fn>).mockResolvedValue('test-value')
+        },
+        expectedResult: 'test-value',
+      },
+      {
+        operation: 'dbPut',
+        args: ['test-family', 'test-key', 'test-value'],
+        setupMock: () => {},
+        expectedResult: undefined,
+      },
+      {
+        operation: 'dbDel',
+        args: ['test-family', 'test-key'],
+        setupMock: () => {},
+        expectedResult: undefined,
+      },
+      {
+        operation: 'dbDelTree',
+        args: ['test-family', 'test-key'],
+        setupMock: () => {},
+        expectedResult: undefined,
+      },
+    ])('$operation', ({ operation, args, setupMock, expectedResult }) => {
+      it(`should perform ${operation} with correct arguments`, async () => {
+        setupMock(mockClient)
+        const db = useAmiDatabase(mockClient)
 
-      const { dbGet } = useAmiDatabase(mockClient)
+        const result = await (db as any)[operation](...args)
 
-      const result = await dbGet('test-family', 'test-key')
-
-      expect(result).toBe('test-value')
-      expect(mockClient.dbGet).toHaveBeenCalledWith('test-family', 'test-key')
+        expect(result).toBe(expectedResult)
+        expect((mockClient as any)[operation]).toHaveBeenCalledWith(...args)
+      })
     })
 
-    it('should perform dbPut', async () => {
-      const { dbPut } = useAmiDatabase(mockClient)
-
-      await dbPut('test-family', 'test-key', 'test-value')
-
-      expect(mockClient.dbPut).toHaveBeenCalledWith('test-family', 'test-key', 'test-value')
-    })
-
-    it('should perform dbDel', async () => {
-      const { dbDel } = useAmiDatabase(mockClient)
-
-      await dbDel('test-family', 'test-key')
-
-      expect(mockClient.dbDel).toHaveBeenCalledWith('test-family', 'test-key')
-    })
-
-    it('should perform dbDelTree', async () => {
-      const { dbDelTree } = useAmiDatabase(mockClient)
-
-      await dbDelTree('test-family', 'test-key')
-
-      expect(mockClient.dbDelTree).toHaveBeenCalledWith('test-family', 'test-key')
-    })
-
-    it('should throw for raw operations when client is null', async () => {
+    it('should throw for all raw operations when client is null', async () => {
       const { dbGet, dbPut, dbDel, dbDelTree } = useAmiDatabase(null)
 
-      await expect(dbGet('f', 'k')).rejects.toThrow('AMI client not connected')
-      await expect(dbPut('f', 'k', 'v')).rejects.toThrow('AMI client not connected')
-      await expect(dbDel('f', 'k')).rejects.toThrow('AMI client not connected')
-      await expect(dbDelTree('f', 'k')).rejects.toThrow('AMI client not connected')
+      await expect(dbGet('f', 'k')).rejects.toThrow(TEST_FIXTURES.errors.nullClient)
+      await expect(dbPut('f', 'k', 'v')).rejects.toThrow(TEST_FIXTURES.errors.nullClient)
+      await expect(dbDel('f', 'k')).rejects.toThrow(TEST_FIXTURES.errors.nullClient)
+      await expect(dbDelTree('f', 'k')).rejects.toThrow(TEST_FIXTURES.errors.nullClient)
     })
   })
 
-  describe('import/export', () => {
+  /**
+   * Import/Export Tests
+   * Verify bulk contact import and export functionality
+   *
+   * Import should:
+   * - Accept array of contact data
+   * - Validate each contact against field requirements
+   * - Skip invalid contacts gracefully
+   * - Return array of successfully imported contacts
+   *
+   * Export should:
+   * - Return all contacts as plain objects
+   */
+  describe('Import/Export', () => {
     it('should import contacts', async () => {
       const { importContacts, contactList } = useAmiDatabase(mockClient)
 
@@ -411,10 +510,7 @@ describe('useAmiDatabase', () => {
 
     it('should handle import errors gracefully', async () => {
       const { importContacts, contactList } = useAmiDatabase(mockClient, {
-        fields: [
-          { key: 'name', label: 'Name', type: 'text', required: true },
-          { key: 'number', label: 'Phone', type: 'tel', required: true },
-        ],
+        fields: TEST_FIXTURES.fields.required,
       })
 
       const contactsToImport = [
@@ -443,11 +539,15 @@ describe('useAmiDatabase', () => {
     it('should throw import when client is null', async () => {
       const { importContacts } = useAmiDatabase(null)
 
-      await expect(importContacts([{ name: 'Test', number: '+1234' }])).rejects.toThrow('AMI client not connected')
+      await expect(importContacts([{ name: 'Test', number: '+1234' }])).rejects.toThrow(TEST_FIXTURES.errors.nullClient)
     })
   })
 
-  describe('known IDs management', () => {
+  /**
+   * Known IDs Management Tests
+   * Verify ID tracking for refresh operations
+   */
+  describe('Known IDs Management', () => {
     it('should register known ID', () => {
       const { registerKnownId, getKnownIds } = useAmiDatabase(mockClient)
 
@@ -472,7 +572,11 @@ describe('useAmiDatabase', () => {
     })
   })
 
-  describe('refresh', () => {
+  /**
+   * Refresh Tests
+   * Verify database synchronization and loading states
+   */
+  describe('Refresh', () => {
     it('should refresh contacts from known IDs', async () => {
       const contact = createMockContact('test-123')
       ;(mockClient.dbGet as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(contact))
@@ -497,7 +601,7 @@ describe('useAmiDatabase', () => {
 
       await refresh()
 
-      expect(error.value).toBe('AMI client not connected')
+      expect(error.value).toBe(TEST_FIXTURES.errors.nullClient)
     })
 
     it('should remove contacts that no longer exist', async () => {
@@ -512,7 +616,11 @@ describe('useAmiDatabase', () => {
     })
   })
 
-  describe('getFieldDefinitions', () => {
+  /**
+   * Field Definitions Tests
+   * Verify custom field configuration
+   */
+  describe('Field Definitions', () => {
     it('should return default field definitions', () => {
       const { getFieldDefinitions } = useAmiDatabase(mockClient)
 
@@ -523,12 +631,7 @@ describe('useAmiDatabase', () => {
     })
 
     it('should return custom field definitions', () => {
-      const customFields = [
-        { key: 'name', label: 'Full Name', type: 'text' as const, required: true },
-        { key: 'ext', label: 'Extension', type: 'text' as const },
-      ]
-
-      const { getFieldDefinitions } = useAmiDatabase(mockClient, { fields: customFields })
+      const { getFieldDefinitions } = useAmiDatabase(mockClient, { fields: TEST_FIXTURES.fields.custom })
 
       const fields = getFieldDefinitions()
 

@@ -21,313 +21,394 @@
     />
 
     <!-- Configuration Panel -->
-    <div v-if="!amiConnected" class="config-panel">
-      <h3>AMI Server Configuration</h3>
-      <p class="info-text">
-        Configure your AMI WebSocket connection to test agent queue login/logout functionality. This
-        demo allows agents to log in/out of queues, pause/unpause, and track session metrics.
-      </p>
-
-      <div class="form-group">
-        <label for="ami-url">AMI WebSocket URL</label>
-        <input
-          id="ami-url"
-          v-model="config.url"
-          type="text"
-          placeholder="ws://pbx.example.com:8080/ami"
-          :disabled="connecting"
-        />
-        <small>Example: ws://your-pbx:8080/ami</small>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="ami-username">Username <small>(optional)</small></label>
-          <input
-            id="ami-username"
-            v-model="config.username"
-            type="text"
-            placeholder="admin"
-            :disabled="connecting"
-          />
+    <Card v-if="!amiConnected" class="demo-card config-card">
+      <template #title>
+        <div class="demo-header">
+          <i class="pi pi-sitemap" style="font-size: 1.5rem; color: var(--primary-500)"></i>
+          <span>AMI Server Configuration</span>
         </div>
+      </template>
+      <template #content>
+        <Message severity="info" :closable="false" class="config-message">
+          Configure your AMI WebSocket connection to test agent queue login/logout functionality. This
+          demo allows agents to log in/out of queues, pause/unpause, and track session metrics.
+        </Message>
 
-        <div class="form-group">
-          <label for="ami-password">Password <small>(optional)</small></label>
-          <input
-            id="ami-password"
-            v-model="config.password"
-            type="password"
-            placeholder="Enter password"
-            :disabled="connecting"
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="ami-url">AMI WebSocket URL</label>
+            <InputText
+              id="ami-url"
+              v-model="config.url"
+              placeholder="ws://pbx.example.com:8080/ami"
+              :disabled="connecting"
+              class="w-full"
+            />
+            <small class="field-hint">Example: ws://your-pbx:8080/ami</small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="ami-username">
+                Username <small class="optional-label">(optional)</small>
+              </label>
+              <InputText
+                id="ami-username"
+                v-model="config.username"
+                placeholder="admin"
+                :disabled="connecting"
+                class="w-full"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="ami-password">
+                Password <small class="optional-label">(optional)</small>
+              </label>
+              <Password
+                id="ami-password"
+                v-model="config.password"
+                placeholder="Enter password"
+                :disabled="connecting"
+                :feedback="false"
+                toggle-mask
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="agent-id">Agent ID</label>
+              <InputText
+                id="agent-id"
+                v-model="agentConfig.agentId"
+                placeholder="agent1001"
+                :disabled="connecting"
+                class="w-full"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="agent-interface">Agent Interface</label>
+              <InputText
+                id="agent-interface"
+                v-model="agentConfig.interface"
+                placeholder="PJSIP/1001"
+                :disabled="connecting"
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="agent-name">
+              Agent Name <small class="optional-label">(Optional)</small>
+            </label>
+            <InputText
+              id="agent-name"
+              v-model="agentConfig.name"
+              placeholder="John Doe"
+              :disabled="connecting"
+              class="w-full"
+            />
+          </div>
+
+          <div class="form-field">
+            <label for="available-queues">Available Queues (comma-separated)</label>
+            <InputText
+              id="available-queues"
+              v-model="queuesInput"
+              placeholder="sales,support,billing"
+              :disabled="connecting"
+              class="w-full"
+            />
+            <small class="field-hint">Enter the queues the agent can log into</small>
+          </div>
+
+          <Button
+            label="Connect to AMI"
+            icon="pi pi-plug"
+            :loading="connecting"
+            :disabled="!isConfigValid"
+            @click="handleConnect"
+            class="w-full"
           />
+
+          <Message v-if="connectionError" severity="error" :closable="false">
+            {{ connectionError }}
+          </Message>
+
+          <Message severity="info" :closable="false" class="demo-tip">
+            <strong>Tip:</strong> This demo requires an AMI WebSocket proxy. Make sure your Asterisk
+            server has the AMI interface configured and a WebSocket proxy is running.
+          </Message>
         </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="agent-id">Agent ID</label>
-          <input
-            id="agent-id"
-            v-model="agentConfig.agentId"
-            type="text"
-            placeholder="agent1001"
-            :disabled="connecting"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="agent-interface">Agent Interface</label>
-          <input
-            id="agent-interface"
-            v-model="agentConfig.interface"
-            type="text"
-            placeholder="PJSIP/1001"
-            :disabled="connecting"
-          />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="agent-name">Agent Name (Optional)</label>
-        <input
-          id="agent-name"
-          v-model="agentConfig.name"
-          type="text"
-          placeholder="John Doe"
-          :disabled="connecting"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="available-queues">Available Queues (comma-separated)</label>
-        <input
-          id="available-queues"
-          v-model="queuesInput"
-          type="text"
-          placeholder="sales,support,billing"
-          :disabled="connecting"
-        />
-        <small>Enter the queues the agent can log into</small>
-      </div>
-
-      <button
-        class="btn btn-primary"
-        :disabled="!isConfigValid || connecting"
-        @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
-
-      <div v-if="connectionError" class="error-message">
-        {{ connectionError }}
-      </div>
-
-      <div class="demo-tip">
-        <strong>Tip:</strong> This demo requires an AMI WebSocket proxy. Make sure your Asterisk
-        server has the AMI interface configured and a WebSocket proxy is running.
-      </div>
-    </div>
+      </template>
+    </Card>
 
     <!-- Connected Interface -->
     <div v-else class="connected-interface">
-      <!-- Status Bar -->
-      <div class="status-bar">
-        <div class="status-items">
-          <div class="status-item">
-            <span class="status-dot connected"></span>
-            <span>AMI Connected</span>
+      <!-- Status Toolbar -->
+      <Card class="demo-card status-card">
+        <template #content>
+          <div class="status-toolbar">
+            <div class="status-items">
+              <div class="status-item">
+                <span class="status-indicator connected"></span>
+                <span>AMI Connected</span>
+              </div>
+              <Divider layout="vertical" />
+              <div class="status-item">
+                <Tag :value="formatStatus(status)" :severity="getStatusSeverity(status)" />
+              </div>
+              <Divider layout="vertical" v-if="isOnShift !== undefined" />
+              <div v-if="isOnShift !== undefined" class="status-item">
+                <Tag
+                  :value="isOnShift ? 'On Shift' : 'Off Shift'"
+                  :severity="isOnShift ? 'success' : 'secondary'"
+                />
+              </div>
+            </div>
+            <div class="status-actions">
+              <Button
+                label="Disconnect"
+                icon="pi pi-times"
+                severity="danger"
+                size="small"
+                @click="handleDisconnect"
+              />
+            </div>
           </div>
-          <div class="status-item">
-            <span class="status-icon" :class="getStatusClass(status)">
-              <span class="status-badge">{{ getStatusIcon(status) }}</span>
-            </span>
-            <span>{{ formatStatus(status) }}</span>
-          </div>
-          <div v-if="isOnShift !== undefined" class="status-item">
-            <span class="status-icon" :class="{ 'on-shift': isOnShift }">
-              <span class="shift-badge">{{ isOnShift ? 'ON' : 'OFF' }}</span>
-            </span>
-            <span>{{ isOnShift ? 'On Shift' : 'Off Shift' }}</span>
-          </div>
-        </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
-      </div>
+        </template>
+      </Card>
 
       <!-- Agent Panel -->
-      <div class="agent-panel">
+      <div class="agent-panels">
         <!-- Session Info -->
-        <div class="session-info">
-          <h3>Agent Session</h3>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">Agent ID:</span>
-              <span class="info-value">{{ session.agentId }}</span>
+        <Card class="demo-card session-card">
+          <template #title>
+            <div class="section-header">
+              <i class="pi pi-user" style="color: var(--primary-500)"></i>
+              <span>Agent Session</span>
             </div>
-            <div class="info-item">
-              <span class="info-label">Interface:</span>
-              <span class="info-value">{{ session.interface }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Session Duration:</span>
-              <span class="info-value">{{ sessionDurationFormatted }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Calls Handled:</span>
-              <span class="info-value">{{ session.totalCallsHandled }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Login Time:</span>
-              <span class="info-value">
-                {{ session.loginTime ? formatDateTime(session.loginTime) : 'Not logged in' }}
-              </span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Status:</span>
-              <span class="info-value" :class="getStatusClass(status)">
-                {{ formatStatus(status) }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Queue Login Section -->
-        <div class="queue-section">
-          <h3>Queue Management</h3>
-
-          <div class="queue-list">
-            <div
-              v-for="queue in availableQueues"
-              :key="queue"
-              class="queue-item"
-              :class="{ 'logged-in': isLoggedIntoQueue(queue) }"
-            >
-              <div class="queue-info">
-                <span class="queue-name">{{ queue }}</span>
-                <span v-if="isLoggedIntoQueue(queue)" class="queue-status">
-                  {{ getQueueStatusText(queue) }}
+          </template>
+          <template #content>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Agent ID</span>
+                <span class="info-value">{{ session.agentId }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Interface</span>
+                <span class="info-value">{{ session.interface }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Session Duration</span>
+                <span class="info-value session-duration">{{ sessionDurationFormatted }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Calls Handled</span>
+                <span class="info-value">{{ session.totalCallsHandled }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Login Time</span>
+                <span class="info-value">
+                  {{ session.loginTime ? formatDateTime(session.loginTime) : 'Not logged in' }}
                 </span>
               </div>
-              <div class="queue-actions">
-                <button
-                  v-if="!isLoggedIntoQueue(queue)"
-                  class="btn btn-sm btn-success"
-                  :disabled="isLoading"
-                  @click="handleLoginQueue(queue)"
-                >
-                  Login
-                </button>
-                <button
-                  v-else
-                  class="btn btn-sm btn-danger"
-                  :disabled="isLoading"
-                  @click="handleLogoutQueue(queue)"
-                >
-                  Logout
-                </button>
+              <div class="info-item">
+                <span class="info-label">Status</span>
+                <Tag :value="formatStatus(status)" :severity="getStatusSeverity(status)" />
               </div>
             </div>
-          </div>
+          </template>
+        </Card>
 
-          <div class="queue-actions-bar">
-            <button
-              class="btn btn-primary"
-              :disabled="isLoading || loggedInQueues.length === availableQueues.length"
-              @click="handleLoginAll"
-            >
-              Login to All
-            </button>
-            <button
-              class="btn btn-danger"
-              :disabled="isLoading || loggedInQueues.length === 0"
-              @click="handleLogoutAll"
-            >
-              Logout from All
-            </button>
-          </div>
-        </div>
-
-        <!-- Pause Section -->
-        <div class="pause-section">
-          <h3>Pause Management</h3>
-
-          <div v-if="!isPaused" class="pause-form">
-            <div class="form-group">
-              <label for="pause-reason">Pause Reason</label>
-              <select
-                id="pause-reason"
-                v-model="selectedPauseReason"
-                class="pause-select"
-                :disabled="!isLoggedIn || isLoading"
+        <!-- Queue Management -->
+        <Card class="demo-card queue-card">
+          <template #title>
+            <div class="section-header">
+              <i class="pi pi-list" style="color: var(--primary-500)"></i>
+              <span>Queue Management</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="queue-list">
+              <div
+                v-for="queue in availableQueues"
+                :key="queue"
+                class="queue-item"
+                :class="{ 'logged-in': isLoggedIntoQueue(queue) }"
               >
-                <option value="">Select a reason...</option>
-                <option v-for="reason in pauseReasons" :key="reason" :value="reason">
-                  {{ reason }}
-                </option>
-              </select>
+                <div class="queue-info">
+                  <span class="queue-name">{{ queue }}</span>
+                  <Tag
+                    v-if="isLoggedIntoQueue(queue)"
+                    :value="getQueueStatusText(queue)"
+                    :severity="getQueueStatusSeverity(queue)"
+                    size="small"
+                  />
+                </div>
+                <div class="queue-actions">
+                  <Button
+                    v-if="!isLoggedIntoQueue(queue)"
+                    label="Login"
+                    icon="pi pi-sign-in"
+                    severity="success"
+                    size="small"
+                    :loading="isLoading"
+                    @click="handleLoginQueue(queue)"
+                  />
+                  <Button
+                    v-else
+                    label="Logout"
+                    icon="pi pi-sign-out"
+                    severity="danger"
+                    size="small"
+                    :loading="isLoading"
+                    @click="handleLogoutQueue(queue)"
+                  />
+                </div>
+              </div>
             </div>
-            <button
-              class="btn btn-warning"
-              :disabled="!isLoggedIn || !selectedPauseReason || isLoading"
-              @click="handlePause"
-            >
-              Pause Agent
-            </button>
-          </div>
 
-          <div v-else class="paused-state">
-            <div class="paused-info">
-              <span class="paused-icon">PAUSED</span>
-              <div class="paused-details">
-                <span class="paused-label">Currently Paused</span>
-                <span class="paused-reason">{{ session.pauseReason || 'No reason' }}</span>
-              </div>
-            </div>
-            <button class="btn btn-success" :disabled="isLoading" @click="handleUnpause">
-              Unpause Agent
-            </button>
-          </div>
-        </div>
+            <Divider />
 
-        <!-- Logged In Queues Details -->
-        <div v-if="loggedInQueues.length > 0" class="membership-details">
-          <h3>Queue Memberships ({{ loggedInQueues.length }})</h3>
-          <div class="membership-list">
-            <div
-              v-for="membership in session.queues.filter((q) => q.isMember)"
-              :key="membership.queue"
-              class="membership-item"
-            >
-              <div class="membership-header">
-                <span class="membership-queue">{{ membership.queue }}</span>
-                <span class="membership-status" :class="{ paused: membership.isPaused }">
-                  {{ membership.isPaused ? 'Paused' : membership.inCall ? 'On Call' : 'Ready' }}
-                </span>
-              </div>
-              <div class="membership-stats">
-                <div class="stat">
-                  <span class="stat-label">Calls Taken:</span>
-                  <span class="stat-value">{{ membership.callsTaken }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Penalty:</span>
-                  <span class="stat-value">{{ membership.penalty }}</span>
-                </div>
-                <div class="stat">
-                  <span class="stat-label">Last Call:</span>
-                  <span class="stat-value">
-                    {{ membership.lastCall ? formatTimestamp(membership.lastCall) : 'Never' }}
-                  </span>
-                </div>
-              </div>
+            <div class="queue-actions-bar">
+              <Button
+                label="Login to All"
+                icon="pi pi-sign-in"
+                :loading="isLoading"
+                :disabled="loggedInQueues.length === availableQueues.length"
+                @click="handleLoginAll"
+              />
+              <Button
+                label="Logout from All"
+                icon="pi pi-sign-out"
+                severity="danger"
+                :loading="isLoading"
+                :disabled="loggedInQueues.length === 0"
+                @click="handleLogoutAll"
+              />
             </div>
-          </div>
-        </div>
+          </template>
+        </Card>
+
+        <!-- Pause Management -->
+        <Card class="demo-card pause-card">
+          <template #title>
+            <div class="section-header">
+              <i class="pi pi-pause" style="color: var(--primary-500)"></i>
+              <span>Pause Management</span>
+            </div>
+          </template>
+          <template #content>
+            <div v-if="!isPaused" class="pause-form">
+              <div class="form-field">
+                <label for="pause-reason">Pause Reason</label>
+                <Dropdown
+                  id="pause-reason"
+                  v-model="selectedPauseReason"
+                  :options="pauseReasons"
+                  placeholder="Select a reason..."
+                  :disabled="!isLoggedIn || isLoading"
+                  class="w-full"
+                />
+              </div>
+              <Button
+                label="Pause Agent"
+                icon="pi pi-pause"
+                severity="warning"
+                :disabled="!isLoggedIn || !selectedPauseReason || isLoading"
+                :loading="isLoading"
+                @click="handlePause"
+                class="w-full"
+              />
+            </div>
+
+            <div v-else class="paused-state">
+              <div class="paused-info">
+                <i class="pi pi-pause-circle paused-icon"></i>
+                <div class="paused-details">
+                  <span class="paused-label">Currently Paused</span>
+                  <span class="paused-reason">{{ session.pauseReason || 'No reason' }}</span>
+                </div>
+              </div>
+              <Button
+                label="Unpause Agent"
+                icon="pi pi-play"
+                severity="success"
+                :loading="isLoading"
+                @click="handleUnpause"
+              />
+            </div>
+          </template>
+        </Card>
+
+        <!-- Queue Memberships -->
+        <Card v-if="loggedInQueues.length > 0" class="demo-card membership-card">
+          <template #title>
+            <div class="section-header">
+              <i class="pi pi-users" style="color: var(--primary-500)"></i>
+              <span>Queue Memberships ({{ loggedInQueues.length }})</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="membership-list">
+              <Card
+                v-for="membership in session.queues.filter((q) => q.isMember)"
+                :key="membership.queue"
+                class="membership-item"
+              >
+                <template #title>
+                  <div class="membership-header">
+                    <span class="membership-queue">{{ membership.queue }}</span>
+                    <Tag
+                      :value="
+                        membership.isPaused
+                          ? 'Paused'
+                          : membership.inCall
+                            ? 'On Call'
+                            : 'Ready'
+                      "
+                      :severity="
+                        membership.isPaused
+                          ? 'warning'
+                          : membership.inCall
+                            ? 'info'
+                            : 'success'
+                      "
+                    />
+                  </div>
+                </template>
+                <template #content>
+                  <div class="membership-stats">
+                    <div class="stat">
+                      <span class="stat-label">Calls Taken</span>
+                      <span class="stat-value">{{ membership.callsTaken }}</span>
+                    </div>
+                    <div class="stat">
+                      <span class="stat-label">Penalty</span>
+                      <span class="stat-value">{{ membership.penalty }}</span>
+                    </div>
+                    <div class="stat">
+                      <span class="stat-label">Last Call</span>
+                      <span class="stat-value">
+                        {{ membership.lastCall ? formatTimestamp(membership.lastCall) : 'Never' }}
+                      </span>
+                    </div>
+                  </div>
+                </template>
+              </Card>
+            </div>
+          </template>
+        </Card>
 
         <!-- Error Display -->
-        <div v-if="error" class="error-message">
+        <Message v-if="error" severity="error" :closable="true" @close="error = null">
           {{ error }}
-        </div>
+        </Message>
       </div>
     </div>
   </div>
@@ -335,6 +416,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted, reactive } from 'vue'
+import Card from 'primevue/card'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
+import Dropdown from 'primevue/dropdown'
+import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+import Divider from 'primevue/divider'
 import type { AmiClient } from '../../src/core/AmiClient'
 import type { AgentLoginStatus } from '../../src/types/agent.types'
 import { useSimulation } from '../composables/useSimulation'
@@ -441,6 +530,16 @@ function getQueueStatusText(queue: string): string {
   return 'Ready'
 }
 
+function getQueueStatusSeverity(
+  queue: string
+): 'success' | 'info' | 'warning' | 'danger' | 'secondary' {
+  const membership = session.queues.find((q) => q.queue === queue)
+  if (!membership) return 'secondary'
+  if (membership.isPaused) return 'warning'
+  if (membership.inCall) return 'info'
+  return 'success'
+}
+
 function formatStatus(status: AgentLoginStatus): string {
   const labels: Record<AgentLoginStatus, string> = {
     logged_out: 'Logged Out',
@@ -451,18 +550,16 @@ function formatStatus(status: AgentLoginStatus): string {
   return labels[status] || status
 }
 
-function getStatusIcon(status: AgentLoginStatus): string {
-  const icons: Record<AgentLoginStatus, string> = {
-    logged_out: 'OFF',
-    logged_in: 'ON',
-    paused: 'PAUSE',
-    on_call: 'CALL',
+function getStatusSeverity(
+  status: AgentLoginStatus
+): 'success' | 'info' | 'warning' | 'danger' | 'secondary' {
+  const severities: Record<AgentLoginStatus, 'success' | 'info' | 'warning' | 'danger' | 'secondary'> = {
+    logged_out: 'secondary',
+    logged_in: 'success',
+    paused: 'warning',
+    on_call: 'info',
   }
-  return icons[status] || 'UNK'
-}
-
-function getStatusClass(status: AgentLoginStatus): string {
-  return `status-${status.replace('_', '-')}`
+  return severities[status] || 'secondary'
 }
 
 function formatDuration(seconds: number): string {
@@ -676,166 +773,98 @@ onUnmounted(() => {
 
 <style scoped>
 .agent-login-demo {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
-/* Config Panel */
-.config-panel {
-  padding: 2rem;
+/* Demo Card */
+.demo-card {
+  margin: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.config-panel h3 {
-  margin-bottom: 1rem;
-  color: #333;
+.demo-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
-.info-text {
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Configuration Card */
+.config-card {
+  max-width: 700px;
+  margin: 2rem auto;
+}
+
+.config-message {
   margin-bottom: 1.5rem;
-  color: #666;
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-field label {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.optional-label {
+  font-weight: 400;
+  color: var(--text-color-secondary);
+}
+
+.field-hint {
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
 }
 
 .form-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
 
-.form-row .form-group {
-  flex: 1;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.form-group input:disabled,
-.form-group select:disabled {
-  background: #f3f4f6;
-  cursor: not-allowed;
-}
-
-.form-group small {
-  display: block;
-  margin-top: 0.25rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-}
-
-/* Buttons */
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-
-.btn-success {
-  background: #10b981;
-  color: white;
-}
-.btn-success:hover:not(:disabled) {
-  background: #059669;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.btn-warning {
-  background: #f59e0b;
-  color: white;
-}
-.btn-warning:hover:not(:disabled) {
-  background: #d97706;
-}
-
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
-  font-size: 0.875rem;
-}
-
 .demo-tip {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
-  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
 
-/* Connected Interface */
-.connected-interface {
-  padding: 2rem;
+/* Status Toolbar */
+.status-card {
+  margin-bottom: 1.5rem;
 }
 
-.status-bar {
+.status-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .status-items {
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .status-item {
@@ -845,49 +874,30 @@ onUnmounted(() => {
   font-size: 0.875rem;
 }
 
-.status-dot {
+.status-indicator {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--red-500);
 }
 
-.status-dot.connected {
-  background: #10b981;
+.status-indicator.connected {
+  background: var(--green-500);
 }
 
-.status-icon {
-  font-size: 1.25rem;
-}
-.status-icon.on-shift {
-  color: #10b981;
+.status-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
-/* Agent Panel */
-.agent-panel {
+/* Agent Panels */
+.agent-panels {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
-.session-info,
-.queue-section,
-.pause-section,
-.membership-details {
-  padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-
-.session-info h3,
-.queue-section h3,
-.pause-section h3,
-.membership-details h3 {
-  margin-bottom: 1rem;
-  color: #111827;
-}
-
+/* Session Info */
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -902,21 +912,28 @@ onUnmounted(() => {
 
 .info-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
   text-transform: uppercase;
+  font-weight: 500;
 }
 
 .info-value {
-  font-weight: 500;
-  color: #111827;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
-/* Queue Section */
+.session-duration {
+  font-family: monospace;
+  font-size: 1.125rem;
+  color: var(--primary-500);
+}
+
+/* Queue Management */
 .queue-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .queue-item {
@@ -924,56 +941,43 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  background: linear-gradient(135deg, var(--surface-50) 0%, var(--surface-100) 100%);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
   transition: all 0.2s;
 }
 
+.queue-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .queue-item.logged-in {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-color: var(--green-400);
 }
 
 .queue-info {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .queue-name {
-  font-weight: 500;
-  color: #111827;
-}
-
-.queue-status {
-  font-size: 0.75rem;
-  color: #059669;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 .queue-actions-bar {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-/* Pause Section */
+/* Pause Management */
 .pause-form {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
-  align-items: flex-end;
-}
-
-.pause-form .form-group {
-  flex: 1;
-  margin-bottom: 0;
-}
-
-.pause-select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
 }
 
 .paused-state {
@@ -981,9 +985,10 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid var(--yellow-400);
+  border-radius: 8px;
+  gap: 1rem;
 }
 
 .paused-info {
@@ -994,6 +999,7 @@ onUnmounted(() => {
 
 .paused-icon {
   font-size: 2rem;
+  color: var(--yellow-700);
 }
 
 .paused-details {
@@ -1003,13 +1009,13 @@ onUnmounted(() => {
 }
 
 .paused-label {
-  font-weight: 500;
-  color: #92400e;
+  font-weight: 600;
+  color: var(--yellow-900);
 }
 
 .paused-reason {
   font-size: 0.875rem;
-  color: #b45309;
+  color: var(--yellow-800);
 }
 
 /* Membership Details */
@@ -1020,100 +1026,85 @@ onUnmounted(() => {
 }
 
 .membership-item {
-  padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  background: linear-gradient(135deg, var(--surface-50) 0%, var(--surface-100) 100%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .membership-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
 }
 
 .membership-queue {
-  font-weight: 500;
-  color: #111827;
-}
-
-.membership-status {
-  padding: 0.25rem 0.75rem;
-  background: #d1fae5;
-  color: #065f46;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.membership-status.paused {
-  background: #fef3c7;
-  color: #92400e;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 .membership-stats {
   display: flex;
   gap: 2rem;
+  flex-wrap: wrap;
 }
 
 .stat {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.25rem;
 }
 
 .stat-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
+  text-transform: uppercase;
+  font-weight: 500;
 }
 
 .stat-value {
-  font-weight: 500;
-  color: #111827;
-}
-
-/* Status Colors */
-.status-logged-out {
-  color: #6b7280;
-}
-.status-logged-in {
-  color: #10b981;
-}
-.status-paused {
-  color: #f59e0b;
-}
-.status-on-call {
-  color: #3b82f6;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
+  .demo-card {
+    margin: 1rem;
+  }
+
   .form-row {
-    flex-direction: column;
-    gap: 0;
+    grid-template-columns: 1fr;
   }
 
-  .status-bar {
+  .status-toolbar {
     flex-direction: column;
-    gap: 1rem;
+    align-items: flex-start;
   }
 
-  .status-items {
+  .queue-item {
     flex-direction: column;
-    gap: 0.5rem;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
 
   .queue-actions-bar {
     flex-direction: column;
   }
 
-  .pause-form {
+  .queue-actions-bar .p-button {
+    width: 100%;
+  }
+
+  .paused-state {
     flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .paused-state .p-button {
+    width: 100%;
   }
 
   .membership-stats {
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 1rem;
   }
 

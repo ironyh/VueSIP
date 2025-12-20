@@ -21,243 +21,297 @@
     />
 
     <!-- Configuration Panel -->
-    <div v-if="!effectiveIsConnected" class="config-panel">
-      <h3>SIP Server Configuration</h3>
-      <p class="info-text">
-        Configure your SIP server details to test SIP Presence (SUBSCRIBE/NOTIFY) functionality.
-        You'll be able to set your status and watch other users' presence.
-      </p>
+    <Panel v-if="!effectiveIsConnected" class="mb-4">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-cog"></i>
+          <span class="font-semibold">SIP Server Configuration</span>
+        </div>
+      </template>
 
-      <div class="form-group">
-        <label for="server-uri">Server URI (WebSocket)</label>
-        <input
-          id="server-uri"
-          v-model="config.uri"
-          type="text"
-          placeholder="wss://sip.example.com:7443"
-          :disabled="connecting"
+      <Message severity="info" :closable="false" class="mb-4">
+        <p class="m-0 line-height-3">
+          Configure your SIP server details to test SIP Presence (SUBSCRIBE/NOTIFY) functionality.
+          You'll be able to set your status and watch other users' presence.
+        </p>
+      </Message>
+
+      <div class="flex flex-column gap-4">
+        <div class="flex flex-column gap-2">
+          <label for="server-uri" class="font-medium">Server URI (WebSocket)</label>
+          <InputText
+            id="server-uri"
+            v-model="config.uri"
+            placeholder="wss://sip.example.com:7443"
+            :disabled="connecting"
+            class="w-full"
+          />
+          <small class="text-500">Example: wss://sip.yourdomain.com:7443</small>
+        </div>
+
+        <div class="flex flex-column gap-2">
+          <label for="sip-uri" class="font-medium">SIP URI</label>
+          <InputText
+            id="sip-uri"
+            v-model="config.sipUri"
+            placeholder="sip:username@example.com"
+            :disabled="connecting"
+            class="w-full"
+          />
+          <small class="text-500">Example: sip:1000@yourdomain.com</small>
+        </div>
+
+        <div class="flex flex-column gap-2">
+          <label for="password" class="font-medium">Password</label>
+          <Password
+            id="password"
+            v-model="config.password"
+            placeholder="Enter your SIP password"
+            :disabled="connecting"
+            :feedback="false"
+            toggleMask
+            class="w-full"
+            inputClass="w-full"
+          />
+        </div>
+
+        <div class="flex flex-column gap-2">
+          <label for="display-name" class="font-medium">Display Name (Optional)</label>
+          <InputText
+            id="display-name"
+            v-model="config.displayName"
+            placeholder="Your Name"
+            :disabled="connecting"
+            class="w-full"
+          />
+        </div>
+
+        <Button
+          :label="connecting ? 'Connecting...' : 'Connect to Server'"
+          icon="pi pi-link"
+          :disabled="!isConfigValid || connecting"
+          :loading="connecting"
+          class="w-full"
+          @click="handleConnect"
         />
-        <small>Example: wss://sip.yourdomain.com:7443</small>
-      </div>
 
-      <div class="form-group">
-        <label for="sip-uri">SIP URI</label>
-        <input
-          id="sip-uri"
-          v-model="config.sipUri"
-          type="text"
-          placeholder="sip:username@example.com"
-          :disabled="connecting"
-        />
-        <small>Example: sip:1000@yourdomain.com</small>
-      </div>
+        <Message v-if="connectionError" severity="error" :closable="false">
+          {{ connectionError }}
+        </Message>
 
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input
-          id="password"
-          v-model="config.password"
-          type="password"
-          placeholder="Enter your SIP password"
-          :disabled="connecting"
-        />
+        <Message severity="info" :closable="false" class="border-left-3 border-primary">
+          <p class="m-0 text-sm line-height-3">
+            <strong>Tip:</strong> Presence (SUBSCRIBE/NOTIFY) functionality requires server support.
+            Make sure your SIP server has presence features enabled.
+          </p>
+        </Message>
       </div>
-
-      <div class="form-group">
-        <label for="display-name">Display Name (Optional)</label>
-        <input
-          id="display-name"
-          v-model="config.displayName"
-          type="text"
-          placeholder="Your Name"
-          :disabled="connecting"
-        />
-      </div>
-
-      <button
-        class="btn btn-primary"
-        :disabled="!isConfigValid || connecting"
-        @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to Server' }}
-      </button>
-
-      <div v-if="connectionError" class="error-message">
-        {{ connectionError }}
-      </div>
-
-      <div class="demo-tip">
-        <strong>Tip:</strong> Presence (SUBSCRIBE/NOTIFY) functionality requires server support.
-        Make sure your SIP server has presence features enabled.
-      </div>
-    </div>
+    </Panel>
 
     <!-- Connected Interface -->
-    <div v-else class="connected-interface">
+    <div v-else>
       <!-- Status Bar -->
-      <div class="status-bar">
-        <div class="status-item">
-          <span class="status-dot connected"></span>
-          <span>Connected{{ isSimulationMode ? ' (Simulated)' : '' }}</span>
+      <div class="flex flex-wrap align-items-center justify-content-between gap-3 surface-100 border-round p-3 mb-4">
+        <div class="flex align-items-center gap-4">
+          <div class="flex align-items-center gap-2">
+            <span class="status-dot connected"></span>
+            <span class="text-sm">Connected{{ isSimulationMode ? ' (Simulated)' : '' }}</span>
+          </div>
+          <div class="flex align-items-center gap-2">
+            <span class="status-dot" :class="{ connected: effectiveIsRegistered }"></span>
+            <span class="text-sm">{{ effectiveIsRegistered ? 'Registered' : 'Not Registered' }}</span>
+          </div>
         </div>
-        <div class="status-item">
-          <span class="status-dot" :class="{ connected: effectiveIsRegistered }"></span>
-          <span>{{ effectiveIsRegistered ? 'Registered' : 'Not Registered' }}</span>
-        </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
+        <Button label="Disconnect" icon="pi pi-power-off" severity="secondary" size="small" @click="handleDisconnect" />
       </div>
 
-      <!-- Presence Controls -->
-      <div class="presence-panel">
-        <!-- Own Status Section -->
-        <div class="status-section">
-          <h3>Your Presence Status</h3>
-          <div class="status-display">
-            <span class="status-indicator" :class="`status-${currentState}`"></span>
-            <span class="status-text">{{ formatStatus(currentState) }}</span>
-            <span v-if="currentStatus?.statusMessage" class="status-message">
-              - {{ currentStatus.statusMessage }}
-            </span>
+      <!-- Own Status Section -->
+      <Panel class="mb-4">
+        <template #header>
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-user"></i>
+            <span class="font-semibold">Your Presence Status</span>
           </div>
+        </template>
 
-          <div class="status-buttons">
-            <button
-              class="btn btn-status status-available"
-              :class="{ active: currentState === 'available' }"
-              @click="handleSetStatus('available')"
-              :disabled="!isRegistered"
-            >
-              <span class="status-dot available"></span> Available
-            </button>
-            <button
-              class="btn btn-status status-away"
-              :class="{ active: currentState === 'away' }"
-              @click="handleSetStatus('away')"
-              :disabled="!isRegistered"
-            >
-              <span class="status-dot away"></span> Away
-            </button>
-            <button
-              class="btn btn-status status-busy"
-              :class="{ active: currentState === 'busy' }"
-              @click="handleSetStatus('busy')"
-              :disabled="!isRegistered"
-            >
-              <span class="status-dot busy"></span> Busy
-            </button>
-            <button
-              class="btn btn-status status-offline"
-              :class="{ active: currentState === 'offline' }"
-              @click="handleSetStatus('offline')"
-              :disabled="!isRegistered"
-            >
-              <span class="status-dot offline"></span> Offline
-            </button>
-          </div>
-
-          <div class="form-group">
-            <label for="status-message">Status Message (Optional)</label>
-            <input
-              id="status-message"
-              v-model="statusMessage"
-              type="text"
-              placeholder="e.g., In a meeting"
-              :disabled="!isRegistered"
-            />
-          </div>
+        <div class="flex align-items-center gap-3 surface-100 border-round p-3 mb-4">
+          <span class="status-indicator" :class="`status-${currentState}`"></span>
+          <span class="font-medium">{{ formatStatus(currentState) }}</span>
+          <span v-if="currentStatus?.statusMessage" class="text-500 font-italic">
+            - {{ currentStatus.statusMessage }}
+          </span>
         </div>
 
-        <!-- Watch Users Section -->
-        <div class="watch-section">
-          <h3>Watch User Presence</h3>
-          <p class="info-text">
-            Subscribe to another user's presence to see when their status changes.
-          </p>
-
-          <div class="watch-form">
-            <input
-              v-model="targetUser"
-              type="text"
-              placeholder="sip:user@example.com"
-              class="watch-input"
-              :disabled="!isRegistered"
-              @keyup.enter="handleWatchUser"
-            />
-            <button
-              class="btn btn-primary"
-              :disabled="!targetUser.trim() || !isRegistered || isWatching"
-              @click="handleWatchUser"
-            >
-              {{ isWatching ? 'Subscribing...' : 'Watch User' }}
-            </button>
-          </div>
-
-          <div v-if="watchError" class="error-message">
-            {{ watchError }}
-          </div>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <Button
+            label="Available"
+            :severity="currentState === 'available' ? 'success' : 'secondary'"
+            :outlined="currentState !== 'available'"
+            :disabled="!isRegistered"
+            @click="handleSetStatus('available')"
+          >
+            <template #icon>
+              <span class="status-dot available mr-2"></span>
+            </template>
+          </Button>
+          <Button
+            label="Away"
+            :severity="currentState === 'away' ? 'warn' : 'secondary'"
+            :outlined="currentState !== 'away'"
+            :disabled="!isRegistered"
+            @click="handleSetStatus('away')"
+          >
+            <template #icon>
+              <span class="status-dot away mr-2"></span>
+            </template>
+          </Button>
+          <Button
+            label="Busy"
+            :severity="currentState === 'busy' ? 'danger' : 'secondary'"
+            :outlined="currentState !== 'busy'"
+            :disabled="!isRegistered"
+            @click="handleSetStatus('busy')"
+          >
+            <template #icon>
+              <span class="status-dot busy mr-2"></span>
+            </template>
+          </Button>
+          <Button
+            label="Offline"
+            :severity="currentState === 'offline' ? 'secondary' : 'secondary'"
+            :outlined="currentState !== 'offline'"
+            :disabled="!isRegistered"
+            @click="handleSetStatus('offline')"
+          >
+            <template #icon>
+              <span class="status-dot offline mr-2"></span>
+            </template>
+          </Button>
         </div>
 
-        <!-- Watched Users List -->
-        <div v-if="watchedUsers.size > 0" class="watched-list">
-          <h3>Watched Users ({{ watchedUsers.size }})</h3>
-          <div class="watched-users">
-            <div
-              v-for="[uri, status] in Array.from(watchedUsers.entries())"
-              :key="uri"
-              class="watched-user"
-            >
-              <div class="user-info">
-                <span class="status-indicator" :class="`status-${status.state}`"></span>
-                <div class="user-details">
-                  <div class="user-uri">{{ uri }}</div>
-                  <div class="user-status">
-                    {{ formatStatus(status.state) }}
-                    <span v-if="status.statusMessage" class="status-message">
-                      - {{ status.statusMessage }}
-                    </span>
-                  </div>
-                  <div v-if="status.lastUpdate" class="last-update">
-                    Updated: {{ formatTime(status.lastUpdate) }}
-                  </div>
+        <div class="flex flex-column gap-2">
+          <label for="status-message" class="font-medium">Status Message (Optional)</label>
+          <InputText
+            id="status-message"
+            v-model="statusMessage"
+            placeholder="e.g., In a meeting"
+            :disabled="!isRegistered"
+            class="w-full"
+          />
+        </div>
+      </Panel>
+
+      <!-- Watch Users Section -->
+      <Panel class="mb-4">
+        <template #header>
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-eye"></i>
+            <span class="font-semibold">Watch User Presence</span>
+          </div>
+        </template>
+
+        <p class="text-500 text-sm mb-3">
+          Subscribe to another user's presence to see when their status changes.
+        </p>
+
+        <div class="flex gap-2 mb-3">
+          <InputText
+            v-model="targetUser"
+            placeholder="sip:user@example.com"
+            :disabled="!isRegistered"
+            class="flex-1"
+            @keyup.enter="handleWatchUser"
+          />
+          <Button
+            :label="isWatching ? 'Subscribing...' : 'Watch User'"
+            icon="pi pi-eye"
+            :disabled="!targetUser.trim() || !isRegistered || isWatching"
+            :loading="isWatching"
+            @click="handleWatchUser"
+          />
+        </div>
+
+        <Message v-if="watchError" severity="error" :closable="false">
+          {{ watchError }}
+        </Message>
+      </Panel>
+
+      <!-- Watched Users List -->
+      <Panel v-if="watchedUsers.size > 0" class="mb-4">
+        <template #header>
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-users"></i>
+            <span class="font-semibold">Watched Users</span>
+            <Tag severity="secondary" class="ml-2">{{ watchedUsers.size }}</Tag>
+          </div>
+        </template>
+
+        <div class="flex flex-column gap-3">
+          <div
+            v-for="[uri, status] in Array.from(watchedUsers.entries())"
+            :key="uri"
+            class="flex align-items-start justify-content-between gap-3 surface-100 border-round p-3"
+          >
+            <div class="flex gap-3">
+              <span class="status-indicator mt-1" :class="`status-${status.state}`"></span>
+              <div>
+                <div class="font-medium text-900">{{ uri }}</div>
+                <div class="text-500 text-sm">
+                  {{ formatStatus(status.state) }}
+                  <span v-if="status.statusMessage" class="font-italic">
+                    - {{ status.statusMessage }}
+                  </span>
+                </div>
+                <div v-if="status.lastUpdate" class="text-400 text-xs mt-1">
+                  Updated: {{ formatTime(status.lastUpdate) }}
                 </div>
               </div>
-              <button
-                class="btn btn-sm btn-danger"
-                @click="handleUnwatch(uri)"
-                title="Stop watching this user"
-              >
-                Unwatch
-              </button>
             </div>
-          </div>
-
-          <button v-if="watchedUsers.size > 1" class="btn btn-secondary" @click="handleUnwatchAll">
-            Unwatch All
-          </button>
-        </div>
-
-        <!-- Empty State -->
-        <div v-else class="empty-state">
-          <p>No users being watched</p>
-          <p class="info-text">Enter a SIP URI above to start watching a user's presence.</p>
-        </div>
-
-        <!-- Presence Events Log -->
-        <div v-if="presenceEvents.length > 0" class="events-log">
-          <h3>Recent Events ({{ presenceEvents.length }})</h3>
-          <div class="events-list">
-            <div
-              v-for="(event, index) in presenceEvents.slice(-10).reverse()"
-              :key="index"
-              class="event-item"
-            >
-              <span class="event-time">{{ formatTime(event.timestamp) }}</span>
-              <span class="event-type">{{ event.type }}</span>
-              <span class="event-details">{{ formatEvent(event) }}</span>
-            </div>
+            <Button
+              label="Unwatch"
+              icon="pi pi-times"
+              severity="danger"
+              size="small"
+              outlined
+              @click="handleUnwatch(uri)"
+            />
           </div>
         </div>
+
+        <div v-if="watchedUsers.size > 1" class="mt-3">
+          <Button label="Unwatch All" icon="pi pi-times-circle" severity="secondary" @click="handleUnwatchAll" />
+        </div>
+      </Panel>
+
+      <!-- Empty State -->
+      <div v-else class="flex flex-column align-items-center justify-content-center py-6 surface-100 border-round border-dashed border-1 surface-border mb-4">
+        <i class="pi pi-users text-4xl text-300 mb-3"></i>
+        <div class="text-500 mb-2">No users being watched</div>
+        <div class="text-400 text-sm">Enter a SIP URI above to start watching a user's presence.</div>
       </div>
+
+      <!-- Presence Events Log -->
+      <Panel v-if="presenceEvents.length > 0">
+        <template #header>
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-history"></i>
+            <span class="font-semibold">Recent Events</span>
+            <Tag severity="secondary" class="ml-2">{{ presenceEvents.length }}</Tag>
+          </div>
+        </template>
+
+        <div class="flex flex-column gap-2 max-h-20rem overflow-auto">
+          <div
+            v-for="(event, index) in presenceEvents.slice(-10).reverse()"
+            :key="index"
+            class="flex align-items-center gap-3 surface-100 border-round p-2 text-sm"
+          >
+            <span class="text-400 text-xs white-space-nowrap">{{ formatTime(event.timestamp) }}</span>
+            <Tag :severity="getEventSeverity(event.type)" class="text-xs">{{ event.type }}</Tag>
+            <span class="text-700 flex-1">{{ formatEvent(event) }}</span>
+          </div>
+        </div>
+      </Panel>
     </div>
   </div>
 </template>
@@ -268,6 +322,14 @@ import { useSipClient, usePresence } from '../../src'
 import { PresenceState, type PresenceEvent } from '../../src/types/presence.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+
+// PrimeVue components
+import Panel from 'primevue/panel'
+import Message from 'primevue/message'
+import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
+import Button from 'primevue/button'
+import Tag from 'primevue/tag'
 
 // Simulation system
 const simulation = useSimulation()
@@ -452,6 +514,21 @@ function formatEvent(event: PresenceEvent): string {
       return JSON.stringify(event)
   }
 }
+
+function getEventSeverity(type: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
+  switch (type) {
+    case 'subscribed':
+      return 'success'
+    case 'unsubscribed':
+      return 'warn'
+    case 'updated':
+      return 'info'
+    case 'published':
+      return 'secondary'
+    default:
+      return 'secondary'
+  }
+}
 </script>
 
 <style scoped>
@@ -460,244 +537,7 @@ function formatEvent(event: PresenceEvent): string {
   margin: 0 auto;
 }
 
-/* Config Panel */
-.config-panel {
-  padding: 2rem;
-}
-
-.config-panel h3 {
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-.info-text {
-  margin-bottom: 1.5rem;
-  color: #666;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.form-group input:disabled {
-  background: #f3f4f6;
-  cursor: not-allowed;
-}
-
-.form-group small {
-  display: block;
-  margin-top: 0.25rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
-  font-size: 0.875rem;
-}
-
-.demo-tip {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-/* Connected Interface */
-.connected-interface {
-  padding: 2rem;
-}
-
-.status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ef4444;
-}
-
-.status-dot.connected {
-  background: #10b981;
-}
-
-/* Presence Panel */
-.presence-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.status-section,
-.watch-section,
-.watched-list,
-.events-log {
-  padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-
-.status-section h3,
-.watch-section h3,
-.watched-list h3,
-.events-log h3 {
-  margin-bottom: 1rem;
-  color: #111827;
-}
-
-.status-display {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-}
-
-.status-indicator {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.status-indicator.status-available {
-  background: var(--color-success, #10b981);
-}
-
-.status-indicator.status-away {
-  background: var(--color-warning, #f59e0b);
-}
-
-.status-indicator.status-busy {
-  background: var(--color-error, #ef4444);
-}
-
-.status-indicator.status-offline {
-  background: var(--color-gray, #6b7280);
-}
-
-.status-indicator.status-custom {
-  background: var(--color-info, #3b82f6);
-}
-
-.status-text {
-  font-weight: 500;
-  color: #111827;
-}
-
-.status-message {
-  color: #6b7280;
-  font-style: italic;
-}
-
-.status-buttons {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.btn-status {
-  flex: 1;
-  min-width: 120px;
-  padding: 0.75rem 1rem;
-  background: #f3f4f6;
-  color: #374151;
-  border: 2px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
+/* Status dots */
 .status-dot {
   width: 0.75rem;
   height: 0.75rem;
@@ -705,180 +545,76 @@ function formatEvent(event: PresenceEvent): string {
   display: inline-block;
 }
 
+.status-dot.connected {
+  background: var(--green-500);
+}
+
+.status-dot:not(.connected) {
+  background: var(--red-500);
+}
+
 .status-dot.available {
-  background: var(--color-success, #10b981);
+  background: var(--green-500);
 }
 
 .status-dot.away {
-  background: var(--color-warning, #f59e0b);
+  background: var(--yellow-500);
 }
 
 .status-dot.busy {
-  background: var(--color-error, #ef4444);
+  background: var(--red-500);
 }
 
 .status-dot.offline {
-  background: var(--color-gray, #6b7280);
+  background: var(--surface-400);
 }
 
-.btn-status:hover:not(:disabled) {
-  background: #e5e7eb;
+/* Status indicators */
+.status-indicator {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
-.btn-status.active {
-  background: #667eea;
-  color: white;
-  border-color: #667eea;
+.status-indicator.status-available {
+  background: var(--green-500);
 }
 
-/* Watch Section */
-.watch-form {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+.status-indicator.status-away {
+  background: var(--yellow-500);
 }
 
-.watch-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+.status-indicator.status-busy {
+  background: var(--red-500);
 }
 
-/* Watched Users */
-.watched-users {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1rem;
+.status-indicator.status-offline {
+  background: var(--surface-400);
 }
 
-.watched-user {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+.status-indicator.status-custom {
+  background: var(--blue-500);
 }
 
-.user-info {
-  display: flex;
-  gap: 1rem;
-  flex: 1;
+/* Border left for tip message */
+:deep(.border-left-3) {
+  border-left-width: 3px !important;
+  border-left-style: solid !important;
 }
 
-.user-details {
-  flex: 1;
+/* Password input full width fix */
+:deep(.p-password) {
+  width: 100%;
 }
 
-.user-uri {
-  font-weight: 500;
-  color: #111827;
-  margin-bottom: 0.25rem;
+:deep(.p-password-input) {
+  width: 100%;
 }
 
-.user-status {
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
-}
-
-.last-update {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-/* Empty State */
-.empty-state {
-  padding: 2rem;
-  text-align: center;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
-  color: #6b7280;
-}
-
-.empty-state p:first-child {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-/* Events Log */
-.events-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.event-item {
-  display: flex;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-.event-time {
-  color: #9ca3af;
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-
-.event-type {
-  color: #667eea;
-  font-weight: 500;
-  min-width: 100px;
-}
-
-.event-details {
-  color: #374151;
-  flex: 1;
-}
-
-/* Status Colors */
-.status-available {
-  color: #10b981;
-}
-
-.status-away {
-  color: #f59e0b;
-}
-
-.status-busy {
-  color: #ef4444;
-}
-
-.status-offline {
-  color: #6b7280;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .status-buttons {
-    flex-direction: column;
-  }
-
-  .btn-status {
-    width: 100%;
-  }
-
-  .watch-form {
-    flex-direction: column;
-  }
-
-  .watched-user {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .status-bar {
-    flex-direction: column;
-    gap: 1rem;
-  }
+/* Max height utility */
+.max-h-20rem {
+  max-height: 20rem;
 }
 </style>

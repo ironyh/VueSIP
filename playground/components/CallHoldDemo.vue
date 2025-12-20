@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed as _computed } from 'vue'
 
 const callState = reactive({
   id: 'call-456',
@@ -165,14 +165,14 @@ addEvent('INFO', `Active call with ${callState.remoteNumber}`)
       <h3>Current Media Direction</h3>
       <div class="code-preview" style="font-size: 0.9rem;">
         <code v-if="!callState.isOnHold">
-m=audio 49170 RTP/AVP 0
-<span class="keyword">a=sendrecv</span>  <span class="comment">← Active bidirectional audio</span>
-a=rtpmap:0 PCMU/8000
+          m=audio 49170 RTP/AVP 0
+          <span class="keyword">a=sendrecv</span>  <span class="comment">← Active bidirectional audio</span>
+          a=rtpmap:0 PCMU/8000
         </code>
         <code v-else>
-m=audio 49170 RTP/AVP 0
-<span class="keyword">a=sendonly</span>  <span class="comment">← Local hold (or a=inactive)</span>
-a=rtpmap:0 PCMU/8000
+          m=audio 49170 RTP/AVP 0
+          <span class="keyword">a=sendonly</span>  <span class="comment">← Local hold (or a=inactive)</span>
+          a=rtpmap:0 PCMU/8000
         </code>
       </div>
     </div>
@@ -192,22 +192,22 @@ a=rtpmap:0 PCMU/8000
       <h3>API Usage</h3>
       <div class="code-preview">
         <code>
-<span class="keyword">import</span> { useCallHold } <span class="keyword">from</span> <span class="string">'vuesip'</span>
+          <span class="keyword">import</span> { useCallHold } <span class="keyword">from</span> <span class="string">'vuesip'</span>
 
-<span class="keyword">const</span> {
-  isOnHold,
-  holdDuration,
-  <span class="function">hold</span>,
-  <span class="function">resume</span>,
-  <span class="function">toggleHold</span>
-} = <span class="function">useCallHold</span>(callSession)
+          <span class="keyword">const</span> {
+          isOnHold,
+          holdDuration,
+          <span class="function">hold</span>,
+          <span class="function">resume</span>,
+          <span class="function">toggleHold</span>
+          } = <span class="function">useCallHold</span>(callSession)
 
-<span class="comment">// Toggle hold state</span>
-<span class="keyword">await</span> <span class="function">toggleHold</span>()
+          <span class="comment">// Toggle hold state</span>
+          <span class="keyword">await</span> <span class="function">toggleHold</span>()
 
-<span class="comment">// Or explicitly</span>
-<span class="keyword">await</span> <span class="function">hold</span>({ musicOnHold: <span class="keyword">true</span> })
-<span class="keyword">await</span> <span class="function">resume</span>()
+          <span class="comment">// Or explicitly</span>
+          <span class="keyword">await</span> <span class="function">hold</span>({ musicOnHold: <span class="keyword">true</span> })
+          <span class="keyword">await</span> <span class="function">resume</span>()
         </code>
       </div>
     </div>

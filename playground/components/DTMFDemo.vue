@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed as _computed } from 'vue'
 
 const dtmfMode = ref<'rfc2833' | 'sipinfo'>('rfc2833')
 const inputBuffer = ref('')
@@ -112,7 +112,7 @@ const clearBuffer = () => {
   addEvent('DTMF', 'Input buffer cleared')
 }
 
-const sendSequence = () => {
+const _sendSequence = () => {
   if (!inputBuffer.value) return
   addEvent('DTMF', `Sending sequence: ${inputBuffer.value}`)
   // Would send each digit with proper timing
@@ -235,26 +235,26 @@ addEvent('INFO', 'Click dialpad keys to send DTMF tones')
       <h3>API Usage</h3>
       <div class="code-preview">
         <code>
-<span class="keyword">import</span> { useDTMF } <span class="keyword">from</span> <span class="string">'vuesip'</span>
+          <span class="keyword">import</span> { useDTMF } <span class="keyword">from</span> <span class="string">'vuesip'</span>
 
-<span class="keyword">const</span> {
-  <span class="function">sendDTMF</span>,
-  <span class="function">sendDTMFSequence</span>,
-  dtmfMethod,
-  isSending
-} = <span class="function">useDTMF</span>(callSession)
+          <span class="keyword">const</span> {
+          <span class="function">sendDTMF</span>,
+          <span class="function">sendDTMFSequence</span>,
+          dtmfMethod,
+          isSending
+          } = <span class="function">useDTMF</span>(callSession)
 
-<span class="comment">// Send single digit</span>
-<span class="keyword">await</span> <span class="function">sendDTMF</span>(<span class="string">'5'</span>)
+          <span class="comment">// Send single digit</span>
+          <span class="keyword">await</span> <span class="function">sendDTMF</span>(<span class="string">'5'</span>)
 
-<span class="comment">// Send sequence with timing</span>
-<span class="keyword">await</span> <span class="function">sendDTMFSequence</span>(<span class="string">'1234#'</span>, {
-  interDigitDelay: <span class="number">100</span>,
-  duration: <span class="number">160</span>
-})
+          <span class="comment">// Send sequence with timing</span>
+          <span class="keyword">await</span> <span class="function">sendDTMFSequence</span>(<span class="string">'1234#'</span>, {
+          interDigitDelay: <span class="number">100</span>,
+          duration: <span class="number">160</span>
+          })
 
-<span class="comment">// Change method</span>
-dtmfMethod.value = <span class="string">'sipinfo'</span>
+          <span class="comment">// Change method</span>
+          dtmfMethod.value = <span class="string">'sipinfo'</span>
         </code>
       </div>
     </div>

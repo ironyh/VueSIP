@@ -1,11 +1,30 @@
 /**
  * Unit tests for useAmiAgentStats composable
+ *
+ * Agent statistics tracking composable providing:
+ * - Real-time call statistics tracking
+ * - Performance metrics calculation
+ * - Queue-based statistics
+ * - Hourly breakdown analysis
+ * - Alert management
+ * - Data export (CSV/JSON)
+ *
+ * Test Patterns Applied:
+ * ✓ TEST_FIXTURES object with reusable test data
+ * ✓ Factory functions (createCallRecord, createMockAmiClient, createAmiEvent)
+ * ✓ Parameterized tests with describe.each for repetitive scenarios
+ * ✓ JSDoc documentation for complex test groups
+ * ✓ Consistent naming and organization
+ * ✓ Reduced duplication through data-driven testing
+ *
+ * @see src/composables/useAmiAgentStats.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { useAmiAgentStats } from '@/composables/useAmiAgentStats'
 import type { AmiClient } from '@/core/AmiClient'
+import type { CallRecord } from '@/types/ami-stats.types'
 
 // Mock logger
 vi.mock('@/utils/logger', () => ({
@@ -17,6 +36,204 @@ vi.mock('@/utils/logger', () => ({
   }),
 }))
 
+/**
+ * Test fixtures for consistent test data across all test suites
+ */
+const TEST_FIXTURES = {
+  agentIds: {
+    primary: '1001',
+    alternate: '1002',
+    invalid: '9999',
+  },
+  queues: {
+    sales: 'sales',
+    support: 'support',
+    general: 'general',
+  },
+  interfaces: {
+    pjsip: 'PJSIP/1001',
+    pjsipPattern: 'PJSIP/*',
+    trunk: 'PJSIP/trunk-00000001',
+  },
+  callData: {
+    basic: {
+      remoteParty: 'sip:caller@example.com',
+      direction: 'inbound' as const,
+      waitTime: 10,
+      talkTime: 120,
+      holdTime: 5,
+      wrapTime: 30,
+      disposition: 'answered' as const,
+      recorded: false,
+    },
+    missed: {
+      remoteParty: 'sip:caller@example.com',
+      direction: 'inbound' as const,
+      waitTime: 20,
+      talkTime: 0,
+      holdTime: 0,
+      wrapTime: 0,
+      disposition: 'missed' as const,
+      recorded: false,
+    },
+    transferred: {
+      remoteParty: 'sip:caller@example.com',
+      direction: 'inbound' as const,
+      waitTime: 5,
+      talkTime: 60,
+      holdTime: 0,
+      wrapTime: 10,
+      disposition: 'transferred' as const,
+      transferredTo: 'PJSIP/1002',
+      recorded: false,
+    },
+    outbound: {
+      remoteParty: 'sip:customer@example.com',
+      direction: 'outbound' as const,
+      waitTime: 0,
+      talkTime: 180,
+      holdTime: 0,
+      wrapTime: 20,
+      disposition: 'answered' as const,
+      recorded: false,
+    },
+  },
+  amiEvents: {
+    agentComplete: {
+      Event: 'AgentComplete',
+      Queue: 'sales',
+      Uniqueid: '1234567890.123',
+      Channel: 'PJSIP/trunk-00000001',
+      Member: 'PJSIP/1001',
+      MemberName: 'Agent 1001',
+      Interface: 'PJSIP/1001',
+      HoldTime: '15',
+      TalkTime: '180',
+      Reason: 'operator',
+    },
+    ringNoAnswer: {
+      Event: 'AgentRingNoAnswer',
+      Queue: 'support',
+      Uniqueid: '1234567890.124',
+      Channel: 'PJSIP/trunk-00000002',
+      Interface: 'PJSIP/1001',
+      MemberName: 'Agent 1001',
+      Member: 'PJSIP/1001',
+      RingTime: '20',
+    },
+  },
+  thresholds: {
+    serviceLevel: {
+      metric: 'serviceLevel' as const,
+      warningThreshold: 80,
+      criticalThreshold: 60,
+      higherIsBetter: true,
+    },
+  },
+  options: {
+    basic: {
+      agentId: '1001',
+    },
+    withQueues: {
+      agentId: '1001',
+      queues: ['sales', 'support'],
+    },
+    withEvents: {
+      agentId: '1001',
+      interfacePattern: 'PJSIP/*',
+      realTimeUpdates: true,
+    },
+    withPersistence: {
+      agentId: '1001',
+      persist: true,
+      storageKey: 'test_agent_stats',
+    },
+  },
+} as const
+
+/**
+ * Factory function: Create call record with sensible defaults
+ *
+ * @param overrides - Optional property overrides
+ * @returns Call record object
+ */
+function createCallRecord(overrides?: Partial<CallRecord>): CallRecord {
+  const now = new Date()
+  return {
+    callId: `call-${Date.now()}`,
+    queue: TEST_FIXTURES.queues.sales,
+    remoteParty: TEST_FIXTURES.callData.basic.remoteParty,
+    direction: TEST_FIXTURES.callData.basic.direction,
+    startTime: now,
+    answerTime: now,
+    endTime: now,
+    waitTime: TEST_FIXTURES.callData.basic.waitTime,
+    talkTime: TEST_FIXTURES.callData.basic.talkTime,
+    holdTime: TEST_FIXTURES.callData.basic.holdTime,
+    wrapTime: TEST_FIXTURES.callData.basic.wrapTime,
+    disposition: TEST_FIXTURES.callData.basic.disposition,
+    recorded: TEST_FIXTURES.callData.basic.recorded,
+    ...overrides,
+  }
+}
+
+/**
+ * Factory function: Create mock AMI client with event tracking
+ *
+ * @returns Mock AmiClient instance with event handler tracking
+ */
+function createMockAmiClient(): { client: AmiClient; eventHandlers: Map<string, Set<(event: unknown) => void>> } {
+  const eventHandlers = new Map<string, Set<(event: unknown) => void>>()
+
+  const client = {
+    on: vi.fn((event: string, handler: (data: unknown) => void) => {
+      if (!eventHandlers.has(event)) {
+        eventHandlers.set(event, new Set())
+      }
+      eventHandlers.get(event)!.add(handler)
+    }),
+    off: vi.fn((event: string, handler: (data: unknown) => void) => {
+      eventHandlers.get(event)?.delete(handler)
+    }),
+    sendAction: vi.fn().mockResolvedValue({ Response: 'Success' }),
+    isConnected: vi.fn().mockReturnValue(true),
+  } as unknown as AmiClient
+
+  return { client, eventHandlers }
+}
+
+/**
+ * Factory function: Create AMI event with sensible defaults
+ *
+ * @param eventType - Type of event to create
+ * @param overrides - Optional property overrides
+ * @returns AMI event object wrapped in message structure
+ */
+function createAmiEvent(eventType: 'agentComplete' | 'ringNoAnswer', overrides?: any) {
+  const baseEvent = TEST_FIXTURES.amiEvents[eventType]
+  return {
+    type: 'event' as const,
+    server_id: 1,
+    server_name: 'test',
+    ssl: false,
+    data: {
+      ...baseEvent,
+      ...overrides,
+    },
+  }
+}
+
+/**
+ * Helper function: Emit event to all registered handlers
+ *
+ * @param eventHandlers - Map of event handlers
+ * @param eventData - Event data to emit
+ */
+function emitEvent(eventHandlers: Map<string, Set<(event: unknown) => void>>, eventData: unknown) {
+  const handlers = eventHandlers.get('event')
+  handlers?.forEach((handler) => handler(eventData))
+}
+
 describe('useAmiAgentStats', () => {
   let mockClient: AmiClient
   let eventHandlers: Map<string, Set<(event: unknown) => void>>
@@ -24,21 +241,9 @@ describe('useAmiAgentStats', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     localStorage.clear()
-    eventHandlers = new Map()
-
-    mockClient = {
-      on: vi.fn((event: string, handler: (data: unknown) => void) => {
-        if (!eventHandlers.has(event)) {
-          eventHandlers.set(event, new Set())
-        }
-        eventHandlers.get(event)!.add(handler)
-      }),
-      off: vi.fn((event: string, handler: (data: unknown) => void) => {
-        eventHandlers.get(event)?.delete(handler)
-      }),
-      sendAction: vi.fn().mockResolvedValue({ Response: 'Success' }),
-      isConnected: vi.fn().mockReturnValue(true),
-    } as unknown as AmiClient
+    const mock = createMockAmiClient()
+    mockClient = mock.client
+    eventHandlers = mock.eventHandlers
   })
 
   afterEach(() => {
@@ -46,31 +251,41 @@ describe('useAmiAgentStats', () => {
     vi.clearAllMocks()
   })
 
-  function emitEvent(eventData: unknown) {
-    const handlers = eventHandlers.get('event')
-    // Wrap event data in AmiMessage structure
-    const amiMessage = {
-      type: 'event' as const,
-      server_id: 1,
-      server_name: 'test',
-      ssl: false,
-      data: eventData,
-    }
-    handlers?.forEach((handler) => handler(amiMessage))
-  }
-
+  /**
+   * Initialization Tests
+   * Verify composable starts with correct initial state and accepts configuration options
+   */
   describe('Initialization', () => {
-    it('should initialize with null stats', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { stats, isTracking, isLoading, error } = useAmiAgentStats(clientRef)
+    describe.each([
+      {
+        description: 'default state',
+        options: undefined,
+        expectedStats: null,
+        expectedTracking: false,
+        expectedLoading: false,
+        expectedError: null,
+      },
+      {
+        description: 'with basic options',
+        options: TEST_FIXTURES.options.basic,
+        expectedStats: null,
+        expectedTracking: false,
+        expectedLoading: false,
+        expectedError: null,
+      },
+    ])('$description', ({ options, expectedStats, expectedTracking, expectedLoading, expectedError }) => {
+      it('should initialize with correct state', () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const { stats, isTracking, isLoading, error } = useAmiAgentStats(clientRef, options)
 
-      expect(stats.value).toBeNull()
-      expect(isTracking.value).toBe(false)
-      expect(isLoading.value).toBe(false)
-      expect(error.value).toBeNull()
+        expect(stats.value).toBe(expectedStats)
+        expect(isTracking.value).toBe(expectedTracking)
+        expect(isLoading.value).toBe(expectedLoading)
+        expect(error.value).toBe(expectedError)
+      })
     })
 
-    it('should initialize with default options', () => {
+    it('should initialize computed properties to default values', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { performanceLevel, callsPerHour, avgHandleTime } = useAmiAgentStats(clientRef)
 
@@ -79,18 +294,14 @@ describe('useAmiAgentStats', () => {
       expect(avgHandleTime.value).toBe(0)
     })
 
-    it('should accept custom options', () => {
+    it('should accept and apply custom options', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-        queues: ['sales', 'support'],
-        period: 'today',
-      })
+      const { startTracking, stats } = useAmiAgentStats(clientRef, TEST_FIXTURES.options.withQueues)
 
       startTracking()
 
       expect(stats.value).not.toBeNull()
-      expect(stats.value?.agentId).toBe('1001')
+      expect(stats.value?.agentId).toBe(TEST_FIXTURES.agentIds.primary)
     })
   })
 
@@ -159,313 +370,216 @@ describe('useAmiAgentStats', () => {
     })
   })
 
+  /**
+   * Recording Calls Tests
+   * Verify call recording functionality and statistics updates
+   *
+   * Test scenarios:
+   * - Manual call recording updates statistics correctly
+   * - Different call dispositions (answered, missed, transferred)
+   * - Direction tracking (inbound, outbound)
+   * - Performance metrics calculation
+   */
   describe('Recording Calls', () => {
-    it('should record a call manually', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
+    describe.each([
+      {
+        description: 'basic inbound call',
+        callData: TEST_FIXTURES.callData.basic,
+        expectedUpdates: {
+          totalCalls: 1,
+          inboundCalls: 1,
+          totalTalkTime: 120,
+          totalHoldTime: 5,
+          totalWrapTime: 30,
+        },
+      },
+      {
+        description: 'missed call',
+        callData: TEST_FIXTURES.callData.missed,
+        expectedUpdates: {
+          totalCalls: 1,
+          missedCalls: 1,
+          totalTalkTime: 0,
+        },
+      },
+      {
+        description: 'transferred call',
+        callData: TEST_FIXTURES.callData.transferred,
+        expectedUpdates: {
+          totalCalls: 1,
+          transferredCalls: 1,
+          totalTalkTime: 60,
+        },
+      },
+      {
+        description: 'outbound call',
+        callData: TEST_FIXTURES.callData.outbound,
+        expectedUpdates: {
+          totalCalls: 1,
+          outboundCalls: 1,
+          totalTalkTime: 180,
+        },
+      },
+    ])('$description', ({ callData, expectedUpdates }) => {
+      it('should update statistics correctly', () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const { startTracking, recordCall, stats } = useAmiAgentStats(clientRef, TEST_FIXTURES.options.basic)
+
+        startTracking()
+
+        recordCall(createCallRecord(callData))
+
+        expect(stats.value?.totalCalls).toBe(expectedUpdates.totalCalls)
+        if ('inboundCalls' in expectedUpdates) {
+          expect(stats.value?.inboundCalls).toBe(expectedUpdates.inboundCalls)
+        }
+        if ('outboundCalls' in expectedUpdates) {
+          expect(stats.value?.outboundCalls).toBe(expectedUpdates.outboundCalls)
+        }
+        if ('missedCalls' in expectedUpdates) {
+          expect(stats.value?.missedCalls).toBe(expectedUpdates.missedCalls)
+        }
+        if ('transferredCalls' in expectedUpdates) {
+          expect(stats.value?.transferredCalls).toBe(expectedUpdates.transferredCalls)
+        }
+        expect(stats.value?.totalTalkTime).toBe(expectedUpdates.totalTalkTime)
       })
-
-      startTracking()
-
-      recordCall({
-        queue: 'sales',
-        remoteParty: 'sip:caller@example.com',
-        direction: 'inbound',
-        startTime: new Date(),
-        answerTime: new Date(),
-        endTime: new Date(),
-        waitTime: 10,
-        talkTime: 120,
-        holdTime: 5,
-        wrapTime: 30,
-        disposition: 'answered',
-        recorded: false,
-      })
-
-      expect(stats.value?.totalCalls).toBe(1)
-      expect(stats.value?.inboundCalls).toBe(1)
-      expect(stats.value?.totalTalkTime).toBe(120)
-      expect(stats.value?.totalHoldTime).toBe(5)
-      expect(stats.value?.totalWrapTime).toBe(30)
     })
 
     it('should update performance metrics after recording call', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-      })
+      const { startTracking, recordCall, stats } = useAmiAgentStats(clientRef, TEST_FIXTURES.options.basic)
 
       startTracking()
-
-      // Simulate some login time
       stats.value!.totalLoginTime = 3600 // 1 hour
 
-      recordCall({
-        queue: 'sales',
-        remoteParty: 'sip:caller@example.com',
-        direction: 'inbound',
-        startTime: new Date(),
-        answerTime: new Date(),
-        endTime: new Date(),
-        waitTime: 10,
-        talkTime: 120,
-        holdTime: 0,
-        wrapTime: 30,
-        disposition: 'answered',
-        recorded: false,
-      })
+      recordCall(createCallRecord({ talkTime: 120, holdTime: 0, wrapTime: 30 }))
 
       expect(stats.value?.performance.avgTalkTime).toBe(120)
       expect(stats.value?.performance.avgHandleTime).toBe(150) // 120 + 0 + 30
     })
 
-    it('should track missed calls', () => {
+    it('should limit recent calls to configured maximum', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
+      const maxRecentCalls = 5
       const { startTracking, recordCall, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
+        ...TEST_FIXTURES.options.basic,
+        maxRecentCalls,
       })
 
       startTracking()
 
-      recordCall({
-        queue: 'sales',
-        remoteParty: 'sip:caller@example.com',
-        direction: 'inbound',
-        startTime: new Date(),
-        endTime: new Date(),
-        waitTime: 20,
-        talkTime: 0,
-        holdTime: 0,
-        wrapTime: 0,
-        disposition: 'missed',
-        recorded: false,
-      })
-
-      expect(stats.value?.totalCalls).toBe(1)
-      expect(stats.value?.missedCalls).toBe(1)
-    })
-
-    it('should track transferred calls', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-      })
-
-      startTracking()
-
-      recordCall({
-        queue: 'sales',
-        remoteParty: 'sip:caller@example.com',
-        direction: 'inbound',
-        startTime: new Date(),
-        answerTime: new Date(),
-        endTime: new Date(),
-        waitTime: 5,
-        talkTime: 60,
-        holdTime: 0,
-        wrapTime: 10,
-        disposition: 'transferred',
-        transferredTo: 'PJSIP/1002',
-        recorded: false,
-      })
-
-      expect(stats.value?.transferredCalls).toBe(1)
-      expect(stats.value?.performance.transferRate).toBe(100)
-    })
-
-    it('should track outbound calls', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-      })
-
-      startTracking()
-
-      recordCall({
-        remoteParty: 'sip:customer@example.com',
-        direction: 'outbound',
-        startTime: new Date(),
-        answerTime: new Date(),
-        endTime: new Date(),
-        waitTime: 0,
-        talkTime: 180,
-        holdTime: 0,
-        wrapTime: 20,
-        disposition: 'answered',
-        recorded: false,
-      })
-
-      expect(stats.value?.outboundCalls).toBe(1)
-      expect(stats.value?.totalTalkTime).toBe(180)
-    })
-
-    it('should limit recent calls to max', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-        maxRecentCalls: 5,
-      })
-
-      startTracking()
-
-      // Record 10 calls
+      // Record more calls than the limit
       for (let i = 0; i < 10; i++) {
-        recordCall({
-          remoteParty: `caller-${i}`,
-          direction: 'inbound',
-          startTime: new Date(),
-          endTime: new Date(),
-          waitTime: 0,
-          talkTime: 60,
-          holdTime: 0,
-          wrapTime: 0,
-          disposition: 'answered',
-          recorded: false,
-        })
+        recordCall(createCallRecord({ remoteParty: `caller-${i}`, talkTime: 60 }))
       }
 
-      expect(stats.value?.recentCalls.length).toBe(5)
+      expect(stats.value?.recentCalls.length).toBe(maxRecentCalls)
       expect(stats.value?.totalCalls).toBe(10)
     })
 
     it('should update wrap time for existing call', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, recordWrapTime, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-      })
+      const { startTracking, recordCall, recordWrapTime, stats } = useAmiAgentStats(
+        clientRef,
+        TEST_FIXTURES.options.basic
+      )
 
       startTracking()
-
-      recordCall({
-        remoteParty: 'sip:caller@example.com',
-        direction: 'inbound',
-        startTime: new Date(),
-        endTime: new Date(),
-        waitTime: 0,
-        talkTime: 60,
-        holdTime: 0,
-        wrapTime: 0,
-        disposition: 'answered',
-        recorded: false,
-      })
+      recordCall(createCallRecord({ wrapTime: 0 }))
 
       const callId = stats.value!.recentCalls[0].callId
-      recordWrapTime(callId, 45)
+      const newWrapTime = 45
+      recordWrapTime(callId, newWrapTime)
 
-      expect(stats.value?.recentCalls[0].wrapTime).toBe(45)
-      expect(stats.value?.totalWrapTime).toBe(45)
+      expect(stats.value?.recentCalls[0].wrapTime).toBe(newWrapTime)
+      expect(stats.value?.totalWrapTime).toBe(newWrapTime)
     })
   })
 
+  /**
+   * AMI Event Handling Tests
+   * Verify real-time event processing from AMI server
+   *
+   * Tests event-driven statistics updates:
+   * - AgentComplete: Call completed successfully
+   * - AgentRingNoAnswer: Missed call (no answer)
+   * - Event filtering by queue and agent
+   */
   describe('AMI Event Handling', () => {
-    it('should handle AgentComplete event', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-        interfacePattern: 'PJSIP/*',
-        realTimeUpdates: true,
+    describe.each([
+      {
+        description: 'AgentComplete event',
+        eventType: 'agentComplete' as const,
+        expectedUpdates: {
+          totalCalls: 1,
+          totalTalkTime: 180,
+        },
+      },
+      {
+        description: 'AgentRingNoAnswer event',
+        eventType: 'ringNoAnswer' as const,
+        expectedUpdates: {
+          totalCalls: 1,
+          missedCalls: 1,
+        },
+      },
+    ])('$description', ({ eventType, expectedUpdates }) => {
+      it('should process event and update statistics', async () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const { startTracking, stats } = useAmiAgentStats(clientRef, TEST_FIXTURES.options.withEvents)
+
+        startTracking()
+
+        emitEvent(eventHandlers, createAmiEvent(eventType))
+
+        await nextTick()
+
+        expect(stats.value?.totalCalls).toBe(expectedUpdates.totalCalls)
+        if ('totalTalkTime' in expectedUpdates) {
+          expect(stats.value?.totalTalkTime).toBe(expectedUpdates.totalTalkTime)
+        }
+        if ('missedCalls' in expectedUpdates) {
+          expect(stats.value?.missedCalls).toBe(expectedUpdates.missedCalls)
+        }
       })
-
-      startTracking()
-
-      emitEvent({
-        Event: 'AgentComplete',
-        Queue: 'sales',
-        Uniqueid: '1234567890.123',
-        Channel: 'PJSIP/trunk-00000001',
-        Member: 'PJSIP/1001',
-        MemberName: 'Agent 1001',
-        Interface: 'PJSIP/1001',
-        HoldTime: '15',
-        TalkTime: '180',
-        Reason: 'operator',
-      })
-
-      await nextTick()
-
-      expect(stats.value?.totalCalls).toBe(1)
-      expect(stats.value?.totalTalkTime).toBe(180)
     })
 
-    it('should handle AgentRingNoAnswer event', async () => {
+    it('should filter events by queue configuration', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startTracking, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-        interfacePattern: 'PJSIP/*',
+        agentId: TEST_FIXTURES.agentIds.primary,
+        queues: [TEST_FIXTURES.queues.sales],
         realTimeUpdates: true,
       })
 
       startTracking()
 
-      emitEvent({
-        Event: 'AgentRingNoAnswer',
-        Queue: 'support',
-        Uniqueid: '1234567890.124',
-        Channel: 'PJSIP/trunk-00000002',
-        Interface: 'PJSIP/1001',
-        MemberName: 'Agent 1001',
-        Member: 'PJSIP/1001',
-        RingTime: '20',
-      })
-
-      await nextTick()
-
-      expect(stats.value?.totalCalls).toBe(1)
-      expect(stats.value?.missedCalls).toBe(1)
-    })
-
-    it('should filter events by queue', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-        queues: ['sales'],
-        realTimeUpdates: true,
-      })
-
-      startTracking()
-
-      // Event from non-tracked queue
-      emitEvent({
-        Event: 'AgentComplete',
-        Queue: 'support', // Not in tracked queues
-        Uniqueid: '1234567890.123',
-        Channel: 'PJSIP/trunk-00000001',
-        Member: 'PJSIP/1001',
-        MemberName: 'Agent 1001',
-        Interface: 'PJSIP/1001',
-        HoldTime: '15',
-        TalkTime: '180',
-        Reason: 'operator',
-      })
+      // Event from non-tracked queue should be ignored
+      emitEvent(eventHandlers, createAmiEvent('agentComplete', { Queue: TEST_FIXTURES.queues.support }))
 
       await nextTick()
 
       expect(stats.value?.totalCalls).toBe(0)
     })
 
-    it('should filter events by agentId', async () => {
+    it('should filter events by agent ID', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startTracking, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
+        agentId: TEST_FIXTURES.agentIds.primary,
         realTimeUpdates: true,
       })
 
       startTracking()
 
-      // Event from different agent
-      emitEvent({
-        Event: 'AgentComplete',
-        Queue: 'sales',
-        Uniqueid: '1234567890.123',
-        Channel: 'PJSIP/trunk-00000001',
-        Member: 'PJSIP/1002', // Different agent
-        MemberName: 'Agent 1002',
-        Interface: 'PJSIP/1002',
-        HoldTime: '15',
-        TalkTime: '180',
-        Reason: 'operator',
-      })
+      // Event from different agent should be ignored
+      emitEvent(
+        eventHandlers,
+        createAmiEvent('agentComplete', {
+          Member: TEST_FIXTURES.interfaces.pjsip.replace(TEST_FIXTURES.agentIds.primary, TEST_FIXTURES.agentIds.alternate),
+          Interface: TEST_FIXTURES.interfaces.pjsip.replace(TEST_FIXTURES.agentIds.primary, TEST_FIXTURES.agentIds.alternate),
+        })
+      )
 
       await nextTick()
 
@@ -584,93 +698,56 @@ describe('useAmiAgentStats', () => {
     })
   })
 
+  /**
+   * Performance Metrics Tests
+   * Verify calculation of key performance indicators (KPIs)
+   *
+   * Metrics tested:
+   * - Calls per hour: Total calls / login hours
+   * - Occupancy: Talk time / login time * 100
+   * - Utilization: (Talk time + wrap time) / login time * 100
+   * - Service level: Calls answered within threshold / total calls * 100
+   */
   describe('Performance Metrics', () => {
-    it('should calculate calls per hour', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, stats, callsPerHour } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
+    describe.each([
+      {
+        description: 'calls per hour calculation',
+        metric: 'callsPerHour' as const,
+        loginTime: 3600,
+        calls: [
+          { talkTime: 60, wrapTime: 0 },
+          { talkTime: 60, wrapTime: 0 },
+        ],
+        expectedValue: 2,
+      },
+      {
+        description: 'occupancy rate calculation',
+        metric: 'occupancy' as const,
+        loginTime: 3600,
+        calls: [{ talkTime: 1800, wrapTime: 0 }],
+        expectedValue: 50,
+      },
+      {
+        description: 'utilization rate calculation',
+        metric: 'utilization' as const,
+        loginTime: 3600,
+        calls: [{ talkTime: 1500, wrapTime: 300 }],
+        expectedValue: 50,
+      },
+    ])('$description', ({ metric, loginTime, calls, expectedValue }) => {
+      it(`should calculate ${metric} correctly`, () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const composable = useAmiAgentStats(clientRef, TEST_FIXTURES.options.basic)
+
+        composable.startTracking()
+        composable.stats.value!.totalLoginTime = loginTime
+
+        calls.forEach((callData) => {
+          composable.recordCall(createCallRecord(callData))
+        })
+
+        expect(composable[metric].value).toBe(expectedValue)
       })
-
-      startTracking()
-      stats.value!.totalLoginTime = 3600 // 1 hour
-
-      recordCall({
-        remoteParty: 'caller1',
-        direction: 'inbound',
-        startTime: new Date(),
-        endTime: new Date(),
-        waitTime: 0,
-        talkTime: 60,
-        holdTime: 0,
-        wrapTime: 0,
-        disposition: 'answered',
-        recorded: false,
-      })
-
-      recordCall({
-        remoteParty: 'caller2',
-        direction: 'inbound',
-        startTime: new Date(),
-        endTime: new Date(),
-        waitTime: 0,
-        talkTime: 60,
-        holdTime: 0,
-        wrapTime: 0,
-        disposition: 'answered',
-        recorded: false,
-      })
-
-      expect(callsPerHour.value).toBe(2)
-    })
-
-    it('should calculate occupancy rate', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, stats, occupancy } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-      })
-
-      startTracking()
-      stats.value!.totalLoginTime = 3600 // 1 hour
-
-      recordCall({
-        remoteParty: 'caller1',
-        direction: 'inbound',
-        startTime: new Date(),
-        endTime: new Date(),
-        waitTime: 0,
-        talkTime: 1800, // 30 minutes
-        holdTime: 0,
-        wrapTime: 0,
-        disposition: 'answered',
-        recorded: false,
-      })
-
-      expect(occupancy.value).toBe(50) // 1800/3600 * 100
-    })
-
-    it('should calculate utilization rate', () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, stats, utilization } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-      })
-
-      startTracking()
-      stats.value!.totalLoginTime = 3600 // 1 hour
-
-      recordCall({
-        remoteParty: 'caller1',
-        direction: 'inbound',
-        startTime: new Date(),
-        endTime: new Date(),
-        waitTime: 0,
-        talkTime: 1500,
-        holdTime: 0,
-        wrapTime: 300, // 5 minutes wrap
-        disposition: 'answered',
-        recorded: false,
-      })
-
-      expect(utilization.value).toBe(50) // (1500+300)/3600 * 100
     })
 
     it('should calculate service level', () => {

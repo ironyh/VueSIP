@@ -282,9 +282,9 @@ describe('errorContext utilities', () => {
 
       const elapsed1 = timer.elapsed()
       // Small delay
-      let sum = 0
+      let _sum = 0
       for (let i = 0; i < 1000; i++) {
-        sum += i
+        _sum += i
       }
       const elapsed2 = timer.elapsed()
 

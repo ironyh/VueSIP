@@ -33,6 +33,23 @@ const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEven
       register: vi.fn(),
       unregister: vi.fn(),
       sendMessage: vi.fn(),
+      call: vi.fn().mockReturnValue({
+        id: 'call-id-123',
+        on: vi.fn(),
+        terminate: vi.fn()
+      }),
+      sendRequest: vi.fn((method, target, options) => {
+        // Simulate success response asynchronously
+        if (options && options.eventHandlers && options.eventHandlers.onSuccessResponse) {
+          setTimeout(() => {
+            options.eventHandlers.onSuccessResponse({
+              status_code: 200,
+              reason_phrase: 'OK',
+              getHeader: (name: string) => name === 'SIP-ETag' ? 'etag-123' : null
+            })
+          }, 10)
+        }
+      }),
       isConnected: vi.fn().mockReturnValue(false),
       isRegistered: vi.fn().mockReturnValue(false),
       on: vi.fn((event: string, handler: (...args: any[]) => void) => {
@@ -59,6 +76,22 @@ const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEven
   }
 )
 
+const hoistedMocks = vi.hoisted(() => {
+  const mockGetUserMedia = vi.fn(() => Promise.resolve('mock-stream'))
+  const mockDestroy = vi.fn()
+  
+  return { mockGetUserMedia, mockDestroy }
+})
+
+vi.mock('../../src/core/MediaManager', () => {
+  return {
+    MediaManager: class MockMediaManager {
+      getUserMedia = hoistedMocks.mockGetUserMedia
+      destroy = hoistedMocks.mockDestroy
+    },
+  }
+})
+
 vi.mock('jssip', () => {
   return {
     default: {
@@ -73,6 +106,8 @@ vi.mock('jssip', () => {
     },
   }
 })
+
+
 
 describe('SipClient', () => {
   let eventBus: EventBus
@@ -510,31 +545,140 @@ describe('SipClient', () => {
       await sipClient.start()
     })
 
-    it('should send SIP message', () => {
+    it('should send SIP message', async () => {
       const target = 'sip:recipient@example.com'
       const content = 'Hello, World!'
 
-      sipClient.sendMessage(target, content)
+      await sipClient.sendMessage(target, content)
 
-      expect(mockUA.sendMessage).toHaveBeenCalledWith(target, content, undefined)
+      expect(mockUA.sendMessage).toHaveBeenCalledWith(target, content, {})
     })
 
-    it('should send SIP message with options', () => {
+    it('should send SIP message with options', async () => {
       const target = 'sip:recipient@example.com'
       const content = 'Hello, World!'
       const options = { contentType: 'text/plain' }
 
-      sipClient.sendMessage(target, content, options)
+      await sipClient.sendMessage(target, content, options)
 
       expect(mockUA.sendMessage).toHaveBeenCalledWith(target, content, options)
     })
 
-    it('should throw error if not connected', () => {
+    it('should throw error if not connected', async () => {
       mockUA.isConnected.mockReturnValue(false)
 
-      expect(() => {
-        sipClient.sendMessage('sip:test@example.com', 'test')
-      }).toThrow('Not connected to SIP server')
+      await expect(sipClient.sendMessage('sip:test@example.com', 'test'))
+        .rejects.toThrow('Not connected to SIP server')
+    })
+  })
+
+  describe('makeCall()', () => {
+    it('should make a call', async () => {
+      setTimeout(() => {
+        mockUA.isConnected.mockReturnValue(true)
+        triggerEvent('connected', {})
+      }, 10)
+      
+      mockUA.call.mockReturnValue({
+        id: 'call-id-123',
+        on: vi.fn(),
+        terminate: vi.fn()
+      })
+      
+      await sipClient.start()
+      
+      const target = 'sip:target@example.com'
+      const callId = await sipClient.makeCall(target)
+      
+      expect(hoistedMocks.mockGetUserMedia).toHaveBeenCalled()
+      expect(mockUA.call).toHaveBeenCalledWith(target, expect.objectContaining({
+        mediaStream: 'mock-stream'
+      }))
+      expect(callId).toBe('call-id-123')
+    })
+
+    it('should throw if not connected', async () => {
+      mockUA.isConnected.mockReturnValue(false)
+      // No start() needed or if started, mock isConnected false
+      // But makeCall checks isConnected.
+      // If we don't start, ua is null.
+      // We need to start then set isConnected false (simulate disconnect)
+      
+      setTimeout(() => {
+        mockUA.isConnected.mockReturnValue(true)
+        triggerEvent('connected', {})
+      }, 10)
+      await sipClient.start()
+      
+      mockUA.isConnected.mockReturnValue(false)
+      // Force state disconnected
+      // sipClient has private state...
+      // But isConnected getter checks ua.isConnected() too.
+      // However, SipClient might rely on its own state.
+      
+      // Actually, if we want to test "not connected" throw, we can just NOT start it?
+      // If not started, "SIP client is not started" error.
+      // We want "Not connected to SIP server" (started but disconnected).
+      
+      // Simulate disconnect event?
+      triggerEvent('disconnected', {})
+      
+      await expect(sipClient.makeCall('sip:target@example.com')).rejects.toThrow('Not connected')
+    })
+  })
+
+  describe('publishPresence()', () => {
+    it('should publish presence', async () => {
+      setTimeout(() => {
+        mockUA.isConnected.mockReturnValue(true)
+        triggerEvent('connected', {})
+      }, 10)
+      await sipClient.start()
+      
+      const options = { state: 'available' as any }
+      await sipClient.publishPresence(options)
+      
+      expect(mockUA.sendRequest).toHaveBeenCalledWith('PUBLISH', expect.any(String), expect.objectContaining({
+        extraHeaders: expect.arrayContaining([expect.stringContaining('Event: presence')])
+      }))
+    })
+  })
+  
+  describe('subscribePresence()', () => {
+    it('should subscribe to presence', async () => {
+      setTimeout(() => {
+        mockUA.isConnected.mockReturnValue(true)
+        triggerEvent('connected', {})
+      }, 10)
+      await sipClient.start()
+      
+      const uri = 'sip:target@example.com'
+      await sipClient.subscribePresence(uri)
+      
+      expect(mockUA.sendRequest).toHaveBeenCalledWith('SUBSCRIBE', uri, expect.objectContaining({
+        extraHeaders: expect.arrayContaining([expect.stringContaining('Event: presence')])
+      }))
+    })
+  })
+
+  describe('unsubscribePresence()', () => {
+    it('should unsubscribe from presence', async () => {
+      setTimeout(() => {
+        mockUA.isConnected.mockReturnValue(true)
+        triggerEvent('connected', {})
+      }, 10)
+      await sipClient.start()
+      
+      // First subscribe
+      const uri = 'sip:target@example.com'
+      await sipClient.subscribePresence(uri)
+      
+      // Then unsubscribe
+      await sipClient.unsubscribePresence(uri)
+      
+      expect(mockUA.sendRequest).toHaveBeenLastCalledWith('SUBSCRIBE', uri, expect.objectContaining({
+        extraHeaders: expect.arrayContaining(['Event: presence', 'Expires: 0'])
+      }))
     })
   })
 

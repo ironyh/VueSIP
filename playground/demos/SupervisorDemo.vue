@@ -21,218 +21,254 @@
     />
 
     <!-- Configuration Panel -->
-    <div v-if="!isAmiConnected" class="config-panel">
-      <h3>Supervisor Demo</h3>
-      <p class="info-text">
+    <Panel v-if="!isAmiConnected" class="mb-4">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-users"></i>
+          <span class="font-semibold text-xl">Supervisor Demo</span>
+        </div>
+      </template>
+      <p class="text-500 mb-4 line-height-3">
         Monitor, whisper, and barge into active calls. This demo demonstrates call center supervisor
         features using Asterisk's ChanSpy application.
       </p>
 
-      <div class="form-group">
-        <label for="ami-url">AMI WebSocket URL</label>
-        <input
+      <div class="mb-4">
+        <label for="ami-url" class="block text-sm font-medium mb-2">AMI WebSocket URL</label>
+        <InputText
           id="ami-url"
           v-model="amiConfig.url"
           type="text"
           placeholder="ws://pbx.example.com:8080"
           :disabled="connecting"
+          class="w-full"
         />
-        <small>amiws WebSocket proxy URL</small>
+        <small class="text-500 block mt-1">amiws WebSocket proxy URL</small>
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
+        :label="connecting ? 'Connecting...' : 'Connect to AMI'"
+        icon="pi pi-link"
         :disabled="!amiConfig.url || connecting"
+        :loading="connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
+      />
 
-      <div v-if="connectionError" class="error-message">
+      <Message v-if="connectionError" severity="error" :closable="false" class="mt-3">
         {{ connectionError }}
-      </div>
+      </Message>
 
-      <div class="demo-tip">
-        <strong>Supervisor Features:</strong>
-        <ul>
-          <li><strong>Monitor:</strong> Silent listen to agent calls</li>
-          <li><strong>Whisper:</strong> Speak to agent only (coaching)</li>
-          <li><strong>Barge:</strong> Join the call and speak to both parties</li>
-        </ul>
-      </div>
-    </div>
+      <Message severity="info" :closable="false" class="mt-4">
+        <template #icon><i class="pi pi-info-circle"></i></template>
+        <div>
+          <strong>Supervisor Features:</strong>
+          <ul class="mt-2 ml-4 pl-0">
+            <li><strong>Monitor:</strong> Silent listen to agent calls</li>
+            <li><strong>Whisper:</strong> Speak to agent only (coaching)</li>
+            <li><strong>Barge:</strong> Join the call and speak to both parties</li>
+          </ul>
+        </div>
+      </Message>
+    </Panel>
 
     <!-- Connected Interface -->
-    <div v-else class="connected-interface">
+    <div v-else>
       <!-- Status Bar -->
-      <div class="status-bar">
-        <div class="status-item">
-          <span class="status-dot connected"></span>
-          <span>AMI Connected</span>
+      <div class="flex flex-wrap align-items-center gap-3 mb-4">
+        <Tag severity="success" class="px-3 py-2">
+          <i class="pi pi-check-circle mr-2"></i>
+          AMI Connected
+        </Tag>
+        <Tag severity="info" class="px-3 py-2">
+          <i class="pi pi-phone mr-2"></i>
+          Active Calls: {{ callCount }}
+        </Tag>
+        <Tag severity="secondary" class="px-3 py-2">
+          <i class="pi pi-eye mr-2"></i>
+          Sessions: {{ sessionCount }}
+        </Tag>
+        <div class="flex gap-2 ml-auto">
+          <Button label="Refresh" icon="pi pi-refresh" severity="secondary" size="small" :loading="loading" @click="handleRefresh" />
+          <Button label="Disconnect" icon="pi pi-power-off" severity="danger" size="small" @click="handleDisconnect" />
         </div>
-        <div class="status-item">
-          <span>Active Calls: {{ callCount }}</span>
-        </div>
-        <div class="status-item">
-          <span>Sessions: {{ sessionCount }}</span>
-        </div>
-        <button class="btn btn-sm btn-secondary" @click="handleRefresh" :disabled="loading">
-          Refresh
-        </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Supervisor Extension -->
-      <div class="supervisor-config">
-        <h4>Supervisor Channel</h4>
-        <p class="info-text">
+      <Panel class="mb-4">
+        <template #header>
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-headphones"></i>
+            <span class="font-semibold">Supervisor Channel</span>
+          </div>
+        </template>
+        <p class="text-500 text-sm mb-3">
           Enter your supervisor extension to use for monitoring/whisper/barge.
         </p>
-        <div class="form-row">
-          <input
+        <div class="flex flex-column gap-2" style="max-width: 400px">
+          <InputText
             v-model="supervisorChannel"
-            type="text"
             placeholder="SIP/supervisor or PJSIP/9000"
+            class="w-full"
           />
-          <small>Your supervisor phone will ring when you start a session</small>
+          <small class="text-500">Your supervisor phone will ring when you start a session</small>
         </div>
-      </div>
+      </Panel>
 
       <!-- Active Supervision Sessions -->
-      <div v-if="sessionList.length > 0" class="sessions-panel">
-        <h4>Active Supervision Sessions</h4>
-        <div class="sessions-list">
-          <div
-            v-for="session in sessionList"
-            :key="session.id"
-            class="session-card"
-            :class="session.mode"
-          >
-            <div class="session-mode">
-              <span class="mode-label">{{ getModeLabel(session.mode) }}</span>
-            </div>
-            <div class="session-info">
-              <div class="session-target">Target: {{ session.targetChannel }}</div>
-              <div class="session-supervisor">Your Channel: {{ session.supervisorChannel }}</div>
-              <div class="session-time">Started: {{ formatTime(session.startTime) }}</div>
-            </div>
-            <div class="session-actions">
-              <div class="mode-switcher">
-                <button
-                  v-if="session.mode !== 'monitor'"
-                  class="btn btn-sm btn-monitor"
-                  @click="handleSwitchMode(session.id, 'monitor')"
-                  title="Switch to silent monitor"
-                >
-                  Monitor
-                </button>
-                <button
-                  v-if="session.mode !== 'whisper'"
-                  class="btn btn-sm btn-whisper"
-                  @click="handleSwitchMode(session.id, 'whisper')"
-                  title="Switch to whisper"
-                >
-                  Whisper
-                </button>
-                <button
-                  v-if="session.mode !== 'barge'"
-                  class="btn btn-sm btn-barge"
-                  @click="handleSwitchMode(session.id, 'barge')"
-                  title="Switch to barge"
-                >
-                  Barge
-                </button>
-              </div>
-              <button class="btn btn-sm btn-danger" @click="handleEndSession(session.id)">
-                End Session
-              </button>
-            </div>
+      <Panel v-if="sessionList.length > 0" class="mb-4 surface-warning-subtle">
+        <template #header>
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-eye"></i>
+            <span class="font-semibold">Active Supervision Sessions</span>
+            <Tag severity="warn" class="ml-2">{{ sessionList.length }}</Tag>
           </div>
+        </template>
+        <div class="flex flex-column gap-3">
+          <Card v-for="session in sessionList" :key="session.id" class="session-card" :class="session.mode">
+            <template #content>
+              <div class="flex flex-wrap align-items-center gap-4">
+                <Tag :severity="getModeSeverity(session.mode)" class="px-3 py-2">
+                  {{ getModeLabel(session.mode) }}
+                </Tag>
+                <div class="flex-1">
+                  <div class="font-medium mb-1">Target: <code class="text-primary">{{ session.targetChannel }}</code></div>
+                  <div class="text-sm text-500">Your Channel: {{ session.supervisorChannel }}</div>
+                  <div class="text-sm text-500">Started: {{ formatTime(session.startTime) }}</div>
+                </div>
+                <div class="flex flex-column gap-2 align-items-end">
+                  <div class="flex gap-1">
+                    <Button
+                      v-if="session.mode !== 'monitor'"
+                      label="Monitor"
+                      icon="pi pi-eye"
+                      severity="info"
+                      size="small"
+                      @click="handleSwitchMode(session.id, 'monitor')"
+                      v-tooltip.top="'Switch to silent monitor'"
+                    />
+                    <Button
+                      v-if="session.mode !== 'whisper'"
+                      label="Whisper"
+                      icon="pi pi-volume-up"
+                      severity="warn"
+                      size="small"
+                      @click="handleSwitchMode(session.id, 'whisper')"
+                      v-tooltip.top="'Switch to whisper'"
+                    />
+                    <Button
+                      v-if="session.mode !== 'barge'"
+                      label="Barge"
+                      icon="pi pi-sign-in"
+                      severity="danger"
+                      size="small"
+                      @click="handleSwitchMode(session.id, 'barge')"
+                      v-tooltip.top="'Switch to barge'"
+                    />
+                  </div>
+                  <Button label="End Session" icon="pi pi-times" severity="danger" size="small" outlined @click="handleEndSession(session.id)" />
+                </div>
+              </div>
+            </template>
+          </Card>
         </div>
-        <button
+        <Button
           v-if="sessionList.length > 1"
-          class="btn btn-secondary"
+          label="End All Sessions"
+          icon="pi pi-times-circle"
+          severity="danger"
+          outlined
+          class="mt-3"
           @click="handleEndAllSessions"
-        >
-          End All Sessions
-        </button>
-      </div>
+        />
+      </Panel>
 
       <!-- Active Calls -->
-      <div class="calls-panel">
-        <h4>Active Calls</h4>
+      <Panel class="mb-4">
+        <template #header>
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-phone"></i>
+            <span class="font-semibold">Active Calls</span>
+          </div>
+        </template>
 
-        <div v-if="loading" class="loading-state">Loading calls...</div>
-
-        <div v-else-if="callList.length === 0" class="empty-state">
-          <p>No active calls</p>
-          <p class="info-text">Waiting for calls to monitor...</p>
+        <div v-if="loading" class="flex align-items-center justify-content-center p-5">
+          <i class="pi pi-spin pi-spinner text-3xl text-500"></i>
+          <span class="ml-3 text-500">Loading calls...</span>
         </div>
 
-        <div v-else class="calls-list">
-          <div
+        <div v-else-if="callList.length === 0" class="text-center p-5 surface-ground border-round">
+          <i class="pi pi-phone-slash text-4xl text-500 mb-3"></i>
+          <p class="text-lg font-medium m-0">No active calls</p>
+          <p class="text-500 text-sm mt-2">Waiting for calls to monitor...</p>
+        </div>
+
+        <div v-else class="flex flex-column gap-3">
+          <Card
             v-for="call in callList"
             :key="call.uniqueId"
-            class="call-card"
-            :class="{ supervised: isSupervising(call.channel) }"
+            :class="{ 'border-left-3 border-primary': isSupervising(call.channel) }"
           >
-            <div class="call-info">
-              <div class="call-parties">
-                <span class="caller">{{ call.callerIdName || call.callerIdNum || 'Unknown' }}</span>
-                <span class="arrow">↔</span>
-                <span class="callee">{{
-                  call.connectedLineName || call.connectedLineNum || 'Unknown'
-                }}</span>
-              </div>
-              <div class="call-details">
-                <span class="channel">{{ call.channel }}</span>
-                <span class="duration">{{ formatDuration(call.duration) }}</span>
-                <span class="state-badge" :class="getCallStateClass(call.state)">
-                  {{ call.stateDesc }}
-                </span>
-              </div>
-            </div>
+            <template #content>
+              <div class="flex flex-wrap align-items-center gap-4">
+                <div class="flex-1">
+                  <div class="flex align-items-center gap-2 mb-2">
+                    <span class="font-medium">{{ call.callerIdName || call.callerIdNum || 'Unknown' }}</span>
+                    <i class="pi pi-arrows-h text-500"></i>
+                    <span class="font-medium">{{ call.connectedLineName || call.connectedLineNum || 'Unknown' }}</span>
+                  </div>
+                  <div class="flex flex-wrap align-items-center gap-3 text-sm">
+                    <code class="text-500">{{ call.channel }}</code>
+                    <Tag severity="secondary">{{ formatDuration(call.duration) }}</Tag>
+                    <Tag :severity="getCallStateSeverity(call.state)">{{ call.stateDesc }}</Tag>
+                  </div>
+                </div>
 
-            <div class="supervision-actions">
-              <div v-if="isSupervising(call.channel)" class="supervised-badge">
-                {{ getSessionMode(call.channel) }}
+                <div class="flex align-items-center gap-2">
+                  <Tag v-if="isSupervising(call.channel)" severity="info" class="px-3 py-2">
+                    <i class="pi pi-eye mr-2"></i>
+                    {{ getSessionMode(call.channel) }}
+                  </Tag>
+                  <template v-else-if="supervisorChannel">
+                    <Button
+                      label="Monitor"
+                      icon="pi pi-eye"
+                      severity="info"
+                      size="small"
+                      :disabled="!canSupervise"
+                      @click="handleMonitor(call.channel)"
+                      v-tooltip.top="'Silent listen'"
+                    />
+                    <Button
+                      label="Whisper"
+                      icon="pi pi-volume-up"
+                      severity="warn"
+                      size="small"
+                      :disabled="!canSupervise"
+                      @click="handleWhisper(call.channel)"
+                      v-tooltip.top="'Speak to agent only'"
+                    />
+                    <Button
+                      label="Barge"
+                      icon="pi pi-sign-in"
+                      severity="danger"
+                      size="small"
+                      :disabled="!canSupervise"
+                      @click="handleBarge(call.channel)"
+                      v-tooltip.top="'Join the call'"
+                    />
+                  </template>
+                  <span v-else class="text-sm text-500 font-italic">Enter supervisor channel to enable</span>
+                </div>
               </div>
-              <div v-else-if="supervisorChannel" class="action-buttons">
-                <button
-                  class="btn btn-sm btn-monitor"
-                  :disabled="!canSupervise"
-                  @click="handleMonitor(call.channel)"
-                  title="Silent listen"
-                >
-                  Monitor
-                </button>
-                <button
-                  class="btn btn-sm btn-whisper"
-                  :disabled="!canSupervise"
-                  @click="handleWhisper(call.channel)"
-                  title="Speak to agent only"
-                >
-                  Whisper
-                </button>
-                <button
-                  class="btn btn-sm btn-barge"
-                  :disabled="!canSupervise"
-                  @click="handleBarge(call.channel)"
-                  title="Join the call"
-                >
-                  Barge
-                </button>
-              </div>
-              <div v-else class="hint">Enter supervisor channel to enable</div>
-            </div>
-          </div>
+            </template>
+          </Card>
         </div>
-      </div>
+      </Panel>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-message">
+      <Message v-if="error" severity="error" :closable="true" @close="error = ''" class="mb-4">
         {{ error }}
-      </div>
+      </Message>
     </div>
   </div>
 </template>
@@ -243,6 +279,14 @@ import { useAmi, useAmiCalls, useAmiSupervisor, type SupervisionMode } from '../
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 import { ChannelState } from '../../src/types/ami.types'
+
+// PrimeVue components
+import Panel from 'primevue/panel'
+import Card from 'primevue/card'
+import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
 
 // Simulation system
 const simulation = useSimulation()
@@ -296,17 +340,6 @@ const getModeLabel = (mode: SupervisionMode): string => {
   }
 }
 
-const getCallStateClass = (state: ChannelState): string => {
-  switch (state) {
-    case ChannelState.Up:
-      return 'connected'
-    case ChannelState.Ringing:
-    case ChannelState.Ring:
-      return 'ringing'
-    default:
-      return 'unknown'
-  }
-}
 
 const formatDuration = (seconds: number): string => {
   const mins = Math.floor(seconds / 60)
@@ -325,6 +358,31 @@ const isSupervising = (channel: string): boolean => {
 const getSessionMode = (channel: string): string => {
   const session = supervisorComposable.value?.getSessionForChannel(channel)
   return session ? getModeLabel(session.mode) : ''
+}
+
+const getModeSeverity = (mode: SupervisionMode): 'info' | 'warn' | 'danger' => {
+  switch (mode) {
+    case 'monitor':
+      return 'info'
+    case 'whisper':
+      return 'warn'
+    case 'barge':
+      return 'danger'
+    default:
+      return 'info'
+  }
+}
+
+const getCallStateSeverity = (state: ChannelState): 'success' | 'info' | 'secondary' => {
+  switch (state) {
+    case ChannelState.Up:
+      return 'success'
+    case ChannelState.Ringing:
+    case ChannelState.Ring:
+      return 'info'
+    default:
+      return 'secondary'
+  }
 }
 
 // Handlers
@@ -469,426 +527,42 @@ watch(supervisorChannel, (value) => {
   margin: 0 auto;
 }
 
-.config-panel {
-  padding: 2rem;
-}
-
-.config-panel h3 {
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-.info-text {
-  margin-bottom: 1.5rem;
-  color: #666;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.form-group small {
-  display: block;
-  margin-top: 0.25rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-}
-
-.form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-row input {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
-.btn-monitor {
-  background: #3b82f6;
-  color: white;
-}
-.btn-monitor:hover:not(:disabled) {
-  background: #2563eb;
-}
-.btn-whisper {
-  background: #f59e0b;
-  color: white;
-}
-.btn-whisper:hover:not(:disabled) {
-  background: #d97706;
-}
-.btn-barge {
-  background: #ef4444;
-  color: white;
-}
-.btn-barge:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
-  font-size: 0.875rem;
-}
-
-.demo-tip {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-.demo-tip ul {
-  margin: 0.5rem 0 0 1.5rem;
-  padding: 0;
-}
-
-.demo-tip li {
-  margin-bottom: 0.25rem;
-}
-
-/* Connected Interface */
-.connected-interface {
-  padding: 2rem;
-}
-
-.status-bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
+.description {
+  color: var(--text-color-secondary);
   margin-bottom: 2rem;
 }
 
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+/* Warning background for active sessions panel */
+.surface-warning,
+.surface-warning-subtle {
+  background: var(--yellow-50);
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ef4444;
+/* Card with active supervision indicator */
+:deep(.border-left-3) {
+  border-left-width: 3px !important;
+  border-left-style: solid !important;
 }
 
-.status-dot.connected {
-  background: #10b981;
+/* Monospace for channel/caller info */
+.font-mono {
+  font-family: var(--font-family-monospace, monospace);
 }
 
-/* Supervisor Config */
-.supervisor-config {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+/* Tabular numbers for duration */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-.supervisor-config h4 {
-  margin-bottom: 0.5rem;
-  color: #111827;
-}
-
-/* Sessions Panel */
-.sessions-panel {
-  background: #fef3c7;
-  border: 1px solid #fbbf24;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.sessions-panel h4 {
-  margin-bottom: 1rem;
-  color: #92400e;
-}
-
-.sessions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.session-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: white;
-  border-radius: 6px;
-  border-left: 4px solid #f59e0b;
-}
-
-.session-card.monitor {
-  border-left-color: #3b82f6;
-}
-.session-card.whisper {
-  border-left-color: #f59e0b;
-}
-.session-card.barge {
-  border-left-color: #ef4444;
-}
-
-.session-mode {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 80px;
-}
-
-.mode-label {
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  background: rgba(102, 126, 234, 0.1);
-  border-radius: 6px;
-}
-
-.session-info {
-  flex: 1;
-}
-
-.session-target {
-  font-weight: 500;
-  color: #111827;
-}
-
-.session-supervisor,
-.session-time {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.session-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: flex-end;
-}
-
-.mode-switcher {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.mode-switcher .btn {
-  padding: 0.375rem 0.5rem;
-  font-size: 0.875rem;
-}
-
-/* Calls Panel */
-.calls-panel {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.calls-panel h4 {
-  margin-bottom: 1rem;
-  color: #111827;
-}
-
-.loading-state,
-.empty-state {
-  padding: 2rem;
-  text-align: center;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
-  border-radius: 6px;
-  color: #6b7280;
-}
-
-.calls-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.call-card {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
-  border-left: 4px solid #e5e7eb;
-}
-
-.call-card.supervised {
-  border-left-color: #3b82f6;
-  background: #eff6ff;
-}
-
-.call-info {
-  flex: 1;
-}
-
-.call-parties {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
-  color: #111827;
-  margin-bottom: 0.5rem;
-}
-
-.arrow {
-  color: #6b7280;
-}
-
-.call-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.state-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.state-badge.connected {
-  background: #d1fae5;
-  color: #065f46;
-}
-.state-badge.ringing {
-  background: #dbeafe;
-  color: #1e40af;
-}
-.state-badge.unknown {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.supervision-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
-}
-
-.supervised-badge {
-  padding: 0.5rem 1rem;
-  background: #3b82f6;
-  color: white;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.hint {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  font-style: italic;
-}
-
-/* Responsive */
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .status-bar {
+  :deep(.p-card .p-card-content) {
+    padding: 0.75rem;
+  }
+
+  .flex-wrap {
     flex-direction: column;
-  }
-
-  .call-card {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .supervision-actions {
-    width: 100%;
-    align-items: flex-start;
-  }
-
-  .action-buttons {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .session-card {
-    flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-start !important;
   }
 }
 </style>

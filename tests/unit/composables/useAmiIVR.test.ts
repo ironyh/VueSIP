@@ -1,11 +1,25 @@
 /**
  * Unit tests for useAmiIVR composable
+ *
+ * Tests IVR monitoring composable functionality:
+ * - Initialization with auto-start and IVR ID options
+ * - Monitoring control (start/stop)
+ * - IVR management (get, select, enable/disable)
+ * - Caller tracking (enter, exit, hangup)
+ * - DTMF input handling
+ * - Caller breakout functionality
+ * - Statistics tracking and computed properties
+ * - Event callbacks
+ * - Input validation and client changes
+ *
+ * @see src/composables/useAmiIVR.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { useAmiIVR } from '@/composables/useAmiIVR'
 import type { AmiClient } from '@/core/AmiClient'
+import { createMockAmiClient } from '../../utils/test-helpers'
 
 // Mock logger
 vi.mock('@/utils/logger', () => ({
@@ -17,6 +31,117 @@ vi.mock('@/utils/logger', () => ({
   }),
 }))
 
+/**
+ * Test fixtures for consistent test data across all test suites
+ */
+const TEST_FIXTURES = {
+  ivrIds: {
+    single: ['ivr-main'],
+    multiple: ['ivr-main', 'ivr-support', 'ivr-sales'],
+    twoIvrs: ['ivr-main', 'ivr-support'],
+  },
+  channels: {
+    valid: 'PJSIP/1001-00000001',
+    alternate: 'PJSIP/1002-00000002',
+    third: 'PJSIP/1003-00000003',
+    invalid: '<script>',
+  },
+  callerIds: {
+    standard: '5551234567',
+    alternate: '111',
+    third: '222',
+  },
+  callerNames: {
+    standard: 'John Doe',
+  },
+  extensions: {
+    valid: '2001',
+    alternate: '1001',
+  },
+  dtmfDigits: {
+    valid: ['1', '2', '3', '5'],
+    invalid: 'A',
+  },
+  menuOptions: {
+    digits: '1',
+    sequence: '123',
+  },
+  options: {
+    autoStart: {
+      autoStart: true,
+      ivrIds: ['ivr-main'],
+    } as const,
+    withIvrIds: {
+      ivrIds: ['ivr-main', 'ivr-support', 'ivr-sales'],
+    } as const,
+    withCallbacks: {
+      ivrIds: ['ivr-main'],
+    } as const,
+  },
+  events: {
+    varSetIvrContext: (channel: string, ivrId: string, callerIdNum?: string, callerIdName?: string) => ({
+      Event: 'VarSet',
+      Channel: channel,
+      Variable: 'IVR_CONTEXT',
+      Value: ivrId,
+      ...(callerIdNum && { CallerIDNum: callerIdNum }),
+      ...(callerIdName && { CallerIDName: callerIdName }),
+    }),
+    varSetIvrExit: (channel: string, extension: string) => ({
+      Event: 'VarSet',
+      Channel: channel,
+      Variable: 'IVR_EXIT',
+      Value: extension,
+    }),
+    hangup: (channel: string) => ({
+      Event: 'Hangup',
+      Channel: channel,
+    }),
+    dtmfEnd: (channel: string, digit: string) => ({
+      Event: 'DTMFEnd',
+      Channel: channel,
+      Digit: digit,
+    }),
+  },
+  validation: {
+    invalidIvrId: '<script>alert(1)</script>',
+    invalidIvrIdShort: '<script>',
+    invalidChannel: '<script>',
+    invalidDestination: '<script>',
+  },
+} as const
+
+
+/**
+ * Factory function: Create VarSet event for caller entering IVR
+ */
+function createCallerEnteredEvent(
+  channel: string = TEST_FIXTURES.channels.valid,
+  ivrId: string = 'ivr-main',
+  callerIdNum?: string,
+  callerIdName?: string
+) {
+  return TEST_FIXTURES.events.varSetIvrContext(channel, ivrId, callerIdNum, callerIdName)
+}
+
+/**
+ * Factory function: Create VarSet event for caller exiting IVR
+ */
+function createCallerExitedEvent(
+  channel: string = TEST_FIXTURES.channels.valid,
+  extension: string = TEST_FIXTURES.extensions.alternate
+) {
+  return TEST_FIXTURES.events.varSetIvrExit(channel, extension)
+}
+
+/**
+ * Factory function: Create Hangup event
+ */
+function createHangupEvent(channel: string = TEST_FIXTURES.channels.valid) {
+  return TEST_FIXTURES.events.hangup(channel)
+}
+
+
 describe('useAmiIVR', () => {
   let mockClient: AmiClient
   let eventHandlers: Map<string, Set<(event: unknown) => void>>
@@ -25,7 +150,9 @@ describe('useAmiIVR', () => {
     vi.useFakeTimers()
     eventHandlers = new Map()
 
+    // Use helper function with custom event tracking
     mockClient = {
+      ...createMockAmiClient(),
       on: vi.fn((event: string, handler: (data: unknown) => void) => {
         if (!eventHandlers.has(event)) {
           eventHandlers.set(event, new Set())
@@ -57,6 +184,11 @@ describe('useAmiIVR', () => {
     handlers?.forEach((handler) => handler(amiMessage))
   }
 
+  /**
+   * Initialization Tests
+   * Verifies composable starts with correct initial state and handles
+   * auto-start and initial IVR ID configuration
+   */
   describe('Initialization', () => {
     it('should initialize with empty state', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
@@ -70,19 +202,14 @@ describe('useAmiIVR', () => {
 
     it('should auto-start when autoStart option is true', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { isMonitoring } = useAmiIVR(clientRef, {
-        autoStart: true,
-        ivrIds: ['ivr-main'],
-      })
+      const { isMonitoring } = useAmiIVR(clientRef, TEST_FIXTURES.options.autoStart)
 
       expect(isMonitoring.value).toBe(true)
     })
 
     it('should initialize IVRs from ivrIds option', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { ivrs, startMonitoring } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main', 'ivr-support', 'ivr-sales'],
-      })
+      const { ivrs, startMonitoring } = useAmiIVR(clientRef, TEST_FIXTURES.options.withIvrIds)
 
       startMonitoring()
 
@@ -93,6 +220,10 @@ describe('useAmiIVR', () => {
     })
   })
 
+  /**
+   * Monitoring Control Tests
+   * Verifies start/stop monitoring functionality and event subscription management
+   */
   describe('Monitoring Control', () => {
     it('should start monitoring when startMonitoring is called', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
@@ -127,11 +258,15 @@ describe('useAmiIVR', () => {
     })
   })
 
+  /**
+   * IVR Management Tests
+   * Verifies IVR retrieval, selection, and enable/disable functionality
+   */
   describe('IVR Management', () => {
     it('should get IVR by ID', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, getIVR } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
       })
 
       startMonitoring()
@@ -154,7 +289,7 @@ describe('useAmiIVR', () => {
     it('should select IVR for detailed view', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, selectIVR, selectedIVR } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
       })
 
       startMonitoring()
@@ -167,7 +302,7 @@ describe('useAmiIVR', () => {
     it('should deselect IVR when null is passed', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, selectIVR, selectedIVR } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
       })
 
       startMonitoring()
@@ -180,7 +315,7 @@ describe('useAmiIVR', () => {
     it('should enable IVR', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, enableIVR, getIVR } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
       })
 
       startMonitoring()
@@ -196,7 +331,7 @@ describe('useAmiIVR', () => {
     it('should disable IVR', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, disableIVR, getIVR } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
       })
 
       startMonitoring()
@@ -208,32 +343,34 @@ describe('useAmiIVR', () => {
     })
   })
 
+  /**
+   * Caller Tracking Tests
+   * Verifies caller enter/exit/hangup tracking and caller retrieval functionality
+   */
   describe('Caller Tracking', () => {
     it('should track caller entering IVR via VarSet event', async () => {
       const onCallerEntered = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, getCallers, ivrs: _ivrs } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
         onCallerEntered,
       })
 
       startMonitoring()
 
-      emitEvent({
-        Event: 'VarSet',
-        Channel: 'PJSIP/1001-00000001',
-        Variable: 'IVR_CONTEXT',
-        Value: 'ivr-main',
-        CallerIDNum: '5551234567',
-        CallerIDName: 'John Doe',
-      })
+      emitEvent(createCallerEnteredEvent(
+        TEST_FIXTURES.channels.valid,
+        'ivr-main',
+        TEST_FIXTURES.callerIds.standard,
+        TEST_FIXTURES.callerNames.standard
+      ))
 
       await nextTick()
 
       const callers = getCallers('ivr-main')
       expect(callers.length).toBe(1)
-      expect(callers[0].callerIdNum).toBe('5551234567')
-      expect(callers[0].callerIdName).toBe('John Doe')
+      expect(callers[0].callerIdNum).toBe(TEST_FIXTURES.callerIds.standard)
+      expect(callers[0].callerIdName).toBe(TEST_FIXTURES.callerNames.standard)
       expect(onCallerEntered).toHaveBeenCalled()
     })
 
@@ -241,64 +378,55 @@ describe('useAmiIVR', () => {
       const onCallerExited = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, getCallers } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
         onCallerExited,
       })
 
       startMonitoring()
 
       // Enter IVR
-      emitEvent({
-        Event: 'VarSet',
-        Channel: 'PJSIP/1001-00000001',
-        Variable: 'IVR_CONTEXT',
-        Value: 'ivr-main',
-        CallerIDNum: '5551234567',
-      })
+      emitEvent(createCallerEnteredEvent(
+        TEST_FIXTURES.channels.valid,
+        'ivr-main',
+        TEST_FIXTURES.callerIds.standard
+      ))
 
       await nextTick()
       expect(getCallers('ivr-main').length).toBe(1)
 
       // Exit IVR
-      emitEvent({
-        Event: 'VarSet',
-        Channel: 'PJSIP/1001-00000001',
-        Variable: 'IVR_EXIT',
-        Value: '1001',
-      })
+      emitEvent(createCallerExitedEvent(
+        TEST_FIXTURES.channels.valid,
+        TEST_FIXTURES.extensions.alternate
+      ))
 
       await nextTick()
 
       expect(getCallers('ivr-main').length).toBe(0)
-      expect(onCallerExited).toHaveBeenCalledWith('ivr-main', 'PJSIP/1001-00000001', '1001')
+      expect(onCallerExited).toHaveBeenCalledWith('ivr-main', TEST_FIXTURES.channels.valid, TEST_FIXTURES.extensions.alternate)
     })
 
     it('should track caller abandoning (hangup) in IVR', async () => {
       const onCallerExited = vi.fn()
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, getCallers, getStats } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
         onCallerExited,
       })
 
       startMonitoring()
 
       // Enter IVR
-      emitEvent({
-        Event: 'VarSet',
-        Channel: 'PJSIP/1001-00000001',
-        Variable: 'IVR_CONTEXT',
-        Value: 'ivr-main',
-        CallerIDNum: '5551234567',
-      })
+      emitEvent(createCallerEnteredEvent(
+        TEST_FIXTURES.channels.valid,
+        'ivr-main',
+        TEST_FIXTURES.callerIds.standard
+      ))
 
       await nextTick()
 
       // Hangup
-      emitEvent({
-        Event: 'Hangup',
-        Channel: 'PJSIP/1001-00000001',
-      })
+      emitEvent(createHangupEvent(TEST_FIXTURES.channels.valid))
 
       await nextTick()
 
@@ -342,6 +470,10 @@ describe('useAmiIVR', () => {
     })
   })
 
+  /**
+   * DTMF Handling Tests
+   * Verifies DTMF digit tracking, accumulation, and validation
+   */
   describe('DTMF Handling', () => {
     it('should track DTMF input', async () => {
       const onEvent = vi.fn()
@@ -465,90 +597,96 @@ describe('useAmiIVR', () => {
     })
   })
 
+  /**
+   * Breakout Tests
+   * Verifies caller breakout functionality - redirecting callers from IVR to extensions
+   * Tests both successful breakouts and error conditions
+   */
   describe('Breakout', () => {
     it('should breakout caller from IVR', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, breakoutCaller, getCallers } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
       })
 
       startMonitoring()
 
       // Enter IVR
-      emitEvent({
-        Event: 'VarSet',
-        Channel: 'PJSIP/1001-00000001',
-        Variable: 'IVR_CONTEXT',
-        Value: 'ivr-main',
-        CallerIDNum: '5551234567',
-      })
+      emitEvent(createCallerEnteredEvent(
+        TEST_FIXTURES.channels.valid,
+        'ivr-main',
+        TEST_FIXTURES.callerIds.standard
+      ))
 
       await nextTick()
 
-      const result = await breakoutCaller('ivr-main', 'PJSIP/1001-00000001', '2001')
+      const result = await breakoutCaller('ivr-main', TEST_FIXTURES.channels.valid, TEST_FIXTURES.extensions.valid)
 
       expect(result.success).toBe(true)
-      expect(result.destination).toBe('2001')
+      expect(result.destination).toBe(TEST_FIXTURES.extensions.valid)
       expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'Redirect',
-        Channel: 'PJSIP/1001-00000001',
+        Channel: TEST_FIXTURES.channels.valid,
         Context: 'from-internal',
-        Exten: '2001',
+        Exten: TEST_FIXTURES.extensions.valid,
         Priority: '1',
       })
       expect(getCallers('ivr-main').length).toBe(0)
     })
 
-    it('should return error for invalid IVR ID', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { breakoutCaller } = useAmiIVR(clientRef)
+    /**
+     * Parameterized tests: Breakout error conditions
+     * Each test case should return the appropriate error for invalid inputs
+     */
+    describe.each([
+      {
+        ivrId: TEST_FIXTURES.validation.invalidIvrIdShort,
+        channel: TEST_FIXTURES.channels.valid,
+        destination: TEST_FIXTURES.extensions.valid,
+        expectedError: 'Invalid IVR ID',
+        description: 'invalid IVR ID',
+        needsMonitoring: false,
+      },
+      {
+        ivrId: 'ivr-main',
+        channel: TEST_FIXTURES.validation.invalidChannel,
+        destination: TEST_FIXTURES.extensions.valid,
+        expectedError: 'Invalid channel',
+        description: 'invalid channel',
+        needsMonitoring: true,
+      },
+      {
+        ivrId: 'ivr-main',
+        channel: TEST_FIXTURES.channels.valid,
+        destination: TEST_FIXTURES.validation.invalidDestination,
+        expectedError: 'Invalid destination',
+        description: 'invalid destination',
+        needsMonitoring: true,
+      },
+      {
+        ivrId: 'ivr-main',
+        channel: TEST_FIXTURES.channels.valid,
+        destination: TEST_FIXTURES.extensions.valid,
+        expectedError: 'Caller not found in IVR',
+        description: 'caller not found',
+        needsMonitoring: true,
+      },
+    ])('error handling', ({ ivrId, channel, destination, expectedError, description, needsMonitoring }) => {
+      it(`should return error for ${description}`, async () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const { startMonitoring, breakoutCaller } = useAmiIVR(clientRef, {
+          ivrIds: needsMonitoring ? TEST_FIXTURES.ivrIds.single : [],
+        })
 
-      const result = await breakoutCaller('<script>', 'PJSIP/1001-00000001', '2001')
+        if (needsMonitoring) {
+          startMonitoring()
+        }
 
-      expect(result.success).toBe(false)
-      expect(result.error).toBe('Invalid IVR ID')
-    })
+        const result = await breakoutCaller(ivrId, channel, destination)
 
-    it('should return error for invalid channel', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startMonitoring, breakoutCaller } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        expect(result.success).toBe(false)
+        expect(result.error).toBe(expectedError)
       })
-
-      startMonitoring()
-
-      const result = await breakoutCaller('ivr-main', '<script>', '2001')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toBe('Invalid channel')
-    })
-
-    it('should return error for invalid destination', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startMonitoring, breakoutCaller } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
-      })
-
-      startMonitoring()
-
-      const result = await breakoutCaller('ivr-main', 'PJSIP/1001-00000001', '<script>')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toBe('Invalid destination')
-    })
-
-    it('should return error when caller not found', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { startMonitoring, breakoutCaller } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
-      })
-
-      startMonitoring()
-
-      const result = await breakoutCaller('ivr-main', 'PJSIP/1001-00000001', '2001')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toBe('Caller not found in IVR')
     })
 
     it('should breakout all callers from IVR', async () => {
@@ -584,6 +722,11 @@ describe('useAmiIVR', () => {
     })
   })
 
+  /**
+   * Statistics Tests
+   * Verifies IVR statistics tracking including total callers, peak callers,
+   * abandoned calls, and statistics clearing
+   */
   describe('Statistics', () => {
     it('should get IVR statistics', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
@@ -680,6 +823,11 @@ describe('useAmiIVR', () => {
     })
   })
 
+  /**
+   * Computed Properties Tests
+   * Verifies reactive computed properties including total callers,
+   * all callers list, active IVRs, and disabled IVRs
+   */
   describe('Computed Properties', () => {
     it('should compute total callers across all IVRs', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
@@ -745,6 +893,10 @@ describe('useAmiIVR', () => {
     })
   })
 
+  /**
+   * Event Callbacks Tests
+   * Verifies all event callback hooks are called with correct data
+   */
   describe('Event Callbacks', () => {
     it('should call onEvent callback', async () => {
       const onEvent = vi.fn()
@@ -845,31 +997,56 @@ describe('useAmiIVR', () => {
     })
   })
 
+  /**
+   * Input Validation Tests
+   * Verifies that invalid inputs are properly rejected to prevent XSS attacks
+   * and other security issues. Tests IVR IDs, channels, and destinations.
+   */
   describe('Input Validation', () => {
-    it('should reject invalid IVR ID', async () => {
-      const clientRef = ref<AmiClient | null>(mockClient)
-      const { enableIVR, disableIVR, getIVR } = useAmiIVR(clientRef)
+    /**
+     * Parameterized tests: Invalid IVR ID rejection
+     * Each method should reject malicious or invalid IVR IDs
+     */
+    describe.each([
+      {
+        method: 'getIVR',
+        test: (getIVR: any) => expect(getIVR(TEST_FIXTURES.validation.invalidIvrId)).toBeNull(),
+        description: 'getIVR should reject invalid IVR ID',
+      },
+      {
+        method: 'enableIVR',
+        test: async (enableIVR: any) => expect(await enableIVR(TEST_FIXTURES.validation.invalidIvrIdShort)).toBe(false),
+        description: 'enableIVR should reject invalid IVR ID',
+      },
+      {
+        method: 'disableIVR',
+        test: async (disableIVR: any) => expect(await disableIVR(TEST_FIXTURES.validation.invalidIvrIdShort)).toBe(false),
+        description: 'disableIVR should reject invalid IVR ID',
+      },
+    ])('invalid IVR ID rejection', ({ method, test, description }) => {
+      it(description, async () => {
+        const clientRef = ref<AmiClient | null>(mockClient)
+        const composable = useAmiIVR(clientRef)
 
-      expect(getIVR('<script>alert(1)</script>')).toBeNull()
-      expect(await enableIVR('<script>')).toBe(false)
-      expect(await disableIVR('<script>')).toBe(false)
+        await test(composable[method])
+      })
     })
 
     it('should reject invalid channel in getCaller', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, getCaller } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
       })
 
       startMonitoring()
 
-      expect(getCaller('ivr-main', '<script>')).toBeNull()
+      expect(getCaller('ivr-main', TEST_FIXTURES.validation.invalidChannel)).toBeNull()
     })
 
     it('should sanitize IVR names', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startMonitoring, getIVR } = useAmiIVR(clientRef, {
-        ivrIds: ['ivr-main'],
+        ivrIds: TEST_FIXTURES.ivrIds.single,
       })
 
       startMonitoring()

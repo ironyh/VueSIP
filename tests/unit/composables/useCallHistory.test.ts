@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * useCallHistory composable unit tests
  * Comprehensive tests for call history management with filtering, searching, and export

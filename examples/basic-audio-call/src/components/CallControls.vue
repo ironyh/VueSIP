@@ -112,7 +112,7 @@
         autoplay
         style="display: none"
         aria-hidden="true"
-      />
+      ></audio>
     </div>
   </div>
 </template>

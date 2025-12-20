@@ -140,7 +140,7 @@ interface Props {
   error?: string | null
 }
 
-const props = withDefaults(defineProps<Props>(), {
+const _props = withDefaults(defineProps<Props>(), {
   isConnecting: false,
   error: null,
 })

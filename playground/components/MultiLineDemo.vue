@@ -18,8 +18,8 @@ const lines = reactive<Line[]>([
   { id: 4, status: 'idle', duration: 0, isActive: false },
 ])
 
-const activeLine = computed(() => lines.find(l => l.isActive))
-const availableLines = computed(() => lines.filter(l => l.status === 'idle'))
+const _activeLine = computed(() => lines.find(l => l.isActive))
+const _availableLines = computed(() => lines.filter(l => l.status === 'idle'))
 
 const parkSlots = reactive<Array<{ slot: string; number: string; duration: number }>>([])
 const conferenceMembers = ref<number[]>([])
@@ -334,32 +334,32 @@ addEvent('INFO', `${MAX_LINES} lines available`)
       <h3>API Usage</h3>
       <div class="code-preview">
         <code>
-<span class="keyword">import</span> { useMultiLine } <span class="keyword">from</span> <span class="string">'vuesip'</span>
+          <span class="keyword">import</span> { useMultiLine } <span class="keyword">from</span> <span class="string">'vuesip'</span>
 
-<span class="keyword">const</span> {
-  lines,
-  activeLine,
-  maxLines,
-  <span class="function">assignCallToLine</span>,
-  <span class="function">switchToLine</span>,
-  <span class="function">holdLine</span>,
-  <span class="function">resumeLine</span>,
-  <span class="function">parkLine</span>,
-  <span class="function">retrieveParked</span>,
-  <span class="function">createConference</span>
-} = <span class="function">useMultiLine</span>({ maxLines: <span class="number">4</span> })
+          <span class="keyword">const</span> {
+          lines,
+          activeLine,
+          maxLines,
+          <span class="function">assignCallToLine</span>,
+          <span class="function">switchToLine</span>,
+          <span class="function">holdLine</span>,
+          <span class="function">resumeLine</span>,
+          <span class="function">parkLine</span>,
+          <span class="function">retrieveParked</span>,
+          <span class="function">createConference</span>
+          } = <span class="function">useMultiLine</span>({ maxLines: <span class="number">4</span> })
 
-<span class="comment">// Switch between lines</span>
-<span class="keyword">await</span> <span class="function">switchToLine</span>(<span class="number">2</span>)
+          <span class="comment">// Switch between lines</span>
+          <span class="keyword">await</span> <span class="function">switchToLine</span>(<span class="number">2</span>)
 
-<span class="comment">// Park a call</span>
-<span class="keyword">const</span> slot = <span class="keyword">await</span> <span class="function">parkLine</span>(<span class="number">1</span>)
+          <span class="comment">// Park a call</span>
+          <span class="keyword">const</span> slot = <span class="keyword">await</span> <span class="function">parkLine</span>(<span class="number">1</span>)
 
-<span class="comment">// Retrieve parked call</span>
-<span class="keyword">await</span> <span class="function">retrieveParked</span>(slot)
+          <span class="comment">// Retrieve parked call</span>
+          <span class="keyword">await</span> <span class="function">retrieveParked</span>(slot)
 
-<span class="comment">// Create conference</span>
-<span class="keyword">await</span> <span class="function">createConference</span>([<span class="number">1</span>, <span class="number">2</span>])
+          <span class="comment">// Create conference</span>
+          <span class="keyword">await</span> <span class="function">createConference</span>([<span class="number">1</span>, <span class="number">2</span>])
         </code>
       </div>
     </div>
@@ -368,14 +368,14 @@ addEvent('INFO', `${MAX_LINES} lines available`)
       <h3>Line State Structure</h3>
       <div class="code-preview">
         <code>
-<span class="keyword">interface</span> Line {
-  id: <span class="keyword">number</span>
-  status: <span class="string">'idle'</span> | <span class="string">'ringing'</span> | <span class="string">'active'</span> | <span class="string">'hold'</span>
-  callSession?: CallSession
-  remoteNumber?: <span class="keyword">string</span>
-  duration: <span class="keyword">number</span>
-  isActive: <span class="keyword">boolean</span>
-}
+          <span class="keyword">interface</span> Line {
+          id: <span class="keyword">number</span>
+          status: <span class="string">'idle'</span> | <span class="string">'ringing'</span> | <span class="string">'active'</span> | <span class="string">'hold'</span>
+          callSession?: CallSession
+          remoteNumber?: <span class="keyword">string</span>
+          duration: <span class="keyword">number</span>
+          isActive: <span class="keyword">boolean</span>
+          }
         </code>
       </div>
     </div>

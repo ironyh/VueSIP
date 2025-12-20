@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * useMediaDevices composable unit tests
  * Comprehensive tests for device management, permissions, testing, and monitoring

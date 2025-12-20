@@ -21,9 +21,9 @@ class MockMediaRecorder {
     return mimeType.includes('webm') || mimeType.includes('audio')
   })
 
-  constructor(stream: MediaStream, options?: any) {}
+  constructor(_stream: MediaStream, _options?: any) {}
 
-  start(timeSlice?: number) {
+  start(_timeSlice?: number) {
     this.state = 'recording'
     if (this.onstart) {
       setTimeout(() => this.onstart?.(), 10)
@@ -57,10 +57,10 @@ class MockIDBDatabase {
     contains: vi.fn().mockReturnValue(false),
   }
 
-  transaction = vi.fn((storeNames: string[], mode: string) => ({
+  transaction = vi.fn((_storeNames: string[], _mode: string) => ({
     onabort: null,
     onerror: null,
-    objectStore: vi.fn((name: string) => ({
+    objectStore: vi.fn((_name: string) => ({
       add: vi.fn((data: any) => {
         const request = {
           onsuccess: null,
@@ -89,7 +89,7 @@ class MockIDBDatabase {
     })),
   }))
 
-  createObjectStore = vi.fn((name: string, options: any) => ({
+  createObjectStore = vi.fn((_name: string, _options: any) => ({
     createIndex: vi.fn(),
   }))
 
@@ -104,7 +104,7 @@ class MockIDBOpenDBRequest {
 }
 
 const mockIndexedDB = {
-  open: vi.fn((name: string, version: number) => {
+  open: vi.fn((_name: string, _version: number) => {
     const request = new MockIDBOpenDBRequest()
     setTimeout(() => {
       if (request.onsuccess) {
@@ -233,7 +233,7 @@ describe('RecordingPlugin', () => {
     })
 
     it('should stop all active recordings', async () => {
-      const recordingId = await plugin.startRecording('call-123', mockStream)
+      const _recordingId = await plugin.startRecording('call-123', mockStream)
 
       await plugin.uninstall(context)
 
@@ -589,7 +589,7 @@ describe('RecordingPlugin', () => {
         onRecordingError,
       })
 
-      const recordingId = await plugin.startRecording('call-123', mockStream)
+      const _recordingId = await plugin.startRecording('call-123', mockStream)
 
       // Simulate error - need to access the internal recorder
       // This is a bit tricky because we can't easily access the private activeRecordings map

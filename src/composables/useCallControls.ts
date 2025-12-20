@@ -17,6 +17,7 @@ import {
   type TransferProgress,
 } from '../types/transfer.types'
 import { createLogger } from '../utils/logger'
+import { validateSipUri } from '../utils/validators'
 import { TRANSFER_CONSTANTS } from './constants'
 import { type ExtendedCallSession } from './types'
 
@@ -216,6 +217,13 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
       throw new Error('SipClient.getActiveCall() is not implemented')
     }
 
+    // Validate target URI
+    const uriResult = validateSipUri(targetUri)
+    if (!uriResult.valid) {
+      throw new Error(`Invalid target URI: ${uriResult.error}`)
+    }
+    const normalizedTarget = uriResult.normalized!
+
     try {
       log.info(`Starting blind transfer of call ${callId} to ${targetUri}`)
 
@@ -225,7 +233,7 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
         id: transferId,
         state: TransferState.Initiated,
         type: TransferType.Blind,
-        target: targetUri,
+        target: normalizedTarget,
         callId,
         initiatedAt: new Date(),
       }
@@ -244,7 +252,7 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
       }
 
       // Perform blind transfer
-      await call.transfer(targetUri, extraHeaders)
+      await call.transfer(normalizedTarget, extraHeaders)
 
       updateTransferState(TransferState.Completed)
       log.info(`Blind transfer completed successfully`)
@@ -291,6 +299,13 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
       throw new Error('SipClient.makeCall() is not implemented')
     }
 
+    // Validate target URI
+    const uriResult = validateSipUri(targetUri)
+    if (!uriResult.valid) {
+      throw new Error(`Invalid target URI: ${uriResult.error}`)
+    }
+    const normalizedTarget = uriResult.normalized!
+
     try {
       log.info(`Starting attended transfer of call ${callId} to ${targetUri}`)
 
@@ -313,7 +328,7 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
 
       // Create consultation call
       log.debug('Creating consultation call')
-      const consultationCallId = await sipClient.value.makeCall(targetUri, {
+      const consultationCallId = await sipClient.value.makeCall(normalizedTarget, {
         video: false,
       })
 
@@ -325,7 +340,7 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
         id: transferId,
         state: TransferState.Initiated,
         type: TransferType.Attended,
-        target: targetUri,
+        target: normalizedTarget,
         callId,
         consultationCallId,
         initiatedAt: new Date(),

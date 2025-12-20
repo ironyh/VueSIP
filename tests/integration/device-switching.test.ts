@@ -13,8 +13,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { MediaManager } from '../../src/core/MediaManager'
 import { CallSession } from '../../src/core/CallSession'
 import { EventBus } from '../../src/core/EventBus'
-import { createMockSipServer, type MockRTCSession } from '../helpers/MockSipServer'
-import { MediaDeviceKind, type ExtendedMediaStreamConstraints } from '../../src/types/media.types'
+import { createMockSipServer } from '../helpers/MockSipServer'
+import { MediaDeviceKind } from '../../src/types/media.types'
 import { waitForNextTick, waitForEvent } from '../utils/test-helpers'
 
 /**
@@ -171,24 +171,24 @@ describe('Device Switching Integration Tests', () => {
       expect(callSession).toBeDefined()
 
       // Get tracks from stream1 before switching
-      const stream1Tracks = stream1.getTracks()
+      const _stream1Tracks = stream1.getTracks()
 
       // Switch to device 2
-      const stream2 = await mediaManager.getUserMedia({
+      const _stream2 = await mediaManager.getUserMedia({
         audio: { deviceId: { exact: 'audioinput2' } },
         video: false,
       })
 
-      expect(stream2).toBeDefined()
-      expect(stream2.id).not.toBe(stream1.id)
+      expect(_stream2).toBeDefined()
+      expect(_stream2.id).not.toBe(stream1.id)
 
       // Verify old stream tracks were stopped
-      stream1Tracks.forEach((track) => {
+      _stream1Tracks.forEach((track) => {
         expect(track.stop).toHaveBeenCalled()
       })
 
       // Verify new stream has active tracks
-      const stream2Tracks = stream2.getTracks()
+      const stream2Tracks = _stream2.getTracks()
       expect(stream2Tracks.length).toBeGreaterThan(0)
     })
 
@@ -231,7 +231,7 @@ describe('Device Switching Integration Tests', () => {
       eventBus.on('media:stream:added', () => events.push('added'))
       eventBus.on('media:stream:removed', () => events.push('removed'))
 
-      const stream1 = await mediaManager.getUserMedia({
+      const _stream1 = await mediaManager.getUserMedia({
         audio: { deviceId: { exact: 'audioinput1' } },
         video: false,
       })
@@ -240,7 +240,7 @@ describe('Device Switching Integration Tests', () => {
 
       mediaManager.stopLocalStream()
 
-      const stream2 = await mediaManager.getUserMedia({
+      const _stream2 = await mediaManager.getUserMedia({
         audio: { deviceId: { exact: 'audioinput2' } },
         video: false,
       })

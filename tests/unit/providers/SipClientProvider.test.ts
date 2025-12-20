@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * SipClientProvider unit tests
  * Tests for Phase 7.1: Provider component implementation
@@ -9,7 +9,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import { SipClientProvider, useSipClientProvider } from '@/providers/SipClientProvider'
 import type { SipClientConfig } from '@/types/config.types'
-import { waitForNextTick, waitForCondition } from '../../utils/test-helpers'
+import { waitForCondition } from '../../utils/test-helpers'
 
 // Mock the logger
 vi.mock('@/utils/logger', () => ({
@@ -256,7 +256,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       let errorEmitted: Error | null = null
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -305,7 +305,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: true,
@@ -338,7 +338,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       let errorEmitted: Error | null = null
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: true,
@@ -542,7 +542,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -591,7 +591,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -633,7 +633,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -675,7 +675,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -717,7 +717,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,

@@ -194,7 +194,7 @@ const props = defineProps<{
 const sipClientRef = computed(() => props.sipClient)
 const {
   conference,
-  state,
+  state: _state,
   participants,
   localParticipant,
   participantCount,

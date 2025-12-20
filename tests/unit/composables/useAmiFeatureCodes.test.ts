@@ -1,5 +1,15 @@
 /**
- * useAmiFeatureCodes composable unit tests
+ * Tests for useAmiFeatureCodes composable
+ *
+ * Feature code execution system for Asterisk Manager Interface:
+ * - Do Not Disturb (DND) management with toggle/enable/disable
+ * - Call forwarding (unconditional, busy, no answer, unavailable)
+ * - Custom feature code registration and execution
+ * - Execution history tracking with validation
+ * - Destination validation and sanitization
+ * - Error handling with callback support
+ *
+ * @see src/composables/useAmiFeatureCodes.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -9,6 +19,89 @@ import {
   createMockAmiClient,
   type MockAmiClient,
 } from '../utils/mockFactories'
+
+/**
+ * Test fixtures for consistent test data across all test suites
+ */
+const TEST_FIXTURES = {
+  extensions: {
+    default: '1001',
+    alternate: '1002',
+    invalid: 'invalid<>',
+  },
+  destinations: {
+    valid: '5551234567',
+    alternate: '5559876543',
+    another: '5555555555',
+    invalid: '',
+  },
+  featureCodes: {
+    dnd: {
+      toggle: '*76',
+      enable: '*78',
+      disable: '*79',
+      customToggle: '*70',
+    },
+    callForward: {
+      unconditionalEnable: '*72',
+      unconditionalDisable: '*73',
+      busyEnable: '*90',
+      noAnswerEnable: '*52',
+    },
+    voicemail: '*97',
+    intercom: '*80',
+  },
+  ringTimeouts: {
+    tooShort: 3,
+    valid: 20,
+    tooLong: 150,
+    min: 5,
+    max: 120,
+  },
+  errors: {
+    notConnected: 'AMI client not connected',
+    noExtension: 'No extension configured',
+    invalidDestination: 'Invalid destination format',
+    invalidExtension: 'Invalid extension format',
+    channelUnavailable: 'Channel unavailable',
+    networkError: 'Network error',
+    destinationRequired: 'Destination required for this feature',
+    unknownFeature: 'Unknown feature',
+  },
+  responses: {
+    success: { data: { Response: 'Success' } },
+    error: (message: string) => ({ data: { Response: 'Error', Message: message } }),
+  },
+} as const
+
+/**
+ * Factory function: Create mock AMI options with sensible defaults
+ */
+function createMockAmiOptions(overrides?: any) {
+  return {
+    extension: TEST_FIXTURES.extensions.default,
+    onDndChanged: vi.fn(),
+    onCallForwardChanged: vi.fn(),
+    onFeatureExecuted: vi.fn(),
+    onError: vi.fn(),
+    ...overrides,
+  }
+}
+
+/**
+ * Factory function: Create mock feature code definition
+ */
+function createMockFeatureCode(overrides?: any) {
+  return {
+    id: 'custom_feature',
+    name: 'Custom Feature',
+    category: 'custom' as const,
+    activateCode: '*99',
+    requiresDestination: false,
+    available: true,
+    ...overrides,
+  }
+}
 
 describe('useAmiFeatureCodes', () => {
   let mockClient: MockAmiClient
@@ -24,20 +117,32 @@ describe('useAmiFeatureCodes', () => {
     vi.useRealTimers()
   })
 
-  describe('initial state', () => {
-    it('should have unknown DND status initially', () => {
-      const { dndStatus } = useAmiFeatureCodes(mockClient as unknown as AmiClient)
-      expect(dndStatus.value).toBe('unknown')
-    })
-
-    it('should not be loading initially', () => {
-      const { isLoading } = useAmiFeatureCodes(mockClient as unknown as AmiClient)
-      expect(isLoading.value).toBe(false)
-    })
-
-    it('should have no error initially', () => {
-      const { error } = useAmiFeatureCodes(mockClient as unknown as AmiClient)
-      expect(error.value).toBeNull()
+  /**
+   * Initial State Tests
+   * Verify composable initializes with correct default values
+   */
+  describe('Initial State', () => {
+    describe.each([
+      {
+        description: 'DND status',
+        property: 'dndStatus',
+        expectedValue: 'unknown',
+      },
+      {
+        description: 'loading state',
+        property: 'isLoading',
+        expectedValue: false,
+      },
+      {
+        description: 'error state',
+        property: 'error',
+        expectedValue: null,
+      },
+    ])('$description', ({ property, expectedValue }) => {
+      it(`should initialize ${property} to ${expectedValue}`, () => {
+        const composable = useAmiFeatureCodes(mockClient as unknown as AmiClient)
+        expect(composable[property].value).toBe(expectedValue)
+      })
     })
 
     it('should have empty execution history', () => {
@@ -60,9 +165,9 @@ describe('useAmiFeatureCodes', () => {
 
     it('should use extension from options', () => {
       const { extension } = useAmiFeatureCodes(mockClient as unknown as AmiClient, {
-        extension: '1001',
+        extension: TEST_FIXTURES.extensions.default,
       })
-      expect(extension.value).toBe('1001')
+      expect(extension.value).toBe(TEST_FIXTURES.extensions.default)
     })
   })
 
@@ -102,59 +207,66 @@ describe('useAmiFeatureCodes', () => {
     })
   })
 
-  describe('DND operations', () => {
-    it('should toggle DND', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
+  /**
+   * DND Operations Tests
+   * Verify Do Not Disturb enable/disable/toggle functionality
+   *
+   * DND flow:
+   * 1. Execute feature code via AMI Originate action
+   * 2. Update dndStatus based on operation
+   * 3. Track execution in history
+   * 4. Trigger onDndChanged callback
+   */
+  describe('DND Operations', () => {
+    describe.each([
+      {
+        description: 'toggle DND',
+        operation: 'toggleDnd',
+        featureCode: TEST_FIXTURES.featureCodes.dnd.toggle,
+        initialStatus: 'unknown' as const,
+        expectedStatus: 'enabled' as const,
+        callbackValue: true,
+      },
+      {
+        description: 'enable DND',
+        operation: 'enableDnd',
+        featureCode: TEST_FIXTURES.featureCodes.dnd.enable,
+        initialStatus: 'unknown' as const,
+        expectedStatus: 'enabled' as const,
+        callbackValue: true,
+      },
+      {
+        description: 'disable DND',
+        operation: 'disableDnd',
+        featureCode: TEST_FIXTURES.featureCodes.dnd.disable,
+        initialStatus: 'enabled' as const,
+        expectedStatus: 'disabled' as const,
+        callbackValue: false,
+      },
+    ])('$description', ({ operation, featureCode, initialStatus, expectedStatus, callbackValue }) => {
+      it(`should ${operation} and update state`, async () => {
+        mockClient.sendAction = vi.fn().mockResolvedValue(TEST_FIXTURES.responses.success)
 
-      const onDndChanged = vi.fn()
-      const { toggleDnd, dndStatus, executionHistory } = useAmiFeatureCodes(
-        mockClient as unknown as AmiClient,
-        { extension: '1001', onDndChanged }
-      )
+        const options = createMockAmiOptions()
+        const composable = useAmiFeatureCodes(mockClient as unknown as AmiClient, options)
 
-      // Initial state is unknown, toggling should set to enabled
-      const result = await toggleDnd()
+        // Set initial status if needed
+        if (initialStatus !== 'unknown') {
+          composable.dndStatus.value = initialStatus
+        }
 
-      expect(result.success).toBe(true)
-      expect(result.featureCode).toBe('*76')
-      expect(dndStatus.value).toBe('enabled')
-      expect(executionHistory.value).toHaveLength(1)
-      expect(onDndChanged).toHaveBeenCalledWith(true)
-    })
+        const result = await composable[operation]()
 
-    it('should enable DND', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
+        expect(result.success).toBe(true)
+        expect(result.featureCode).toBe(featureCode)
+        expect(composable.dndStatus.value).toBe(expectedStatus)
+        expect(options.onDndChanged).toHaveBeenCalledWith(callbackValue)
 
-      const onDndChanged = vi.fn()
-      const { enableDnd, dndStatus } = useAmiFeatureCodes(
-        mockClient as unknown as AmiClient,
-        { extension: '1001', onDndChanged }
-      )
-
-      const result = await enableDnd()
-
-      expect(result.success).toBe(true)
-      expect(result.featureCode).toBe('*78')
-      expect(dndStatus.value).toBe('enabled')
-      expect(onDndChanged).toHaveBeenCalledWith(true)
-    })
-
-    it('should disable DND', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
-
-      const onDndChanged = vi.fn()
-      const { disableDnd, dndStatus } = useAmiFeatureCodes(
-        mockClient as unknown as AmiClient,
-        { extension: '1001', onDndChanged }
-      )
-
-      dndStatus.value = 'enabled'
-      const result = await disableDnd()
-
-      expect(result.success).toBe(true)
-      expect(result.featureCode).toBe('*79')
-      expect(dndStatus.value).toBe('disabled')
-      expect(onDndChanged).toHaveBeenCalledWith(false)
+        // Verify execution history for toggle only
+        if (operation === 'toggleDnd') {
+          expect(composable.executionHistory.value).toHaveLength(1)
+        }
+      })
     })
   })
 
@@ -212,63 +324,86 @@ describe('useAmiFeatureCodes', () => {
       expect(onError).toHaveBeenCalled()
     })
 
-    it('should enable call forward busy', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
+    /**
+     * Call Forward Type Tests
+     * Verify different call forward types (busy, no answer)
+     */
+    describe.each([
+      {
+        type: 'busy',
+        operation: 'enableCallForwardBusy',
+        destination: TEST_FIXTURES.destinations.alternate,
+        featureCode: TEST_FIXTURES.featureCodes.callForward.busyEnable,
+      },
+    ])('$type forwarding', ({ type, operation, destination, featureCode }) => {
+      it(`should enable call forward ${type}`, async () => {
+        mockClient.sendAction = vi.fn().mockResolvedValue(TEST_FIXTURES.responses.success)
 
-      const { enableCallForwardBusy, getCallForwardByType } = useAmiFeatureCodes(
-        mockClient as unknown as AmiClient,
-        { extension: '1001' }
-      )
+        const composable = useAmiFeatureCodes(
+          mockClient as unknown as AmiClient,
+          { extension: TEST_FIXTURES.extensions.default }
+        )
 
-      const result = await enableCallForwardBusy('5559876543')
+        const result = await composable[operation](destination)
 
-      expect(result.success).toBe(true)
-      expect(result.featureCode).toBe('*90')
+        expect(result.success).toBe(true)
+        expect(result.featureCode).toBe(featureCode)
 
-      const cfStatus = getCallForwardByType('busy')
-      expect(cfStatus?.enabled).toBe(true)
-      expect(cfStatus?.destination).toBe('5559876543')
+        const cfStatus = composable.getCallForwardByType(type)
+        expect(cfStatus?.enabled).toBe(true)
+        expect(cfStatus?.destination).toBe(destination)
+      })
     })
 
-    it('should enable call forward no answer', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
+    it('should enable call forward no answer with timeout', async () => {
+      mockClient.sendAction = vi.fn().mockResolvedValue(TEST_FIXTURES.responses.success)
 
       const { enableCallForwardNoAnswer, getCallForwardByType } = useAmiFeatureCodes(
         mockClient as unknown as AmiClient,
-        { extension: '1001' }
+        { extension: TEST_FIXTURES.extensions.default }
       )
 
-      const result = await enableCallForwardNoAnswer('5555555555', 20)
+      const result = await enableCallForwardNoAnswer(
+        TEST_FIXTURES.destinations.another,
+        TEST_FIXTURES.ringTimeouts.valid
+      )
 
       expect(result.success).toBe(true)
-      expect(result.featureCode).toBe('*52')
+      expect(result.featureCode).toBe(TEST_FIXTURES.featureCodes.callForward.noAnswerEnable)
 
       const cfStatus = getCallForwardByType('noanswer')
       expect(cfStatus?.enabled).toBe(true)
-      expect(cfStatus?.destination).toBe('5555555555')
-      expect(cfStatus?.ringTimeout).toBe(20)
+      expect(cfStatus?.destination).toBe(TEST_FIXTURES.destinations.another)
+      expect(cfStatus?.ringTimeout).toBe(TEST_FIXTURES.ringTimeouts.valid)
     })
 
-    it('should reject invalid ring timeout', async () => {
-      const onError = vi.fn()
-      const { enableCallForwardNoAnswer, error: _error } = useAmiFeatureCodes(
-        mockClient as unknown as AmiClient,
-        { extension: '1001', onError }
-      )
+    /**
+     * Ring Timeout Validation Tests
+     * Verify ring timeout bounds checking for no-answer forwarding
+     */
+    describe.each([
+      {
+        description: 'too short',
+        timeout: TEST_FIXTURES.ringTimeouts.tooShort,
+      },
+      {
+        description: 'too long',
+        timeout: TEST_FIXTURES.ringTimeouts.tooLong,
+      },
+    ])('ring timeout $description', ({ timeout }) => {
+      it(`should reject timeout of ${timeout} seconds`, async () => {
+        const onError = vi.fn()
+        const { enableCallForwardNoAnswer } = useAmiFeatureCodes(
+          mockClient as unknown as AmiClient,
+          { extension: TEST_FIXTURES.extensions.default, onError }
+        )
 
-      // Too short
-      const result1 = await enableCallForwardNoAnswer('5555555555', 3)
-      expect(result1.success).toBe(false)
-      expect(result1.message).toContain('Invalid ring timeout')
-      expect(onError).toHaveBeenCalled()
+        const result = await enableCallForwardNoAnswer(TEST_FIXTURES.destinations.another, timeout)
 
-      onError.mockClear()
-
-      // Too long
-      const result2 = await enableCallForwardNoAnswer('5555555555', 150)
-      expect(result2.success).toBe(false)
-      expect(result2.message).toContain('Invalid ring timeout')
-      expect(onError).toHaveBeenCalled()
+        expect(result.success).toBe(false)
+        expect(result.message).toContain('Invalid ring timeout')
+        expect(onError).toHaveBeenCalled()
+      })
     })
   })
 
@@ -404,19 +539,23 @@ describe('useAmiFeatureCodes', () => {
     })
   })
 
-  describe('setExtension', () => {
+  /**
+   * Extension Management Tests
+   * Verify extension setting and validation
+   */
+  describe('Extension Management', () => {
     it('should set extension and reset status', () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
+      mockClient.sendAction = vi.fn().mockResolvedValue(TEST_FIXTURES.responses.success)
 
       const { extension, dndStatus, setExtension } = useAmiFeatureCodes(
         mockClient as unknown as AmiClient,
-        { extension: '1001' }
+        { extension: TEST_FIXTURES.extensions.default }
       )
 
       dndStatus.value = 'enabled'
-      setExtension('1002')
+      setExtension(TEST_FIXTURES.extensions.alternate)
 
-      expect(extension.value).toBe('1002')
+      expect(extension.value).toBe(TEST_FIXTURES.extensions.alternate)
       expect(dndStatus.value).toBe('unknown')
     })
 
@@ -424,32 +563,41 @@ describe('useAmiFeatureCodes', () => {
       const onError = vi.fn()
       const { extension, setExtension, error } = useAmiFeatureCodes(
         mockClient as unknown as AmiClient,
-        { extension: '1001', onError }
+        { extension: TEST_FIXTURES.extensions.default, onError }
       )
 
-      setExtension('invalid<>')
+      setExtension(TEST_FIXTURES.extensions.invalid)
 
-      expect(extension.value).toBe('1001') // unchanged
-      expect(error.value).toBe('Invalid extension format')
+      expect(extension.value).toBe(TEST_FIXTURES.extensions.default) // unchanged
+      expect(error.value).toBe(TEST_FIXTURES.errors.invalidExtension)
       expect(onError).toHaveBeenCalled()
     })
   })
 
-  describe('custom features', () => {
+  /**
+   * Custom Feature Code Tests
+   * Verify custom feature registration and management
+   *
+   * Custom feature flow:
+   * 1. Register with unique ID and activation code
+   * 2. Store in featureCodes array
+   * 3. Allow updates via re-registration
+   * 4. Support unregistration for cleanup
+   */
+  describe('Custom Features', () => {
     it('should register custom feature', () => {
       const { registerFeature, featureCodes, getFeature } = useAmiFeatureCodes(
         mockClient as unknown as AmiClient
       )
 
-      registerFeature({
+      const customFeature = createMockFeatureCode({
         id: 'custom_speed_dial',
         name: 'Speed Dial Boss',
-        category: 'custom',
         activateCode: '*01',
-        requiresDestination: false,
         description: 'Quick dial to boss',
-        available: true,
       })
+
+      registerFeature(customFeature)
 
       const feature = getFeature('custom_speed_dial')
       expect(feature).toBeDefined()
@@ -462,23 +610,8 @@ describe('useAmiFeatureCodes', () => {
         mockClient as unknown as AmiClient
       )
 
-      registerFeature({
-        id: 'custom_feature',
-        name: 'Original Name',
-        category: 'custom',
-        activateCode: '*01',
-        requiresDestination: false,
-        available: true,
-      })
-
-      registerFeature({
-        id: 'custom_feature',
-        name: 'Updated Name',
-        category: 'custom',
-        activateCode: '*01',
-        requiresDestination: false,
-        available: true,
-      })
+      registerFeature(createMockFeatureCode({ name: 'Original Name' }))
+      registerFeature(createMockFeatureCode({ name: 'Updated Name' }))
 
       const feature = getFeature('custom_feature')
       expect(feature?.name).toBe('Updated Name')
@@ -489,88 +622,95 @@ describe('useAmiFeatureCodes', () => {
         mockClient as unknown as AmiClient
       )
 
-      registerFeature({
+      const tempFeature = createMockFeatureCode({
         id: 'temp_feature',
         name: 'Temp Feature',
-        category: 'custom',
-        activateCode: '*99',
-        requiresDestination: false,
-        available: true,
       })
 
+      registerFeature(tempFeature)
       expect(getFeature('temp_feature')).toBeDefined()
 
       unregisterFeature('temp_feature')
-
       expect(getFeature('temp_feature')).toBeUndefined()
     })
   })
 
-  describe('error handling', () => {
-    it('should handle AMI client not connected', async () => {
-      const onError = vi.fn()
-      const { toggleDnd, error } = useAmiFeatureCodes(null, {
-        extension: '1001',
-        onError,
+  /**
+   * Error Handling Tests
+   * Verify error handling for various failure scenarios
+   *
+   * Error types:
+   * - Client not connected
+   * - Missing extension
+   * - AMI action failures
+   * - Network errors
+   */
+  describe('Error Handling', () => {
+    describe.each([
+      {
+        description: 'AMI client not connected',
+        client: null,
+        options: { extension: TEST_FIXTURES.extensions.default },
+        expectedMessage: TEST_FIXTURES.errors.notConnected,
+      },
+      {
+        description: 'no extension configured',
+        client: () => createMockAmiClient(),
+        options: {},
+        expectedMessage: TEST_FIXTURES.errors.noExtension,
+      },
+    ])('$description', ({ description, client, options, expectedMessage }) => {
+      it(`should fail with "${expectedMessage}"`, async () => {
+        const actualClient = typeof client === 'function' ? client() : client
+        const onError = vi.fn()
+        const { toggleDnd, error } = useAmiFeatureCodes(
+          actualClient as unknown as AmiClient,
+          { ...options, onError }
+        )
+
+        const result = await toggleDnd()
+
+        expect(result.success).toBe(false)
+        expect(result.message).toBe(expectedMessage)
+        expect(error.value).toBe(expectedMessage)
+        if (description !== 'no extension configured') {
+          expect(onError).toHaveBeenCalled()
+        }
       })
-
-      const result = await toggleDnd()
-
-      expect(result.success).toBe(false)
-      expect(result.message).toBe('AMI client not connected')
-      expect(error.value).toBe('AMI client not connected')
-      expect(onError).toHaveBeenCalled()
-    })
-
-    it('should handle no extension configured', async () => {
-      const onError = vi.fn()
-      const { toggleDnd, error } = useAmiFeatureCodes(
-        mockClient as unknown as AmiClient,
-        { onError }
-      )
-
-      const result = await toggleDnd()
-
-      expect(result.success).toBe(false)
-      expect(result.message).toBe('No extension configured')
-      expect(error.value).toBe('No extension configured')
     })
 
     it('should handle AMI action failure', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({
-        data: {
-          Response: 'Error',
-          Message: 'Channel unavailable',
-        },
-      })
+      mockClient.sendAction = vi.fn().mockResolvedValue(
+        TEST_FIXTURES.responses.error(TEST_FIXTURES.errors.channelUnavailable)
+      )
 
       const onError = vi.fn()
       const { toggleDnd, error } = useAmiFeatureCodes(
         mockClient as unknown as AmiClient,
-        { extension: '1001', onError }
+        { extension: TEST_FIXTURES.extensions.default, onError }
       )
 
       const result = await toggleDnd()
 
       expect(result.success).toBe(false)
-      expect(result.message).toBe('Channel unavailable')
-      expect(error.value).toBe('Channel unavailable')
+      expect(result.message).toBe(TEST_FIXTURES.errors.channelUnavailable)
+      expect(error.value).toBe(TEST_FIXTURES.errors.channelUnavailable)
       expect(onError).toHaveBeenCalled()
     })
 
     it('should handle network error', async () => {
-      mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Network error'))
+      mockClient.sendAction = vi.fn().mockRejectedValue(new Error(TEST_FIXTURES.errors.networkError))
 
       const onError = vi.fn()
       const { toggleDnd } = useAmiFeatureCodes(
         mockClient as unknown as AmiClient,
-        { extension: '1001', onError }
+        { extension: TEST_FIXTURES.extensions.default, onError }
       )
 
       const result = await toggleDnd()
 
       expect(result.success).toBe(false)
-      expect(result.message).toBe('Network error')
+      expect(result.message).toBe(TEST_FIXTURES.errors.networkError)
       expect(onError).toHaveBeenCalled()
     })
   })

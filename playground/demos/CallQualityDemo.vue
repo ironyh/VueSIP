@@ -1,175 +1,210 @@
 <template>
   <div class="call-quality-demo">
-    <div class="info-section">
-      <p>
-        Monitor real-time call quality metrics including audio codec information, packet statistics,
-        jitter, and round-trip time. Essential for diagnosing call quality issues and network
-        problems.
-      </p>
-      <p class="note">
-        <strong>Note:</strong> Statistics are available only during active calls. Some metrics may
-        vary depending on browser support.
-      </p>
-    </div>
-
-    <!-- Simulation Controls -->
-    <SimulationControls
-      :is-simulation-mode="isSimulationMode"
-      :active-scenario="activeScenario"
-      :state="effectiveCallState"
-      :duration="effectiveDuration"
-      :remote-uri="effectiveRemoteUri"
-      :remote-display-name="effectiveRemoteDisplayName"
-      :is-on-hold="effectiveIsOnHold"
-      :is-muted="effectiveIsMuted"
-      :scenarios="simulation.scenarios"
-      @toggle="simulation.toggleSimulation"
-      @run-scenario="simulation.runScenario"
-      @reset="simulation.resetCall"
-      @answer="simulation.answer"
-      @hangup="simulation.hangup"
-      @toggle-hold="simulation.toggleHold"
-      @toggle-mute="simulation.toggleMute"
-    />
-
-    <!-- Connection Status -->
-    <div v-if="!effectiveIsConnected" class="status-message info">
-      {{
-        isSimulationMode
-          ? 'Enable simulation and run a scenario to see quality metrics'
-          : 'Connect to a SIP server to view call quality metrics (use the Basic Call demo to connect)'
-      }}
-    </div>
-
-    <div v-else-if="effectiveCallState !== 'active'" class="status-message warning">
-      {{
-        isSimulationMode
-          ? 'Run the "Active Call" scenario to see quality metrics'
-          : 'Make or answer a call to see real-time quality metrics'
-      }}
-    </div>
-
-    <!-- Quality Metrics -->
-    <div v-else class="quality-metrics">
-      <!-- Overall Quality Score -->
-      <div class="quality-score-card">
-        <div class="score-container">
-          <div class="score-circle" :class="qualityLevel">
-            <div class="score-value">{{ qualityScore }}</div>
-            <div class="score-label">Quality</div>
-          </div>
-          <div class="score-indicator">
-            <div class="indicator-bar">
-              <div
-                class="indicator-fill"
-                :style="{ width: qualityScore + '%' }"
-                :class="qualityLevel"
-              ></div>
-            </div>
-            <div class="indicator-text">{{ qualityText }}</div>
-          </div>
+    <Card class="demo-card">
+      <template #title>
+        <div class="demo-header">
+          <span class="demo-icon">
+            <i class="pi pi-chart-line" style="font-size: 1.5rem"></i>
+          </span>
+          <span>Call Quality Monitor</span>
         </div>
-      </div>
+      </template>
+      <template #subtitle>Monitor real-time call quality metrics</template>
+      <template #content>
+        <Message severity="info" :closable="false" class="mb-4">
+          <template #icon><i class="pi pi-info-circle"></i></template>
+          <div>
+            <p class="m-0">
+              Monitor real-time call quality metrics including audio codec information, packet statistics,
+              jitter, and round-trip time. Essential for diagnosing call quality issues and network
+              problems.
+            </p>
+            <p class="note mt-2 mb-0">
+              <strong>Note:</strong> Statistics are available only during active calls. Some metrics may
+              vary depending on browser support.
+            </p>
+          </div>
+        </Message>
 
-      <!-- Audio Codec Information -->
-      <div class="metrics-section">
-        <h3>Audio Codec</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="info-label">Codec:</span>
-            <span class="info-value">{{ codecInfo.name }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Sample Rate:</span>
-            <span class="info-value">{{ codecInfo.sampleRate }} Hz</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Channels:</span>
-            <span class="info-value">{{ codecInfo.channels }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Bitrate:</span>
-            <span class="info-value">{{ codecInfo.bitrate }} kbps</span>
-          </div>
-        </div>
-      </div>
+        <!-- Simulation Controls -->
+        <SimulationControls
+          :is-simulation-mode="isSimulationMode"
+          :active-scenario="activeScenario"
+          :state="effectiveCallState"
+          :duration="effectiveDuration"
+          :remote-uri="effectiveRemoteUri"
+          :remote-display-name="effectiveRemoteDisplayName"
+          :is-on-hold="effectiveIsOnHold"
+          :is-muted="effectiveIsMuted"
+          :scenarios="simulation.scenarios"
+          @toggle="simulation.toggleSimulation"
+          @run-scenario="simulation.runScenario"
+          @reset="simulation.resetCall"
+          @answer="simulation.answer"
+          @hangup="simulation.hangup"
+          @toggle-hold="simulation.toggleHold"
+          @toggle-mute="simulation.toggleMute"
+        />
 
-      <!-- Network Statistics -->
-      <div class="metrics-section">
-        <h3>Network Statistics</h3>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-content">
-              <div class="stat-value">{{ networkStats.packetLoss }}%</div>
-              <div class="stat-label">Packet Loss</div>
-              <div class="stat-quality" :class="getPacketLossLevel(networkStats.packetLoss)">
-                {{ getPacketLossText(networkStats.packetLoss) }}
+        <!-- Connection Status -->
+        <Message v-if="!effectiveIsConnected" severity="info" :closable="false" class="mt-4">
+          <template #icon><i class="pi pi-info-circle"></i></template>
+          {{
+            isSimulationMode
+              ? 'Enable simulation and run a scenario to see quality metrics'
+              : 'Connect to a SIP server to view call quality metrics (use the Basic Call demo to connect)'
+          }}
+        </Message>
+
+        <Message v-else-if="effectiveCallState !== 'active'" severity="warn" :closable="false" class="mt-4">
+          <template #icon><i class="pi pi-exclamation-triangle"></i></template>
+          {{
+            isSimulationMode
+              ? 'Run the "Active Call" scenario to see quality metrics'
+              : 'Make or answer a call to see real-time quality metrics'
+          }}
+        </Message>
+
+        <!-- Quality Metrics -->
+        <div v-else class="quality-metrics mt-4">
+          <!-- Overall Quality Score -->
+          <Panel header="Overall Quality Score" class="mb-4">
+            <div class="score-container">
+              <div class="score-circle" :class="qualityLevel">
+                <div class="score-value">{{ qualityScore }}</div>
+                <div class="score-label">Quality</div>
+              </div>
+              <div class="score-indicator">
+                <ProgressBar :value="qualityScore" :showValue="false" class="mb-2" />
+                <div class="indicator-text">
+                  <Tag :severity="getQualitySeverity(qualityLevel)" :value="qualityText" />
+                </div>
               </div>
             </div>
-          </div>
+          </Panel>
 
-          <div class="stat-card">
-            <div class="stat-content">
-              <div class="stat-value">{{ networkStats.jitter }}ms</div>
-              <div class="stat-label">Jitter</div>
-              <div class="stat-quality" :class="getJitterLevel(networkStats.jitter)">
-                {{ getJitterText(networkStats.jitter) }}
+          <!-- Audio Codec Information -->
+          <Panel header="Audio Codec" class="mb-4">
+            <div class="info-grid">
+              <div class="info-item codec">
+                <div class="info-icon">
+                  <i class="pi pi-microphone"></i>
+                </div>
+                <div class="info-content">
+                  <span class="info-label">Codec</span>
+                  <span class="info-value">{{ codecInfo.name }}</span>
+                </div>
+              </div>
+              <div class="info-item sample-rate">
+                <div class="info-icon">
+                  <i class="pi pi-wave-pulse"></i>
+                </div>
+                <div class="info-content">
+                  <span class="info-label">Sample Rate</span>
+                  <span class="info-value">{{ codecInfo.sampleRate }} Hz</span>
+                </div>
+              </div>
+              <div class="info-item channels">
+                <div class="info-icon">
+                  <i class="pi pi-volume-up"></i>
+                </div>
+                <div class="info-content">
+                  <span class="info-label">Channels</span>
+                  <span class="info-value">{{ codecInfo.channels }}</span>
+                </div>
+              </div>
+              <div class="info-item bitrate">
+                <div class="info-icon">
+                  <i class="pi pi-bolt"></i>
+                </div>
+                <div class="info-content">
+                  <span class="info-label">Bitrate</span>
+                  <span class="info-value">{{ codecInfo.bitrate }} kbps</span>
+                </div>
               </div>
             </div>
-          </div>
+          </Panel>
 
-          <div class="stat-card">
-            <div class="stat-content">
-              <div class="stat-value">{{ networkStats.rtt }}ms</div>
-              <div class="stat-label">Round Trip Time</div>
-              <div class="stat-quality" :class="getRttLevel(networkStats.rtt)">
-                {{ getRttText(networkStats.rtt) }}
+          <!-- Network Statistics -->
+          <Panel header="Network Statistics" class="mb-4">
+            <div class="stats-grid">
+              <div class="stat-card packet-loss">
+                <div class="stat-icon">
+                  <i class="pi pi-exclamation-circle"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-value">{{ networkStats.packetLoss.toFixed(2) }}%</div>
+                  <div class="stat-label">Packet Loss</div>
+                  <Tag :severity="getQualitySeverity(getPacketLossLevel(networkStats.packetLoss))" :value="getPacketLossText(networkStats.packetLoss)" />
+                </div>
+              </div>
+
+              <div class="stat-card jitter">
+                <div class="stat-icon">
+                  <i class="pi pi-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-value">{{ networkStats.jitter.toFixed(2) }}ms</div>
+                  <div class="stat-label">Jitter</div>
+                  <Tag :severity="getQualitySeverity(getJitterLevel(networkStats.jitter))" :value="getJitterText(networkStats.jitter)" />
+                </div>
+              </div>
+
+              <div class="stat-card rtt">
+                <div class="stat-icon">
+                  <i class="pi pi-sync"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-value">{{ networkStats.rtt.toFixed(2) }}ms</div>
+                  <div class="stat-label">Round Trip Time</div>
+                  <Tag :severity="getQualitySeverity(getRttLevel(networkStats.rtt))" :value="getRttText(networkStats.rtt)" />
+                </div>
               </div>
             </div>
-          </div>
+          </Panel>
+
+          <!-- Packet Information -->
+          <Panel header="Packet Statistics" class="mb-4" toggleable collapsed>
+            <div class="packet-stats">
+              <div class="packet-row">
+                <span class="packet-label">Packets Sent:</span>
+                <span class="packet-value">{{ formatNumber(packetStats.sent) }}</span>
+              </div>
+              <div class="packet-row">
+                <span class="packet-label">Packets Received:</span>
+                <span class="packet-value">{{ formatNumber(packetStats.received) }}</span>
+              </div>
+              <div class="packet-row">
+                <span class="packet-label">Packets Lost:</span>
+                <Tag severity="danger" :value="formatNumber(packetStats.lost)" />
+              </div>
+              <div class="packet-row">
+                <span class="packet-label">Bytes Sent:</span>
+                <span class="packet-value">{{ formatBytes(packetStats.bytesSent) }}</span>
+              </div>
+              <div class="packet-row">
+                <span class="packet-label">Bytes Received:</span>
+                <span class="packet-value">{{ formatBytes(packetStats.bytesReceived) }}</span>
+              </div>
+            </div>
+          </Panel>
+
+          <!-- Recommendations -->
+          <Message v-if="recommendations.length > 0" severity="warn" :closable="false" class="mb-4">
+            <template #icon><i class="pi pi-lightbulb"></i></template>
+            <div>
+              <strong>Recommendations</strong>
+              <ul class="mt-2 mb-0 pl-4">
+                <li v-for="(rec, index) in recommendations" :key="index">{{ rec }}</li>
+              </ul>
+            </div>
+          </Message>
         </div>
-      </div>
 
-      <!-- Packet Information -->
-      <div class="metrics-section">
-        <h3>Packet Statistics</h3>
-        <div class="packet-stats">
-          <div class="packet-row">
-            <span class="packet-label">Packets Sent:</span>
-            <span class="packet-value">{{ formatNumber(packetStats.sent) }}</span>
-          </div>
-          <div class="packet-row">
-            <span class="packet-label">Packets Received:</span>
-            <span class="packet-value">{{ formatNumber(packetStats.received) }}</span>
-          </div>
-          <div class="packet-row">
-            <span class="packet-label">Packets Lost:</span>
-            <span class="packet-value lost">{{ formatNumber(packetStats.lost) }}</span>
-          </div>
-          <div class="packet-row">
-            <span class="packet-label">Bytes Sent:</span>
-            <span class="packet-value">{{ formatBytes(packetStats.bytesSent) }}</span>
-          </div>
-          <div class="packet-row">
-            <span class="packet-label">Bytes Received:</span>
-            <span class="packet-value">{{ formatBytes(packetStats.bytesReceived) }}</span>
-          </div>
-        </div>
-      </div>
+        <Divider />
 
-      <!-- Recommendations -->
-      <div v-if="recommendations.length > 0" class="recommendations">
-        <h3>Recommendations</h3>
-        <ul>
-          <li v-for="(rec, index) in recommendations" :key="index">{{ rec }}</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Code Example -->
-    <div class="code-example">
-      <h4>Code Example</h4>
-      <pre><code>import { ref, onUnmounted } from 'vue'
+        <h4>Code Example</h4>
+        <pre class="code-block"><code>import { ref, onUnmounted } from 'vue'
 import { useCallSession } from 'vuesip'
 
 const { session, state } = useCallSession(sipClient)
@@ -221,7 +256,8 @@ const statsInterval = setInterval(async () => {
 onUnmounted(() => {
   clearInterval(statsInterval)
 })</code></pre>
-    </div>
+      </template>
+    </Card>
   </div>
 </template>
 
@@ -230,6 +266,14 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+
+// PrimeVue components
+import Card from 'primevue/card'
+import Panel from 'primevue/panel'
+import Message from 'primevue/message'
+import Tag from 'primevue/tag'
+import ProgressBar from 'primevue/progressbar'
+import Divider from 'primevue/divider'
 
 // Simulation system
 const simulation = useSimulation()
@@ -401,6 +445,21 @@ const getRttText = (rtt: number): string => {
   return 'Poor'
 }
 
+const getQualitySeverity = (level: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' => {
+  switch (level) {
+    case 'excellent':
+      return 'success'
+    case 'good':
+      return 'info'
+    case 'fair':
+      return 'warn'
+    case 'poor':
+      return 'danger'
+    default:
+      return 'secondary'
+  }
+}
+
 const formatNumber = (num: number): string => {
   return num.toLocaleString()
 }
@@ -468,15 +527,15 @@ onUnmounted(() => {
 }
 
 .info-section {
-  padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .info-section p {
-  margin: 0 0 1rem 0;
-  color: #666;
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
@@ -485,46 +544,53 @@ onUnmounted(() => {
 }
 
 .note {
-  padding: 1rem;
-  background: #eff6ff;
-  border-left: 3px solid #667eea;
-  border-radius: 4px;
-  font-size: 0.875rem;
+  padding: var(--spacing-md);
+  background: var(--bg-info-light);
+  border-left: 3px solid var(--color-info);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
 }
 
 .status-message {
-  padding: 1rem;
-  border-radius: 6px;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
   text-align: center;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .status-message.info {
-  background: #eff6ff;
-  color: #1e40af;
+  background: var(--bg-info-light);
+  color: var(--color-info);
 }
 
 .status-message.warning {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--bg-warning-light);
+  color: var(--color-warning);
 }
 
 .quality-metrics {
-  padding: 1.5rem;
+  padding: var(--spacing-lg);
 }
 
 .quality-score-card {
-  background: white;
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-2xl);
+  margin-bottom: var(--spacing-2xl);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
+}
+
+.quality-score-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 .score-container {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: var(--spacing-2xl);
 }
 
 .score-circle {
@@ -537,38 +603,39 @@ onUnmounted(() => {
   justify-content: center;
   border: 8px solid;
   flex-shrink: 0;
+  transition: all var(--transition-base);
 }
 
 .score-circle.excellent {
-  border-color: #10b981;
-  background: #d1fae5;
+  border-color: var(--color-success);
+  background: var(--bg-success-light);
 }
 
 .score-circle.good {
-  border-color: #3b82f6;
-  background: #dbeafe;
+  border-color: var(--color-info);
+  background: var(--bg-info-light);
 }
 
 .score-circle.fair {
-  border-color: #f59e0b;
-  background: #fef3c7;
+  border-color: var(--color-warning);
+  background: var(--bg-warning-light);
 }
 
 .score-circle.poor {
-  border-color: #ef4444;
-  background: #fee2e2;
+  border-color: var(--color-danger);
+  background: var(--bg-danger-light);
 }
 
 .score-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #333;
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
 }
 
 .score-label {
-  font-size: 0.875rem;
-  color: #666;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
 }
 
 .score-indicator {
@@ -577,10 +644,10 @@ onUnmounted(() => {
 
 .indicator-bar {
   height: 12px;
-  background: #e5e7eb;
-  border-radius: 6px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
 }
 
 .indicator-fill {
@@ -589,188 +656,352 @@ onUnmounted(() => {
 }
 
 .indicator-fill.excellent {
-  background: linear-gradient(90deg, #10b981, #059669);
+  background: var(--gradient-green);
 }
 
 .indicator-fill.good {
-  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  background: var(--gradient-blue);
 }
 
 .indicator-fill.fair {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
+  background: var(--gradient-orange);
 }
 
 .indicator-fill.poor {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
+  background: var(--gradient-red);
 }
 
 .indicator-text {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 }
 
 .metrics-section {
-  background: white;
-  border-radius: 8px;
-  border: 2px solid #e5e7eb;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .metrics-section h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
-  font-size: 1rem;
+  margin: 0 0 var(--spacing-lg) 0;
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--spacing-md);
 }
 
 .info-item {
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 6px;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.info-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.info-item:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: transparent;
+}
+
+.info-item:hover::before {
+  opacity: 1;
+}
+
+/* Info item gradient styling */
+.info-item.codec .info-icon {
+  background: var(--gradient-blue);
+}
+.info-item.codec::before {
+  background: var(--gradient-blue);
+}
+.info-item.codec:hover {
+  box-shadow: var(--shadow-blue);
+}
+
+.info-item.sample-rate .info-icon {
+  background: var(--gradient-purple);
+}
+.info-item.sample-rate::before {
+  background: var(--gradient-purple);
+}
+.info-item.sample-rate:hover {
+  box-shadow: var(--shadow-purple);
+}
+
+.info-item.channels .info-icon {
+  background: var(--gradient-pink);
+}
+.info-item.channels::before {
+  background: var(--gradient-pink);
+}
+.info-item.channels:hover {
+  box-shadow: var(--shadow-pink);
+}
+
+.info-item.bitrate .info-icon {
+  background: var(--gradient-orange);
+}
+.info-item.bitrate::before {
+  background: var(--gradient-orange);
+}
+.info-item.bitrate:hover {
+  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.2);
+}
+
+.info-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-on-gradient);
+  box-shadow: var(--shadow-sm);
+}
+
+.info-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .info-label {
-  font-size: 0.875rem;
-  color: #666;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .info-value {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  gap: var(--spacing-md);
 }
 
 .stat-card {
+  position: relative;
   display: flex;
-  gap: 1rem;
-  padding: 1.25rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  transition: all 0.2s;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity var(--transition-base);
 }
 
 .stat-card:hover {
-  border-color: #667eea;
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: transparent;
+}
+
+.stat-card:hover::before {
+  opacity: 1;
+}
+
+/* Stat card gradient styling */
+.stat-card.packet-loss .stat-icon {
+  background: var(--gradient-red);
+}
+.stat-card.packet-loss::before {
+  background: var(--gradient-red);
+}
+.stat-card.packet-loss:hover {
+  box-shadow: 0 8px 16px rgba(239, 68, 68, 0.2);
+}
+
+.stat-card.jitter .stat-icon {
+  background: var(--gradient-orange);
+}
+.stat-card.jitter::before {
+  background: var(--gradient-orange);
+}
+.stat-card.jitter:hover {
+  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.2);
+}
+
+.stat-card.rtt .stat-icon {
+  background: var(--gradient-blue);
+}
+.stat-card.rtt::before {
+  background: var(--gradient-blue);
+}
+.stat-card.rtt:hover {
+  box-shadow: var(--shadow-blue);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-on-gradient);
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-content {
   flex: 1;
+  min-width: 0;
 }
 
 .stat-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #333;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 0.75rem;
-  color: #666;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-medium);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .stat-quality {
   display: inline-block;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
 }
 
 .stat-quality.excellent {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--bg-success-light);
+  color: var(--color-success);
 }
 
 .stat-quality.good {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--bg-info-light);
+  color: var(--color-info);
 }
 
 .stat-quality.fair {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--bg-warning-light);
+  color: var(--color-warning);
 }
 
 .stat-quality.poor {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--bg-danger-light);
+  color: var(--color-danger);
 }
 
 .packet-stats {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--spacing-sm);
 }
 
 .packet-row {
   display: flex;
   justify-content: space-between;
-  padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 6px;
+  padding: var(--spacing-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-fast);
+}
+
+.packet-row:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color-hover);
 }
 
 .packet-label {
-  font-size: 0.875rem;
-  color: #666;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
 
 .packet-value {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .packet-value.lost {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .recommendations {
-  background: #eff6ff;
-  border: 2px solid #3b82f6;
-  border-radius: 8px;
-  padding: 1.5rem;
+  background: var(--bg-info-light);
+  border: 2px solid var(--color-info);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
 }
 
 .recommendations h3 {
-  margin: 0 0 1rem 0;
-  color: #1e40af;
-  font-size: 1rem;
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--color-info);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
 }
 
 .recommendations ul {
   margin: 0;
-  padding-left: 1.5rem;
+  padding-left: var(--spacing-lg);
 }
 
 .recommendations li {
-  color: #1e40af;
-  font-size: 0.875rem;
+  color: var(--color-info);
+  font-size: var(--text-sm);
   line-height: 1.6;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
 }
 
 .recommendations li:last-child {
@@ -778,29 +1009,33 @@ onUnmounted(() => {
 }
 
 .code-example {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  margin-top: var(--spacing-2xl);
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
 }
 
 .code-example h4 {
-  margin: 0 0 1rem 0;
-  color: #333;
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
-  padding: 1.5rem;
-  border-radius: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-sm);
   overflow-x: auto;
   margin: 0;
 }
 
 .code-example code {
-  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
-  font-size: 0.875rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
   line-height: 1.6;
 }
 
