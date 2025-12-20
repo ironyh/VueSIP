@@ -61,15 +61,6 @@ if (typeof window !== 'undefined' && window.location?.search?.includes('test=tru
   ;(window as any).__deviceStoreState = state
 }
 
-const pickPreferredDevice = (devices: MediaDevice[]): string | null => {
-  if (!devices.length) {
-    return null
-  }
-
-  const defaultDevice = devices.find((d) => d.isDefault)
-  return defaultDevice ? defaultDevice.deviceId : devices[0]!.deviceId
-}
-
 /**
  * Computed values
  */
@@ -298,18 +289,14 @@ export const deviceStore = {
     log.debug(`Set ${devices.length} audio input devices`)
 
     const currentId = state.selectedAudioInputId
-    const stillValid =
-      currentId !== null && devices.some((device) => device.deviceId === currentId)
+    const stillValid = currentId !== null && devices.some((device) => device.deviceId === currentId)
 
-    if (stillValid) {
-      // keep current selection
-      return
-    }
-
-    const nextId = pickPreferredDevice(devices)
-    state.selectedAudioInputId = nextId
-    if (nextId) {
-      log.info(`Auto-selected audio input: ${nextId}`)
+    // If current selection is still valid, keep it
+    // If current selection is invalid, clear it (don't auto-select a new one)
+    // Let MediaProvider's autoSelectDefaults control auto-selection
+    if (!stillValid && currentId !== null) {
+      state.selectedAudioInputId = null
+      log.debug('Cleared invalid audio input selection')
     }
   },
 
@@ -324,17 +311,14 @@ export const deviceStore = {
     log.debug(`Set ${devices.length} audio output devices`)
 
     const currentId = state.selectedAudioOutputId
-    const stillValid =
-      currentId !== null && devices.some((device) => device.deviceId === currentId)
+    const stillValid = currentId !== null && devices.some((device) => device.deviceId === currentId)
 
-    if (stillValid) {
-      return
-    }
-
-    const nextId = pickPreferredDevice(devices)
-    state.selectedAudioOutputId = nextId
-    if (nextId) {
-      log.info(`Auto-selected audio output: ${nextId}`)
+    // If current selection is still valid, keep it
+    // If current selection is invalid, clear it (don't auto-select a new one)
+    // Let MediaProvider's autoSelectDefaults control auto-selection
+    if (!stillValid && currentId !== null) {
+      state.selectedAudioOutputId = null
+      log.debug('Cleared invalid audio output selection')
     }
   },
 
@@ -349,17 +333,14 @@ export const deviceStore = {
     log.debug(`Set ${devices.length} video input devices`)
 
     const currentId = state.selectedVideoInputId
-    const stillValid =
-      currentId !== null && devices.some((device) => device.deviceId === currentId)
+    const stillValid = currentId !== null && devices.some((device) => device.deviceId === currentId)
 
-    if (stillValid) {
-      return
-    }
-
-    const nextId = pickPreferredDevice(devices)
-    state.selectedVideoInputId = nextId
-    if (nextId) {
-      log.info(`Auto-selected video input: ${nextId}`)
+    // If current selection is still valid, keep it
+    // If current selection is invalid, clear it (don't auto-select a new one)
+    // Let MediaProvider's autoSelectDefaults control auto-selection
+    if (!stillValid && currentId !== null) {
+      state.selectedVideoInputId = null
+      log.debug('Cleared invalid video input selection')
     }
   },
 

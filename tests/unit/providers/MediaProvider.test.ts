@@ -2,8 +2,6 @@
  * Media Provider Unit Tests
  */
 
-/* eslint-disable vue/one-component-per-file */
-
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
@@ -173,9 +171,11 @@ describe('MediaProvider', () => {
     it('should emit ready event after enumeration', async () => {
       let readyEmitted = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
-          onReady: () => { readyEmitted = true }
+          onReady: () => {
+            readyEmitted = true
+          },
         },
         slots: {
           default: () => h('div', 'Child'),
@@ -463,10 +463,12 @@ describe('MediaProvider', () => {
     it('should emit devicesChanged event when devices change', async () => {
       let devicesChanged = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           watchDeviceChanges: true,
-          onDevicesChanged: () => { devicesChanged = true }
+          onDevicesChanged: () => {
+            devicesChanged = true
+          },
         },
         slots: {
           default: () => h('div', 'Child'),
@@ -485,7 +487,8 @@ describe('MediaProvider', () => {
       const deviceChangeEvent = new Event('devicechange')
       mockDeviceChangeListeners.forEach((listener) => listener(deviceChangeEvent))
 
-      await nextTick()
+      // Wait for async handleDeviceChange and enumerateDevices to complete
+      await flushPromises()
       await nextTick()
 
       expect(devicesChanged).toBe(true)
@@ -522,7 +525,9 @@ describe('MediaProvider', () => {
           autoRequestPermissions: true,
           requestAudio: true,
           requestVideo: false,
-          onPermissionsGranted: (...args: any[]) => { permissionsGrantedArgs = args }
+          onPermissionsGranted: (...args: any[]) => {
+            permissionsGrantedArgs = args
+          },
         },
         slots: {
           default: () => h('div', 'Child'),
@@ -548,7 +553,9 @@ describe('MediaProvider', () => {
           autoRequestPermissions: true,
           requestAudio: true,
           requestVideo: false,
-          onPermissionsDenied: () => { permissionsDenied = true }
+          onPermissionsDenied: () => {
+            permissionsDenied = true
+          },
         },
         slots: {
           default: () => h('div', 'Child'),
@@ -570,7 +577,9 @@ describe('MediaProvider', () => {
 
       mount(MediaProvider, {
         props: {
-          onError: () => { errorEmitted = true }
+          onError: () => {
+            errorEmitted = true
+          },
         },
         slots: {
           default: () => h('div', 'Child'),
@@ -617,7 +626,7 @@ describe('MediaProvider', () => {
       })
 
       mount(ComponentWithoutProvider)
-      
+
       warnSpy.mockRestore()
     })
   })
@@ -708,9 +717,11 @@ describe('MediaProvider', () => {
 
       let readyEmitted = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
-          onReady: () => { readyEmitted = true }
+          onReady: () => {
+            readyEmitted = true
+          },
         },
         slots: {
           default: () => h('div', 'Child'),
@@ -729,9 +740,11 @@ describe('MediaProvider', () => {
 
       let errorEmitted = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
-          onError: () => { errorEmitted = true }
+          onError: () => {
+            errorEmitted = true
+          },
         },
         slots: {
           default: () => h('div', 'Child'),
@@ -749,10 +762,12 @@ describe('MediaProvider', () => {
 
       let permissionsDenied = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoRequestPermissions: true,
-          onPermissionsDenied: () => { permissionsDenied = true }
+          onPermissionsDenied: () => {
+            permissionsDenied = true
+          },
         },
         slots: {
           default: () => h('div', 'Child'),
