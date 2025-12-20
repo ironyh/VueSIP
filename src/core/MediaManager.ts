@@ -310,6 +310,8 @@ export class MediaManager {
         const remoteStream = event.streams[0]!
         this.remoteStream = remoteStream
         this.eventBus.emitSync(EventNames.MEDIA_STREAM_ADDED, {
+          type: 'addtrack',
+          timestamp: new Date(),
           stream: remoteStream,
           track: event.track,
           direction: 'remote',
@@ -317,6 +319,8 @@ export class MediaManager {
       }
 
       this.eventBus.emitSync(EventNames.MEDIA_TRACK_ADDED, {
+        type: 'added',
+        timestamp: new Date(),
         track: event.track,
         streams: event.streams,
         direction: 'remote',
@@ -580,6 +584,8 @@ export class MediaManager {
         })
 
         this.eventBus.emitSync(EventNames.MEDIA_STREAM_REMOVED, {
+          type: 'removetrack',
+          timestamp: new Date(),
           stream: previousStream,
           direction: 'local',
         })
@@ -587,6 +593,8 @@ export class MediaManager {
 
       // Emit event
       this.eventBus.emitSync(EventNames.MEDIA_STREAM_ADDED, {
+        type: 'addtrack',
+        timestamp: new Date(),
         stream,
         direction: 'local',
       })
@@ -685,6 +693,8 @@ export class MediaManager {
       track.stop()
     })
     this.eventBus.emitSync(EventNames.MEDIA_STREAM_REMOVED, {
+      type: 'removetrack',
+      timestamp: new Date(),
       stream: this.localStream,
       direction: 'local',
     })
