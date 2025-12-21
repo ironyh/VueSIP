@@ -202,7 +202,7 @@ test.describe('Audio Device Management', () => {
     expect(unmutedState).not.toContain('Muted');
   });
 
-  test('should detect device changes', async ({ page, context }) => {
+  test('should detect device changes', async ({ page, _context }) => {
     // Wait for initial device list
     await page.waitForSelector('[data-testid="microphone-list"]');
 

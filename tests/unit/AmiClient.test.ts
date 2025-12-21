@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AmiClient, createAmiClient, AmiError, AmiErrorCode } from '@/core/AmiClient'
 import { AmiConnectionState, AmiMessageType } from '@/types/ami.types'
-import type { AmiConfig, AmiMessage, AmiResponseData, AmiEventData } from '@/types/ami.types'
+import type { AmiConfig, AmiMessage,  } from '@/types/ami.types'
 
 // Mock WebSocket - Store instance for test access
 let mockWsInstance: any = null
@@ -774,6 +774,1060 @@ describe('AmiClient', () => {
       })
 
       await delPromise
+    })
+  })
+
+  describe('extension status operations', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should get extension status', async () => {
+      const statusPromise = client.getExtensionStatus('1000', 'ext-local')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      expect(sentMessage.Action).toBe('ExtensionState')
+      expect(sentMessage.Exten).toBe('1000')
+      expect(sentMessage.Context).toBe('ext-local')
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Success',
+          ActionID: actionId,
+          Status: '1',
+          StatusText: 'InUse',
+        },
+      })
+
+      const result = await statusPromise
+      expect(result.status).toBe(1)
+      expect(result.statusText).toBe('InUse')
+    })
+
+    it('should throw on error response for extension status', async () => {
+      const statusPromise = client.getExtensionStatus('9999')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Error',
+          ActionID: actionId,
+          Message: 'Extension not found',
+        },
+      })
+
+      await expect(statusPromise).rejects.toThrow('Extension not found')
+    })
+  })
+
+  describe('subscribePresence', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should log subscription info', async () => {
+      // This is a no-op method that just logs
+      await client.subscribePresence('1000')
+      // No error should be thrown
+    })
+  })
+
+  describe('rawCommand', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should send raw AMI command', async () => {
+      const rawPromise = client.rawCommand('Action: Ping\r\nActionID: test123')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      expect(sentMessage.Action).toBe('Ping')
+      expect(sentMessage.ActionID).toBe('test123')
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Success',
+          ActionID: sentMessage.ActionID,
+          Ping: 'Pong',
+        },
+      })
+
+      const response = await rawPromise
+      expect(response.data.Response).toBe('Success')
+    })
+
+    it('should parse multi-line raw command', async () => {
+      const rawPromise = client.rawCommand('Action: QueueStatus\r\nQueue: support\r\nMember: SIP/1001')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      expect(sentMessage.Action).toBe('QueueStatus')
+      expect(sentMessage.Queue).toBe('support')
+      expect(sentMessage.Member).toBe('SIP/1001')
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Success',
+          ActionID: sentMessage.ActionID,
+        },
+      })
+
+      await rawPromise
+    })
+
+    it('should throw on invalid raw command (missing Action)', async () => {
+      await expect(client.rawCommand('Invalid: Command')).rejects.toThrow('Invalid AMI command - missing Action')
+    })
+  })
+
+  describe('getQueueStatus', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should aggregate queue status with members and entries', async () => {
+      const statusPromise = client.getQueueStatus('support')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      // Simulate QueueParams event
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueParams',
+          ActionID: actionId,
+          Queue: 'support',
+          Strategy: 'ringall',
+          Calls: '2',
+          Holdtime: '15',
+          TalkTime: '120',
+          Completed: '50',
+          Abandoned: '5',
+          ServiceLevelPerf: '95.5',
+          ServiceLevelPerf2: '92.0',
+          Weight: '0',
+        },
+      })
+
+      // Simulate QueueMember event
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueMember',
+          ActionID: actionId,
+          Queue: 'support',
+          MemberName: 'Agent 1',
+          Interface: 'SIP/1001',
+          StateInterface: 'SIP/1001',
+          Membership: 'dynamic',
+          Penalty: '0',
+          CallsTaken: '10',
+          LastCall: '60',
+          LastPause: '0',
+          LoginTime: '3600',
+          InCall: '0',
+          Status: '1',
+          Paused: '0',
+          PausedReason: '',
+          WrapupTime: '5',
+          Ringinuse: '1',
+        },
+      })
+
+      // Simulate QueueEntry event
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueEntry',
+          ActionID: actionId,
+          Queue: 'support',
+          Position: '1',
+          Channel: 'SIP/1002-00000001',
+          Uniqueid: '1234567890.1',
+          CallerIDNum: '1002',
+          CallerIDName: 'John Doe',
+          ConnectedLineNum: '',
+          ConnectedLineName: '',
+          Wait: '30',
+          Priority: '0',
+        },
+      })
+
+      // Simulate completion event
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueStatusComplete',
+          ActionID: actionId,
+        },
+      })
+
+      const queues = await statusPromise
+
+      expect(queues).toHaveLength(1)
+      expect(queues[0].name).toBe('support')
+      expect(queues[0].strategy).toBe('ringall')
+      expect(queues[0].calls).toBe(2)
+      expect(queues[0].members).toHaveLength(1)
+      expect(queues[0].members[0].name).toBe('Agent 1')
+      expect(queues[0].entries).toHaveLength(1)
+      expect(queues[0].entries[0].callerIdNum).toBe('1002')
+    })
+
+    it('should handle timeout for queue status', async () => {
+      const statusPromise = client.getQueueStatus('support', 100)
+
+      // Don't send completion event - let it timeout
+      await expect(statusPromise).rejects.toThrow('QueueStatus timeout')
+    }, 10000)
+  })
+
+  describe('getQueueSummary', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should get queue summary', async () => {
+      const summaryPromise = client.getQueueSummary()
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      // Simulate QueueSummary events
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueSummary',
+          ActionID: actionId,
+          Queue: 'support',
+          LoggedIn: '5',
+          Available: '3',
+          Callers: '2',
+          Holdtime: '15',
+          TalkTime: '120',
+          LongestHoldTime: '45',
+        },
+      })
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueSummaryComplete',
+          ActionID: actionId,
+        },
+      })
+
+      const summaries = await summaryPromise
+
+      expect(summaries).toHaveLength(1)
+      expect(summaries[0].queue).toBe('support')
+      expect(summaries[0].loggedIn).toBe(5)
+      expect(summaries[0].available).toBe(3)
+      expect(summaries[0].callers).toBe(2)
+    })
+
+    it('should filter by specific queue', async () => {
+      const summaryPromise = client.getQueueSummary('sales')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      expect(sentMessage.Queue).toBe('sales')
+
+      const actionId = sentMessage.ActionID
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueSummaryComplete',
+          ActionID: actionId,
+        },
+      })
+
+      await summaryPromise
+    })
+
+    it('should handle timeout for queue summary', async () => {
+      const summaryPromise = client.getQueueSummary(undefined, 100)
+
+      await expect(summaryPromise).rejects.toThrow('QueueSummary timeout')
+    }, 10000)
+  })
+
+  describe('queuePenalty', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should set queue member penalty', async () => {
+      const penaltyPromise = client.queuePenalty('support', 'SIP/1001', 5)
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      expect(sentMessage.Action).toBe('QueuePenalty')
+      expect(sentMessage.Queue).toBe('support')
+      expect(sentMessage.Interface).toBe('SIP/1001')
+      expect(sentMessage.Penalty).toBe('5')
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Success',
+          ActionID: actionId,
+        },
+      })
+
+      await penaltyPromise
+    })
+
+    it('should throw on penalty error', async () => {
+      const penaltyPromise = client.queuePenalty('support', 'SIP/9999', 5)
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Error',
+          ActionID: actionId,
+          Message: 'Member not found',
+        },
+      })
+
+      await expect(penaltyPromise).rejects.toThrow('Member not found')
+    })
+  })
+
+  describe('getChannels', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should get all active channels', async () => {
+      const channelsPromise = client.getChannels()
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      // Simulate CoreShowChannel events
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'CoreShowChannel',
+          ActionID: actionId,
+          Channel: 'PJSIP/1001-00000001',
+          ChannelState: '6',
+          ChannelStateDesc: 'Up',
+          CallerIDNum: '1001',
+          CallerIDName: 'Agent 1',
+          ConnectedLineNum: '1002',
+          ConnectedLineName: 'Customer',
+          AccountCode: '',
+          Context: 'from-internal',
+          Exten: '1002',
+          Priority: '1',
+          Uniqueid: '1234567890.1',
+          Linkedid: '1234567890.1',
+          Application: 'Dial',
+          ApplicationData: 'PJSIP/1002',
+          Duration: '00:01:30',
+          BridgeId: 'bridge-123',
+        },
+      })
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'CoreShowChannelsComplete',
+          ActionID: actionId,
+        },
+      })
+
+      const channels = await channelsPromise
+
+      expect(channels).toHaveLength(1)
+      expect(channels[0].channel).toBe('PJSIP/1001-00000001')
+      expect(channels[0].channelState).toBe(6)
+      expect(channels[0].stateDesc).toBe('Up')
+      expect(channels[0].callerIdNum).toBe('1001')
+    })
+
+    it('should handle timeout for get channels', async () => {
+      const channelsPromise = client.getChannels(100)
+
+      await expect(channelsPromise).rejects.toThrow('CoreShowChannels timeout')
+    }, 10000)
+  })
+
+  describe('redirectChannel', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should redirect channel', async () => {
+      const redirectPromise = client.redirectChannel('PJSIP/1001-00000001', 'from-internal', '1002', 1)
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      expect(sentMessage.Action).toBe('Redirect')
+      expect(sentMessage.Channel).toBe('PJSIP/1001-00000001')
+      expect(sentMessage.Context).toBe('from-internal')
+      expect(sentMessage.Exten).toBe('1002')
+      expect(sentMessage.Priority).toBe('1')
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Success',
+          ActionID: actionId,
+        },
+      })
+
+      await redirectPromise
+    })
+
+    it('should throw on redirect error', async () => {
+      const redirectPromise = client.redirectChannel('PJSIP/9999-00000001', 'from-internal', '1002')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Error',
+          ActionID: actionId,
+          Message: 'Channel not found',
+        },
+      })
+
+      await expect(redirectPromise).rejects.toThrow('Channel not found')
+    })
+  })
+
+  describe('getSipPeers', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should get SIP peers', async () => {
+      const peersPromise = client.getSipPeers()
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      // Simulate PeerEntry events
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'PeerEntry',
+          ActionID: actionId,
+          ObjectName: '1001',
+          IPaddress: '192.168.1.100',
+          IPport: '5060',
+          Status: 'OK (15 ms)',
+          Dynamic: 'yes',
+          Forcerport: 'yes',
+          Comedia: 'no',
+          ACL: 'no',
+          AutoForcerport: 'yes',
+          AutoComedia: 'no',
+          VideoSupport: 'yes',
+          TextSupport: 'no',
+          RealtimeDevice: 'no',
+        },
+      })
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'PeerlistComplete',
+          ActionID: actionId,
+        },
+      })
+
+      const peers = await peersPromise
+
+      expect(peers).toHaveLength(1)
+      expect(peers[0].objectName).toBe('1001')
+      expect(peers[0].channelType).toBe('SIP')
+      expect(peers[0].ipAddress).toBe('192.168.1.100')
+      expect(peers[0].status).toBe('OK')
+    })
+
+    it('should handle timeout for SIP peers', async () => {
+      const peersPromise = client.getSipPeers(100)
+
+      await expect(peersPromise).rejects.toThrow('SIPpeers timeout')
+    }, 10000)
+  })
+
+  describe('getPjsipEndpoints', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should get PJSIP endpoints', async () => {
+      const peersPromise = client.getPjsipEndpoints()
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      // Simulate EndpointList events
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'EndpointList',
+          ActionID: actionId,
+          ObjectName: '2001',
+          DeviceState: 'Not in use',
+        },
+      })
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'EndpointListComplete',
+          ActionID: actionId,
+        },
+      })
+
+      const peers = await peersPromise
+
+      expect(peers).toHaveLength(1)
+      expect(peers[0].objectName).toBe('2001')
+      expect(peers[0].channelType).toBe('PJSIP')
+      expect(peers[0].status).toBe('OK')
+    })
+
+    it('should handle timeout for PJSIP endpoints', async () => {
+      const peersPromise = client.getPjsipEndpoints(100)
+
+      await expect(peersPromise).rejects.toThrow('PJSIPShowEndpoints timeout')
+    }, 10000)
+  })
+
+  describe('getAllPeers', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should get both SIP and PJSIP peers', async () => {
+      const peersPromise = client.getAllPeers()
+
+      // Wait for both requests
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      // Get both action IDs
+      const sipActionId = JSON.parse(mockWsInstance!.sentMessages[0]).ActionID
+      const pjsipActionId = JSON.parse(mockWsInstance!.sentMessages[1]).ActionID
+
+      // Send SIP peer responses
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'PeerEntry',
+          ActionID: sipActionId,
+          ObjectName: '1001',
+          IPaddress: '192.168.1.100',
+          IPport: '5060',
+          Status: 'OK',
+          Dynamic: 'yes',
+          Forcerport: 'yes',
+          Comedia: 'no',
+          ACL: 'no',
+          AutoForcerport: 'yes',
+          AutoComedia: 'no',
+          VideoSupport: 'yes',
+          TextSupport: 'no',
+          RealtimeDevice: 'no',
+        },
+      })
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'PeerlistComplete',
+          ActionID: sipActionId,
+        },
+      })
+
+      // Send PJSIP endpoint responses
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'EndpointList',
+          ActionID: pjsipActionId,
+          ObjectName: '2001',
+          DeviceState: 'Not in use',
+        },
+      })
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'EndpointListComplete',
+          ActionID: pjsipActionId,
+        },
+      })
+
+      const peers = await peersPromise
+
+      expect(peers.length).toBeGreaterThanOrEqual(2)
+      expect(peers.some(p => p.channelType === 'SIP')).toBe(true)
+      expect(peers.some(p => p.channelType === 'PJSIP')).toBe(true)
+    })
+  })
+
+  describe('dbDelTree', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should delete entire family tree', async () => {
+      const delPromise = client.dbDelTree('contacts')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      expect(sentMessage.Action).toBe('DBDelTree')
+      expect(sentMessage.Family).toBe('contacts')
+      expect(sentMessage.Key).toBeUndefined()
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Success',
+          ActionID: actionId,
+        },
+      })
+
+      await delPromise
+    })
+
+    it('should delete family tree with key prefix', async () => {
+      const delPromise = client.dbDelTree('contacts', 'user')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      expect(sentMessage.Action).toBe('DBDelTree')
+      expect(sentMessage.Family).toBe('contacts')
+      expect(sentMessage.Key).toBe('user')
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Success',
+          ActionID: actionId,
+        },
+      })
+
+      await delPromise
+    })
+
+    it('should throw on dbDelTree error', async () => {
+      const delPromise = client.dbDelTree('nonexistent')
+
+      const sentMessage = JSON.parse(mockWsInstance!.sentMessages[0])
+      const actionId = sentMessage.ActionID
+
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Response,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Response: 'Error',
+          ActionID: actionId,
+          Message: 'Family not found',
+        },
+      })
+
+      await expect(delPromise).rejects.toThrow('Family not found')
+    })
+  })
+
+  describe('dbGetKeys', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should return empty array (not implemented)', async () => {
+      const keys = await client.dbGetKeys('contacts')
+      expect(keys).toEqual([])
+    })
+
+    it('should return empty array with prefix (not implemented)', async () => {
+      const keys = await client.dbGetKeys('contacts', 'user')
+      expect(keys).toEqual([])
+    })
+  })
+
+  describe('error types and codes', () => {
+    it('should create AmiError with code and details', () => {
+      const error = new AmiError('Test error', AmiErrorCode.ACTION_TIMEOUT, { action: 'Ping' })
+
+      expect(error).toBeInstanceOf(Error)
+      expect(error).toBeInstanceOf(AmiError)
+      expect(error.message).toBe('Test error')
+      expect(error.code).toBe(AmiErrorCode.ACTION_TIMEOUT)
+      expect(error.details).toEqual({ action: 'Ping' })
+      expect(error.name).toBe('AmiError')
+    })
+
+    it('should handle all error codes', () => {
+      const codes = [
+        AmiErrorCode.CONNECTION_FAILED,
+        AmiErrorCode.CONNECTION_TIMEOUT,
+        AmiErrorCode.DISCONNECTED,
+        AmiErrorCode.ACTION_TIMEOUT,
+        AmiErrorCode.ACTION_FAILED,
+        AmiErrorCode.INVALID_RESPONSE,
+        AmiErrorCode.NOT_CONNECTED,
+        AmiErrorCode.WEBSOCKET_ERROR,
+      ]
+
+      codes.forEach(code => {
+        const error = new AmiError('Test', code)
+        expect(error.code).toBe(code)
+      })
+    })
+  })
+
+  describe('private method coverage', () => {
+    beforeEach(async () => {
+      client = new AmiClient(config)
+      const connectPromise = client.connect()
+      mockWsInstance?.simulateOpen()
+      await connectPromise
+    })
+
+    it('should handle invalid JSON in message', () => {
+      // Trigger handleMessage with invalid JSON
+      if (mockWsInstance) {
+        mockWsInstance.simulateMessage = (_data: any) => {
+          mockWsInstance?.onmessage?.({ data: 'invalid json{' } as MessageEvent)
+        }
+
+        // Should not throw - error is logged internally
+        mockWsInstance.simulateMessage({})
+      }
+    })
+
+    it('should handle unknown message type', () => {
+      mockWsInstance?.simulateMessage({
+        type: 'UnknownType' as any,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {},
+      })
+
+      // Should not throw - just logs debug message
+    })
+
+    it('should handle specific event types', () => {
+      const handlers = {
+        presenceChange: vi.fn(),
+        queueMemberStatus: vi.fn(),
+        queueCallerJoin: vi.fn(),
+        queueCallerLeave: vi.fn(),
+        queueCallerAbandon: vi.fn(),
+        newChannel: vi.fn(),
+        hangup: vi.fn(),
+        newState: vi.fn(),
+        peerStatus: vi.fn(),
+      }
+
+      Object.entries(handlers).forEach(([event, handler]) => {
+        client.on(event as any, handler)
+      })
+
+      // Trigger PresenceStateChange
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'PresenceStateChange',
+          Presentity: 'CustomPresence:1000',
+          State: 'AWAY',
+        },
+      })
+      expect(handlers.presenceChange).toHaveBeenCalled()
+
+      // Trigger QueueMemberStatus
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueMemberStatus',
+          Queue: 'support',
+        },
+      })
+      expect(handlers.queueMemberStatus).toHaveBeenCalled()
+
+      // Trigger QueueCallerJoin
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueCallerJoin',
+          Queue: 'support',
+        },
+      })
+      expect(handlers.queueCallerJoin).toHaveBeenCalled()
+
+      // Trigger QueueCallerLeave
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueCallerLeave',
+          Queue: 'support',
+        },
+      })
+      expect(handlers.queueCallerLeave).toHaveBeenCalled()
+
+      // Trigger QueueCallerAbandon
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'QueueCallerAbandon',
+          Queue: 'support',
+        },
+      })
+      expect(handlers.queueCallerAbandon).toHaveBeenCalled()
+
+      // Trigger Newchannel
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'Newchannel',
+          Channel: 'PJSIP/1001-00000001',
+        },
+      })
+      expect(handlers.newChannel).toHaveBeenCalled()
+
+      // Trigger Hangup
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'Hangup',
+          Channel: 'PJSIP/1001-00000001',
+        },
+      })
+      expect(handlers.hangup).toHaveBeenCalled()
+
+      // Trigger Newstate
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'Newstate',
+          Channel: 'PJSIP/1001-00000001',
+        },
+      })
+      expect(handlers.newState).toHaveBeenCalled()
+
+      // Trigger PeerStatus
+      mockWsInstance?.simulateMessage({
+        type: AmiMessageType.Event,
+        server_id: 1,
+        server_name: 'test',
+        ssl: false,
+        data: {
+          Event: 'PeerStatus',
+          Peer: 'SIP/1001',
+        },
+      })
+      expect(handlers.peerStatus).toHaveBeenCalled()
+    })
+
+    it('should parse peer status variants', () => {
+      const testCases = [
+        { input: 'OK', expected: 'OK' },
+        { input: 'OK (15 ms)', expected: 'OK' },
+        { input: 'LAGGED', expected: 'LAGGED' },
+        { input: 'LAGGED (2000 ms)', expected: 'LAGGED' },
+        { input: 'UNREACHABLE', expected: 'UNREACHABLE' },
+        { input: 'Unmonitored', expected: 'Unmonitored' },
+        { input: 'INVALID', expected: 'UNKNOWN' },
+      ]
+
+      testCases.forEach(({ input }) => {
+        mockWsInstance?.simulateMessage({
+          type: AmiMessageType.Event,
+          server_id: 1,
+          server_name: 'test',
+          ssl: false,
+          data: {
+            Event: 'PeerEntry',
+            ActionID: 'test-123',
+            ObjectName: '1001',
+            Status: input,
+            IPaddress: '192.168.1.100',
+            IPport: '5060',
+            Dynamic: 'yes',
+            Forcerport: 'yes',
+            Comedia: 'no',
+            ACL: 'no',
+            AutoForcerport: 'yes',
+            AutoComedia: 'no',
+            VideoSupport: 'yes',
+            TextSupport: 'no',
+            RealtimeDevice: 'no',
+          },
+        })
+      })
     })
   })
 })

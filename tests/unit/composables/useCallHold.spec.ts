@@ -174,7 +174,7 @@ describe('useCallHold', () => {
 
       const { holdCall, holdState, holdError } = useCallHold(sessionRef)
 
-      const promise = holdCall()
+      const _promise = holdCall()
 
       // Fast-forward time to trigger timeout
       vi.advanceTimersByTime(5000)
@@ -271,7 +271,7 @@ describe('useCallHold', () => {
       // Make unhold() hang indefinitely
       mockSession.unhold = vi.fn().mockImplementation(() => new Promise(() => {}))
 
-      const promise = resumeCall()
+      const _promise = resumeCall()
 
       // Fast-forward time to trigger timeout
       vi.advanceTimersByTime(5000)
@@ -407,7 +407,7 @@ describe('useCallHold', () => {
     })
 
     it('should set up listeners on new session', async () => {
-      const { holdState } = useCallHold(sessionRef)
+      const { _holdState } = useCallHold(sessionRef)
 
       const newMockSession = createMockCallSession()
       const onSpy = vi.spyOn(newMockSession.eventBus!, 'on')
@@ -498,7 +498,7 @@ describe('useCallHold', () => {
 
       // Start hold operation (will set timeout)
       mockSession.hold = vi.fn().mockImplementation(() => new Promise(() => {}))
-      const promise = holdCall()
+      const _promise = holdCall()
 
       // Clear hold state (should clear timeout)
       clearHold()
@@ -571,7 +571,7 @@ describe('useCallHold', () => {
 
       // Start hold operation (before event)
       mockSession.hold = vi.fn().mockImplementation(() => new Promise(() => {}))
-      const promise = holdCall()
+      const _promise = holdCall()
 
       await nextTick()
 
@@ -593,7 +593,7 @@ describe('useCallHold', () => {
 
       // Start resume operation (before event)
       mockSession.unhold = vi.fn().mockImplementation(() => new Promise(() => {}))
-      const resumePromise = resumeCall()
+      const _resumePromise = resumeCall()
 
       await nextTick()
 

@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { EventBus } from '../../src/core/EventBus'
 import { CallSession } from '../../src/core/CallSession'
 import { MediaManager } from '../../src/core/MediaManager'
-import { createMockSipServer, type MockRTCSession } from '../helpers/MockSipServer'
+import { createMockSipServer, type MockRTCSession as _MockRTCSession } from '../helpers/MockSipServer'
 import type { Participant, ConferenceState } from '../../src/types/conference.types'
 import { waitForNextTick, waitForEvent, waitForCondition } from '../utils/test-helpers'
 
@@ -884,9 +884,9 @@ describe('Conference Integration Tests', () => {
       }
 
       // Add 3 participants
-      const part1 = addParticipant('p1', 'sip:user1@example.com', 'User 1')
+      const _part1 = addParticipant('p1', 'sip:user1@example.com', 'User 1')
       const part2 = addParticipant('p2', 'sip:user2@example.com', 'User 2')
-      const part3 = addParticipant('p3', 'sip:user3@example.com', 'User 3')
+      const _part3 = addParticipant('p3', 'sip:user3@example.com', 'User 3')
 
       expect(conference.participantCount).toBe(3)
 
@@ -898,7 +898,7 @@ describe('Conference Integration Tests', () => {
       expect(conference.participantCount).toBe(2)
 
       // Add another participant
-      const part4 = addParticipant('p4', 'sip:user4@example.com', 'User 4')
+      const _part4 = addParticipant('p4', 'sip:user4@example.com', 'User 4')
 
       expect(conference.participantCount).toBe(3)
       expect(conference.participants.map((p) => p.id)).toEqual(['p1', 'p3', 'p4'])

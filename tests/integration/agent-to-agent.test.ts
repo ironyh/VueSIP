@@ -76,7 +76,7 @@ describe('Agent-to-Agent Integration Tests', () => {
 
     it('should allow agent to answer incoming call', async () => {
       // Alice calls Bob (without auto-answer)
-      const session = await alice.call.makeCall(bob.getIdentity().uri)
+      const _session = await alice.call.makeCall(bob.getIdentity().uri)
 
       // Simulate incoming call to Bob
       const bobSession = bob.getMockServer().simulateIncomingCall(
@@ -97,7 +97,7 @@ describe('Agent-to-Agent Integration Tests', () => {
 
     it('should allow agent to reject incoming call', async () => {
       // Alice calls Bob
-      const session = await alice.call.makeCall(bob.getIdentity().uri)
+      const _session = await alice.call.makeCall(bob.getIdentity().uri)
 
       // Simulate incoming call to Bob
       const bobSession = bob.getMockServer().simulateIncomingCall(
@@ -143,7 +143,7 @@ describe('Agent-to-Agent Integration Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 200))
 
       // Second call
-      const call2 = await manager.setupCall('alice', 'bob', true)
+      const _call2 = await manager.setupCall('alice', 'bob', true)
 
       // Verify metrics
       const aliceMetrics = alice.getMetrics()
@@ -152,8 +152,8 @@ describe('Agent-to-Agent Integration Tests', () => {
 
     it('should handle simultaneous calls to different agents', async () => {
       // Alice calls both Bob and Charlie
-      const call1 = await manager.setupCall('alice', 'bob', true)
-      const call2 = await manager.setupCall('alice', 'charlie', true)
+      const _call1 = await manager.setupCall('alice', 'bob', true)
+      const _call2 = await manager.setupCall('alice', 'charlie', true)
 
       // Verify Alice has two active calls
       expect(alice.call.getActiveCalls()).toHaveLength(2)
