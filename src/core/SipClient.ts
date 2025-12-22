@@ -243,15 +243,15 @@ export class SipClient {
 
       // Check if running in E2E test environment
       const hasEmitSipEvent =
-        typeof (window as Record<string, unknown>).__emitSipEvent === 'function'
+        typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
       const hasEventBridge =
-        typeof (window as Record<string, unknown>).__sipEventBridge !== 'undefined'
+        typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined'
 
       console.log('[SipClient] E2E detection in start():', {
         hasEmitSipEvent,
         hasEventBridge,
-        typeofEmitSipEvent: typeof (window as Record<string, unknown>).__emitSipEvent,
-        typeofEventBridge: typeof (window as Record<string, unknown>).__sipEventBridge,
+        typeofEmitSipEvent: typeof (window as unknown as Record<string, unknown>).__emitSipEvent,
+        typeofEventBridge: typeof (window as unknown as Record<string, unknown>).__sipEventBridge,
       })
 
       if (hasEmitSipEvent) {
@@ -271,13 +271,18 @@ export class SipClient {
 
         // Emit to EventBridge
         console.log('[SipClient] [E2E TEST] Emitting connection:connected to EventBridge')
-        ;(window as Record<string, unknown>).__emitSipEvent('connection:connected')
+        ;(
+          (window as unknown as Record<string, unknown>).__emitSipEvent as (
+            event: string,
+            data?: any
+          ) => void
+        )('connection:connected')
 
         logger.info('SIP client started successfully (E2E test mode)')
 
         // Set up E2E incoming call listener
         // Listen on EventBridge for simulated incoming calls
-        const eventBridge = (window as Record<string, unknown>).__sipEventBridge
+        const eventBridge = (window as unknown as Record<string, unknown>).__sipEventBridge as any
         if (eventBridge && typeof eventBridge.on === 'function') {
           console.log('[SipClient] [E2E TEST] Setting up incoming call listener on EventBridge')
           eventBridge.on('sip:newRTCSession', (event: any) => {
@@ -422,15 +427,16 @@ export class SipClient {
   async register(): Promise<void> {
     // Check if running in E2E test environment first
     // Playwright E2E tests inject __emitSipEvent, Vitest unit tests don't
-    const hasEmitSipEvent = typeof (window as Record<string, unknown>).__emitSipEvent === 'function'
+    const hasEmitSipEvent =
+      typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
     const hasEventBridge =
-      typeof (window as Record<string, unknown>).__sipEventBridge !== 'undefined'
+      typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined'
 
     console.log('[SipClient] E2E detection in register():', {
       hasEmitSipEvent,
       hasEventBridge,
-      typeofEmitSipEvent: typeof (window as Record<string, unknown>).__emitSipEvent,
-      typeofEventBridge: typeof (window as Record<string, unknown>).__sipEventBridge,
+      typeofEmitSipEvent: typeof (window as unknown as Record<string, unknown>).__emitSipEvent,
+      typeofEventBridge: typeof (window as unknown as Record<string, unknown>).__sipEventBridge,
     })
 
     // In E2E mode, skip the UA check since we don't create a real JsSIP UA
@@ -474,7 +480,12 @@ export class SipClient {
 
       // Directly emit to EventBridge for E2E tests
       console.log('[SipClient] [E2E TEST] Emitting registration:registered to EventBridge')
-      ;(window as Record<string, unknown>).__emitSipEvent('registration:registered')
+      ;(
+        (window as unknown as Record<string, unknown>).__emitSipEvent as (
+          event: string,
+          data?: any
+        ) => void
+      )('registration:registered')
 
       return Promise.resolve()
     } else {
@@ -815,7 +826,7 @@ export class SipClient {
       const isTestEnv =
         typeof window !== 'undefined' &&
         (window.location?.search?.includes('test=true') ||
-          (window as Record<string, unknown>).__PLAYWRIGHT_TEST__)
+          (window as unknown as Record<string, unknown>).__PLAYWRIGHT_TEST__)
       const defaultTimeout = isTestEnv ? 2000 : 10000
       console.log(
         `[SipClient] waitForConnection timeout: isTestEnv=${isTestEnv}, timeout=${this.config.wsOptions?.connectionTimeout ?? defaultTimeout}ms`
@@ -2062,14 +2073,15 @@ export class SipClient {
     console.log('[SipClient] call() - isConnected:', this.isConnected)
 
     // Check if running in E2E test environment FIRST (before ua check)
-    const hasEmitSipEvent = typeof (window as Record<string, unknown>).__emitSipEvent === 'function'
+    const hasEmitSipEvent =
+      typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
     const hasEventBridge =
-      typeof (window as Record<string, unknown>).__sipEventBridge !== 'undefined'
+      typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined'
 
     console.log('[SipClient] E2E detection in call():', {
       hasEmitSipEvent,
       hasEventBridge,
-      typeofEmitSipEvent: typeof (window as Record<string, unknown>).__emitSipEvent,
+      typeofEmitSipEvent: typeof (window as unknown as Record<string, unknown>).__emitSipEvent,
     })
 
     // In E2E mode, skip the UA check since we don't create a real JsSIP UA
@@ -2141,8 +2153,15 @@ export class SipClient {
               cause: 'Terminated',
             })
             // Also emit to EventBridge for E2E tests
-            if (typeof (window as Record<string, unknown>).__emitSipEvent === 'function') {
-              ;(window as Record<string, unknown>).__emitSipEvent('call:ended', {
+            if (
+              typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
+            ) {
+              ;(
+                (window as unknown as Record<string, unknown>).__emitSipEvent as (
+                  event: string,
+                  data?: any
+                ) => void
+              )('call:ended', {
                 callId,
                 cause: 'Terminated',
               })
@@ -2175,8 +2194,15 @@ export class SipClient {
           setTimeout(() => {
             emitMockEvent('hold', { originator: 'local' })
             // Also emit to EventBridge for E2E tests
-            if (typeof (window as Record<string, unknown>).__emitSipEvent === 'function') {
-              ;(window as Record<string, unknown>).__emitSipEvent('call:held', { callId })
+            if (
+              typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
+            ) {
+              ;(
+                (window as unknown as Record<string, unknown>).__emitSipEvent as (
+                  event: string,
+                  data?: any
+                ) => void
+              )('call:held', { callId })
             }
           }, 20)
         },
@@ -2186,8 +2212,15 @@ export class SipClient {
           setTimeout(() => {
             emitMockEvent('unhold', { originator: 'local' })
             // Also emit to EventBridge for E2E tests
-            if (typeof (window as Record<string, unknown>).__emitSipEvent === 'function') {
-              ;(window as Record<string, unknown>).__emitSipEvent('call:unheld', { callId })
+            if (
+              typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
+            ) {
+              ;(
+                (window as unknown as Record<string, unknown>).__emitSipEvent as (
+                  event: string,
+                  data?: any
+                ) => void
+              )('call:unheld', { callId })
             }
           }, 20)
         },
@@ -2230,7 +2263,12 @@ export class SipClient {
 
       // Emit call:initiating immediately
       console.log('[SipClient] [E2E TEST] Emitting call:initiating event to EventBridge')
-      ;(window as Record<string, unknown>).__emitSipEvent('call:initiating', {
+      ;(
+        (window as unknown as Record<string, unknown>).__emitSipEvent as (
+          event: string,
+          data?: any
+        ) => void
+      )('call:initiating', {
         callId,
         direction: 'outgoing',
         remoteUri: target,
@@ -2239,7 +2277,12 @@ export class SipClient {
       // Simulate call progression with very short delays
       setTimeout(() => {
         console.log('[SipClient] [E2E TEST] Emitting call:ringing event to EventBridge')
-        ;(window as Record<string, unknown>).__emitSipEvent('call:ringing', {
+        ;(
+          (window as unknown as Record<string, unknown>).__emitSipEvent as (
+            event: string,
+            data?: any
+          ) => void
+        )('call:ringing', {
           callId,
           direction: 'outgoing',
           remoteUri: target,
@@ -2262,7 +2305,12 @@ export class SipClient {
             // Now emit to EventBridge AFTER the internal state is updated
             setTimeout(() => {
               console.log('[SipClient] [E2E TEST] Emitting call:answered event to EventBridge')
-              ;(window as Record<string, unknown>).__emitSipEvent('call:answered', {
+              ;(
+                (window as unknown as Record<string, unknown>).__emitSipEvent as (
+                  event: string,
+                  data?: any
+                ) => void
+              )('call:answered', {
                 callId,
                 direction: 'outgoing',
                 remoteUri: target,
@@ -2392,18 +2440,23 @@ export class SipClient {
         console.log('[SipClient] About to check for __emitSipEvent')
         console.log(
           '[SipClient] typeof __emitSipEvent:',
-          typeof (window as Record<string, unknown>).__emitSipEvent
+          typeof (window as unknown as Record<string, unknown>).__emitSipEvent
         )
         console.log(
           '[SipClient] __emitSipEvent value:',
-          (window as Record<string, unknown>).__emitSipEvent
+          (window as unknown as Record<string, unknown>).__emitSipEvent
         )
 
         // Emit immediately synchronously so EventBridge gets the events right away
-        if (typeof (window as Record<string, unknown>).__emitSipEvent === 'function') {
+        if (typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function') {
           console.log('[SipClient] Emitting call:initiating event to EventBridge')
           // Emit call:initiating immediately
-          ;(window as Record<string, unknown>).__emitSipEvent('call:initiating', {
+          ;(
+            (window as unknown as Record<string, unknown>).__emitSipEvent as (
+              event: string,
+              data?: any
+            ) => void
+          )('call:initiating', {
             callId,
             direction: 'outgoing',
             remoteUri: target,
@@ -2412,7 +2465,12 @@ export class SipClient {
           // Simulate call progression with very short delays
           setTimeout(() => {
             console.log('[SipClient] Emitting call:ringing event to EventBridge')
-            ;(window as Record<string, unknown>).__emitSipEvent('call:ringing', {
+            ;(
+              (window as unknown as Record<string, unknown>).__emitSipEvent as (
+                event: string,
+                data?: any
+              ) => void
+            )('call:ringing', {
               callId,
               direction: 'outgoing',
               remoteUri: target,
@@ -2420,7 +2478,12 @@ export class SipClient {
 
             setTimeout(() => {
               console.log('[SipClient] Emitting call:answered event to EventBridge')
-              ;(window as Record<string, unknown>).__emitSipEvent('call:answered', {
+              ;(
+                (window as unknown as Record<string, unknown>).__emitSipEvent as (
+                  event: string,
+                  data?: any
+                ) => void
+              )('call:answered', {
                 callId,
                 direction: 'outgoing',
                 remoteUri: target,
@@ -2652,8 +2715,13 @@ export class SipClient {
           emitMockEvent('accepted', { originator: 'local' })
           emitMockEvent('confirmed', { originator: 'local' })
           // Also emit to EventBridge
-          if (typeof (window as Record<string, unknown>).__emitSipEvent === 'function') {
-            ;(window as Record<string, unknown>).__emitSipEvent('call:confirmed', { callId })
+          if (typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function') {
+            ;(
+              (window as unknown as Record<string, unknown>).__emitSipEvent as (
+                event: string,
+                data?: any
+              ) => void
+            )('call:confirmed', { callId })
           }
         }, 50)
       },
@@ -2734,8 +2802,13 @@ export class SipClient {
     } as any)
 
     // Also emit to EventBridge for tests
-    if (typeof (window as Record<string, unknown>).__emitSipEvent === 'function') {
-      ;(window as Record<string, unknown>).__emitSipEvent('call:incoming', {
+    if (typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function') {
+      ;(
+        (window as unknown as Record<string, unknown>).__emitSipEvent as (
+          event: string,
+          data?: any
+        ) => void
+      )('call:incoming', {
         callId,
         remoteUri,
         direction: 'incoming',

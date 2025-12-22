@@ -601,18 +601,7 @@ export default {
 // ============================================================================
 
 /**
- * Augment Vue's ComponentCustomProperties to include $vuesip
+ * Vue type augmentation is defined in src/vue.d.ts
+ * This augments Vue's ComponentCustomProperties to include $vuesip
+ * when consumers install both this library and Vue.
  */
-// @ts-expect-error - Vue runtime-core types may not be available during build
-declare module '@vue/runtime-core' {
-  interface ComponentCustomProperties {
-    /**
-     * VueSip plugin instance
-     */
-    $vuesip: {
-      version: string
-      options: VueSipOptions
-      logger: ReturnType<typeof createLogger>
-    }
-  }
-}

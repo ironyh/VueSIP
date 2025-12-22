@@ -16,7 +16,7 @@ const logger = createLogger('EventBus')
 /**
  * Internal event listener structure
  */
-interface EventListener<T = any> {
+interface EventListener<T = unknown> {
   handler: EventHandler<T>
   once: boolean
   priority: number
@@ -29,7 +29,7 @@ interface EventListener<T = any> {
 export class EventBus {
   private listeners: Map<string, EventListener[]> = new Map()
   private listenerIdCounter = 0
-  private eventBuffer: Map<string, Array<{ data: any; timestamp: number }>> = new Map()
+  private eventBuffer: Map<string, Array<{ data: unknown; timestamp: number }>> = new Map()
   private bufferEnabled = true
   private readonly MAX_BUFFER_SIZE = 50
   private readonly BUFFER_TTL = 5000 // 5 seconds
@@ -53,7 +53,7 @@ export class EventBus {
     }
 
     // Get or create listener array for this event
-    const existingListeners = this.listeners.get(eventName) || []
+    const existingListeners = (this.listeners.get(eventName) || []) as EventListener<EventMap[K]>[]
 
     // Insert listener based on priority (higher priority first)
     const insertIndex = existingListeners.findIndex((l) => l.priority < priority)
@@ -63,7 +63,7 @@ export class EventBus {
       existingListeners.splice(insertIndex, 0, listener)
     }
 
-    this.listeners.set(eventName, existingListeners)
+    this.listeners.set(eventName, existingListeners as EventListener[])
 
     logger.debug(`Listener added for event: ${eventName} (id: ${id}, priority: ${priority})`)
 
@@ -80,7 +80,7 @@ export class EventBus {
       for (const bufferedEvent of validEvents) {
         try {
           logger.debug(`Replaying buffered event for ${eventName}`)
-          const result = handler(bufferedEvent.data)
+          const result = handler(bufferedEvent.data as any)
           if (result instanceof Promise) {
             result.catch((error) => {
               logger.error(`Error in replayed event handler for ${eventName}:`, error)

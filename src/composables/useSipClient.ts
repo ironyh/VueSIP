@@ -190,22 +190,24 @@ export function useSipClient(
     receivedOptions: options,
     extractedEventBus: _eventBus,
     isEventBridgeFromWindow:
-      typeof (window as any).__sipEventBridge !== 'undefined' &&
-      _eventBus === (window as any).__sipEventBridge,
+      typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined' &&
+      _eventBus === (window as unknown as Record<string, unknown>).__sipEventBridge,
     willCreateNew: !_eventBus,
   })
 
   // Priority: 1) passed eventBus, 2) window.__sipEventBridge (E2E tests), 3) new instance
   // CRITICAL: Must check window.__sipEventBridge first, as App.vue may pass undefined options
   // when EventBridge isn't available at initial render, but it exists later
-  const eventBus =
-    _eventBus ??
-    (typeof window !== 'undefined' ? (window as any).__sipEventBridge : undefined) ??
+  const eventBus: EventBus =
+    (_eventBus as EventBus) ??
+    (typeof window !== 'undefined'
+      ? ((window as unknown as Record<string, unknown>).__sipEventBridge as EventBus)
+      : undefined) ??
     new EventBus()
 
   // Log which EventBus instance we're actually using
   console.log('[useSipClient] Using EventBus instance:', {
-    isSame: eventBus === (window as any).__sipEventBridge,
+    isSame: eventBus === (window as unknown as Record<string, unknown>).__sipEventBridge,
     eventBusType: eventBus.constructor.name,
     hasOnMethod: typeof eventBus.on === 'function',
     hasEmitMethod: typeof eventBus.emit === 'function',
@@ -305,7 +307,8 @@ export function useSipClient(
     // Connection events
     console.log('[useSipClient] Registering listener for sip:connected on EventBus:', {
       eventBusInstance: eventBus,
-      isSameAsWindowBridge: eventBus === (window as any).__sipEventBridge,
+      isSameAsWindowBridge:
+        eventBus === (window as unknown as Record<string, unknown>).__sipEventBridge,
     })
 
     console.log('[DIAGNOSTIC 3/3] useSipClient: Registering "sip:connected" listener...')
@@ -360,9 +363,14 @@ export function useSipClient(
         }
 
         // Emit to EventBridge for E2E tests
-        if (typeof (window as any).__emitSipEvent === 'function') {
+        if (typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function') {
           console.log('[useSipClient] Emitting registration:registered to EventBridge')
-          ;(window as any).__emitSipEvent('registration:registered')
+          ;(
+            (window as unknown as Record<string, unknown>).__emitSipEvent as (
+              event: string,
+              data?: any
+            ) => void
+          )('registration:registered')
         } else {
           console.log('[useSipClient] __emitSipEvent not available')
         }
@@ -399,7 +407,7 @@ export function useSipClient(
     // LISTENER-READY SIGNAL: Signal to E2E tests that all event listeners are registered
     // This prevents the race condition where MockWebSocket fires events before listeners exist
     console.log('[useSipClient] All event listeners registered! Setting __sipListenersReady = true')
-    ;(window as any).__sipListenersReady = true
+    ;(window as unknown as Record<string, unknown>).__sipListenersReady = true
     console.log('[useSipClient] __sipListenersReady signal set successfully')
 
     // Return cleanup function

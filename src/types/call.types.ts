@@ -256,6 +256,22 @@ export interface CallEvent {
   originalEvent?: any
   /** Timestamp */
   timestamp: Date
+  /** Event originator (local, remote, or system) - present in hold/unhold/ended events */
+  originator?: 'local' | 'remote' | 'system'
+  /** Error message - present in failed events */
+  error?: string
+  /** Transfer type - present in transfer events */
+  transferType?: 'blind' | 'attended'
+  /** Transfer target URI - present in transfer events */
+  target?: string
+  /** Transfer ID - present in transfer progress events */
+  transferId?: string
+  /** Transfer state - present in transfer progress events */
+  state?: string
+  /** Transfer progress percentage - present in transfer progress events */
+  progress?: number
+  /** Replace call ID - present in attended transfer events */
+  replaceCallId?: string
 }
 
 /**

@@ -67,7 +67,8 @@
     "**/*.test.ts",
     "src/reasoningbank/**/*",
     "src/lib/**/*",
-    "src/memory/**/*"
+    "src/memory/**/*",
+    "src/vue.d.ts"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
