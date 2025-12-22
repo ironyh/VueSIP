@@ -23,28 +23,46 @@
     <Card class="demo-card">
       <template #title>
         <div class="demo-header">
-          <span class="demo-icon">🚫</span>
-          <span>Call Blacklist</span>
+          <span class="demo-icon" aria-hidden="true">🚫</span>
+          <span>Call blacklist</span>
         </div>
       </template>
       <template #subtitle>Block unwanted callers and manage blacklist rules</template>
       <template #content>
         <!-- Connection Status -->
         <div v-if="!isConnected" class="connection-panel">
-          <Message severity="warn" :closable="false">
-            <template #icon><i class="pi pi-exclamation-triangle"></i></template>
+          <Message severity="warn" :closable="false" role="alert">
+            <template #icon
+              ><i class="pi pi-exclamation-triangle text-xl" aria-hidden="true"></i
+            ></template>
             Connect to AMI to manage the blacklist
           </Message>
           <div class="connection-form">
-            <InputText v-model="amiUrl" placeholder="ws://pbx:8089/ws" class="url-input" />
-            <Button label="Connect" icon="pi pi-link" @click="connectAmi" :loading="connecting" />
+            <label for="ami-url-input" class="sr-only">AMI WebSocket URL</label>
+            <InputText
+              id="ami-url-input"
+              v-model="amiUrl"
+              placeholder="ws://pbx:8089/ws"
+              class="url-input"
+              aria-required="true"
+            />
+            <Button
+              label="Connect"
+              icon="pi pi-link"
+              @click="connectAmi"
+              :loading="connecting"
+              aria-label="Connect to AMI server"
+            />
           </div>
         </div>
 
         <template v-else>
           <!-- Status Bar -->
           <div class="status-bar">
-            <Tag :severity="isConnected ? 'success' : 'danger'" :value="isConnected ? 'Connected' : 'Disconnected'" />
+            <Tag
+              :severity="isConnected ? 'success' : 'danger'"
+              :value="isConnected ? 'Connected' : 'Disconnected'"
+            />
             <Tag severity="info" :value="`${activeCount} blocked`" />
             <Tag severity="warning" :value="`${stats.blockedToday} blocked today`" />
           </div>
@@ -52,41 +70,65 @@
           <!-- Block New Number -->
           <Panel header="Block Number" :toggleable="true" class="section-panel">
             <div class="form-grid">
-              <div class="form-field">
-                <label>Phone Number *</label>
-                <InputText v-model="newBlock.number" placeholder="+1234567890 or 1900*" />
-                <small>Use * as wildcard (e.g., 1900* blocks all 1900 numbers)</small>
+              <div class="form-field col-12">
+                <label for="block-phone-number">Phone Number *</label>
+                <InputText
+                  id="block-phone-number"
+                  v-model="newBlock.number"
+                  placeholder="+1234567890 or 1900*"
+                  aria-required="true"
+                  aria-describedby="phone-help"
+                  class="w-full"
+                />
+                <small id="phone-help"
+                  >Use * as wildcard (e.g., 1900* blocks all 1900 numbers)</small
+                >
               </div>
-              <div class="form-field">
-                <label>Reason</label>
+              <div class="form-field col-12 sm:col-6">
+                <label for="block-reason">Reason</label>
                 <Dropdown
+                  id="block-reason"
                   v-model="newBlock.reason"
                   :options="reasons"
                   optionLabel="label"
                   optionValue="value"
                   placeholder="Select reason"
+                  class="w-full"
                 />
               </div>
-              <div class="form-field">
-                <label>Action</label>
+              <div class="form-field col-12 sm:col-6">
+                <label for="block-action">Action</label>
                 <Dropdown
+                  id="block-action"
                   v-model="newBlock.action"
                   :options="actions"
                   optionLabel="label"
                   optionValue="value"
                   placeholder="Select action"
+                  class="w-full"
                 />
               </div>
-              <div class="form-field">
-                <label>Description</label>
-                <InputText v-model="newBlock.description" placeholder="Known spam caller" />
+              <div class="form-field col-12 sm:col-6">
+                <label for="block-description">Description</label>
+                <InputText
+                  id="block-description"
+                  v-model="newBlock.description"
+                  placeholder="Known spam caller"
+                  class="w-full"
+                />
               </div>
-              <div class="form-field">
-                <label>Expires In (hours)</label>
-                <InputNumber v-model="newBlock.expiresInHours" :min="0" placeholder="Never (leave empty)" />
+              <div class="form-field col-12 sm:col-6">
+                <label for="block-expires">Expires In (hours)</label>
+                <InputNumber
+                  id="block-expires"
+                  v-model="newBlock.expiresInHours"
+                  :min="0"
+                  placeholder="Never (leave empty)"
+                  class="w-full"
+                />
               </div>
             </div>
-            <div class="form-actions">
+            <div class="form-actions flex flex-column md:flex-row gap-2">
               <Button
                 label="Block Number"
                 icon="pi pi-ban"
@@ -94,6 +136,8 @@
                 @click="blockNewNumber"
                 :loading="isLoading"
                 :disabled="!newBlock.number"
+                aria-label="Add number to blacklist"
+                class="w-full md:w-auto"
               />
             </div>
           </Panel>
@@ -101,11 +145,24 @@
           <!-- Quick Check -->
           <Panel header="Check Number" :toggleable="true" :collapsed="true" class="section-panel">
             <div class="check-form">
-              <InputText v-model="checkNumber" placeholder="Enter number to check" />
-              <Button label="Check" icon="pi pi-search" @click="doCheckNumber" />
+              <label for="check-number-input" class="sr-only">Check if number is blocked</label>
+              <InputText
+                id="check-number-input"
+                v-model="checkNumber"
+                placeholder="Enter number to check"
+              />
+              <Button
+                label="Check"
+                icon="pi pi-search"
+                @click="doCheckNumber"
+                aria-label="Check if number is blocked"
+              />
             </div>
-            <div v-if="checkResult !== null" class="check-result">
-              <Tag :severity="checkResult ? 'danger' : 'success'" :value="checkResult ? 'BLOCKED' : 'NOT BLOCKED'" />
+            <div v-if="checkResult !== null" class="check-result" role="status" aria-live="polite">
+              <Tag
+                :severity="checkResult ? 'danger' : 'success'"
+                :value="checkResult ? 'BLOCKED' : 'NOT BLOCKED'"
+              />
               <span v-if="checkResult && checkEntry">
                 Reason: {{ checkEntry.reason }} | Action: {{ checkEntry.action }}
               </span>
@@ -115,10 +172,31 @@
           <!-- Blocklist -->
           <Panel header="Blocked Numbers" :toggleable="true" class="section-panel">
             <div class="search-bar">
-              <InputText v-model="searchTerm" placeholder="Search blocklist..." class="search-input" />
-              <Dropdown v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" placeholder="All statuses" />
+              <label for="blocklist-search" class="sr-only">Search blocklist</label>
+              <InputText
+                id="blocklist-search"
+                v-model="searchTerm"
+                placeholder="Search blocklist..."
+                class="search-input"
+                aria-label="Search blocked numbers"
+              />
+              <label for="blocklist-filter" class="sr-only">Filter by status</label>
+              <Dropdown
+                id="blocklist-filter"
+                v-model="filterStatus"
+                :options="statusOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="All statuses"
+                aria-label="Filter blocked numbers by status"
+              />
             </div>
-            <DataTable :value="filteredBlocklist" size="small" :rows="10" :paginator="filteredBlocklist.length > 10">
+            <DataTable
+              :value="filteredBlocklist"
+              size="small"
+              :rows="10"
+              :paginator="filteredBlocklist.length > 10"
+            >
               <Column field="number" header="Number" sortable />
               <Column field="reason" header="Reason" sortable>
                 <template #body="{ data }">
@@ -128,7 +206,10 @@
               <Column field="action" header="Action" sortable />
               <Column field="status" header="Status" sortable>
                 <template #body="{ data }">
-                  <Tag :severity="data.status === 'active' ? 'success' : 'secondary'" :value="data.status" />
+                  <Tag
+                    :severity="data.status === 'active' ? 'success' : 'secondary'"
+                    :value="data.status"
+                  />
                 </template>
               </Column>
               <Column field="blockedCount" header="Blocked" sortable />
@@ -139,13 +220,18 @@
               </Column>
               <Column header="Actions" style="width: 120px">
                 <template #body="{ data }">
-                  <div class="action-buttons">
+                  <div
+                    class="action-buttons"
+                    role="group"
+                    :aria-label="`Actions for ${data.number}`"
+                  >
                     <Button
                       v-if="data.status === 'active'"
                       icon="pi pi-pause"
                       size="small"
                       severity="secondary"
                       @click="disableBlock(data.number)"
+                      :aria-label="`Disable blocking for ${data.number}`"
                       v-tooltip="'Disable'"
                     />
                     <Button
@@ -154,6 +240,7 @@
                       size="small"
                       severity="success"
                       @click="enableBlock(data.number)"
+                      :aria-label="`Enable blocking for ${data.number}`"
                       v-tooltip="'Enable'"
                     />
                     <Button
@@ -161,35 +248,81 @@
                       size="small"
                       severity="danger"
                       @click="unblockNumber(data.number)"
+                      :aria-label="`Remove ${data.number} from blacklist`"
                       v-tooltip="'Remove'"
                     />
                   </div>
                 </template>
               </Column>
             </DataTable>
-            <div v-if="blocklist.length === 0" class="empty-state">
-              <i class="pi pi-check-circle"></i>
+            <div v-if="blocklist.length === 0" class="empty-state" role="status">
+              <i class="pi pi-check-circle text-4xl" aria-hidden="true"></i>
               <span>No blocked numbers</span>
             </div>
           </Panel>
 
           <!-- Import/Export -->
-          <Panel header="Import / Export" :toggleable="true" :collapsed="true" class="section-panel">
+          <Panel
+            header="Import / Export"
+            :toggleable="true"
+            :collapsed="true"
+            class="section-panel"
+          >
             <div class="import-export-grid">
               <div class="export-section">
                 <h5>Export Blocklist</h5>
-                <div class="format-buttons">
-                  <Button label="JSON" icon="pi pi-download" size="small" @click="doExport('json')" />
-                  <Button label="CSV" icon="pi pi-download" size="small" @click="doExport('csv')" />
-                  <Button label="TXT" icon="pi pi-download" size="small" @click="doExport('txt')" />
+                <div class="format-buttons" role="group" aria-label="Export format options">
+                  <Button
+                    label="JSON"
+                    icon="pi pi-download"
+                    size="small"
+                    @click="doExport('json')"
+                    aria-label="Export blocklist as JSON"
+                  />
+                  <Button
+                    label="CSV"
+                    icon="pi pi-download"
+                    size="small"
+                    @click="doExport('csv')"
+                    aria-label="Export blocklist as CSV"
+                  />
+                  <Button
+                    label="TXT"
+                    icon="pi pi-download"
+                    size="small"
+                    @click="doExport('txt')"
+                    aria-label="Export blocklist as TXT"
+                  />
                 </div>
               </div>
               <div class="import-section">
                 <h5>Import Blocklist</h5>
                 <div class="import-form">
-                  <Dropdown v-model="importFormat" :options="formats" optionLabel="label" optionValue="value" placeholder="Format" />
-                  <Textarea v-model="importData" rows="3" placeholder="Paste data here..." />
-                  <Button label="Import" icon="pi pi-upload" @click="doImport" :disabled="!importData" />
+                  <label for="import-format" class="sr-only">Import format</label>
+                  <Dropdown
+                    id="import-format"
+                    v-model="importFormat"
+                    :options="formats"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Format"
+                    aria-label="Select import format"
+                  />
+                  <label for="import-data" class="sr-only">Import data</label>
+                  <Textarea
+                    id="import-data"
+                    v-model="importData"
+                    rows="3"
+                    placeholder="Paste data here..."
+                    aria-label="Paste blocklist data to import"
+                  />
+                  <Button
+                    label="Import"
+                    icon="pi pi-upload"
+                    @click="doImport"
+                    :disabled="!importData"
+                    aria-label="Import blocklist data"
+                  />
                 </div>
               </div>
             </div>
@@ -249,18 +382,20 @@ import { useAmiBlacklist, type BlockReason, type BlockAction, type BlockEntry } 
 import { playgroundAmiClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
-import Card from 'primevue/card'
-import Panel from 'primevue/panel'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Dropdown from 'primevue/dropdown'
-import Textarea from 'primevue/textarea'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Tag from 'primevue/tag'
-import Message from 'primevue/message'
-import Divider from 'primevue/divider'
+import {
+  Card,
+  Panel,
+  Button,
+  InputText,
+  InputNumber,
+  Dropdown,
+  Textarea,
+  DataTable,
+  Column,
+  Tag,
+  Message,
+  Divider,
+} from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -288,7 +423,7 @@ const connectAmi = async () => {
   }
 }
 
-// Blacklist composable
+// blacklist composable
 const {
   blocklist,
   stats,
@@ -356,14 +491,13 @@ const filteredBlocklist = computed(() => {
   let result = [...blocklist.value]
 
   if (filterStatus.value !== 'all') {
-    result = result.filter(e => e.status === filterStatus.value)
+    result = result.filter((e) => e.status === filterStatus.value)
   }
 
   if (searchTerm.value) {
     const term = searchTerm.value.toLowerCase()
-    result = result.filter(e =>
-      e.number.toLowerCase().includes(term) ||
-      e.description?.toLowerCase().includes(term)
+    result = result.filter(
+      (e) => e.number.toLowerCase().includes(term) || e.description?.toLowerCase().includes(term)
     )
   }
 
@@ -518,6 +652,19 @@ await importList(jsonData, 'json')`
 </script>
 
 <style scoped>
+/* Screen reader only class for accessible labels */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .blacklist-demo {
   max-width: 900px;
   margin: 0 auto;
@@ -564,8 +711,14 @@ await importList(jsonData, 'json')`
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .form-field {

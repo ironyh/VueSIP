@@ -40,7 +40,7 @@
           @click="selectRingtone(tone.id)"
         >
           <div class="ringtone-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
               <path
                 d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
               />
@@ -54,15 +54,19 @@
             class="play-button"
             @click.stop="playPreview(tone.id)"
             :disabled="isPlaying && playingTone === tone.id"
+            :aria-label="isPlaying && playingTone === tone.id ? 'Stop preview' : 'Play preview'"
           >
             <svg
               v-if="isPlaying && playingTone === tone.id"
+              aria-hidden="true"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
               <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
             </svg>
-            <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+            <svg v-else aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
           </button>
         </div>
       </div>
@@ -71,7 +75,7 @@
       <div class="volume-control">
         <h4>Volume</h4>
         <div class="slider-control">
-          <svg class="slider-icon" viewBox="0 0 24 24" fill="currentColor">
+          <svg aria-hidden="true" class="slider-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 9v6h4l5 5V4L7 9H3z" />
           </svg>
           <input
@@ -81,8 +85,9 @@
             v-model="volume"
             @input="handleVolumeChange"
             class="volume-slider"
+            aria-label="Volume level"
           />
-          <svg class="slider-icon" viewBox="0 0 24 24" fill="currentColor">
+          <svg aria-hidden="true" class="slider-icon" viewBox="0 0 24 24" fill="currentColor">
             <path
               d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
             />
@@ -96,23 +101,23 @@
         <h4>Options</h4>
 
         <div class="option-item">
-          <label>
-            <input type="checkbox" v-model="loopRingtone" @change="saveSettings" />
-            Loop ringtone until answered
+          <label class="checkbox-label">
+            <Checkbox v-model="loopRingtone" :binary="true" @change="saveSettings" />
+            <span>Loop ringtone until answered</span>
           </label>
         </div>
 
         <div class="option-item">
-          <label>
-            <input type="checkbox" v-model="vibrateEnabled" @change="saveSettings" />
-            Enable vibration (on supported devices)
+          <label class="checkbox-label">
+            <Checkbox v-model="vibrateEnabled" :binary="true" @change="saveSettings" />
+            <span>Enable vibration (on supported devices)</span>
           </label>
         </div>
 
         <div class="option-item">
-          <label>
-            <input type="checkbox" v-model="showNotification" @change="saveSettings" />
-            Show desktop notification
+          <label class="checkbox-label">
+            <Checkbox v-model="showNotification" :binary="true" @change="saveSettings" />
+            <span>Show desktop notification</span>
           </label>
         </div>
       </div>
@@ -123,21 +128,44 @@
         <p class="test-desc">
           Click the button below to simulate an incoming call and hear how your ringtone sounds.
         </p>
-        <button class="btn btn-primary" @click="testRingtone" :disabled="isPlaying">
-          <svg v-if="isPlaying" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-          </svg>
-          <svg v-else class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M13 7.83c1.33 1.33 1.33 3.51 0 4.83l1.42 1.42c2.12-2.12 2.12-5.57 0-7.7L13 7.83zM7.76 16.59C6.67 15.5 6 14.04 6 12.5s.67-3 1.76-4.09L6.34 7c-1.51 1.51-2.34 3.52-2.34 5.5s.83 3.99 2.34 5.5l1.42-1.41zM18 12.5c0 1.71-.71 3.26-1.86 4.36l1.42 1.42C18.95 16.89 20 14.81 20 12.5c0-2.31-1.05-4.39-2.64-5.78l-1.42 1.42c1.15 1.1 1.86 2.65 1.86 4.36z"
-            />
-          </svg>
-          {{ isPlaying ? 'Stop Test' : 'Test Ringtone' }}
-        </button>
+        <Button
+          :label="isPlaying ? 'Stop Test' : 'Test Ringtone'"
+          @click="testRingtone"
+          :disabled="isPlaying"
+          :aria-label="isPlaying ? 'Stop test ringtone' : 'Test ringtone'"
+        >
+          <template #icon>
+            <svg
+              v-if="isPlaying"
+              aria-hidden="true"
+              class="icon-inline"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            </svg>
+            <svg
+              v-else
+              aria-hidden="true"
+              class="icon-inline"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M13 7.83c1.33 1.33 1.33 3.51 0 4.83l1.42 1.42c2.12-2.12 2.12-5.57 0-7.7L13 7.83zM7.76 16.59C6.67 15.5 6 14.04 6 12.5s.67-3 1.76-4.09L6.34 7c-1.51 1.51-2.34 3.52-2.34 5.5s.83 3.99 2.34 5.5l1.42-1.41zM18 12.5c0 1.71-.71 3.26-1.86 4.36l1.42 1.42C18.95 16.89 20 14.81 20 12.5c0-2.31-1.05-4.39-2.64-5.78l-1.42 1.42c1.15 1.1 1.86 2.65 1.86 4.36z"
+              />
+            </svg>
+          </template>
+        </Button>
       </div>
 
       <!-- Call Status (when active) -->
-      <div v-if="callState === 'incoming'" class="incoming-call-demo">
+      <div
+        v-if="callState === 'incoming'"
+        class="incoming-call-demo"
+        role="status"
+        aria-live="assertive"
+      >
         <div class="demo-badge">Live Incoming Call</div>
         <p>
           A real incoming call is using your selected ringtone:
@@ -208,6 +236,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, Checkbox } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -469,7 +498,7 @@ onUnmounted(() => {
 
 .info-section {
   padding: 1.5rem;
-  background: var(--bg-secondary, #f9fafb);
+  background: var(--bg-secondary, var(--surface-50));
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
@@ -507,28 +536,28 @@ onUnmounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: var(--bg-primary, white);
-  border: 2px solid var(--border-color, #e5e7eb);
+  background: var(--bg-primary, var(--surface-0));
+  border: 2px solid var(--border-color, var(--border-color));
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .ringtone-item:hover {
-  border-color: var(--primary, #667eea);
+  border-color: var(--primary, var(--primary));
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .ringtone-item.active {
-  border-color: var(--primary, #667eea);
-  background: var(--primary-bg, #eff6ff);
+  border-color: var(--primary, var(--primary));
+  background: var(--primary-bg, var(--surface-ground));
 }
 
 .ringtone-icon {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  color: var(--primary, #667eea);
+  color: var(--primary, var(--primary));
 }
 
 .ringtone-icon svg {
@@ -557,8 +586,8 @@ onUnmounted(() => {
   height: 40px;
   border-radius: 50%;
   border: none;
-  background: var(--primary, #667eea);
-  color: white;
+  background: var(--primary, var(--primary));
+  color: var(--surface-0);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
@@ -574,7 +603,7 @@ onUnmounted(() => {
 }
 
 .play-button:hover:not(:disabled) {
-  background: var(--primary-hover, #5568d3);
+  background: var(--primary-hover, var(--primary-hover));
   transform: scale(1.05);
 }
 
@@ -584,9 +613,9 @@ onUnmounted(() => {
 }
 
 .volume-control {
-  background: var(--bg-primary, white);
+  background: var(--bg-primary, var(--surface-0));
   border-radius: 8px;
-  border: 2px solid var(--border-color, #e5e7eb);
+  border: 2px solid var(--border-color, var(--border-color));
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -601,7 +630,7 @@ onUnmounted(() => {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--text-secondary));
 }
 
 .icon-inline {
@@ -616,7 +645,7 @@ onUnmounted(() => {
   flex: 1;
   height: 6px;
   border-radius: 3px;
-  background: var(--slider-bg, #e5e7eb);
+  background: var(--slider-bg, var(--border-color));
   outline: none;
   -webkit-appearance: none;
 }
@@ -627,7 +656,7 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--primary, #667eea);
+  background: var(--primary, var(--primary));
   cursor: pointer;
 }
 
@@ -635,7 +664,7 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--primary, #667eea);
+  background: var(--primary, var(--primary));
   cursor: pointer;
   border: none;
 }
@@ -643,15 +672,15 @@ onUnmounted(() => {
 .slider-value {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--primary, #667eea);
+  color: var(--primary, var(--primary));
   min-width: 45px;
   text-align: right;
 }
 
 .ringtone-options {
-  background: var(--bg-primary, white);
+  background: var(--bg-primary, var(--surface-0));
   border-radius: 8px;
-  border: 2px solid var(--border-color, #e5e7eb);
+  border: 2px solid var(--border-color, var(--border-color));
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -673,15 +702,9 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.option-item input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
 .test-section {
-  background: var(--info-bg, #eff6ff);
-  border: 2px solid var(--info-border, #3b82f6);
+  background: var(--info-bg, var(--surface-ground));
+  border: 2px solid var(--info-border, var(--info));
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
@@ -695,33 +718,9 @@ onUnmounted(() => {
   line-height: 1.6;
 }
 
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--primary, #667eea);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover, #5568d3);
-}
-
 .incoming-call-demo {
   background: var(--success-bg, #d1fae5);
-  border: 2px solid var(--success, #10b981);
+  border: 2px solid var(--success, var(--success));
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
@@ -730,8 +729,8 @@ onUnmounted(() => {
 .demo-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
-  background: var(--success, #10b981);
-  color: white;
+  background: var(--success, var(--success));
+  color: var(--surface-0);
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 600;
@@ -747,7 +746,7 @@ onUnmounted(() => {
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: var(--bg-secondary, #f9fafb);
+  background: var(--bg-secondary, var(--surface-50));
   border-radius: 8px;
 }
 
@@ -757,8 +756,8 @@ onUnmounted(() => {
 }
 
 .code-example pre {
-  background: var(--code-bg, #1e1e1e);
-  color: var(--code-text, #d4d4d4);
+  background: var(--code-bg, var(--surface-section));
+  color: var(--code-text, var(--text-secondary));
   padding: 1.5rem;
   border-radius: 6px;
   overflow-x: auto;
@@ -769,5 +768,49 @@ onUnmounted(() => {
   font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
   font-size: 0.875rem;
   line-height: 1.6;
+}
+
+/* Responsive - Mobile-First Patterns */
+@media (max-width: 768px) {
+  /* Touch-friendly buttons - min 44px height */
+  .play-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 0.875rem 1.5rem;
+  }
+
+  /* Ringtone list: better touch targets */
+  .ringtone-item {
+    padding: 1.25rem;
+    gap: 0.75rem;
+  }
+
+  .ringtone-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Volume control: larger slider on mobile */
+  .slider-control {
+    gap: 0.75rem;
+  }
+
+  .volume-slider {
+    height: 8px;
+  }
+
+  .volume-slider::-webkit-slider-thumb,
+  .volume-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .option-item label {
+    gap: 0.75rem;
+  }
 }
 </style>

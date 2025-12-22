@@ -28,9 +28,9 @@
     </div>
 
     <!-- Connection Status -->
-    <div v-if="!isConnected" class="status-message info">
+    <Message v-if="!isConnected" severity="info" class="mb-3">
       Connect to a SIP server to use Do Not Disturb (use the Basic Call demo to connect)
-    </div>
+    </Message>
 
     <!-- DND Interface -->
     <div v-else class="dnd-interface">
@@ -92,13 +92,13 @@
             </div>
           </div>
         </div>
-        <button
+        <Button
           v-if="rejectedCalls.length > 0"
-          class="btn btn-secondary btn-sm"
+          label="Clear History"
+          severity="secondary"
+          size="small"
           @click="clearRejectedCalls"
-        >
-          Clear History
-        </button>
+        />
       </div>
 
       <!-- DND Options -->
@@ -106,9 +106,9 @@
         <h4>Options</h4>
 
         <div class="option-item">
-          <label>
-            <input type="checkbox" v-model="sendBusyResponse" @change="saveSettings" />
-            Send "Busy Here" response
+          <label class="checkbox-label">
+            <Checkbox v-model="sendBusyResponse" :binary="true" @change="saveSettings" />
+            <span>Send "Busy Here" response</span>
           </label>
           <p class="option-desc">
             Sends a 486 Busy Here SIP response instead of a generic rejection
@@ -116,9 +116,9 @@
         </div>
 
         <div class="option-item">
-          <label>
-            <input type="checkbox" v-model="logRejections" @change="saveSettings" />
-            Log rejected calls to history
+          <label class="checkbox-label">
+            <Checkbox v-model="logRejections" :binary="true" @change="saveSettings" />
+            <span>Log rejected calls to history</span>
           </label>
           <p class="option-desc">Keep a record of calls rejected during DND in call history</p>
         </div>
@@ -183,6 +183,7 @@ import { ref, watch, onMounted, computed } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, Message, Checkbox } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -369,28 +370,15 @@ onMounted(() => {
 
 .info-section {
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
 
 .info-section p {
   margin: 0;
-  color: #666;
+  color: var(--text-color-secondary);
   line-height: 1.6;
-}
-
-.status-message {
-  padding: 1rem;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 0.875rem;
-  margin-bottom: 1.5rem;
-}
-
-.status-message.info {
-  background: #eff6ff;
-  color: #1e40af;
 }
 
 .dnd-interface {
@@ -398,9 +386,9 @@ onMounted(() => {
 }
 
 .dnd-toggle-card {
-  background: white;
+  background: var(--surface-0);
   border-radius: 12px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   padding: 2rem;
   margin-bottom: 1.5rem;
   display: flex;
@@ -422,7 +410,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--surface-ground, #f3f4f6);
+  background: var(--surface-ground, var(--surface-100));
   transition: all 0.3s;
 }
 
@@ -433,18 +421,18 @@ onMounted(() => {
 .toggle-icon .toggle-label {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-color, #333);
+  color: var(--text-color);
 }
 
 .toggle-info h3 {
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 1.25rem;
 }
 
 .toggle-info p {
   margin: 0;
-  color: #666;
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
 }
 
@@ -458,7 +446,7 @@ onMounted(() => {
 .toggle-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #666;
+  color: var(--text-color-secondary);
 }
 
 /* Toggle Switch */
@@ -494,13 +482,13 @@ onMounted(() => {
   width: 26px;
   left: 4px;
   bottom: 4px;
-  background-color: white;
+  background-color: var(--surface-0);
   transition: 0.4s;
   border-radius: 50%;
 }
 
 input:checked + .slider {
-  background-color: #ef4444;
+  background-color: var(--danger);
 }
 
 input:checked + .slider:before {
@@ -513,7 +501,7 @@ input:checked + .slider:before {
 
 .dnd-stats h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -526,8 +514,8 @@ input:checked + .slider:before {
 }
 
 .stat-card {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--surface-0);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   padding: 1.25rem;
   text-align: center;
@@ -536,28 +524,28 @@ input:checked + .slider:before {
 .stat-value {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #667eea;
+  color: var(--primary);
   margin-bottom: 0.5rem;
   font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-color-secondary);
   font-weight: 500;
 }
 
 .rejected-calls {
-  background: white;
+  background: var(--surface-0);
   border-radius: 8px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .rejected-calls h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 1rem;
 }
 
@@ -570,7 +558,7 @@ input:checked + .slider:before {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--surface-100);
 }
 
 .rejected-item:last-child {
@@ -595,7 +583,7 @@ input:checked + .slider:before {
 .rejected-uri {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -603,44 +591,20 @@ input:checked + .slider:before {
 
 .rejected-time {
   font-size: 0.75rem;
-  color: #999;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #4b5563;
-}
-
-.btn-sm {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
+  color: var(--text-color-secondary);
 }
 
 .dnd-options {
-  background: white;
+  background: var(--surface-0);
   border-radius: 8px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .dnd-options h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 1rem;
 }
 
@@ -658,26 +622,20 @@ input:checked + .slider:before {
   gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #333;
-  cursor: pointer;
-}
-
-.option-item input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
+  color: var(--text-color);
   cursor: pointer;
 }
 
 .option-desc {
   margin: 0.5rem 0 0 1.625rem;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-color-secondary);
   line-height: 1.5;
 }
 
 .dnd-banner {
   background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  border: 2px solid #ef4444;
+  border: 2px solid var(--danger);
   border-radius: 8px;
   padding: 1rem;
 }
@@ -700,24 +658,24 @@ input:checked + .slider:before {
 .banner-text {
   font-size: 1rem;
   font-weight: 600;
-  color: #991b1b;
+  color: var(--red-900);
 }
 
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--surface-section);
+  color: var(--text-secondary);
   padding: 1.5rem;
   border-radius: 6px;
   overflow-x: auto;
@@ -730,15 +688,58 @@ input:checked + .slider:before {
   line-height: 1.6;
 }
 
+/* Utility Classes */
+.mb-3 {
+  margin-bottom: 1rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* Responsive - Mobile-First Patterns */
 @media (max-width: 768px) {
+  /* DND toggle: stack vertically on mobile */
   .dnd-toggle-card {
     flex-direction: column;
     gap: 1.5rem;
     text-align: center;
+    padding: 1.5rem;
   }
 
   .toggle-header {
     flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* Stats grid: 2 columns on mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Rejected calls: larger touch targets */
+  .rejected-item {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .rejected-icon {
+    min-width: 60px;
+  }
+
+  /* Toggle switch: larger on mobile */
+  .switch {
+    width: 72px;
+    height: 40px;
+  }
+
+  .slider:before {
+    height: 32px;
+    width: 32px;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(32px);
   }
 }
 </style>

@@ -44,7 +44,7 @@
       <template #content>
         <!-- No Active Call Warning -->
         <Message v-if="!hasActiveSession" severity="info" :closable="false" class="info-message">
-          <template #icon><i class="pi pi-info-circle"></i></template>
+          <template #icon><i class="pi pi-info-circle text-xl"></i></template>
           <div>
             <strong>No Active Call</strong>
             <p>Start a call to see real-time WebRTC statistics. This demo monitors:</p>
@@ -70,12 +70,13 @@
           </div>
 
           <!-- Controls -->
-          <div class="controls">
+          <div class="controls flex flex-column sm:flex-row gap-2">
             <Button
               v-if="!isCollecting"
               label="Start Monitoring"
               icon="pi pi-play"
               @click="start"
+              class="w-full sm:w-auto"
             />
             <Button
               v-else
@@ -83,6 +84,7 @@
               icon="pi pi-stop"
               severity="secondary"
               @click="stop"
+              class="w-full sm:w-auto"
             />
             <Button
               label="Clear History"
@@ -90,13 +92,17 @@
               severity="secondary"
               size="small"
               @click="clearHistory"
+              class="w-full sm:w-auto"
             />
           </div>
 
           <!-- Quality Overview -->
           <Panel header="Call Quality" class="section-panel">
-            <div class="quality-grid">
-              <div class="quality-card" :class="getQualityClass('packetLoss')">
+            <div class="quality-grid grid">
+              <div
+                class="quality-card col-12 sm:col-6 lg:col-3"
+                :class="getQualityClass('packetLoss')"
+              >
                 <div class="quality-icon">PKT</div>
                 <div class="quality-info">
                   <span class="quality-label">Packet Loss</span>
@@ -107,7 +113,7 @@
                 </div>
               </div>
 
-              <div class="quality-card" :class="getQualityClass('jitter')">
+              <div class="quality-card col-12 sm:col-6 lg:col-3" :class="getQualityClass('jitter')">
                 <div class="quality-icon">JTR</div>
                 <div class="quality-info">
                   <span class="quality-label">Jitter</span>
@@ -118,7 +124,7 @@
                 </div>
               </div>
 
-              <div class="quality-card" :class="getQualityClass('rtt')">
+              <div class="quality-card col-12 sm:col-6 lg:col-3" :class="getQualityClass('rtt')">
                 <div class="quality-icon">RTT</div>
                 <div class="quality-info">
                   <span class="quality-label">Round Trip</span>
@@ -129,7 +135,7 @@
                 </div>
               </div>
 
-              <div class="quality-card">
+              <div class="quality-card col-12 sm:col-6 lg:col-3">
                 <div class="quality-icon">BPS</div>
                 <div class="quality-info">
                   <span class="quality-label">Bitrate</span>
@@ -139,8 +145,11 @@
             </div>
 
             <!-- MOS Score Display -->
-            <div v-if="mosScore" class="mos-display">
-              <div class="mos-gauge">
+            <div
+              v-if="mosScore"
+              class="mos-display flex flex-column md:flex-row gap-3 md:gap-4 p-3 md:p-4 surface-ground border-round"
+            >
+              <div class="mos-gauge text-center md:text-left">
                 <div
                   class="mos-value"
                   :style="{ '--mos-percentage': getMosPercentage(mosScore.value) + '%' }"
@@ -150,7 +159,7 @@
                 <div class="mos-label">MOS Score</div>
                 <div class="mos-description">{{ getMosDescription(mosScore.value) }}</div>
               </div>
-              <div class="mos-breakdown">
+              <div class="mos-breakdown flex-1">
                 <div class="mos-factor">
                   <span>Audio Quality</span>
                   <ProgressBar :value="mosScore.audioQuality * 100" :showValue="false" />
@@ -285,13 +294,7 @@ import { useSipWebRTCStats, useCallSession } from '@/composables'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
-import Card from 'primevue/card'
-import Panel from 'primevue/panel'
-import Button from 'primevue/button'
-import Tag from 'primevue/tag'
-import ProgressBar from 'primevue/progressbar'
-import Message from 'primevue/message'
-import Divider from 'primevue/divider'
+import { Card, Panel, Button, Tag, ProgressBar, Message, Divider } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -570,10 +573,11 @@ console.log('RTT:', avgRtt.value + 'ms')`
 }
 
 .quality-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.quality-grid .quality-card {
+  margin-bottom: 0;
 }
 
 .quality-card {
@@ -629,14 +633,7 @@ console.log('RTT:', avgRtt.value + 'ms')`
   color: var(--red-500);
 }
 
-.mos-display {
-  display: flex;
-  gap: 2rem;
-  padding: 1rem;
-  background: var(--surface-ground);
-  border-radius: 8px;
-  align-items: center;
-}
+/* Removed duplicate mos-display styles - now using PrimeFlex classes in template */
 
 .mos-gauge {
   text-align: center;
@@ -658,7 +655,6 @@ console.log('RTT:', avgRtt.value + 'ms')`
 }
 
 .mos-breakdown {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

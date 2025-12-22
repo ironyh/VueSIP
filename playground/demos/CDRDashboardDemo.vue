@@ -20,245 +20,578 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <h2>CDR Dashboard</h2>
-    <p class="description">
-      Real-time Call Detail Record (CDR) processing and analytics via AMI. View call statistics,
-      agent performance, and export data.
-    </p>
-
-    <!-- AMI Connection Status -->
-    <div class="status-section">
-      <div :class="['status-badge', amiConnected ? 'connected' : 'disconnected']">
-        AMI: {{ amiConnected ? 'CONNECTED' : 'DISCONNECTED' }}
-      </div>
-      <div v-if="totalCount > 0" class="count-badge">{{ totalCount }} CDR Records</div>
-    </div>
-
-    <!-- AMI Configuration -->
-    <div class="config-section">
-      <h3>AMI Configuration</h3>
-      <div class="form-row">
-        <div class="form-group">
-          <label>WebSocket URL</label>
-          <input v-model="amiUrl" type="text" placeholder="ws://localhost:8088/ami" />
+    <Card class="demo-card surface-card border-none shadow-2">
+      <template #title>
+        <div class="flex align-items-center gap-2 text-xl font-bold text-900 mb-2">
+          <i class="pi pi-chart-bar text-primary text-2xl" aria-hidden="true"></i>
+          <span>CDR Dashboard</span>
         </div>
-        <div class="form-group">
-          <label>Username</label>
-          <input v-model="amiUsername" type="text" placeholder="admin" />
-        </div>
-        <div class="form-group">
-          <label>Secret</label>
-          <input v-model="amiSecret" type="password" placeholder="secret" />
-        </div>
-      </div>
-      <button @click="toggleAmiConnection" :disabled="isConnecting">
-        {{ amiConnected ? 'Disconnect' : isConnecting ? 'Connecting...' : 'Connect' }}
-      </button>
-    </div>
-
-    <!-- Stats Overview -->
-    <div v-if="amiConnected" class="stats-overview">
-      <h3>Today's Statistics</h3>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value">{{ stats.totalCalls }}</div>
-          <div class="stat-label">Total Calls</div>
-        </div>
-        <div class="stat-card success">
-          <div class="stat-value">{{ stats.answeredCalls }}</div>
-          <div class="stat-label">Answered</div>
-        </div>
-        <div class="stat-card warning">
-          <div class="stat-value">{{ stats.missedCalls }}</div>
-          <div class="stat-label">Missed</div>
-        </div>
-        <div class="stat-card error">
-          <div class="stat-value">{{ stats.failedCalls }}</div>
-          <div class="stat-label">Failed</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ formatDuration(stats.averageTalkTime) }}</div>
-          <div class="stat-label">Avg Talk Time</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ formatPercent(stats.answerRate) }}</div>
-          <div class="stat-label">Answer Rate</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Disposition Chart -->
-    <div v-if="amiConnected && stats.totalCalls > 0" class="disposition-chart">
-      <h3>Call Disposition</h3>
-      <div class="disposition-bars">
-        <div
-          v-for="(count, disposition) in stats.byDisposition"
-          :key="disposition"
-          class="disposition-bar"
-          :style="{ width: getDispositionWidth(count) + '%' }"
-          :class="getDispositionClass(disposition)"
+      </template>
+      <template #subtitle>
+        <span class="text-600"
+          >Real-time Call Detail Record (CDR) processing and analytics via AMI.</span
         >
-          <span class="disposition-label">{{ disposition }}</span>
-          <span class="disposition-count">{{ count }}</span>
-        </div>
-      </div>
-    </div>
+      </template>
+      <template #content>
+        <!-- AMI Configuration & Status -->
+        <Panel
+          header="Connection"
+          :toggleable="true"
+          class="mb-4 connection-panel"
+          :class="{ 'border-primary': amiConnected }"
+        >
+          <template #header>
+            <div class="flex align-items-center gap-2">
+              <i class="pi pi-server text-lg" aria-hidden="true"></i>
+              <span class="font-semibold">AMI Configuration</span>
+              <Tag
+                v-if="amiConnected"
+                class="ml-2"
+                severity="success"
+                value="Connected"
+                icon="pi pi-check"
+              />
+              <Tag v-else class="ml-2" severity="danger" value="Disconnected" icon="pi pi-times" />
+            </div>
+          </template>
 
-    <!-- Agent Stats -->
-    <div v-if="amiConnected && Object.keys(agentStatsData).length > 0" class="agent-stats-section">
-      <h3>Agent Performance</h3>
-      <div class="agent-cards">
-        <div v-for="(agentStat, agent) in agentStatsData" :key="agent" class="agent-card">
-          <div class="agent-header">
-            <span class="agent-name">Agent {{ agent }}</span>
-            <span class="agent-calls">{{ agentStat.callsHandled }} calls</span>
+          <div class="form-grid grid p-fluid align-items-end">
+            <div class="col-12 md:col-4">
+              <label for="ami-url-input" class="font-medium text-600 mb-2 block"
+                >WebSocket URL</label
+              >
+              <div class="p-inputgroup">
+                <span class="p-inputgroup-addon"
+                  ><i class="pi pi-globe text-base" aria-hidden="true"></i
+                ></span>
+                <InputText
+                  id="ami-url-input"
+                  v-model="amiUrl"
+                  placeholder="ws://localhost:8088/ami"
+                  :disabled="amiConnected || isConnecting"
+                  aria-required="true"
+                />
+              </div>
+            </div>
+            <div class="col-12 md:col-3">
+              <label for="ami-username-input" class="font-medium text-600 mb-2 block"
+                >Username</label
+              >
+              <div class="p-inputgroup">
+                <span class="p-inputgroup-addon"
+                  ><i class="pi pi-user text-base" aria-hidden="true"></i
+                ></span>
+                <InputText
+                  id="ami-username-input"
+                  v-model="amiUsername"
+                  placeholder="admin"
+                  :disabled="amiConnected || isConnecting"
+                  aria-required="true"
+                />
+              </div>
+            </div>
+            <div class="col-12 md:col-3">
+              <label for="ami-secret-input" class="font-medium text-600 mb-2 block">Secret</label>
+              <div class="p-inputgroup">
+                <span class="p-inputgroup-addon"
+                  ><i class="pi pi-lock text-base" aria-hidden="true"></i
+                ></span>
+                <Password
+                  inputId="ami-secret-input"
+                  v-model="amiSecret"
+                  placeholder="It's a secret..."
+                  :feedback="false"
+                  toggleMask
+                  :disabled="amiConnected || isConnecting"
+                  inputClass="w-full"
+                  aria-required="true"
+                />
+              </div>
+            </div>
+            <div class="col-12 md:col-2">
+              <Button
+                @click="toggleAmiConnection"
+                :label="amiConnected ? 'Disconnect' : isConnecting ? 'Connecting...' : 'Connect'"
+                :icon="
+                  isConnecting
+                    ? 'pi pi-spin pi-spinner'
+                    : amiConnected
+                      ? 'pi pi-power-off'
+                      : 'pi pi-link'
+                "
+                :severity="amiConnected ? 'danger' : 'primary'"
+                :disabled="isConnecting"
+                class="w-full"
+                :aria-label="amiConnected ? 'Disconnect from AMI' : 'Connect to AMI'"
+              />
+            </div>
           </div>
-          <div class="agent-metrics">
-            <div class="metric">
-              <span class="metric-label">Talk Time</span>
-              <span class="metric-value">{{ formatDuration(agentStat.totalTalkTime) }}</span>
+        </Panel>
+
+        <!-- Main Dashboard View -->
+        <div v-if="amiConnected" class="fade-in">
+          <!-- Stats Overview -->
+          <div class="grid mb-4">
+            <div class="col-12 md:col-6 lg:col-2">
+              <div
+                class="surface-card shadow-1 p-3 border-round h-full border-left-3 border-blue-500"
+              >
+                <div class="flex justify-content-between mb-3">
+                  <div>
+                    <span class="block text-500 font-medium mb-3">Total Calls</span>
+                    <div class="text-900 font-medium text-xl">{{ stats.totalCalls }}</div>
+                  </div>
+                  <div
+                    class="flex align-items-center justify-content-center bg-blue-100 border-round"
+                    style="width: 2.5rem; height: 2.5rem"
+                  >
+                    <i class="pi pi-phone text-blue-500 text-xl" aria-hidden="true"></i>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="metric">
-              <span class="metric-label">Avg Talk</span>
-              <span class="metric-value">{{ formatDuration(agentStat.averageTalkTime) }}</span>
+
+            <div class="col-12 md:col-6 lg:col-2">
+              <div
+                class="surface-card shadow-1 p-3 border-round h-full border-left-3 border-green-500"
+              >
+                <div class="flex justify-content-between mb-3">
+                  <div>
+                    <span class="block text-500 font-medium mb-3">Answered</span>
+                    <div class="text-900 font-medium text-xl">{{ stats.answeredCalls }}</div>
+                  </div>
+                  <div
+                    class="flex align-items-center justify-content-center bg-green-100 border-round"
+                    style="width: 2.5rem; height: 2.5rem"
+                  >
+                    <i class="pi pi-check-circle text-green-500 text-xl" aria-hidden="true"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 md:col-6 lg:col-2">
+              <div
+                class="surface-card shadow-1 p-3 border-round h-full border-left-3 border-orange-500"
+              >
+                <div class="flex justify-content-between mb-3">
+                  <div>
+                    <span class="block text-500 font-medium mb-3">Missed</span>
+                    <div class="text-900 font-medium text-xl">{{ stats.missedCalls }}</div>
+                  </div>
+                  <div
+                    class="flex align-items-center justify-content-center bg-orange-100 border-round"
+                    style="width: 2.5rem; height: 2.5rem"
+                  >
+                    <i
+                      class="pi pi-phone text-orange-500 text-xl"
+                      style="transform: rotate(135deg)"
+                      aria-hidden="true"
+                    ></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 md:col-6 lg:col-2">
+              <div
+                class="surface-card shadow-1 p-3 border-round h-full border-left-3 border-red-500"
+              >
+                <div class="flex justify-content-between mb-3">
+                  <div>
+                    <span class="block text-500 font-medium mb-3">Failed</span>
+                    <div class="text-900 font-medium text-xl">{{ stats.failedCalls }}</div>
+                  </div>
+                  <div
+                    class="flex align-items-center justify-content-center bg-red-100 border-round"
+                    style="width: 2.5rem; height: 2.5rem"
+                  >
+                    <i class="pi pi-times-circle text-red-500 text-xl" aria-hidden="true"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 md:col-6 lg:col-2">
+              <div
+                class="surface-card shadow-1 p-3 border-round h-full border-left-3 border-cyan-500"
+              >
+                <div class="flex justify-content-between mb-3">
+                  <div>
+                    <span class="block text-500 font-medium mb-3">Avg Talk</span>
+                    <div class="text-900 font-medium text-xl">
+                      {{ formatDuration(stats.averageTalkTime) }}
+                    </div>
+                  </div>
+                  <div
+                    class="flex align-items-center justify-content-center bg-cyan-100 border-round"
+                    style="width: 2.5rem; height: 2.5rem"
+                  >
+                    <i class="pi pi-clock text-cyan-500 text-xl" aria-hidden="true"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 md:col-6 lg:col-2">
+              <div
+                class="surface-card shadow-1 p-3 border-round h-full border-left-3 border-purple-500"
+              >
+                <div class="flex justify-content-between mb-3">
+                  <div>
+                    <span class="block text-500 font-medium mb-3">Answer Rate</span>
+                    <div class="text-900 font-medium text-xl">
+                      {{ formatPercent(stats.answerRate) }}
+                    </div>
+                  </div>
+                  <div
+                    class="flex align-items-center justify-content-center bg-purple-100 border-round"
+                    style="width: 2.5rem; height: 2.5rem"
+                  >
+                    <i class="pi pi-chart-pie text-purple-500 text-xl" aria-hidden="true"></i>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Queue Stats -->
-    <div v-if="amiConnected && Object.keys(queueStatsData).length > 0" class="queue-stats-section">
-      <h3>Queue Performance</h3>
-      <div class="queue-cards">
-        <div v-for="(queueStat, queue) in queueStatsData" :key="queue" class="queue-card">
-          <div class="queue-header">
-            <span class="queue-name">{{ queue }}</span>
-            <span class="queue-sl" :class="getServiceLevelClass(queueStat.serviceLevelPct)">
-              SL: {{ formatPercent(queueStat.serviceLevelPct) }}
-            </span>
+          <div class="grid mb-4">
+            <!-- Disposition Chart -->
+            <div class="col-12 md:col-6">
+              <Panel header="Call Disposition" class="h-full shadow-1 surface-card border-round">
+                <template #icons>
+                  <Button
+                    icon="pi pi-refresh"
+                    text
+                    rounded
+                    @click="() => {}"
+                    aria-label="Refresh chart"
+                  />
+                </template>
+                <div class="disposition-list flex flex-column gap-3 mt-2 pr-2">
+                  <div
+                    v-for="(count, disposition) in stats.byDisposition"
+                    :key="disposition"
+                    class="disposition-item"
+                  >
+                    <div class="flex justify-content-between mb-1">
+                      <span class="font-medium text-700">{{ disposition }}</span>
+                      <span class="font-bold text-primary"
+                        >{{ count }}
+                        <small class="text-500">({{ calculatePercentage(count) }}%)</small></span
+                      >
+                    </div>
+                    <ProgressBar
+                      :value="getDispositionWidth(count)"
+                      :showValue="false"
+                      class="h-1rem border-round"
+                      :class="getDispositionBarClass(disposition)"
+                    />
+                  </div>
+                  <div v-if="stats.totalCalls === 0" class="text-center p-4 text-500">
+                    No call data available.
+                  </div>
+                </div>
+              </Panel>
+            </div>
+
+            <!-- Agent Stats -->
+            <div class="col-12 md:col-6">
+              <Panel header="Agent Performance" class="h-full shadow-1 surface-card border-round">
+                <div
+                  class="agent-list flex flex-column gap-2 mt-2"
+                  style="max-height: 300px; overflow-y: auto"
+                >
+                  <div
+                    v-if="Object.keys(agentStatsData).length === 0"
+                    class="text-center p-4 text-500"
+                  >
+                    No agent activity yet.
+                  </div>
+                  <div
+                    v-for="(agentStat, agent) in agentStatsData"
+                    :key="agent"
+                    class="agent-item p-3 surface-50 border-round border-1 surface-border hover:surface-100 transition-colors transition-duration-150"
+                  >
+                    <div class="flex justify-content-between align-items-center mb-2">
+                      <div class="flex align-items-center gap-2">
+                        <Avatar
+                          icon="pi pi-user"
+                          shape="circle"
+                          class="bg-indigo-100 text-indigo-500"
+                          aria-hidden="true"
+                        />
+                        <span class="font-bold text-lg text-800">Agent {{ agent }}</span>
+                      </div>
+                      <Tag severity="info" :value="`${agentStat.callsHandled} calls`" rounded />
+                    </div>
+                    <div class="grid grid-nogutter text-sm pt-2 border-top-1 surface-border">
+                      <div class="col-6 flex align-items-center gap-2 text-600">
+                        <i class="pi pi-clock text-base" aria-hidden="true"></i>
+                        <span
+                          >Total:
+                          <span class="text-900 font-medium">{{
+                            formatDuration(agentStat.totalTalkTime)
+                          }}</span></span
+                        >
+                      </div>
+                      <div class="col-6 flex align-items-center gap-2 text-600 justify-content-end">
+                        <i class="pi pi-stopwatch text-base" aria-hidden="true"></i>
+                        <span
+                          >Avg:
+                          <span class="text-900 font-medium">{{
+                            formatDuration(agentStat.averageTalkTime)
+                          }}</span></span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Panel>
+            </div>
           </div>
-          <div class="queue-metrics">
-            <div class="metric">
-              <span class="metric-label">Offered</span>
-              <span class="metric-value">{{ queueStat.callsOffered }}</span>
-            </div>
-            <div class="metric">
-              <span class="metric-label">Answered</span>
-              <span class="metric-value">{{ queueStat.callsAnswered }}</span>
-            </div>
-            <div class="metric">
-              <span class="metric-label">Abandoned</span>
-              <span class="metric-value">{{ queueStat.callsAbandoned }}</span>
-            </div>
-            <div class="metric">
-              <span class="metric-label">Avg Wait</span>
-              <span class="metric-value">{{ formatDuration(queueStat.averageWaitTime) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- CDR Records Table -->
-    <div v-if="amiConnected" class="records-section">
-      <div class="section-header">
-        <h3>Recent CDR Records</h3>
-        <div class="export-buttons">
-          <button @click="handleExportCSV" class="export-btn">Export CSV</button>
-          <button @click="handleExportJSON" class="export-btn">Export JSON</button>
-          <button @click="clearRecords" class="clear-btn">Clear</button>
-        </div>
-      </div>
+          <!-- CDR Records Table -->
+          <Panel header="Recent CDR Records" class="mb-4 shadow-1 surface-card border-round">
+            <template #icons>
+              <div class="flex gap-2">
+                <Button
+                  icon="pi pi-download"
+                  label="CSV"
+                  size="small"
+                  outlined
+                  @click="handleExportCSV"
+                  v-tooltip.top="'Export as CSV'"
+                  aria-label="Export as CSV"
+                />
+                <Button
+                  icon="pi pi-code"
+                  label="JSON"
+                  size="small"
+                  outlined
+                  @click="handleExportJSON"
+                  v-tooltip.top="'Export as JSON'"
+                  aria-label="Export as JSON"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  label="Clear"
+                  size="small"
+                  severity="danger"
+                  outlined
+                  @click="clearRecords"
+                  v-tooltip.top="'Clear all records'"
+                  aria-label="Clear all records"
+                />
+              </div>
+            </template>
 
-      <!-- Filters -->
-      <div class="filters">
-        <div class="filter-group">
-          <label>Direction</label>
-          <select v-model="filterDirection">
-            <option value="">All</option>
-            <option value="inbound">Inbound</option>
-            <option value="outbound">Outbound</option>
-            <option value="internal">Internal</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Disposition</label>
-          <select v-model="filterDisposition">
-            <option value="">All</option>
-            <option value="ANSWERED">Answered</option>
-            <option value="NO ANSWER">No Answer</option>
-            <option value="BUSY">Busy</option>
-            <option value="FAILED">Failed</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Search</label>
-          <input v-model="searchQuery" type="text" placeholder="Source or destination..." />
-        </div>
-      </div>
+            <!-- Filters -->
+            <div class="filters grid p-fluid mb-4 mt-2">
+              <div class="col-12 md:col-3">
+                <div class="p-inputgroup">
+                  <span class="p-inputgroup-addon"
+                    ><i class="pi pi-arrows-alt text-base" aria-hidden="true"></i
+                  ></span>
+                  <Dropdown
+                    v-model="filterDirection"
+                    :options="directionOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    showClear
+                    placeholder="Direction"
+                    class="w-full"
+                  />
+                </div>
+              </div>
+              <div class="col-12 md:col-3">
+                <div class="p-inputgroup">
+                  <span class="p-inputgroup-addon"
+                    ><i class="pi pi-flag text-base" aria-hidden="true"></i
+                  ></span>
+                  <Dropdown
+                    v-model="filterDisposition"
+                    :options="dispositionOptions"
+                    showClear
+                    placeholder="Disposition"
+                    class="w-full"
+                  />
+                </div>
+              </div>
+              <div class="col-12 md:col-6">
+                <span class="p-input-icon-left w-full">
+                  <i class="pi pi-search text-base" aria-hidden="true"></i>
+                  <InputText
+                    v-model="searchQuery"
+                    placeholder="Search source or destination..."
+                    class="w-full"
+                  />
+                </span>
+              </div>
+            </div>
 
-      <div class="records-table-container">
-        <table class="records-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Direction</th>
-              <th>Source</th>
-              <th>Destination</th>
-              <th>Duration</th>
-              <th>Talk Time</th>
-              <th>Disposition</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="record in filteredRecords"
-              :key="record.uniqueId"
-              :class="getRecordClass(record)"
+            <DataTable
+              :value="filteredRecords"
+              paginator
+              :rows="10"
+              :rowsPerPageOptions="[10, 20, 50]"
+              responsiveLayout="scroll"
+              size="small"
+              class="p-datatable-sm"
+              showGridlines
+              stripedRows
             >
-              <td class="time-col">{{ formatTime(record.startTime) }}</td>
-              <td class="direction-col">
-                <span :class="['direction-badge', record.direction]">
-                  {{ getDirectionLabel(record.direction) }}
-                </span>
-              </td>
-              <td class="source-col">{{ record.source || '-' }}</td>
-              <td class="dest-col">{{ record.destination || '-' }}</td>
-              <td class="duration-col">{{ formatDuration(record.duration) }}</td>
-              <td class="billable-col">{{ formatDuration(record.billableSeconds) }}</td>
-              <td class="disposition-col">
-                <span :class="['disposition-badge', getDispositionClass(record.disposition)]">
-                  {{ record.disposition }}
-                </span>
-              </td>
-            </tr>
-            <tr v-if="filteredRecords.length === 0">
-              <td colspan="7" class="empty-row">No CDR records yet. Make some calls!</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+              <template #empty>
+                <div class="text-center p-5">
+                  <i class="pi pi-file text-4xl text-300 mb-3"></i>
+                  <div class="text-600 font-medium">No CDR records matching your filters.</div>
+                </div>
+              </template>
 
-    <!-- Simulate CDR (for demo) -->
-    <div v-if="amiConnected" class="simulate-section">
-      <h3>Simulate CDR (Demo)</h3>
-      <p class="hint">Generate sample CDR records to test the dashboard.</p>
-      <div class="simulate-buttons">
-        <button @click="simulateCdr('ANSWERED')" class="sim-btn answered">Answered Call</button>
-        <button @click="simulateCdr('NO ANSWER')" class="sim-btn missed">Missed Call</button>
-        <button @click="simulateCdr('BUSY')" class="sim-btn busy">Busy</button>
-        <button @click="simulateCdr('FAILED')" class="sim-btn failed">Failed</button>
-        <button @click="simulateMultiple" class="sim-btn multiple">Generate 10 Random</button>
-      </div>
-    </div>
+              <Column field="startTime" header="Time" sortable style="min-width: 120px">
+                <template #body="{ data }">
+                  <span class="text-sm font-medium">{{
+                    formatTime(new Date(data.startTime))
+                  }}</span>
+                </template>
+              </Column>
+
+              <Column field="direction" header="Direction" sortable style="width: 120px">
+                <template #body="{ data }">
+                  <Tag :severity="getDirectionSeverity(data.direction)" rounded>
+                    {{ getDirectionLabel(data.direction) }}
+                  </Tag>
+                </template>
+              </Column>
+
+              <Column field="source" header="Source" sortable>
+                <template #body="{ data }">
+                  <div class="flex align-items-center gap-2">
+                    <i class="pi pi-arrow-right text-300 text-xs" aria-hidden="true"></i>
+                    <span class="font-mono text-900">{{ data.source }}</span>
+                  </div>
+                </template>
+              </Column>
+
+              <Column field="destination" header="Destination" sortable>
+                <template #body="{ data }">
+                  <div class="flex align-items-center gap-2">
+                    <i class="pi pi-arrow-left text-300 text-xs" aria-hidden="true"></i>
+                    <span class="font-mono text-900">{{ data.destination }}</span>
+                  </div>
+                </template>
+              </Column>
+
+              <Column field="duration" header="Duration" sortable style="width: 100px">
+                <template #body="{ data }">
+                  <span class="text-600">{{ formatDuration(data.duration) }}</span>
+                </template>
+              </Column>
+
+              <Column field="billableSeconds" header="Talk Time" sortable style="width: 100px">
+                <template #body="{ data }">
+                  <span class="font-medium text-900">{{
+                    formatDuration(data.billableSeconds)
+                  }}</span>
+                </template>
+              </Column>
+
+              <Column field="disposition" header="Disposition" sortable style="width: 130px">
+                <template #body="{ data }">
+                  <Tag
+                    :severity="getDispositionSeverity(data.disposition)"
+                    :icon="getDispositionIcon(data.disposition)"
+                    class="w-full"
+                  >
+                    {{ data.disposition }}
+                  </Tag>
+                </template>
+              </Column>
+            </DataTable>
+          </Panel>
+
+          <!-- Simulate CDR (for demo) -->
+          <Panel header="Simulate Call Data" class="mb-4 shadow-1 surface-card border-round">
+            <div
+              class="flex flex-column md:flex-row align-items-center justify-content-between gap-3"
+            >
+              <div>
+                <h3 class="text-lg font-medium m-0 mb-1">Generate Demo Data</h3>
+                <p class="m-0 text-secondary text-sm">
+                  Create fake CDR records to populate the dashboard.
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <Button
+                  label="Answered"
+                  severity="success"
+                  size="small"
+                  icon="pi pi-check"
+                  @click="simulateCdr('ANSWERED')"
+                  aria-label="Simulate answered call"
+                />
+                <Button
+                  label="Missed"
+                  severity="warning"
+                  size="small"
+                  icon="pi pi-phone"
+                  @click="simulateCdr('NO ANSWER')"
+                  aria-label="Simulate missed call"
+                />
+                <Button
+                  label="Busy"
+                  severity="help"
+                  size="small"
+                  icon="pi pi-ban"
+                  @click="simulateCdr('BUSY')"
+                  aria-label="Simulate busy call"
+                />
+                <Button
+                  label="Failed"
+                  severity="danger"
+                  size="small"
+                  icon="pi pi-times"
+                  @click="simulateCdr('FAILED')"
+                  aria-label="Simulate failed call"
+                />
+                <Button
+                  label="Generate Batch (10)"
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  icon="pi pi-list"
+                  @click="simulateMultiple"
+                  aria-label="Generate batch of 10 calls"
+                />
+              </div>
+            </div>
+          </Panel>
+        </div>
+      </template>
+    </Card>
 
     <!-- Error Display -->
-    <div v-if="error" class="error-section">
-      <p class="error-message">{{ error }}</p>
-      <button @click="error = null">Dismiss</button>
-    </div>
+    <Dialog
+      v-model:visible="errorVisible"
+      header="Error"
+      :modal="true"
+      :closable="false"
+      class="p-dialog-alert"
+    >
+      <div class="flex align-items-center gap-3">
+        <div class="border-circle bg-red-100 p-3 flex align-items-center justify-content-center">
+          <i
+            class="pi pi-exclamation-triangle text-red-500 text-2xl"
+            role="img"
+            aria-label="Error"
+          ></i>
+        </div>
+        <span class="text-lg">{{ error }}</span>
+      </div>
+      <template #footer>
+        <Button label="Dismiss" @click="error = null" autofocus severity="secondary" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -267,10 +600,24 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useAmiCDR } from '../../src/composables/useAmiCDR'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import {
+  Card,
+  Panel,
+  Button,
+  InputText,
+  Password,
+  Dropdown,
+  DataTable,
+  Column,
+  Tag,
+  ProgressBar,
+  Dialog,
+  Avatar,
+} from './shared-components'
+
 import type {
   CdrDisposition,
   CdrDirection,
-  CdrRecord,
   AgentCdrStats,
   QueueCdrStats,
 } from '../../src/types/cdr.types'
@@ -296,8 +643,17 @@ const mockAmiClient = ref<{
 
 // Filters
 const filterDirection = ref<CdrDirection | ''>('')
-const filterDisposition = ref<CdrDisposition | ''>('')
+const filterDisposition = ref<CdrDisposition | null>(null)
 const searchQuery = ref('')
+
+const directionOptions = [
+  { label: 'All', value: '' },
+  { label: 'Inbound', value: 'inbound' },
+  { label: 'Outbound', value: 'outbound' },
+  { label: 'Internal', value: 'internal' },
+]
+
+const dispositionOptions = ['ANSWERED', 'NO ANSWER', 'BUSY', 'FAILED']
 
 // Initialize useAmiCDR composable
 const {
@@ -305,7 +661,7 @@ const {
   stats,
   agentStats,
   queueStats,
-  totalCount,
+  totalCount: _totalCount,
   error,
   getRecords: _getRecords,
   exportRecords,
@@ -318,9 +674,17 @@ const {
   },
 })
 
+// Error handling
+const errorVisible = computed({
+  get: () => !!error.value,
+  set: (val) => {
+    if (!val) error.value = null
+  },
+})
+
 // Computed
 const agentStatsData = computed(() => agentStats.value as Record<string, AgentCdrStats>)
-const queueStatsData = computed(() => queueStats.value as Record<string, QueueCdrStats>)
+const _queueStatsData = computed(() => queueStats.value as Record<string, QueueCdrStats>)
 
 const filteredRecords = computed(() => {
   let result = records.value
@@ -498,6 +862,11 @@ const formatPercent = (value: number): string => {
   return `${Math.round(value)}%`
 }
 
+const calculatePercentage = (count: number): string => {
+  if (stats.value.totalCalls === 0) return '0'
+  return ((count / stats.value.totalCalls) * 100).toFixed(1)
+}
+
 const formatTime = (date: Date): string => {
   return date.toLocaleTimeString()
 }
@@ -505,17 +874,30 @@ const formatTime = (date: Date): string => {
 const getDirectionLabel = (direction: CdrDirection): string => {
   switch (direction) {
     case 'inbound':
-      return 'IN'
+      return 'Inbound'
     case 'outbound':
-      return 'OUT'
+      return 'Outbound'
     case 'internal':
-      return 'INT'
+      return 'Internal'
     default:
-      return '?'
+      return 'Unknown'
   }
 }
 
-const getDispositionClass = (disposition: string): string => {
+const getDirectionSeverity = (direction: CdrDirection | undefined): string => {
+  switch (direction) {
+    case 'inbound':
+      return 'info'
+    case 'outbound':
+      return 'success'
+    case 'internal':
+      return 'secondary'
+    default:
+      return 'contrast'
+  }
+}
+
+const getDispositionSeverity = (disposition: string): string => {
   switch (disposition) {
     case 'ANSWERED':
       return 'success'
@@ -523,28 +905,55 @@ const getDispositionClass = (disposition: string): string => {
     case 'CANCEL':
       return 'warning'
     case 'BUSY':
-      return 'busy'
+      return 'help'
     case 'FAILED':
     case 'CONGESTION':
-      return 'error'
+      return 'danger'
     default:
-      return ''
+      return 'secondary'
   }
 }
 
+const getDispositionIcon = (disposition: string): string => {
+  switch (disposition) {
+    case 'ANSWERED':
+      return 'pi pi-check'
+    case 'NO ANSWER':
+    case 'CANCEL':
+      return 'pi pi-phone'
+    case 'BUSY':
+      return 'pi pi-ban'
+    case 'FAILED':
+    case 'CONGESTION':
+      return 'pi pi-times'
+    default:
+      return 'pi pi-question'
+  }
+}
+
+const getDispositionBarClass = (disposition: string): string => {
+  // PrimeVue ProgressBar doesn't accept color classes easily in 'mode="determinate"' without custom formatting generally,
+  // but we can pass utility classes if we are doing direct styling.
+  // Actually, standard PrimeVue ProgressBar usually supports 'severity' in v4, but for v3 we might need inline styles or specific classes
+  // We'll rely on our custom classes for now or standard ones.
+  switch (disposition) {
+    case 'ANSWERED':
+      return 'bg-green-500'
+    case 'NO ANSWER':
+      return 'bg-orange-500'
+    case 'BUSY':
+      return 'bg-purple-500'
+    case 'FAILED':
+      return 'bg-red-500'
+    default:
+      return 'bg-gray-500'
+  }
+}
+
+// Compute width for custom charts (or value for ProgressBar)
 const getDispositionWidth = (count: number): number => {
   if (stats.value.totalCalls === 0) return 0
-  return Math.max(5, (count / stats.value.totalCalls) * 100)
-}
-
-const getRecordClass = (record: CdrRecord): string => {
-  return record.disposition === 'ANSWERED' ? '' : 'faded'
-}
-
-const getServiceLevelClass = (sl: number): string => {
-  if (sl >= 80) return 'sl-good'
-  if (sl >= 60) return 'sl-warning'
-  return 'sl-bad'
+  return Math.round((count / stats.value.totalCalls) * 100)
 }
 
 // Cleanup
@@ -557,488 +966,49 @@ onUnmounted(() => {
 
 <style scoped>
 .cdr-dashboard-demo {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-.description {
-  color: #666;
-  margin-bottom: 2rem;
+/* Custom transitions or overrides */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
 }
 
-.status-section {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.status-badge,
-.count-badge {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.875rem;
+:deep(.p-progressbar-value) {
+  transition: width 0.5s ease-in-out;
 }
 
-.status-badge.connected {
-  background-color: #10b981;
-  color: white;
+/* Custom color overrides for progress bars if standard classes don't apply automatically to the 'value' part */
+:deep(.bg-green-500 .p-progressbar-value) {
+  background-color: var(--green-500) !important;
 }
-
-.status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
-}
-
-.count-badge {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.config-section,
-.stats-overview,
-.disposition-chart,
-.agent-stats-section,
-.queue-stats-section,
-.records-section,
-.simulate-section,
-.error-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.125rem;
-}
-
-.form-row {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.form-group {
-  flex: 1;
-  min-width: 200px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-button {
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  text-align: center;
-  border: 1px solid #e5e7eb;
-}
-
-.stat-card.success {
-  border-left: 4px solid #10b981;
-}
-
-.stat-card.warning {
-  border-left: 4px solid #f59e0b;
-}
-
-.stat-card.error {
-  border-left: 4px solid #ef4444;
-}
-
-.stat-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-}
-
-/* Disposition Chart */
-.disposition-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.disposition-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  background: #e5e7eb;
-  min-width: 100px;
-  transition: width 0.3s ease;
-}
-
-.disposition-bar.success {
-  background: #10b981;
-  color: white;
-}
-
-.disposition-bar.warning {
-  background: #f59e0b;
-  color: white;
-}
-
-.disposition-bar.busy {
-  background: #8b5cf6;
-  color: white;
-}
-
-.disposition-bar.error {
-  background: #ef4444;
-  color: white;
-}
-
-.disposition-label {
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.disposition-count {
-  font-weight: 700;
-}
-
-/* Agent/Queue Cards */
-.agent-cards,
-.queue-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-}
-
-.agent-card,
-.queue-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-}
-
-.agent-header,
-.queue-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.agent-name,
-.queue-name {
-  font-weight: 600;
-}
-
-.agent-calls {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.queue-sl {
-  font-weight: 600;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-.queue-sl.sl-good {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.queue-sl.sl-warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.queue-sl.sl-bad {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.agent-metrics,
-.queue-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.metric {
-  display: flex;
-  flex-direction: column;
-}
-
-.metric-label {
-  font-size: 0.75rem;
-  color: #6b7280;
+:deep(.bg-orange-500 .p-progressbar-value) {
+  background-color: var(--orange-500) !important;
 }
-
-.metric-value {
-  font-weight: 600;
-}
-
-/* Records Section */
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.section-header h3 {
-  margin: 0;
-}
-
-.export-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.export-btn {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  background-color: #6b7280;
-}
-
-.export-btn:hover:not(:disabled) {
-  background-color: #4b5563;
-}
-
-.clear-btn {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  background-color: #dc2626;
-}
-
-.clear-btn:hover:not(:disabled) {
-  background-color: #b91c1c;
-}
-
-/* Filters */
-.filters {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-}
-
-.filter-group {
-  flex: 1;
-  min-width: 150px;
-}
-
-.filter-group label {
-  display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.filter-group input,
-.filter-group select {
-  width: 100%;
-  padding: 0.375rem 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-/* Records Table */
-.records-table-container {
-  overflow-x: auto;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.records-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.records-table th,
-.records-table td {
-  padding: 0.5rem;
-  text-align: left;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.records-table th {
-  background: #f3f4f6;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.records-table tbody tr:hover {
-  background: #f9fafb;
-}
-
-.records-table tbody tr.faded {
-  opacity: 0.7;
-}
-
-.direction-badge {
-  font-size: 1rem;
+:deep(.bg-purple-500 .p-progressbar-value) {
+  background-color: var(--purple-500) !important;
 }
-
-.disposition-badge {
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.disposition-badge.success {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.disposition-badge.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.disposition-badge.busy {
-  background: #ede9fe;
-  color: #5b21b6;
-}
-
-.disposition-badge.error {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.empty-row {
-  text-align: center;
-  color: #6b7280;
-  padding: 2rem !important;
-}
-
-/* Simulate Section */
-.simulate-section {
-  background: #fffbeb;
-  border-color: #fcd34d;
-}
-
-.hint {
-  color: #92400e;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-}
-
-.simulate-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.sim-btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+:deep(.bg-red-500 .p-progressbar-value) {
+  background-color: var(--red-500) !important;
 }
-
-.sim-btn.answered {
-  background-color: #10b981;
-}
-
-.sim-btn.answered:hover {
-  background-color: #059669;
-}
-
-.sim-btn.missed {
-  background-color: #f59e0b;
-}
-
-.sim-btn.missed:hover {
-  background-color: #d97706;
-}
-
-.sim-btn.busy {
-  background-color: #8b5cf6;
-}
-
-.sim-btn.busy:hover {
-  background-color: #7c3aed;
-}
-
-.sim-btn.failed {
-  background-color: #ef4444;
-}
-
-.sim-btn.failed:hover {
-  background-color: #dc2626;
-}
-
-.sim-btn.multiple {
-  background-color: #3b82f6;
-}
-
-/* Error Section */
-.error-section {
-  background: #fef2f2;
-  border-color: #fecaca;
+:deep(.bg-gray-500 .p-progressbar-value) {
+  background-color: var(--gray-500) !important;
 }
 
-.error-message {
-  color: #dc2626;
-  margin: 0 0 1rem;
+/* Font Monospace for IDs/Sources */
+.font-mono {
+  font-family: 'Courier New', Courier, monospace;
 }
 </style>

@@ -30,61 +30,60 @@
 
       <div class="form-group">
         <label for="server-uri">Server URI (WebSocket)</label>
-        <input
+        <InputText
           id="server-uri"
           v-model="config.uri"
-          type="text"
           placeholder="wss://sip.example.com:7443"
           :disabled="connecting"
+          class="w-full"
         />
         <small>Example: wss://sip.yourdomain.com:7443</small>
       </div>
 
       <div class="form-group">
         <label for="sip-uri">SIP URI</label>
-        <input
+        <InputText
           id="sip-uri"
           v-model="config.sipUri"
-          type="text"
           placeholder="sip:username@example.com"
           :disabled="connecting"
+          class="w-full"
         />
         <small>Example: sip:1000@yourdomain.com</small>
       </div>
 
       <div class="form-group">
         <label for="password">Password</label>
-        <input
+        <Password
           id="password"
           v-model="config.password"
-          type="password"
           placeholder="Enter your SIP password"
           :disabled="connecting"
+          :feedback="false"
+          class="w-full"
         />
       </div>
 
       <div class="form-group">
         <label for="display-name">Display Name (Optional)</label>
-        <input
+        <InputText
           id="display-name"
           v-model="config.displayName"
-          type="text"
           placeholder="Your Name"
           :disabled="connecting"
+          class="w-full"
         />
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
+        :label="connecting ? 'Connecting...' : 'Connect to Server'"
         :disabled="!isConfigValid || connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to Server' }}
-      </button>
+      />
 
-      <div v-if="connectionError" class="error-message">
+      <Message v-if="connectionError" severity="error" class="mt-2">
         {{ connectionError }}
-      </div>
+      </Message>
 
       <div class="demo-tip">
         <strong>Tip:</strong> Presence (SUBSCRIBE/NOTIFY) functionality requires server support.
@@ -104,7 +103,7 @@
           <span class="status-dot" :class="{ connected: effectiveIsRegistered }"></span>
           <span>{{ effectiveIsRegistered ? 'Registered' : 'Not Registered' }}</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
+        <Button label="Disconnect" severity="secondary" size="small" @click="handleDisconnect" />
       </div>
 
       <!-- Presence Controls -->
@@ -121,48 +120,48 @@
           </div>
 
           <div class="status-buttons">
-            <button
-              class="btn btn-status status-available"
+            <Button
+              class="btn-status status-available"
               :class="{ active: currentState === 'available' }"
               @click="handleSetStatus('available')"
               :disabled="!isRegistered"
             >
               <span class="status-dot available"></span> Available
-            </button>
-            <button
-              class="btn btn-status status-away"
+            </Button>
+            <Button
+              class="btn-status status-away"
               :class="{ active: currentState === 'away' }"
               @click="handleSetStatus('away')"
               :disabled="!isRegistered"
             >
               <span class="status-dot away"></span> Away
-            </button>
-            <button
-              class="btn btn-status status-busy"
+            </Button>
+            <Button
+              class="btn-status status-busy"
               :class="{ active: currentState === 'busy' }"
               @click="handleSetStatus('busy')"
               :disabled="!isRegistered"
             >
               <span class="status-dot busy"></span> Busy
-            </button>
-            <button
-              class="btn btn-status status-offline"
+            </Button>
+            <Button
+              class="btn-status status-offline"
               :class="{ active: currentState === 'offline' }"
               @click="handleSetStatus('offline')"
               :disabled="!isRegistered"
             >
               <span class="status-dot offline"></span> Offline
-            </button>
+            </Button>
           </div>
 
           <div class="form-group">
             <label for="status-message">Status Message (Optional)</label>
-            <input
+            <InputText
               id="status-message"
               v-model="statusMessage"
-              type="text"
               placeholder="e.g., In a meeting"
               :disabled="!isRegistered"
+              class="w-full"
             />
           </div>
         </div>
@@ -175,26 +174,23 @@
           </p>
 
           <div class="watch-form">
-            <input
+            <InputText
               v-model="targetUser"
-              type="text"
               placeholder="sip:user@example.com"
-              class="watch-input"
+              class="watch-input w-full"
               :disabled="!isRegistered"
               @keyup.enter="handleWatchUser"
             />
-            <button
-              class="btn btn-primary"
+            <Button
+              :label="isWatching ? 'Subscribing...' : 'Watch User'"
               :disabled="!targetUser.trim() || !isRegistered || isWatching"
               @click="handleWatchUser"
-            >
-              {{ isWatching ? 'Subscribing...' : 'Watch User' }}
-            </button>
+            />
           </div>
 
-          <div v-if="watchError" class="error-message">
+          <Message v-if="watchError" severity="error" class="mt-2">
             {{ watchError }}
-          </div>
+          </Message>
         </div>
 
         <!-- Watched Users List -->
@@ -221,19 +217,22 @@
                   </div>
                 </div>
               </div>
-              <button
-                class="btn btn-sm btn-danger"
+              <Button
+                label="Unwatch"
+                severity="danger"
+                size="small"
                 @click="handleUnwatch(uri)"
                 title="Stop watching this user"
-              >
-                Unwatch
-              </button>
+              />
             </div>
           </div>
 
-          <button v-if="watchedUsers.size > 1" class="btn btn-secondary" @click="handleUnwatchAll">
-            Unwatch All
-          </button>
+          <Button
+            v-if="watchedUsers.size > 1"
+            label="Unwatch All"
+            severity="secondary"
+            @click="handleUnwatchAll"
+          />
         </div>
 
         <!-- Empty State -->
@@ -268,6 +267,7 @@ import { useSipClient, usePresence } from '../../src'
 import { PresenceState, type PresenceEvent } from '../../src/types/presence.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Password, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -488,87 +488,18 @@ function formatEvent(event: PresenceEvent): string {
   color: #374151;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.form-group input:disabled {
-  background: #f3f4f6;
-  cursor: not-allowed;
-}
-
 .form-group small {
   display: block;
   margin-top: 0.25rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.75rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
-  font-size: 0.875rem;
 }
 
 .demo-tip {
   margin-top: 1.5rem;
   padding: 1rem;
   background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--info);
   border-radius: 4px;
   font-size: 0.875rem;
 }
@@ -583,7 +514,7 @@ function formatEvent(event: PresenceEvent): string {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
   margin-bottom: 2rem;
 }
@@ -599,11 +530,11 @@ function formatEvent(event: PresenceEvent): string {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--danger);
 }
 
 .status-dot.connected {
-  background: #10b981;
+  background: var(--success);
 }
 
 /* Presence Panel */
@@ -618,8 +549,8 @@ function formatEvent(event: PresenceEvent): string {
 .watched-list,
 .events-log {
   padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-0);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
 }
 
@@ -636,7 +567,7 @@ function formatEvent(event: PresenceEvent): string {
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 6px;
   margin-bottom: 1rem;
 }
@@ -649,23 +580,23 @@ function formatEvent(event: PresenceEvent): string {
 }
 
 .status-indicator.status-available {
-  background: var(--color-success, #10b981);
+  background: var(--color-success, var(--success));
 }
 
 .status-indicator.status-away {
-  background: var(--color-warning, #f59e0b);
+  background: var(--color-warning, var(--warning));
 }
 
 .status-indicator.status-busy {
-  background: var(--color-error, #ef4444);
+  background: var(--color-error, var(--danger));
 }
 
 .status-indicator.status-offline {
-  background: var(--color-gray, #6b7280);
+  background: var(--color-gray, var(--text-secondary));
 }
 
 .status-indicator.status-custom {
-  background: var(--color-info, #3b82f6);
+  background: var(--color-info, var(--info));
 }
 
 .status-text {
@@ -674,7 +605,7 @@ function formatEvent(event: PresenceEvent): string {
 }
 
 .status-message {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -685,13 +616,14 @@ function formatEvent(event: PresenceEvent): string {
   flex-wrap: wrap;
 }
 
-.btn-status {
+/* Custom styling for status buttons */
+:deep(.btn-status) {
   flex: 1;
   min-width: 120px;
   padding: 0.75rem 1rem;
-  background: #f3f4f6;
+  background: var(--surface-100);
   color: #374151;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -706,29 +638,29 @@ function formatEvent(event: PresenceEvent): string {
 }
 
 .status-dot.available {
-  background: var(--color-success, #10b981);
+  background: var(--color-success, var(--success));
 }
 
 .status-dot.away {
-  background: var(--color-warning, #f59e0b);
+  background: var(--color-warning, var(--warning));
 }
 
 .status-dot.busy {
-  background: var(--color-error, #ef4444);
+  background: var(--color-error, var(--danger));
 }
 
 .status-dot.offline {
-  background: var(--color-gray, #6b7280);
+  background: var(--color-gray, var(--text-secondary));
 }
 
-.btn-status:hover:not(:disabled) {
-  background: #e5e7eb;
+:deep(.btn-status:hover:not(:disabled)) {
+  background: var(--border-color);
 }
 
-.btn-status.active {
-  background: #667eea;
-  color: white;
-  border-color: #667eea;
+:deep(.btn-status.active) {
+  background: var(--primary);
+  color: var(--surface-0);
+  border-color: var(--primary);
 }
 
 /* Watch Section */
@@ -758,8 +690,8 @@ function formatEvent(event: PresenceEvent): string {
   justify-content: space-between;
   align-items: flex-start;
   padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-50);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
 }
 
@@ -780,7 +712,7 @@ function formatEvent(event: PresenceEvent): string {
 }
 
 .user-status {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   margin-bottom: 0.25rem;
 }
@@ -794,10 +726,10 @@ function formatEvent(event: PresenceEvent): string {
 .empty-state {
   padding: 2rem;
   text-align: center;
-  background: #f9fafb;
+  background: var(--surface-50);
   border: 1px dashed #d1d5db;
   border-radius: 8px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .empty-state p:first-child {
@@ -818,7 +750,7 @@ function formatEvent(event: PresenceEvent): string {
   display: flex;
   gap: 1rem;
   padding: 0.75rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 4px;
   font-size: 0.875rem;
 }
@@ -830,7 +762,7 @@ function formatEvent(event: PresenceEvent): string {
 }
 
 .event-type {
-  color: #667eea;
+  color: var(--primary);
   font-weight: 500;
   min-width: 100px;
 }
@@ -842,19 +774,19 @@ function formatEvent(event: PresenceEvent): string {
 
 /* Status Colors */
 .status-available {
-  color: #10b981;
+  color: var(--success);
 }
 
 .status-away {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .status-busy {
-  color: #ef4444;
+  color: var(--danger);
 }
 
 .status-offline {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 /* Responsive */
@@ -865,6 +797,7 @@ function formatEvent(event: PresenceEvent): string {
 
   .btn-status {
     width: 100%;
+    min-width: auto;
   }
 
   .watch-form {
@@ -876,9 +809,37 @@ function formatEvent(event: PresenceEvent): string {
     gap: 1rem;
   }
 
+  .user-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .status-bar {
     flex-direction: column;
     gap: 1rem;
+    align-items: flex-start;
   }
+}
+
+@media (max-width: 480px) {
+  .presence-panel {
+    gap: 1.5rem;
+  }
+
+  .status-section,
+  .watch-section,
+  .watched-list,
+  .events-log {
+    padding: 1rem;
+  }
+}
+
+/* Utility classes */
+.w-full {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
 }
 </style>

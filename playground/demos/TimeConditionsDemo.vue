@@ -32,7 +32,7 @@
         <!-- Connection Status -->
         <div v-if="!isConnected" class="connection-panel">
           <Message severity="warn" :closable="false">
-            <template #icon><i class="pi pi-exclamation-triangle"></i></template>
+            <template #icon><i class="pi pi-exclamation-triangle text-xl"></i></template>
             Connect to AMI to manage time conditions
           </Message>
           <div class="connection-form">
@@ -44,9 +44,15 @@
         <template v-else>
           <!-- Status Bar -->
           <div class="status-bar">
-            <Tag :severity="isConnected ? 'success' : 'danger'" :value="isConnected ? 'Connected' : 'Disconnected'" />
+            <Tag
+              :severity="isConnected ? 'success' : 'danger'"
+              :value="isConnected ? 'Connected' : 'Disconnected'"
+            />
             <Tag severity="info" :value="`${conditions.length} conditions`" />
-            <Tag :severity="isCurrentlyOpen ? 'success' : 'warning'" :value="isCurrentlyOpen ? 'Business Open' : 'Business Closed'" />
+            <Tag
+              :severity="isCurrentlyOpen ? 'success' : 'warning'"
+              :value="isCurrentlyOpen ? 'Business Open' : 'Business Closed'"
+            />
           </div>
 
           <!-- Current Time Info -->
@@ -58,13 +64,20 @@
               </div>
               <div class="status-indicator" :class="{ open: isCurrentlyOpen }">
                 <i :class="isCurrentlyOpen ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
-                <span>{{ isCurrentlyOpen ? 'Within Business Hours' : 'Outside Business Hours' }}</span>
+                <span>{{
+                  isCurrentlyOpen ? 'Within Business Hours' : 'Outside Business Hours'
+                }}</span>
               </div>
             </div>
           </Panel>
 
           <!-- Create New Condition -->
-          <Panel header="Create Time Condition" :toggleable="true" :collapsed="conditions.length > 0" class="section-panel">
+          <Panel
+            header="Create Time Condition"
+            :toggleable="true"
+            :collapsed="conditions.length > 0"
+            class="section-panel"
+          >
             <div class="form-grid">
               <div class="form-field">
                 <label>Name *</label>
@@ -94,9 +107,17 @@
                   <span>{{ day.label }}</span>
                 </div>
                 <div v-if="scheduleEnabled[day.value]" class="time-inputs">
-                  <InputText v-model="scheduleTimes[day.value].start" placeholder="09:00" class="time-input" />
+                  <InputText
+                    v-model="scheduleTimes[day.value].start"
+                    placeholder="09:00"
+                    class="time-input"
+                  />
                   <span>to</span>
-                  <InputText v-model="scheduleTimes[day.value].end" placeholder="17:00" class="time-input" />
+                  <InputText
+                    v-model="scheduleTimes[day.value].end"
+                    placeholder="17:00"
+                    class="time-input"
+                  />
                 </div>
                 <div v-else class="closed-label">Closed</div>
               </div>
@@ -115,11 +136,19 @@
 
           <!-- Active Conditions -->
           <Panel header="Time Conditions" :toggleable="true" class="section-panel">
-            <DataTable :value="conditions" size="small" :rows="5" :paginator="conditions.length > 5">
+            <DataTable
+              :value="conditions"
+              size="small"
+              :rows="5"
+              :paginator="conditions.length > 5"
+            >
               <Column field="name" header="Name" sortable />
               <Column header="Status">
                 <template #body="{ data }">
-                  <Tag :severity="data.enabled ? 'success' : 'secondary'" :value="data.enabled ? 'Active' : 'Disabled'" />
+                  <Tag
+                    :severity="data.enabled ? 'success' : 'secondary'"
+                    :value="data.enabled ? 'Active' : 'Disabled'"
+                  />
                 </template>
               </Column>
               <Column header="Override">
@@ -170,7 +199,7 @@
               </Column>
             </DataTable>
             <div v-if="conditions.length === 0" class="empty-state">
-              <i class="pi pi-clock"></i>
+              <i class="pi pi-clock text-4xl"></i>
               <span>No time conditions configured</span>
             </div>
           </Panel>
@@ -195,12 +224,19 @@
               <Column field="date" header="Date" />
               <Column field="recurring" header="Recurring">
                 <template #body="{ data }">
-                  <i :class="data.recurring ? 'pi pi-check text-success' : 'pi pi-times text-muted'"></i>
+                  <i
+                    :class="data.recurring ? 'pi pi-check text-success' : 'pi pi-times text-muted'"
+                  ></i>
                 </template>
               </Column>
               <Column header="Actions" style="width: 80px">
                 <template #body="{ data }">
-                  <Button icon="pi pi-trash" size="small" severity="danger" @click="removeHoliday(data.id)" />
+                  <Button
+                    icon="pi pi-trash"
+                    size="small"
+                    severity="danger"
+                    @click="removeHoliday(data.id)"
+                  />
                 </template>
               </Column>
             </DataTable>
@@ -222,17 +258,19 @@ import { useAmiTimeConditions } from '@/composables'
 import { playgroundAmiClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
-import Card from 'primevue/card'
-import Panel from 'primevue/panel'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import Calendar from 'primevue/calendar'
-import Checkbox from 'primevue/checkbox'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Tag from 'primevue/tag'
-import Message from 'primevue/message'
-import Divider from 'primevue/divider'
+import {
+  Card,
+  Panel,
+  Button,
+  InputText,
+  Calendar,
+  Checkbox,
+  DataTable,
+  Column,
+  Tag,
+  Message,
+  Divider,
+} from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -285,7 +323,11 @@ const currentDayDisplay = ref('')
 const updateTime = () => {
   const now = new Date()
   currentTimeDisplay.value = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-  currentDayDisplay.value = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  currentDayDisplay.value = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
 }
 
 let timeInterval: ReturnType<typeof setInterval>
@@ -346,10 +388,19 @@ const newHoliday = reactive({
 // Actions
 const createCondition = async () => {
   try {
-    const schedule = weekDays.map(day => ({
-      day: day.value as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
+    const schedule = weekDays.map((day) => ({
+      day: day.value as
+        | 'monday'
+        | 'tuesday'
+        | 'wednesday'
+        | 'thursday'
+        | 'friday'
+        | 'saturday'
+        | 'sunday',
       enabled: scheduleEnabled[day.value] ?? false,
-      ranges: scheduleEnabled[day.value] ? [scheduleTimes[day.value] ?? { start: '09:00', end: '17:00' }] : [],
+      ranges: scheduleEnabled[day.value]
+        ? [scheduleTimes[day.value] ?? { start: '09:00', end: '17:00' }]
+        : [],
     }))
 
     await create({
@@ -665,5 +716,122 @@ console.log('Business open:', isCurrentlyOpen.value)`
   font-size: 0.875rem;
   line-height: 1.5;
   white-space: pre;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .time-conditions-demo {
+    margin: 0 0.5rem;
+  }
+
+  .demo-card {
+    margin: 0.5rem;
+  }
+
+  .status-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .current-status {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .current-time {
+    font-size: 1.5rem;
+  }
+
+  .status-indicator {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .time-inputs {
+    flex-wrap: wrap;
+  }
+
+  .time-input {
+    width: 60px;
+  }
+
+  .holiday-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .demo-header {
+    padding: 0.75rem;
+  }
+
+  .current-time {
+    font-size: 1.25rem;
+  }
+
+  .connection-form {
+    flex-direction: column;
+  }
+
+  .url-input {
+    width: 100%;
+  }
+
+  .schedule-day {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .day-header {
+    font-size: 0.875rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .code-block {
+    font-size: 0.75rem;
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .demo-card {
+    margin: 0.25rem;
+  }
+
+  .current-time {
+    font-size: 1.125rem;
+  }
+
+  .status-indicator {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .section-panel {
+    font-size: 0.9rem;
+  }
+
+  .form-field label {
+    font-size: 0.8125rem;
+  }
 }
 </style>
