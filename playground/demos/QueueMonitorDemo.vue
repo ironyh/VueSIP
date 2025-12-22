@@ -41,13 +41,11 @@
         <small>amiws WebSocket proxy URL</small>
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
+        :label="connecting ? 'Connecting...' : 'Connect to AMI'"
         :disabled="!amiConfig.url || connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
+      />
 
       <div v-if="connectionError" class="error-message">
         {{ connectionError }}
@@ -82,10 +80,14 @@
         <div class="status-item">
           <span class="stat-sl">SL: {{ overallServiceLevel }}%</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleRefresh" :disabled="loading">
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
-        </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
+        <Button
+          :label="loading ? 'Refreshing...' : 'Refresh'"
+          severity="secondary"
+          size="small"
+          @click="handleRefresh"
+          :disabled="loading"
+        />
+        <Button label="Disconnect" severity="secondary" size="small" @click="handleDisconnect" />
       </div>
 
       <!-- Queue Overview -->
@@ -172,20 +174,20 @@
                       </span>
                     </div>
                     <div class="member-actions">
-                      <button
+                      <Button
                         v-if="!member.paused"
-                        class="btn btn-sm btn-warning"
+                        label="Pause"
+                        severity="warn"
+                        size="small"
                         @click.stop="handlePause(queue.name, member.interface)"
-                      >
-                        Pause
-                      </button>
-                      <button
+                      />
+                      <Button
                         v-else
-                        class="btn btn-sm btn-success"
+                        label="Unpause"
+                        severity="success"
+                        size="small"
                         @click.stop="handleUnpause(queue.name, member.interface)"
-                      >
-                        Unpause
-                      </button>
+                      />
                     </div>
                   </div>
                 </div>
@@ -225,16 +227,15 @@
           <h3>Pause Agent</h3>
           <p>Select a reason for pausing:</p>
           <div class="pause-reasons">
-            <button
+            <Button
               v-for="reason in pauseReasons"
               :key="reason"
-              class="btn btn-reason"
+              :label="reason"
+              class="btn-reason"
               @click="confirmPause(reason)"
-            >
-              {{ reason }}
-            </button>
+            />
           </div>
-          <button class="btn btn-secondary" @click="cancelPause">Cancel</button>
+          <Button label="Cancel" severity="secondary" @click="cancelPause" />
         </div>
       </div>
 
@@ -251,6 +252,7 @@ import { ref, computed, onMounted, watch as _watch } from 'vue'
 import { useAmi, useAmiQueues } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button } from './shared-components'
 import type { QueueInfo } from '../../src/types/ami.types'
 import { QueueMemberStatus } from '../../src/types/ami.types'
 
@@ -444,18 +446,18 @@ onMounted(() => {
 
 .config-panel h3 {
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--vuesip-text-primary);
 }
 
 .info-text {
   margin-bottom: 1.5rem;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
 }
 
 .info-text a {
-  color: #667eea;
+  color: var(--vuesip-primary);
 }
 
 .form-group {
@@ -466,87 +468,40 @@ onMounted(() => {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--vuesip-text-primary);
 }
 
 .form-group input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius);
   font-size: 0.875rem;
 }
 
 .form-group small {
   display: block;
   margin-top: 0.25rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
   font-size: 0.75rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-.btn-success {
-  background: #10b981;
-  color: white;
-}
-.btn-success:hover:not(:disabled) {
-  background: #059669;
-}
-.btn-warning {
-  background: #f59e0b;
-  color: white;
-}
-.btn-warning:hover:not(:disabled) {
-  background: #d97706;
-}
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
 }
 
 .error-message {
   margin-top: 1rem;
   padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
+  background: var(--vuesip-danger-light);
+  border: 1px solid var(--vuesip-danger);
+  border-radius: var(--vuesip-border-radius);
+  color: var(--vuesip-danger-dark);
   font-size: 0.875rem;
 }
 
 .demo-tip {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
+  background: var(--vuesip-info-light);
+  border-left: 4px solid var(--vuesip-info);
+  border-radius: var(--vuesip-border-radius);
   font-size: 0.875rem;
 }
 
@@ -562,8 +517,8 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius-lg);
   margin-bottom: 2rem;
 }
 
@@ -578,37 +533,37 @@ onMounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--vuesip-danger);
 }
 
 .status-dot.connected {
-  background: #10b981;
+  background: var(--vuesip-success);
 }
 
 .stat-paused {
-  color: #f59e0b;
+  color: var(--vuesip-warning);
   font-weight: 500;
 }
 
 .stat-sl {
-  color: #10b981;
+  color: var(--vuesip-success);
   font-weight: 500;
 }
 
 /* Queue Overview */
 .queue-overview h3 {
   margin-bottom: 1rem;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .loading-state,
 .empty-state {
   padding: 2rem;
   text-align: center;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
-  color: #6b7280;
+  background: var(--vuesip-bg-secondary);
+  border: 1px dashed var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
+  color: var(--vuesip-text-tertiary);
 }
 
 /* Queue Cards */
@@ -619,21 +574,21 @@ onMounted(() => {
 }
 
 .queue-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-primary);
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
   padding: 1rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--vuesip-transition);
 }
 
 .queue-card:hover {
-  border-color: #667eea;
+  border-color: var(--vuesip-primary);
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
 }
 
 .queue-card.expanded {
-  border-color: #667eea;
+  border-color: var(--vuesip-primary);
 }
 
 .queue-header {
@@ -646,7 +601,7 @@ onMounted(() => {
 .queue-name {
   font-weight: 600;
   font-size: 1.125rem;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .queue-stats {
@@ -657,18 +612,18 @@ onMounted(() => {
 .stat {
   font-size: 0.875rem;
   padding: 0.25rem 0.5rem;
-  background: #f3f4f6;
-  border-radius: 4px;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius);
 }
 
 .stat.callers.alert {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--vuesip-danger-light);
+  color: var(--vuesip-danger-dark);
 }
 
 .stat.available {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--vuesip-success-light);
+  color: var(--vuesip-success-dark);
 }
 
 .queue-metrics {
@@ -685,30 +640,30 @@ onMounted(() => {
 
 .metric label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
   text-transform: uppercase;
 }
 
 .metric span {
   font-weight: 500;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .metric .abandoned {
-  color: #dc2626;
+  color: var(--vuesip-danger-dark);
 }
 
 /* Queue Details */
 .queue-details {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--vuesip-border);
 }
 
 .members-section h4,
 .callers-section h4 {
   margin-bottom: 1rem;
-  color: #374151;
+  color: var(--vuesip-text-primary);
 }
 
 .members-list,
@@ -724,13 +679,13 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius);
 }
 
 .member-card.paused {
-  background: #fef3c7;
-  border: 1px solid #fbbf24;
+  background: var(--vuesip-warning-light);
+  border: 1px solid var(--yellow-400);
 }
 
 .member-info {
@@ -739,12 +694,12 @@ onMounted(() => {
 
 .member-name {
   font-weight: 500;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .member-interface {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .member-status {
@@ -755,39 +710,39 @@ onMounted(() => {
 
 .status-badge {
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--vuesip-border-radius);
   font-size: 0.75rem;
   font-weight: 500;
 }
 
 .status-badge.available {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--vuesip-success-light);
+  color: var(--vuesip-success-dark);
 }
 .status-badge.busy {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--vuesip-danger-light);
+  color: var(--vuesip-danger-dark);
 }
 .status-badge.ringing {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--vuesip-info-light);
+  color: var(--vuesip-info-dark);
 }
 .status-badge.hold {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--vuesip-warning-light);
+  color: var(--vuesip-warning-dark);
 }
 .status-badge.offline {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--vuesip-bg-secondary);
+  color: var(--vuesip-text-tertiary);
 }
 .status-badge.unknown {
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--vuesip-border);
+  color: var(--vuesip-text-primary);
 }
 
 .paused-badge {
   font-size: 0.75rem;
-  color: #92400e;
+  color: var(--vuesip-warning-dark);
 }
 
 .member-stats {
@@ -795,7 +750,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .member-actions {
@@ -809,19 +764,19 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius);
 }
 
 .caller-card.long {
-  background: #fef3c7;
-  border: 1px solid #fbbf24;
+  background: var(--vuesip-warning-light);
+  border: 1px solid var(--yellow-400);
 }
 
 .caller-position {
   font-weight: 600;
   font-size: 1.25rem;
-  color: #667eea;
+  color: var(--vuesip-primary);
   min-width: 40px;
 }
 
@@ -831,12 +786,12 @@ onMounted(() => {
 
 .caller-id {
   font-weight: 500;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .caller-number {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .caller-wait {
@@ -844,7 +799,7 @@ onMounted(() => {
 }
 
 .caller-wait.alert {
-  color: #dc2626;
+  color: var(--vuesip-danger-dark);
 }
 
 /* Callers Section */
@@ -864,9 +819,9 @@ onMounted(() => {
 }
 
 .dialog {
-  background: white;
+  background: var(--vuesip-bg-primary);
   padding: 2rem;
-  border-radius: 12px;
+  border-radius: var(--vuesip-border-radius-lg);
   max-width: 400px;
   width: 90%;
 }
@@ -876,7 +831,7 @@ onMounted(() => {
 }
 
 .dialog p {
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
   margin-bottom: 1rem;
 }
 
@@ -888,15 +843,15 @@ onMounted(() => {
 }
 
 .btn-reason {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #e5e7eb;
+  background: var(--vuesip-bg-secondary);
+  color: var(--vuesip-text-primary);
+  border: 1px solid var(--vuesip-border);
 }
 
 .btn-reason:hover {
-  background: #667eea;
-  color: white;
-  border-color: #667eea;
+  background: var(--vuesip-primary);
+  color: var(--surface-0);
+  border-color: var(--vuesip-primary);
 }
 
 /* Responsive */
@@ -909,19 +864,73 @@ onMounted(() => {
 
   .queue-stats {
     flex-wrap: wrap;
+    width: 100%;
   }
 
   .queue-metrics {
     justify-content: space-between;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .member-card {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .member-status {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .member-stats {
+    width: 100%;
+  }
+
+  .member-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .caller-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 
   .status-bar {
     flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .pause-reasons {
+    flex-direction: column;
+  }
+
+  .btn-reason {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .queue-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .stat {
+    width: 100%;
+    display: block;
+    text-align: center;
+  }
+
+  .connected-interface {
+    padding: 1rem;
+  }
+
+  .queue-card {
+    padding: 0.75rem;
   }
 }
 </style>

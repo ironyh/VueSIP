@@ -57,7 +57,7 @@
 
       <div class="form-group">
         <label for="ami-url">AMI WebSocket URL</label>
-        <input
+        <InputText
           id="ami-url"
           v-model="config.url"
           type="text"
@@ -70,7 +70,7 @@
       <div class="form-row">
         <div class="form-group">
           <label for="ami-username">Username <small>(optional)</small></label>
-          <input
+          <InputText
             id="ami-username"
             v-model="config.username"
             type="text"
@@ -81,23 +81,22 @@
 
         <div class="form-group">
           <label for="ami-password">Password <small>(optional)</small></label>
-          <input
+          <Password
             id="ami-password"
             v-model="config.password"
-            type="password"
             placeholder="Enter password"
             :disabled="connecting"
+            :feedback="false"
+            toggleMask
           />
         </div>
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
+        :label="connecting ? 'Connecting...' : 'Connect to AMI'"
         :disabled="!isConfigValid || connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
+      />
 
       <div v-if="connectionError" class="error-message">
         {{ connectionError }}
@@ -124,7 +123,7 @@
             <span>{{ users.length }}</span>
           </div>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
+        <Button label="Disconnect" severity="secondary" size="small" @click="handleDisconnect" />
       </div>
 
       <!-- Main Panel -->
@@ -137,7 +136,7 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="user-extension">Extension</label>
-                <input
+                <InputText
                   id="user-extension"
                   v-model="newUser.extension"
                   type="text"
@@ -149,7 +148,7 @@
 
               <div class="form-group">
                 <label for="user-name">Display Name</label>
-                <input
+                <InputText
                   id="user-name"
                   v-model="newUser.displayName"
                   type="text"
@@ -162,19 +161,20 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="user-secret">SIP Password</label>
-                <input
+                <Password
                   id="user-secret"
                   v-model="newUser.secret"
-                  type="password"
                   placeholder="Enter SIP password"
                   :disabled="isLoading"
+                  :feedback="false"
+                  toggleMask
                 />
                 <small>Used for SIP registration</small>
               </div>
 
               <div class="form-group">
                 <label for="user-email">Email (Optional)</label>
-                <input
+                <InputText
                   id="user-email"
                   v-model="newUser.email"
                   type="email"
@@ -187,57 +187,72 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="user-context">Dial Context</label>
-                <select id="user-context" v-model="newUser.context" :disabled="isLoading">
-                  <option value="from-internal">from-internal (Internal calls)</option>
-                  <option value="from-internal-additional">from-internal-additional</option>
-                  <option value="from-pstn">from-pstn (External calls)</option>
-                </select>
+                <Dropdown
+                  id="user-context"
+                  v-model="newUser.context"
+                  :options="[
+                    { label: 'from-internal (Internal calls)', value: 'from-internal' },
+                    { label: 'from-internal-additional', value: 'from-internal-additional' },
+                    { label: 'from-pstn (External calls)', value: 'from-pstn' },
+                  ]"
+                  optionLabel="label"
+                  optionValue="value"
+                  :disabled="isLoading"
+                />
               </div>
 
               <div class="form-group">
                 <label for="user-transport">Transport</label>
-                <select id="user-transport" v-model="newUser.transport" :disabled="isLoading">
-                  <option value="udp">UDP</option>
-                  <option value="tcp">TCP</option>
-                  <option value="tls">TLS</option>
-                  <option value="wss">WSS (WebRTC)</option>
-                </select>
+                <Dropdown
+                  id="user-transport"
+                  v-model="newUser.transport"
+                  :options="[
+                    { label: 'UDP', value: 'udp' },
+                    { label: 'TCP', value: 'tcp' },
+                    { label: 'TLS', value: 'tls' },
+                    { label: 'WSS (WebRTC)', value: 'wss' },
+                  ]"
+                  optionLabel="label"
+                  optionValue="value"
+                  :disabled="isLoading"
+                />
               </div>
             </div>
 
             <div class="form-row checkbox-row">
               <label class="checkbox-label">
-                <input type="checkbox" v-model="newUser.voicemailEnabled" :disabled="isLoading" />
+                <Checkbox v-model="newUser.voicemailEnabled" :binary="true" :disabled="isLoading" />
                 <span>Enable Voicemail</span>
               </label>
 
               <label class="checkbox-label">
-                <input type="checkbox" v-model="newUser.callWaitingEnabled" :disabled="isLoading" />
+                <Checkbox
+                  v-model="newUser.callWaitingEnabled"
+                  :binary="true"
+                  :disabled="isLoading"
+                />
                 <span>Enable Call Waiting</span>
               </label>
 
               <label class="checkbox-label">
-                <input type="checkbox" v-model="newUser.enabled" :disabled="isLoading" />
+                <Checkbox v-model="newUser.enabled" :binary="true" :disabled="isLoading" />
                 <span>User Enabled</span>
               </label>
             </div>
 
             <div class="form-actions">
-              <button
+              <Button
                 v-if="editingUser"
-                class="btn btn-secondary"
+                label="Cancel"
+                severity="secondary"
                 :disabled="isLoading"
                 @click="cancelEdit"
-              >
-                Cancel
-              </button>
-              <button
-                class="btn btn-primary"
+              />
+              <Button
+                :label="isLoading ? 'Saving...' : editingUser ? 'Update User' : 'Add User'"
                 :disabled="!isUserFormValid || isLoading"
                 @click="editingUser ? handleUpdateUser() : handleAddUser()"
-              >
-                {{ isLoading ? 'Saving...' : editingUser ? 'Update User' : 'Add User' }}
-              </button>
+              />
             </div>
           </div>
         </div>
@@ -247,7 +262,7 @@
           <div class="section-header">
             <h3>SIP Users</h3>
             <div class="search-box">
-              <input
+              <InputText
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search users..."
@@ -319,30 +334,31 @@
                 </div>
               </div>
               <div class="user-actions">
-                <button
-                  class="btn btn-sm btn-icon"
+                <Button
+                  label="Edit"
+                  class="btn-icon"
+                  size="small"
                   title="Edit user"
                   :disabled="isLoading"
                   @click="handleEditUser(user)"
-                >
-                  Edit
-                </button>
-                <button
-                  class="btn btn-sm btn-icon"
+                />
+                <Button
+                  :label="user.enabled ? 'Disable' : 'Enable'"
+                  class="btn-icon"
+                  size="small"
                   :title="user.enabled ? 'Disable user' : 'Enable user'"
                   :disabled="isLoading"
                   @click="handleToggleUser(user)"
-                >
-                  {{ user.enabled ? 'Disable' : 'Enable' }}
-                </button>
-                <button
-                  class="btn btn-sm btn-icon btn-danger"
+                />
+                <Button
+                  label="Delete"
+                  class="btn-icon"
+                  severity="danger"
+                  size="small"
                   title="Delete user"
                   :disabled="isLoading"
                   @click="handleDeleteUser(user)"
-                >
-                  Delete
-                </button>
+                />
               </div>
             </div>
           </div>
@@ -352,16 +368,18 @@
         <div v-if="users.length > 0" class="bulk-actions">
           <h4>Bulk Actions</h4>
           <div class="actions-row">
-            <button class="btn btn-secondary" :disabled="isLoading" @click="handleExportUsers">
-              Export Users
-            </button>
-            <button
-              class="btn btn-secondary"
+            <Button
+              label="Export Users"
+              severity="secondary"
+              :disabled="isLoading"
+              @click="handleExportUsers"
+            />
+            <Button
+              label="Refresh Status"
+              severity="secondary"
               :disabled="isLoading"
               @click="handleRefreshRegistrations"
-            >
-              Refresh Status
-            </button>
+            />
           </div>
         </div>
 
@@ -386,6 +404,7 @@ import SimulationControls from '../components/SimulationControls.vue'
 import { playgroundAmiClient, loadAmiConfig, saveAmiConfig } from '../sipClient'
 import { useAmiPeers } from '@/composables/useAmiPeers'
 import type { PeerInfo } from '@/types/ami.types'
+import { Button, InputText, Password, Dropdown, Checkbox } from './shared-components'
 
 // Types
 interface SipUser {
@@ -844,8 +863,8 @@ async function handleRefreshRegistrations() {
   display: flex;
   gap: 1rem;
   padding: 1rem 1.25rem;
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-  border: 1px solid #c7d2fe;
+  background: linear-gradient(135deg, var(--indigo-50) 0%, var(--indigo-100) 100%);
+  border: 1px solid var(--indigo-200);
   border-radius: 10px;
   margin-bottom: 1.5rem;
 }
@@ -857,13 +876,13 @@ async function handleRefreshRegistrations() {
 
 .banner-content h4 {
   margin: 0 0 0.5rem 0;
-  color: #4338ca;
+  color: var(--indigo-700);
   font-size: 1rem;
 }
 
 .banner-content p {
   margin: 0;
-  color: #4f46e5;
+  color: var(--indigo-600);
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -875,12 +894,12 @@ async function handleRefreshRegistrations() {
 
 .config-panel h3 {
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--vuesip-text-primary);
 }
 
 .info-text {
   margin-bottom: 1.5rem;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -909,41 +928,20 @@ async function handleRefreshRegistrations() {
   gap: 0.5rem;
   cursor: pointer;
   font-size: 0.875rem;
-  color: #374151;
-}
-
-.checkbox-label input[type='checkbox'] {
-  width: auto;
+  color: var(--vuesip-text-primary);
 }
 
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background: white;
-  color: #111827;
-}
-
-.form-group input:disabled,
-.form-group select:disabled {
-  background: #f3f4f6;
-  cursor: not-allowed;
+  color: var(--vuesip-text-primary);
 }
 
 .form-group small {
   display: block;
   margin-top: 0.25rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
   font-size: 0.75rem;
 }
 
@@ -953,99 +951,46 @@ async function handleRefreshRegistrations() {
   justify-content: flex-end;
 }
 
-/* Buttons */
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
+/* Custom button styling */
 .btn-icon {
   padding: 0.5rem;
   background: transparent;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--vuesip-border);
   min-width: 36px;
 }
 
 .btn-icon:hover:not(:disabled) {
-  background: #f3f4f6;
-}
-
-.btn-icon.btn-danger {
-  background: transparent;
-  color: #ef4444;
-  border-color: #fecaca;
-}
-
-.btn-icon.btn-danger:hover:not(:disabled) {
-  background: #fee2e2;
+  background: var(--vuesip-bg-secondary);
 }
 
 .error-message {
   margin-top: 1rem;
   padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
+  background: var(--vuesip-danger-light);
+  border: 1px solid var(--vuesip-danger);
+  border-radius: var(--vuesip-border-radius);
+  color: var(--vuesip-danger-dark);
   font-size: 0.875rem;
 }
 
 .success-message {
   margin-top: 1rem;
   padding: 0.75rem;
-  background: #d1fae5;
-  border: 1px solid #a7f3d0;
-  border-radius: 6px;
-  color: #065f46;
+  background: var(--vuesip-success-light);
+  border: 1px solid var(--vuesip-success);
+  border-radius: var(--vuesip-border-radius);
+  color: var(--vuesip-success-dark);
   font-size: 0.875rem;
 }
 
 .demo-tip {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
+  background: var(--vuesip-info-light);
+  border-left: 4px solid var(--vuesip-info);
+  border-radius: var(--vuesip-border-radius);
   font-size: 0.875rem;
-  color: #1e40af;
+  color: var(--vuesip-info-dark);
 }
 
 /* Connected Interface */
@@ -1058,8 +1003,8 @@ async function handleRefreshRegistrations() {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius-lg);
   margin-bottom: 1.5rem;
 }
 
@@ -1073,18 +1018,18 @@ async function handleRefreshRegistrations() {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--vuesip-text-primary);
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--vuesip-danger);
 }
 
 .status-dot.connected {
-  background: #10b981;
+  background: var(--vuesip-success);
 }
 
 .status-icon {
@@ -1102,16 +1047,16 @@ async function handleRefreshRegistrations() {
 .users-section,
 .bulk-actions {
   padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-primary);
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
 }
 
 .add-user-section h3,
 .users-section h3,
 .bulk-actions h4 {
   margin: 0 0 1rem 0;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .section-header {
@@ -1132,8 +1077,8 @@ async function handleRefreshRegistrations() {
 .search-input {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius);
   font-size: 0.875rem;
 }
 
@@ -1149,28 +1094,28 @@ async function handleRefreshRegistrations() {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  transition: all 0.2s;
+  background: var(--vuesip-bg-secondary);
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
+  transition: all var(--vuesip-transition);
 }
 
 .user-card:hover {
-  border-color: #c7d2fe;
+  border-color: var(--indigo-200);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .user-card.disabled {
   opacity: 0.6;
-  background: #f3f4f6;
+  background: var(--vuesip-bg-secondary);
 }
 
 .user-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #4f46e5);
-  color: white;
+  background: linear-gradient(135deg, var(--vuesip-primary), var(--indigo-600));
+  color: var(--surface-0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1193,13 +1138,13 @@ async function handleRefreshRegistrations() {
 
 .user-name {
   font-weight: 600;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .user-extension {
   font-size: 0.75rem;
-  color: #6b7280;
-  background: #e5e7eb;
+  color: var(--vuesip-text-tertiary);
+  background: var(--vuesip-border);
   padding: 0.125rem 0.5rem;
   border-radius: 999px;
 }
@@ -1216,7 +1161,7 @@ async function handleRefreshRegistrations() {
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .detail-icon {
@@ -1237,28 +1182,28 @@ async function handleRefreshRegistrations() {
 }
 
 .status-badge.enabled {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--vuesip-success-light);
+  color: var(--vuesip-success-dark);
 }
 
 .status-badge.disabled {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--vuesip-bg-secondary);
+  color: var(--vuesip-text-tertiary);
 }
 
 .status-badge.registered {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--vuesip-info-light);
+  color: var(--vuesip-info-dark);
 }
 
 .status-badge.unregistered {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--vuesip-warning-light);
+  color: var(--vuesip-warning-dark);
 }
 
 .status-badge.unknown {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--vuesip-bg-secondary);
+  color: var(--vuesip-text-tertiary);
 }
 
 .user-actions {
@@ -1271,7 +1216,7 @@ async function handleRefreshRegistrations() {
 .no-users {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .no-users-icon {
@@ -1287,7 +1232,7 @@ async function handleRefreshRegistrations() {
 
 .no-users .hint {
   font-size: 0.875rem;
-  color: #9ca3af;
+  color: var(--vuesip-text-tertiary);
 }
 
 /* Bulk Actions */

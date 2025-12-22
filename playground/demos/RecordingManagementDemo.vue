@@ -42,20 +42,22 @@
       <div class="form-row">
         <div class="form-group">
           <label>WebSocket URL</label>
-          <input v-model="amiUrl" type="text" placeholder="ws://localhost:8088/ami" />
+          <InputText v-model="amiUrl" placeholder="ws://localhost:8088/ami" />
         </div>
         <div class="form-group">
           <label>Username</label>
-          <input v-model="amiUsername" type="text" placeholder="admin" />
+          <InputText v-model="amiUsername" placeholder="admin" />
         </div>
         <div class="form-group">
           <label>Secret</label>
-          <input v-model="amiSecret" type="password" placeholder="secret" />
+          <Password v-model="amiSecret" placeholder="secret" :feedback="false" toggleMask />
         </div>
       </div>
-      <button @click="toggleAmiConnection" :disabled="isConnecting">
-        {{ amiConnected ? 'Disconnect' : isConnecting ? 'Connecting...' : 'Connect' }}
-      </button>
+      <Button
+        :label="amiConnected ? 'Disconnect' : isConnecting ? 'Connecting...' : 'Connect'"
+        :disabled="isConnecting"
+        @click="toggleAmiConnection"
+      />
     </div>
 
     <!-- Recording Options -->
@@ -64,28 +66,37 @@
       <div class="form-row">
         <div class="form-group">
           <label>Format</label>
-          <select v-model="recordingOptions.format">
-            <option value="wav">WAV (Uncompressed)</option>
-            <option value="gsm">GSM (Compressed)</option>
-            <option value="ulaw">uLaw (G.711)</option>
-            <option value="alaw">aLaw (G.711)</option>
-            <option value="g722">G.722 (Wideband)</option>
-            <option value="wav49">WAV49 (GSM in WAV)</option>
-          </select>
+          <Dropdown
+            v-model="recordingOptions.format"
+            :options="[
+              { label: 'WAV (Uncompressed)', value: 'wav' },
+              { label: 'GSM (Compressed)', value: 'gsm' },
+              { label: 'uLaw (G.711)', value: 'ulaw' },
+              { label: 'aLaw (G.711)', value: 'alaw' },
+              { label: 'G.722 (Wideband)', value: 'g722' },
+              { label: 'WAV49 (GSM in WAV)', value: 'wav49' },
+            ]"
+            optionLabel="label"
+            optionValue="value"
+          />
         </div>
         <div class="form-group">
           <label>Mix Mode</label>
-          <select v-model="recordingOptions.mixMode">
-            <option value="both">Both Directions</option>
-            <option value="read">Incoming Only</option>
-            <option value="write">Outgoing Only</option>
-          </select>
+          <Dropdown
+            v-model="recordingOptions.mixMode"
+            :options="[
+              { label: 'Both Directions', value: 'both' },
+              { label: 'Incoming Only', value: 'read' },
+              { label: 'Outgoing Only', value: 'write' },
+            ]"
+            optionLabel="label"
+            optionValue="value"
+          />
         </div>
         <div class="form-group">
           <label>Directory</label>
-          <input
+          <InputText
             v-model="recordingOptions.directory"
-            type="text"
             placeholder="/var/spool/asterisk/monitor"
           />
         </div>
@@ -93,24 +104,24 @@
       <div class="form-row">
         <div class="form-group">
           <label>Read Volume (-4 to 4)</label>
-          <input v-model.number="recordingOptions.readVolume" type="number" min="-4" max="4" />
+          <InputNumber v-model="recordingOptions.readVolume" :min="-4" :max="4" showButtons />
         </div>
         <div class="form-group">
           <label>Write Volume (-4 to 4)</label>
-          <input v-model.number="recordingOptions.writeVolume" type="number" min="-4" max="4" />
+          <InputNumber v-model="recordingOptions.writeVolume" :min="-4" :max="4" showButtons />
         </div>
         <div class="form-group">
           <label>Pause DTMF</label>
-          <input v-model="recordingOptions.pauseDtmf" type="text" placeholder="*" maxlength="1" />
+          <InputText v-model="recordingOptions.pauseDtmf" placeholder="*" maxlength="1" />
         </div>
       </div>
       <div class="checkbox-group">
         <label>
-          <input type="checkbox" v-model="trackDuration" />
+          <Checkbox v-model="trackDuration" :binary="true" />
           Track Duration in Real-time
         </label>
         <label>
-          <input type="checkbox" v-model="autoFilename" />
+          <Checkbox v-model="autoFilename" :binary="true" />
           Auto-generate Filename
         </label>
       </div>
@@ -122,21 +133,23 @@
       <div class="form-row">
         <div class="form-group flex-grow">
           <label>Channel</label>
-          <input
+          <InputText
             v-model="targetChannel"
-            type="text"
             placeholder="PJSIP/1001-00000001"
             @keyup.enter="startNewRecording"
           />
         </div>
         <div v-if="!autoFilename" class="form-group">
           <label>Filename</label>
-          <input v-model="customFilename" type="text" placeholder="my-recording" />
+          <InputText v-model="customFilename" placeholder="my-recording" />
         </div>
       </div>
-      <button @click="startNewRecording" :disabled="!targetChannel || isLoading" class="record-btn">
-        {{ isLoading ? 'Starting...' : 'Start Recording' }}
-      </button>
+      <Button
+        :label="isLoading ? 'Starting...' : 'Start Recording'"
+        :disabled="!targetChannel || isLoading"
+        @click="startNewRecording"
+        class="record-btn"
+      />
     </div>
 
     <!-- Active Recordings -->
@@ -193,27 +206,25 @@
           </div>
 
           <div class="recording-actions">
-            <button
+            <Button
               v-if="recording.state === 'recording'"
-              @click="handlePause(recording.channel)"
+              label="Pause"
               class="pause-btn"
-            >
-              Pause
-            </button>
-            <button
+              @click="handlePause(recording.channel)"
+            />
+            <Button
               v-if="recording.state === 'paused'"
-              @click="handleResume(recording.channel)"
+              label="Resume"
               class="resume-btn"
-            >
-              Resume
-            </button>
-            <button
+              @click="handleResume(recording.channel)"
+            />
+            <Button
               v-if="recording.state === 'recording' || recording.state === 'paused'"
-              @click="handleStop(recording.channel)"
+              label="Stop"
+              severity="danger"
               class="stop-btn"
-            >
-              Stop
-            </button>
+              @click="handleStop(recording.channel)"
+            />
           </div>
         </div>
       </div>
@@ -261,13 +272,13 @@
           <span v-if="event.error" class="event-error">{{ event.error }}</span>
         </div>
       </div>
-      <button @click="clearEventLog" class="clear-log-btn">Clear Log</button>
+      <Button label="Clear Log" severity="secondary" @click="clearEventLog" />
     </div>
 
     <!-- Error Display -->
     <div v-if="error" class="error-section">
       <p class="error-message">{{ error }}</p>
-      <button @click="error = null">Dismiss</button>
+      <Button label="Dismiss" severity="secondary" @click="error = null" />
     </div>
   </div>
 </template>
@@ -284,6 +295,7 @@ import type {
   AmiRecordingEvent,
   AmiRecordingStats,
 } from '../../src/types/recording.types'
+import { Button, InputText, Password, Dropdown, Checkbox, InputNumber } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -537,13 +549,13 @@ onUnmounted(() => {
 }
 
 .status-badge.connected {
-  background-color: #10b981;
-  color: white;
+  background-color: var(--success);
+  color: var(--surface-0);
 }
 
 .status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
+  background-color: var(--text-secondary);
+  color: var(--surface-0);
 }
 
 .active-badge {
@@ -552,8 +564,8 @@ onUnmounted(() => {
   border-radius: 4px;
   font-weight: 600;
   font-size: 0.875rem;
-  background-color: #dc2626;
-  color: white;
+  background-color: var(--danger-hover);
+  color: var(--surface-0);
 }
 
 .config-section,
@@ -563,8 +575,8 @@ onUnmounted(() => {
 .stats-section,
 .event-log-section,
 .error-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-50);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -583,6 +595,17 @@ h3 {
   flex-wrap: wrap;
 }
 
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+  }
+
+  .form-group {
+    width: 100% !important;
+    min-width: 100%;
+  }
+}
+
 .form-group {
   flex: 1;
   min-width: 200px;
@@ -596,15 +619,6 @@ h3 {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
   font-size: 0.875rem;
 }
 
@@ -622,37 +636,12 @@ h3 {
   cursor: pointer;
 }
 
-.checkbox-group input[type='checkbox'] {
-  width: auto;
-}
-
-button {
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
 .record-btn {
-  background-color: #dc2626;
+  background-color: var(--danger-hover);
 }
 
 .record-btn:hover:not(:disabled) {
-  background-color: #b91c1c;
+  background-color: var(--danger-active);
 }
 
 .recordings-list {
@@ -662,29 +651,29 @@ button:disabled {
 }
 
 .recording-card {
-  background: white;
+  background: var(--surface-0);
   border-radius: 8px;
   padding: 1rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
 }
 
 .recording-card.recording {
-  border-color: #dc2626;
-  background: #fef2f2;
+  border-color: var(--danger-hover);
+  background: var(--red-50);
 }
 
 .recording-card.paused {
-  border-color: #f59e0b;
-  background: #fffbeb;
+  border-color: var(--warning);
+  background: var(--yellow-50);
 }
 
 .recording-card.stopped {
-  border-color: #6b7280;
+  border-color: var(--text-secondary);
 }
 
 .recording-card.failed {
-  border-color: #ef4444;
-  background: #fef2f2;
+  border-color: var(--danger);
+  background: var(--red-50);
 }
 
 .recording-header {
@@ -693,7 +682,7 @@ button:disabled {
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .recording-state {
@@ -712,19 +701,19 @@ button:disabled {
 }
 
 .state-indicator.recording {
-  background: var(--color-error, #ef4444);
+  background: var(--color-error, var(--danger));
 }
 
 .state-indicator.paused {
-  background: var(--color-warning, #f59e0b);
+  background: var(--color-warning, var(--warning));
 }
 
 .state-indicator.stopped {
-  background: var(--color-gray, #6b7280);
+  background: var(--color-gray, var(--text-secondary));
 }
 
 .state-indicator.failed {
-  background: var(--color-error, #dc2626);
+  background: var(--color-error, var(--danger-hover));
 }
 
 .state-indicator.pulse {
@@ -754,6 +743,12 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
+@media (max-width: 768px) {
+  .recording-details {
+    grid-template-columns: 1fr;
+  }
+}
+
 .detail-item {
   display: flex;
   gap: 0.5rem;
@@ -761,7 +756,7 @@ button:disabled {
 }
 
 .detail-item .label {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .detail-item .value {
@@ -780,27 +775,27 @@ button:disabled {
 }
 
 .pause-btn {
-  background-color: #f59e0b;
+  background-color: var(--warning);
 }
 
 .pause-btn:hover:not(:disabled) {
-  background-color: #d97706;
+  background-color: var(--warning-hover);
 }
 
 .resume-btn {
-  background-color: #10b981;
+  background-color: var(--success);
 }
 
 .resume-btn:hover:not(:disabled) {
-  background-color: #059669;
+  background-color: var(--success-hover);
 }
 
 .stop-btn {
-  background-color: #6b7280;
+  background-color: var(--text-secondary);
 }
 
 .stop-btn:hover:not(:disabled) {
-  background-color: #4b5563;
+  background-color: var(--gray-600);
 }
 
 .stats-grid {
@@ -809,32 +804,44 @@ button:disabled {
   gap: 1rem;
 }
 
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .stat-card {
-  background: white;
+  background: var(--surface-0);
   border-radius: 8px;
   padding: 1rem;
   text-align: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 }
 
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--gray-900);
 }
 
 .stat-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 
 .event-log {
   max-height: 200px;
   overflow-y: auto;
-  background: white;
+  background: var(--surface-0);
   border-radius: 4px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   margin-bottom: 1rem;
 }
 
@@ -842,7 +849,7 @@ button:disabled {
   display: flex;
   gap: 1rem;
   padding: 0.5rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--surface-100);
   font-size: 0.75rem;
   font-family: monospace;
 }
@@ -852,27 +859,27 @@ button:disabled {
 }
 
 .event-item.started {
-  background: #f0fdf4;
+  background: var(--green-50);
 }
 
 .event-item.stopped {
-  background: #f3f4f6;
+  background: var(--surface-100);
 }
 
 .event-item.paused {
-  background: #fffbeb;
+  background: var(--yellow-50);
 }
 
 .event-item.resumed {
-  background: #eff6ff;
+  background: var(--surface-ground);
 }
 
 .event-item.failed {
-  background: #fef2f2;
+  background: var(--red-50);
 }
 
 .event-time {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .event-type {
@@ -882,26 +889,26 @@ button:disabled {
 
 .event-channel {
   flex: 1;
-  color: #111827;
+  color: var(--gray-900);
 }
 
 .event-error {
-  color: #dc2626;
+  color: var(--danger-hover);
 }
 
 .clear-log-btn {
-  background-color: #6b7280;
+  background-color: var(--text-secondary);
   padding: 0.375rem 0.75rem;
   font-size: 0.75rem;
 }
 
 .error-section {
-  background: #fef2f2;
-  border-color: #fecaca;
+  background: var(--red-50);
+  border-color: var(--red-200);
 }
 
 .error-message {
-  color: #dc2626;
+  color: var(--danger-hover);
   margin: 0 0 1rem;
 }
 </style>

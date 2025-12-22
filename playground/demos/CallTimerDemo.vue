@@ -31,8 +31,13 @@
     <div class="timer-showcase">
       <h3>Timer Formats</h3>
 
-      <div v-if="effectiveCallState !== 'active' || !effectiveDuration" class="timer-placeholder">
+      <div
+        v-if="effectiveCallState !== 'active' || !effectiveDuration"
+        class="timer-placeholder"
+        role="status"
+      >
         <svg
+          aria-hidden="true"
           class="placeholder-icon"
           viewBox="0 0 24 24"
           fill="none"
@@ -90,6 +95,7 @@
         <div class="status-header">
           <svg
             v-if="effectiveCallState === 'active'"
+            aria-hidden="true"
             class="status-icon"
             viewBox="0 0 24 24"
             fill="currentColor"
@@ -98,7 +104,13 @@
               d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"
             />
           </svg>
-          <svg v-else class="status-icon" viewBox="0 0 24 24" fill="currentColor">
+          <svg
+            v-else
+            aria-hidden="true"
+            class="status-icon"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
             <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
           </svg>
           <span class="status-text">
@@ -106,7 +118,12 @@
           </span>
         </div>
 
-        <div v-if="effectiveCallState === 'active'" class="status-details">
+        <div
+          v-if="effectiveCallState === 'active'"
+          class="status-details"
+          role="status"
+          aria-live="polite"
+        >
           <div v-if="effectiveRemoteUri" class="detail-row">
             <span class="label">Connected to:</span>
             <span class="value">{{ effectiveRemoteDisplayName || effectiveRemoteUri }}</span>
@@ -117,7 +134,7 @@
           </div>
         </div>
 
-        <div v-else class="empty-status">
+        <div v-else class="empty-status" role="status">
           {{
             isSimulationMode
               ? 'Use simulation controls above to start a call'
@@ -289,14 +306,14 @@ const formatCompact = (seconds: number): string => {
 
 .info-section {
   padding: 1.5rem;
-  background: var(--bg-secondary, #f8fafc);
+  background: var(--surface-section);
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
 
 .info-section p {
   margin: 0;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-color-secondary);
   line-height: 1.6;
 }
 
@@ -306,15 +323,15 @@ const formatCompact = (seconds: number): string => {
 
 .timer-showcase h3 {
   margin: 0 0 1.5rem 0;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-color);
 }
 
 .timer-placeholder {
   text-align: center;
   padding: 3rem;
-  background: var(--bg-primary, white);
+  background: var(--surface-card);
   border-radius: 8px;
-  border: 2px dashed var(--border-color, #e2e8f0);
+  border: 2px dashed var(--surface-border);
 }
 
 .placeholder-icon {
@@ -322,38 +339,50 @@ const formatCompact = (seconds: number): string => {
   height: 64px;
   margin: 0 auto 1rem;
   opacity: 0.5;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-color-secondary);
 }
 
 .timer-placeholder p {
   margin: 0;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
 }
 
 .timer-displays {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 
+@media (min-width: 640px) {
+  .timer-displays {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .timer-displays {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 .timer-card {
-  background: var(--bg-primary, white);
+  background: var(--surface-card);
   padding: 1.5rem;
   border-radius: 8px;
-  border: 2px solid var(--border-color, #e2e8f0);
+  border: 2px solid var(--surface-border);
   text-align: center;
   transition: all 0.2s;
 }
 
 .timer-card:hover {
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary-500);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .timer-label {
   font-size: 0.75rem;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-color-secondary);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -363,7 +392,7 @@ const formatCompact = (seconds: number): string => {
 .timer-value {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--primary, #6366f1);
+  color: var(--primary-500);
   font-variant-numeric: tabular-nums;
   margin-bottom: 0.5rem;
 }
@@ -374,7 +403,7 @@ const formatCompact = (seconds: number): string => {
 
 .timer-desc {
   font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-color-secondary);
 }
 
 .call-status-section {
@@ -383,20 +412,20 @@ const formatCompact = (seconds: number): string => {
 
 .call-status-section h3 {
   margin: 0 0 1rem 0;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-color);
 }
 
 .status-card {
-  background: var(--bg-primary, white);
+  background: var(--surface-card);
   border-radius: 8px;
-  border: 2px solid var(--border-color, #e2e8f0);
+  border: 2px solid var(--surface-border);
   padding: 1.5rem;
   transition: all 0.3s;
 }
 
 .status-card.active {
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.05);
+  border-color: var(--green-500);
+  background: var(--green-50);
 }
 
 .status-header {
@@ -409,18 +438,18 @@ const formatCompact = (seconds: number): string => {
 .status-icon {
   width: 32px;
   height: 32px;
-  color: var(--primary, #6366f1);
+  color: var(--primary-500);
 }
 
 .status-text {
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-color);
 }
 
 .status-details {
   padding-top: 1rem;
-  border-top: 1px solid var(--border-color, #e2e8f0);
+  border-top: 1px solid var(--surface-border);
 }
 
 .detail-row {
@@ -431,31 +460,31 @@ const formatCompact = (seconds: number): string => {
 }
 
 .detail-row .label {
-  color: var(--text-secondary, #64748b);
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
 }
 
 .detail-row .value {
-  color: var(--text-primary, #1e293b);
+  color: var(--text-color);
   font-weight: 500;
 }
 
 .detail-row .value.timer {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--primary, #6366f1);
+  color: var(--primary-500);
   font-variant-numeric: tabular-nums;
 }
 
 .empty-status {
   text-align: center;
   padding: 1.5rem;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
 }
 
 .timer-stats {
-  background: var(--bg-secondary, #f8fafc);
+  background: var(--surface-section);
   padding: 1.5rem;
   border-radius: 8px;
   margin-bottom: 2rem;
@@ -463,7 +492,7 @@ const formatCompact = (seconds: number): string => {
 
 .timer-stats h3 {
   margin: 0 0 1rem 0;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-color);
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -471,12 +500,18 @@ const formatCompact = (seconds: number): string => {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 
+@media (min-width: 640px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .stat-item {
-  background: var(--bg-primary, white);
+  background: var(--surface-card);
   padding: 1rem;
   border-radius: 6px;
   text-align: center;
@@ -484,7 +519,7 @@ const formatCompact = (seconds: number): string => {
 
 .stat-label {
   font-size: 0.75rem;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-color-secondary);
   margin-bottom: 0.5rem;
   display: block;
 }
@@ -492,25 +527,25 @@ const formatCompact = (seconds: number): string => {
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--primary, #6366f1);
+  color: var(--primary-500);
   font-variant-numeric: tabular-nums;
 }
 
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: var(--bg-secondary, #f8fafc);
+  background: var(--surface-section);
   border-radius: 8px;
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-color);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--surface-900);
+  color: var(--surface-0);
   padding: 1.5rem;
   border-radius: 6px;
   overflow-x: auto;

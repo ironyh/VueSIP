@@ -33,7 +33,7 @@
     />
 
     <!-- Connection Status -->
-    <div v-if="!effectiveIsConnected" class="status-message info">
+    <div v-if="!effectiveIsConnected" class="status-message info" role="status" aria-live="polite">
       {{
         isSimulationMode
           ? 'Enable simulation and run a scenario to see quality metrics'
@@ -41,7 +41,12 @@
       }}
     </div>
 
-    <div v-else-if="effectiveCallState !== 'active'" class="status-message warning">
+    <div
+      v-else-if="effectiveCallState !== 'active'"
+      class="status-message warning"
+      role="status"
+      aria-live="polite"
+    >
       {{
         isSimulationMode
           ? 'Run the "Active Call" scenario to see quality metrics'
@@ -54,12 +59,24 @@
       <!-- Overall Quality Score -->
       <div class="quality-score-card">
         <div class="score-container">
-          <div class="score-circle" :class="qualityLevel">
+          <div
+            class="score-circle"
+            :class="qualityLevel"
+            role="img"
+            :aria-label="`Call quality score: ${qualityScore} out of 100, ${qualityText} quality`"
+          >
             <div class="score-value">{{ qualityScore }}</div>
             <div class="score-label">Quality</div>
           </div>
           <div class="score-indicator">
-            <div class="indicator-bar">
+            <div
+              class="indicator-bar"
+              role="progressbar"
+              :aria-valuenow="qualityScore"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-label="`Quality level: ${qualityScore}%`"
+            >
               <div
                 class="indicator-fill"
                 :style="{ width: qualityScore + '%' }"
@@ -158,7 +175,12 @@
       </div>
 
       <!-- Recommendations -->
-      <div v-if="recommendations.length > 0" class="recommendations">
+      <div
+        v-if="recommendations.length > 0"
+        class="recommendations"
+        role="region"
+        aria-label="Call quality recommendations"
+      >
         <h3>Recommendations</h3>
         <ul>
           <li v-for="(rec, index) in recommendations" :key="index">{{ rec }}</li>
@@ -468,16 +490,18 @@ onUnmounted(() => {
 }
 
 .info-section {
-  padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+  padding: var(--spacing-lg);
+  background: var(--surface-ground);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+  transition: background-color 0.3s ease;
 }
 
 .info-section p {
-  margin: 0 0 1rem 0;
-  color: #666;
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-secondary);
   line-height: 1.6;
+  transition: color 0.3s ease;
 }
 
 .info-section p:last-child {
@@ -485,90 +509,128 @@ onUnmounted(() => {
 }
 
 .note {
-  padding: 1rem;
-  background: #eff6ff;
-  border-left: 3px solid #667eea;
-  border-radius: 4px;
+  padding: var(--spacing-md);
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
+  transition: all 0.3s ease;
 }
 
 .status-message {
-  padding: 1rem;
-  border-radius: 6px;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
   text-align: center;
   font-size: 0.875rem;
+  transition: all 0.3s ease;
 }
 
 .status-message.info {
-  background: #eff6ff;
-  color: #1e40af;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--text-info);
 }
 
 .status-message.warning {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--text-warning);
 }
 
 .quality-metrics {
-  padding: 1.5rem;
+  padding: var(--spacing-md);
+}
+
+@media (min-width: 640px) {
+  .quality-metrics {
+    padding: var(--spacing-lg);
+  }
 }
 
 .quality-score-card {
-  background: white;
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  background: var(--surface-card);
+  border-radius: var(--radius-xl);
+  border: var(--border-width-thick) solid var(--surface-border);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .quality-score-card {
+    padding: var(--spacing-2xl);
+    margin-bottom: var(--spacing-2xl);
+  }
 }
 
 .score-container {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 640px) {
+  .score-container {
+    gap: var(--spacing-2xl);
+  }
 }
 
 .score-circle {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-full);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 8px solid;
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
 .score-circle.excellent {
-  border-color: #10b981;
-  background: #d1fae5;
+  border-color: var(--success);
+  background: rgba(16, 185, 129, 0.15);
 }
 
 .score-circle.good {
-  border-color: #3b82f6;
-  background: #dbeafe;
+  border-color: var(--info);
+  background: rgba(59, 130, 246, 0.15);
 }
 
 .score-circle.fair {
-  border-color: #f59e0b;
-  background: #fef3c7;
+  border-color: var(--warning);
+  background: rgba(245, 158, 11, 0.15);
 }
 
 .score-circle.poor {
-  border-color: #ef4444;
-  background: #fee2e2;
+  border-color: var(--danger);
+  background: rgba(239, 68, 68, 0.15);
 }
 
 .score-value {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .score-value {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .score-value {
+    font-size: 3rem;
+  }
 }
 
 .score-label {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .score-indicator {
@@ -577,96 +639,140 @@ onUnmounted(() => {
 
 .indicator-bar {
   height: 12px;
-  background: #e5e7eb;
-  border-radius: 6px;
+  background: var(--surface-border);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
+  transition: background-color 0.3s ease;
 }
 
 .indicator-fill {
   height: 100%;
-  transition: width 0.5s ease;
+  transition:
+    width 0.5s ease,
+    background 0.3s ease;
 }
 
 .indicator-fill.excellent {
-  background: linear-gradient(90deg, #10b981, #059669);
+  background: linear-gradient(90deg, var(--success), var(--success-dark));
 }
 
 .indicator-fill.good {
-  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  background: linear-gradient(90deg, var(--info), var(--info-dark));
 }
 
 .indicator-fill.fair {
-  background: linear-gradient(90deg, #f59e0b, #d97706);
+  background: linear-gradient(90deg, var(--warning), var(--warning-dark));
 }
 
 .indicator-fill.poor {
-  background: linear-gradient(90deg, #ef4444, #dc2626);
+  background: linear-gradient(90deg, var(--danger), var(--danger-dark));
 }
 
 .indicator-text {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .metrics-section {
-  background: white;
-  border-radius: 8px;
-  border: 2px solid #e5e7eb;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-thick) solid var(--surface-border);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
 }
 
 .metrics-section h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
+  margin: 0 0 var(--spacing-lg) 0;
+  color: var(--text-primary);
   font-size: 1rem;
+  transition: color 0.3s ease;
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-sm);
+}
+
+@media (min-width: 640px) {
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  .info-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
   padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 6px;
+  background: var(--surface-ground);
+  border-radius: var(--radius-md);
+  transition: all 0.3s ease;
 }
 
 .info-label {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .info-value {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-sm);
+}
+
+@media (min-width: 640px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
 }
 
 .stat-card {
   display: flex;
-  gap: 1rem;
-  padding: 1.25rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  transition: all 0.2s;
+  gap: var(--spacing-sm);
+  padding: 1rem;
+  background: var(--surface-ground);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-thick) solid transparent;
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .stat-card {
+    gap: var(--spacing-md);
+    padding: 1.25rem;
+  }
 }
 
 .stat-card:hover {
-  border-color: #667eea;
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-content {
@@ -676,46 +782,49 @@ onUnmounted(() => {
 .stat-value {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
   font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
 }
 
 .stat-label {
   font-size: 0.75rem;
-  color: #666;
-  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: color 0.3s ease;
 }
 
 .stat-quality {
   display: inline-block;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.25rem var(--spacing-sm);
+  border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .stat-quality.excellent {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--text-success);
 }
 
 .stat-quality.good {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--text-info);
 }
 
 .stat-quality.fair {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--text-warning);
 }
 
 .stat-quality.poor {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--text-danger);
 }
 
 .packet-stats {
@@ -726,51 +835,67 @@ onUnmounted(() => {
 
 .packet-row {
   display: flex;
-  justify-content: space-between;
-  padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 6px;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.625rem;
+  background: var(--surface-ground);
+  border-radius: var(--radius-md);
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .packet-row {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 0;
+    padding: 0.75rem;
+  }
 }
 
 .packet-label {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .packet-value {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
 }
 
 .packet-value.lost {
-  color: #ef4444;
+  color: var(--danger);
 }
 
 .recommendations {
-  background: #eff6ff;
-  border: 2px solid #3b82f6;
-  border-radius: 8px;
-  padding: 1.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: var(--border-width-thick) solid var(--info);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  transition: all 0.3s ease;
 }
 
 .recommendations h3 {
-  margin: 0 0 1rem 0;
-  color: #1e40af;
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-info);
   font-size: 1rem;
+  transition: color 0.3s ease;
 }
 
 .recommendations ul {
   margin: 0;
-  padding-left: 1.5rem;
+  padding-left: var(--spacing-lg);
 }
 
 .recommendations li {
-  color: #1e40af;
+  color: var(--text-info);
   font-size: 0.875rem;
   line-height: 1.6;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
+  transition: color 0.3s ease;
 }
 
 .recommendations li:last-child {
@@ -778,24 +903,27 @@ onUnmounted(() => {
 }
 
 .code-example {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  margin-top: var(--spacing-2xl);
+  padding: var(--spacing-lg);
+  background: var(--surface-ground);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s ease;
 }
 
 .code-example h4 {
-  margin: 0 0 1rem 0;
-  color: #333;
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
-  padding: 1.5rem;
-  border-radius: 6px;
+  background: var(--gray-900);
+  color: var(--gray-100);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
   overflow-x: auto;
   margin: 0;
+  transition: all 0.3s ease;
 }
 
 .code-example code {
@@ -812,6 +940,26 @@ onUnmounted(() => {
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 320px) {
+  .info-section {
+    padding: var(--spacing-md);
+  }
+
+  .quality-score-card {
+    padding: var(--spacing-lg);
+  }
+
+  .score-circle {
+    width: 100px;
+    height: 100px;
+    border-width: 6px;
+  }
+
+  .score-value {
+    font-size: 2rem;
   }
 }
 </style>

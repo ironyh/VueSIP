@@ -41,7 +41,12 @@
         <aside class="conversations-sidebar">
           <div class="sidebar-header">
             <h3>Conversations</h3>
-            <button @click="showNewConversation = true" class="new-chat-btn">+</button>
+            <Button
+              label="+"
+              class="new-chat-btn"
+              @click="showNewConversation = true"
+              aria-label="Start new conversation"
+            />
           </div>
 
           <div class="conversations-list">
@@ -72,7 +77,12 @@
           <!-- Quick Actions -->
           <div class="quick-contacts">
             <h4>Quick Start</h4>
-            <button @click="simulateIncomingMessage" class="quick-btn">Simulate Incoming</button>
+            <Button
+              label="Simulate Incoming"
+              class="quick-btn"
+              @click="simulateIncomingMessage"
+              aria-label="Simulate incoming message for testing"
+            />
           </div>
         </aside>
 
@@ -91,9 +101,13 @@
                 </div>
               </div>
               <div class="chat-actions">
-                <button @click="clearConversation" class="icon-btn" title="Clear conversation">
-                  Clear
-                </button>
+                <Button
+                  label="Clear"
+                  class="icon-btn"
+                  severity="secondary"
+                  @click="clearConversation"
+                  title="Clear conversation"
+                />
               </div>
             </div>
 
@@ -129,17 +143,22 @@
 
             <!-- Message Input -->
             <div class="message-input-container">
-              <textarea
+              <Textarea
                 v-model="messageText"
                 @keydown.enter.exact.prevent="sendMessage"
                 @input="handleTyping"
                 placeholder="Type a message..."
+                :autoResize="true"
                 rows="1"
                 ref="messageInput"
-              ></textarea>
-              <button @click="sendMessage" :disabled="!messageText.trim()" class="send-btn">
-                Send
-              </button>
+              />
+              <Button
+                label="Send"
+                class="send-btn"
+                :disabled="!messageText.trim()"
+                @click="sendMessage"
+                aria-label="Send message"
+              />
             </div>
           </div>
 
@@ -158,7 +177,7 @@
         <h3>New Conversation</h3>
         <div class="form-group">
           <label>Recipient SIP URI</label>
-          <input
+          <InputText
             v-model="newConversationUri"
             type="text"
             placeholder="sip:user@example.com"
@@ -166,10 +185,17 @@
           />
         </div>
         <div class="modal-actions">
-          <button @click="startNewConversation" :disabled="!newConversationUri.trim()">
-            Start Chat
-          </button>
-          <button @click="showNewConversation = false" class="cancel-btn">Cancel</button>
+          <Button
+            label="Start Chat"
+            :disabled="!newConversationUri.trim()"
+            @click="startNewConversation"
+          />
+          <Button
+            label="Cancel"
+            class="cancel-btn"
+            severity="secondary"
+            @click="showNewConversation = false"
+          />
         </div>
       </div>
     </div>
@@ -179,19 +205,19 @@
       <h3>Messaging Settings</h3>
       <div class="settings-grid">
         <label>
-          <input type="checkbox" v-model="sendTypingIndicator" />
+          <Checkbox v-model="sendTypingIndicator" :binary="true" />
           Send typing indicator
         </label>
         <label>
-          <input type="checkbox" v-model="sendDeliveryReceipt" />
+          <Checkbox v-model="sendDeliveryReceipt" :binary="true" />
           Send delivery receipts
         </label>
         <label>
-          <input type="checkbox" v-model="playNotificationSound" />
+          <Checkbox v-model="playNotificationSound" :binary="true" />
           Play notification sound
         </label>
         <label>
-          <input type="checkbox" v-model="showNotifications" />
+          <Checkbox v-model="showNotifications" :binary="true" />
           Show desktop notifications
         </label>
       </div>
@@ -230,6 +256,7 @@ import { ref, computed, watch as _watch, nextTick, onMounted } from 'vue'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Textarea, Checkbox } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -607,7 +634,7 @@ onMounted(() => {
 }
 
 .description {
-  color: #666;
+  color: var(--vuesip-text-secondary);
   margin-bottom: 2rem;
 }
 
@@ -621,31 +648,31 @@ onMounted(() => {
 .status-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--vuesip-border-radius);
   font-weight: 600;
   font-size: 0.875rem;
 }
 
 .status-badge.connected {
-  background-color: #10b981;
-  color: white;
+  background-color: var(--vuesip-success);
+  color: var(--surface-0);
 }
 
 .status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
+  background-color: var(--vuesip-text-tertiary);
+  color: var(--surface-0);
 }
 
 .status-badge.connecting {
-  background-color: #f59e0b;
-  color: white;
+  background-color: var(--vuesip-warning);
+  color: var(--surface-0);
 }
 
 .unread-badge {
-  background: #ef4444;
-  color: white;
+  background: var(--vuesip-danger);
+  color: var(--surface-0);
   padding: 0.375rem 0.75rem;
-  border-radius: 12px;
+  border-radius: var(--vuesip-border-radius-lg);
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -653,9 +680,9 @@ onMounted(() => {
 .config-section,
 .settings-section,
 .stats-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-secondary);
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -671,7 +698,7 @@ h4 {
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
   text-transform: uppercase;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
   letter-spacing: 0.05em;
 }
 
@@ -686,39 +713,12 @@ h4 {
   font-size: 0.875rem;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-button {
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
+/* Generic button and input styles removed - using PrimeVue components */
 
 .messaging-container {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-secondary);
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
   overflow: hidden;
   margin-bottom: 1.5rem;
 }
@@ -729,12 +729,22 @@ button:disabled {
   height: 600px;
 }
 
+@media (max-width: 768px) {
+  .messaging-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .conversations-sidebar {
+    display: none;
+  }
+}
+
 /* Sidebar */
 .conversations-sidebar {
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--vuesip-border);
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--vuesip-bg-primary);
 }
 
 .sidebar-header {
@@ -742,7 +752,7 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--vuesip-border);
 }
 
 .sidebar-header h3 {
@@ -769,24 +779,24 @@ button:disabled {
   padding: 0.75rem 1rem;
   cursor: pointer;
   transition: background 0.2s;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--vuesip-bg-secondary);
 }
 
 .conversation-item:hover {
-  background: #f9fafb;
+  background: var(--vuesip-bg-secondary);
 }
 
 .conversation-item.active {
-  background: #eff6ff;
-  border-left: 3px solid #3b82f6;
+  background: var(--surface-ground);
+  border-left: 3px solid var(--vuesip-info);
 }
 
 .conversation-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--vuesip-primary) 0%, var(--purple-500) 100%);
+  color: var(--surface-0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -809,12 +819,12 @@ button:disabled {
 .conversation-name {
   font-weight: 600;
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .conversation-time {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--vuesip-text-tertiary);
 }
 
 .conversation-preview {
@@ -825,8 +835,8 @@ button:disabled {
 }
 
 .unread-indicator {
-  background: #3b82f6;
-  color: white;
+  background: var(--vuesip-info);
+  color: var(--surface-0);
   padding: 0.125rem 0.5rem;
   border-radius: 10px;
   font-size: 0.75rem;
@@ -835,7 +845,7 @@ button:disabled {
 }
 
 .preview-text {
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -843,7 +853,7 @@ button:disabled {
 
 .quick-contacts {
   padding: 1rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--vuesip-border);
 }
 
 .quick-btn {
@@ -853,7 +863,7 @@ button:disabled {
 
 /* Chat Area */
 .chat-area {
-  background: white;
+  background: var(--vuesip-bg-primary);
   display: flex;
   flex-direction: column;
 }
@@ -869,7 +879,7 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--vuesip-border);
 }
 
 .chat-info {
@@ -882,8 +892,8 @@ button:disabled {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--vuesip-primary) 0%, var(--purple-500) 100%);
+  color: var(--surface-0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -898,7 +908,7 @@ button:disabled {
 
 .chat-uri {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .chat-actions {
@@ -912,12 +922,12 @@ button:disabled {
   padding: 0;
   font-size: 1rem;
   background: transparent;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .icon-btn:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--vuesip-bg-secondary);
+  color: var(--vuesip-text-primary);
 }
 
 .messages-container {
@@ -944,19 +954,19 @@ button:disabled {
 .message-bubble {
   max-width: 70%;
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: var(--vuesip-border-radius-lg);
   word-wrap: break-word;
 }
 
 .message.outbound .message-bubble {
-  background: #3b82f6;
-  color: white;
+  background: var(--vuesip-info);
+  color: var(--surface-0);
   border-bottom-right-radius: 4px;
 }
 
 .message.inbound .message-bubble {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--vuesip-bg-secondary);
+  color: var(--vuesip-text-primary);
   border-bottom-left-radius: 4px;
 }
 
@@ -982,9 +992,9 @@ button:disabled {
 }
 
 .typing-bubble {
-  background: #f3f4f6;
+  background: var(--vuesip-bg-secondary);
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: var(--vuesip-border-radius-lg);
   border-bottom-left-radius: 4px;
 }
 
@@ -997,7 +1007,7 @@ button:disabled {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #9ca3af;
+  background: var(--vuesip-text-tertiary);
   animation: typing 1.4s ease-in-out infinite;
 }
 
@@ -1026,17 +1036,12 @@ button:disabled {
   display: flex;
   gap: 0.75rem;
   padding: 1rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--vuesip-border);
 }
 
-.message-input-container textarea {
+/* Textarea styling handled by PrimeVue Textarea component */
+.message-input-container :deep(.p-inputtextarea) {
   flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  resize: none;
-  font-family: inherit;
-  font-size: 0.875rem;
   max-height: 120px;
 }
 
@@ -1046,11 +1051,11 @@ button:disabled {
   padding: 0;
   border-radius: 50%;
   font-size: 1.25rem;
-  background: #3b82f6;
+  background: var(--vuesip-info);
 }
 
 .send-btn:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--vuesip-info-dark);
 }
 
 .empty-state {
@@ -1059,14 +1064,14 @@ button:disabled {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #9ca3af;
+  color: var(--vuesip-text-tertiary);
 }
 
 .empty-icon {
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .empty-state p {
@@ -1089,8 +1094,8 @@ button:disabled {
 }
 
 .modal-content {
-  background: white;
-  border-radius: 8px;
+  background: var(--vuesip-bg-primary);
+  border-radius: var(--vuesip-border-radius-lg);
   padding: 2rem;
   min-width: 400px;
   max-width: 90vw;
@@ -1103,11 +1108,11 @@ button:disabled {
 }
 
 .cancel-btn {
-  background: #6b7280;
+  background: var(--vuesip-text-tertiary);
 }
 
 .cancel-btn:hover {
-  background: #4b5563;
+  background: var(--vuesip-text-primary);
 }
 
 /* Settings */
@@ -1115,6 +1120,12 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .settings-grid label {
@@ -1125,9 +1136,7 @@ button:disabled {
   cursor: pointer;
 }
 
-.settings-grid input[type='checkbox'] {
-  width: auto;
-}
+/* Checkbox styling handled by PrimeVue Checkbox component */
 
 /* Stats */
 .stats-grid {
@@ -1136,35 +1145,44 @@ button:disabled {
   gap: 1rem;
 }
 
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .stat-card {
-  background: white;
+  background: var(--vuesip-bg-primary);
   padding: 1.5rem;
-  border-radius: 8px;
+  border-radius: var(--vuesip-border-radius-lg);
   text-align: center;
 }
 
 .stat-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #3b82f6;
+  color: var(--vuesip-info);
   margin-bottom: 0.5rem;
 }
 
 .stat-label {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .messaging-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .conversations-sidebar {
-    display: none;
+  .modal-content {
+    min-width: auto;
+    width: 90vw;
   }
 }
 </style>

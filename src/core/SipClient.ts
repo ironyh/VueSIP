@@ -1775,27 +1775,8 @@ export class SipClient {
    * @throws Error if not connected or PUBLISH fails
    */
   async publishPresence(presence: PresencePublishOptions): Promise<void> {
-    // Check for E2E test mode
-    const hasEmitSipEvent =
-      typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-
-    // In E2E mode, skip the UA check
-    if (!hasEmitSipEvent) {
-      if (!this.ua) {
-        throw new Error('SIP client is not started')
-      }
-    }
-
-    // In E2E mode, simulate presence publish
-    if (hasEmitSipEvent) {
-      console.log('[SipClient] [E2E TEST MODE] Simulating presence publish')
-      this.eventBus.emit('sip:presencePublish', {
-        type: 'sip:presencePublish',
-        timestamp: new Date(),
-        status: presence.status,
-        note: presence.note,
-      })
-      return
+    if (!this.ua) {
+      throw new Error('SIP client is not started')
     }
 
     // Capture ua reference for use in async context
@@ -1888,27 +1869,8 @@ export class SipClient {
    * @throws Error if not connected or SUBSCRIBE fails
    */
   async subscribePresence(uri: string, options?: PresenceSubscriptionOptions): Promise<void> {
-    // Check for E2E test mode
-    const hasEmitSipEvent =
-      typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-
-    // In E2E mode, skip the UA check
-    if (!hasEmitSipEvent) {
-      if (!this.ua) {
-        throw new Error('SIP client is not started')
-      }
-    }
-
-    // In E2E mode, simulate presence subscription
-    if (hasEmitSipEvent) {
-      console.log('[SipClient] [E2E TEST MODE] Simulating presence subscription')
-      this.eventBus.emit('sip:presenceSubscription', {
-        type: 'sip:presenceSubscription',
-        timestamp: new Date(),
-        uri,
-        expires: options?.expires,
-      })
-      return
+    if (!this.ua) {
+      throw new Error('SIP client is not started')
     }
 
     // Capture ua reference for use in async context
@@ -1991,26 +1953,8 @@ export class SipClient {
    * @throws Error if not connected or UNSUBSCRIBE fails
    */
   async unsubscribePresence(uri: string): Promise<void> {
-    // Check for E2E test mode
-    const hasEmitSipEvent =
-      typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-
-    // In E2E mode, skip the UA check
-    if (!hasEmitSipEvent) {
-      if (!this.ua) {
-        throw new Error('SIP client is not started')
-      }
-    }
-
-    // In E2E mode, simulate presence unsubscription
-    if (hasEmitSipEvent) {
-      console.log('[SipClient] [E2E TEST MODE] Simulating presence unsubscription')
-      this.eventBus.emit('sip:presenceUnsubscription', {
-        type: 'sip:presenceUnsubscription',
-        timestamp: new Date(),
-        uri,
-      })
-      return
+    if (!this.ua) {
+      throw new Error('SIP client is not started')
     }
 
     // Capture ua reference for use in async context

@@ -22,106 +22,129 @@
 
     <!-- Configuration Panel (only show when not connected and not in simulation) -->
     <div v-if="!effectiveIsConnected" class="config-panel">
-      <h3>SIP Server Configuration</h3>
-      <p class="info-text">
-        Configure your SIP server details to get started. You'll need access to a SIP server (like
-        Asterisk, FreeSWITCH, or a hosted SIP service).
-        <br /><br />
-        <strong>Or enable Simulation Mode above to test without a connection!</strong>
-      </p>
-
-      <div class="form-group">
-        <label for="server-uri">Server URI (WebSocket)</label>
-        <input
-          id="server-uri"
-          v-model="config.uri"
-          type="text"
-          placeholder="wss://sip.example.com:7443"
-          :disabled="connecting"
-        />
-        <small>Example: wss://sip.yourdomain.com:7443</small>
-      </div>
-
-      <div class="form-group">
-        <label for="sip-uri">SIP URI</label>
-        <input
-          id="sip-uri"
-          v-model="config.sipUri"
-          type="text"
-          placeholder="sip:username@example.com"
-          :disabled="connecting"
-        />
-        <small>Example: sip:1000@yourdomain.com</small>
-      </div>
-
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input
-          id="password"
-          v-model="config.password"
-          type="password"
-          placeholder="Enter your SIP password"
-          :disabled="connecting"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="display-name">Display Name (Optional)</label>
-        <input
-          id="display-name"
-          v-model="config.displayName"
-          type="text"
-          placeholder="Your Name"
-          :disabled="connecting"
-        />
-      </div>
-
-      <!-- Remember Me Section -->
-      <div class="form-group">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="rememberMe" />
-          <span>Remember me (persist credentials across sessions)</span>
-        </label>
-      </div>
-
-      <!-- Save Password Section (conditional) -->
-      <div v-if="rememberMe" class="form-group nested">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="savePassword" />
-          <span>Save password</span>
-        </label>
-        <div class="security-warning">
-          <p>
-            <strong>Security Warning:</strong> Saving your password in browser localStorage is not
-            secure. Only use this on trusted devices.
+      <Card>
+        <template #title>SIP Server Configuration</template>
+        <template #content>
+          <p class="info-text mb-4">
+            Configure your SIP server details to get started. You'll need access to a SIP server
+            (like Asterisk, FreeSWITCH, or a hosted SIP service).
+            <br /><br />
+            <strong>Or enable Simulation Mode above to test without a connection!</strong>
           </p>
-        </div>
-      </div>
 
-      <!-- Clear Credentials Button (conditional) -->
-      <div v-if="rememberMe" class="form-actions">
-        <button type="button" class="btn btn-secondary btn-sm" @click="clearCredentials">
-          Clear Saved Credentials
-        </button>
-      </div>
+          <div class="flex flex-column gap-3">
+            <div class="form-group">
+              <label for="server-uri">Server URI (WebSocket)</label>
+              <InputText
+                id="server-uri"
+                v-model="config.uri"
+                placeholder="wss://sip.example.com:7443"
+                :disabled="connecting"
+                class="w-full"
+                aria-required="true"
+                aria-describedby="server-uri-hint"
+              />
+              <small id="server-uri-hint">Example: wss://sip.yourdomain.com:7443</small>
+            </div>
 
-      <button
-        class="btn btn-primary"
-        :disabled="!isConfigValid || connecting"
-        @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to Server' }}
-      </button>
+            <div class="form-group">
+              <label for="sip-uri">SIP URI</label>
+              <InputText
+                id="sip-uri"
+                v-model="config.sipUri"
+                placeholder="sip:username@example.com"
+                :disabled="connecting"
+                class="w-full"
+                aria-required="true"
+                aria-describedby="sip-uri-hint"
+              />
+              <small id="sip-uri-hint">Example: sip:1000@yourdomain.com</small>
+            </div>
 
-      <div v-if="connectionError" class="error-message">
-        {{ connectionError }}
-      </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <Password
+                id="password"
+                v-model="config.password"
+                placeholder="Enter your SIP password"
+                :disabled="connecting"
+                :feedback="false"
+                toggleMask
+                class="w-full"
+                aria-required="true"
+              />
+            </div>
 
-      <div class="demo-tip">
-        <strong>Tip:</strong> Don't have a SIP server? You can use a free SIP service like
-        <a href="https://www.antisip.com/" target="_blank">Antisip</a> or set up a local Asterisk
-        server for testing.
-      </div>
+            <div class="form-group">
+              <label for="display-name">Display Name (Optional)</label>
+              <InputText
+                id="display-name"
+                v-model="config.displayName"
+                placeholder="Your Name"
+                :disabled="connecting"
+                class="w-full"
+              />
+            </div>
+
+            <!-- Remember Me Section -->
+            <div class="form-group checkbox-section">
+              <div class="flex align-items-center">
+                <Checkbox v-model="rememberMe" :binary="true" inputId="remember-me" />
+                <label for="remember-me" class="ml-2 mb-0"
+                  >Remember me (persist credentials across sessions)</label
+                >
+              </div>
+            </div>
+
+            <!-- Save Password Section (conditional) -->
+            <div v-if="rememberMe" class="form-group nested">
+              <div class="flex align-items-center">
+                <Checkbox v-model="savePassword" :binary="true" inputId="save-password" />
+                <label for="save-password" class="ml-2 mb-0">Save password</label>
+              </div>
+              <div class="security-warning mt-2">
+                <Message severity="warn" :closable="false">
+                  <strong>Security Warning:</strong> Saving your password in browser localStorage is
+                  not secure. Only use this on trusted devices.
+                </Message>
+              </div>
+            </div>
+
+            <!-- Clear Credentials Button (conditional) -->
+            <div v-if="rememberMe" class="form-actions mb-3">
+              <Button
+                label="Clear Saved Credentials"
+                severity="secondary"
+                size="small"
+                outlined
+                @click="clearCredentials"
+              />
+            </div>
+
+            <Button
+              :label="connecting ? 'Connecting...' : 'Connect to Server'"
+              :loading="connecting"
+              :disabled="!isConfigValid || connecting"
+              :aria-disabled="!isConfigValid || connecting"
+              @click="handleConnect"
+              class="w-full"
+              aria-label="Connect to SIP server"
+            />
+
+            <div v-if="connectionError" class="mt-3" role="alert">
+              <Message severity="error" :closable="false">{{ connectionError }}</Message>
+            </div>
+
+            <div class="demo-tip mt-4">
+              <Message severity="info" :closable="false">
+                <strong>Tip:</strong> Don't have a SIP server? You can use a free SIP service like
+                <a href="https://www.antisip.com/" target="_blank">Antisip</a> or set up a local
+                Asterisk server for testing.
+              </Message>
+            </div>
+          </div>
+        </template>
+      </Card>
     </div>
 
     <!-- Connected Interface (show when connected OR in simulation mode) -->
@@ -131,82 +154,135 @@
 
       <!-- Call Interface (Idle state) -->
       <div v-if="effectiveCallState === 'idle'" class="call-panel">
-        <h3>Make a Call</h3>
-        <div class="dial-section">
-          <input
-            v-model="dialNumber"
-            type="text"
-            placeholder="Enter SIP URI or number (e.g., sip:2000@example.com)"
-            class="dial-input"
-            @keyup.enter="handleMakeCall"
-          />
-          <button
-            class="btn btn-success"
-            :disabled="!dialNumber.trim() && !isSimulationMode"
-            @click="handleMakeCall"
-          >
-            Call
-          </button>
-        </div>
+        <Card>
+          <template #title>Make a Call</template>
+          <template #content>
+            <div class="flex flex-column md:flex-row gap-2">
+              <InputText
+                v-model="dialNumber"
+                placeholder="Enter SIP URI or number (e.g., sip:2000@example.com)"
+                class="flex-1 w-full"
+                @keyup.enter="handleMakeCall"
+              />
+              <Button
+                label="Call"
+                icon="pi pi-phone"
+                severity="success"
+                :disabled="!dialNumber.trim() && !isSimulationMode"
+                @click="handleMakeCall"
+                aria-label="Make call"
+                class="w-full md:w-auto"
+              />
+            </div>
 
-        <!-- Quick dial buttons for simulation -->
-        <div v-if="isSimulationMode" class="quick-dial">
-          <p class="quick-dial-label">Quick Dial (Simulation):</p>
-          <div class="quick-dial-buttons">
-            <button
-              class="quick-btn"
-              @click="quickDial('sip:sales@company.com', 'Sales Department')"
-            >
-              Sales
-            </button>
-            <button class="quick-btn" @click="quickDial('sip:support@company.com', 'Tech Support')">
-              Support
-            </button>
-            <button class="quick-btn" @click="quickDial('sip:reception@company.com', 'Reception')">
-              Reception
-            </button>
-          </div>
-        </div>
+            <!-- Quick dial buttons for simulation -->
+            <div v-if="isSimulationMode" class="quick-dial mt-4">
+              <p class="font-medium mb-2 text-secondary">Quick Dial (Simulation):</p>
+              <div class="flex flex-column sm:flex-row gap-2">
+                <Button
+                  label="Sales"
+                  severity="secondary"
+                  size="small"
+                  outlined
+                  @click="quickDial('sip:sales@company.com', 'Sales Department')"
+                  class="w-full sm:w-auto"
+                />
+                <Button
+                  label="Support"
+                  severity="secondary"
+                  size="small"
+                  outlined
+                  @click="quickDial('sip:support@company.com', 'Tech Support')"
+                  class="w-full sm:w-auto"
+                />
+                <Button
+                  label="Reception"
+                  severity="secondary"
+                  size="small"
+                  outlined
+                  @click="quickDial('sip:reception@company.com', 'Reception')"
+                  class="w-full sm:w-auto"
+                />
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
 
       <!-- Incoming Call -->
       <div
-        v-else-if="effectiveCallState === 'ringing' || effectiveCallState === 'incoming'"
+        v-else-if="
+          effectiveCallState === 'ringing' || (effectiveCallState as string) === 'incoming'
+        "
         class="incoming-call"
       >
-        <div class="incoming-animation">
-          <div class="ring-circle"></div>
-          <div class="ring-circle delay-1"></div>
-          <div class="ring-circle delay-2"></div>
-          <svg
-            class="phone-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
-            />
-          </svg>
-        </div>
-        <div class="incoming-info">
-          <div class="incoming-label">Incoming Call</div>
-          <div class="caller-name">{{ effectiveRemoteDisplayName || 'Unknown Caller' }}</div>
-          <div class="caller-uri">{{ effectiveRemoteUri }}</div>
-        </div>
-        <div class="incoming-actions">
-          <button class="btn btn-success btn-lg" @click="handleAnswer">Answer</button>
-          <button class="btn btn-danger btn-lg" @click="handleReject">Reject</button>
-        </div>
+        <Card class="border-primary border-2 shadow-4">
+          <template #content>
+            <div class="flex flex-column align-items-center text-center p-3">
+              <div class="incoming-animation mb-3">
+                <div class="ring-circle"></div>
+                <div class="ring-circle delay-1"></div>
+                <div class="ring-circle delay-2"></div>
+                <i class="pi pi-phone text-6xl text-primary" aria-hidden="true"></i>
+              </div>
+              <div class="incoming-info mb-4">
+                <div class="text-xl font-bold mb-1">Incoming Call</div>
+                <div class="text-2xl text-primary font-bold mb-1">
+                  {{ effectiveRemoteDisplayName || 'Unknown Caller' }}
+                </div>
+                <div class="text-secondary">{{ effectiveRemoteUri }}</div>
+              </div>
+              <div class="flex flex-column sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
+                <Button
+                  label="Answer"
+                  icon="pi pi-phone"
+                  severity="success"
+                  size="large"
+                  @click="handleAnswer"
+                  rounded
+                  raised
+                  aria-label="Answer call"
+                  class="w-full sm:w-auto"
+                />
+                <Button
+                  label="Reject"
+                  icon="pi pi-phone"
+                  severity="danger"
+                  size="large"
+                  @click="handleReject"
+                  rounded
+                  raised
+                  aria-label="Reject call"
+                  class="w-full sm:w-auto"
+                />
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
 
       <!-- Connecting -->
       <div v-else-if="effectiveCallState === 'connecting'" class="connecting-call">
-        <div class="connecting-spinner"></div>
-        <div class="connecting-text">Connecting...</div>
-        <div class="remote-uri">{{ effectiveRemoteUri }}</div>
-        <button class="btn btn-danger" @click="handleHangup">Cancel</button>
+        <Card>
+          <template #content>
+            <div class="flex flex-column align-items-center text-center p-4">
+              <i
+                class="pi pi-spin pi-spinner text-4xl text-primary mb-3"
+                role="img"
+                aria-label="Connecting"
+              ></i>
+              <div class="text-xl font-medium mb-1">Connecting...</div>
+              <div class="text-secondary mb-4">{{ effectiveRemoteUri }}</div>
+              <Button
+                label="Cancel"
+                severity="danger"
+                icon="pi pi-times"
+                @click="handleHangup"
+                aria-label="Cancel call"
+              />
+            </div>
+          </template>
+        </Card>
       </div>
 
       <!-- Active Call -->
@@ -214,61 +290,86 @@
         v-else-if="effectiveCallState === 'active' || effectiveCallState === 'on-hold'"
         class="active-call"
       >
-        <div class="call-status">
-          <div class="call-state" :class="{ 'on-hold': effectiveIsOnHold }">
-            {{ effectiveIsOnHold ? 'On Hold' : 'In Call' }}
-          </div>
-          <div class="remote-info">
-            <div class="remote-name">
-              {{ effectiveRemoteDisplayName || 'Unknown' }}
+        <Card :class="{ 'surface-ground': effectiveIsOnHold }">
+          <template #content>
+            <div class="flex flex-column align-items-center text-center">
+              <div class="call-status mb-4">
+                <div
+                  class="text-lg font-bold mb-2"
+                  :class="{ 'text-warning': effectiveIsOnHold, 'text-success': !effectiveIsOnHold }"
+                >
+                  {{ effectiveIsOnHold ? 'On Hold' : 'In Call' }}
+                </div>
+                <div class="text-3xl font-bold mb-1">
+                  {{ effectiveRemoteDisplayName || 'Unknown' }}
+                </div>
+                <div class="text-secondary mb-2">{{ effectiveRemoteUri }}</div>
+                <div class="text-xl font-mono surface-100 p-2 border-round inline-block">
+                  {{ formatDuration(effectiveDuration) }}
+                </div>
+              </div>
+
+              <!-- Call Controls -->
+              <div
+                class="flex flex-column sm:flex-row gap-2 sm:gap-3 justify-content-center w-full sm:w-auto"
+              >
+                <Button
+                  :icon="effectiveIsMuted ? 'pi pi-microphone-slash' : 'pi pi-microphone'"
+                  :severity="effectiveIsMuted ? 'warning' : 'secondary'"
+                  @click="handleToggleMute"
+                  rounded
+                  :aria-label="effectiveIsMuted ? 'Unmute microphone' : 'Mute microphone'"
+                  class="w-full sm:w-auto"
+                >
+                  <span class="hidden sm:inline">{{ effectiveIsMuted ? 'Unmute' : 'Mute' }}</span>
+                </Button>
+
+                <Button
+                  :icon="effectiveIsOnHold ? 'pi pi-play' : 'pi pi-pause'"
+                  :severity="effectiveIsOnHold ? 'warning' : 'secondary'"
+                  @click="handleToggleHold"
+                  rounded
+                  :aria-label="effectiveIsOnHold ? 'Resume call' : 'Hold call'"
+                  class="w-full sm:w-auto"
+                >
+                  <span class="hidden sm:inline">{{ effectiveIsOnHold ? 'Resume' : 'Hold' }}</span>
+                </Button>
+
+                <Button
+                  icon="pi pi-phone"
+                  severity="danger"
+                  @click="handleHangup"
+                  rounded
+                  aria-label="Hang up call"
+                  class="w-full sm:w-auto"
+                >
+                  <span class="hidden sm:inline">Hang Up</span>
+                </Button>
+              </div>
             </div>
-            <div class="remote-uri">{{ effectiveRemoteUri }}</div>
-          </div>
-          <div class="call-duration">
-            {{ formatDuration(effectiveDuration) }}
-          </div>
-        </div>
-
-        <!-- Call Controls -->
-        <div class="call-controls">
-          <button
-            class="btn btn-secondary"
-            :class="{ active: effectiveIsMuted }"
-            @click="handleToggleMute"
-          >
-            {{ effectiveIsMuted ? 'Unmute' : 'Mute' }}
-          </button>
-
-          <button
-            class="btn btn-secondary"
-            :class="{ active: effectiveIsOnHold }"
-            @click="handleToggleHold"
-          >
-            {{ effectiveIsOnHold ? 'Resume' : 'Hold' }}
-          </button>
-
-          <button class="btn btn-danger" @click="handleHangup">Hang Up</button>
-        </div>
+          </template>
+        </Card>
       </div>
 
       <!-- Call Ended -->
       <div v-else-if="effectiveCallState === 'ended'" class="call-ended">
-        <svg
-          class="ended-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path
-            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
-          />
-          <line x1="1" y1="1" x2="23" y2="23" />
-        </svg>
-        <div class="ended-text">Call Ended</div>
-        <div v-if="effectiveDuration" class="ended-duration">
-          Duration: {{ formatDuration(effectiveDuration) }}
-        </div>
+        <Card>
+          <template #content>
+            <div class="flex flex-column align-items-center text-center p-4">
+              <div class="stat-icon bg-red-100 text-red-500 border-circle p-3 mb-3">
+                <i
+                  class="pi pi-phone text-4xl"
+                  style="transform: rotate(135deg)"
+                  aria-hidden="true"
+                ></i>
+              </div>
+              <div class="text-2xl font-bold mb-2">Call Ended</div>
+              <div v-if="effectiveDuration" class="text-secondary">
+                Duration: {{ formatDuration(effectiveDuration) }}
+              </div>
+            </div>
+          </template>
+        </Card>
       </div>
     </div>
   </div>
@@ -280,6 +381,7 @@ import { useCallSession } from '../../src'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Card, InputText, Password, Button, Checkbox, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -358,12 +460,14 @@ const effectiveDuration = computed(() =>
   isSimulationMode.value ? simulation.duration.value : realDuration.value || 0
 )
 
-const effectiveRemoteUri = computed(() =>
-  isSimulationMode.value ? simulation.remoteUri.value : realRemoteUri.value
+const effectiveRemoteUri = computed(
+  () => (isSimulationMode.value ? simulation.remoteUri.value : realRemoteUri.value) || ''
 )
 
-const effectiveRemoteDisplayName = computed(() =>
-  isSimulationMode.value ? simulation.remoteDisplayName.value : realRemoteDisplayName.value
+const effectiveRemoteDisplayName = computed(
+  () =>
+    (isSimulationMode.value ? simulation.remoteDisplayName.value : realRemoteDisplayName.value) ||
+    ''
 )
 
 const effectiveIsOnHold = computed(() =>
@@ -624,226 +728,13 @@ watch(
   padding: 1.5rem;
 }
 
-.config-panel h3 {
-  margin: 0 0 1rem 0;
-  color: var(--text-primary, #1e293b);
-}
-
 .info-text {
-  color: var(--text-secondary, #64748b);
-  font-size: 0.875rem;
-  margin-bottom: 1.5rem;
-  line-height: 1.6;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: var(--text-primary, #1e293b);
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 6px;
-  font-size: 1rem;
-  background: var(--bg-primary, white);
-  color: var(--text-primary, #1e293b);
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: var(--primary, #6366f1);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.form-group small {
-  display: block;
-  margin-top: 0.25rem;
-  color: var(--text-secondary, #64748b);
-  font-size: 0.75rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--primary, #6366f1);
-  color: white;
-  width: 100%;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #4f46e5;
-}
-
-.btn-secondary {
-  background: var(--bg-secondary, #f1f5f9);
-  color: var(--text-primary, #1e293b);
-  border: 1px solid var(--border-color, #e2e8f0);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--bg-primary, white);
-  border-color: var(--primary, #6366f1);
-}
-
-.btn-secondary.active {
-  background: var(--primary, #6366f1);
-  color: white;
-  border-color: var(--primary, #6366f1);
-}
-
-.btn-success {
-  background: #10b981;
-  color: white;
-}
-
-.btn-success:hover:not(:disabled) {
-  background: #059669;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-}
-
-.btn-lg {
-  padding: 1rem 2rem;
-  font-size: 1.125rem;
-}
-
-.error-message {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.demo-tip {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: rgba(99, 102, 241, 0.1);
-  border-left: 3px solid var(--primary, #6366f1);
-  border-radius: 4px;
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
   line-height: 1.6;
 }
 
-.demo-tip a {
-  color: var(--primary, #6366f1);
-  text-decoration: underline;
-}
-
-/* Simulation Badge */
-.simulation-badge {
-  text-align: center;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(168, 85, 247, 0.1));
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 8px;
-  color: #8b5cf6;
-  font-weight: 500;
-  font-size: 0.875rem;
-  margin-bottom: 1.5rem;
-}
-
-/* Call Panel */
-.call-panel h3 {
-  margin: 0 0 1rem 0;
-  color: var(--text-primary, #1e293b);
-}
-
-.dial-section {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.dial-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 6px;
-  font-size: 1rem;
-  background: var(--bg-primary, white);
-  color: var(--text-primary, #1e293b);
-}
-
-.dial-input:focus {
-  outline: none;
-  border-color: var(--primary, #6366f1);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-/* Quick Dial */
-.quick-dial {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color, #e2e8f0);
-}
-
-.quick-dial-label {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #64748b);
-  margin-bottom: 0.75rem;
-}
-
-.quick-dial-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.quick-btn {
-  padding: 0.5rem 1rem;
-  background: var(--bg-secondary, #f8fafc);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 6px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.quick-btn:hover {
-  background: var(--bg-primary, white);
-  border-color: var(--primary, #6366f1);
-}
-
-/* Incoming Call */
-.incoming-call {
-  text-align: center;
-  padding: 2rem;
-}
-
+/* Animations */
 .incoming-animation {
   position: relative;
   width: 120px;
@@ -854,7 +745,7 @@ watch(
 .ring-circle {
   position: absolute;
   inset: 0;
-  border: 2px solid #10b981;
+  border: 2px solid var(--primary-color);
   border-radius: 50%;
   animation: ring-pulse 1.5s ease-out infinite;
 }
@@ -878,15 +769,29 @@ watch(
   }
 }
 
-.phone-icon {
+/* phone-icon replaced by PrimeIcon */
+
+/* Apply shake animation to the prime icon if needed */
+.pi-phone {
+  animation: phone-shake 0.5s ease-in-out infinite;
+  /* Only apply this when it's ringing/incoming? 
+     In the template I put the icon inside .incoming-animation.
+  */
+}
+
+/* But wait, the previous .phone-icon had absolute positioning. 
+   The new template Chunk 3: 
+   <div class="incoming-animation mb-3">
+     ... circles ...
+     <i class="pi pi-phone text-6xl text-primary"></i>
+   </div>
+   I need to position the icon absolutely in the center if I want it to be inside the rings.
+*/
+.incoming-animation .pi-phone {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  color: #10b981;
-  animation: phone-shake 0.5s ease-in-out infinite;
 }
 
 @keyframes phone-shake {
@@ -899,185 +804,10 @@ watch(
   }
 }
 
-.incoming-info {
-  margin-bottom: 1.5rem;
-}
+/* Connecting Spinner - replaced by pi-spinner */
 
-.incoming-label {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #64748b);
-  margin-bottom: 0.5rem;
-}
-
-.caller-name {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary, #1e293b);
-}
-
-.caller-uri {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #64748b);
-}
-
-.incoming-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-}
-
-/* Connecting */
-.connecting-call {
-  text-align: center;
-  padding: 2rem;
-}
-
-.connecting-spinner {
-  width: 60px;
-  height: 60px;
-  border: 3px solid var(--border-color, #e2e8f0);
-  border-top-color: var(--primary, #6366f1);
-  border-radius: 50%;
-  margin: 0 auto 1.5rem;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.connecting-text {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--text-primary, #1e293b);
-  margin-bottom: 0.5rem;
-}
-
-/* Active Call */
-.active-call {
-  text-align: center;
-}
-
-.call-status {
-  margin-bottom: 2rem;
-}
-
-.call-state {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #10b981;
-  margin-bottom: 1rem;
-}
-
-.call-state.on-hold {
-  color: #f59e0b;
-}
-
-.remote-info {
-  margin-bottom: 0.5rem;
-}
-
-.remote-name {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--text-primary, #1e293b);
-}
-
-.remote-uri {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #64748b);
-}
-
-.call-duration {
-  font-size: 2.5rem;
-  font-weight: 300;
-  color: var(--text-primary, #1e293b);
-  margin-top: 1rem;
-  font-variant-numeric: tabular-nums;
+/* Call Duration Monospace Font */
+.font-mono {
   font-family: 'SF Mono', 'Fira Code', monospace;
-}
-
-.call-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: center;
-}
-
-.call-controls .btn {
-  min-width: 120px;
-}
-
-/* Call Ended */
-.call-ended {
-  text-align: center;
-  padding: 2rem;
-}
-
-.ended-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 1rem;
-  opacity: 0.5;
-  color: var(--text-secondary, #64748b);
-}
-
-.ended-text {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: var(--text-secondary, #64748b);
-  margin-bottom: 0.5rem;
-}
-
-.ended-duration {
-  font-size: 0.875rem;
-  color: var(--text-muted, #94a3b8);
-}
-
-/* Credential Persistence Styles */
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--text-primary, #1e293b);
-  cursor: pointer;
-}
-
-.checkbox-label input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--primary, #6366f1);
-}
-
-.form-group.nested {
-  margin-left: 1.5rem;
-  background: var(--bg-secondary, #f8fafc);
-  padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid var(--border-color, #e2e8f0);
-}
-
-.security-warning {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.security-warning p {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: #b45309;
-  line-height: 1.5;
-}
-
-.form-actions {
-  margin-bottom: 1rem;
-  text-align: center;
 }
 </style>

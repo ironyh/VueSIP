@@ -36,8 +36,11 @@
           type="text"
           placeholder="wss://pbx.example.com:8089/ws"
           :disabled="connecting"
+          aria-required="true"
+          :aria-disabled="connecting"
+          aria-describedby="server-uri-hint"
         />
-        <small>Example: wss://pbx.yourdomain.com:8089/ws</small>
+        <small id="server-uri-hint">Example: wss://pbx.yourdomain.com:8089/ws</small>
       </div>
 
       <div class="form-group">
@@ -48,6 +51,8 @@
           type="text"
           placeholder="sip:1000@pbx.example.com"
           :disabled="connecting"
+          aria-required="true"
+          :aria-disabled="connecting"
         />
       </div>
 
@@ -59,18 +64,20 @@
           type="password"
           placeholder="Enter your SIP password"
           :disabled="connecting"
+          aria-required="true"
+          :aria-disabled="connecting"
         />
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
+        :label="connecting ? 'Connecting...' : 'Connect to PBX'"
         :disabled="!isConfigValid || connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to PBX' }}
-      </button>
+        :aria-disabled="!isConfigValid || connecting"
+        aria-label="Connect to PBX server"
+      />
 
-      <div v-if="connectionError" class="error-message">
+      <div v-if="connectionError" class="error-message" role="alert">
         {{ connectionError }}
       </div>
 
@@ -92,7 +99,7 @@
           <span class="status-dot" :class="{ connected: isRegistered }"></span>
           <span>{{ isRegistered ? 'Registered' : 'Not Registered' }}</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
+        <Button label="Disconnect" severity="secondary" size="small" @click="handleDisconnect" />
       </div>
 
       <!-- BLF Panel -->
@@ -103,48 +110,61 @@
           <p class="info-text">Enter extension URIs to monitor their call state in real-time.</p>
 
           <div class="add-form">
+            <label for="new-extension-input" class="sr-only">Extension URI to monitor</label>
             <input
+              id="new-extension-input"
               v-model="newExtension"
               type="text"
               placeholder="sip:6001@pbx.example.com"
               class="extension-input"
               :disabled="!isRegistered"
               @keyup.enter="handleAddExtension"
+              :aria-disabled="!isRegistered"
+              aria-required="true"
             />
-            <button
-              class="btn btn-primary"
+            <Button
+              :label="isSubscribing ? 'Adding...' : '+ Add Extension'"
               :disabled="!newExtension.trim() || !isRegistered || isSubscribing"
               @click="handleAddExtension"
-            >
-              {{ isSubscribing ? 'Adding...' : '+ Add Extension' }}
-            </button>
+              :aria-disabled="!newExtension.trim() || !isRegistered || isSubscribing"
+              aria-label="Add extension to monitoring list"
+            />
           </div>
 
           <!-- Quick Add Multiple -->
           <div class="quick-add">
-            <label>Quick add range:</label>
+            <label for="range-start-input">Quick add range:</label>
             <input
+              id="range-start-input"
               v-model="rangeStart"
               type="number"
               placeholder="6001"
               class="range-input"
               :disabled="!isRegistered"
+              :aria-disabled="!isRegistered"
+              aria-label="Range start extension number"
             />
             <span>to</span>
+            <label for="range-end-input" class="sr-only">Range end extension number</label>
             <input
+              id="range-end-input"
               v-model="rangeEnd"
               type="number"
               placeholder="6010"
               class="range-input"
               :disabled="!isRegistered"
+              :aria-disabled="!isRegistered"
+              aria-label="Range end extension number"
             />
-            <button
-              class="btn btn-secondary btn-sm"
+            <Button
+              label="Add Range"
+              severity="secondary"
+              size="small"
               :disabled="!rangeStart || !rangeEnd || !isRegistered"
               @click="handleAddRange"
-            >
-              Add Range
-            </button>
+              :aria-disabled="!rangeStart || !rangeEnd || !isRegistered"
+              aria-label="Add extension number range to monitoring"
+            />
           </div>
 
           <div v-if="subscribeError" class="error-message">
@@ -156,9 +176,12 @@
         <div v-if="watchedExtensions.size > 0" class="blf-grid-section">
           <h3>
             Extension Status ({{ watchedExtensions.size }})
-            <button class="btn btn-sm btn-secondary" @click="toggleDisplayMode">
-              {{ showIcons ? 'Hide Icons' : 'Show Icons' }}
-            </button>
+            <Button
+              :label="showIcons ? 'Hide Icons' : 'Show Icons'"
+              severity="secondary"
+              size="small"
+              @click="toggleDisplayMode"
+            />
           </h3>
 
           <div class="blf-grid">
@@ -184,18 +207,18 @@
                   {{ extractExtension(status.remoteIdentity) }}
                 </div>
               </div>
-              <button
+              <Button
+                label="X"
                 class="btn-remove"
+                size="small"
                 @click.stop="handleRemoveExtension(uri)"
                 title="Stop monitoring"
-              >
-                X
-              </button>
+              />
             </div>
           </div>
 
           <div class="grid-actions">
-            <button class="btn btn-secondary" @click="handleRemoveAll">Remove All</button>
+            <Button label="Remove All" severity="secondary" @click="handleRemoveAll" />
           </div>
         </div>
 
@@ -209,7 +232,7 @@
         <div v-if="dialogEvents.length > 0" class="events-log">
           <h3>
             Recent Events ({{ dialogEvents.length }})
-            <button class="btn btn-sm btn-secondary" @click="dialogEvents = []">Clear</button>
+            <Button label="Clear" severity="secondary" size="small" @click="dialogEvents = []" />
           </h3>
           <div class="events-list">
             <div
@@ -251,6 +274,7 @@ import { useDialog } from '../../src/composables/useDialog'
 import { DialogState, type DialogEvent, type DialogStatus } from '../../src/types/presence.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -555,12 +579,12 @@ onMounted(() => {
 
 .config-panel h3 {
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--vuesip-text-primary);
 }
 
 .info-text {
   margin-bottom: 1.5rem;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -573,74 +597,40 @@ onMounted(() => {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--vuesip-text-primary);
 }
 
 .form-group input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius);
   font-size: 0.875rem;
 }
 
 .form-group small {
   display: block;
   margin-top: 0.25rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
   font-size: 0.75rem;
-}
-
-/* Buttons */
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
 }
 
 .error-message {
   margin-top: 1rem;
   padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
+  background: var(--red-50);
+  border: 1px solid var(--red-500);
   border-radius: 6px;
-  color: #991b1b;
+  color: var(--red-900);
   font-size: 0.875rem;
 }
 
 .demo-tip {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
+  background: var(--blue-50);
+  border-left: 4px solid var(--blue-500);
+  border-radius: 6px;
   font-size: 0.875rem;
 }
 
@@ -651,12 +641,16 @@ onMounted(() => {
 
 .status-bar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: #f9fafb;
+  background: var(--surface-section);
   border-radius: 8px;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .status-bar {
+    margin-bottom: 2rem;
+  }
 }
 
 .status-item {
@@ -670,11 +664,11 @@ onMounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--red-500);
 }
 
 .status-dot.connected {
-  background: #10b981;
+  background: var(--green-500);
 }
 
 /* BLF Panel */
@@ -688,17 +682,26 @@ onMounted(() => {
 .blf-grid-section,
 .events-log,
 .state-legend {
-  padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
+  padding: 1rem;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
+}
+
+@media (min-width: 640px) {
+  .add-section,
+  .blf-grid-section,
+  .events-log,
+  .state-legend {
+    padding: 1.5rem;
+  }
 }
 
 .add-section h3,
 .blf-grid-section h3,
 .events-log h3 {
   margin-bottom: 1rem;
-  color: #111827;
+  color: var(--text-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -714,7 +717,7 @@ onMounted(() => {
 .extension-input {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--surface-border);
   border-radius: 6px;
 }
 
@@ -723,7 +726,7 @@ onMounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 1rem;
-  background: #f9fafb;
+  background: var(--surface-section);
   border-radius: 6px;
   font-size: 0.875rem;
 }
@@ -735,38 +738,57 @@ onMounted(() => {
 .range-input {
   width: 80px;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
   text-align: center;
 }
 
 /* BLF Grid */
 .blf-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  .blf-grid {
+    gap: 1rem;
+  }
 }
 
 .blf-button {
   position: relative;
-  padding: 1rem;
-  background: #f9fafb;
-  border: 2px solid #e5e7eb;
+  padding: 0.875rem 0.5rem;
+  background: var(--surface-section);
+  border: 2px solid var(--surface-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
+  min-height: 44px;
+}
+
+@media (min-width: 640px) {
+  .blf-button {
+    padding: 1rem;
+  }
 }
 
 .blf-button:hover {
-  border-color: #667eea;
+  border-color: var(--primary-500);
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
 .blf-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+@media (min-width: 640px) {
+  .blf-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
 }
 
 .blf-indicator {
@@ -776,7 +798,7 @@ onMounted(() => {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2px solid var(--surface-0);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
@@ -789,17 +811,17 @@ onMounted(() => {
 .blf-extension {
   font-weight: 600;
   font-size: 1.25rem;
-  color: #111827;
+  color: var(--text-color);
 }
 
 .blf-state {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .blf-remote {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--text-color-secondary);
 }
 
 .btn-remove {
@@ -808,8 +830,8 @@ onMounted(() => {
   left: 4px;
   width: 20px;
   height: 20px;
-  background: #ef4444;
-  color: white;
+  background: var(--red-500);
+  color: var(--surface-0);
   border: none;
   border-radius: 50%;
   font-size: 0.75rem;
@@ -824,13 +846,13 @@ onMounted(() => {
 
 /* State-specific styles */
 .blf-button.state-idle {
-  background: #f0fdf4;
-  border-color: #86efac;
+  background: var(--green-50);
+  border-color: var(--green-300);
 }
 
 .blf-button.state-ringing {
-  background: #fef3c7;
-  border-color: #fbbf24;
+  background: var(--yellow-50);
+  border-color: var(--yellow-400);
 }
 
 .blf-button.state-ringing.has-animation {
@@ -838,23 +860,23 @@ onMounted(() => {
 }
 
 .blf-button.state-in-call {
-  background: #fef2f2;
-  border-color: #fca5a5;
+  background: var(--red-50);
+  border-color: var(--red-500);
 }
 
 .blf-button.state-on-hold {
-  background: #f5f3ff;
-  border-color: #c4b5fd;
+  background: var(--purple-50);
+  border-color: var(--purple-300);
 }
 
 .blf-button.state-trying {
-  background: #fff7ed;
-  border-color: #fdba74;
+  background: var(--orange-50);
+  border-color: var(--orange-300);
 }
 
 .blf-button.state-unavailable {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  background: var(--surface-section);
+  border-color: var(--surface-border);
   opacity: 0.7;
 }
 
@@ -879,17 +901,29 @@ onMounted(() => {
 
 /* Empty State */
 .empty-state {
-  padding: 3rem;
+  padding: 2rem 1rem;
   text-align: center;
-  background: #f9fafb;
-  border: 2px dashed #d1d5db;
+  background: var(--surface-section);
+  border: 2px dashed var(--surface-border);
   border-radius: 8px;
-  color: #6b7280;
+  color: var(--text-color-secondary);
+}
+
+@media (min-width: 640px) {
+  .empty-state {
+    padding: 3rem;
+  }
 }
 
 .empty-state p:first-child {
-  font-size: 2rem;
+  font-size: 1.5rem;
   margin-bottom: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .empty-state p:first-child {
+    font-size: 2rem;
+  }
 }
 
 /* Events Log */
@@ -897,53 +931,69 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 250px;
+  max-height: 200px;
   overflow-y: auto;
+}
+
+@media (min-width: 640px) {
+  .events-list {
+    max-height: 250px;
+  }
 }
 
 .event-item {
   display: flex;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: #f9fafb;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: var(--surface-section);
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .event-item {
+    flex-direction: row;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
 }
 
 .event-item.event-updated {
-  background: #ecfdf5;
+  background: var(--green-50);
 }
 
 .event-item.event-error {
-  background: #fef2f2;
+  background: var(--red-50);
 }
 
 .event-time {
-  color: #9ca3af;
+  color: var(--text-color-secondary);
   font-size: 0.7rem;
   white-space: nowrap;
 }
 
 .event-type {
-  color: #667eea;
+  color: var(--primary-500);
   font-weight: 500;
   min-width: 80px;
 }
 
 .event-details {
-  color: #374151;
+  color: var(--text-color);
   flex: 1;
 }
 
 /* State Legend */
 .state-legend {
-  background: #f9fafb;
+  background: var(--vuesip-bg-secondary);
 }
 
 .state-legend h4 {
   margin-bottom: 1rem;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .legend-grid {
@@ -970,26 +1020,62 @@ onMounted(() => {
 }
 
 .legend-label {
-  color: #374151;
+  color: var(--vuesip-text-primary);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Mobile-First Responsive - Base styles for mobile (320px+) */
+
+/* Add Form - Mobile: column, Tablet+: row */
+.add-form {
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
   .add-form {
-    flex-direction: column;
+    flex-direction: row;
   }
+}
 
+/* Quick Add - Mobile: wrap, Tablet+: nowrap */
+.quick-add {
+  flex-wrap: wrap;
+}
+
+@media (min-width: 640px) {
   .quick-add {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
+}
 
+/* BLF Grid - Mobile: 2 columns, Tablet: 3, Desktop: 4+ */
+.blf-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 640px) {
   .blf-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
+}
 
+@media (min-width: 1024px) {
+  .blf-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}
+
+/* Status Bar - Mobile: column, Tablet+: row */
+.status-bar {
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0.75rem;
+}
+
+@media (min-width: 640px) {
   .status-bar {
-    flex-direction: column;
-    gap: 1rem;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 1rem;
   }
 }
 </style>
