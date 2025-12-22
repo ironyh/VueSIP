@@ -64,7 +64,7 @@
               aria-describedby="sip-uri-hint"
             />
             <span id="sip-uri-hint" class="sr-only"
-              >Enter your SIP address in the format sip:user@domain</span
+            >Enter your SIP address in the format sip:user@domain</span
             >
           </div>
           <div class="form-group">
@@ -89,7 +89,7 @@
               aria-describedby="server-uri-hint"
             />
             <span id="server-uri-hint" class="sr-only"
-              >Enter the WebSocket server address starting with wss://</span
+            >Enter the WebSocket server address starting with wss://</span
             >
           </div>
           <button class="btn btn-primary" data-testid="save-settings-button" @click="saveSettings">
@@ -158,7 +158,7 @@
                   aria-describedby="dialpad-hint"
                 />
                 <span id="dialpad-hint" class="sr-only"
-                  >Enter a phone number or SIP URI to call</span
+                >Enter a phone number or SIP URI to call</span
                 >
                 <button
                   class="btn btn-success"

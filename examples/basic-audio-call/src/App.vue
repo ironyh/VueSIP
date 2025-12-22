@@ -152,7 +152,7 @@ const {
   remoteDisplayName,
   isOnHold,
   isMuted,
-  localStream,
+  localStream: _localStream,
   remoteStream,
   duration,
   makeCall,

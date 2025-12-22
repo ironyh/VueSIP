@@ -23,7 +23,7 @@
     <Card class="demo-card">
       <template #title>
         <div class="demo-header">
-          <span class="demo-icon">🅿️</span>
+          <span class="demo-icon">P</span>
           <span>Call Parking</span>
         </div>
       </template>
@@ -44,7 +44,10 @@
         <template v-else>
           <!-- Status Bar -->
           <div class="status-bar">
-            <Tag :severity="isConnected ? 'success' : 'danger'" :value="isConnected ? 'Connected' : 'Disconnected'" />
+            <Tag
+              :severity="isConnected ? 'success' : 'danger'"
+              :value="isConnected ? 'Connected' : 'Disconnected'"
+            />
             <Tag severity="info" :value="`${totalParkedCalls} parked`" />
             <Tag severity="secondary" :value="`${parkingLotsList.length} lots`" />
           </div>
@@ -71,7 +74,10 @@
               <div v-for="lot in parkingLotsList" :key="lot.name" class="parking-lot-card">
                 <div class="lot-header">
                   <span class="lot-name">{{ lot.name }}</span>
-                  <Tag :severity="lot.calls.length > 0 ? 'warning' : 'success'" :value="`${lot.calls.length} calls`" />
+                  <Tag
+                    :severity="lot.calls.length > 0 ? 'warning' : 'success'"
+                    :value="`${lot.calls.length} calls`"
+                  />
                 </div>
                 <div class="lot-info">
                   <span>Spaces: {{ lot.startSpace }} - {{ lot.endSpace }}</span>
@@ -104,7 +110,12 @@
 
           <!-- All Parked Calls -->
           <Panel header="Parked Calls" :toggleable="true" class="section-panel">
-            <DataTable :value="parkedCalls" size="small" :rows="10" :paginator="parkedCalls.length > 10">
+            <DataTable
+              :value="parkedCalls"
+              size="small"
+              :rows="10"
+              :paginator="parkedCalls.length > 10"
+            >
               <Column field="parkingSpace" header="Space" sortable style="width: 80px">
                 <template #body="{ data }">
                   <Tag severity="info" :value="data.parkingSpace" class="space-tag" />
@@ -180,7 +191,12 @@
           <!-- Event Log -->
           <Panel header="Parking Events" :toggleable="true" :collapsed="true" class="section-panel">
             <div class="event-log">
-              <div v-for="(event, index) in eventLog" :key="index" class="event-item" :class="event.type">
+              <div
+                v-for="(event, index) in eventLog"
+                :key="index"
+                class="event-item"
+                :class="event.type"
+              >
                 <i :class="getEventIcon(event.type)"></i>
                 <span class="event-message">{{ event.message }}</span>
                 <span class="event-time">{{ formatTime(event.timestamp) }}</span>
@@ -279,7 +295,7 @@ const {
 const parkingLotsList = computed(() => Array.from(parkingLots.value.values()))
 
 const parkingLotOptions = computed(() =>
-  parkingLotsList.value.map(lot => ({ label: lot.name, value: lot.name }))
+  parkingLotsList.value.map((lot) => ({ label: lot.name, value: lot.name }))
 )
 
 // Event log
@@ -382,12 +398,18 @@ const formatTime = (date: Date) => {
 
 const getEventIcon = (type: string) => {
   switch (type) {
-    case 'parked': return 'pi pi-download'
-    case 'retrieved': return 'pi pi-upload'
-    case 'timeout': return 'pi pi-clock'
-    case 'giveup': return 'pi pi-phone-slash'
-    case 'error': return 'pi pi-exclamation-triangle'
-    default: return 'pi pi-info-circle'
+    case 'parked':
+      return 'pi pi-download'
+    case 'retrieved':
+      return 'pi pi-upload'
+    case 'timeout':
+      return 'pi pi-clock'
+    case 'giveup':
+      return 'pi pi-phone-slash'
+    case 'error':
+      return 'pi pi-exclamation-triangle'
+    default:
+      return 'pi pi-info-circle'
   }
 }
 
@@ -586,11 +608,21 @@ onParkingEvent((event) => {
   border-bottom: 1px solid var(--surface-border);
 }
 
-.event-item.parked i { color: var(--green-500); }
-.event-item.retrieved i { color: var(--blue-500); }
-.event-item.timeout i { color: var(--orange-500); }
-.event-item.giveup i { color: var(--red-500); }
-.event-item.error i { color: var(--red-500); }
+.event-item.parked i {
+  color: var(--green-500);
+}
+.event-item.retrieved i {
+  color: var(--blue-500);
+}
+.event-item.timeout i {
+  color: var(--orange-500);
+}
+.event-item.giveup i {
+  color: var(--red-500);
+}
+.event-item.error i {
+  color: var(--red-500);
+}
 
 .event-message {
   flex: 1;

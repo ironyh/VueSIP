@@ -13,6 +13,136 @@ import {
   type MockAmiClient,
 } from '../utils/mockFactories'
 
+// ============================================================================
+// Test Fixtures - Centralized test data and configuration
+// ============================================================================
+
+const TEST_FIXTURES = {
+  extensions: {
+    valid: {
+      simple: '1001',
+      withPrefix: 'SIP_1001',
+      withDots: 'ext-100.1',
+    },
+    invalid: {
+      empty: '',
+      tooLong: 'a'.repeat(33),
+      withSemicolon: 'ext;DROP TABLE',
+      withScript: 'ext<script>',
+    },
+  },
+  pageGroups: {
+    sales: {
+      id: 'sales',
+      name: 'Sales Floor',
+      extensions: ['1001', '1002', '1003'],
+      mode: 'simplex' as const,
+      enabled: true,
+    },
+    disabled: {
+      id: 'disabled-group',
+      name: 'Disabled',
+      extensions: ['1001'],
+      mode: 'simplex' as const,
+      enabled: false,
+    },
+    support: {
+      id: 'support',
+      name: 'Support Team',
+      extensions: ['2001', '2002'],
+      mode: 'duplex' as const,
+      enabled: true,
+    },
+  },
+  channels: {
+    pjsip: 'PJSIP/1001-00000001',
+    local: 'Local/s@page-group-00000001',
+  },
+  responses: {
+    success: {
+      success: true,
+      channel: 'PJSIP/1001-00000001',
+    },
+    failure: {
+      success: false,
+      message: 'Channel not available',
+    },
+    busy: {
+      success: false,
+      message: 'Channel busy',
+    },
+  },
+  events: {
+    newStateUp: {
+      ChannelState: '6',
+      ChannelStateDesc: 'Up',
+      Channel: 'PJSIP/1001-00000001',
+    },
+    hangup: {
+      Channel: 'PJSIP/1001-00000001',
+      Cause: '16',
+      CauseTxt: 'Normal Clearing',
+    },
+  },
+} as const
+
+// ============================================================================
+// Factory Functions - Reduce duplication in test setup
+// ============================================================================
+
+/**
+ * Factory: Create page group with sensible defaults
+ *
+ * @param overrides - Optional property overrides
+ * @returns PageGroup object for testing
+ */
+function createTestPageGroup(overrides?: Partial<PageGroup>): PageGroup {
+  return {
+    id: 'test-group',
+    name: 'Test Group',
+    extensions: ['1001', '1002'],
+    mode: 'simplex',
+    enabled: true,
+    ...overrides,
+  }
+}
+
+/**
+ * Factory: Create multiple page groups for testing
+ *
+ * @param count - Number of groups to create
+ * @returns Array of PageGroup objects
+ */
+function createTestPageGroups(count: number = 2): PageGroup[] {
+  return Array.from({ length: count }, (_, i) =>
+    createTestPageGroup({
+      id: `group-${i + 1}`,
+      name: `Group ${i + 1}`,
+      extensions: [`${1000 + i}1`, `${1000 + i}2`],
+    })
+  )
+}
+
+/**
+ * Factory: Setup mock client with originate response
+ *
+ * @param client - Mock AMI client
+ * @param response - Originate response to return
+ */
+function setupOriginateResponse(client: MockAmiClient, response = TEST_FIXTURES.responses.success) {
+  client.originate = vi.fn().mockResolvedValue(response)
+}
+
+/**
+ * Factory: Setup mock client for successful page flow
+ *
+ * @param client - Mock AMI client
+ */
+function setupSuccessfulPageFlow(client: MockAmiClient) {
+  client.originate = vi.fn().mockResolvedValue(TEST_FIXTURES.responses.success)
+  client.hangupChannel = vi.fn().mockResolvedValue(undefined)
+}
+
 describe('useAmiPaging', () => {
   let mockClient: MockAmiClient
 
@@ -27,47 +157,37 @@ describe('useAmiPaging', () => {
     vi.useRealTimers()
   })
 
+  /**
+   * Initial State Tests
+   * Validates default values when composable is first initialized
+   */
   describe('initial state', () => {
-    it('should have idle status initially', () => {
-      const { status } = useAmiPaging(mockClient as unknown as AmiClient)
-      expect(status.value).toBe('idle')
+    // Parameterized tests for initial state values
+    describe.each([
+      { property: 'status', expected: 'idle', description: 'idle status' },
+      { property: 'activeSession', expected: null, description: 'no active session' },
+      { property: 'isLoading', expected: false, description: 'not loading' },
+      { property: 'error', expected: null, description: 'no error' },
+    ])('default values', ({ property, expected, description }) => {
+      it(`should have ${description} initially`, () => {
+        const result = useAmiPaging(mockClient as unknown as AmiClient)
+        expect(result[property].value).toBe(expected)
+      })
     })
 
-    it('should have no active session initially', () => {
-      const { activeSession } = useAmiPaging(mockClient as unknown as AmiClient)
-      expect(activeSession.value).toBeNull()
-    })
-
-    it('should have empty page groups initially', () => {
-      const { pageGroups } = useAmiPaging(mockClient as unknown as AmiClient)
-      expect(pageGroups.value).toHaveLength(0)
-    })
-
-    it('should not be loading initially', () => {
-      const { isLoading } = useAmiPaging(mockClient as unknown as AmiClient)
-      expect(isLoading.value).toBe(false)
-    })
-
-    it('should have no error initially', () => {
-      const { error } = useAmiPaging(mockClient as unknown as AmiClient)
-      expect(error.value).toBeNull()
-    })
-
-    it('should have empty history initially', () => {
-      const { history } = useAmiPaging(mockClient as unknown as AmiClient)
-      expect(history.value).toHaveLength(0)
+    // Parameterized tests for empty collections
+    describe.each([
+      { property: 'pageGroups', description: 'page groups' },
+      { property: 'history', description: 'history' },
+    ])('empty collections', ({ property, description }) => {
+      it(`should have empty ${description} initially`, () => {
+        const result = useAmiPaging(mockClient as unknown as AmiClient)
+        expect(result[property].value).toHaveLength(0)
+      })
     })
 
     it('should load initial groups from options', () => {
-      const initialGroups: PageGroup[] = [
-        {
-          id: 'sales',
-          name: 'Sales Floor',
-          extensions: ['1001', '1002'],
-          mode: 'simplex',
-          enabled: true,
-        },
-      ]
+      const initialGroups = [TEST_FIXTURES.pageGroups.sales]
       const { pageGroups } = useAmiPaging(mockClient as unknown as AmiClient, {
         pageGroups: initialGroups,
       })
@@ -76,16 +196,24 @@ describe('useAmiPaging', () => {
     })
   })
 
+  /**
+   * Computed Properties Tests
+   * Validates reactive computed properties that derive state
+   */
   describe('computed properties', () => {
-    it('should compute isPaging correctly', () => {
-      const { isPaging, status } = useAmiPaging(mockClient as unknown as AmiClient)
-      expect(isPaging.value).toBe(false)
-      status.value = 'paging'
-      expect(isPaging.value).toBe(true)
-      status.value = 'connected'
-      expect(isPaging.value).toBe(true)
-      status.value = 'idle'
-      expect(isPaging.value).toBe(false)
+    /**
+     * isPaging computed property - active when status is 'paging' or 'connected'
+     */
+    describe.each([
+      { status: 'idle', expected: false, description: 'idle status' },
+      { status: 'paging', expected: true, description: 'paging status' },
+      { status: 'connected', expected: true, description: 'connected status' },
+    ])('isPaging', ({ status: statusValue, expected, description }) => {
+      it(`should be ${expected} for ${description}`, () => {
+        const { isPaging, status } = useAmiPaging(mockClient as unknown as AmiClient)
+        status.value = statusValue as any
+        expect(isPaging.value).toBe(expected)
+      })
     })
 
     it('should compute isConnected correctly', () => {
@@ -96,51 +224,56 @@ describe('useAmiPaging', () => {
     })
 
     it('should compute enabledGroups correctly', () => {
-      const { pageGroups: _pageGroups, enabledGroups } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          { id: 'g1', name: 'Group 1', extensions: ['1001'], mode: 'simplex', enabled: true },
-          { id: 'g2', name: 'Group 2', extensions: ['1002'], mode: 'simplex', enabled: false },
-          { id: 'g3', name: 'Group 3', extensions: ['1003'], mode: 'duplex', enabled: true },
-        ],
+      const testGroups = createTestPageGroups(3)
+      testGroups[1].enabled = false // Disable second group
+
+      const { enabledGroups } = useAmiPaging(mockClient as unknown as AmiClient, {
+        pageGroups: testGroups,
       })
       expect(enabledGroups.value).toHaveLength(2)
-      expect(enabledGroups.value.map((g) => g.id)).toEqual(['g1', 'g3'])
+      expect(enabledGroups.value.map((g) => g.id)).toEqual(['group-1', 'group-3'])
     })
 
     it('should compute groupCount correctly', () => {
+      const testGroups = createTestPageGroups(2)
       const { groupCount } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          { id: 'g1', name: 'Group 1', extensions: ['1001'], mode: 'simplex', enabled: true },
-          { id: 'g2', name: 'Group 2', extensions: ['1002'], mode: 'simplex', enabled: false },
-        ],
+        pageGroups: testGroups,
       })
       expect(groupCount.value).toBe(2)
     })
   })
 
+  /**
+   * pageExtension Tests
+   * Tests for paging individual extensions
+   */
   describe('pageExtension', () => {
-    it('should throw if client is null', async () => {
-      const { pageExtension } = useAmiPaging(null)
-      await expect(pageExtension('1001')).rejects.toThrow('AMI client not connected')
-    })
-
-    it('should throw if already paging', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
+    // Parameterized error condition tests
+    describe.each([
+      {
+        setup: () => ({ client: null, status: 'idle' }),
+        expectedError: 'AMI client not connected',
+        description: 'null client'
+      },
+      {
+        setup: (client: MockAmiClient) => {
+          setupOriginateResponse(client)
+          return { client, status: 'paging' }
+        },
+        expectedError: 'Already paging',
+        description: 'already paging'
+      },
+    ])('error conditions', ({ setup, expectedError, description }) => {
+      it(`should throw when ${description}`, async () => {
+        const { client, status: statusValue } = setup(mockClient) as any
+        const { pageExtension, status } = useAmiPaging(client as unknown as AmiClient)
+        if (statusValue) status.value = statusValue
+        await expect(pageExtension('1001')).rejects.toThrow(expectedError)
       })
-
-      const { pageExtension, status } = useAmiPaging(mockClient as unknown as AmiClient)
-      status.value = 'paging'
-
-      await expect(pageExtension('1001')).rejects.toThrow('Already paging')
     })
 
     it('should initiate a page successfully', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
+      setupOriginateResponse(mockClient)
 
       const onPageStart = vi.fn()
       const { pageExtension, status, activeSession } = useAmiPaging(
@@ -159,11 +292,7 @@ describe('useAmiPaging', () => {
     })
 
     it('should use duplex mode when specified', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-
+      setupOriginateResponse(mockClient)
       const { pageExtension } = useAmiPaging(mockClient as unknown as AmiClient)
 
       const session = await pageExtension('1001', { mode: 'duplex' })
@@ -172,10 +301,7 @@ describe('useAmiPaging', () => {
     })
 
     it('should handle originate failure', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: false,
-        message: 'Channel not available',
-      })
+      setupOriginateResponse(mockClient, TEST_FIXTURES.responses.failure)
 
       const onError = vi.fn()
       const { pageExtension, status } = useAmiPaging(
@@ -186,16 +312,11 @@ describe('useAmiPaging', () => {
       await expect(pageExtension('1001')).rejects.toThrow('Channel not available')
 
       expect(status.value).toBe('idle')
-      // Error callback should have been called with the error message
       expect(onError).toHaveBeenCalledWith('Channel not available', expect.any(Object))
     })
 
     it('should use custom options', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-
+      setupOriginateResponse(mockClient)
       const { pageExtension } = useAmiPaging(mockClient as unknown as AmiClient)
 
       await pageExtension('1001', {
@@ -211,72 +332,71 @@ describe('useAmiPaging', () => {
       )
     })
 
-    it('should reject invalid extension format', async () => {
-      const { pageExtension } = useAmiPaging(mockClient as unknown as AmiClient)
-
-      // Test various invalid formats
-      await expect(pageExtension('')).rejects.toThrow('Invalid extension format')
-      await expect(pageExtension('ext;DROP TABLE')).rejects.toThrow('Invalid extension format')
-      await expect(pageExtension('ext<script>')).rejects.toThrow('Invalid extension format')
-      await expect(pageExtension('a'.repeat(33))).rejects.toThrow('Invalid extension format')
+    /**
+     * Extension validation tests - parameterized for comprehensive coverage
+     */
+    describe.each([
+      { ext: TEST_FIXTURES.extensions.invalid.empty, description: 'empty extension' },
+      { ext: TEST_FIXTURES.extensions.invalid.withSemicolon, description: 'semicolon injection' },
+      { ext: TEST_FIXTURES.extensions.invalid.withScript, description: 'script tag injection' },
+      { ext: TEST_FIXTURES.extensions.invalid.tooLong, description: 'too long extension' },
+    ])('invalid extension formats', ({ ext, description }) => {
+      it(`should reject ${description}`, async () => {
+        const { pageExtension } = useAmiPaging(mockClient as unknown as AmiClient)
+        await expect(pageExtension(ext)).rejects.toThrow('Invalid extension format')
+      })
     })
 
-    it('should accept valid extension formats', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
+    describe.each([
+      { ext: TEST_FIXTURES.extensions.valid.simple, description: 'simple numeric' },
+      { ext: TEST_FIXTURES.extensions.valid.withPrefix, description: 'with prefix' },
+      { ext: TEST_FIXTURES.extensions.valid.withDots, description: 'with dots' },
+    ])('valid extension formats', ({ ext, description }) => {
+      it(`should accept ${description} extension`, async () => {
+        setupSuccessfulPageFlow(mockClient)
+        const { pageExtension, endPage } = useAmiPaging(mockClient as unknown as AmiClient)
+
+        const session = await pageExtension(ext)
+        expect(session.target).toBe(ext)
+        await endPage()
       })
-
-      const { pageExtension } = useAmiPaging(mockClient as unknown as AmiClient)
-
-      // Test valid formats - these should not throw
-      await expect(pageExtension('1001')).resolves.toBeDefined()
-
-      // Reset for next test
-      mockClient.hangupChannel = vi.fn().mockResolvedValue(undefined)
-
-      const { pageExtension: pageExt2, endPage } = useAmiPaging(mockClient as unknown as AmiClient)
-      const session = await pageExt2('SIP_1001')
-      expect(session.target).toBe('SIP_1001')
-      await endPage()
-
-      const { pageExtension: pageExt3 } = useAmiPaging(mockClient as unknown as AmiClient)
-      const session2 = await pageExt3('ext-100.1')
-      expect(session2.target).toBe('ext-100.1')
     })
   })
 
+  /**
+   * pageGroup Tests
+   * Tests for paging predefined groups of extensions
+   */
   describe('pageGroup', () => {
-    it('should throw if group not found', async () => {
-      const { pageGroup } = useAmiPaging(mockClient as unknown as AmiClient)
-      await expect(pageGroup('nonexistent')).rejects.toThrow('Page group not found')
-    })
-
-    it('should throw if group is disabled', async () => {
-      const { pageGroup } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          { id: 'disabled-group', name: 'Disabled', extensions: ['1001'], mode: 'simplex', enabled: false },
-        ],
+    // Parameterized group error tests
+    describe.each([
+      {
+        groups: [],
+        groupId: 'nonexistent',
+        expectedError: 'Page group not found',
+        description: 'group not found'
+      },
+      {
+        groups: [TEST_FIXTURES.pageGroups.disabled],
+        groupId: 'disabled-group',
+        expectedError: 'Page group is disabled',
+        description: 'group is disabled'
+      },
+    ])('error conditions', ({ groups, groupId, expectedError, description }) => {
+      it(`should throw when ${description}`, async () => {
+        const { pageGroup } = useAmiPaging(mockClient as unknown as AmiClient, {
+          pageGroups: groups,
+        })
+        await expect(pageGroup(groupId)).rejects.toThrow(expectedError)
       })
-      await expect(pageGroup('disabled-group')).rejects.toThrow('Page group is disabled')
     })
 
     it('should page a group successfully', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'Local/s@page-group-00000001',
-      })
+      const response = { ...TEST_FIXTURES.responses.success, channel: TEST_FIXTURES.channels.local }
+      setupOriginateResponse(mockClient, response)
 
       const { pageGroup, activeSession } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          {
-            id: 'sales',
-            name: 'Sales Floor',
-            extensions: ['1001', '1002', '1003'],
-            mode: 'simplex',
-            enabled: true,
-          },
-        ],
+        pageGroups: [TEST_FIXTURES.pageGroups.sales],
       })
 
       const session = await pageGroup('sales')
@@ -287,6 +407,10 @@ describe('useAmiPaging', () => {
     })
   })
 
+  /**
+   * pageExtensions Tests
+   * Tests for paging multiple ad-hoc extensions
+   */
   describe('pageExtensions', () => {
     it('should throw if no extensions provided', async () => {
       const { pageExtensions } = useAmiPaging(mockClient as unknown as AmiClient)
@@ -294,10 +418,8 @@ describe('useAmiPaging', () => {
     })
 
     it('should page multiple extensions', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'Local/s@page-group-00000001',
-      })
+      const response = { ...TEST_FIXTURES.responses.success, channel: TEST_FIXTURES.channels.local }
+      setupOriginateResponse(mockClient, response)
 
       const { pageExtensions } = useAmiPaging(mockClient as unknown as AmiClient)
 
@@ -308,10 +430,8 @@ describe('useAmiPaging', () => {
     })
 
     it('should respect maxChannels option', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'Local/s@page-group-00000001',
-      })
+      const response = { ...TEST_FIXTURES.responses.success, channel: TEST_FIXTURES.channels.local }
+      setupOriginateResponse(mockClient, response)
 
       const { pageExtensions } = useAmiPaging(mockClient as unknown as AmiClient)
 
@@ -331,6 +451,10 @@ describe('useAmiPaging', () => {
     })
   })
 
+  /**
+   * endPage Tests
+   * Tests for ending active paging sessions
+   */
   describe('endPage', () => {
     it('should do nothing if no active session', async () => {
       const { endPage, activeSession } = useAmiPaging(mockClient as unknown as AmiClient)
@@ -339,11 +463,7 @@ describe('useAmiPaging', () => {
     })
 
     it('should end an active page', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-      mockClient.hangupChannel = vi.fn().mockResolvedValue(undefined)
+      setupSuccessfulPageFlow(mockClient)
 
       const onPageEnd = vi.fn()
       const { pageExtension, endPage, status, activeSession, history } = useAmiPaging(
@@ -363,12 +483,13 @@ describe('useAmiPaging', () => {
     })
   })
 
+  /**
+   * togglePage Tests
+   * Tests for toggling paging state (start/stop)
+   */
   describe('togglePage', () => {
     it('should start page if not paging', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
+      setupOriginateResponse(mockClient)
 
       const { togglePage, status } = useAmiPaging(mockClient as unknown as AmiClient)
 
@@ -378,11 +499,7 @@ describe('useAmiPaging', () => {
     })
 
     it('should end page if already paging', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-      mockClient.hangupChannel = vi.fn().mockResolvedValue(undefined)
+      setupSuccessfulPageFlow(mockClient)
 
       const { togglePage, pageExtension, status } = useAmiPaging(
         mockClient as unknown as AmiClient
@@ -397,15 +514,11 @@ describe('useAmiPaging', () => {
     })
 
     it('should page group when isGroup is true', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'Local/s@page-group-00000001',
-      })
+      const response = { ...TEST_FIXTURES.responses.success, channel: TEST_FIXTURES.channels.local }
+      setupOriginateResponse(mockClient, response)
 
       const { togglePage, activeSession } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          { id: 'sales', name: 'Sales', extensions: ['1001', '1002'], mode: 'simplex', enabled: true },
-        ],
+        pageGroups: [TEST_FIXTURES.pageGroups.sales],
       })
 
       await togglePage('sales', true)
@@ -414,45 +527,36 @@ describe('useAmiPaging', () => {
     })
   })
 
+  /**
+   * Group Management Tests
+   * Tests for CRUD operations on page groups
+   */
   describe('group management', () => {
     it('should add a group', () => {
       const { addGroup, pageGroups } = useAmiPaging(mockClient as unknown as AmiClient)
 
-      addGroup({
-        id: 'new-group',
-        name: 'New Group',
-        extensions: ['1001', '1002'],
-        mode: 'simplex',
-        enabled: true,
-      })
+      const newGroup = createTestPageGroup({ id: 'new-group', name: 'New Group' })
+      addGroup(newGroup)
 
       expect(pageGroups.value).toHaveLength(1)
       expect(pageGroups.value[0].id).toBe('new-group')
     })
 
     it('should throw when adding duplicate group ID', () => {
+      const existingGroup = createTestPageGroup({ id: 'existing' })
       const { addGroup } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          { id: 'existing', name: 'Existing', extensions: ['1001'], mode: 'simplex', enabled: true },
-        ],
+        pageGroups: [existingGroup],
       })
 
       expect(() =>
-        addGroup({
-          id: 'existing',
-          name: 'Duplicate',
-          extensions: ['1002'],
-          mode: 'simplex',
-          enabled: true,
-        })
+        addGroup(createTestPageGroup({ id: 'existing', name: 'Duplicate' }))
       ).toThrow('Group with ID existing already exists')
     })
 
     it('should update a group', () => {
+      const group = createTestPageGroup({ id: 'group1', name: 'Original Name' })
       const { updateGroup, pageGroups } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          { id: 'group1', name: 'Original Name', extensions: ['1001'], mode: 'simplex', enabled: true },
-        ],
+        pageGroups: [group],
       })
 
       updateGroup('group1', { name: 'Updated Name', extensions: ['1001', '1002'] })
@@ -468,17 +572,15 @@ describe('useAmiPaging', () => {
     })
 
     it('should remove a group', () => {
+      const groups = createTestPageGroups(2)
       const { removeGroup, pageGroups } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          { id: 'group1', name: 'Group 1', extensions: ['1001'], mode: 'simplex', enabled: true },
-          { id: 'group2', name: 'Group 2', extensions: ['1002'], mode: 'simplex', enabled: true },
-        ],
+        pageGroups: groups,
       })
 
-      removeGroup('group1')
+      removeGroup('group-1')
 
       expect(pageGroups.value).toHaveLength(1)
-      expect(pageGroups.value[0].id).toBe('group2')
+      expect(pageGroups.value[0].id).toBe('group-2')
     })
 
     it('should throw when removing nonexistent group', () => {
@@ -488,25 +590,23 @@ describe('useAmiPaging', () => {
     })
 
     it('should get a group by ID', () => {
+      const group = createTestPageGroup({ id: 'group1', name: 'Group 1' })
       const { getGroup } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          { id: 'group1', name: 'Group 1', extensions: ['1001'], mode: 'simplex', enabled: true },
-        ],
+        pageGroups: [group],
       })
 
-      const group = getGroup('group1')
-      expect(group).toBeDefined()
-      expect(group?.name).toBe('Group 1')
+      const found = getGroup('group1')
+      expect(found).toBeDefined()
+      expect(found?.name).toBe('Group 1')
 
       const notFound = getGroup('nonexistent')
       expect(notFound).toBeUndefined()
     })
 
     it('should toggle group enabled state', () => {
+      const group = createTestPageGroup({ id: 'group1', enabled: true })
       const { toggleGroupEnabled, pageGroups } = useAmiPaging(mockClient as unknown as AmiClient, {
-        pageGroups: [
-          { id: 'group1', name: 'Group 1', extensions: ['1001'], mode: 'simplex', enabled: true },
-        ],
+        pageGroups: [group],
       })
 
       expect(pageGroups.value[0].enabled).toBe(true)
@@ -519,13 +619,13 @@ describe('useAmiPaging', () => {
     })
   })
 
+  /**
+   * History Tests
+   * Tests for session history tracking and management
+   */
   describe('history', () => {
     it('should add completed sessions to history', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-      mockClient.hangupChannel = vi.fn().mockResolvedValue(undefined)
+      setupSuccessfulPageFlow(mockClient)
 
       const { pageExtension, endPage, history } = useAmiPaging(
         mockClient as unknown as AmiClient
@@ -540,11 +640,7 @@ describe('useAmiPaging', () => {
     })
 
     it('should clear history', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-      mockClient.hangupChannel = vi.fn().mockResolvedValue(undefined)
+      setupSuccessfulPageFlow(mockClient)
 
       const { pageExtension, endPage, clearHistory, history } = useAmiPaging(
         mockClient as unknown as AmiClient
@@ -559,11 +655,7 @@ describe('useAmiPaging', () => {
     })
 
     it('should get history for specific target', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-      mockClient.hangupChannel = vi.fn().mockResolvedValue(undefined)
+      setupSuccessfulPageFlow(mockClient)
 
       const { pageExtension, endPage, getHistoryForTarget, history } = useAmiPaging(
         mockClient as unknown as AmiClient
@@ -583,11 +675,7 @@ describe('useAmiPaging', () => {
     })
 
     it('should limit history to 100 items', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-      mockClient.hangupChannel = vi.fn().mockResolvedValue(undefined)
+      setupSuccessfulPageFlow(mockClient)
 
       const { pageExtension, endPage, history } = useAmiPaging(
         mockClient as unknown as AmiClient
@@ -603,12 +691,13 @@ describe('useAmiPaging', () => {
     })
   })
 
+  /**
+   * Event Handling Tests
+   * Tests for AMI event processing and state updates
+   */
   describe('event handling', () => {
     it('should update status to connected on NewState Up', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
+      setupOriginateResponse(mockClient)
 
       const onPageConnect = vi.fn()
       const { pageExtension, status } = useAmiPaging(
@@ -622,11 +711,7 @@ describe('useAmiPaging', () => {
       // Simulate NewState event with Up state
       mockClient._triggerEvent(
         'newState',
-        createAmiEvent('NewState', {
-          ChannelState: '6', // Up
-          ChannelStateDesc: 'Up',
-          Channel: 'PJSIP/1001-00000001',
-        })
+        createAmiEvent('NewState', TEST_FIXTURES.events.newStateUp)
       )
 
       await nextTick()
@@ -636,10 +721,7 @@ describe('useAmiPaging', () => {
     })
 
     it('should handle hangup event', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
+      setupOriginateResponse(mockClient)
 
       const onPageEnd = vi.fn()
       const { pageExtension, status, activeSession, history } = useAmiPaging(
@@ -653,11 +735,7 @@ describe('useAmiPaging', () => {
       // Simulate Hangup event
       mockClient._triggerEvent(
         'hangup',
-        createAmiEvent('Hangup', {
-          Channel: 'PJSIP/1001-00000001',
-          Cause: '16',
-          CauseTxt: 'Normal Clearing',
-        })
+        createAmiEvent('Hangup', TEST_FIXTURES.events.hangup)
       )
 
       await nextTick()
@@ -669,63 +747,67 @@ describe('useAmiPaging', () => {
     })
   })
 
+  /**
+   * Callback Tests
+   * Tests for lifecycle callbacks (onPageStart, onPageEnd, onError)
+   */
   describe('callbacks', () => {
-    it('should call onPageStart callback', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-
-      const onPageStart = vi.fn()
-      const { pageExtension } = useAmiPaging(mockClient as unknown as AmiClient, { onPageStart })
-
-      await pageExtension('1001')
-
-      expect(onPageStart).toHaveBeenCalledWith(
-        expect.objectContaining({
+    /**
+     * Parameterized callback tests - validates all callbacks are invoked correctly
+     */
+    describe.each([
+      {
+        callback: 'onPageStart',
+        setup: (cb: any) => ({ onPageStart: cb }),
+        trigger: async (composable: any) => {
+          setupOriginateResponse(mockClient)
+          await composable.pageExtension('1001')
+        },
+        expectedArgs: {
           target: '1001',
           mode: 'simplex',
           status: 'paging',
-        })
-      )
-    })
-
-    it('should call onPageEnd callback', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: true,
-        channel: 'PJSIP/1001-00000001',
-      })
-      mockClient.hangupChannel = vi.fn().mockResolvedValue(undefined)
-
-      const onPageEnd = vi.fn()
-      const { pageExtension, endPage } = useAmiPaging(
-        mockClient as unknown as AmiClient,
-        { onPageEnd }
-      )
-
-      await pageExtension('1001')
-      await endPage()
-
-      expect(onPageEnd).toHaveBeenCalledWith(
-        expect.objectContaining({
+        },
+        description: 'page start'
+      },
+      {
+        callback: 'onPageEnd',
+        setup: (cb: any) => ({ onPageEnd: cb }),
+        trigger: async (composable: any) => {
+          setupSuccessfulPageFlow(mockClient)
+          await composable.pageExtension('1001')
+          await composable.endPage()
+        },
+        expectedArgs: {
           target: '1001',
           endTime: expect.any(Date),
-        })
-      )
-    })
+        },
+        description: 'page end'
+      },
+      {
+        callback: 'onError',
+        setup: (cb: any) => ({ onError: cb }),
+        trigger: async (composable: any) => {
+          setupOriginateResponse(mockClient, TEST_FIXTURES.responses.busy)
+          await expect(composable.pageExtension('1001')).rejects.toThrow()
+        },
+        expectedArgs: ['Channel busy', expect.any(Object)],
+        description: 'error'
+      },
+    ])('lifecycle callbacks', ({ callback, setup, trigger, expectedArgs, description }) => {
+      it(`should call ${callback} on ${description}`, async () => {
+        const callbackFn = vi.fn()
+        const options = setup(callbackFn)
+        const composable = useAmiPaging(mockClient as unknown as AmiClient, options)
 
-    it('should call onError callback on failure', async () => {
-      mockClient.originate = vi.fn().mockResolvedValue({
-        success: false,
-        message: 'Channel busy',
+        await trigger(composable)
+
+        if (Array.isArray(expectedArgs)) {
+          expect(callbackFn).toHaveBeenCalledWith(...expectedArgs)
+        } else {
+          expect(callbackFn).toHaveBeenCalledWith(expect.objectContaining(expectedArgs))
+        }
       })
-
-      const onError = vi.fn()
-      const { pageExtension } = useAmiPaging(mockClient as unknown as AmiClient, { onError })
-
-      await expect(pageExtension('1001')).rejects.toThrow()
-
-      expect(onError).toHaveBeenCalledWith('Channel busy', expect.any(Object))
     })
   })
 })

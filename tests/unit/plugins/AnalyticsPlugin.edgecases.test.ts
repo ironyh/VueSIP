@@ -179,7 +179,7 @@ describe('AnalyticsPlugin - Edge Cases', () => {
     it('should timeout long-running requests', async () => {
       const fetchMock = vi.fn().mockImplementation(
         () =>
-          new Promise((resolve) => {
+          new Promise((_resolve) => {
             // Never resolve (simulate hanging request)
           })
       )

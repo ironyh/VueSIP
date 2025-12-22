@@ -32,12 +32,11 @@
         <!-- Connection Status -->
         <div v-if="!isConnected" class="connection-panel">
           <Message severity="warn" :closable="false">
-            <template #icon><i class="pi pi-exclamation-triangle"></i></template>
             Connect to AMI to access voicemail
           </Message>
           <div class="connection-form">
             <InputText v-model="amiUrl" placeholder="ws://pbx:8089/ws" class="url-input" />
-            <Button label="Connect" icon="pi pi-link" @click="connectAmi" :loading="connecting" />
+            <Button label="Connect" @click="connectAmi" :loading="connecting" />
           </div>
         </div>
 
@@ -51,20 +50,43 @@
 
           <!-- Monitor Mailbox -->
           <Panel header="Monitor Mailbox" :toggleable="true" class="section-panel">
+            <Message severity="info" :closable="false" class="info-message">
+              <span class="info-icon">💡</span>
+              <span><strong>Mailbox format:</strong> extension@context (e.g., <code>1001@default</code>)</span>
+            </Message>
             <div class="monitor-form">
               <div class="form-field">
-                <label>Mailbox</label>
-                <InputText v-model="newMailbox.extension" placeholder="1001" />
+                <label>
+                  Extension Number
+                  <span class="field-hint">✓ Required</span>
+                </label>
+                <InputText
+                  v-model="newMailbox.extension"
+                  placeholder="1001, 2000, etc."
+                />
+                <small class="field-help">The mailbox extension number</small>
               </div>
               <div class="form-field">
-                <label>Context</label>
-                <InputText v-model="newMailbox.context" placeholder="default" />
+                <label>
+                  Asterisk Context
+                  <span
+                    class="field-hint help-icon"
+                    v-tooltip.right="'The Asterisk dial plan context where this mailbox is configured. Common contexts: default, internal, from-pstn'"
+                  >
+                    ❓
+                  </span>
+                </label>
+                <InputText
+                  v-model="newMailbox.context"
+                  placeholder="default (most common)"
+                />
+                <small class="field-help">Dial plan context (usually "default")</small>
               </div>
               <Button
-                label="Monitor"
-                icon="pi pi-plus"
+                label="📬 Monitor Mailbox"
                 @click="startMonitoring"
                 :disabled="!newMailbox.extension"
+                class="monitor-button"
               />
             </div>
           </Panel>
@@ -76,7 +98,7 @@
                 <div class="mwi-header">
                   <span class="mailbox-name">{{ mwi.mailbox }}</span>
                   <Button
-                    icon="pi pi-times"
+                    label="×"
                     size="small"
                     severity="secondary"
                     text
@@ -99,14 +121,12 @@
                 <div class="mwi-actions">
                   <Button
                     label="Refresh"
-                    icon="pi pi-refresh"
                     size="small"
                     severity="secondary"
                     @click="refreshMailbox(mwi.mailbox)"
                   />
                   <Button
                     label="Details"
-                    icon="pi pi-info-circle"
                     size="small"
                     @click="showMailboxDetails(mwi.mailbox)"
                   />
@@ -117,7 +137,7 @@
               </div>
             </div>
             <div v-else class="empty-state">
-              <i class="pi pi-inbox"></i>
+              <span class="empty-icon">📭</span>
               <span>No mailboxes being monitored</span>
               <small>Add a mailbox above to start monitoring</small>
             </div>
@@ -128,7 +148,6 @@
             <div class="mailbox-actions">
               <Button
                 label="Load All Users"
-                icon="pi pi-download"
                 @click="loadVoicemailUsers"
                 :loading="isLoading"
               />
@@ -147,7 +166,7 @@
               <Column header="Actions" style="width: 100px">
                 <template #body="{ data }">
                   <Button
-                    icon="pi pi-eye"
+                    label="Monitor"
                     size="small"
                     @click="monitorMailboxFromList(data.mailbox)"
                     v-tooltip="'Monitor'"
@@ -214,9 +233,41 @@ const amiUrl = ref(localStorage.getItem('vuesip-ami-url') || 'ws://localhost:808
 const connecting = ref(false)
 const realIsConnected = computed(() => playgroundAmiClient.isConnected.value)
 
+// Simulated voicemail data
+const simulatedMWI = ref([
+  {
+    mailbox: '1001@default',
+    newMessages: 3,
+    oldMessages: 7,
+    waiting: true,
+    lastUpdated: new Date(),
+  },
+  {
+    mailbox: '1002@default',
+    newMessages: 0,
+    oldMessages: 2,
+    waiting: false,
+    lastUpdated: new Date(),
+  },
+  {
+    mailbox: '1003@default',
+    newMessages: 1,
+    oldMessages: 0,
+    waiting: true,
+    lastUpdated: new Date(),
+  },
+])
+
+const simulatedMailboxes = ref([
+  { mailbox: '1001', fullName: 'John Smith', email: 'john@company.com', newMessageCount: 3, oldMessageCount: 7 },
+  { mailbox: '1002', fullName: 'Jane Doe', email: 'jane@company.com', newMessageCount: 0, oldMessageCount: 2 },
+  { mailbox: '1003', fullName: 'Bob Johnson', email: 'bob@company.com', newMessageCount: 1, oldMessageCount: 0 },
+  { mailbox: '1004', fullName: 'Alice Williams', email: 'alice@company.com', newMessageCount: 0, oldMessageCount: 5 },
+])
+
 // Effective values for simulation
 const isConnected = computed(() =>
-  isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
+  isSimulationMode.value ? true : realIsConnected.value
 )
 
 const connectAmi = async () => {
@@ -238,10 +289,10 @@ const amiClientRef = computed(() => playgroundAmiClient.getClient())
 const {
   mwiStates,
   mailboxes,
-  isLoading,
-  totalNewMessages,
-  totalOldMessages,
-  hasWaitingMessages,
+  isLoading: realIsLoading,
+  totalNewMessages: realTotalNewMessages,
+  totalOldMessages: realTotalOldMessages,
+  hasWaitingMessages: realHasWaitingMessages,
   getMwiState: _getMwiState,
   getMailboxInfo,
   getVoicemailUsers,
@@ -255,10 +306,48 @@ const {
   },
 })
 
-// Convert maps to arrays for display
-const mwiList = computed(() => Array.from(mwiStates.value.values()))
-const mailboxInfoList = computed(() => Array.from(mailboxes.value.values()))
-const monitoredMailboxes = computed(() => Array.from(mwiStates.value.keys()))
+// Computed properties for simulation mode
+const isLoading = computed(() =>
+  isSimulationMode.value ? false : realIsLoading.value
+)
+
+const totalNewMessages = computed(() => {
+  if (isSimulationMode.value) {
+    return simulatedMWI.value.reduce((sum, mwi) => sum + mwi.newMessages, 0)
+  }
+  return realTotalNewMessages.value
+})
+
+const totalOldMessages = computed(() => {
+  if (isSimulationMode.value) {
+    return simulatedMWI.value.reduce((sum, mwi) => sum + mwi.oldMessages, 0)
+  }
+  return realTotalOldMessages.value
+})
+
+const hasWaitingMessages = computed(() => {
+  if (isSimulationMode.value) {
+    return simulatedMWI.value.some(mwi => mwi.waiting)
+  }
+  return realHasWaitingMessages.value
+})
+
+// Convert maps to arrays for display - use simulated data in simulation mode
+const mwiList = computed(() =>
+  isSimulationMode.value
+    ? simulatedMWI.value
+    : Array.from(mwiStates.value.values())
+)
+const mailboxInfoList = computed(() =>
+  isSimulationMode.value
+    ? simulatedMailboxes.value
+    : Array.from(mailboxes.value.values())
+)
+const monitoredMailboxes = computed(() =>
+  isSimulationMode.value
+    ? simulatedMWI.value.map(m => m.mailbox)
+    : Array.from(mwiStates.value.keys())
+)
 
 // Form state
 const newMailbox = reactive({
@@ -268,44 +357,99 @@ const newMailbox = reactive({
 
 // Actions
 const startMonitoring = () => {
-  if (newMailbox.extension) {
+  if (!newMailbox.extension) return
+
+  if (isSimulationMode.value) {
+    // Add to simulated data if not already monitored
+    const mailboxId = `${newMailbox.extension}@${newMailbox.context}`
+    if (!simulatedMWI.value.some(m => m.mailbox === mailboxId)) {
+      simulatedMWI.value.push({
+        mailbox: mailboxId,
+        newMessages: Math.floor(Math.random() * 5),
+        oldMessages: Math.floor(Math.random() * 10),
+        waiting: Math.random() > 0.5,
+        lastUpdated: new Date(),
+      })
+    }
+  } else {
     monitorMailbox(newMailbox.extension, newMailbox.context)
-    newMailbox.extension = ''
   }
+  newMailbox.extension = ''
 }
 
 const stopMonitoring = (mailbox: string) => {
-  const parts = mailbox.split('@')
-  const ext = parts[0] ?? ''
-  const ctx = parts[1]
-  unmonitorMailbox(ext, ctx)
+  if (isSimulationMode.value) {
+    // Remove from simulated data
+    const index = simulatedMWI.value.findIndex(m => m.mailbox === mailbox)
+    if (index > -1) {
+      simulatedMWI.value.splice(index, 1)
+    }
+  } else {
+    const parts = mailbox.split('@')
+    const ext = parts[0] ?? ''
+    const ctx = parts[1]
+    unmonitorMailbox(ext, ctx)
+  }
 }
 
 const refreshMailbox = async (mailbox: string) => {
-  const parts = mailbox.split('@')
-  const ext = parts[0] ?? ''
-  const ctx = parts[1]
-  try {
-    await refresh(ext, ctx)
-  } catch (e) {
-    console.error('Failed to refresh mailbox:', e)
+  if (isSimulationMode.value) {
+    // Update message counts randomly in simulation
+    const mwi = simulatedMWI.value.find(m => m.mailbox === mailbox)
+    if (mwi) {
+      mwi.newMessages = Math.floor(Math.random() * 5)
+      mwi.oldMessages = Math.floor(Math.random() * 10)
+      mwi.waiting = mwi.newMessages > 0
+      mwi.lastUpdated = new Date()
+    }
+  } else {
+    const parts = mailbox.split('@')
+    const ext = parts[0] ?? ''
+    const ctx = parts[1]
+    try {
+      await refresh(ext, ctx)
+    } catch (e) {
+      console.error('Failed to refresh mailbox:', e)
+    }
   }
 }
 
 const showMailboxDetails = async (mailbox: string) => {
-  const parts = mailbox.split('@')
-  const ext = parts[0] ?? ''
-  const ctx = parts[1]
-  try {
-    const info = await getMailboxInfo(ext, ctx)
+  if (isSimulationMode.value) {
+    // Show simulated mailbox details
+    const parts = mailbox.split('@')
+    const ext = parts[0] ?? ''
+    const mwi = simulatedMWI.value.find(m => m.mailbox === mailbox)
+    const user = simulatedMailboxes.value.find(u => u.mailbox === ext)
+    const info = {
+      mailbox: ext,
+      fullName: user?.fullName || 'Unknown User',
+      email: user?.email || 'unknown@example.com',
+      newMessages: mwi?.newMessages || 0,
+      oldMessages: mwi?.oldMessages || 0,
+    }
     console.log('Mailbox info:', info)
-    // Could open a dialog here
-  } catch (e) {
-    console.error('Failed to get mailbox info:', e)
+    alert(`Mailbox: ${info.mailbox}\nName: ${info.fullName}\nEmail: ${info.email}\nNew: ${info.newMessages}\nOld: ${info.oldMessages}`)
+  } else {
+    const parts = mailbox.split('@')
+    const ext = parts[0] ?? ''
+    const ctx = parts[1]
+    try {
+      const info = await getMailboxInfo(ext, ctx)
+      console.log('Mailbox info:', info)
+      // Could open a dialog here
+    } catch (e) {
+      console.error('Failed to get mailbox info:', e)
+    }
   }
 }
 
 const loadVoicemailUsers = async () => {
+  if (isSimulationMode.value) {
+    // Already showing simulated users via computed property
+    console.log('Showing simulated voicemail users:', simulatedMailboxes.value.length)
+    return
+  }
   try {
     const users = await getVoicemailUsers()
     console.log('Loaded voicemail users:', users.length)
@@ -315,7 +459,14 @@ const loadVoicemailUsers = async () => {
 }
 
 const monitorMailboxFromList = (mailbox: string) => {
-  monitorMailbox(mailbox, 'default')
+  if (isSimulationMode.value) {
+    // Use the simulation-aware startMonitoring function
+    newMailbox.extension = mailbox
+    newMailbox.context = 'default'
+    startMonitoring()
+  } else {
+    monitorMailbox(mailbox, 'default')
+  }
 }
 
 // Register MWI change listener
@@ -374,47 +525,61 @@ watch(totalNewMessages, (count) => {
 
 <style scoped>
 .voicemail-demo {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
 .demo-card {
-  margin: 1rem;
+  margin: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .demo-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .demo-icon {
-  font-size: 1.5rem;
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .connection-panel {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, var(--surface-ground) 0%, var(--surface-card) 100%);
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
 }
 
 .connection-form {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
 .url-input {
   flex: 1;
+  font-size: 0.95rem;
 }
 
 .status-bar {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
+  padding: 1rem;
+  background: var(--surface-card);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .section-panel {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
 }
 
 .monitor-form {
@@ -422,74 +587,157 @@ watch(totalNewMessages, (count) => {
   gap: 1rem;
   align-items: flex-end;
   flex-wrap: wrap;
+  padding: 0.5rem;
+  background: var(--surface-ground);
+  border-radius: 8px;
 }
 
 .form-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 150px;
 }
 
 .form-field label {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.field-hint {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--orange-500);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.help-icon {
+  cursor: help;
+  font-size: 1rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.help-icon:hover {
+  opacity: 1;
+}
+
+.field-help {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  font-style: italic;
+  margin-top: -0.25rem;
+}
+
+.info-message {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.info-icon {
+  font-size: 1.25rem;
+}
+
+.info-message code {
+  background: var(--surface-ground);
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+  border: 1px solid var(--surface-border);
+}
+
+.monitor-button {
+  align-self: flex-end;
+  font-weight: 600;
 }
 
 .mwi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  padding: 0.5rem;
 }
 
 .mwi-card {
-  padding: 1rem;
-  background: var(--surface-ground);
-  border-radius: 8px;
-  border: 2px solid transparent;
-  transition: border-color 0.2s;
+  padding: 1.5rem;
+  background: var(--surface-card);
+  border-radius: 12px;
+  border: 2px solid var(--surface-border);
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.mwi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .mwi-card.has-messages {
-  border-color: var(--orange-300);
-  background: var(--orange-50);
+  border-color: var(--orange-400);
+  background: linear-gradient(135deg, var(--orange-50) 0%, rgba(255, 167, 38, 0.05) 100%);
+  box-shadow: 0 2px 8px rgba(255, 167, 38, 0.2);
 }
 
 .mwi-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--surface-border);
 }
 
 .mailbox-name {
-  font-weight: 600;
-  font-size: 1.125rem;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--primary-color);
+  letter-spacing: -0.5px;
 }
 
 .mwi-counts {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .count-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.5rem 1rem;
-  background: var(--surface-card);
-  border-radius: 6px;
+  padding: 1rem;
+  background: var(--surface-ground);
+  border-radius: 10px;
   flex: 1;
+  border: 2px solid var(--surface-border);
+  transition: all 0.2s ease;
+}
+
+.count-item:hover {
+  border-color: var(--primary-color);
+  transform: scale(1.05);
 }
 
 .count-value {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.25rem;
 }
 
 .new-count .count-value {
   color: var(--orange-500);
+  text-shadow: 0 2px 4px rgba(255, 167, 38, 0.2);
 }
 
 .old-count .count-value {
@@ -497,12 +745,15 @@ watch(totalNewMessages, (count) => {
 }
 
 .count-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .mwi-status {
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .mwi-actions {
@@ -510,57 +761,84 @@ watch(totalNewMessages, (count) => {
   gap: 0.5rem;
 }
 
+.mwi-actions button {
+  flex: 1;
+}
+
 .mwi-updated {
-  margin-top: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--surface-border);
   font-size: 0.75rem;
   color: var(--text-color-secondary);
+  text-align: center;
 }
 
 .mailbox-actions {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1.25rem;
+  padding: 0.5rem;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.75rem;
-  background: var(--surface-ground);
-  border-radius: 6px;
+  padding: 1.5rem 1rem;
+  background: linear-gradient(135deg, var(--surface-ground) 0%, var(--surface-card) 100%);
+  border-radius: 12px;
+  border: 2px solid var(--surface-border);
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .stat-value {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--primary-color);
+  margin-bottom: 0.25rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .stat-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 2rem;
+  gap: 1rem;
+  padding: 3rem 2rem;
   color: var(--text-color-secondary);
+  background: var(--surface-ground);
+  border-radius: 12px;
+  border: 2px dashed var(--surface-border);
 }
 
-.empty-state i {
-  font-size: 2rem;
+.empty-icon {
+  font-size: 3rem;
+  opacity: 0.5;
+  filter: grayscale(0.3);
 }
 
 .empty-state small {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
+  opacity: 0.7;
 }
 
 .text-muted {
@@ -570,12 +848,37 @@ watch(totalNewMessages, (count) => {
 .code-block {
   background: var(--surface-ground);
   border: 1px solid var(--surface-border);
-  border-radius: 6px;
-  padding: 1rem;
+  border-radius: 8px;
+  padding: 1.25rem;
   overflow-x: auto;
-  font-family: monospace;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: 1.6;
   white-space: pre;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+  .demo-card {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .mwi-card {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  .mwi-card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .mwi-card.has-messages {
+    background: linear-gradient(135deg, rgba(255, 167, 38, 0.15) 0%, rgba(255, 167, 38, 0.08) 100%);
+    box-shadow: 0 2px 8px rgba(255, 167, 38, 0.25);
+  }
+
+  .stat-item:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
 }
 </style>

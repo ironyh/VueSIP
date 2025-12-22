@@ -8,7 +8,7 @@
 import { EventBus } from '../src/core/EventBus'
 import { useSipClient } from '../src'
 import { useAmi } from '../src/composables/useAmi'
-import { ref, computed } from 'vue'
+import { ref as _ref, computed as _computed } from 'vue'
 
 // ============================================================================
 // LocalStorage Keys (standardized across all demos)

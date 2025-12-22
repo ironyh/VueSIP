@@ -1,5 +1,10 @@
 /**
  * useAmiVoicemail composable unit tests
+ *
+ * Tests voicemail state management, MWI (Message Waiting Indicator) monitoring,
+ * mailbox status queries, and real-time voicemail event handling.
+ *
+ * @module tests/unit/composables/useAmiVoicemail
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -10,8 +15,159 @@ import {
   createMockAmiClient,
   createAmiEvent,
   createAmiSuccessResponse,
+  createAmiErrorResponse,
   type MockAmiClient,
 } from '../utils/mockFactories'
+
+// ============================================================================
+// Test Fixtures - Centralized test data for consistency
+// ============================================================================
+
+const TEST_FIXTURES = {
+  /** Mailbox identifiers */
+  mailboxes: {
+    standard: '1000',
+    alternate: '1001',
+    nonExistent: '9999',
+    withContext: '1000@default',
+    customContext: '1000@custom',
+  },
+
+  /** Voicemail contexts */
+  contexts: {
+    default: 'default',
+    custom: 'custom',
+  },
+
+  /** MWI (Message Waiting Indicator) states */
+  mwiStates: {
+    noMessages: {
+      Waiting: '0',
+      NewMessages: '0',
+      OldMessages: '0',
+    },
+    hasMessages: {
+      Waiting: '1',
+      NewMessages: '3',
+      OldMessages: '5',
+    },
+    newOnly: {
+      Waiting: '1',
+      NewMessages: '2',
+      OldMessages: '0',
+    },
+    oldOnly: {
+      Waiting: '0',
+      NewMessages: '0',
+      OldMessages: '3',
+    },
+  },
+
+  /** Voicemail user entries */
+  users: {
+    johnDoe: {
+      VoiceMailbox: '1000',
+      VMContext: 'default',
+      NewMessageCount: '2',
+      OldMessageCount: '5',
+      UrgentMessageCount: '0',
+      FullName: 'John Doe',
+      Email: 'john@example.com',
+    },
+    testUser: {
+      VoiceMailbox: '1000',
+      VMContext: 'default',
+      NewMessageCount: '0',
+      OldMessageCount: '0',
+      UrgentMessageCount: '0',
+      FullName: 'Test User',
+    },
+  },
+
+  /** Error messages */
+  errors: {
+    notConnected: 'Not connected to AMI',
+    mailboxNotFound: 'Mailbox not found',
+  },
+} as const
+
+// ============================================================================
+// Factory Functions - Reduce duplication in test setup
+// ============================================================================
+
+/**
+ * Factory: Create mock mailbox status response
+ */
+function createMailboxStatusResponse(
+  waiting: string = '0',
+  newMessages: string = '0',
+  oldMessages: string = '0'
+) {
+  return createAmiSuccessResponse({
+    Waiting: waiting,
+    NewMessages: newMessages,
+    OldMessages: oldMessages,
+  })
+}
+
+/**
+ * Factory: Create MessageWaiting event
+ */
+function createMessageWaitingEvent(
+  mailbox: string,
+  waiting: 'yes' | 'no' = 'yes',
+  newCount: string = '1',
+  oldCount: string = '0'
+) {
+  return createAmiEvent('MessageWaiting', {
+    Mailbox: mailbox,
+    Waiting: waiting,
+    New: newCount,
+    Old: oldCount,
+  })
+}
+
+/**
+ * Factory: Create VoicemailUserEntry event
+ */
+function createVoicemailUserEntry(actionId: string, userData: typeof TEST_FIXTURES.users.johnDoe) {
+  return createAmiEvent('VoicemailUserEntry', {
+    ActionID: actionId,
+    ...userData,
+  })
+}
+
+/**
+ * Factory: Create VoicemailUserEntryComplete event
+ */
+function createVoicemailUserEntryComplete(actionId: string) {
+  return createAmiEvent('VoicemailUserEntryComplete', {
+    ActionID: actionId,
+  })
+}
+
+/**
+ * Helper: Setup mock client for getVoicemailUsers test
+ * Configures sendAction to emit user entry events after a delay
+ */
+function setupVoicemailUsersResponse(
+  mockClient: MockAmiClient,
+  users: typeof TEST_FIXTURES.users.johnDoe[] = []
+) {
+  const actionId = `vuesip-vm-${Date.now()}`
+
+  mockClient.sendAction = vi.fn().mockImplementation(() => {
+    setTimeout(() => {
+      // Emit user entry events
+      users.forEach(user => {
+        mockClient._triggerEvent('event', createVoicemailUserEntry(actionId, user))
+      })
+      // Emit complete event
+      mockClient._triggerEvent('event', createVoicemailUserEntryComplete(actionId))
+    }, 10)
+    return Promise.resolve({ data: { Response: 'Success' } })
+  })
+}
 
 describe('useAmiVoicemail', () => {
   let mockClient: MockAmiClient
@@ -29,123 +185,162 @@ describe('useAmiVoicemail', () => {
     vi.useRealTimers()
   })
 
+  /**
+   * Initial State Tests
+   * Verify composable initializes with correct default state
+   */
   describe('initial state', () => {
-    it('should have empty MWI states initially', () => {
-      const { mwiStates } = useAmiVoicemail(clientRef)
-      expect(mwiStates.value.size).toBe(0)
-    })
-
-    it('should have empty mailboxes initially', () => {
-      const { mailboxes } = useAmiVoicemail(clientRef)
-      expect(mailboxes.value.size).toBe(0)
-    })
-
-    it('should have no error initially', () => {
-      const { error } = useAmiVoicemail(clientRef)
-      expect(error.value).toBeNull()
-    })
-
-    it('should not be loading initially', () => {
-      const { isLoading } = useAmiVoicemail(clientRef)
-      expect(isLoading.value).toBe(false)
-    })
-
-    it('should have zero total messages initially', () => {
-      const { totalNewMessages, totalOldMessages } = useAmiVoicemail(clientRef)
-      expect(totalNewMessages.value).toBe(0)
-      expect(totalOldMessages.value).toBe(0)
-    })
-
-    it('should not have waiting messages initially', () => {
-      const { hasWaitingMessages } = useAmiVoicemail(clientRef)
-      expect(hasWaitingMessages.value).toBe(false)
+    describe.each([
+      {
+        property: 'mwiStates',
+        expectedValue: 0,
+        getter: (api: ReturnType<typeof useAmiVoicemail>) => api.mwiStates.value.size,
+        description: 'empty MWI states map',
+      },
+      {
+        property: 'mailboxes',
+        expectedValue: 0,
+        getter: (api: ReturnType<typeof useAmiVoicemail>) => api.mailboxes.value.size,
+        description: 'empty mailboxes set',
+      },
+      {
+        property: 'error',
+        expectedValue: null,
+        getter: (api: ReturnType<typeof useAmiVoicemail>) => api.error.value,
+        description: 'null error',
+      },
+      {
+        property: 'isLoading',
+        expectedValue: false,
+        getter: (api: ReturnType<typeof useAmiVoicemail>) => api.isLoading.value,
+        description: 'not loading',
+      },
+      {
+        property: 'totalNewMessages',
+        expectedValue: 0,
+        getter: (api: ReturnType<typeof useAmiVoicemail>) => api.totalNewMessages.value,
+        description: 'zero new messages',
+      },
+      {
+        property: 'totalOldMessages',
+        expectedValue: 0,
+        getter: (api: ReturnType<typeof useAmiVoicemail>) => api.totalOldMessages.value,
+        description: 'zero old messages',
+      },
+      {
+        property: 'hasWaitingMessages',
+        expectedValue: false,
+        getter: (api: ReturnType<typeof useAmiVoicemail>) => api.hasWaitingMessages.value,
+        description: 'no waiting messages',
+      },
+    ])('$property', ({ property: _property, expectedValue, getter, description }) => {
+      it(`should have ${description}`, () => {
+        const api = useAmiVoicemail(clientRef)
+        expect(getter(api)).toEqual(expectedValue)
+      })
     })
   })
 
+  /**
+   * getMwiState Tests
+   * Verify mailbox status querying and MWI state management
+   */
   describe('getMwiState', () => {
     it('should throw if not connected', async () => {
       clientRef.value = { ...mockClient, isConnected: false } as unknown as AmiClient
       const { getMwiState } = useAmiVoicemail(clientRef)
 
-      await expect(getMwiState('1000')).rejects.toThrow('Not connected to AMI')
+      await expect(getMwiState(TEST_FIXTURES.mailboxes.standard))
+        .rejects.toThrow(TEST_FIXTURES.errors.notConnected)
     })
 
-    it('should query mailbox status', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({
-        server_id: 1,
-        data: {
-          Response: 'Success',
-          Waiting: '1',
-          NewMessages: '3',
-          OldMessages: '5',
-        },
+    describe.each([
+      {
+        description: 'mailbox with messages',
+        mailbox: TEST_FIXTURES.mailboxes.standard,
+        context: TEST_FIXTURES.contexts.default,
+        mwiState: TEST_FIXTURES.mwiStates.hasMessages,
+        expectedWaiting: true,
+        expectedNew: 3,
+        expectedOld: 5,
+      },
+      {
+        description: 'mailbox with no messages',
+        mailbox: TEST_FIXTURES.mailboxes.standard,
+        context: TEST_FIXTURES.contexts.default,
+        mwiState: TEST_FIXTURES.mwiStates.noMessages,
+        expectedWaiting: false,
+        expectedNew: 0,
+        expectedOld: 0,
+      },
+      {
+        description: 'mailbox with new messages only',
+        mailbox: TEST_FIXTURES.mailboxes.alternate,
+        context: TEST_FIXTURES.contexts.custom,
+        mwiState: TEST_FIXTURES.mwiStates.newOnly,
+        expectedWaiting: true,
+        expectedNew: 2,
+        expectedOld: 0,
+      },
+    ])('$description', ({ mailbox, context, mwiState, expectedWaiting, expectedNew, expectedOld }) => {
+      it('should query and store mailbox status', async () => {
+        mockClient.sendAction = vi.fn().mockResolvedValue(
+          createMailboxStatusResponse(mwiState.Waiting, mwiState.NewMessages, mwiState.OldMessages)
+        )
+
+        const { getMwiState, mwiStates } = useAmiVoicemail(clientRef)
+        const state = await getMwiState(mailbox, context)
+
+        expect(mockClient.sendAction).toHaveBeenCalledWith({
+          Action: 'MailboxStatus',
+          Mailbox: `${mailbox}@${context}`,
+        })
+
+        expect(state.mailbox).toBe(`${mailbox}@${context}`)
+        expect(state.waiting).toBe(expectedWaiting)
+        expect(state.newMessages).toBe(expectedNew)
+        expect(state.oldMessages).toBe(expectedOld)
+        expect(mwiStates.value.get(`${mailbox}@${context}`)).toEqual(state)
       })
-
-      const { getMwiState, mwiStates } = useAmiVoicemail(clientRef)
-      const state = await getMwiState('1000', 'default')
-
-      expect(mockClient.sendAction).toHaveBeenCalledWith({
-        Action: 'MailboxStatus',
-        Mailbox: '1000@default',
-      })
-
-      expect(state.mailbox).toBe('1000@default')
-      expect(state.waiting).toBe(true)
-      expect(state.newMessages).toBe(3)
-      expect(state.oldMessages).toBe(5)
-      expect(mwiStates.value.get('1000@default')).toEqual(state)
     })
 
     it('should use default context when not specified', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({
-        server_id: 1,
-        data: {
-          Response: 'Success',
-          Waiting: '0',
-          NewMessages: '0',
-          OldMessages: '0',
-        },
-      })
+      mockClient.sendAction = vi.fn().mockResolvedValue(
+        createMailboxStatusResponse()
+      )
 
       const { getMwiState } = useAmiVoicemail(clientRef)
-      await getMwiState('1000')
+      await getMwiState(TEST_FIXTURES.mailboxes.standard)
 
       expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'MailboxStatus',
-        Mailbox: '1000@default',
+        Mailbox: TEST_FIXTURES.mailboxes.withContext,
       })
     })
 
     it('should handle failed response', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({
-        server_id: 1,
-        data: {
-          Response: 'Error',
-          Message: 'Mailbox not found',
-        },
-      })
+      mockClient.sendAction = vi.fn().mockResolvedValue(
+        createAmiErrorResponse(TEST_FIXTURES.errors.mailboxNotFound)
+      )
 
       const { getMwiState, error } = useAmiVoicemail(clientRef)
 
-      await expect(getMwiState('9999')).rejects.toThrow('Mailbox not found')
-      expect(error.value).toBe('Mailbox not found')
+      await expect(getMwiState(TEST_FIXTURES.mailboxes.nonExistent))
+        .rejects.toThrow(TEST_FIXTURES.errors.mailboxNotFound)
+      expect(error.value).toBe(TEST_FIXTURES.errors.mailboxNotFound)
     })
   })
 
+  /**
+   * Mailbox Monitoring Tests
+   * Verify mailbox monitoring setup, updates, and cleanup
+   */
   describe('monitorMailbox / unmonitorMailbox', () => {
     it('should add mailbox to monitored set', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({
-        server_id: 1,
-        data: {
-          Response: 'Success',
-          Waiting: '0',
-          NewMessages: '0',
-          OldMessages: '0',
-        },
-      })
+      mockClient.sendAction = vi.fn().mockResolvedValue(createMailboxStatusResponse())
 
-      const { monitorMailbox, mwiStates: _mwiStates } = useAmiVoicemail(clientRef)
-      monitorMailbox('1000', 'default')
+      const { monitorMailbox } = useAmiVoicemail(clientRef)
+      monitorMailbox(TEST_FIXTURES.mailboxes.standard, TEST_FIXTURES.contexts.default)
 
       // Wait for async getMwiState call
       await vi.runAllTimersAsync()
@@ -154,36 +349,27 @@ describe('useAmiVoicemail', () => {
     })
 
     it('should remove mailbox from monitored set and clear state', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({
-        server_id: 1,
-        data: {
-          Response: 'Success',
-          Waiting: '1',
-          NewMessages: '2',
-          OldMessages: '0',
-        },
-      })
+      mockClient.sendAction = vi.fn().mockResolvedValue(
+        createMailboxStatusResponse('1', '2', '0')
+      )
 
       const { monitorMailbox, unmonitorMailbox, mwiStates } = useAmiVoicemail(clientRef)
 
-      monitorMailbox('1000')
+      monitorMailbox(TEST_FIXTURES.mailboxes.standard)
       await vi.runAllTimersAsync()
-      expect(mwiStates.value.has('1000@default')).toBe(true)
+      expect(mwiStates.value.has(TEST_FIXTURES.mailboxes.withContext)).toBe(true)
 
-      unmonitorMailbox('1000')
-      expect(mwiStates.value.has('1000@default')).toBe(false)
+      unmonitorMailbox(TEST_FIXTURES.mailboxes.standard)
+      expect(mwiStates.value.has(TEST_FIXTURES.mailboxes.withContext)).toBe(false)
     })
 
     it('should clear all monitoring', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({
-        server_id: 1,
-        data: { Response: 'Success', Waiting: '0', NewMessages: '0', OldMessages: '0' },
-      })
+      mockClient.sendAction = vi.fn().mockResolvedValue(createMailboxStatusResponse())
 
       const { monitorMailbox, clearMonitoring, mwiStates, mailboxes } = useAmiVoicemail(clientRef)
 
-      monitorMailbox('1000')
-      monitorMailbox('1001')
+      monitorMailbox(TEST_FIXTURES.mailboxes.standard)
+      monitorMailbox(TEST_FIXTURES.mailboxes.alternate)
       await vi.runAllTimersAsync()
 
       clearMonitoring()
@@ -192,20 +378,24 @@ describe('useAmiVoicemail', () => {
     })
   })
 
+  /**
+   * refreshMailbox Tests
+   * Verify VoicemailRefresh action sends correctly
+   */
   describe('refreshMailbox', () => {
     it('should send VoicemailRefresh action', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue({
-        server_id: 1,
-        data: { Response: 'Success', Waiting: '0', NewMessages: '0', OldMessages: '0' },
-      })
+      mockClient.sendAction = vi.fn().mockResolvedValue(createMailboxStatusResponse())
 
       const { refreshMailbox } = useAmiVoicemail(clientRef)
-      await refreshMailbox('1000', 'default')
+      await refreshMailbox(
+        TEST_FIXTURES.mailboxes.standard,
+        TEST_FIXTURES.contexts.default
+      )
 
       expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'VoicemailRefresh',
-        Context: 'default',
-        Mailbox: '1000',
+        Context: TEST_FIXTURES.contexts.default,
+        Mailbox: TEST_FIXTURES.mailboxes.standard,
       })
     })
 
@@ -213,34 +403,37 @@ describe('useAmiVoicemail', () => {
       clientRef.value = { ...mockClient, isConnected: false } as unknown as AmiClient
       const { refreshMailbox } = useAmiVoicemail(clientRef)
 
-      await expect(refreshMailbox('1000')).rejects.toThrow('Not connected to AMI')
+      await expect(refreshMailbox(TEST_FIXTURES.mailboxes.standard))
+        .rejects.toThrow(TEST_FIXTURES.errors.notConnected)
     })
   })
 
+  /**
+   * MWI Event Handling Tests
+   * Verify real-time MessageWaiting event processing and state updates
+   */
   describe('MWI event handling', () => {
     it('should update MWI state on MessageWaiting event', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue(
-        createAmiSuccessResponse({ Waiting: '0', NewMessages: '0', OldMessages: '0' })
-      )
+      mockClient.sendAction = vi.fn().mockResolvedValue(createMailboxStatusResponse())
 
       const { monitorMailbox, mwiStates } = useAmiVoicemail(clientRef)
 
       // Monitor mailbox to start listening
-      monitorMailbox('1000', 'default')
+      monitorMailbox(TEST_FIXTURES.mailboxes.standard, TEST_FIXTURES.contexts.default)
       await vi.runAllTimersAsync()
 
-      // Simulate MWI event using helper
-      const event = createAmiEvent('MessageWaiting', {
-        Mailbox: '1000@default',
-        Waiting: 'yes',
-        New: '5',
-        Old: '10',
-      })
+      // Simulate MWI event
+      const event = createMessageWaitingEvent(
+        TEST_FIXTURES.mailboxes.withContext,
+        'yes',
+        '5',
+        '10'
+      )
 
       mockClient._triggerEvent('event', event)
       await nextTick()
 
-      const state = mwiStates.value.get('1000@default')
+      const state = mwiStates.value.get(TEST_FIXTURES.mailboxes.withContext)
       expect(state?.waiting).toBe(true)
       expect(state?.newMessages).toBe(5)
       expect(state?.oldMessages).toBe(10)
@@ -249,66 +442,66 @@ describe('useAmiVoicemail', () => {
     it('should ignore events for non-monitored mailboxes', async () => {
       const { mwiStates } = useAmiVoicemail(clientRef)
 
-      // Simulate MWI event for non-monitored mailbox using helper
-      const event = createAmiEvent('MessageWaiting', {
-        Mailbox: '9999@default',
-        Waiting: 'yes',
-        New: '1',
-        Old: '0',
-      })
+      // Simulate MWI event for non-monitored mailbox
+      const event = createMessageWaitingEvent(
+        `${TEST_FIXTURES.mailboxes.nonExistent}@${TEST_FIXTURES.contexts.default}`,
+        'yes',
+        '1',
+        '0'
+      )
 
       mockClient._triggerEvent('event', event)
       await nextTick()
 
-      expect(mwiStates.value.has('9999@default')).toBe(false)
+      expect(mwiStates.value.has(`${TEST_FIXTURES.mailboxes.nonExistent}@${TEST_FIXTURES.contexts.default}`)).toBe(false)
     })
 
     it('should call onNewMessage callback when new messages arrive', async () => {
       const onNewMessage = vi.fn()
-      mockClient.sendAction = vi.fn().mockResolvedValue(
-        createAmiSuccessResponse({ Waiting: '0', NewMessages: '0', OldMessages: '0' })
-      )
+      mockClient.sendAction = vi.fn().mockResolvedValue(createMailboxStatusResponse())
 
       const { monitorMailbox } = useAmiVoicemail(clientRef, { onNewMessage })
 
-      monitorMailbox('1000')
+      monitorMailbox(TEST_FIXTURES.mailboxes.standard)
       await vi.runAllTimersAsync()
 
-      // Simulate MWI event with new messages using helper
-      const event = createAmiEvent('MessageWaiting', {
-        Mailbox: '1000@default',
-        Waiting: 'yes',
-        New: '3',
-        Old: '0',
-      })
+      // Simulate MWI event with new messages
+      const event = createMessageWaitingEvent(
+        TEST_FIXTURES.mailboxes.withContext,
+        'yes',
+        '3',
+        '0'
+      )
 
       mockClient._triggerEvent('event', event)
       await nextTick()
 
-      expect(onNewMessage).toHaveBeenCalledWith('1000', 3)
+      expect(onNewMessage).toHaveBeenCalledWith(TEST_FIXTURES.mailboxes.standard, 3)
     })
   })
 
+  /**
+   * onMwiChange Listener Tests
+   * Verify MWI change listener registration and callback behavior
+   */
   describe('onMwiChange listener', () => {
     it('should register and call listener on MWI change', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue(
-        createAmiSuccessResponse({ Waiting: '0', NewMessages: '0', OldMessages: '0' })
-      )
+      mockClient.sendAction = vi.fn().mockResolvedValue(createMailboxStatusResponse())
 
       const listener = vi.fn()
       const { monitorMailbox, onMwiChange } = useAmiVoicemail(clientRef)
 
       const unsubscribe = onMwiChange(listener)
-      monitorMailbox('1000')
+      monitorMailbox(TEST_FIXTURES.mailboxes.standard)
       await vi.runAllTimersAsync()
 
-      // Simulate MWI event using helper
-      const event = createAmiEvent('MessageWaiting', {
-        Mailbox: '1000@default',
-        Waiting: 'yes',
-        New: '2',
-        Old: '1',
-      })
+      // Simulate MWI event
+      const event = createMessageWaitingEvent(
+        TEST_FIXTURES.mailboxes.withContext,
+        'yes',
+        '2',
+        '1'
+      )
 
       mockClient._triggerEvent('event', event)
       await nextTick()
@@ -325,22 +518,20 @@ describe('useAmiVoicemail', () => {
     })
   })
 
+  /**
+   * Computed Properties Tests
+   * Verify reactive computed properties aggregate mailbox states correctly
+   */
   describe('computed properties', () => {
     it('should calculate totalNewMessages across all mailboxes', async () => {
       mockClient.sendAction = vi.fn()
-        .mockResolvedValueOnce({
-          server_id: 1,
-          data: { Response: 'Success', Waiting: '1', NewMessages: '3', OldMessages: '0' },
-        })
-        .mockResolvedValueOnce({
-          server_id: 1,
-          data: { Response: 'Success', Waiting: '1', NewMessages: '5', OldMessages: '0' },
-        })
+        .mockResolvedValueOnce(createMailboxStatusResponse('1', '3', '0'))
+        .mockResolvedValueOnce(createMailboxStatusResponse('1', '5', '0'))
 
       const { monitorMailbox, totalNewMessages } = useAmiVoicemail(clientRef)
 
-      monitorMailbox('1000')
-      monitorMailbox('1001')
+      monitorMailbox(TEST_FIXTURES.mailboxes.standard)
+      monitorMailbox(TEST_FIXTURES.mailboxes.alternate)
       await vi.runAllTimersAsync()
 
       expect(totalNewMessages.value).toBe(8)
@@ -348,62 +539,58 @@ describe('useAmiVoicemail', () => {
 
     it('should calculate hasWaitingMessages correctly', async () => {
       mockClient.sendAction = vi.fn()
-        .mockResolvedValueOnce({
-          server_id: 1,
-          data: { Response: 'Success', Waiting: '0', NewMessages: '0', OldMessages: '0' },
-        })
-        .mockResolvedValueOnce({
-          server_id: 1,
-          data: { Response: 'Success', Waiting: '1', NewMessages: '1', OldMessages: '0' },
-        })
+        .mockResolvedValueOnce(createMailboxStatusResponse('0', '0', '0'))
+        .mockResolvedValueOnce(createMailboxStatusResponse('1', '1', '0'))
 
       const { monitorMailbox, hasWaitingMessages } = useAmiVoicemail(clientRef)
 
-      monitorMailbox('1000')
+      monitorMailbox(TEST_FIXTURES.mailboxes.standard)
       await vi.runAllTimersAsync()
       expect(hasWaitingMessages.value).toBe(false)
 
-      monitorMailbox('1001')
+      monitorMailbox(TEST_FIXTURES.mailboxes.alternate)
       await vi.runAllTimersAsync()
       expect(hasWaitingMessages.value).toBe(true)
     })
   })
 
+  /**
+   * Options Tests
+   * Verify composable configuration options work correctly
+   */
   describe('options', () => {
     it('should use custom defaultContext', async () => {
-      mockClient.sendAction = vi.fn().mockResolvedValue(
-        createAmiSuccessResponse({ Waiting: '0', NewMessages: '0', OldMessages: '0' })
-      )
+      mockClient.sendAction = vi.fn().mockResolvedValue(createMailboxStatusResponse())
 
-      const { getMwiState } = useAmiVoicemail(clientRef, { defaultContext: 'custom' })
-      await getMwiState('1000')
+      const { getMwiState } = useAmiVoicemail(clientRef, {
+        defaultContext: TEST_FIXTURES.contexts.custom
+      })
+      await getMwiState(TEST_FIXTURES.mailboxes.standard)
 
       expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'MailboxStatus',
-        Mailbox: '1000@custom',
+        Mailbox: TEST_FIXTURES.mailboxes.customContext,
       })
     })
 
     it('should call onMwiChange callback from options', async () => {
       const onMwiChangeCallback = vi.fn()
-      mockClient.sendAction = vi.fn().mockResolvedValue(
-        createAmiSuccessResponse({ Waiting: '0', NewMessages: '0', OldMessages: '0' })
-      )
+      mockClient.sendAction = vi.fn().mockResolvedValue(createMailboxStatusResponse())
 
       const { monitorMailbox } = useAmiVoicemail(clientRef, {
         onMwiChange: onMwiChangeCallback,
       })
 
-      monitorMailbox('1000')
+      monitorMailbox(TEST_FIXTURES.mailboxes.standard)
       await vi.runAllTimersAsync()
 
-      // Simulate MWI event using helper
-      const event = createAmiEvent('MessageWaiting', {
-        Mailbox: '1000@default',
-        Waiting: 'yes',
-        New: '1',
-        Old: '0',
-      })
+      // Simulate MWI event
+      const event = createMessageWaitingEvent(
+        TEST_FIXTURES.mailboxes.withContext,
+        'yes',
+        '1',
+        '0'
+      )
 
       mockClient._triggerEvent('event', event)
       await nextTick()
@@ -412,41 +599,20 @@ describe('useAmiVoicemail', () => {
     })
   })
 
+  /**
+   * getVoicemailUsers Tests
+   * Verify voicemail user list retrieval and event collection
+   */
   describe('getVoicemailUsers', () => {
     it('should throw if not connected', async () => {
       clientRef.value = { ...mockClient, isConnected: false } as unknown as AmiClient
       const { getVoicemailUsers } = useAmiVoicemail(clientRef)
 
-      await expect(getVoicemailUsers()).rejects.toThrow('Not connected to AMI')
+      await expect(getVoicemailUsers()).rejects.toThrow(TEST_FIXTURES.errors.notConnected)
     })
 
     it('should collect voicemail users from events', async () => {
-      const actionId = `vuesip-vm-${Date.now()}`
-      mockClient.sendAction = vi.fn().mockImplementation(() => {
-        // Simulate events after a tick
-        setTimeout(() => {
-          mockClient._triggerEvent(
-            'event',
-            createAmiEvent('VoicemailUserEntry', {
-              ActionID: actionId,
-              VoiceMailbox: '1000',
-              VMContext: 'default',
-              NewMessageCount: '2',
-              OldMessageCount: '5',
-              UrgentMessageCount: '0',
-              FullName: 'John Doe',
-              Email: 'john@example.com',
-            })
-          )
-          mockClient._triggerEvent(
-            'event',
-            createAmiEvent('VoicemailUserEntryComplete', {
-              ActionID: actionId,
-            })
-          )
-        }, 10)
-        return Promise.resolve({ data: { Response: 'Success' } })
-      })
+      setupVoicemailUsersResponse(mockClient, [TEST_FIXTURES.users.johnDoe])
 
       const { getVoicemailUsers } = useAmiVoicemail(clientRef)
 
@@ -455,65 +621,35 @@ describe('useAmiVoicemail', () => {
       const users = await usersPromise
 
       expect(users).toHaveLength(1)
-      expect(users[0].mailbox).toBe('1000')
-      expect(users[0].fullName).toBe('John Doe')
+      expect(users[0].mailbox).toBe(TEST_FIXTURES.users.johnDoe.VoiceMailbox)
+      expect(users[0].fullName).toBe(TEST_FIXTURES.users.johnDoe.FullName)
     })
   })
 
+  /**
+   * getMailboxInfo Tests
+   * Verify individual mailbox information retrieval from user list
+   */
   describe('getMailboxInfo', () => {
     it('should find mailbox from voicemail users', async () => {
-      const actionId = `vuesip-vm-${Date.now()}`
-      mockClient.sendAction = vi.fn().mockImplementation(() => {
-        setTimeout(() => {
-          mockClient._triggerEvent(
-            'event',
-            createAmiEvent('VoicemailUserEntry', {
-              ActionID: actionId,
-              VoiceMailbox: '1000',
-              VMContext: 'default',
-              NewMessageCount: '0',
-              OldMessageCount: '0',
-              UrgentMessageCount: '0',
-              FullName: 'Test User',
-            })
-          )
-          mockClient._triggerEvent(
-            'event',
-            createAmiEvent('VoicemailUserEntryComplete', {
-              ActionID: actionId,
-            })
-          )
-        }, 10)
-        return Promise.resolve({ data: { Response: 'Success' } })
-      })
+      setupVoicemailUsersResponse(mockClient, [TEST_FIXTURES.users.testUser])
 
       const { getMailboxInfo } = useAmiVoicemail(clientRef)
 
-      const infoPromise = getMailboxInfo('1000')
+      const infoPromise = getMailboxInfo(TEST_FIXTURES.mailboxes.standard)
       vi.advanceTimersByTime(100)
       const info = await infoPromise
 
-      expect(info?.mailbox).toBe('1000')
-      expect(info?.fullName).toBe('Test User')
+      expect(info?.mailbox).toBe(TEST_FIXTURES.users.testUser.VoiceMailbox)
+      expect(info?.fullName).toBe(TEST_FIXTURES.users.testUser.FullName)
     })
 
     it('should return null for non-existent mailbox', async () => {
-      const actionId = `vuesip-vm-${Date.now()}`
-      mockClient.sendAction = vi.fn().mockImplementation(() => {
-        setTimeout(() => {
-          mockClient._triggerEvent(
-            'event',
-            createAmiEvent('VoicemailUserEntryComplete', {
-              ActionID: actionId,
-            })
-          )
-        }, 10)
-        return Promise.resolve({ data: { Response: 'Success' } })
-      })
+      setupVoicemailUsersResponse(mockClient, [])
 
       const { getMailboxInfo } = useAmiVoicemail(clientRef)
 
-      const infoPromise = getMailboxInfo('9999')
+      const infoPromise = getMailboxInfo(TEST_FIXTURES.mailboxes.nonExistent)
       vi.advanceTimersByTime(100)
       const info = await infoPromise
 

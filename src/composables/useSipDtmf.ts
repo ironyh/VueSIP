@@ -10,6 +10,7 @@ import { ref, type Ref } from 'vue'
 import type { SessionDescriptionHandler, RTCRtpSenderWithDTMF } from '@/types/media.types'
 import { abortableSleep, throwIfAborted } from '@/utils/abortController'
 import { createLogger } from '@/utils/logger'
+import { validateDtmfTone, validateDtmfSequence } from '@/utils/validators'
 import { ErrorSeverity, logErrorWithContext, createOperationTimer } from '@/utils/errorContext'
 
 const log = createLogger('useSipDtmf')
@@ -35,9 +36,11 @@ export function useSipDtmf(currentSession: Ref<any | null>): UseSipDtmfReturn {
     }
 
     // Validate DTMF digit
-    if (!/^[0-9*#A-D]$/.test(digit)) {
-      throw new Error('Invalid DTMF digit')
+    const result = validateDtmfTone(digit)
+    if (!result.valid) {
+      throw new Error(result.error!)
     }
+    const normalizedDigit = result.normalized!
 
     const timer = createOperationTimer()
 
@@ -52,7 +55,7 @@ export function useSipDtmf(currentSession: Ref<any | null>): UseSipDtmfReturn {
         if (audioSender && 'dtmf' in audioSender) {
           const dtmfSender = (audioSender as RTCRtpSenderWithDTMF).dtmf
           if (dtmfSender) {
-            dtmfSender.insertDTMF(digit, 160, 70)
+            dtmfSender.insertDTMF(normalizedDigit, 160, 70)
           }
         }
       }
@@ -114,9 +117,11 @@ export function useSipDtmf(currentSession: Ref<any | null>): UseSipDtmfReturn {
     }
 
     // Upfront validation: validate entire sequence before processing
-    if (!/^[0-9*#A-D]+$/.test(digits)) {
-      throw new Error(`Invalid DTMF sequence: "${digits}" - only 0-9, A-D, *, and # are allowed`)
+    const result = validateDtmfSequence(digits)
+    if (!result.valid) {
+      throw new Error(result.error!)
     }
+    const normalizedDigits = result.normalized!
 
     const timer = createOperationTimer()
 
@@ -124,15 +129,15 @@ export function useSipDtmf(currentSession: Ref<any | null>): UseSipDtmfReturn {
       // Set operation in progress flag
       isOperationInProgress.value = true
 
-      for (let i = 0; i < digits.length; i++) {
-        const digit = digits[i]
+      for (let i = 0; i < normalizedDigits.length; i++) {
+        const digit = normalizedDigits[i]
         if (!digit) continue // Skip undefined/empty
 
         // Send the tone
         await sendDtmf(digit)
 
         // Wait between tones (except after the last one)
-        if (i < digits.length - 1) {
+        if (i < normalizedDigits.length - 1) {
           await abortableSleep(interval, signal)
         }
       }

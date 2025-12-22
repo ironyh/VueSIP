@@ -20,7 +20,7 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <h2>📡 Network Condition Simulator</h2>
+    <h2>Network Condition Simulator</h2>
     <p class="description">
       Simulate various network conditions to test call quality and resilience.
     </p>
@@ -49,7 +49,9 @@
           :class="['profile-card', { active: activeProfile === profile.name }]"
           @click="applyProfile(profile)"
         >
-          <div class="profile-icon">{{ profile.icon }}</div>
+          <div class="profile-icon">
+            <span :class="['profile-indicator', getProfileClass(profile.name)]"></span>
+          </div>
           <div class="profile-name">{{ profile.name }}</div>
           <div class="profile-stats">
             <div class="stat">
@@ -137,7 +139,7 @@
           @keyup.enter="makeCall"
         />
       </div>
-      <button @click="makeCall" :disabled="hasActiveCall">📞 Make Test Call</button>
+      <button @click="makeCall" :disabled="hasActiveCall">Make Test Call</button>
     </div>
 
     <!-- Active Call with Network Stats -->
@@ -149,7 +151,7 @@
         <h4>Real-time Network Metrics</h4>
         <div class="metrics-grid">
           <div class="metric-card">
-            <div class="metric-icon">⏱️</div>
+            <div class="metric-icon latency-icon"></div>
             <div class="metric-value">{{ currentMetrics.latency }}ms</div>
             <div class="metric-label">Current Latency</div>
             <div :class="['quality-indicator', getQualityClass(currentMetrics.latency, 'latency')]">
@@ -158,7 +160,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="metric-icon">📉</div>
+            <div class="metric-icon packet-loss-icon"></div>
             <div class="metric-value">{{ currentMetrics.packetLoss.toFixed(1) }}%</div>
             <div class="metric-label">Packet Loss</div>
             <div
@@ -172,7 +174,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="metric-icon">📊</div>
+            <div class="metric-icon jitter-icon"></div>
             <div class="metric-value">{{ currentMetrics.jitter }}ms</div>
             <div class="metric-label">Jitter</div>
             <div :class="['quality-indicator', getQualityClass(currentMetrics.jitter, 'jitter')]">
@@ -181,7 +183,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="metric-icon">🎯</div>
+            <div class="metric-icon quality-icon"></div>
             <div class="metric-value">{{ currentMetrics.quality }}</div>
             <div class="metric-label">Overall Quality</div>
             <div :class="['quality-score', currentMetrics.quality.toLowerCase()]">
@@ -227,14 +229,14 @@
 
       <!-- Call Controls -->
       <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">✅ Answer</button>
-        <button @click="hangup" class="danger">📞 Hang Up</button>
+        <button @click="answer" v-if="callState === 'incoming'">Answer</button>
+        <button @click="hangup" class="danger">Hang Up</button>
       </div>
     </div>
 
     <!-- Recommendations -->
     <div v-if="recommendations.length > 0" class="recommendations-section">
-      <h3>💡 Recommendations</h3>
+      <h3>Recommendations</h3>
       <ul>
         <li v-for="(rec, index) in recommendations" :key="index">
           {{ rec }}
@@ -259,15 +261,22 @@ const { isSimulationMode, activeScenario } = simulation
 const targetUri = ref('sip:1000@example.com')
 
 // SIP Client - use shared playground instance (credentials managed globally)
-const { connectionState: realConnectionState, isConnected: realIsConnected, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  getClient,
+} = playgroundSipClient
 
 // Effective values for simulation
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
 )
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 
 // Call Management - useCallSession requires a Ref
@@ -276,7 +285,7 @@ const {
   makeCall: makeCallFn,
   answer,
   hangup,
-  session: currentCall,
+  session: _currentCall,
   state: callState,
   isActive: hasActiveCall,
 } = useCallSession(sipClientRef)
@@ -294,7 +303,7 @@ interface NetworkProfile {
 const networkProfiles: NetworkProfile[] = [
   {
     name: 'Excellent',
-    icon: '🟢',
+    icon: 'excellent',
     latency: 20,
     packetLoss: 0,
     jitter: 5,
@@ -302,7 +311,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: 'Good',
-    icon: '🟡',
+    icon: 'good',
     latency: 80,
     packetLoss: 1,
     jitter: 15,
@@ -310,7 +319,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: '4G Mobile',
-    icon: '📱',
+    icon: 'mobile4g',
     latency: 100,
     packetLoss: 2,
     jitter: 25,
@@ -318,7 +327,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: '3G Mobile',
-    icon: '📶',
+    icon: 'mobile3g',
     latency: 200,
     packetLoss: 5,
     jitter: 50,
@@ -326,7 +335,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: 'Poor WiFi',
-    icon: '📡',
+    icon: 'wifi-poor',
     latency: 300,
     packetLoss: 10,
     jitter: 100,
@@ -334,13 +343,26 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: 'Congested',
-    icon: '🔴',
+    icon: 'congested',
     latency: 500,
     packetLoss: 20,
     jitter: 150,
     bandwidth: 64,
   },
 ]
+
+// Helper for profile indicator class
+const getProfileClass = (profileName: string): string => {
+  const mapping: Record<string, string> = {
+    Excellent: 'excellent',
+    Good: 'good',
+    '4G Mobile': 'mobile4g',
+    '3G Mobile': 'mobile3g',
+    'Poor WiFi': 'wifi-poor',
+    Congested: 'congested',
+  }
+  return mapping[profileName] || 'default'
+}
 
 const activeProfile = ref('Excellent')
 const customLatency = ref(20)
@@ -578,58 +600,67 @@ onUnmounted(() => {
 }
 
 .description {
-  color: #666;
-  margin-bottom: 2rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-2xl);
+  line-height: 1.6;
 }
 
 .status-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: var(--spacing-2xl);
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
 .status-badge {
   display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.875rem;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  transition: all var(--transition-base);
 }
 
 .status-badge.connected {
-  background-color: #10b981;
-  color: white;
+  background: var(--gradient-green);
+  color: var(--text-on-gradient);
+  box-shadow: var(--shadow-green);
 }
 
 .status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
+  background: var(--bg-neutral-light);
+  color: var(--color-neutral);
+  border: 1px solid var(--color-neutral);
 }
 
 .status-badge.connecting {
-  background-color: #f59e0b;
-  color: white;
+  background: var(--gradient-orange);
+  color: var(--text-on-gradient);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .network-status {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
+  gap: var(--spacing-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
 }
 
 .connection-hint {
-  font-size: 0.8rem;
-  color: #6b7280;
-  padding: 0.5rem 0.75rem;
-  background: #fef3c7;
-  border-radius: 6px;
-  border: 1px solid #fcd34d;
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-warning-light);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-warning);
 }
 
 .connection-hint strong {
-  color: #92400e;
+  color: var(--color-warning);
+  font-weight: var(--font-semibold);
 }
 
 .indicator {
@@ -644,176 +675,294 @@ onUnmounted(() => {
 .call-section,
 .active-call-section,
 .recommendations-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.config-section:hover,
+.profiles-section:hover,
+.custom-settings-section:hover,
+.call-section:hover,
+.active-call-section:hover,
+.recommendations-section:hover {
+  box-shadow: var(--shadow-md);
 }
 
 h3 {
   margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.125rem;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 }
 
 h4 {
   margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1rem;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-md);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  font-size: 0.875rem;
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
 }
 
 .form-group input {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: all var(--transition-base);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 button {
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--gradient-blue);
+  color: var(--text-on-gradient);
   border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
 }
 
 button:hover:not(:disabled) {
-  background-color: #2563eb;
+  background: var(--gradient-blue-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-blue);
 }
 
 button:disabled {
-  background-color: #9ca3af;
+  background: var(--bg-neutral-light);
+  color: var(--color-neutral);
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 button.danger {
-  background-color: #ef4444;
+  background: var(--gradient-red);
 }
 
 button.danger:hover:not(:disabled) {
-  background-color: #dc2626;
+  background: var(--gradient-red-hover);
+  box-shadow: 0 8px 16px rgba(239, 68, 68, 0.2);
 }
 
 .profiles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
+  gap: var(--spacing-md);
 }
 
 .profile-card {
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
+  position: relative;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
   text-align: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.profile-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-blue);
+  opacity: 0;
+  transition: opacity var(--transition-base);
 }
 
 .profile-card:hover {
-  border-color: #3b82f6;
-  transform: translateY(-2px);
+  border-color: var(--color-info);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.profile-card:hover::before {
+  opacity: 1;
 }
 
 .profile-card.active {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: var(--color-info);
+  background: var(--bg-info-light);
+}
+
+.profile-card.active::before {
+  opacity: 1;
 }
 
 .profile-icon {
-  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 0.5rem;
+  height: 2rem;
+}
+
+.profile-indicator {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.profile-indicator.excellent {
+  background: var(--color-success, #10b981);
+  border-color: var(--color-success, #10b981);
+}
+
+.profile-indicator.good {
+  background: var(--color-warning, #f59e0b);
+  border-color: var(--color-warning, #f59e0b);
+}
+
+.profile-indicator.mobile4g,
+.profile-indicator.mobile3g {
+  background: var(--color-info, #3b82f6);
+  border-color: var(--color-info, #3b82f6);
+  position: relative;
+}
+
+.profile-indicator.mobile4g::after,
+.profile-indicator.mobile3g::after {
+  content: '';
+  position: absolute;
+  width: 0.5rem;
+  height: 0.75rem;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
+}
+
+.profile-indicator.wifi-poor {
+  background: var(--color-warning, #f59e0b);
+  border-color: var(--color-warning, #f59e0b);
+}
+
+.profile-indicator.congested {
+  background: var(--color-error, #ef4444);
+  border-color: var(--color-error, #ef4444);
 }
 
 .profile-name {
-  font-weight: 600;
-  margin-bottom: 0.75rem;
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+  font-size: var(--text-base);
 }
 
 .profile-stats {
-  font-size: 0.75rem;
-  color: #6b7280;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
 
 .stat {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--spacing-xs);
+  padding: var(--spacing-xs) 0;
 }
 
 .stat-label {
-  font-weight: 500;
+  font-weight: var(--font-medium);
+  color: var(--text-tertiary);
+}
+
+.stat-value {
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 }
 
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
 .setting-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  font-size: 0.875rem;
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
 }
 
 .setting-group input[type='range'] {
   width: 100%;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--spacing-xs);
+  cursor: pointer;
 }
 
 .setting-group .value {
   display: inline-block;
-  font-weight: 600;
-  color: #3b82f6;
+  font-weight: var(--font-semibold);
+  color: var(--color-info);
+  font-size: var(--text-sm);
 }
 
 .indicator-bar {
   height: 6px;
-  background: #e5e7eb;
-  border-radius: 3px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
   overflow: hidden;
-  margin-top: 0.5rem;
+  margin-top: var(--spacing-sm);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .indicator-fill {
   height: 100%;
-  transition: width 0.3s;
+  transition: width var(--transition-base);
 }
 
 .indicator-fill.latency {
-  background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+  background: linear-gradient(90deg, var(--color-success), var(--color-warning), var(--color-danger));
 }
 
 .indicator-fill.packet-loss {
-  background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+  background: linear-gradient(90deg, var(--color-success), var(--color-warning), var(--color-danger));
 }
 
 .indicator-fill.jitter {
-  background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+  background: linear-gradient(90deg, var(--color-success), var(--color-warning), var(--color-danger));
 }
 
 .indicator-fill.bandwidth {
-  background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+  background: linear-gradient(90deg, var(--color-danger), var(--color-warning), var(--color-success));
 }
 
 .apply-btn {
@@ -827,90 +976,177 @@ button.danger:hover:not(:disabled) {
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
+  gap: var(--spacing-md);
 }
 
 .metric-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
   text-align: center;
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: transparent;
+}
+
+.metric-card:hover::before {
+  opacity: 1;
 }
 
 .metric-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.metric-icon.latency-icon {
+  background: var(--gradient-blue);
+}
+
+.metric-card:has(.latency-icon)::before {
+  background: var(--gradient-blue);
+}
+
+.metric-card:has(.latency-icon):hover {
+  box-shadow: var(--shadow-blue);
+}
+
+.metric-icon.packet-loss-icon {
+  background: var(--gradient-orange);
+}
+
+.metric-card:has(.packet-loss-icon)::before {
+  background: var(--gradient-orange);
+}
+
+.metric-card:has(.packet-loss-icon):hover {
+  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.2);
+}
+
+.metric-icon.jitter-icon {
+  background: var(--gradient-cyan);
+}
+
+.metric-card:has(.jitter-icon)::before {
+  background: var(--gradient-cyan);
+}
+
+.metric-card:has(.jitter-icon):hover {
+  box-shadow: 0 8px 16px rgba(6, 182, 212, 0.2);
+}
+
+.metric-icon.quality-icon {
+  background: var(--gradient-green);
+}
+
+.metric-card:has(.quality-icon)::before {
+  background: var(--gradient-green);
+}
+
+.metric-card:has(.quality-icon):hover {
+  box-shadow: var(--shadow-green);
 }
 
 .metric-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--spacing-xs);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .metric-label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-bottom: 0.5rem;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-medium);
 }
 
 .quality-indicator {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  transition: all var(--transition-base);
 }
 
 .quality-indicator.good {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--bg-success-light);
+  color: var(--color-success);
 }
 
 .quality-indicator.fair {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--bg-warning-light);
+  color: var(--color-warning);
 }
 
 .quality-indicator.poor {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--bg-danger-light);
+  color: var(--color-danger);
 }
 
 .quality-score {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  transition: all var(--transition-base);
 }
 
 .quality-score.excellent {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--bg-success-light);
+  color: var(--color-success);
 }
 
 .quality-score.good {
-  background: #d9f99d;
-  color: #365314;
+  background: var(--bg-success-light);
+  color: var(--color-success);
 }
 
 .quality-score.fair {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--bg-warning-light);
+  color: var(--color-warning);
 }
 
 .quality-score.poor {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--bg-danger-light);
+  color: var(--color-danger);
 }
 
 .chart-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .chart {
@@ -918,32 +1154,34 @@ button.danger:hover:not(:disabled) {
   align-items: flex-end;
   gap: 2px;
   height: 100px;
-  background: #f9fafb;
-  border-radius: 4px;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  border: 1px solid var(--border-color);
 }
 
 .chart-bar {
   flex: 1;
   min-height: 2px;
   border-radius: 2px;
-  transition:
-    height 0.3s,
-    background-color 0.3s;
+  transition: height var(--transition-base), background-color var(--transition-base);
 }
 
 .chart-legend {
-  font-size: 0.75rem;
-  color: #6b7280;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
   text-align: center;
+  font-weight: var(--font-medium);
 }
 
 .events-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .events-list {
@@ -953,45 +1191,53 @@ button.danger:hover:not(:disabled) {
 
 .event-item {
   display: flex;
-  gap: 1rem;
-  padding: 0.5rem;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
   border-left: 3px solid transparent;
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-base);
+}
+
+.event-item:hover {
+  transform: translateX(4px);
 }
 
 .event-item.info {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: var(--color-info);
+  background: var(--bg-info-light);
 }
 
 .event-item.warning {
-  border-color: #f59e0b;
-  background: #fef3c7;
+  border-color: var(--color-warning);
+  background: var(--bg-warning-light);
 }
 
 .event-item.error {
-  border-color: #ef4444;
-  background: #fee2e2;
+  border-color: var(--color-danger);
+  background: var(--bg-danger-light);
 }
 
 .event-time {
-  font-weight: 600;
+  font-weight: var(--font-semibold);
   white-space: nowrap;
+  color: var(--text-primary);
 }
 
 .button-group {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--spacing-sm);
 }
 
 .recommendations-section ul {
   margin: 0;
-  padding-left: 1.5rem;
+  padding-left: var(--spacing-lg);
 }
 
 .recommendations-section li {
-  margin-bottom: 0.5rem;
-  color: #4b5563;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 </style>

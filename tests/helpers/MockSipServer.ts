@@ -460,7 +460,7 @@ export class MockSipServer {
       stop: vi.fn(),
       register: vi.fn(),
       unregister: vi.fn(),
-      call: vi.fn((target: string, options?: unknown) => {
+      call: vi.fn((_target: string, _options?: unknown) => {
         const session = this.createSession()
 
         if (this.config.autoAcceptCalls) {

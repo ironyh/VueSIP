@@ -20,145 +20,23 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <!-- SIP Configuration Panel -->
-    <div class="config-panel">
-      <h3>SIP Server Configuration</h3>
-      <p class="info-text">
-        Configure your SIP server details here. These settings will be used across all playground demos.
-      </p>
-
-      <div class="connection-status" :class="{ connected: isConnected }">
-        <span class="status-indicator"></span>
-        <span class="status-text">{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
-        <span v-if="isRegistered" class="badge badge-success">Registered</span>
-      </div>
-
-      <!-- Connection Info when connected (shown prominently) -->
-      <div v-if="isConnected && activeConnectionInfo" class="connection-info">
-        <h4>Connection Details</h4>
-        <dl>
-          <dt>Server</dt>
-          <dd>{{ activeConnectionInfo.uri }}</dd>
-          <dt>SIP URI</dt>
-          <dd>{{ activeConnectionInfo.sipUri }}</dd>
-          <dt>Display Name</dt>
-          <dd>{{ activeConnectionInfo.displayName }}</dd>
-          <dt>Status</dt>
-          <dd>{{ isRegistered ? 'Registered' : 'Connected (not registered)' }}</dd>
-        </dl>
-      </div>
-
-      <div class="form-group">
-        <label for="server-uri">Server URI (WebSocket)</label>
-        <input
-          id="server-uri"
-          v-model="config.uri"
-          type="text"
-          placeholder="wss://sip.example.com:7443"
-          :disabled="connecting || isConnected"
-        />
-        <small>Example: wss://sip.yourdomain.com:7443</small>
-      </div>
-
-      <div class="form-group">
-        <label for="sip-uri">SIP URI</label>
-        <input
-          id="sip-uri"
-          v-model="config.sipUri"
-          type="text"
-          placeholder="sip:username@example.com"
-          :disabled="connecting || isConnected"
-        />
-        <small>Example: sip:1000@yourdomain.com</small>
-      </div>
-
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input
-          id="password"
-          v-model="config.password"
-          type="password"
-          placeholder="Enter your SIP password"
-          :disabled="connecting || isConnected"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="display-name">Display Name (Optional)</label>
-        <input
-          id="display-name"
-          v-model="config.displayName"
-          type="text"
-          placeholder="Your Name"
-          :disabled="connecting || isConnected"
-        />
-      </div>
-
-      <!-- Remember Me Section -->
-      <div class="form-group">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="rememberMe" :disabled="connecting" />
-          <span>Remember me (persist credentials across sessions)</span>
-        </label>
-      </div>
-
-      <!-- Save Password Section (conditional) -->
-      <div v-if="rememberMe" class="form-group nested">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="savePassword" :disabled="connecting" />
-          <span>Save password</span>
-        </label>
-        <div class="security-warning">
-          <p>
-            <strong>Security Warning:</strong> Saving your password in browser
-            localStorage is not secure. Only use this on trusted devices.
-          </p>
-        </div>
-      </div>
-
-      <!-- Clear Credentials Button (conditional) -->
-      <div v-if="rememberMe" class="form-actions">
-        <button type="button" class="btn btn-secondary btn-sm" @click="clearCredentials">
-          Clear Saved Credentials
-        </button>
-      </div>
-
-      <!-- Connect/Disconnect Buttons -->
-      <div class="connection-buttons">
-        <button
-          v-if="!isConnected"
-          class="btn btn-primary w-full"
-          :disabled="!isConfigValid || connecting"
-          @click="handleConnect"
-        >
-          {{ connecting ? 'Connecting...' : 'Connect to Server' }}
-        </button>
-        <button
-          v-else
-          class="btn btn-danger w-full"
-          @click="handleDisconnect"
-        >
-          Disconnect
-        </button>
-      </div>
-
-      <div v-if="connectionError" class="error-message">
-        {{ connectionError }}
-      </div>
-
-      <div class="demo-tip">
-        <strong>Tip:</strong> Don't have a SIP server? You can use a free SIP service like
-        <a href="https://www.antisip.com/" target="_blank">Antisip</a> or set up a local
-        Asterisk server for testing.
-      </div>
-    </div>
+    <!-- SIP Connection Manager Panel -->
+    <ConnectionManagerPanel
+      :is-connected="isConnected"
+      :is-registered="isRegistered"
+      :active-connection-info="activeConnectionInfo"
+      :connection-error="connectionError"
+      :connecting="connecting"
+      @connect="handleConnectionConnect"
+      @disconnect="handleDisconnect"
+    />
 
     <!-- AMI Configuration Panel -->
     <div class="config-panel ami-panel">
       <h3>Asterisk Manager Interface (AMI)</h3>
       <p class="info-text">
-        Configure your Asterisk Manager Interface connection for advanced features like
-        presence monitoring, queue management, and call supervision.
+        Configure your Asterisk Manager Interface connection for advanced features like presence
+        monitoring, queue management, and call supervision.
       </p>
 
       <div class="connection-status" :class="{ connected: isAmiConnected }">
@@ -207,11 +85,7 @@
         >
           {{ amiConnecting ? 'Connecting...' : 'Connect to AMI' }}
         </button>
-        <button
-          v-else
-          class="btn btn-danger w-full"
-          @click="handleAmiDisconnect"
-        >
+        <button v-else class="btn btn-danger w-full" @click="handleAmiDisconnect">
           Disconnect AMI
         </button>
       </div>
@@ -233,44 +107,24 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { playgroundSipClient, playgroundAmiClient } from '../sipClient'
 import { configStore } from '../../src/stores/configStore'
 import { useSimulation } from '../composables/useSimulation'
+import { useConnectionManager, type SavedConnection } from '../composables/useConnectionManager'
 import SimulationControls from '../components/SimulationControls.vue'
+import ConnectionManagerPanel from '../components/ConnectionManagerPanel.vue'
 
 // Simulation system
 const simulation = useSimulation()
 const { isSimulationMode, activeScenario } = simulation
 
-// localStorage keys
-const CREDENTIALS_STORAGE_KEY = 'vuesip-credentials'
-const CREDENTIALS_OPTIONS_KEY = 'vuesip-credentials-options'
+// Connection Manager
+const connectionManager = useConnectionManager()
+
+// localStorage keys for AMI
 const AMI_URL_STORAGE_KEY = 'vuesip-ami-url'
 const AMI_OPTIONS_KEY = 'vuesip-ami-options'
-
-interface StoredCredentials {
-  uri: string
-  sipUri: string
-  password?: string
-  displayName: string
-  timestamp: string
-}
-
-interface CredentialsOptions {
-  rememberMe: boolean
-  savePassword: boolean
-}
-
-// SIP Configuration
-const config = ref({
-  uri: 'wss://sip.example.com:7443',
-  sipUri: 'sip:testuser@example.com',
-  password: '',
-  displayName: '',
-})
 
 // SIP State
 const connecting = ref(false)
 const connectionError = ref('')
-const rememberMe = ref(false)
-const savePassword = ref(false)
 
 // AMI Configuration
 const amiConfig = ref({
@@ -292,86 +146,16 @@ const {
   isConnected: isAmiConnected,
 } = playgroundAmiClient
 
-// Computed
-const isConfigValid = computed(() => {
-  return config.value.uri && config.value.sipUri && config.value.password
-})
-
 // Get active connection info from the store (for display when connected)
-// Access sipConfig directly for reactivity (method calls aren't tracked by Vue)
 const activeConnectionInfo = computed(() => {
   if (!isConnected.value) return null
   const storeConfig = configStore.sipConfig
   return {
-    uri: storeConfig?.uri || config.value.uri,
-    sipUri: storeConfig?.sipUri || config.value.sipUri,
-    displayName: storeConfig?.displayName || config.value.displayName || 'Not set',
+    uri: storeConfig?.uri || '',
+    sipUri: storeConfig?.sipUri || '',
+    displayName: storeConfig?.displayName || 'Not set',
   }
 })
-
-// SIP Credential Persistence
-const loadCredentials = (): boolean => {
-  const saved = localStorage.getItem(CREDENTIALS_STORAGE_KEY)
-  const options = localStorage.getItem(CREDENTIALS_OPTIONS_KEY)
-
-  if (saved && options) {
-    try {
-      const credentials: StoredCredentials = JSON.parse(saved)
-      const opts: CredentialsOptions = JSON.parse(options)
-
-      if (opts.rememberMe) {
-        config.value.uri = credentials.uri || ''
-        config.value.sipUri = credentials.sipUri || ''
-        config.value.displayName = credentials.displayName || ''
-
-        if (opts.savePassword && credentials.password) {
-          config.value.password = credentials.password
-        }
-
-        rememberMe.value = opts.rememberMe
-        savePassword.value = opts.savePassword
-
-        return true
-      }
-    } catch (error) {
-      console.error('Failed to load credentials:', error)
-    }
-  }
-
-  return false
-}
-
-const saveCredentials = () => {
-  if (rememberMe.value) {
-    const credentials: StoredCredentials = {
-      uri: config.value.uri,
-      sipUri: config.value.sipUri,
-      displayName: config.value.displayName,
-      timestamp: new Date().toISOString(),
-    }
-
-    if (savePassword.value) {
-      credentials.password = config.value.password
-    }
-
-    const options: CredentialsOptions = {
-      rememberMe: rememberMe.value,
-      savePassword: savePassword.value,
-    }
-
-    localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(credentials))
-    localStorage.setItem(CREDENTIALS_OPTIONS_KEY, JSON.stringify(options))
-  } else {
-    clearCredentials()
-  }
-}
-
-const clearCredentials = () => {
-  localStorage.removeItem(CREDENTIALS_STORAGE_KEY)
-  localStorage.removeItem(CREDENTIALS_OPTIONS_KEY)
-  rememberMe.value = false
-  savePassword.value = false
-}
 
 // AMI Persistence
 const loadAmiConfig = () => {
@@ -402,17 +186,20 @@ const saveAmiConfig = () => {
   }
 }
 
-// SIP Methods
-const handleConnect = async () => {
+// SIP Methods - now driven by Connection Manager
+const handleConnectionConnect = async (connection: SavedConnection) => {
   try {
     connecting.value = true
     connectionError.value = ''
 
+    // Mark as active connection
+    connectionManager.setActiveConnection(connection.id)
+
     const validationResult = updateConfig({
-      uri: config.value.uri,
-      sipUri: config.value.sipUri,
-      password: config.value.password,
-      displayName: config.value.displayName,
+      uri: connection.uri,
+      sipUri: connection.sipUri,
+      password: connection.password || '',
+      displayName: connection.displayName,
       autoRegister: true,
       connectionTimeout: 10000,
       registerExpires: 600,
@@ -423,11 +210,7 @@ const handleConnect = async () => {
     }
 
     await connect()
-
-    // Save credentials after successful connection
-    if (rememberMe.value) {
-      saveCredentials()
-    }
+    console.log('✅ Connected using:', connection.name)
   } catch (error) {
     connectionError.value = error instanceof Error ? error.message : 'Connection failed'
     console.error('Connection error:', error)
@@ -439,6 +222,7 @@ const handleConnect = async () => {
 const handleDisconnect = async () => {
   try {
     await disconnect()
+    connectionManager.setActiveConnection(null)
   } catch (error) {
     console.error('Disconnect error:', error)
   }
@@ -474,52 +258,10 @@ const handleAmiDisconnect = async () => {
   }
 }
 
-// Sync local form config with connected values if already connected
-const syncConfigFromStore = () => {
-  if (isConnected.value) {
-    const storeConfig = configStore.sipConfig
-    if (storeConfig) {
-      config.value.uri = storeConfig.uri || config.value.uri
-      config.value.sipUri = storeConfig.sipUri || config.value.sipUri
-      config.value.displayName = storeConfig.displayName || config.value.displayName
-    }
-  }
-}
-
 // Load all settings on mount
 onMounted(() => {
-  loadCredentials()
   loadAmiConfig()
-  // If already connected (e.g., auto-connect happened), sync the form with actual values
-  syncConfigFromStore()
 })
-
-// Watch rememberMe checkbox
-watch(rememberMe, (newValue) => {
-  if (newValue) {
-    saveCredentials()
-  } else {
-    clearCredentials()
-  }
-})
-
-// Watch savePassword checkbox
-watch(savePassword, () => {
-  if (rememberMe.value) {
-    saveCredentials()
-  }
-})
-
-// Watch config changes (auto-save when rememberMe is true)
-watch(
-  config,
-  () => {
-    if (rememberMe.value) {
-      saveCredentials()
-    }
-  },
-  { deep: true }
-)
 
 // Watch rememberAmi checkbox
 watch(rememberAmi, () => {
@@ -542,6 +284,11 @@ watch(
 .settings-demo {
   max-width: 720px;
   margin: 0 auto;
+}
+
+/* Connection Manager spacing */
+.settings-demo :deep(.connection-manager) {
+  margin-bottom: 1.5rem;
 }
 
 .config-panel {
@@ -662,8 +409,8 @@ watch(
   font-size: 0.875rem;
 }
 
-.form-group input[type="text"],
-.form-group input[type="password"] {
+.form-group input[type='text'],
+.form-group input[type='password'] {
   width: 100%;
   padding: 0.75rem 1rem;
   border: 1px solid var(--border-color);
@@ -671,7 +418,9 @@ watch(
   font-size: 0.875rem;
   background: var(--bg-primary);
   color: var(--text-primary);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .form-group input:focus {
@@ -702,7 +451,7 @@ watch(
   font-weight: normal;
 }
 
-.checkbox-label input[type="checkbox"] {
+.checkbox-label input[type='checkbox'] {
   width: 18px;
   height: 18px;
   accent-color: var(--primary);

@@ -145,6 +145,7 @@ export default [
       '.output/**',
       'playwright-report/**',
       'test-results/**',
+      'docs/.vitepress/cache/**',
     ],
   },
 

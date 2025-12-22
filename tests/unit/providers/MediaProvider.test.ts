@@ -2,8 +2,6 @@
  * Media Provider Unit Tests
  */
 
-/* eslint-disable vue/one-component-per-file */
-
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
@@ -173,7 +171,7 @@ describe('MediaProvider', () => {
     it('should emit ready event after enumeration', async () => {
       let readyEmitted = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           onReady: () => { readyEmitted = true }
         },
@@ -233,9 +231,13 @@ describe('MediaProvider', () => {
     it('should not auto-select devices when autoSelectDefaults is false', async () => {
       const ConsumerComponent = createConsumerComponent()
 
+      // Note: autoEnumerate must also be false to prevent deviceStore from auto-selecting
+      // during the enumeration process. The deviceStore's setDevices() method has built-in
+      // auto-selection logic that runs independently of autoSelectDefaults.
       const wrapper = mount(MediaProvider, {
         props: {
           autoSelectDefaults: false,
+          autoEnumerate: false, // Prevents enumeration which triggers deviceStore auto-selection
         },
         slots: {
           default: () => h(ConsumerComponent),
@@ -463,7 +465,7 @@ describe('MediaProvider', () => {
     it('should emit devicesChanged event when devices change', async () => {
       let devicesChanged = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           watchDeviceChanges: true,
           onDevicesChanged: () => { devicesChanged = true }
@@ -485,8 +487,9 @@ describe('MediaProvider', () => {
       const deviceChangeEvent = new Event('devicechange')
       mockDeviceChangeListeners.forEach((listener) => listener(deviceChangeEvent))
 
-      await nextTick()
-      await nextTick()
+      // handleDeviceChange is async and calls await enumerateDevices()
+      // Need flushPromises to resolve the async operation
+      await flushPromises()
 
       expect(devicesChanged).toBe(true)
     })
@@ -708,7 +711,7 @@ describe('MediaProvider', () => {
 
       let readyEmitted = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           onReady: () => { readyEmitted = true }
         },
@@ -729,7 +732,7 @@ describe('MediaProvider', () => {
 
       let errorEmitted = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           onError: () => { errorEmitted = true }
         },
@@ -749,7 +752,7 @@ describe('MediaProvider', () => {
 
       let permissionsDenied = false
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoRequestPermissions: true,
           onPermissionsDenied: () => { permissionsDenied = true }

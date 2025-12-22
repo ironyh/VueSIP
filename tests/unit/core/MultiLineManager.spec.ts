@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { MultiLineManager } from '../../../src/core/MultiLineManager'
-import type { LineConfig, LineState, MultiLineConfig } from '../../../src/types/multiline.types'
+import type { LineConfig, LineState, MultiLineConfig as _MultiLineConfig } from '../../../src/types/multiline.types'
 import type { CallSession } from '../../../src/types/session.types'
 
 describe('MultiLineManager', () => {

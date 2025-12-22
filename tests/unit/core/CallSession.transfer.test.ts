@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { CallSession } from '@/core/CallSession'
 import { EventBus } from '@/core/EventBus'
 import type { CallDirection } from '@/types/call.types'
-import { createLogger } from '@/utils/logger'
+import { createLogger as _createLogger } from '@/utils/logger'
 
 describe('CallSession - Transfer Methods', () => {
   let callSession: CallSession

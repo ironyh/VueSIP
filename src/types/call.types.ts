@@ -238,10 +238,16 @@ export interface CallSession {
   terminationCause?: TerminationCause
   /** Custom data */
   data?: Record<string, any>
-  /** Hold the call (SIP re-INVITE with sendonly) */
-  hold?: () => void
-  /** Resume the call (SIP re-INVITE with sendrecv) */
-  unhold?: () => void
+  /** Hold the call */
+  hold: () => Promise<void>
+  /** Resume the call */
+  unhold: () => Promise<void>
+  /** Hangup the call */
+  hangup: () => Promise<void>
+  /** Blind transfer */
+  transfer: (target: string, extraHeaders?: string[]) => Promise<void>
+  /** Attended transfer */
+  attendedTransfer: (target: string, replaceCallId: string) => Promise<void>
 }
 
 /**

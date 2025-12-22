@@ -16,34 +16,7 @@ import type { CallSession, CallOptions } from '../types/call.types'
  * Composables should check for method existence before calling.
  */
 export interface ExtendedCallSession extends CallSession {
-  /**
-   * Perform blind transfer (REFER without consultation)
-   * @param targetUri - URI to transfer to
-   * @param extraHeaders - Optional SIP headers
-   */
-  transfer?(targetUri: string, extraHeaders?: string[]): Promise<void>
-
-  /**
-   * Perform attended transfer (REFER with Replaces header)
-   * @param targetUri - URI to transfer to
-   * @param consultationCallId - ID of the consultation call
-   */
-  attendedTransfer?(targetUri: string, consultationCallId: string): Promise<void>
-
-  /**
-   * Put call on hold
-   */
-  hold?(): Promise<void>
-
-  /**
-   * Resume call from hold
-   */
-  unhold?(): Promise<void>
-
-  /**
-   * Hang up the call
-   */
-  hangup?(): Promise<void>
+  // Methods are now inherited from CallSession
 }
 
 /**

@@ -1,5 +1,15 @@
 /**
- * useAmiCalls composable unit tests
+ * Tests for useAmiCalls composable
+ *
+ * Call management composable providing:
+ * - Active call tracking with real-time updates
+ * - Click-to-call functionality (agent-first or destination-first)
+ * - Call origination with flexible parameters
+ * - Call control operations (hangup, transfer)
+ * - Event-driven call state management
+ * - Computed properties for call filtering
+ *
+ * @see src/composables/useAmiCalls.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -9,10 +19,160 @@ import { ChannelState } from '@/types/ami.types'
 import type { AmiClient } from '@/core/AmiClient'
 import type { ChannelInfo, AmiMessage, AmiNewChannelEvent, AmiHangupEvent, AmiNewStateEvent } from '@/types/ami.types'
 
+/**
+ * Test fixtures for consistent test data across all test suites
+ */
+const TEST_FIXTURES = {
+  channels: {
+    basic: {
+      channel: 'SIP/1000-00000001',
+      state: ChannelState.Up,
+      channelState: ChannelState.Up,
+      stateDesc: 'Up',
+      channelStateDesc: 'Up',
+      callerIdNum: '1000',
+      callerIdName: 'Test User',
+      connectedLineNum: '2000',
+      connectedLineName: 'Other User',
+      accountCode: '',
+      context: 'from-internal',
+      exten: '2000',
+      priority: 1,
+      uniqueId: '1234567890.1',
+      linkedId: '1234567890.1',
+      application: 'Dial',
+      applicationData: 'SIP/2000',
+      duration: '00:01:30',
+      bridgeId: '',
+      serverId: 1,
+      createdAt: new Date(),
+    } as ChannelInfo,
+    ringing: {
+      uniqueId: '1',
+      channel: 'SIP/1000-00000001',
+      linkedId: '1',
+      callerIdNum: '1000',
+      callerIdName: '',
+      connectedLineNum: '',
+      connectedLineName: '',
+      state: ChannelState.Ringing,
+      stateDesc: 'Ringing',
+      startTime: new Date(),
+      duration: 0,
+      serverId: 1,
+    },
+    connected: {
+      uniqueId: '2',
+      channel: 'SIP/2000-00000001',
+      linkedId: '2',
+      callerIdNum: '2000',
+      callerIdName: '',
+      connectedLineNum: '',
+      connectedLineName: '',
+      state: ChannelState.Up,
+      stateDesc: 'Up',
+      startTime: new Date(),
+      duration: 0,
+      serverId: 1,
+    },
+    dialing: {
+      uniqueId: '3',
+      channel: 'SIP/3000-00000001',
+      linkedId: '3',
+      callerIdNum: '3000',
+      callerIdName: '',
+      connectedLineNum: '',
+      connectedLineName: '',
+      state: ChannelState.Dialing,
+      stateDesc: 'Dialing',
+      startTime: new Date(),
+      duration: 0,
+      serverId: 1,
+    },
+  },
+  calls: {
+    agent: 'SIP/1000',
+    destination: '18005551234',
+    context: 'from-internal',
+    extension: '2000',
+  },
+  options: {
+    agentFirst: { agentFirst: true },
+    destinationFirst: { agentFirst: false },
+    withCallbacks: {
+      onCallStart: vi.fn(),
+      onCallEnd: vi.fn(),
+      onCallStateChange: vi.fn(),
+    },
+    withFilter: {
+      channelFilter: (ch: any) => ch.channel.startsWith('SIP/'),
+    },
+    withStateLabels: {
+      stateLabels: {
+        [ChannelState.Up]: 'Connected',
+      },
+    },
+  },
+  events: {
+    newChannel: {
+      type: 1,
+      server_id: 1,
+      server_name: 'test',
+      ssl: false,
+      data: {
+        Event: 'Newchannel',
+        Channel: 'SIP/1000-00000001',
+        ChannelState: '6',
+        ChannelStateDesc: 'Up',
+        CallerIDNum: '1000',
+        CallerIDName: 'Test User',
+        ConnectedLineNum: '',
+        ConnectedLineName: '',
+        AccountCode: '',
+        Context: 'from-internal',
+        Exten: '2000',
+        Priority: '1',
+        Uniqueid: '123.456',
+        Linkedid: '123.456',
+      },
+    } as AmiMessage<AmiNewChannelEvent>,
+    hangup: {
+      type: 1,
+      server_id: 1,
+      server_name: 'test',
+      ssl: false,
+      data: {
+        Event: 'Hangup',
+        Channel: 'SIP/1000-00000001',
+        Uniqueid: '123.456',
+        Cause: '16',
+        'Cause-txt': 'Normal Clearing',
+      },
+    } as AmiMessage<AmiHangupEvent>,
+    newState: {
+      type: 1,
+      server_id: 1,
+      server_name: 'test',
+      ssl: false,
+      data: {
+        Event: 'Newstate',
+        Channel: 'SIP/1000-00000001',
+        ChannelState: '6',
+        ChannelStateDesc: 'Up',
+        ConnectedLineNum: '2000',
+        ConnectedLineName: 'Other User',
+        Uniqueid: '123.456',
+      },
+    } as AmiMessage<AmiNewStateEvent>,
+  },
+} as const
+
 // Store event handlers for simulation
 const eventHandlers: Record<string, Function[]> = {}
 
-// Create mock AMI client
+/**
+ * Factory function: Create mock AMI client with channel operations
+ */
 const createMockClient = (): AmiClient => {
   // Reset handlers
   Object.keys(eventHandlers).forEach(key => delete eventHandlers[key])
@@ -34,9 +194,22 @@ const createMockClient = (): AmiClient => {
   } as unknown as AmiClient
 }
 
-// Helper to trigger client events
+/**
+ * Helper to trigger client events
+ * Simulates AMI event emission for testing event handling
+ */
 function triggerClientEvent(event: string, ...args: unknown[]) {
   eventHandlers[event]?.forEach(handler => handler(...args))
+}
+
+/**
+ * Factory function: Create channel info with sensible defaults
+ */
+function createMockChannel(overrides?: Partial<ChannelInfo>): ChannelInfo {
+  return {
+    ...TEST_FIXTURES.channels.basic,
+    ...overrides,
+  }
 }
 
 describe('useAmiCalls', () => {
@@ -52,68 +225,55 @@ describe('useAmiCalls', () => {
     vi.clearAllMocks()
   })
 
-  describe('initial state', () => {
-    it('should have empty calls initially', () => {
-      const { calls, callList, callCount } = useAmiCalls(mockClient)
+  /**
+   * Initialization Tests
+   * Verify composable starts with correct initial state
+   */
+  describe('Initialization', () => {
+    describe.each([
+      {
+        description: 'with valid client',
+        client: () => createMockClient(),
+        expectedCalls: 0,
+        expectedLoading: false,
+        expectedError: null,
+        expectedLastRefresh: null,
+      },
+      {
+        description: 'with null client',
+        client: null,
+        expectedCalls: 0,
+        expectedLoading: false,
+        expectedError: null,
+        expectedLastRefresh: null,
+      },
+    ])('$description', ({ client, expectedCalls, expectedLoading, expectedError, expectedLastRefresh }) => {
+      it(`should initialize with ${expectedCalls} calls, loading=${expectedLoading}`, () => {
+        const actualClient = typeof client === 'function' ? client() : client
+        const { calls, callList, callCount, loading, error, lastRefresh } = useAmiCalls(actualClient)
 
-      expect(calls.value.size).toBe(0)
-      expect(callList.value).toEqual([])
-      expect(callCount.value).toBe(0)
-    })
-
-    it('should have loading as false initially', () => {
-      const { loading } = useAmiCalls(mockClient)
-
-      expect(loading.value).toBe(false)
-    })
-
-    it('should have no error initially', () => {
-      const { error } = useAmiCalls(mockClient)
-
-      expect(error.value).toBeNull()
-    })
-
-    it('should have null lastRefresh initially', () => {
-      const { lastRefresh } = useAmiCalls(mockClient)
-
-      expect(lastRefresh.value).toBeNull()
-    })
-
-    it('should handle null client gracefully', () => {
-      const { calls, error, refresh: _refresh } = useAmiCalls(null)
-
-      expect(calls.value.size).toBe(0)
-      expect(error.value).toBeNull()
+        expect(calls.value.size).toBe(expectedCalls)
+        expect(callList.value).toEqual([])
+        expect(callCount.value).toBe(expectedCalls)
+        expect(loading.value).toBe(expectedLoading)
+        expect(error.value).toBe(expectedError)
+        expect(lastRefresh.value).toBe(expectedLastRefresh)
+      })
     })
   })
 
-  describe('refresh', () => {
-    it('should refresh channel list', async () => {
-      const mockChannels: ChannelInfo[] = [
-        {
-          channel: 'SIP/1000-00000001',
-          state: ChannelState.Up,
-          channelState: ChannelState.Up,
-          stateDesc: 'Up',
-          channelStateDesc: 'Up',
-          callerIdNum: '1000',
-          callerIdName: 'Test User',
-          connectedLineNum: '2000',
-          connectedLineName: 'Other User',
-          accountCode: '',
-          context: 'from-internal',
-          exten: '2000',
-          priority: 1,
-          uniqueId: '1234567890.1',
-          linkedId: '1234567890.1',
-          application: 'Dial',
-          applicationData: 'SIP/2000',
-          duration: '00:01:30',
-          bridgeId: '',
-          serverId: 1,
-          createdAt: new Date(),
-        },
-      ]
+  /**
+   * Data Fetching Tests
+   * Verify channel refresh, loading states, and error handling
+   *
+   * Loading states:
+   * - false initially
+   * - true during fetch
+   * - false after completion (success or error)
+   */
+  describe('Data Fetching', () => {
+    it('should refresh channel list with loading state management', async () => {
+      const mockChannels: ChannelInfo[] = [createMockChannel()]
 
       ;(mockClient.getChannels as ReturnType<typeof vi.fn>).mockResolvedValue(mockChannels)
 
@@ -135,23 +295,37 @@ describe('useAmiCalls', () => {
       expect(lastRefresh.value).toBeInstanceOf(Date)
     })
 
-    it('should set error when client is null', async () => {
-      const { refresh, error } = useAmiCalls(null)
+    /**
+     * Error handling tests
+     * Verify error state management when refresh fails
+     */
+    describe('error handling', () => {
+      describe.each([
+        {
+          description: 'null client',
+          setup: () => null,
+          expectedError: 'AMI client not connected',
+        },
+        {
+          description: 'network error',
+          setup: () => {
+            const client = createMockClient()
+            ;(client.getChannels as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'))
+            return client
+          },
+          expectedError: 'Network error',
+        },
+      ])('with $description', ({ setup, expectedError }) => {
+        it(`should set error="${expectedError}"`, async () => {
+          const client = setup()
+          const { refresh, error, loading } = useAmiCalls(client)
 
-      await refresh()
+          await refresh()
 
-      expect(error.value).toBe('AMI client not connected')
-    })
-
-    it('should handle refresh errors', async () => {
-      ;(mockClient.getChannels as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'))
-
-      const { refresh, error, loading } = useAmiCalls(mockClient)
-
-      await refresh()
-
-      expect(error.value).toBe('Network error')
-      expect(loading.value).toBe(false)
+          expect(error.value).toBe(expectedError)
+          expect(loading.value).toBe(false)
+        })
+      })
     })
 
     it('should apply channel filter', async () => {
@@ -217,43 +391,58 @@ describe('useAmiCalls', () => {
     })
   })
 
-  describe('clickToCall', () => {
-    it('should make click-to-call with agent-first flow', async () => {
-      const { clickToCall } = useAmiCalls(mockClient, { agentFirst: true })
+  /**
+   * Click-to-Call Tests
+   * Verify click-to-call functionality with different call flows
+   *
+   * Call flows:
+   * - Agent-first: Call agent first, then connect to destination
+   * - Destination-first: Call destination first, then connect to agent
+   */
+  describe('Click-to-Call Operations', () => {
+    describe.each([
+      {
+        description: 'agent-first flow',
+        options: TEST_FIXTURES.options.agentFirst,
+        expectedChannel: TEST_FIXTURES.calls.agent,
+        expectedApplication: 'Dial',
+        expectedData: TEST_FIXTURES.calls.destination,
+      },
+      {
+        description: 'destination-first flow',
+        options: TEST_FIXTURES.options.destinationFirst,
+        expectedChannel: TEST_FIXTURES.calls.destination,
+        expectedExten: '1000',
+        expectedContext: TEST_FIXTURES.calls.context,
+      },
+    ])('with $description', ({ options, expectedChannel, expectedApplication, expectedData, expectedExten, expectedContext }) => {
+      it('should make click-to-call and return success', async () => {
+        const { clickToCall } = useAmiCalls(mockClient, options)
 
-      const result = await clickToCall('SIP/1000', '18005551234')
+        const result = await clickToCall(TEST_FIXTURES.calls.agent, TEST_FIXTURES.calls.destination)
 
-      expect(mockClient.originate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: 'SIP/1000',
-          application: 'Dial',
-          data: expect.stringContaining('18005551234'),
+        const expectedCall: any = {
+          channel: expectedChannel,
           async: true,
-        })
-      )
-      expect(result.success).toBe(true)
-    })
+        }
+        if (expectedApplication) {
+          expectedCall.application = expectedApplication
+          expectedCall.data = expect.stringContaining(expectedData!)
+        }
+        if (expectedExten) {
+          expectedCall.exten = expectedExten
+          expectedCall.context = expectedContext
+        }
 
-    it('should make click-to-call with destination-first flow', async () => {
-      const { clickToCall } = useAmiCalls(mockClient, { agentFirst: false })
-
-      const result = await clickToCall('SIP/1000', '18005551234')
-
-      expect(mockClient.originate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: '18005551234',
-          exten: '1000',
-          context: 'from-internal',
-          async: true,
-        })
-      )
-      expect(result.success).toBe(true)
+        expect(mockClient.originate).toHaveBeenCalledWith(expect.objectContaining(expectedCall))
+        expect(result.success).toBe(true)
+      })
     })
 
     it('should pass caller ID options', async () => {
       const { clickToCall } = useAmiCalls(mockClient)
 
-      await clickToCall('SIP/1000', '18005551234', {
+      await clickToCall(TEST_FIXTURES.calls.agent, TEST_FIXTURES.calls.destination, {
         callerId: 'Sales <1000>',
       })
 
@@ -267,7 +456,8 @@ describe('useAmiCalls', () => {
     it('should throw when client is null', async () => {
       const { clickToCall } = useAmiCalls(null)
 
-      await expect(clickToCall('SIP/1000', '18005551234')).rejects.toThrow('AMI client not connected')
+      await expect(clickToCall(TEST_FIXTURES.calls.agent, TEST_FIXTURES.calls.destination))
+        .rejects.toThrow('AMI client not connected')
     })
   })
 
@@ -418,124 +608,61 @@ describe('useAmiCalls', () => {
     })
   })
 
-  describe('computed properties', () => {
-    it('should compute ringing calls', async () => {
-      const { calls, ringingCalls } = useAmiCalls(mockClient)
+  /**
+   * Computed Properties Tests
+   * Verify reactive computed properties for call filtering
+   *
+   * Computed properties:
+   * - ringingCalls: Filter calls by Ringing state
+   * - connectedCalls: Filter calls by Up state
+   * - dialingCalls: Filter calls by Dialing state
+   * - totalDuration: Sum of all call durations
+   */
+  describe('Computed Properties', () => {
+    describe.each([
+      {
+        description: 'ringing calls',
+        calls: [TEST_FIXTURES.channels.ringing, TEST_FIXTURES.channels.connected],
+        property: 'ringingCalls',
+        expectedCount: 1,
+        expectedId: '1',
+      },
+      {
+        description: 'connected calls',
+        calls: [TEST_FIXTURES.channels.connected, TEST_FIXTURES.channels.ringing],
+        property: 'connectedCalls',
+        expectedCount: 1,
+        expectedId: '2',
+      },
+      {
+        description: 'dialing calls',
+        calls: [TEST_FIXTURES.channels.dialing, TEST_FIXTURES.channels.connected],
+        property: 'dialingCalls',
+        expectedCount: 1,
+        expectedId: '3',
+      },
+    ])('$description', ({ calls: testCalls, property, expectedCount, expectedId }) => {
+      it(`should filter ${expectedCount} call(s)`, async () => {
+        const { calls, [property]: computedProp } = useAmiCalls(mockClient) as any
 
-      calls.value.set('1', {
-        uniqueId: '1',
-        channel: 'SIP/1000-00000001',
-        linkedId: '1',
-        callerIdNum: '1000',
-        callerIdName: '',
-        connectedLineNum: '',
-        connectedLineName: '',
-        state: ChannelState.Ringing,
-        stateDesc: 'Ringing',
-        startTime: new Date(),
-        duration: 0,
-        serverId: 1,
+        testCalls.forEach((call: any) => {
+          calls.value.set(call.uniqueId, call)
+        })
+
+        await nextTick()
+
+        expect(computedProp.value.length).toBe(expectedCount)
+        if (expectedId) {
+          expect(computedProp.value[0].uniqueId).toBe(expectedId)
+        }
       })
-
-      calls.value.set('2', {
-        uniqueId: '2',
-        channel: 'SIP/2000-00000001',
-        linkedId: '2',
-        callerIdNum: '2000',
-        callerIdName: '',
-        connectedLineNum: '',
-        connectedLineName: '',
-        state: ChannelState.Up,
-        stateDesc: 'Up',
-        startTime: new Date(),
-        duration: 0,
-        serverId: 1,
-      })
-
-      await nextTick()
-
-      expect(ringingCalls.value.length).toBe(1)
-      expect(ringingCalls.value[0].uniqueId).toBe('1')
     })
 
-    it('should compute connected calls', async () => {
-      const { calls, connectedCalls } = useAmiCalls(mockClient)
-
-      calls.value.set('1', {
-        uniqueId: '1',
-        channel: 'SIP/1000-00000001',
-        linkedId: '1',
-        callerIdNum: '1000',
-        callerIdName: '',
-        connectedLineNum: '',
-        connectedLineName: '',
-        state: ChannelState.Up,
-        stateDesc: 'Up',
-        startTime: new Date(),
-        duration: 0,
-        serverId: 1,
-      })
-
-      await nextTick()
-
-      expect(connectedCalls.value.length).toBe(1)
-    })
-
-    it('should compute dialing calls', async () => {
-      const { calls, dialingCalls } = useAmiCalls(mockClient)
-
-      calls.value.set('1', {
-        uniqueId: '1',
-        channel: 'SIP/1000-00000001',
-        linkedId: '1',
-        callerIdNum: '1000',
-        callerIdName: '',
-        connectedLineNum: '',
-        connectedLineName: '',
-        state: ChannelState.Dialing,
-        stateDesc: 'Dialing',
-        startTime: new Date(),
-        duration: 0,
-        serverId: 1,
-      })
-
-      await nextTick()
-
-      expect(dialingCalls.value.length).toBe(1)
-    })
-
-    it('should compute total duration', async () => {
+    it('should compute total duration across all calls', async () => {
       const { calls, totalDuration } = useAmiCalls(mockClient)
 
-      calls.value.set('1', {
-        uniqueId: '1',
-        channel: 'SIP/1000-00000001',
-        linkedId: '1',
-        callerIdNum: '1000',
-        callerIdName: '',
-        connectedLineNum: '',
-        connectedLineName: '',
-        state: ChannelState.Up,
-        stateDesc: 'Up',
-        startTime: new Date(),
-        duration: 60,
-        serverId: 1,
-      })
-
-      calls.value.set('2', {
-        uniqueId: '2',
-        channel: 'SIP/2000-00000001',
-        linkedId: '2',
-        callerIdNum: '2000',
-        callerIdName: '',
-        connectedLineNum: '',
-        connectedLineName: '',
-        state: ChannelState.Up,
-        stateDesc: 'Up',
-        startTime: new Date(),
-        duration: 120,
-        serverId: 1,
-      })
+      calls.value.set('1', { ...TEST_FIXTURES.channels.connected, uniqueId: '1', duration: 60 })
+      calls.value.set('2', { ...TEST_FIXTURES.channels.connected, uniqueId: '2', duration: 120 })
 
       await nextTick()
 
@@ -543,35 +670,21 @@ describe('useAmiCalls', () => {
     })
   })
 
-  describe('event handling', () => {
-    it('should handle new channel events', async () => {
+  /**
+   * Event Management Tests
+   * Verify real-time event handling for call state changes
+   *
+   * Event types:
+   * - newChannel: New channel created (call initiated)
+   * - hangup: Channel terminated (call ended)
+   * - newState: Channel state changed (ringing → up, etc.)
+   */
+  describe('Event Management', () => {
+    it('should handle new channel events and trigger callback', async () => {
       const onCallStart = vi.fn()
       const { calls } = useAmiCalls(mockClient, { onCallStart })
 
-      const event: AmiMessage<AmiNewChannelEvent> = {
-        type: 1,
-        server_id: 1,
-        server_name: 'test',
-        ssl: false,
-        data: {
-          Event: 'Newchannel',
-          Channel: 'SIP/1000-00000001',
-          ChannelState: '6',
-          ChannelStateDesc: 'Up',
-          CallerIDNum: '1000',
-          CallerIDName: 'Test User',
-          ConnectedLineNum: '',
-          ConnectedLineName: '',
-          AccountCode: '',
-          Context: 'from-internal',
-          Exten: '2000',
-          Priority: '1',
-          Uniqueid: '123.456',
-          Linkedid: '123.456',
-        },
-      }
-
-      triggerClientEvent('newChannel', event)
+      triggerClientEvent('newChannel', TEST_FIXTURES.events.newChannel)
       await nextTick()
 
       expect(calls.value.size).toBe(1)
@@ -702,22 +815,27 @@ describe('useAmiCalls', () => {
     })
   })
 
-  describe('getStateLabel', () => {
-    it('should return correct state labels', () => {
-      const { getStateLabel } = useAmiCalls(mockClient)
-
-      expect(getStateLabel(ChannelState.Down)).toBe('Down')
-      expect(getStateLabel(ChannelState.Ringing)).toBe('Ringing')
-      expect(getStateLabel(ChannelState.Up)).toBe('Up')
-      expect(getStateLabel(ChannelState.Busy)).toBe('Busy')
+  /**
+   * State Label Tests
+   * Verify state label formatting with default and custom labels
+   *
+   * State labels provide human-readable names for channel states
+   */
+  describe('State Labels', () => {
+    describe.each([
+      { state: ChannelState.Down, expectedLabel: 'Down' },
+      { state: ChannelState.Ringing, expectedLabel: 'Ringing' },
+      { state: ChannelState.Up, expectedLabel: 'Up' },
+      { state: ChannelState.Busy, expectedLabel: 'Busy' },
+    ])('default labels', ({ state, expectedLabel }) => {
+      it(`should return "${expectedLabel}" for state ${state}`, () => {
+        const { getStateLabel } = useAmiCalls(mockClient)
+        expect(getStateLabel(state)).toBe(expectedLabel)
+      })
     })
 
     it('should allow custom state labels', () => {
-      const { getStateLabel } = useAmiCalls(mockClient, {
-        stateLabels: {
-          [ChannelState.Up]: 'Connected',
-        },
-      })
+      const { getStateLabel } = useAmiCalls(mockClient, TEST_FIXTURES.options.withStateLabels)
 
       expect(getStateLabel(ChannelState.Up)).toBe('Connected')
     })

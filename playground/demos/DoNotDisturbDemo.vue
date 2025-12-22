@@ -38,7 +38,7 @@
       <div class="dnd-toggle-card">
         <div class="toggle-header">
           <div class="toggle-icon" :class="{ active: dndEnabled }">
-            {{ dndEnabled ? '🔕' : '🔔' }}
+            <span class="toggle-label">{{ dndEnabled ? 'DND' : 'RING' }}</span>
           </div>
           <div class="toggle-info">
             <h3>Do Not Disturb</h3>
@@ -85,7 +85,7 @@
             :key="index"
             class="rejected-item"
           >
-            <span class="rejected-icon">🚫</span>
+            <span class="rejected-icon">REJECT</span>
             <div class="rejected-info">
               <div class="rejected-uri">{{ call.uri }}</div>
               <div class="rejected-time">{{ formatTime(call.time) }}</div>
@@ -120,16 +120,14 @@
             <input type="checkbox" v-model="logRejections" @change="saveSettings" />
             Log rejected calls to history
           </label>
-          <p class="option-desc">
-            Keep a record of calls rejected during DND in call history
-          </p>
+          <p class="option-desc">Keep a record of calls rejected during DND in call history</p>
         </div>
       </div>
 
       <!-- Status Indicator -->
       <div v-if="dndEnabled" class="dnd-banner">
         <div class="banner-content">
-          <span class="banner-icon">🔕</span>
+          <span class="banner-icon">DND</span>
           <span class="banner-text">Do Not Disturb is currently enabled</span>
         </div>
       </div>
@@ -209,7 +207,7 @@ const { state: callState, remoteUri, reject } = useCallSession(sipClientRef)
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
 )
-const effectiveCallState = computed(() =>
+const _effectiveCallState = computed(() =>
   isSimulationMode.value ? simulation.state.value : callState.value
 )
 
@@ -418,19 +416,24 @@ onMounted(() => {
 }
 
 .toggle-icon {
-  font-size: 3rem;
   width: 72px;
   height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #f3f4f6;
+  background: var(--surface-ground, #f3f4f6);
   transition: all 0.3s;
 }
 
 .toggle-icon.active {
-  background: #fee2e2;
+  background: var(--red-100, #fee2e2);
+}
+
+.toggle-icon .toggle-label {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-color, #333);
 }
 
 .toggle-info h3 {
@@ -575,8 +578,13 @@ input:checked + .slider:before {
 }
 
 .rejected-icon {
-  font-size: 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
   flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  background: var(--red-100, #fee2e2);
+  color: var(--red-900, #7f1d1d);
+  border-radius: 4px;
 }
 
 .rejected-info {
@@ -682,7 +690,11 @@ input:checked + .slider:before {
 }
 
 .banner-icon {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
 }
 
 .banner-text {

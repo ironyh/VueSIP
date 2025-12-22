@@ -4,10 +4,10 @@
  * Comprehensive test suite for Vue multi-line composable
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi as _vi } from 'vitest'
 import { nextTick } from 'vue'
 import { useMultiLine } from '../../../src/composables/useMultiLine'
-import type { LineConfig, LineState } from '../../../src/types/multiline.types'
+import type { LineConfig, LineState as _LineState } from '../../../src/types/multiline.types'
 import type { CallSession } from '../../../src/types/session.types'
 
 describe('useMultiLine', () => {

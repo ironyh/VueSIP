@@ -10,7 +10,7 @@ const mockDevices = [
 ];
 
 // Shared mock instance
-let mockAudioManagerInstance: any;
+let _mockAudioManagerInstance: any;
 
 // Mock AudioManager with a class pattern (required for `new` keyword)
 vi.mock('@/core/AudioManager', () => {
@@ -30,7 +30,7 @@ vi.mock('@/core/AudioManager', () => {
       destroy = vi.fn();
 
       constructor() {
-        mockAudioManagerInstance = this;
+        _mockAudioManagerInstance = this;
       }
     }
   };

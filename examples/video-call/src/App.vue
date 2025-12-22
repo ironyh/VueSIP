@@ -139,7 +139,7 @@ const {
   connect,
   updateConfig,
   getClient,
-  getEventBus,
+  getEventBus: _getEventBus,
 } = useSipClient(undefined, {
   eventBus,
   autoConnect: false,
@@ -162,7 +162,7 @@ const {
   isMuted,
   isOnHold,
   hasLocalVideo,
-  hasRemoteVideo,
+  hasRemoteVideo: _hasRemoteVideo,
   localStream,
   remoteStream,
   duration,

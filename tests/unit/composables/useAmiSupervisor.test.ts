@@ -1,19 +1,87 @@
 /**
- * useAmiSupervisor composable unit tests
+ * Tests for useAmiSupervisor composable
+ *
+ * Provides supervisor functionality for call monitoring and intervention:
+ * - Silent monitoring (listen to calls without being heard)
+ * - Whisper mode (speak to agent without customer hearing)
+ * - Barge mode (join conversation with both parties)
+ * - Mode switching during active supervision
+ * - Multi-session management
+ *
+ * @see src/composables/useAmiSupervisor.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useAmiSupervisor } from '@/composables/useAmiSupervisor'
 import type { AmiClient } from '@/core/AmiClient'
+import { createMockAmiClient } from '../../utils/test-helpers'
+import type { SupervisionMode } from '@/composables/useAmiSupervisor'
 
-// Create mock AMI client
-const createMockClient = (): AmiClient => {
-  return {
-    originate: vi.fn().mockResolvedValue({ success: true, channel: 'SIP/supervisor-00000001' }),
+/**
+ * Test fixtures for consistent test data across all test suites
+ */
+const TEST_FIXTURES = {
+  channels: {
+    supervisor: 'SIP/supervisor',
+    supervisorGenerated: 'SIP/supervisor-00000001',
+    agent: 'SIP/agent-00000001',
+    agent1: 'SIP/agent1',
+    agent2: 'SIP/agent2',
+    agentBase: 'SIP/agent',
+    pjsipAgent: 'PJSIP/2000-0000000a',
+    simpleAgent: 'SIP/1000',
+  },
+  modes: {
+    monitor: 'monitor' as SupervisionMode,
+    whisper: 'whisper' as SupervisionMode,
+    barge: 'barge' as SupervisionMode,
+  },
+  chanspyOptions: {
+    monitor: 'q',
+    whisper: 'wq',
+    barge: 'Bq',
+    customMonitor: 'qE',
+  },
+  errors: {
+    noClient: 'AMI client not connected',
+    channelUnavailable: 'Channel unavailable',
+    sessionNotFound: 'Session not found',
+  },
+  timeouts: {
+    default: 30000,
+    custom: 60000,
+  },
+} as const
+
+/**
+ * Factory function: Create mock AMI client with supervisor-specific methods
+ */
+function createSupervisorMockClient(overrides?: any): AmiClient {
+  return createMockAmiClient({
+    originate: vi.fn().mockResolvedValue({
+      success: true,
+      channel: TEST_FIXTURES.channels.supervisorGenerated,
+    }),
     hangupChannel: vi.fn().mockResolvedValue(undefined),
-    on: vi.fn(),
-    off: vi.fn(),
-  } as unknown as AmiClient
+    ...overrides,
+  })
+}
+
+/**
+ * Factory function: Create supervisor session options
+ */
+function createSessionOptions(overrides?: any) {
+  return {
+    onSessionStart: vi.fn(),
+    onSessionEnd: vi.fn(),
+    chanspyOptions: {
+      monitor: TEST_FIXTURES.chanspyOptions.monitor,
+      whisper: TEST_FIXTURES.chanspyOptions.whisper,
+      barge: TEST_FIXTURES.chanspyOptions.barge,
+    },
+    dialTimeout: TEST_FIXTURES.timeouts.default,
+    ...overrides,
+  }
 }
 
 describe('useAmiSupervisor', () => {
@@ -21,341 +89,399 @@ describe('useAmiSupervisor', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockClient = createMockClient()
+    mockClient = createSupervisorMockClient()
   })
 
   afterEach(() => {
     vi.clearAllMocks()
   })
 
-  describe('initial state', () => {
-    it('should have empty sessions initially', () => {
-      const { sessions, activeSessionCount } = useAmiSupervisor(mockClient)
+  /**
+   * Initialization Tests
+   * Verify composable starts with correct initial state
+   */
+  describe('Initialization', () => {
+    describe.each([
+      {
+        description: 'valid client',
+        client: () => createSupervisorMockClient(),
+        expectedSessions: 0,
+        expectedLoading: false,
+        expectedError: null,
+      },
+      {
+        description: 'null client',
+        client: null,
+        expectedSessions: 0,
+        expectedLoading: false,
+        expectedError: null,
+      },
+    ])('with $description', ({ client, expectedSessions, expectedLoading, expectedError }) => {
+      it(`should initialize with ${expectedSessions} sessions, loading=${expectedLoading}`, () => {
+        const actualClient = typeof client === 'function' ? client() : client
+        const { sessions, activeSessionCount, loading, error } = useAmiSupervisor(actualClient)
 
-      expect(sessions.value.size).toBe(0)
-      expect(activeSessionCount.value).toBe(0)
-    })
-
-    it('should have loading as false initially', () => {
-      const { loading } = useAmiSupervisor(mockClient)
-
-      expect(loading.value).toBe(false)
-    })
-
-    it('should have no error initially', () => {
-      const { error } = useAmiSupervisor(mockClient)
-
-      expect(error.value).toBeNull()
-    })
-
-    it('should handle null client gracefully', () => {
-      const { sessions, error } = useAmiSupervisor(null)
-
-      expect(sessions.value.size).toBe(0)
-      expect(error.value).toBeNull()
+        expect(sessions.value.size).toBe(expectedSessions)
+        expect(activeSessionCount.value).toBe(expectedSessions)
+        expect(loading.value).toBe(expectedLoading)
+        expect(error.value).toBe(expectedError)
+      })
     })
   })
 
-  describe('monitor', () => {
-    it('should start silent monitoring', async () => {
-      const onSessionStart = vi.fn()
-      const { monitor, sessions, loading } = useAmiSupervisor(mockClient, { onSessionStart })
+  /**
+   * Supervision Modes Tests
+   * Verify different supervision modes work correctly
+   *
+   * Modes:
+   * - Monitor: Silent observation (agent and customer unaware)
+   * - Whisper: Speak to agent only (customer cannot hear supervisor)
+   * - Barge: Join full conversation (all parties can hear each other)
+   */
+  describe('Supervision Modes', () => {
+    /**
+     * Successful supervision mode tests
+     * Verify each mode starts correctly with proper ChanSpy options
+     */
+    describe.each([
+      {
+        mode: TEST_FIXTURES.modes.monitor,
+        methodName: 'monitor',
+        expectedOptions: TEST_FIXTURES.chanspyOptions.monitor,
+        description: 'silent monitoring (agent and customer unaware)',
+      },
+      {
+        mode: TEST_FIXTURES.modes.whisper,
+        methodName: 'whisper',
+        expectedOptions: TEST_FIXTURES.chanspyOptions.whisper,
+        description: 'whisper mode (speak to agent only)',
+      },
+      {
+        mode: TEST_FIXTURES.modes.barge,
+        methodName: 'barge',
+        expectedOptions: TEST_FIXTURES.chanspyOptions.barge,
+        description: 'barge mode (join full conversation)',
+      },
+    ])('$methodName mode - $description', ({ mode, methodName, expectedOptions }) => {
+      it(`should start ${mode} session successfully`, async () => {
+        const options = createSessionOptions()
+        const supervisor = useAmiSupervisor(mockClient, options)
+        const method = supervisor[methodName as 'monitor' | 'whisper' | 'barge']
 
-      expect(loading.value).toBe(false)
+        const session = await method(
+          TEST_FIXTURES.channels.supervisor,
+          TEST_FIXTURES.channels.agent
+        )
 
-      const session = await monitor('SIP/supervisor', 'SIP/agent-00000001')
-
-      expect(session.mode).toBe('monitor')
-      expect(session.targetChannel).toBe('SIP/agent-00000001')
-      expect(session.supervisorChannel).toBe('SIP/supervisor-00000001')
-      expect(sessions.value.size).toBe(1)
-      expect(mockClient.originate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          channel: 'SIP/supervisor',
-          application: 'ChanSpy',
-          data: 'SIP/agent,q',
-        })
-      )
-      expect(onSessionStart).toHaveBeenCalled()
-    })
-
-    it('should throw when client is null', async () => {
-      const { monitor } = useAmiSupervisor(null)
-
-      await expect(monitor('SIP/supervisor', 'SIP/agent')).rejects.toThrow('AMI client not connected')
-    })
-
-    it('should handle originate failure', async () => {
-      ;(mockClient.originate as ReturnType<typeof vi.fn>).mockResolvedValue({
-        success: false,
-        message: 'Channel unavailable',
+        expect(session.mode).toBe(mode)
+        expect(session.targetChannel).toBe(TEST_FIXTURES.channels.agent)
+        expect(session.supervisorChannel).toBe(TEST_FIXTURES.channels.supervisorGenerated)
+        expect(supervisor.sessions.value.size).toBe(1)
+        expect(mockClient.originate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            channel: TEST_FIXTURES.channels.supervisor,
+            application: 'ChanSpy',
+            data: `${TEST_FIXTURES.channels.agentBase},${expectedOptions}`,
+          })
+        )
+        expect(options.onSessionStart).toHaveBeenCalledWith(session)
       })
 
-      const { monitor, error } = useAmiSupervisor(mockClient)
+      it(`should throw error when client is null for ${mode}`, async () => {
+        const supervisor = useAmiSupervisor(null)
+        const method = supervisor[methodName as 'monitor' | 'whisper' | 'barge']
 
-      await expect(monitor('SIP/supervisor', 'SIP/agent')).rejects.toThrow('Channel unavailable')
-      expect(error.value).toBe('Channel unavailable')
+        await expect(
+          method(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent)
+        ).rejects.toThrow(TEST_FIXTURES.errors.noClient)
+      })
+    })
+
+    /**
+     * Error handling tests for supervision modes
+     * Verify proper error handling when originate fails
+     */
+    it('should handle originate failure gracefully', async () => {
+      const errorClient = createSupervisorMockClient({
+        originate: vi.fn().mockResolvedValue({
+          success: false,
+          message: TEST_FIXTURES.errors.channelUnavailable,
+        }),
+      })
+
+      const { monitor, error } = useAmiSupervisor(errorClient)
+
+      await expect(
+        monitor(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent)
+      ).rejects.toThrow(TEST_FIXTURES.errors.channelUnavailable)
+      expect(error.value).toBe(TEST_FIXTURES.errors.channelUnavailable)
     })
   })
 
-  describe('whisper', () => {
-    it('should start whisper mode', async () => {
-      const { whisper, sessions } = useAmiSupervisor(mockClient)
+  /**
+   * Session Management Tests
+   * Verify session lifecycle operations (end, endAll, status tracking)
+   */
+  describe('Session Management', () => {
+    describe('endSession', () => {
+      it('should end supervision session and trigger callback', async () => {
+        const options = createSessionOptions()
+        const { monitor, endSession, sessions } = useAmiSupervisor(mockClient, options)
 
-      const session = await whisper('SIP/supervisor', 'SIP/agent-00000001')
+        const session = await monitor(
+          TEST_FIXTURES.channels.supervisor,
+          TEST_FIXTURES.channels.agent
+        )
 
-      expect(session.mode).toBe('whisper')
-      expect(sessions.value.size).toBe(1)
-      expect(mockClient.originate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          application: 'ChanSpy',
-          data: 'SIP/agent,wq',
+        await endSession(session.id)
+
+        expect(sessions.value.size).toBe(0)
+        expect(mockClient.hangupChannel).toHaveBeenCalledWith(session.supervisorChannel)
+        expect(options.onSessionEnd).toHaveBeenCalledWith(session)
+      })
+
+      it('should handle non-existent session gracefully', async () => {
+        const { endSession, sessions } = useAmiSupervisor(mockClient)
+
+        await endSession('non-existent-id')
+
+        expect(sessions.value.size).toBe(0)
+        expect(mockClient.hangupChannel).not.toHaveBeenCalled()
+      })
+
+      it('should throw when client is null', async () => {
+        const { endSession } = useAmiSupervisor(null)
+
+        await expect(endSession('test-session')).rejects.toThrow(TEST_FIXTURES.errors.noClient)
+      })
+
+      it('should remove session from state even if hangup fails', async () => {
+        const failClient = createSupervisorMockClient({
+          hangupChannel: vi.fn().mockRejectedValue(new Error('Channel not found')),
         })
-      )
+
+        const { monitor, endSession, sessions } = useAmiSupervisor(failClient)
+        const session = await monitor(
+          TEST_FIXTURES.channels.supervisor,
+          TEST_FIXTURES.channels.agent
+        )
+
+        await expect(endSession(session.id)).rejects.toThrow()
+
+        // Session should still be removed from state
+        expect(sessions.value.size).toBe(0)
+      })
     })
 
-    it('should throw when client is null', async () => {
-      const { whisper } = useAmiSupervisor(null)
+    describe('endAllSessions', () => {
+      it('should end all active sessions', async () => {
+        const { monitor, whisper, endAllSessions, sessions } = useAmiSupervisor(mockClient)
 
-      await expect(whisper('SIP/supervisor', 'SIP/agent')).rejects.toThrow('AMI client not connected')
-    })
-  })
+        await monitor(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent1)
+        await whisper(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent2)
 
-  describe('barge', () => {
-    it('should start barge mode', async () => {
-      const { barge, sessions } = useAmiSupervisor(mockClient)
+        expect(sessions.value.size).toBe(2)
 
-      const session = await barge('SIP/supervisor', 'SIP/agent-00000001')
+        await endAllSessions()
 
-      expect(session.mode).toBe('barge')
-      expect(sessions.value.size).toBe(1)
-      expect(mockClient.originate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          application: 'ChanSpy',
-          data: 'SIP/agent,Bq',
+        expect(sessions.value.size).toBe(0)
+        expect(mockClient.hangupChannel).toHaveBeenCalledTimes(2)
+      })
+
+      it('should continue ending remaining sessions even if some fail', async () => {
+        const partialFailClient = createSupervisorMockClient({
+          hangupChannel: vi
+            .fn()
+            .mockRejectedValueOnce(new Error('Channel not found'))
+            .mockResolvedValueOnce(undefined),
         })
-      )
-    })
 
-    it('should throw when client is null', async () => {
-      const { barge } = useAmiSupervisor(null)
+        const { monitor, whisper, endAllSessions, sessions } = useAmiSupervisor(partialFailClient)
 
-      await expect(barge('SIP/supervisor', 'SIP/agent')).rejects.toThrow('AMI client not connected')
-    })
-  })
+        await monitor(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent1)
+        await whisper(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent2)
 
-  describe('endSession', () => {
-    it('should end supervision session', async () => {
-      const onSessionEnd = vi.fn()
-      const { monitor, endSession, sessions } = useAmiSupervisor(mockClient, { onSessionEnd })
+        await endAllSessions()
 
-      const session = await monitor('SIP/supervisor', 'SIP/agent')
-
-      await endSession(session.id)
-
-      expect(sessions.value.size).toBe(0)
-      expect(mockClient.hangupChannel).toHaveBeenCalledWith(session.supervisorChannel)
-      expect(onSessionEnd).toHaveBeenCalledWith(session)
-    })
-
-    it('should handle non-existent session gracefully', async () => {
-      const { endSession, sessions } = useAmiSupervisor(mockClient)
-
-      await endSession('non-existent')
-
-      expect(sessions.value.size).toBe(0)
-      expect(mockClient.hangupChannel).not.toHaveBeenCalled()
-    })
-
-    it('should throw when client is null', async () => {
-      const { endSession } = useAmiSupervisor(null)
-
-      await expect(endSession('test-session')).rejects.toThrow('AMI client not connected')
-    })
-
-    it('should remove session from state even if hangup fails', async () => {
-      ;(mockClient.hangupChannel as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Channel not found'))
-
-      const { monitor, endSession, sessions } = useAmiSupervisor(mockClient)
-
-      const session = await monitor('SIP/supervisor', 'SIP/agent')
-
-      await expect(endSession(session.id)).rejects.toThrow()
-
-      // Session should still be removed
-      expect(sessions.value.size).toBe(0)
+        // Both sessions should be removed despite first hangup failing
+        expect(sessions.value.size).toBe(0)
+      })
     })
   })
 
-  describe('endAllSessions', () => {
-    it('should end all sessions', async () => {
-      const { monitor, whisper, endAllSessions, sessions } = useAmiSupervisor(mockClient)
+  /**
+   * Session Query Tests
+   * Verify ability to check supervision status and retrieve sessions
+   */
+  describe('Session Queries', () => {
+    describe('isSupervising', () => {
+      it('should return true when supervising a channel', async () => {
+        const { monitor, isSupervising } = useAmiSupervisor(mockClient)
 
-      await monitor('SIP/supervisor', 'SIP/agent1')
-      await whisper('SIP/supervisor', 'SIP/agent2')
+        await monitor(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent)
 
-      expect(sessions.value.size).toBe(2)
+        expect(isSupervising(TEST_FIXTURES.channels.agent)).toBe(true)
+        // Should also match by channel base (without unique ID)
+        expect(isSupervising('SIP/agent-00000002')).toBe(true)
+      })
 
-      await endAllSessions()
+      it('should return false when not supervising the channel', async () => {
+        const { monitor, isSupervising } = useAmiSupervisor(mockClient)
 
-      expect(sessions.value.size).toBe(0)
-      expect(mockClient.hangupChannel).toHaveBeenCalledTimes(2)
+        await monitor(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent1)
+
+        expect(isSupervising(TEST_FIXTURES.channels.agent2)).toBe(false)
+      })
+
+      it('should return false when no sessions exist', () => {
+        const { isSupervising } = useAmiSupervisor(mockClient)
+
+        expect(isSupervising(TEST_FIXTURES.channels.agent)).toBe(false)
+      })
     })
 
-    it('should continue ending sessions even if some fail', async () => {
-      const { monitor, whisper, endAllSessions, sessions } = useAmiSupervisor(mockClient)
+    describe('getSessionForChannel', () => {
+      it('should return session for supervised channel', async () => {
+        const { monitor, getSessionForChannel } = useAmiSupervisor(mockClient)
 
-      await monitor('SIP/supervisor', 'SIP/agent1')
-      await whisper('SIP/supervisor', 'SIP/agent2')
+        const session = await monitor(
+          TEST_FIXTURES.channels.supervisor,
+          TEST_FIXTURES.channels.agent
+        )
 
-      // First hangup fails
-      ;(mockClient.hangupChannel as ReturnType<typeof vi.fn>)
-        .mockRejectedValueOnce(new Error('Channel not found'))
-        .mockResolvedValueOnce(undefined)
+        const found = getSessionForChannel(TEST_FIXTURES.channels.agent)
 
-      await endAllSessions()
+        expect(found).toBeDefined()
+        expect(found?.id).toBe(session.id)
+      })
 
-      // Both sessions should be removed
-      expect(sessions.value.size).toBe(0)
-    })
-  })
+      it('should return undefined when channel not supervised', async () => {
+        const { monitor, getSessionForChannel } = useAmiSupervisor(mockClient)
 
-  describe('isSupervising', () => {
-    it('should return true when supervising a channel', async () => {
-      const { monitor, isSupervising } = useAmiSupervisor(mockClient)
+        await monitor(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent1)
 
-      await monitor('SIP/supervisor', 'SIP/agent-00000001')
+        expect(getSessionForChannel(TEST_FIXTURES.channels.agent2)).toBeUndefined()
+      })
 
-      expect(isSupervising('SIP/agent-00000001')).toBe(true)
-      // Should also match channel base
-      expect(isSupervising('SIP/agent-00000002')).toBe(true)
-    })
+      it('should match by channel base (without unique ID)', async () => {
+        const { monitor, getSessionForChannel } = useAmiSupervisor(mockClient)
 
-    it('should return false when not supervising', async () => {
-      const { monitor, isSupervising } = useAmiSupervisor(mockClient)
+        const session = await monitor(
+          TEST_FIXTURES.channels.supervisor,
+          TEST_FIXTURES.channels.agent
+        )
 
-      await monitor('SIP/supervisor', 'SIP/agent1')
+        // Should find session even with different unique ID
+        const found = getSessionForChannel('SIP/agent-00000999')
 
-      expect(isSupervising('SIP/agent2')).toBe(false)
-    })
-
-    it('should return false when no sessions', () => {
-      const { isSupervising } = useAmiSupervisor(mockClient)
-
-      expect(isSupervising('SIP/agent')).toBe(false)
-    })
-  })
-
-  describe('getSessionForChannel', () => {
-    it('should return session for supervised channel', async () => {
-      const { monitor, getSessionForChannel } = useAmiSupervisor(mockClient)
-
-      const session = await monitor('SIP/supervisor', 'SIP/agent-00000001')
-
-      const found = getSessionForChannel('SIP/agent-00000001')
-
-      expect(found).toBeDefined()
-      expect(found?.id).toBe(session.id)
-    })
-
-    it('should return undefined when channel not supervised', async () => {
-      const { monitor, getSessionForChannel } = useAmiSupervisor(mockClient)
-
-      await monitor('SIP/supervisor', 'SIP/agent1')
-
-      expect(getSessionForChannel('SIP/agent2')).toBeUndefined()
-    })
-
-    it('should match by channel base', async () => {
-      const { monitor, getSessionForChannel } = useAmiSupervisor(mockClient)
-
-      const session = await monitor('SIP/supervisor', 'SIP/agent-00000001')
-
-      // Should find session even with different unique ID
-      const found = getSessionForChannel('SIP/agent-00000999')
-
-      expect(found?.id).toBe(session.id)
+        expect(found?.id).toBe(session.id)
+      })
     })
   })
 
-  describe('switchMode', () => {
-    it('should switch supervision mode', async () => {
+  /**
+   * Mode Switching Tests
+   * Verify dynamic mode changes during active supervision
+   */
+  describe('Mode Switching', () => {
+    it('should switch from one mode to another', async () => {
       const { monitor, switchMode, sessions } = useAmiSupervisor(mockClient)
 
-      const session = await monitor('SIP/supervisor', 'SIP/agent')
+      const session = await monitor(
+        TEST_FIXTURES.channels.supervisor,
+        TEST_FIXTURES.channels.agent
+      )
 
-      // Switch to barge
-      const newSession = await switchMode(session.id, 'barge')
+      const newSession = await switchMode(session.id, TEST_FIXTURES.modes.barge)
 
-      expect(newSession.mode).toBe('barge')
+      expect(newSession.mode).toBe(TEST_FIXTURES.modes.barge)
       expect(sessions.value.size).toBe(1)
-      // Should have called hangup for old session and originate for new
+      // Should have hung up old session and originated new one
       expect(mockClient.hangupChannel).toHaveBeenCalled()
       expect(mockClient.originate).toHaveBeenCalledTimes(2)
     })
 
-    it('should return same session if mode unchanged', async () => {
+    it('should return same session when mode unchanged', async () => {
       const { monitor, switchMode, sessions } = useAmiSupervisor(mockClient)
 
-      const session = await monitor('SIP/supervisor', 'SIP/agent')
+      const session = await monitor(
+        TEST_FIXTURES.channels.supervisor,
+        TEST_FIXTURES.channels.agent
+      )
 
-      const sameSession = await switchMode(session.id, 'monitor')
+      const sameSession = await switchMode(session.id, TEST_FIXTURES.modes.monitor)
 
       expect(sameSession.id).toBe(session.id)
       expect(sessions.value.size).toBe(1)
-      // Should not have called hangup
+      // Should not have hung up or originated new session
       expect(mockClient.hangupChannel).not.toHaveBeenCalled()
     })
 
-    it('should throw for non-existent session', async () => {
+    it('should throw error for non-existent session', async () => {
       const { switchMode } = useAmiSupervisor(mockClient)
 
-      await expect(switchMode('non-existent', 'barge')).rejects.toThrow('Session not found')
+      await expect(
+        switchMode('non-existent', TEST_FIXTURES.modes.barge)
+      ).rejects.toThrow(TEST_FIXTURES.errors.sessionNotFound)
     })
   })
 
-  describe('custom options', () => {
-    it('should use custom chanspy options', async () => {
+  /**
+   * Configuration Tests
+   * Verify custom options are applied correctly
+   */
+  describe('Configuration', () => {
+    it('should use custom ChanSpy options', async () => {
       const { monitor } = useAmiSupervisor(mockClient, {
         chanspyOptions: {
-          monitor: 'qE', // Add E option for enable DTMF
+          monitor: TEST_FIXTURES.chanspyOptions.customMonitor,
         },
       })
 
-      await monitor('SIP/supervisor', 'SIP/agent')
+      await monitor(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent)
 
       expect(mockClient.originate).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: 'SIP/agent,qE',
+          data: `${TEST_FIXTURES.channels.agentBase},${TEST_FIXTURES.chanspyOptions.customMonitor}`,
         })
       )
     })
 
     it('should use custom dial timeout', async () => {
       const { monitor } = useAmiSupervisor(mockClient, {
-        dialTimeout: 60000,
+        dialTimeout: TEST_FIXTURES.timeouts.custom,
       })
 
-      await monitor('SIP/supervisor', 'SIP/agent')
+      await monitor(TEST_FIXTURES.channels.supervisor, TEST_FIXTURES.channels.agent)
 
       expect(mockClient.originate).toHaveBeenCalledWith(
         expect.objectContaining({
-          timeout: 60000,
+          timeout: TEST_FIXTURES.timeouts.custom,
         })
       )
     })
   })
 
-  describe('activeSessionCount', () => {
-    it('should update when sessions change', async () => {
+  /**
+   * State Management Tests
+   * Verify reactive state updates correctly
+   */
+  describe('State Management', () => {
+    it('should update activeSessionCount when sessions change', async () => {
       const { monitor, endSession, activeSessionCount } = useAmiSupervisor(mockClient)
 
       expect(activeSessionCount.value).toBe(0)
 
-      const session1 = await monitor('SIP/supervisor', 'SIP/agent1')
+      const session1 = await monitor(
+        TEST_FIXTURES.channels.supervisor,
+        TEST_FIXTURES.channels.agent1
+      )
       expect(activeSessionCount.value).toBe(1)
 
-      const session2 = await monitor('SIP/supervisor', 'SIP/agent2')
+      const session2 = await monitor(
+        TEST_FIXTURES.channels.supervisor,
+        TEST_FIXTURES.channels.agent2
+      )
       expect(activeSessionCount.value).toBe(2)
 
       await endSession(session1.id)
@@ -366,41 +492,44 @@ describe('useAmiSupervisor', () => {
     })
   })
 
-  describe('channel name extraction', () => {
-    it('should extract channel base from SIP channels', async () => {
-      const { monitor } = useAmiSupervisor(mockClient)
+  /**
+   * Channel Name Extraction Tests
+   * Verify proper extraction of channel base from full channel names
+   *
+   * Channel format: TECH/name-uniqueid
+   * - SIP/1000-00000001 → SIP/1000
+   * - PJSIP/2000-0000000a → PJSIP/2000
+   * - SIP/1000 → SIP/1000 (no unique ID)
+   */
+  describe('Channel Name Extraction', () => {
+    describe.each([
+      {
+        description: 'SIP channel with unique ID',
+        channel: 'SIP/1000-00000001',
+        expectedBase: 'SIP/1000',
+      },
+      {
+        description: 'PJSIP channel with unique ID',
+        channel: TEST_FIXTURES.channels.pjsipAgent,
+        expectedBase: 'PJSIP/2000',
+      },
+      {
+        description: 'channel without unique ID',
+        channel: TEST_FIXTURES.channels.simpleAgent,
+        expectedBase: TEST_FIXTURES.channels.simpleAgent,
+      },
+    ])('$description', ({ channel, expectedBase }) => {
+      it(`should extract base "${expectedBase}" from "${channel}"`, async () => {
+        const { monitor } = useAmiSupervisor(mockClient)
 
-      await monitor('SIP/supervisor', 'SIP/1000-00000001')
+        await monitor(TEST_FIXTURES.channels.supervisor, channel)
 
-      expect(mockClient.originate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: 'SIP/1000,q',
-        })
-      )
-    })
-
-    it('should extract channel base from PJSIP channels', async () => {
-      const { monitor } = useAmiSupervisor(mockClient)
-
-      await monitor('PJSIP/supervisor', 'PJSIP/2000-0000000a')
-
-      expect(mockClient.originate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: 'PJSIP/2000,q',
-        })
-      )
-    })
-
-    it('should handle channels without unique IDs', async () => {
-      const { monitor } = useAmiSupervisor(mockClient)
-
-      await monitor('SIP/supervisor', 'SIP/1000')
-
-      expect(mockClient.originate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: 'SIP/1000,q',
-        })
-      )
+        expect(mockClient.originate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: `${expectedBase},${TEST_FIXTURES.chanspyOptions.monitor}`,
+          })
+        )
+      })
     })
   })
 })

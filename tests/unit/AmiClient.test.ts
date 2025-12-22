@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AmiClient, createAmiClient, AmiError, AmiErrorCode } from '@/core/AmiClient'
 import { AmiConnectionState, AmiMessageType } from '@/types/ami.types'
-import type { AmiConfig, AmiMessage, AmiResponseData, AmiEventData } from '@/types/ami.types'
+import type { AmiConfig, AmiMessage } from '@/types/ami.types'
 
 // Mock WebSocket - Store instance for test access
 let mockWsInstance: any = null

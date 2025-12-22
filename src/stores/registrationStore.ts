@@ -72,7 +72,7 @@ const computed_values: Record<string, any> = {
   /** Seconds remaining until registration expires */
   secondsUntilExpiry: computed(() => {
     // Access _timeTrigger to make this computed reactive to time changes
-    state._timeTrigger // eslint-disable-line @typescript-eslint/no-unused-expressions
+    state._timeTrigger  
     if (!state.expiryTime) return 0
     const now = new Date().getTime()
     const expiry = state.expiryTime.getTime()

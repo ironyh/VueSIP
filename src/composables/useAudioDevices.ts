@@ -141,7 +141,7 @@ export function useAudioDevices(): UseAudioDevicesReturn {
       const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
       permissionStatus.value = result.state as AudioPermissionState;
       return result.state as AudioPermissionState;
-    } catch (err) {
+    } catch (_err) {
       // Fallback: try to get devices and check labels
       const devices = await audioManager.enumerateDevices();
       const hasLabels = devices.some(d => d.label !== '');
@@ -157,7 +157,7 @@ export function useAudioDevices(): UseAudioDevicesReturn {
     try {
       const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
       return result.state as AudioPermissionState;
-    } catch (err) {
+    } catch (_err) {
       // Fallback
       const devices = await audioManager.enumerateDevices();
       const videoDevices = devices.filter(d => d.kind === 'videoinput');

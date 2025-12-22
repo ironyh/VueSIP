@@ -84,7 +84,7 @@ describe('useDTMF', () => {
     });
 
     it('should update isSending state during send', async () => {
-      let sendingDuringCall = false;
+      let _sendingDuringCall = false;
 
       vi.mocked(mockSession.sendDTMF).mockImplementation(async () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
@@ -96,7 +96,7 @@ describe('useDTMF', () => {
 
       // Check if sending flag was set (might already be done)
       await new Promise((resolve) => setTimeout(resolve, 5));
-      sendingDuringCall = isSending.value;
+      _sendingDuringCall = isSending.value;
 
       await promise;
 

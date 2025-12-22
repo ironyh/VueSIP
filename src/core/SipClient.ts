@@ -20,10 +20,12 @@ import type { CallSession, CallOptions } from '@/types/call.types'
 import { CallState, CallDirection } from '@/types/call.types'
 // Note: JsSIP types are defined in jssip.types.ts for documentation purposes,
 // but we use 'any' for JsSIP event handlers since the library doesn't export proper types
+import { MediaManager } from './MediaManager'
 import {
   RegistrationState,
   ConnectionState,
   type AuthenticationCredentials,
+  type SipMessageOptions,
 } from '@/types/sip.types'
 import type {
   SipConnectedEvent,
@@ -107,6 +109,7 @@ export class SipClient {
   private config: SipClientConfig
   private _eventBus: EventBus
   private state: SipClientState
+  private mediaManager: MediaManager
 
   /**
    * Get the event bus instance for subscribing to SIP events
@@ -134,6 +137,12 @@ export class SipClient {
     // Use JSON serialization to deep clone and remove proxies
     this.config = JSON.parse(JSON.stringify(config)) as SipClientConfig
     this._eventBus = eventBus
+    this.mediaManager = new MediaManager({
+      eventBus,
+      rtcConfiguration: config.rtcConfiguration,
+      mediaConfiguration: config.mediaConfiguration,
+      autoQualityAdjustment: true,
+    })
     this.state = {
       connectionState: ConnectionState.Disconnected,
       registrationState: RegistrationState.Unregistered,
@@ -209,6 +218,13 @@ export class SipClient {
    */
   getConfig(): Readonly<SipClientConfig> {
     return { ...this.config }
+  }
+
+  /**
+   * Get media manager
+   */
+  get media(): MediaManager {
+    return this.mediaManager
   }
 
   /**
@@ -718,7 +734,8 @@ export class SipClient {
           rtcSession,
           CallDirection.Incoming,
           this.config.sipUri,
-          this.eventBus
+          this.eventBus,
+          this.mediaManager
         )
 
         // Store CallSession instance (not JsSIP session)
@@ -924,22 +941,6 @@ export class SipClient {
       this.state.registrationState = state
       logger.debug(`Registration state changed: ${state}`)
     }
-  }
-
-  /**
-   * Send custom SIP message (MESSAGE method)
-   */
-  sendMessage(target: string, content: string, options?: any): void {
-    if (!this.ua) {
-      throw new Error('SIP client is not started')
-    }
-
-    if (!this.isConnected) {
-      throw new Error('Not connected to SIP server')
-    }
-
-    logger.debug(`Sending message to ${target}`)
-    this.ua.sendMessage(target, content, options)
   }
 
   /**
@@ -1708,6 +1709,34 @@ export class SipClient {
   // ============================================================================
 
   /**
+   * Send a SIP message (IM)
+   * @param target - Recipient URI
+   * @param content - Message body
+   * @param options - Message options
+   */
+  async sendMessage(target: string, content: string, options?: SipMessageOptions): Promise<void> {
+    if (!this.ua) {
+      throw new Error('SIP client is not started')
+    }
+
+    if (!this.isConnected) {
+      throw new Error('Not connected to SIP server')
+    }
+
+    const messageOptions: any = {}
+    if (options?.contentType) messageOptions.contentType = options.contentType
+    if (options?.extraHeaders) messageOptions.extraHeaders = options.extraHeaders
+    if (options?.eventHandlers) messageOptions.eventHandlers = options.eventHandlers
+
+    try {
+      this.ua.sendMessage(target, content, messageOptions)
+    } catch (e) {
+      logger.error('Failed to send message', e)
+      throw e
+    }
+  }
+
+  /**
    * Set incoming message handler
    * @param handler - Message handler function
    */
@@ -2212,7 +2241,8 @@ export class SipClient {
         mockRTCSession,
         CallDirection.Outgoing,
         this.config.sipUri,
-        this.eventBus
+        this.eventBus,
+        this.mediaManager
       )
 
       // Store CallSession instance
@@ -2312,6 +2342,17 @@ export class SipClient {
       // Note: Even if config is plain, the UA's internal _configuration might still reference proxies
       // if the UA was created before we fixed the start() method
 
+      // Acquire media stream using MediaManager
+      const constraints = {
+        audio: callOptions.mediaConstraints?.audio ?? true,
+        video: callOptions.mediaConstraints?.video ?? false,
+      }
+      
+      const stream = await this.mediaManager.getUserMedia(constraints)
+      
+      // Pass the acquired stream to JsSIP
+      callOptions.mediaStream = stream
+
       // Initiate call using JsSIP
       // Note: this.ua is verified not null in the earlier check at the start of this method
       const rtcSession = this.ua!.call(target, callOptions)
@@ -2322,7 +2363,8 @@ export class SipClient {
         rtcSession,
         CallDirection.Outgoing,
         this.config.sipUri,
-        this.eventBus
+        this.eventBus,
+        this.mediaManager
       )
 
       // Store CallSession instance (not JsSIP session)
@@ -2372,7 +2414,8 @@ export class SipClient {
           mockRTCSession,
           CallDirection.Outgoing,
           this.config.sipUri,
-          this.eventBus
+          this.eventBus,
+          this.mediaManager
         )
 
         // Store CallSession instance
@@ -2703,7 +2746,8 @@ export class SipClient {
       mockRTCSession,
       CallDirection.Incoming,
       this.config.sipUri,
-      this.eventBus
+      this.eventBus,
+      this.mediaManager
     )
 
     // Store the call session
@@ -2729,6 +2773,65 @@ export class SipClient {
     }
 
     console.log('[SipClient] [E2E TEST] Incoming call session created:', callId)
+  }
+  /**
+   * Transfer the active call
+   * @param target - Target SIP URI
+   * @param extraHeaders - Optional SIP headers
+   */
+  async transfer(target: string, extraHeaders?: string[]): Promise<void> {
+    const session = this.getActiveCallSession()
+    if (!session) {
+      throw new Error('No active call to transfer')
+    }
+    return session.transfer(target, extraHeaders)
+  }
+
+  /**
+   * Put the active call on hold
+   */
+  async hold(): Promise<void> {
+    const session = this.getActiveCallSession()
+    if (!session) {
+      throw new Error('No active call to hold')
+    }
+    return session.hold()
+  }
+
+  /**
+   * Resume the active call
+   */
+  async unhold(): Promise<void> {
+    const session = this.getActiveCallSession()
+    if (!session) {
+      throw new Error('No active call to unhold')
+    }
+    return session.unhold()
+  }
+
+  /**
+   * Hangup the active call
+   */
+  async hangup(): Promise<void> {
+    const session = this.getActiveCallSession()
+    if (!session) {
+      // If no session, do nothing or throw? JsSIP might have internal state.
+      // But we track sessions.
+      logger.warn('No active call to hangup')
+      return
+    }
+    return session.hangup()
+  }
+
+  /**
+   * Get the single active call session (helper)
+   * Assuming single call for now, or primary call
+   */
+  private getActiveCallSession(): CallSession | undefined {
+    // If multiple calls, this logic might need improvement to target specific callId
+    // For now, return the first active one
+    if (this.activeCalls.size === 0) return undefined
+    return this.activeCalls.values().next().value
   }
 }
 

@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { AudioManager } from '@/core/AudioManager';
 import type {
-  AudioDevice,
+  AudioDevice as _AudioDevice,
   AudioConstraints,
-  AudioMetrics,
-  AudioQualityLevel,
-  VolumeControl,
-  AudioProcessingOptions,
+  AudioMetrics as _AudioMetrics,
+  AudioQualityLevel as _AudioQualityLevel,
+  VolumeControl as _VolumeControl,
+  AudioProcessingOptions as _AudioProcessingOptions,
   AudioManagerConfig
 } from '@/types/audio.types';
 

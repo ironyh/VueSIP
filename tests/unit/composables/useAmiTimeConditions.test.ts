@@ -1,27 +1,162 @@
 /**
  * useAmiTimeConditions composable unit tests
+ *
+ * Tests for the AMI time conditions composable that manages business hours,
+ * holiday calendars, time-based routing, and schedule overrides.
+ *
+ * Key Features Tested:
+ * - Time condition CRUD operations (create, update, delete)
+ * - Real-time status calculation (open/closed/holiday)
+ * - Schedule management (daily, weekly, overnight ranges)
+ * - Holiday management (recurring, date validation)
+ * - Override management (force open/closed, temporary)
+ * - Next change calculation (when status will change)
+ * - Security validation (sanitization, ID validation)
+ * - Auto-refresh and persistence
+ *
+ * @see src/composables/useAmiTimeConditions.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useAmiTimeConditions } from '@/composables/useAmiTimeConditions'
 import type { AmiClient } from '@/core/AmiClient'
 import type { TimeCondition, DailySchedule } from '@/types/timeconditions.types'
-import {
-  createMockAmiClient,
-  type MockAmiClient,
-} from '../utils/mockFactories'
+import { createMockAmiClient } from '../../utils/test-helpers'
+
+/**
+ * Test fixtures for consistent test data across all test suites
+ */
+const TEST_FIXTURES = {
+  dates: {
+    wednesday10am: new Date('2024-12-25T10:00:00'), // Wednesday 10:00 AM
+    wednesday8am: new Date('2024-12-25T08:00:00'), // Wednesday 8:00 AM
+    wednesday8pm: new Date('2024-12-25T20:00:00'), // Wednesday 8:00 PM
+    wednesday11pm: new Date('2024-12-25T23:00:00'), // Wednesday 11:00 PM
+    saturday10am: new Date('2024-12-28T10:00:00'), // Saturday 10:00 AM
+    christmas2024: '2024-12-25',
+    christmas2025: '2025-12-25',
+    newYear2025: '2025-01-01',
+    farFuture: '2025-06-01',
+  },
+  schedules: {
+    businessHours: [
+      { day: 'monday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
+      { day: 'tuesday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
+      { day: 'wednesday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
+      { day: 'thursday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
+      { day: 'friday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
+      { day: 'saturday', enabled: false, ranges: [] },
+      { day: 'sunday', enabled: false, ranges: [] },
+    ] as DailySchedule[],
+    wednesdayOnly: [
+      { day: 'wednesday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
+    ] as DailySchedule[],
+    nightShift: [
+      { day: 'wednesday', enabled: true, ranges: [{ start: '22:00', end: '06:00' }] },
+    ] as DailySchedule[],
+    mondayOnly: [
+      { day: 'monday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
+      { day: 'saturday', enabled: false, ranges: [] },
+      { day: 'sunday', enabled: false, ranges: [] },
+    ] as DailySchedule[],
+    extendedHours: [
+      { day: 'monday', enabled: true, ranges: [{ start: '08:00', end: '20:00' }] },
+      { day: 'tuesday', enabled: true, ranges: [{ start: '08:00', end: '20:00' }] },
+      { day: 'wednesday', enabled: true, ranges: [{ start: '08:00', end: '20:00' }] },
+      { day: 'thursday', enabled: true, ranges: [{ start: '08:00', end: '20:00' }] },
+      { day: 'friday', enabled: true, ranges: [{ start: '08:00', end: '20:00' }] },
+      { day: 'saturday', enabled: false, ranges: [] },
+      { day: 'sunday', enabled: false, ranges: [] },
+    ] as DailySchedule[],
+    splitShift: [
+      { day: 'monday', enabled: true, ranges: [{ start: '08:00', end: '12:00' }, { start: '13:00', end: '18:00' }] },
+    ] as DailySchedule[],
+  },
+  holidays: {
+    christmas: { id: 'xmas', name: 'Christmas', date: '2024-12-25', recurring: true },
+    newYear: { id: 'ny', name: 'New Year', date: '2025-01-01', recurring: true },
+    oneTime: { id: 'event', name: 'Company Event', date: '2025-03-15', recurring: false },
+  },
+  conditions: {
+    basic: {
+      name: 'Business Hours',
+      description: 'Main office hours',
+      schedule: [] as DailySchedule[],
+      holidays: [],
+      overrideMode: 'none' as const,
+      enabled: true,
+    },
+    minimal: {
+      name: 'Test',
+      schedule: [] as DailySchedule[],
+      holidays: [],
+      overrideMode: 'none' as const,
+      enabled: true,
+    },
+  },
+  invalidInputs: {
+    ids: [
+      '../etc/passwd',
+      'id<script>',
+      'id;rm -rf',
+      'id|cat /etc/passwd',
+      '',
+      'a'.repeat(100), // Too long
+    ],
+    xssAttempts: {
+      name: '<script>alert("xss")</script>Business Hours',
+      description: 'Description with <b>HTML</b>',
+      holidayName: '<script>xss</script>Holiday',
+      holidayDesc: 'Test <b>bold</b>',
+    },
+    invalidDates: ['invalid-date', '2025/01/01', '01-01-2025', 'not-a-date'],
+    invalidTimes: ['9am', '5pm', '25:00', '12:60', 'invalid'],
+  },
+  options: {
+    withCallbacks: (onStateChange: any, onOverrideSet: any, onOverrideCleared: any, onError: any) => ({
+      onStateChange,
+      onOverrideSet,
+      onOverrideCleared,
+      onError,
+      autoRefresh: false,
+    }),
+    noAutoRefresh: { autoRefresh: false },
+    withAutoRefresh: { autoRefresh: true, refreshInterval: 60000 },
+    customDbFamily: { dbFamily: 'custom_timeconditions' },
+  },
+} as const
+
+/**
+ * Factory function: Create mock AMI client response
+ */
+function createMockAmiResponse(success: boolean, data?: any) {
+  if (success) {
+    return {
+      data: {
+        Response: 'Success',
+        ...data,
+      },
+    }
+  }
+  return {
+    data: {
+      Response: 'Error',
+      Message: data?.message || 'Database error',
+    },
+  }
+}
 
 describe('useAmiTimeConditions', () => {
-  let mockClient: MockAmiClient
+  let mockClient: any
 
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
     // Set a fixed date for consistent testing: Wednesday, Dec 25, 2024, 10:00 AM
-    vi.setSystemTime(new Date('2024-12-25T10:00:00'))
+    vi.setSystemTime(TEST_FIXTURES.dates.wednesday10am)
     mockClient = createMockAmiClient()
     // Default successful response
-    mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
+    mockClient.sendAction = vi.fn().mockResolvedValue(createMockAmiResponse(true))
   })
 
   afterEach(() => {
@@ -30,6 +165,10 @@ describe('useAmiTimeConditions', () => {
     vi.useRealTimers()
   })
 
+  /**
+   * Initial State Tests
+   * Verify composable starts with correct empty state
+   */
   describe('initial state', () => {
     it('should have empty conditions list initially', () => {
       const { conditions } = useAmiTimeConditions(mockClient as unknown as AmiClient)
@@ -62,20 +201,17 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Create Condition Tests
+   * Test creating new time conditions with various configurations
+   */
   describe('createCondition', () => {
     it('should create a new time condition', async () => {
       const { createCondition, conditions } = useAmiTimeConditions(
         mockClient as unknown as AmiClient
       )
 
-      const result = await createCondition({
-        name: 'Business Hours',
-        description: 'Main office hours',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
-      })
+      const result = await createCondition(TEST_FIXTURES.conditions.basic)
 
       expect(result.success).toBe(true)
       expect(result.condition).toBeDefined()
@@ -88,13 +224,7 @@ describe('useAmiTimeConditions', () => {
         mockClient as unknown as AmiClient
       )
 
-      await createCondition({
-        name: 'Business Hours',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
-      })
+      await createCondition(TEST_FIXTURES.conditions.basic)
 
       // Default schedule is Mon-Fri 9-5
       const condition = conditions.value[0]
@@ -112,16 +242,13 @@ describe('useAmiTimeConditions', () => {
     it('should sanitize input on creation', async () => {
       const { createCondition, conditions } = useAmiTimeConditions(
         mockClient as unknown as AmiClient,
-        { autoRefresh: false }
+        TEST_FIXTURES.options.noAutoRefresh
       )
 
       await createCondition({
-        name: '<script>alert("xss")</script>Business Hours',
-        description: 'Description with <b>HTML</b>',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
+        ...TEST_FIXTURES.conditions.basic,
+        name: TEST_FIXTURES.invalidInputs.xssAttempts.name,
+        description: TEST_FIXTURES.invalidInputs.xssAttempts.description,
       })
 
       // sanitizeInput strips HTML tags, then removes special chars like <>"';&|`$\
@@ -134,13 +261,7 @@ describe('useAmiTimeConditions', () => {
     it('should fail when client is not connected', async () => {
       const { createCondition } = useAmiTimeConditions(null)
 
-      const result = await createCondition({
-        name: 'Test',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
-      })
+      const result = await createCondition(TEST_FIXTURES.conditions.minimal)
 
       expect(result.success).toBe(false)
       expect(result.message).toBe('AMI client not connected')
@@ -149,13 +270,7 @@ describe('useAmiTimeConditions', () => {
     it('should store condition in AstDB', async () => {
       const { createCondition } = useAmiTimeConditions(mockClient as unknown as AmiClient)
 
-      await createCondition({
-        name: 'Business Hours',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
-      })
+      await createCondition(TEST_FIXTURES.conditions.basic)
 
       expect(mockClient.sendAction).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -166,19 +281,17 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Delete Condition Tests
+   * Test removing time conditions and cleanup
+   */
   describe('deleteCondition', () => {
     it('should delete an existing condition', async () => {
       const { createCondition, deleteCondition, conditions } = useAmiTimeConditions(
         mockClient as unknown as AmiClient
       )
 
-      const { condition } = await createCondition({
-        name: 'Test',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
-      })
+      const { condition } = await createCondition(TEST_FIXTURES.conditions.minimal)
 
       expect(conditions.value).toHaveLength(1)
 
@@ -193,13 +306,7 @@ describe('useAmiTimeConditions', () => {
         mockClient as unknown as AmiClient
       )
 
-      const { condition } = await createCondition({
-        name: 'Test',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
-      })
+      const { condition } = await createCondition(TEST_FIXTURES.conditions.minimal)
 
       await deleteCondition(condition!.id)
 
@@ -215,13 +322,17 @@ describe('useAmiTimeConditions', () => {
     it('should reject invalid condition ID', async () => {
       const { deleteCondition } = useAmiTimeConditions(mockClient as unknown as AmiClient)
 
-      const result = await deleteCondition('../../../etc/passwd')
+      const result = await deleteCondition(TEST_FIXTURES.invalidInputs.ids[0])
 
       expect(result.success).toBe(false)
       expect(result.message).toBe('Invalid condition ID')
     })
   })
 
+  /**
+   * Update Condition Tests
+   * Test modifying existing time conditions
+   */
   describe('updateCondition', () => {
     it('should update condition properties', async () => {
       const { createCondition, updateCondition, conditions } = useAmiTimeConditions(
@@ -229,11 +340,8 @@ describe('useAmiTimeConditions', () => {
       )
 
       const { condition } = await createCondition({
+        ...TEST_FIXTURES.conditions.minimal,
         name: 'Original',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
       })
 
       await updateCondition(condition!.id, { name: 'Updated', enabled: false })
@@ -247,13 +355,7 @@ describe('useAmiTimeConditions', () => {
         mockClient as unknown as AmiClient
       )
 
-      const { condition } = await createCondition({
-        name: 'Test',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
-      })
+      const { condition } = await createCondition(TEST_FIXTURES.conditions.minimal)
 
       const originalId = condition!.id
 
@@ -272,22 +374,21 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Status Calculation Tests
+   * Test real-time status calculation based on schedules and time
+   */
   describe('status calculation', () => {
     it('should return open during business hours', async () => {
       // System time is Wednesday 10:00 AM
-      const { createCondition, statuses, isOpen: _isOpen } = useAmiTimeConditions(
+      const { createCondition, statuses } = useAmiTimeConditions(
         mockClient as unknown as AmiClient,
-        { autoRefresh: false }
+        TEST_FIXTURES.options.noAutoRefresh
       )
 
       await createCondition({
-        name: 'Business Hours',
-        schedule: [
-          { day: 'wednesday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
-        ],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
+        ...TEST_FIXTURES.conditions.basic,
+        schedule: TEST_FIXTURES.schedules.wednesdayOnly,
       })
 
       await vi.advanceTimersByTimeAsync(100)
@@ -299,21 +400,16 @@ describe('useAmiTimeConditions', () => {
 
     it('should return closed outside business hours', async () => {
       // Set time to 8 PM
-      vi.setSystemTime(new Date('2024-12-25T20:00:00'))
+      vi.setSystemTime(TEST_FIXTURES.dates.wednesday8pm)
 
-      const { createCondition, statuses, isClosed: _isClosed } = useAmiTimeConditions(
+      const { createCondition, statuses } = useAmiTimeConditions(
         mockClient as unknown as AmiClient,
-        { autoRefresh: false }
+        TEST_FIXTURES.options.noAutoRefresh
       )
 
       await createCondition({
-        name: 'Business Hours',
-        schedule: [
-          { day: 'wednesday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
-        ],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
+        ...TEST_FIXTURES.conditions.basic,
+        schedule: TEST_FIXTURES.schedules.wednesdayOnly,
       })
 
       await vi.advanceTimersByTimeAsync(100)
@@ -326,19 +422,13 @@ describe('useAmiTimeConditions', () => {
       // Dec 25 is Christmas
       const { createCondition, statuses, isHoliday } = useAmiTimeConditions(
         mockClient as unknown as AmiClient,
-        { autoRefresh: false }
+        TEST_FIXTURES.options.noAutoRefresh
       )
 
       const { condition } = await createCondition({
-        name: 'Business Hours',
-        schedule: [
-          { day: 'wednesday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
-        ],
-        holidays: [
-          { id: 'xmas', name: 'Christmas', date: '2024-12-25', recurring: true },
-        ],
-        overrideMode: 'none',
-        enabled: true,
+        ...TEST_FIXTURES.conditions.basic,
+        schedule: TEST_FIXTURES.schedules.wednesdayOnly,
+        holidays: [TEST_FIXTURES.holidays.christmas],
       })
 
       await vi.advanceTimersByTimeAsync(100)
@@ -353,21 +443,16 @@ describe('useAmiTimeConditions', () => {
 
     it('should handle recurring holidays across years', async () => {
       // Check if recurring holiday matches by month-day
-      vi.setSystemTime(new Date('2025-12-25T10:00:00'))
+      vi.setSystemTime(new Date(TEST_FIXTURES.dates.christmas2025 + 'T10:00:00'))
 
       const { createCondition, isHoliday } = useAmiTimeConditions(
         mockClient as unknown as AmiClient,
-        { autoRefresh: false }
+        TEST_FIXTURES.options.noAutoRefresh
       )
 
       const { condition } = await createCondition({
-        name: 'Business Hours',
-        schedule: [],
-        holidays: [
-          { id: 'xmas', name: 'Christmas', date: '2024-12-25', recurring: true },
-        ],
-        overrideMode: 'none',
-        enabled: true,
+        ...TEST_FIXTURES.conditions.basic,
+        holidays: [TEST_FIXTURES.holidays.christmas],
       })
 
       await vi.advanceTimersByTimeAsync(100)
@@ -376,23 +461,22 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Override Management Tests
+   * Test manual overrides (force open/closed, temporary)
+   */
   describe('override management', () => {
     it('should set force_open override', async () => {
-      vi.setSystemTime(new Date('2024-12-25T20:00:00')) // After hours
+      vi.setSystemTime(TEST_FIXTURES.dates.wednesday8pm) // After hours
 
       const { createCondition, setOverride, isOpen, statuses } = useAmiTimeConditions(
         mockClient as unknown as AmiClient,
-        { autoRefresh: false }
+        TEST_FIXTURES.options.noAutoRefresh
       )
 
       const { condition } = await createCondition({
-        name: 'Business Hours',
-        schedule: [
-          { day: 'wednesday', enabled: true, ranges: [{ start: '09:00', end: '17:00' }] },
-        ],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
+        ...TEST_FIXTURES.conditions.basic,
+        schedule: TEST_FIXTURES.schedules.wednesdayOnly,
       })
 
       await vi.advanceTimersByTimeAsync(100)
@@ -546,6 +630,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Holiday Management Tests
+   * Test adding, updating, removing holidays and recurring dates
+   */
   describe('holiday management', () => {
     it('should add a holiday', async () => {
       const { createCondition, addHoliday, getHolidays } = useAmiTimeConditions(
@@ -705,6 +793,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Schedule Management Tests
+   * Test daily schedule configuration and time range validation
+   */
   describe('schedule management', () => {
     it('should update day schedule', async () => {
       const { createCondition, updateDaySchedule, getDaySchedule } = useAmiTimeConditions(
@@ -813,6 +905,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Next Change Calculation Tests
+   * Test calculation of when status will next change (open/close times)
+   */
   describe('next change calculation', () => {
     it('should calculate next closing time', async () => {
       const { createCondition, getNextChange } = useAmiTimeConditions(
@@ -922,6 +1018,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Check Status At Tests
+   * Test checking status at arbitrary past/future times
+   */
   describe('checkStatusAt', () => {
     it('should check status at future time', async () => {
       const { createCondition, checkStatusAt } = useAmiTimeConditions(
@@ -966,6 +1066,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Computed Conditions Tests
+   * Test filtering conditions by status (open, closed, overridden)
+   */
   describe('computed conditions', () => {
     it('should filter open conditions', async () => {
       const { createCondition, openConditions } = useAmiTimeConditions(
@@ -1050,6 +1154,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * State Change Callback Tests
+   * Test callback invocation when status changes
+   */
   describe('state change callback', () => {
     it('should trigger onStateChange when status changes', async () => {
       const onStateChange = vi.fn()
@@ -1082,6 +1190,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Error Handling Tests
+   * Test error scenarios and recovery
+   */
   describe('error handling', () => {
     it('should handle AMI errors', async () => {
       const onError = vi.fn()
@@ -1129,6 +1241,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Refresh Tests
+   * Test loading conditions from persistent storage
+   */
   describe('refresh', () => {
     it('should load conditions from AstDB', async () => {
       const storedCondition = {
@@ -1169,6 +1285,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Auto-Refresh Tests
+   * Test automatic status recalculation on intervals
+   */
   describe('auto-refresh', () => {
     it('should update statuses on interval', async () => {
       const { createCondition, statuses } = useAmiTimeConditions(
@@ -1227,6 +1347,10 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Custom DB Family Tests
+   * Test using custom AstDB family for storage isolation
+   */
   describe('custom dbFamily', () => {
     it('should use custom dbFamily for storage', async () => {
       const { createCondition, refresh } = useAmiTimeConditions(
@@ -1260,39 +1384,31 @@ describe('useAmiTimeConditions', () => {
     })
   })
 
+  /**
+   * Security Validation Tests
+   * Test input sanitization and validation to prevent security issues
+   */
   describe('security validation', () => {
-    it('should validate condition ID format', async () => {
-      const { setOverride } = useAmiTimeConditions(mockClient as unknown as AmiClient)
+    // Parameterized tests for invalid condition IDs
+    describe.each(TEST_FIXTURES.invalidInputs.ids.map(id => ({ id, description: id || '(empty)' })))(
+      'invalid condition IDs',
+      ({ id, description }) => {
+        it(`should reject invalid ID: ${description}`, async () => {
+          const { setOverride } = useAmiTimeConditions(mockClient as unknown as AmiClient)
 
-      // Test various invalid IDs
-      const invalidIds = [
-        '../etc/passwd',
-        'id<script>',
-        'id;rm -rf',
-        'id|cat /etc/passwd',
-        '',
-        'a'.repeat(100), // Too long
-      ]
+          const result = await setOverride(id, 'force_open')
 
-      for (const id of invalidIds) {
-        const result = await setOverride(id, 'force_open')
-        expect(result.success).toBe(false)
+          expect(result.success).toBe(false)
+          expect(result.message).toBe('Invalid condition ID')
+        })
       }
-    })
+    )
 
     it('should accept valid condition IDs', async () => {
-      const { createCondition, setOverride: _setOverride, conditions: _conditions } = useAmiTimeConditions(
-        mockClient as unknown as AmiClient
-      )
+      const { createCondition } = useAmiTimeConditions(mockClient as unknown as AmiClient)
 
       // Create condition with valid ID pattern
-      const { condition } = await createCondition({
-        name: 'Test',
-        schedule: [],
-        holidays: [],
-        overrideMode: 'none',
-        enabled: true,
-      })
+      const { condition } = await createCondition(TEST_FIXTURES.conditions.minimal)
 
       // The generated ID should be valid
       expect(condition?.id).toMatch(/^[a-zA-Z0-9_-]+$/)

@@ -9,6 +9,12 @@
 // Core composables
 export { useSipClient, type UseSipClientReturn } from './useSipClient'
 export {
+  useAmiBase,
+  type UseAmiBaseOptions,
+  type UseAmiBaseReturn,
+  type AmiEventHandler,
+} from './useAmiBase'
+export {
   useSipRegistration,
   type UseSipRegistrationReturn,
   type RegistrationOptions,

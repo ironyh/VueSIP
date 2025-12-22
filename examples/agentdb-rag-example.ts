@@ -19,7 +19,7 @@ import {
   createDocumentProcessor,
   createVectorStore,
   type RAGConfig,
-  type DocumentMetadata,
+  type DocumentMetadata as _DocumentMetadata,
   DEFAULTS,
 } from '../src/lib/agentdb';
 

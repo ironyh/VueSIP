@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * useCallControls composable unit tests
  * Comprehensive tests for call transfer and forwarding functionality

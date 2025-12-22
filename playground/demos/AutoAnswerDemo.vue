@@ -22,9 +22,9 @@
 
     <div class="info-section">
       <p>
-        Auto-Answer mode automatically answers incoming calls based on configurable rules.
-        Supports SIP header detection (intercom mode), whitelisted callers, and configurable delays.
-        Perfect for hands-free operation, intercom systems, and call center auto-answer scenarios.
+        Auto-Answer mode automatically answers incoming calls based on configurable rules. Supports
+        SIP header detection (intercom mode), whitelisted callers, and configurable delays. Perfect
+        for hands-free operation, intercom systems, and call center auto-answer scenarios.
       </p>
     </div>
 
@@ -39,7 +39,7 @@
       <div class="toggle-card">
         <div class="toggle-header">
           <div class="toggle-icon" :class="{ active: isEnabled }">
-            {{ isEnabled ? '📞' : '📵' }}
+            {{ isEnabled ? 'ON' : 'OFF' }}
           </div>
           <div class="toggle-info">
             <h3>Auto-Answer</h3>
@@ -125,11 +125,7 @@
 
         <!-- Whitelist Entries -->
         <div v-if="settings.whitelist.length > 0" class="whitelist-entries">
-          <div
-            v-for="entry in settings.whitelist"
-            :key="entry.pattern"
-            class="whitelist-entry"
-          >
+          <div v-for="entry in settings.whitelist" :key="entry.pattern" class="whitelist-entry">
             <label class="entry-enabled">
               <input
                 type="checkbox"
@@ -213,11 +209,7 @@
         <div class="notification-options">
           <div class="option-item">
             <label>
-              <input
-                type="checkbox"
-                :checked="settings.playBeep"
-                @change="handleBeepToggle"
-              />
+              <input type="checkbox" :checked="settings.playBeep" @change="handleBeepToggle" />
               Play beep sound before answering
             </label>
           </div>
@@ -263,20 +255,14 @@
             <div class="stat-label">Skipped</div>
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" @click="resetStats">
-          Reset Statistics
-        </button>
+        <button class="btn btn-secondary btn-sm" @click="resetStats">Reset Statistics</button>
       </div>
 
       <!-- Pending Calls -->
       <div v-if="pendingCalls.length > 0" class="pending-section">
         <h4>Pending Auto-Answer</h4>
         <div class="pending-list">
-          <div
-            v-for="pending in pendingCalls"
-            :key="pending.callId"
-            class="pending-item"
-          >
+          <div v-for="pending in pendingCalls" :key="pending.callId" class="pending-item">
             <div class="pending-info">
               <div class="pending-caller">{{ pending.caller }}</div>
               <div class="pending-trigger">{{ pending.trigger }}</div>
@@ -317,7 +303,10 @@
 import { ref, computed, watch } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
 import { useSipAutoAnswer } from '../../src/composables/useSipAutoAnswer'
-import type { AutoAnswerMode, IntercomMode as _IntercomMode } from '../../src/types/autoanswer.types'
+import type {
+  AutoAnswerMode,
+  IntercomMode as _IntercomMode,
+} from '../../src/types/autoanswer.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 
@@ -372,10 +361,25 @@ const newName = ref('')
 
 // Mode options
 const modeOptions = [
-  { value: 'disabled' as AutoAnswerMode, icon: '🚫', label: 'Disabled', desc: 'No auto-answer' },
-  { value: 'all' as AutoAnswerMode, icon: '📞', label: 'All Calls', desc: 'Answer all incoming calls' },
-  { value: 'whitelist' as AutoAnswerMode, icon: '📋', label: 'Whitelist', desc: 'Only whitelisted numbers' },
-  { value: 'intercom' as AutoAnswerMode, icon: '📢', label: 'Intercom', desc: 'Only intercom calls' },
+  { value: 'disabled' as AutoAnswerMode, icon: 'OFF', label: 'Disabled', desc: 'No auto-answer' },
+  {
+    value: 'all' as AutoAnswerMode,
+    icon: 'ALL',
+    label: 'All Calls',
+    desc: 'Answer all incoming calls',
+  },
+  {
+    value: 'whitelist' as AutoAnswerMode,
+    icon: 'LIST',
+    label: 'Whitelist',
+    desc: 'Only whitelisted numbers',
+  },
+  {
+    value: 'intercom' as AutoAnswerMode,
+    icon: 'ICOM',
+    label: 'Intercom',
+    desc: 'Only intercom calls',
+  },
 ]
 
 // Watch for incoming calls
@@ -392,7 +396,7 @@ watch(callState, async (newState) => {
       console.log('Auto-answering call with delay:', result.delay)
 
       if (result.delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, result.delay))
+        await new Promise((resolve) => setTimeout(resolve, result.delay))
       }
 
       try {
@@ -429,7 +433,7 @@ const handleAddToWhitelist = () => {
 }
 
 const handleToggleWhitelistEntry = (pattern: string) => {
-  const entry = settings.value.whitelist.find(e => e.pattern === pattern)
+  const entry = settings.value.whitelist.find((e) => e.pattern === pattern)
   if (entry) {
     updateWhitelistEntry(pattern, { enabled: !entry.enabled })
   }
@@ -460,7 +464,7 @@ const getStatusDescription = (): string => {
     case 'all':
       return 'All incoming calls will be auto-answered'
     case 'whitelist':
-      return `Auto-answering ${settings.value.whitelist.filter(e => e.enabled).length} whitelisted numbers`
+      return `Auto-answering ${settings.value.whitelist.filter((e) => e.enabled).length} whitelisted numbers`
     case 'intercom':
       return 'Only intercom calls will be auto-answered'
     default:
@@ -470,10 +474,14 @@ const getStatusDescription = (): string => {
 
 const getBannerIcon = (): string => {
   switch (mode.value) {
-    case 'all': return '📞'
-    case 'whitelist': return '📋'
-    case 'intercom': return '📢'
-    default: return '📵'
+    case 'all':
+      return 'ALL'
+    case 'whitelist':
+      return 'LIST'
+    case 'intercom':
+      return 'ICOM'
+    default:
+      return 'OFF'
   }
 }
 
@@ -482,7 +490,7 @@ const getBannerText = (): string => {
     case 'all':
       return `Auto-Answer enabled (${formatDelay(settings.value.delay)} delay)`
     case 'whitelist':
-      return `Whitelist mode active (${settings.value.whitelist.filter(e => e.enabled).length} entries)`
+      return `Whitelist mode active (${settings.value.whitelist.filter((e) => e.enabled).length} entries)`
     case 'intercom':
       return `Intercom mode (${settings.value.intercomMode})`
     default:
@@ -750,7 +758,7 @@ input:checked + .slider:before {
   margin-bottom: 0.75rem;
 }
 
-.delay-control input[type="range"] {
+.delay-control input[type='range'] {
   width: 100%;
   height: 8px;
   -webkit-appearance: none;
@@ -759,7 +767,7 @@ input:checked + .slider:before {
   outline: none;
 }
 
-.delay-control input[type="range"]::-webkit-slider-thumb {
+.delay-control input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 20px;
   height: 20px;

@@ -24,9 +24,8 @@
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>Click-to-Call Demo</h3>
       <p class="info-text">
-        Connect to Asterisk via AMI to originate calls. This demonstrates
-        agent-first click-to-call where your phone rings first, then connects
-        to the destination.
+        Connect to Asterisk via AMI to originate calls. This demonstrates agent-first click-to-call
+        where your phone rings first, then connects to the destination.
       </p>
 
       <div class="form-group">
@@ -77,17 +76,15 @@
         <button class="btn btn-sm btn-secondary" @click="handleRefresh" :disabled="loading">
           🔄 Refresh
         </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Click-to-Call Form -->
       <div class="call-form">
         <h3>Make a Call</h3>
         <p class="info-text">
-          Enter your extension and the destination number. Your phone will ring first,
-          then when you answer, the destination will be dialed.
+          Enter your extension and the destination number. Your phone will ring first, then when you
+          answer, the destination will be dialed.
         </p>
 
         <div class="form-row">
@@ -104,12 +101,7 @@
 
           <div class="form-group">
             <label for="destination">Destination Number</label>
-            <input
-              id="destination"
-              v-model="destination"
-              type="text"
-              placeholder="18005551234"
-            />
+            <input id="destination" v-model="destination" type="text" placeholder="18005551234" />
             <small>Number to dial after you answer</small>
           </div>
         </div>
@@ -117,24 +109,13 @@
         <div class="form-row">
           <div class="form-group">
             <label for="caller-id">Caller ID (Optional)</label>
-            <input
-              id="caller-id"
-              v-model="callerId"
-              type="text"
-              placeholder="Sales <1000>"
-            />
+            <input id="caller-id" v-model="callerId" type="text" placeholder="Sales <1000>" />
             <small>Caller ID to present to the destination</small>
           </div>
 
           <div class="form-group">
             <label for="timeout">Ring Timeout (seconds)</label>
-            <input
-              id="timeout"
-              v-model.number="timeout"
-              type="number"
-              min="10"
-              max="120"
-            />
+            <input id="timeout" v-model.number="timeout" type="number" min="10" max="120" />
             <small>How long to ring before giving up</small>
           </div>
         </div>
@@ -145,7 +126,7 @@
             :disabled="!canCall || calling"
             @click="handleCall"
           >
-            {{ calling ? 'Calling...' : '📞 Call Now' }}
+            {{ calling ? 'Calling...' : 'Call Now' }}
           </button>
         </div>
 
@@ -154,7 +135,7 @@
         </div>
 
         <div v-if="lastCallResult" class="call-result" :class="{ success: lastCallResult.success }">
-          <strong>{{ lastCallResult.success ? '✅ Call Initiated' : '❌ Call Failed' }}</strong>
+          <strong>{{ lastCallResult.success ? 'Call Initiated' : 'Call Failed' }}</strong>
           <p v-if="lastCallResult.message">{{ lastCallResult.message }}</p>
           <p v-if="lastCallResult.channel">Channel: {{ lastCallResult.channel }}</p>
         </div>
@@ -182,7 +163,7 @@
         <h3>Active Calls ({{ callCount }})</h3>
 
         <div v-if="callList.length === 0" class="empty-state">
-          <p>📭 No active calls</p>
+          <p>No active calls</p>
         </div>
 
         <div v-else class="calls-list">
@@ -196,7 +177,9 @@
               <div class="call-parties">
                 <span class="caller">{{ call.callerIdName || call.callerIdNum }}</span>
                 <span class="arrow">→</span>
-                <span class="callee">{{ call.connectedLineName || call.connectedLineNum || 'Dialing...' }}</span>
+                <span class="callee">{{
+                  call.connectedLineName || call.connectedLineNum || 'Dialing...'
+                }}</span>
               </div>
               <div class="call-details">
                 <span class="channel">{{ call.channel }}</span>
@@ -209,18 +192,10 @@
               </span>
             </div>
             <div class="call-actions">
-              <button
-                class="btn btn-sm btn-danger"
-                @click="handleHangup(call.uniqueId)"
-              >
-                📴 Hangup
+              <button class="btn btn-sm btn-danger" @click="handleHangup(call.uniqueId)">
+                Hangup
               </button>
-              <button
-                class="btn btn-sm btn-secondary"
-                @click="showTransfer(call)"
-              >
-                ↗️ Transfer
-              </button>
+              <button class="btn btn-sm btn-secondary" @click="showTransfer(call)">Transfer</button>
             </div>
           </div>
         </div>
@@ -240,12 +215,14 @@
             />
           </div>
           <div class="dialog-actions">
-            <button class="btn btn-primary" @click="handleTransfer" :disabled="!transferDestination">
+            <button
+              class="btn btn-primary"
+              @click="handleTransfer"
+              :disabled="!transferDestination"
+            >
               Transfer
             </button>
-            <button class="btn btn-secondary" @click="cancelTransfer">
-              Cancel
-            </button>
+            <button class="btn btn-secondary" @click="cancelTransfer">Cancel</button>
           </div>
         </div>
       </div>
@@ -284,10 +261,10 @@ const transferDestination = ref('')
 
 // Quick dial
 const quickDialNumbers = ref([
-  { label: '📦 Sales', number: '1001' },
-  { label: '🛠️ Support', number: '1002' },
-  { label: '🏢 Reception', number: '1000' },
-  { label: '📱 Mobile', number: '5551234567' },
+  { label: 'Sales', number: '1001' },
+  { label: 'Support', number: '1002' },
+  { label: 'Reception', number: '1000' },
+  { label: 'Mobile', number: '5551234567' },
 ])
 
 // AMI Client
@@ -464,10 +441,7 @@ async function handleTransfer() {
   if (!callsComposable.value || !transferTarget.value || !transferDestination.value) return
 
   try {
-    await callsComposable.value.transfer(
-      transferTarget.value.uniqueId,
-      transferDestination.value
-    )
+    await callsComposable.value.transfer(transferTarget.value.uniqueId, transferDestination.value)
     cancelTransfer()
   } catch (err) {
     console.error('Transfer failed:', err)
@@ -563,14 +537,35 @@ watch(agentChannel, (value) => {
   cursor: not-allowed;
 }
 
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5568d3; }
-.btn-secondary { background: #6b7280; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #4b5563; }
-.btn-danger { background: #ef4444; color: white; }
-.btn-danger:hover:not(:disabled) { background: #dc2626; }
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
-.btn-lg { padding: 1rem 2rem; font-size: 1.125rem; }
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+.btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+}
 
 .error-message {
   margin-top: 1rem;
@@ -750,8 +745,13 @@ watch(agentChannel, (value) => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .call-info {
@@ -789,10 +789,22 @@ watch(agentChannel, (value) => {
   font-weight: 500;
 }
 
-.state-badge.connected { background: #d1fae5; color: #065f46; }
-.state-badge.ringing { background: #dbeafe; color: #1e40af; }
-.state-badge.ended { background: #f3f4f6; color: #6b7280; }
-.state-badge.unknown { background: #e5e7eb; color: #374151; }
+.state-badge.connected {
+  background: #d1fae5;
+  color: #065f46;
+}
+.state-badge.ringing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.state-badge.ended {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.state-badge.unknown {
+  background: #e5e7eb;
+  color: #374151;
+}
 
 .call-actions {
   display: flex;

@@ -257,8 +257,9 @@ All changes are **100% backward compatible**:
 
 These composables expect SipClient API updates:
 
-1. **SipClient Methods to Implement**:
+1. **SipClient Methods (IMPLEMENTED 2025-12-17)**:
    ```typescript
+   // COMPLETED:
    getConfig(): SipClientConfig
    getActiveCall(callId: string): CallSession | undefined
    makeCall(target: string, options?: CallOptions): Promise<string>

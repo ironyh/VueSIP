@@ -18,8 +18,10 @@
       @toggle-hold="simulation.toggleHold"
       @toggle-mute="simulation.toggleMute"
     />
-    <h2>📱 Call Waiting & Switching</h2>
-    <p class="description">Handle multiple calls, switch between active calls, and manage call waiting scenarios.</p>
+    <h2>Call Waiting & Switching</h2>
+    <p class="description">
+      Handle multiple calls, switch between active calls, and manage call waiting scenarios.
+    </p>
 
     <!-- Connection Status -->
     <div class="status-section">
@@ -47,9 +49,7 @@
           @keyup.enter="makeCall"
         />
       </div>
-      <button @click="makeCall">
-        📞 Make Call
-      </button>
+      <button @click="makeCall">Make Call</button>
     </div>
 
     <!-- Active Calls List -->
@@ -66,15 +66,12 @@
               active: call.id === activeCallId,
               held: call.isHeld,
               incoming: call.state === 'incoming',
-              ringing: call.state === 'ringing'
-            }
+              ringing: call.state === 'ringing',
+            },
           ]"
         >
           <!-- Call Header -->
           <div class="call-header">
-            <div class="call-icon">
-              {{ getCallIcon(call) }}
-            </div>
             <div class="call-info">
               <div class="call-uri">{{ call.remoteUri }}</div>
               <div class="call-meta">
@@ -87,29 +84,19 @@
           </div>
 
           <!-- Call State Indicator -->
-          <div v-if="call.id === activeCallId" class="active-indicator">
-            🔊 ACTIVE CALL
-          </div>
-          <div v-else-if="call.isHeld" class="held-indicator">
-            ⏸️ ON HOLD
-          </div>
-          <div v-else-if="call.state === 'incoming'" class="incoming-indicator">
-            📞 INCOMING...
-          </div>
+          <div v-if="call.id === activeCallId" class="active-indicator">ACTIVE CALL</div>
+          <div v-else-if="call.isHeld" class="held-indicator">ON HOLD</div>
+          <div v-else-if="call.state === 'incoming'" class="incoming-indicator">INCOMING...</div>
 
           <!-- Call Controls -->
           <div class="call-controls">
             <!-- Incoming Call Controls -->
             <template v-if="call.state === 'incoming'">
-              <button @click="answerCall(call.id)" class="answer-btn">
-                ✅ Answer
-              </button>
+              <button @click="answerCall(call.id)" class="answer-btn">Answer</button>
               <button @click="answerAndHoldActive(call.id)" class="answer-hold-btn">
-                📞 Answer & Hold Current
+                Answer & Hold Current
               </button>
-              <button @click="rejectCall(call.id)" class="reject-btn">
-                ❌ Reject
-              </button>
+              <button @click="rejectCall(call.id)" class="reject-btn">Reject</button>
             </template>
 
             <!-- Active/Held Call Controls -->
@@ -119,38 +106,21 @@
                 @click="switchToCall(call.id)"
                 class="switch-btn"
               >
-                🔄 Switch
+                Switch
               </button>
-              <button
-                v-if="!call.isHeld"
-                @click="holdCall(call.id)"
-                class="hold-btn"
-              >
-                ⏸️ Hold
+              <button v-if="!call.isHeld" @click="holdCall(call.id)" class="hold-btn">Hold</button>
+              <button v-if="call.isHeld" @click="resumeCall(call.id)" class="resume-btn">
+                Resume
               </button>
-              <button
-                v-if="call.isHeld"
-                @click="resumeCall(call.id)"
-                class="resume-btn"
-              >
-                ▶️ Resume
+              <button @click="muteCall(call.id)" :class="['mute-btn', { muted: call.isMuted }]">
+                {{ call.isMuted ? 'Unmute' : 'Mute' }}
               </button>
-              <button
-                @click="muteCall(call.id)"
-                :class="['mute-btn', { muted: call.isMuted }]"
-              >
-                {{ call.isMuted ? '🔊' : '🔇' }} {{ call.isMuted ? 'Unmute' : 'Mute' }}
-              </button>
-              <button @click="hangupCall(call.id)" class="hangup-btn">
-                📞 Hangup
-              </button>
+              <button @click="hangupCall(call.id)" class="hangup-btn">Hangup</button>
             </template>
 
             <!-- Ringing Call Controls -->
             <template v-else-if="call.state === 'ringing'">
-              <button @click="hangupCall(call.id)" class="hangup-btn">
-                ❌ Cancel
-              </button>
+              <button @click="hangupCall(call.id)" class="hangup-btn">Cancel</button>
             </template>
           </div>
         </div>
@@ -160,24 +130,13 @@
       <div v-if="calls.length >= 2" class="multi-call-actions">
         <h4>Multi-Call Actions</h4>
         <div class="button-group">
-          <button
-            @click="swapCalls"
-            :disabled="calls.length < 2 || !hasActiveAndHeldCall"
-          >
-            🔄 Swap Active/Held
+          <button @click="swapCalls" :disabled="calls.length < 2 || !hasActiveAndHeldCall">
+            Swap Active/Held
           </button>
-          <button
-            @click="mergeAllCalls"
-            :disabled="calls.length < 2"
-          >
-            🔗 Merge All (Conference)
+          <button @click="mergeAllCalls" :disabled="calls.length < 2">
+            Merge All (Conference)
           </button>
-          <button
-            @click="hangupAllCalls"
-            class="danger"
-          >
-            📞 Hangup All
-          </button>
+          <button @click="hangupAllCalls" class="danger">Hangup All</button>
         </div>
       </div>
 
@@ -185,14 +144,12 @@
       <div class="scenarios-section">
         <h4>Test Scenarios</h4>
         <div class="button-group">
-          <button @click="simulateIncomingCall">
-            📞 Simulate Incoming Call
-          </button>
+          <button @click="simulateIncomingCall">Simulate Incoming Call</button>
           <button @click="simulateCallWaiting" :disabled="calls.length === 0">
-            ⏳ Simulate Call Waiting
+            Simulate Call Waiting
           </button>
           <button @click="simulateThreeWay" :disabled="calls.length < 2">
-            👥 Simulate 3-Way Call
+            Simulate 3-Way Call
           </button>
         </div>
       </div>
@@ -222,13 +179,7 @@
 
       <div class="setting-item">
         <label>Maximum Simultaneous Calls</label>
-        <input
-          type="range"
-          v-model.number="maxSimultaneousCalls"
-          min="1"
-          max="5"
-          step="1"
-        />
+        <input type="range" v-model.number="maxSimultaneousCalls" min="1" max="5" step="1" />
         <span class="value">{{ maxSimultaneousCalls }}</span>
       </div>
     </div>
@@ -237,11 +188,7 @@
     <div v-if="callHistory.length > 0" class="history-section">
       <h3>Recent Activity</h3>
       <div class="history-list">
-        <div
-          v-for="(entry, index) in callHistory.slice(0, 5)"
-          :key="index"
-          class="history-item"
-        >
+        <div v-for="(entry, index) in callHistory.slice(0, 5)" :key="index" class="history-item">
           <div class="history-icon">{{ entry.icon }}</div>
           <div class="history-details">
             <div class="history-message">{{ entry.message }}</div>
@@ -254,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch as _watch, onUnmounted } from 'vue'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
@@ -305,8 +252,8 @@ const callTimers = new Map<string, number>()
 
 // Computed
 const hasActiveAndHeldCall = computed(() => {
-  const activeCall = calls.value.find(c => c.id === activeCallId.value && !c.isHeld)
-  const heldCall = calls.value.find(c => c.isHeld)
+  const activeCall = calls.value.find((c) => c.id === activeCallId.value && !c.isHeld)
+  const heldCall = calls.value.find((c) => c.isHeld)
   return activeCall && heldCall
 })
 
@@ -344,13 +291,13 @@ const makeCall = async () => {
 
   // Simulate call connection
   setTimeout(() => {
-    const call = calls.value.find(c => c.id === callId)
+    const call = calls.value.find((c) => c.id === callId)
     if (call) {
       call.state = 'active'
 
       // Hold current active call if exists
       if (activeCallId.value && activeCallId.value !== callId) {
-        const currentActive = calls.value.find(c => c.id === activeCallId.value)
+        const currentActive = calls.value.find((c) => c.id === activeCallId.value)
         if (currentActive) {
           currentActive.isHeld = true
         }
@@ -365,7 +312,7 @@ const makeCall = async () => {
 
 // Answer Call
 const answerCall = async (callId: string) => {
-  const call = calls.value.find(c => c.id === callId)
+  const call = calls.value.find((c) => c.id === callId)
   if (!call) return
 
   call.state = 'active'
@@ -381,7 +328,7 @@ const answerCall = async (callId: string) => {
 const answerAndHoldActive = async (callId: string) => {
   // Hold current active call
   if (activeCallId.value) {
-    const currentActive = calls.value.find(c => c.id === activeCallId.value)
+    const currentActive = calls.value.find((c) => c.id === activeCallId.value)
     if (currentActive) {
       currentActive.isHeld = true
       logHistory('⏸️', `Held call with ${currentActive.remoteUri}`)
@@ -394,7 +341,7 @@ const answerAndHoldActive = async (callId: string) => {
 
 // Reject Call
 const rejectCall = async (callId: string) => {
-  const call = calls.value.find(c => c.id === callId)
+  const call = calls.value.find((c) => c.id === callId)
   if (!call) return
 
   logHistory('❌', `Rejected call from ${call.remoteUri}`)
@@ -403,7 +350,7 @@ const rejectCall = async (callId: string) => {
 
 // Hold Call
 const holdCall = async (callId: string) => {
-  const call = calls.value.find(c => c.id === callId)
+  const call = calls.value.find((c) => c.id === callId)
   if (!call) return
 
   call.isHeld = true
@@ -417,12 +364,12 @@ const holdCall = async (callId: string) => {
 
 // Resume Call
 const resumeCall = async (callId: string) => {
-  const call = calls.value.find(c => c.id === callId)
+  const call = calls.value.find((c) => c.id === callId)
   if (!call) return
 
   // Hold current active call
   if (activeCallId.value && activeCallId.value !== callId) {
-    const currentActive = calls.value.find(c => c.id === activeCallId.value)
+    const currentActive = calls.value.find((c) => c.id === activeCallId.value)
     if (currentActive) {
       currentActive.isHeld = true
     }
@@ -438,14 +385,14 @@ const resumeCall = async (callId: string) => {
 const switchToCall = async (callId: string) => {
   // Hold current active call
   if (activeCallId.value) {
-    const currentActive = calls.value.find(c => c.id === activeCallId.value)
+    const currentActive = calls.value.find((c) => c.id === activeCallId.value)
     if (currentActive) {
       currentActive.isHeld = true
     }
   }
 
   // Resume target call
-  const call = calls.value.find(c => c.id === callId)
+  const call = calls.value.find((c) => c.id === callId)
   if (call) {
     call.isHeld = false
     activeCallId.value = callId
@@ -455,7 +402,7 @@ const switchToCall = async (callId: string) => {
 
 // Mute Call
 const muteCall = async (callId: string) => {
-  const call = calls.value.find(c => c.id === callId)
+  const call = calls.value.find((c) => c.id === callId)
   if (!call) return
 
   call.isMuted = !call.isMuted
@@ -464,7 +411,7 @@ const muteCall = async (callId: string) => {
 
 // Hangup Call
 const hangupCall = async (callId: string) => {
-  const call = calls.value.find(c => c.id === callId)
+  const call = calls.value.find((c) => c.id === callId)
   if (!call) return
 
   logHistory('📞', `Call ended: ${call.remoteUri}`)
@@ -475,7 +422,7 @@ const hangupCall = async (callId: string) => {
     activeCallId.value = null
 
     // Find first non-held call or any call
-    const nextActive = calls.value.find(c => !c.isHeld) || calls.value[0]
+    const nextActive = calls.value.find((c) => !c.isHeld) || calls.value[0]
     if (nextActive) {
       activeCallId.value = nextActive.id
       nextActive.isHeld = false
@@ -485,7 +432,7 @@ const hangupCall = async (callId: string) => {
 
 // Hangup All Calls
 const hangupAllCalls = () => {
-  calls.value.forEach(call => {
+  calls.value.forEach((call) => {
     stopCallTimer(call.id)
   })
   calls.value = []
@@ -497,8 +444,8 @@ const hangupAllCalls = () => {
 const swapCalls = () => {
   if (!hasActiveAndHeldCall.value) return
 
-  const activeCall = calls.value.find(c => c.id === activeCallId.value)
-  const heldCall = calls.value.find(c => c.isHeld)
+  const activeCall = calls.value.find((c) => c.id === activeCallId.value)
+  const heldCall = calls.value.find((c) => c.isHeld)
 
   if (activeCall && heldCall) {
     activeCall.isHeld = true
@@ -511,7 +458,7 @@ const swapCalls = () => {
 
 // Merge All Calls
 const mergeAllCalls = () => {
-  calls.value.forEach(call => {
+  calls.value.forEach((call) => {
     call.isHeld = false
   })
 
@@ -521,7 +468,7 @@ const mergeAllCalls = () => {
 // Remove Call
 const removeCall = (callId: string) => {
   stopCallTimer(callId)
-  const index = calls.value.findIndex(c => c.id === callId)
+  const index = calls.value.findIndex((c) => c.id === callId)
   if (index !== -1) {
     calls.value.splice(index, 1)
   }
@@ -530,7 +477,7 @@ const removeCall = (callId: string) => {
 // Call Timer
 const startCallTimer = (callId: string) => {
   const timer = window.setInterval(() => {
-    const call = calls.value.find(c => c.id === callId)
+    const call = calls.value.find((c) => c.id === callId)
     if (call) {
       const elapsed = Math.floor((Date.now() - call.startTime.getTime()) / 1000)
       call.duration = formatTime(elapsed)
@@ -604,14 +551,7 @@ const simulateThreeWay = () => {
   mergeAllCalls()
 }
 
-// Helpers
-const getCallIcon = (call: Call): string => {
-  if (call.state === 'incoming') return '📞'
-  if (call.state === 'ringing') return '📱'
-  if (call.isHeld) return '⏸️'
-  if (call.id === activeCallId.value) return '🔊'
-  return '📞'
-}
+// Helpers - removed icons
 
 const formatState = (state: string): string => {
   return state.charAt(0).toUpperCase() + state.slice(1)
@@ -633,7 +573,7 @@ const logHistory = (icon: string, message: string) => {
 
 // Cleanup
 onUnmounted(() => {
-  callTimers.forEach(timer => clearInterval(timer))
+  callTimers.forEach((timer) => clearInterval(timer))
   callTimers.clear()
 })
 </script>
@@ -817,7 +757,8 @@ button.danger:hover:not(:disabled) {
 }
 
 @keyframes pulse-border {
-  0%, 100% {
+  0%,
+  100% {
     border-color: #3b82f6;
   }
   50% {
@@ -828,13 +769,7 @@ button.danger:hover:not(:disabled) {
 .call-header {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
   margin-bottom: 1rem;
-}
-
-.call-icon {
-  font-size: 2rem;
-  flex-shrink: 0;
 }
 
 .call-info {
@@ -912,7 +847,8 @@ button.danger:hover:not(:disabled) {
 }
 
 @keyframes pulse-bg {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -1025,7 +961,7 @@ button.danger:hover:not(:disabled) {
   color: #374151;
 }
 
-.settings-grid input[type="checkbox"] {
+.settings-grid input[type='checkbox'] {
   width: auto;
 }
 
@@ -1041,7 +977,7 @@ button.danger:hover:not(:disabled) {
   color: #374151;
 }
 
-.setting-item input[type="range"] {
+.setting-item input[type='range'] {
   width: calc(100% - 3rem);
   margin-right: 0.5rem;
 }
@@ -1068,7 +1004,9 @@ button.danger:hover:not(:disabled) {
 }
 
 .history-icon {
-  font-size: 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .history-details {

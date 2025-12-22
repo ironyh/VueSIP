@@ -15,7 +15,7 @@ import {
   registerAccount,
   makeCall,
   waitForCallState,
-  answerCall,
+  answerCall as _answerCall,
   hangupCall,
 } from './helpers/sip-test-helpers';
 

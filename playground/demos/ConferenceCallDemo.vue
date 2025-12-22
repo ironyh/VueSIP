@@ -20,7 +20,7 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <h2>👥 Conference Call Management</h2>
+    <h2>Conference Call Management</h2>
     <p class="description">Manage multiple simultaneous calls and create conference sessions.</p>
 
     <!-- Connection Status -->
@@ -49,12 +49,8 @@
           @keyup.enter="addParticipant"
         />
       </div>
-      <button @click="addParticipant" :disabled="activeCalls.length >= 5">
-        ➕ Add to Conference
-      </button>
-      <div v-if="activeCalls.length >= 5" class="warning">
-        Maximum 5 participants reached
-      </div>
+      <button @click="addParticipant" :disabled="activeCalls.length >= 5">Add to Conference</button>
+      <div v-if="activeCalls.length >= 5" class="warning">Maximum 5 participants reached</div>
     </div>
 
     <!-- Active Calls List -->
@@ -88,21 +84,12 @@
               :disabled="call.state !== 'active' && !call.isHeld"
               class="btn-small"
             >
-              {{ call.isHeld ? '▶️ Resume' : '⏸️ Hold' }}
+              {{ call.isHeld ? 'Resume' : 'Hold' }}
             </button>
-            <button
-              @click="toggleMute(call)"
-              :disabled="call.state !== 'active'"
-              class="btn-small"
-            >
-              {{ call.isMuted ? '🔊 Unmute' : '🔇 Mute' }}
+            <button @click="toggleMute(call)" :disabled="call.state !== 'active'" class="btn-small">
+              {{ call.isMuted ? 'Unmute' : 'Mute' }}
             </button>
-            <button
-              @click="hangupCall(call.id)"
-              class="btn-small danger"
-            >
-              ❌ End
-            </button>
+            <button @click="hangupCall(call.id)" class="btn-small danger">End</button>
           </div>
 
           <!-- Audio Level Indicator -->
@@ -116,42 +103,15 @@
       <div class="conference-controls">
         <h4>Conference Actions</h4>
         <div class="button-group">
-          <button
-            @click="startConference"
-            :disabled="activeCalls.length < 2 || isConferenceActive"
-          >
-            🎤 Start Conference
+          <button @click="startConference" :disabled="activeCalls.length < 2 || isConferenceActive">
+            Start Conference
           </button>
-          <button
-            @click="stopConference"
-            :disabled="!isConferenceActive"
-          >
-            ⏹️ Stop Conference
-          </button>
-          <button
-            @click="holdAll"
-            :disabled="activeCalls.length === 0"
-          >
-            ⏸️ Hold All
-          </button>
-          <button
-            @click="resumeAll"
-            :disabled="activeCalls.length === 0"
-          >
-            ▶️ Resume All
-          </button>
-          <button
-            @click="muteAll"
-            :disabled="activeCalls.length === 0"
-          >
-            🔇 Mute All
-          </button>
-          <button
-            @click="hangupAll"
-            :disabled="activeCalls.length === 0"
-            class="danger"
-          >
-            📞 End All
+          <button @click="stopConference" :disabled="!isConferenceActive">Stop Conference</button>
+          <button @click="holdAll" :disabled="activeCalls.length === 0">Hold All</button>
+          <button @click="resumeAll" :disabled="activeCalls.length === 0">Resume All</button>
+          <button @click="muteAll" :disabled="activeCalls.length === 0">Mute All</button>
+          <button @click="hangupAll" :disabled="activeCalls.length === 0" class="danger">
+            End All
           </button>
         </div>
       </div>
@@ -161,14 +121,12 @@
         <h4>Selected Calls ({{ selectedCalls.length }})</h4>
         <div class="button-group">
           <button @click="mergeSelected" :disabled="selectedCalls.length < 2">
-            🔗 Merge Selected
+            Merge Selected
           </button>
           <button @click="transferSelected" :disabled="selectedCalls.length !== 2">
-            🔀 Transfer Selected
+            Transfer Selected
           </button>
-          <button @click="clearSelection">
-            Clear Selection
-          </button>
+          <button @click="clearSelection">Clear Selection</button>
         </div>
       </div>
 
@@ -178,7 +136,7 @@
         <div class="info-grid">
           <div class="info-item">
             <span class="label">Participants:</span>
-            <span class="value">{{ activeCalls.filter(c => !c.isHeld).length }}</span>
+            <span class="value">{{ activeCalls.filter((c) => !c.isHeld).length }}</span>
           </div>
           <div class="info-item">
             <span class="label">Duration:</span>
@@ -186,11 +144,11 @@
           </div>
           <div class="info-item">
             <span class="label">On Hold:</span>
-            <span class="value">{{ activeCalls.filter(c => c.isHeld).length }}</span>
+            <span class="value">{{ activeCalls.filter((c) => c.isHeld).length }}</span>
           </div>
           <div class="info-item">
             <span class="label">Muted:</span>
-            <span class="value">{{ activeCalls.filter(c => c.isMuted).length }}</span>
+            <span class="value">{{ activeCalls.filter((c) => c.isMuted).length }}</span>
           </div>
         </div>
       </div>
@@ -200,12 +158,8 @@
     <div v-if="isConnected" class="quick-actions">
       <h3>Quick Scenarios</h3>
       <div class="button-group">
-        <button @click="simulateIncoming">
-          📞 Simulate Incoming Call
-        </button>
-        <button @click="addMultipleParticipants">
-          👥 Add 3 Participants
-        </button>
+        <button @click="simulateIncoming">Simulate Incoming Call</button>
+        <button @click="addMultipleParticipants">Add 3 Participants</button>
       </div>
     </div>
   </div>
@@ -228,12 +182,22 @@ const password = ref('')
 const newParticipantUri = ref('sip:1000@example.com')
 
 // SIP Client - use shared playground instance
-const { connectionState: realConnectionState, isConnected: realIsConnected, isConnecting, connect, disconnect, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  isConnecting: _isConnecting,
+  connect,
+  disconnect,
+  getClient: _getClient,
+} = playgroundSipClient
 
 // Effective values for simulation
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
@@ -270,7 +234,7 @@ const formatTime = (seconds: number): string => {
 }
 
 // Connection Toggle
-const toggleConnection = async () => {
+const _toggleConnection = async () => {
   if (isConnected.value) {
     await disconnect()
     hangupAll()
@@ -306,14 +270,14 @@ const addParticipant = async () => {
 
   // Simulate call progression
   setTimeout(() => {
-    const call = activeCalls.value.find(c => c.id === callId)
+    const call = activeCalls.value.find((c) => c.id === callId)
     if (call) {
       call.state = 'ringing'
     }
   }, 500)
 
   setTimeout(() => {
-    const call = activeCalls.value.find(c => c.id === callId)
+    const call = activeCalls.value.find((c) => c.id === callId)
     if (call) {
       call.state = 'active'
       startCallTimer(callId)
@@ -330,7 +294,7 @@ const addParticipant = async () => {
 // Start Call Timer
 const startCallTimer = (callId: string) => {
   const timer = window.setInterval(() => {
-    const call = activeCalls.value.find(c => c.id === callId)
+    const call = activeCalls.value.find((c) => c.id === callId)
     if (call) {
       const elapsed = Math.floor((Date.now() - call.startTime.getTime()) / 1000)
       call.duration = formatTime(elapsed)
@@ -351,7 +315,7 @@ const stopCallTimer = (callId: string) => {
 // Simulate Audio Level
 const startAudioLevelSimulation = (callId: string) => {
   const interval = setInterval(() => {
-    const call = activeCalls.value.find(c => c.id === callId)
+    const call = activeCalls.value.find((c) => c.id === callId)
     if (!call || call.state !== 'active' || call.isMuted) {
       call && (call.audioLevel = 0)
       return
@@ -379,7 +343,7 @@ const toggleMute = (call: ConferenceCall) => {
 
 // Hangup Call
 const hangupCall = (callId: string) => {
-  const index = activeCalls.value.findIndex(c => c.id === callId)
+  const index = activeCalls.value.findIndex((c) => c.id === callId)
   if (index !== -1) {
     stopCallTimer(callId)
     activeCalls.value.splice(index, 1)
@@ -405,7 +369,7 @@ const startConference = () => {
   conferenceStartTime.value = new Date()
 
   // Resume all calls
-  activeCalls.value.forEach(call => {
+  activeCalls.value.forEach((call) => {
     if (call.isHeld) {
       call.isHeld = false
       call.state = 'active'
@@ -437,7 +401,7 @@ const stopConference = () => {
 }
 
 const holdAll = () => {
-  activeCalls.value.forEach(call => {
+  activeCalls.value.forEach((call) => {
     if (!call.isHeld) {
       call.isHeld = true
       call.state = 'held'
@@ -447,7 +411,7 @@ const holdAll = () => {
 }
 
 const resumeAll = () => {
-  activeCalls.value.forEach(call => {
+  activeCalls.value.forEach((call) => {
     if (call.isHeld) {
       call.isHeld = false
       call.state = 'active'
@@ -457,14 +421,14 @@ const resumeAll = () => {
 }
 
 const muteAll = () => {
-  activeCalls.value.forEach(call => {
+  activeCalls.value.forEach((call) => {
     call.isMuted = true
   })
   console.log('All calls muted')
 }
 
 const hangupAll = () => {
-  activeCalls.value.forEach(call => {
+  activeCalls.value.forEach((call) => {
     stopCallTimer(call.id)
   })
   activeCalls.value = []
@@ -517,24 +481,20 @@ const simulateIncoming = () => {
 }
 
 const addMultipleParticipants = async () => {
-  const uris = [
-    'sip:alice@example.com',
-    'sip:bob@example.com',
-    'sip:charlie@example.com',
-  ]
+  const uris = ['sip:alice@example.com', 'sip:bob@example.com', 'sip:charlie@example.com']
 
   for (const uri of uris) {
     if (activeCalls.value.length >= 5) break
     newParticipantUri.value = uri
     await addParticipant()
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await new Promise((resolve) => setTimeout(resolve, 300))
   }
 }
 
 // Cleanup
 onUnmounted(() => {
   hangupAll()
-  callTimers.forEach(timer => clearInterval(timer))
+  callTimers.forEach((timer) => clearInterval(timer))
   callTimers.clear()
   if (conferenceTimer.value) {
     clearInterval(conferenceTimer.value)
@@ -549,7 +509,7 @@ onUnmounted(() => {
 }
 
 .description {
-  color: #666;
+  color: var(--text-secondary, #666);
   margin-bottom: 2rem;
 }
 
@@ -569,33 +529,33 @@ onUnmounted(() => {
 }
 
 .status-badge.connected {
-  background-color: #10b981;
-  color: white;
+  background-color: var(--success, #10b981);
+  color: var(--bg-primary, white);
 }
 
 .status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
+  background-color: var(--text-muted, #6b7280);
+  color: var(--bg-primary, white);
 }
 
 .status-badge.connecting {
-  background-color: #f59e0b;
-  color: white;
+  background-color: var(--warning, #f59e0b);
+  color: var(--bg-primary, white);
 }
 
 .stats {
   display: flex;
   gap: 1.5rem;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-muted, #6b7280);
 }
 
 .config-section,
 .add-participant-section,
 .active-calls-section,
 .quick-actions {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-secondary, #f9fafb);
+  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -627,15 +587,15 @@ h4 {
 .form-group input {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 4px;
   font-size: 0.875rem;
 }
 
 button {
   padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--primary, #667eea);
+  color: var(--bg-primary, white);
   border: none;
   border-radius: 4px;
   font-size: 0.875rem;
@@ -645,20 +605,20 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background-color: #2563eb;
+  background-color: var(--primary-hover, #5568d3);
 }
 
 button:disabled {
-  background-color: #9ca3af;
+  background-color: var(--text-muted, #6b7280);
   cursor: not-allowed;
 }
 
 button.danger {
-  background-color: #ef4444;
+  background-color: var(--danger, #ef4444);
 }
 
 button.danger:hover:not(:disabled) {
-  background-color: #dc2626;
+  background-color: var(--danger, #ef4444);
 }
 
 .btn-small {
@@ -668,7 +628,7 @@ button.danger:hover:not(:disabled) {
 
 .warning {
   margin-top: 0.5rem;
-  color: #f59e0b;
+  color: var(--warning, #f59e0b);
   font-size: 0.875rem;
 }
 
@@ -680,8 +640,8 @@ button.danger:hover:not(:disabled) {
 }
 
 .call-card {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--bg-primary, white);
+  border: 2px solid var(--border-color, #e5e7eb);
   border-radius: 8px;
   padding: 1rem;
   transition: all 0.2s;
@@ -689,12 +649,12 @@ button.danger:hover:not(:disabled) {
 
 .call-card.held {
   opacity: 0.6;
-  background: #f3f4f6;
+  background: var(--bg-secondary, #f9fafb);
 }
 
 .call-card.selected {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: var(--primary, #667eea);
+  background: var(--bg-secondary, #f9fafb);
 }
 
 .call-header {
@@ -704,7 +664,7 @@ button.danger:hover:not(:disabled) {
   margin-bottom: 0.75rem;
 }
 
-.call-header input[type="checkbox"] {
+.call-header input[type='checkbox'] {
   margin-top: 0.25rem;
 }
 
@@ -730,27 +690,27 @@ button.danger:hover:not(:disabled) {
 }
 
 .state-badge.connecting {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--warning, #f59e0b);
 }
 
 .state-badge.ringing {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--primary, #667eea);
 }
 
 .state-badge.active {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--success, #10b981);
 }
 
 .state-badge.held {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--text-muted, #6b7280);
 }
 
 .duration {
-  color: #6b7280;
+  color: var(--text-muted, #6b7280);
 }
 
 .call-controls {
@@ -762,20 +722,20 @@ button.danger:hover:not(:disabled) {
 .audio-level {
   margin-top: 0.75rem;
   height: 4px;
-  background: #e5e7eb;
+  background: var(--border-color, #e5e7eb);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .level-bar {
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #3b82f6);
+  background: linear-gradient(90deg, var(--success, #10b981), var(--primary, #667eea));
   transition: width 0.2s;
 }
 
 .conference-controls,
 .selected-actions {
-  background: white;
+  background: var(--bg-primary, white);
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -788,8 +748,8 @@ button.danger:hover:not(:disabled) {
 }
 
 .conference-info {
-  background: #ecfdf5;
-  border: 1px solid #10b981;
+  background: var(--bg-secondary, #f9fafb);
+  border: 1px solid var(--success, #10b981);
   border-radius: 6px;
   padding: 1rem;
   margin-top: 1rem;
@@ -808,11 +768,11 @@ button.danger:hover:not(:disabled) {
 
 .info-item .label {
   font-weight: 500;
-  color: #065f46;
+  color: var(--success, #10b981);
 }
 
 .info-item .value {
-  color: #064e3b;
+  color: var(--text-primary, #333);
   font-weight: 600;
 }
 </style>

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * useSipRegistration composable unit tests
  * Comprehensive tests for SIP registration lifecycle, auto-refresh, and retry logic
@@ -9,7 +9,7 @@ import { ref } from 'vue'
 import { useSipRegistration } from '@/composables/useSipRegistration'
 import { RegistrationState } from '@/types/sip.types'
 import { registrationStore } from '@/stores/registrationStore'
-import { REGISTRATION_CONSTANTS, RETRY_CONFIG } from '@/composables/constants'
+import { REGISTRATION_CONSTANTS as _REGISTRATION_CONSTANTS, RETRY_CONFIG } from '@/composables/constants'
 import type { SipClient } from '@/core/SipClient'
 
 // Mock the logger

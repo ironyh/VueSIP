@@ -41,10 +41,10 @@ const addEvent = (type: string, data: string) => {
 }
 
 // Simulate audio levels
-let levelInterval: ReturnType<typeof setInterval> | null = null
+let _levelInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  levelInterval = setInterval(() => {
+  _levelInterval = setInterval(() => {
     if (!audioState.isMuted) {
       audioState.inputLevel = Math.floor(Math.random() * 40) + 20 + (audioState.inputVolume / 4)
       audioState.outputLevel = Math.floor(Math.random() * 30) + 30 + (audioState.outputVolume / 4)
@@ -250,33 +250,33 @@ enumerateDevices()
       <h3>API Usage</h3>
       <div class="code-preview">
         <code>
-<span class="keyword">import</span> { useAudioDevices } <span class="keyword">from</span> <span class="string">'vuesip'</span>
+          <span class="keyword">import</span> { useAudioDevices } <span class="keyword">from</span> <span class="string">'vuesip'</span>
 
-<span class="keyword">const</span> {
-  audioInputs,
-  audioOutputs,
-  selectedInput,
-  selectedOutput,
-  inputVolume,
-  outputVolume,
-  <span class="function">setInputDevice</span>,
-  <span class="function">setOutputDevice</span>,
-  <span class="function">setInputVolume</span>,
-  <span class="function">setOutputVolume</span>,
-  <span class="function">toggleMute</span>,
-  isMuted
-} = <span class="function">useAudioDevices</span>()
+          <span class="keyword">const</span> {
+          audioInputs,
+          audioOutputs,
+          selectedInput,
+          selectedOutput,
+          inputVolume,
+          outputVolume,
+          <span class="function">setInputDevice</span>,
+          <span class="function">setOutputDevice</span>,
+          <span class="function">setInputVolume</span>,
+          <span class="function">setOutputVolume</span>,
+          <span class="function">toggleMute</span>,
+          isMuted
+          } = <span class="function">useAudioDevices</span>()
 
-<span class="comment">// Change devices</span>
-<span class="keyword">await</span> <span class="function">setInputDevice</span>(<span class="string">'device-id'</span>)
-<span class="keyword">await</span> <span class="function">setOutputDevice</span>(<span class="string">'device-id'</span>)
+          <span class="comment">// Change devices</span>
+          <span class="keyword">await</span> <span class="function">setInputDevice</span>(<span class="string">'device-id'</span>)
+          <span class="keyword">await</span> <span class="function">setOutputDevice</span>(<span class="string">'device-id'</span>)
 
-<span class="comment">// Adjust volume</span>
-<span class="function">setInputVolume</span>(<span class="number">0.8</span>)
-<span class="function">setOutputVolume</span>(<span class="number">0.7</span>)
+          <span class="comment">// Adjust volume</span>
+          <span class="function">setInputVolume</span>(<span class="number">0.8</span>)
+          <span class="function">setOutputVolume</span>(<span class="number">0.7</span>)
 
-<span class="comment">// Toggle mute</span>
-<span class="function">toggleMute</span>()
+          <span class="comment">// Toggle mute</span>
+          <span class="function">toggleMute</span>()
         </code>
       </div>
     </div>
@@ -285,14 +285,14 @@ enumerateDevices()
       <h3>Current Constraints</h3>
       <div class="code-preview">
         <code>
-{
-  audio: {
-    deviceId: <span class="string">"{{ audioState.inputDevice }}"</span>,
-    echoCancellation: <span class="keyword">{{ audioState.echoCancellation }}</span>,
-    noiseSuppression: <span class="keyword">{{ audioState.noiseSuppression }}</span>,
-    autoGainControl: <span class="keyword">{{ audioState.autoGainControl }}</span>
-  }
-}
+          {
+          audio: {
+          deviceId: <span class="string">"{{ audioState.inputDevice }}"</span>,
+          echoCancellation: <span class="keyword">{{ audioState.echoCancellation }}</span>,
+          noiseSuppression: <span class="keyword">{{ audioState.noiseSuppression }}</span>,
+          autoGainControl: <span class="keyword">{{ audioState.autoGainControl }}</span>
+          }
+          }
         </code>
       </div>
     </div>

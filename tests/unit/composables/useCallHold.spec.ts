@@ -87,7 +87,7 @@ describe('useCallHold', () => {
     it('should successfully place call on hold', async () => {
       const { holdCall, holdState, isLocalHold } = useCallHold(sessionRef)
 
-      const promise = holdCall()
+      const _promise = holdCall()
 
       // State should be Holding during operation
       expect(holdState.value).toBe(HoldState.Holding)
@@ -153,7 +153,7 @@ describe('useCallHold', () => {
       // Set initial error
       holdError.value = 'Previous error'
 
-      const promise = holdCall()
+      const _promise = holdCall()
 
       // Simulate successful hold event
       mockSession.eventBus!.emit('call:hold', {
@@ -174,7 +174,7 @@ describe('useCallHold', () => {
 
       const { holdCall, holdState, holdError } = useCallHold(sessionRef)
 
-      const promise = holdCall()
+      const _promise = holdCall()
 
       // Fast-forward time to trigger timeout
       vi.advanceTimersByTime(5000)
@@ -204,7 +204,7 @@ describe('useCallHold', () => {
       expect(holdState.value).toBe(HoldState.Held)
 
       // Now resume
-      const resumePromise = resumeCall()
+      const _resumePromise = resumeCall()
 
       // State should be Resuming during operation
       expect(holdState.value).toBe(HoldState.Resuming)
@@ -271,7 +271,7 @@ describe('useCallHold', () => {
       // Make unhold() hang indefinitely
       mockSession.unhold = vi.fn().mockImplementation(() => new Promise(() => {}))
 
-      const promise = resumeCall()
+      const _promise = resumeCall()
 
       // Fast-forward time to trigger timeout
       vi.advanceTimersByTime(5000)
@@ -407,7 +407,7 @@ describe('useCallHold', () => {
     })
 
     it('should set up listeners on new session', async () => {
-      const { holdState } = useCallHold(sessionRef)
+      const { holdState: _holdState } = useCallHold(sessionRef)
 
       const newMockSession = createMockCallSession()
       const onSpy = vi.spyOn(newMockSession.eventBus!, 'on')
@@ -471,7 +471,7 @@ describe('useCallHold', () => {
       const { holdCall, clearHold, holdState, holdError, isOnHold } = useCallHold(sessionRef)
 
       // Place on hold and set error
-      const promise = holdCall()
+      const _promise = holdCall()
       mockSession.eventBus!.emit('call:hold', {
         originator: 'local',
         timestamp: new Date(),
@@ -498,7 +498,7 @@ describe('useCallHold', () => {
 
       // Start hold operation (will set timeout)
       mockSession.hold = vi.fn().mockImplementation(() => new Promise(() => {}))
-      const promise = holdCall()
+      const _promise = holdCall()
 
       // Clear hold state (should clear timeout)
       clearHold()
@@ -529,7 +529,7 @@ describe('useCallHold', () => {
       const { holdCall, holdState, isOnHold } = useCallHold(sessionRef)
 
       // Place on hold
-      const promise = holdCall()
+      const _promise = holdCall()
       mockSession.eventBus!.emit('call:hold', {
         originator: 'local',
         timestamp: new Date(),
@@ -554,7 +554,7 @@ describe('useCallHold', () => {
 
       expect(isOnHold.value).toBe(false)
 
-      const promise = holdCall()
+      const _promise = holdCall()
       mockSession.eventBus!.emit('call:hold', {
         originator: 'local',
         timestamp: new Date(),
@@ -571,7 +571,7 @@ describe('useCallHold', () => {
 
       // Start hold operation (before event)
       mockSession.hold = vi.fn().mockImplementation(() => new Promise(() => {}))
-      const promise = holdCall()
+      const _promise = holdCall()
 
       await nextTick()
 
@@ -593,7 +593,7 @@ describe('useCallHold', () => {
 
       // Start resume operation (before event)
       mockSession.unhold = vi.fn().mockImplementation(() => new Promise(() => {}))
-      const resumePromise = resumeCall()
+      const _resumePromise = resumeCall()
 
       await nextTick()
 

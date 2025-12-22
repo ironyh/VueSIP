@@ -23,9 +23,7 @@
     <!-- Not Connected State -->
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>Paging & Intercom</h3>
-      <p class="info-text">
-        Connect to Asterisk via AMI to use paging and intercom features.
-      </p>
+      <p class="info-text">Connect to Asterisk via AMI to use paging and intercom features.</p>
 
       <div class="form-group">
         <label for="ami-url">AMI WebSocket URL</label>
@@ -39,11 +37,7 @@
         <small>amiws WebSocket proxy URL</small>
       </div>
 
-      <button
-        class="btn btn-primary"
-        :disabled="!amiUrl || connecting"
-        @click="handleConnect"
-      >
+      <button class="btn btn-primary" :disabled="!amiUrl || connecting" @click="handleConnect">
         {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
       </button>
 
@@ -52,8 +46,8 @@
       </div>
 
       <div class="demo-tip">
-        <strong>Tip:</strong> This demo requires Asterisk with paging/intercom
-        configured (Page application or PJSIP auto-answer support).
+        <strong>Tip:</strong> This demo requires Asterisk with paging/intercom configured (Page
+        application or PJSIP auto-answer support).
       </div>
     </div>
 
@@ -68,9 +62,7 @@
         <div class="status-item">
           <span>Active Pages: {{ activeSessions.length }}</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Paging Controls -->
@@ -125,51 +117,31 @@
         </div>
 
         <div class="action-buttons">
-          <button
-            class="btn btn-primary"
-            :disabled="!pageTarget || isPaging"
-            @click="startPage"
-          >
-            {{ pageMode === 'duplex' ? '🎤 Start Intercom' : '📢 Start Page' }}
+          <button class="btn btn-primary" :disabled="!pageTarget || isPaging" @click="startPage">
+            {{ pageMode === 'duplex' ? 'Start Intercom' : 'Start Page' }}
           </button>
-          <button
-            v-if="isPaging"
-            class="btn btn-danger"
-            @click="stopPage"
-          >
-            ⏹️ Stop Page
-          </button>
+          <button v-if="isPaging" class="btn btn-danger" @click="stopPage">Stop Page</button>
         </div>
 
         <!-- Active Paging Sessions -->
         <div v-if="activeSessions.length > 0" class="active-sessions">
           <h4>Active Paging Sessions</h4>
-          <div
-            v-for="session in activeSessions"
-            :key="session.id"
-            class="session-item"
-          >
+          <div v-for="session in activeSessions" :key="session.id" class="session-item">
             <div class="session-info">
               <span class="session-target">{{ session.target }}</span>
               <span class="session-mode" :class="session.mode">
-                {{ session.mode === 'duplex' ? '🎤 Intercom' : '📢 Page' }}
+                {{ session.mode === 'duplex' ? 'Intercom' : 'Page' }}
               </span>
               <span class="session-duration">{{ formatDuration(session.startTime) }}</span>
             </div>
-            <button class="btn btn-sm btn-danger" @click="endSession(session.id)">
-              End
-            </button>
+            <button class="btn btn-sm btn-danger" @click="endSession(session.id)">End</button>
           </div>
         </div>
 
         <!-- Page History -->
         <div v-if="pageHistory.length > 0" class="page-history">
           <h4>Recent Pages</h4>
-          <div
-            v-for="(page, index) in pageHistory.slice(0, 10)"
-            :key="index"
-            class="history-item"
-          >
+          <div v-for="(page, index) in pageHistory.slice(0, 10)" :key="index" class="history-item">
             <span class="history-target">{{ page.target }}</span>
             <span class="history-mode">{{ page.mode }}</span>
             <span class="history-time">{{ formatTime(page.endTime) }}</span>
@@ -184,29 +156,21 @@
         <p class="info-text">Define groups of extensions for quick paging.</p>
 
         <div class="groups-list">
-          <div
-            v-for="group in pageGroups"
-            :key="group.id"
-            class="group-card"
-          >
+          <div v-for="group in pageGroups" :key="group.id" class="group-card">
             <div class="group-info">
               <span class="group-name">{{ group.name }}</span>
               <span class="group-members">{{ group.extensions.length }} extensions</span>
             </div>
             <div class="group-actions">
-              <button class="btn btn-sm btn-primary" @click="pageGroup(group)">
-                📢 Page
-              </button>
+              <button class="btn btn-sm btn-primary" @click="pageGroup(group)">Page</button>
               <button class="btn btn-sm btn-secondary" @click="intercomGroup(group)">
-                🎤 Intercom
+                Intercom
               </button>
             </div>
           </div>
         </div>
 
-        <button class="btn btn-secondary" @click="showAddGroupModal = true">
-          + Add Group
-        </button>
+        <button class="btn btn-secondary" @click="showAddGroupModal = true">+ Add Group</button>
       </div>
 
       <!-- Code Example -->
@@ -234,7 +198,12 @@ const amiUrl = ref(localStorage.getItem('vuesip-ami-url') || '')
 const connecting = ref(false)
 const connectionError = ref('')
 
-const { isConnected: realIsAmiConnected, connect, disconnect, getClient: _getClient } = playgroundAmiClient
+const {
+  isConnected: realIsAmiConnected,
+  connect,
+  disconnect,
+  getClient: _getClient,
+} = playgroundAmiClient
 
 // Effective values for simulation
 const isAmiConnected = computed(() =>
@@ -248,7 +217,9 @@ const pageTimeout = ref(30)
 const callerId = ref('Paging System')
 const isPaging = ref(false)
 const activeSessions = ref<Array<{ id: string; target: string; mode: string; startTime: Date }>>([])
-const pageHistory = ref<Array<{ target: string; mode: string; endTime: Date; duration: number }>>([])
+const pageHistory = ref<Array<{ target: string; mode: string; endTime: Date; duration: number }>>(
+  []
+)
 const pageGroups = ref<PageGroup[]>([
   { id: '1', name: 'All Sales', extensions: ['1001', '1002', '1003'] },
   { id: '2', name: 'Support Team', extensions: ['2001', '2002'] },
@@ -314,7 +285,7 @@ function stopPage() {
 }
 
 function endSession(sessionId: string) {
-  const index = activeSessions.value.findIndex(s => s.id === sessionId)
+  const index = activeSessions.value.findIndex((s) => s.id === sessionId)
   if (index !== -1) {
     const session = activeSessions.value[index]
     const duration = Math.floor((Date.now() - session.startTime.getTime()) / 1000)

@@ -45,3 +45,45 @@ export * from './plugin.types'
 
 // OAuth2 types
 export * from './oauth.types'
+
+// Common AMI patterns and shared types
+// Common AMI patterns and shared types
+// Export named types to avoid conflicts with core types
+export type {
+  AmiResult,
+  AmiAsyncResult,
+  PaginationOptions,
+  SortOptions,
+  FilterOptions,
+  DateRangeFilter,
+  QueryOptions,
+  EventCleanup,
+  EventCallback,
+  EventSubscriptionOptions,
+  LoadingState,
+  // ConnectionState (conflict with sip.types),
+  BaseAmiOptions,
+  BaseAmiReturn,
+  StatsPeriod,
+  BaseStats,
+  PercentageMetric,
+  DurationMetric,
+  RateMetric,
+  // ValidationResult (conflict with config.types),
+  TransformFunction,
+  ValidatorFunction,
+  TimestampFields,
+  CallTimestamps,
+  SessionTimestamps,
+  AmiResultTypes,
+  AmiQueryTypes,
+  AmiStateTypes,
+  AmiMetricTypes,
+  AmiTimestampTypes,
+} from './common'
+
+// Re-export conflicting types with aliases if needed for AMI usage
+export type {
+  ConnectionState as AmiCommonConnectionState,
+  ValidationResult as AmiValidationResult,
+} from './common'

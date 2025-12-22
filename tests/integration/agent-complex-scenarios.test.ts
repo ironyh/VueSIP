@@ -64,7 +64,7 @@ describe('Agent Complex Scenarios Integration Tests', () => {
   describe('Call Transfer Scenarios', () => {
     it('should handle blind call transfer', async () => {
       // Setup: Alice calls Bob
-      const { sessionId } = await manager.setupCall('alice', 'bob', true)
+      const { sessionId: _sessionId } = await manager.setupCall('alice', 'bob', true)
 
       // Bob transfers the call to Charlie (blind transfer)
       const bobCalls = bob.call.getActiveCalls()
@@ -76,13 +76,13 @@ describe('Agent Complex Scenarios Integration Tests', () => {
 
     it('should handle attended call transfer', async () => {
       // Step 1: Alice calls Bob
-      const call1 = await manager.setupCall('alice', 'bob', true)
+      const _call1 = await manager.setupCall('alice', 'bob', true)
 
       // Step 2: Bob holds Alice and calls Charlie
       const bobCallWithAlice = bob.call.getActiveCalls()[0]
       await bob.call.holdCall(bobCallWithAlice.id)
 
-      const bobCallWithCharlie = await bob.call.makeCall(charlie.getIdentity().uri)
+      const _bobCallWithCharlie = await bob.call.makeCall(charlie.getIdentity().uri)
 
       // Step 3: Charlie answers
       charlie.getMockServer().simulateIncomingCall(
@@ -128,8 +128,8 @@ describe('Agent Complex Scenarios Integration Tests', () => {
   describe('Simultaneous Calls', () => {
     it('should handle agent making multiple simultaneous calls', async () => {
       // Alice calls Bob and Charlie simultaneously
-      const callToBob = await alice.call.makeCall(bob.getIdentity().uri)
-      const callToCharlie = await alice.call.makeCall(charlie.getIdentity().uri)
+      const _callToBob = await alice.call.makeCall(bob.getIdentity().uri)
+      const _callToCharlie = await alice.call.makeCall(charlie.getIdentity().uri)
 
       // Verify Alice has 2 active calls
       expect(alice.call.getActiveCalls()).toHaveLength(2)
@@ -140,13 +140,13 @@ describe('Agent Complex Scenarios Integration Tests', () => {
 
     it('should handle agent receiving multiple simultaneous calls', async () => {
       // Bob receives calls from Alice and Charlie
-      const aliceCallSession = alice.getMockServer().createSession()
+      const _aliceCallSession = alice.getMockServer().createSession()
       bob.getMockServer().simulateIncomingCall(
         alice.getIdentity().uri,
         bob.getIdentity().uri
       )
 
-      const charlieCallSession = charlie.getMockServer().createSession()
+      const _charlieCallSession = charlie.getMockServer().createSession()
       bob.getMockServer().simulateIncomingCall(
         charlie.getIdentity().uri,
         bob.getIdentity().uri
@@ -216,7 +216,7 @@ describe('Agent Complex Scenarios Integration Tests', () => {
   describe('Call Hold and Resume Scenarios', () => {
     it('should handle call hold and resume', async () => {
       // Alice calls Bob
-      const { sessionId } = await manager.setupCall('alice', 'bob', true)
+      const { sessionId: _sessionId } = await manager.setupCall('alice', 'bob', true)
 
       // Bob holds the call
       const bobCall = bob.call.getActiveCalls()[0]
@@ -238,7 +238,7 @@ describe('Agent Complex Scenarios Integration Tests', () => {
     })
 
     it('should handle multiple holds and resumes', async () => {
-      const { sessionId } = await manager.setupCall('alice', 'bob', true)
+      const { sessionId: _sessionId } = await manager.setupCall('alice', 'bob', true)
 
       const bobCall = bob.call.getActiveCalls()[0]
 
@@ -290,7 +290,7 @@ describe('Agent Complex Scenarios Integration Tests', () => {
 
   describe('DTMF Scenarios', () => {
     it('should send DTMF sequence for PIN entry', async () => {
-      const { sessionId } = await manager.setupCall('alice', 'bob', true)
+      const { sessionId: _sessionId } = await manager.setupCall('alice', 'bob', true)
 
       const aliceCall = alice.call.getActiveCalls()[0]
 
@@ -306,7 +306,7 @@ describe('Agent Complex Scenarios Integration Tests', () => {
     })
 
     it('should send DTMF for menu navigation', async () => {
-      const { sessionId } = await manager.setupCall('alice', 'bob', true)
+      const { sessionId: _sessionId } = await manager.setupCall('alice', 'bob', true)
 
       const aliceCall = alice.call.getActiveCalls()[0]
 
@@ -322,7 +322,7 @@ describe('Agent Complex Scenarios Integration Tests', () => {
     })
 
     it('should handle rapid DTMF input', async () => {
-      const { sessionId } = await manager.setupCall('alice', 'bob', true)
+      const { sessionId: _sessionId } = await manager.setupCall('alice', 'bob', true)
 
       const aliceCall = alice.call.getActiveCalls()[0]
 
@@ -436,7 +436,7 @@ describe('Agent Complex Scenarios Integration Tests', () => {
       await aliceWithNetwork.register()
 
       // Start call
-      const session = await aliceWithNetwork.call.makeCall(bob.getIdentity().uri)
+      const _session = await aliceWithNetwork.call.makeCall(bob.getIdentity().uri)
 
       // Simulate network interruption
       const simulator = aliceWithNetwork.getNetworkSimulator()
@@ -504,8 +504,8 @@ describe('Agent Complex Scenarios Integration Tests', () => {
     it('should handle agent managing many simultaneous operations', async () => {
       // Alice makes calls to multiple agents
       const callToBob = await alice.call.makeCall(bob.getIdentity().uri)
-      const callToCharlie = await alice.call.makeCall(charlie.getIdentity().uri)
-      const callToDavid = await alice.call.makeCall(david.getIdentity().uri)
+      const _callToCharlie = await alice.call.makeCall(charlie.getIdentity().uri)
+      const _callToDavid = await alice.call.makeCall(david.getIdentity().uri)
 
       // Send messages while on calls
       await manager.sendMessageBetweenAgents('alice', 'bob', 'Hello!')

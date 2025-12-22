@@ -1,5 +1,14 @@
 /**
- * useAmiQueues composable unit tests
+ * Tests for useAmiQueues composable
+ *
+ * Queue management composable providing:
+ * - Real-time queue status monitoring and updates
+ * - Member management (pause/unpause, add/remove, penalty setting)
+ * - Caller tracking (join/leave/abandon events)
+ * - Queue metrics and statistics (service level, wait times, availability)
+ * - Computed aggregates across all queues
+ *
+ * @see src/composables/useAmiQueues.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -19,10 +28,46 @@ import type {
   AmiQueueCallerAbandonEvent,
 } from '@/types/ami.types'
 
+/**
+ * Test fixtures for consistent test data across all queue test suites
+ */
+const TEST_FIXTURES = {
+  queues: {
+    sales: 'sales-queue',
+    support: 'support-queue',
+    internal: 'internal-queue',
+  },
+  members: {
+    sip1000: 'SIP/1000',
+    sip2000: 'SIP/2000',
+    sip3000: 'SIP/3000',
+    local1000: 'Local/1000@context',
+  },
+  pauseReasons: {
+    default: ['Break', 'Lunch', 'Meeting', 'Training'],
+    custom: ['Coffee', 'Meeting', 'Training'],
+  },
+  errors: {
+    clientNotConnected: 'AMI client not connected',
+    networkError: 'Network error',
+  },
+  serverId: 1,
+} as const
+
 // Store event handlers for simulation
 const eventHandlers: Record<string, Function[]> = {}
 
-// Create mock AMI client
+/**
+ * Factory function: Create mock AMI client with queue-specific methods
+ *
+ * Provides:
+ * - Queue status retrieval
+ * - Queue summary statistics
+ * - Member management (pause, add, remove, penalty)
+ * - Event subscription tracking
+ *
+ * @returns Mock AmiClient instance
+ */
 const createMockClient = (): AmiClient => {
   Object.keys(eventHandlers).forEach(key => delete eventHandlers[key])
 
@@ -45,12 +90,20 @@ const createMockClient = (): AmiClient => {
   } as unknown as AmiClient
 }
 
-// Helper to trigger client events
+/**
+ * Helper: Trigger client events for testing real-time updates
+ */
 function triggerClientEvent(event: string, ...args: unknown[]) {
   eventHandlers[event]?.forEach(handler => handler(...args))
 }
 
-// Helper to create mock queue
+/**
+ * Factory function: Create mock queue with sensible defaults
+ *
+ * @param name - Queue name
+ * @param overrides - Optional property overrides
+ * @returns QueueInfo object
+ */
 function createMockQueue(name: string, overrides?: Partial<QueueInfo>): QueueInfo {
   return {
     name,
@@ -66,12 +119,18 @@ function createMockQueue(name: string, overrides?: Partial<QueueInfo>): QueueInf
     members: [],
     entries: [],
     lastUpdated: new Date(),
-    serverId: 1,
+    serverId: TEST_FIXTURES.serverId,
     ...overrides,
   }
 }
 
-// Helper to create mock member
+/**
+ * Factory function: Create mock queue member with sensible defaults
+ *
+ * @param iface - Member interface (e.g., SIP/1000)
+ * @param overrides - Optional property overrides
+ * @returns QueueMember object
+ */
 function createMockMember(iface: string, overrides?: Partial<QueueMember>): QueueMember {
   return {
     queue: 'test-queue',
@@ -91,10 +150,11 @@ function createMockMember(iface: string, overrides?: Partial<QueueMember>): Queu
     pausedReason: '',
     wrapupTime: 0,
     ringinuse: true,
-    serverId: 1,
+    serverId: TEST_FIXTURES.serverId,
     ...overrides,
   }
 }
+
 
 describe('useAmiQueues', () => {
   let mockClient: AmiClient
@@ -109,75 +169,120 @@ describe('useAmiQueues', () => {
     vi.clearAllMocks()
   })
 
-  describe('initial state', () => {
-    it('should have empty queues initially', () => {
-      const { queues, queueList } = useAmiQueues(mockClient)
+  /**
+   * Initialization Tests
+   * Verify composable starts with correct initial state
+   */
+  describe('Initialization', () => {
+    describe.each([
+      {
+        description: 'valid client',
+        client: () => createMockClient(),
+        expectedQueues: 0,
+        expectedLoading: false,
+        expectedError: null,
+      },
+      {
+        description: 'null client',
+        client: null,
+        expectedQueues: 0,
+        expectedLoading: false,
+        expectedError: null,
+      },
+    ])('with $description', ({ client, expectedQueues, expectedLoading, expectedError }) => {
+      it(`should initialize with ${expectedQueues} queues, loading=${expectedLoading}, error=${expectedError}`, () => {
+        const actualClient = typeof client === 'function' ? client() : client
+        const { queues, queueList, loading, error } = useAmiQueues(actualClient)
 
-      expect(queues.value.size).toBe(0)
-      expect(queueList.value).toEqual([])
-    })
-
-    it('should have loading as false initially', () => {
-      const { loading } = useAmiQueues(mockClient)
-
-      expect(loading.value).toBe(false)
-    })
-
-    it('should have no error initially', () => {
-      const { error } = useAmiQueues(mockClient)
-
-      expect(error.value).toBeNull()
-    })
-
-    it('should handle null client gracefully', () => {
-      const { queues, error } = useAmiQueues(null)
-
-      expect(queues.value.size).toBe(0)
-      expect(error.value).toBeNull()
+        expect(queues.value.size).toBe(expectedQueues)
+        expect(queueList.value).toEqual([])
+        expect(loading.value).toBe(expectedLoading)
+        expect(error.value).toBe(expectedError)
+      })
     })
   })
 
-  describe('refresh', () => {
-    it('should refresh queue data', async () => {
-      const mockQueues: QueueInfo[] = [
-        createMockQueue('sales-queue', { calls: 5 }),
-        createMockQueue('support-queue', { calls: 3 }),
-      ]
+  /**
+   * Data Fetching Tests
+   * Verify queue data refresh, loading states, and error handling
+   *
+   * Loading states:
+   * - false initially
+   * - true during fetch
+   * - false after completion (success or error)
+   */
+  describe('Data Fetching', () => {
+    describe.each([
+      {
+        description: 'empty results',
+        mockQueues: [],
+        expectedSize: 0,
+        expectedLoading: false,
+      },
+      {
+        description: '2 queues',
+        mockQueues: [
+          { name: TEST_FIXTURES.queues.sales, calls: 5 },
+          { name: TEST_FIXTURES.queues.support, calls: 3 },
+        ],
+        expectedSize: 2,
+        expectedLoading: false,
+      },
+    ])('successful fetch with $description', ({ mockQueues, expectedSize, expectedLoading }) => {
+      it(`should result in ${expectedSize} queues, loading=${expectedLoading}`, async () => {
+        const queues = mockQueues.map(q => createMockQueue(q.name, q))
+        ;(mockClient.getQueueStatus as ReturnType<typeof vi.fn>).mockResolvedValue(queues)
 
-      ;(mockClient.getQueueStatus as ReturnType<typeof vi.fn>).mockResolvedValue(mockQueues)
+        const { refresh, queues: queueMap, queueList, loading, lastRefresh } = useAmiQueues(mockClient)
 
-      const { refresh, queues, queueList, loading, lastRefresh } = useAmiQueues(mockClient)
+        expect(loading.value).toBe(false)
 
-      expect(loading.value).toBe(false)
+        const refreshPromise = refresh()
+        expect(loading.value).toBe(true)
 
-      const refreshPromise = refresh()
-      expect(loading.value).toBe(true)
+        await refreshPromise
 
-      await refreshPromise
-
-      expect(loading.value).toBe(false)
-      expect(queues.value.size).toBe(2)
-      expect(queueList.value.length).toBe(2)
-      expect(lastRefresh.value).toBeInstanceOf(Date)
+        expect(loading.value).toBe(expectedLoading)
+        expect(queueMap.value.size).toBe(expectedSize)
+        expect(queueList.value.length).toBe(expectedSize)
+        if (expectedSize > 0) {
+          expect(lastRefresh.value).toBeInstanceOf(Date)
+        }
+      })
     })
 
-    it('should set error when client is null', async () => {
-      const { refresh, error } = useAmiQueues(null)
+    /**
+     * Error handling tests
+     * Verify error state management when operations fail
+     */
+    describe('error handling', () => {
+      describe.each([
+        {
+          description: 'null client',
+          setupError: (_client: any) => null,
+          expectedError: TEST_FIXTURES.errors.clientNotConnected,
+        },
+        {
+          description: 'network error',
+          setupError: (client: any) => {
+            ;(client.getQueueStatus as ReturnType<typeof vi.fn>).mockRejectedValue(
+              new Error(TEST_FIXTURES.errors.networkError)
+            )
+            return client
+          },
+          expectedError: TEST_FIXTURES.errors.networkError,
+        },
+      ])('$description', ({ setupError, expectedError }) => {
+        it(`should set error to "${expectedError}"`, async () => {
+          const client = setupError(mockClient)
+          const { refresh, error, loading } = useAmiQueues(client)
 
-      await refresh()
+          await refresh()
 
-      expect(error.value).toBe('AMI client not connected')
-    })
-
-    it('should handle refresh errors', async () => {
-      ;(mockClient.getQueueStatus as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'))
-
-      const { refresh, error, loading } = useAmiQueues(mockClient)
-
-      await refresh()
-
-      expect(error.value).toBe('Network error')
-      expect(loading.value).toBe(false)
+          expect(error.value).toBe(expectedError)
+          expect(loading.value).toBe(false)
+        })
+      })
     })
 
     it('should apply queue filter', async () => {
@@ -285,65 +390,79 @@ describe('useAmiQueues', () => {
     })
   })
 
-  describe('pauseMember', () => {
-    it('should pause queue member', async () => {
-      const { queues, pauseMember } = useAmiQueues(mockClient)
+  /**
+   * Member Management Tests
+   * Verify pause/unpause, add/remove, and penalty management
+   *
+   * Member operations:
+   * - Pause with optional reason
+   * - Unpause and clear reason
+   * - Add with configuration
+   * - Remove from queue
+   * - Set penalty value
+   */
+  describe('Member Management', () => {
+    describe.each([
+      {
+        operation: 'pauseMember',
+        description: 'pause member',
+        initialState: { paused: false, pausedReason: '' },
+        action: (composable: any) => composable.pauseMember('test-queue', TEST_FIXTURES.members.sip1000, 'Lunch'),
+        expectedCall: ['test-queue', TEST_FIXTURES.members.sip1000, true, 'Lunch'],
+        expectedState: { paused: true, pausedReason: 'Lunch' },
+      },
+      {
+        operation: 'unpauseMember',
+        description: 'unpause member',
+        initialState: { paused: true, pausedReason: 'Lunch' },
+        action: (composable: any) => composable.unpauseMember('test-queue', TEST_FIXTURES.members.sip1000),
+        expectedCall: ['test-queue', TEST_FIXTURES.members.sip1000, false],
+        expectedState: { paused: false, pausedReason: '' },
+      },
+    ])('$description', ({ operation, initialState, action, expectedCall, expectedState }) => {
+      it(`should ${operation.replace('Member', ' member')}`, async () => {
+        const { queues, [operation]: memberOp } = useAmiQueues(mockClient) as any
 
-      // Setup queue with member
-      queues.value.set('test-queue', createMockQueue('test-queue', {
-        members: [createMockMember('SIP/1000', { paused: false })],
-      }))
+        queues.value.set('test-queue', createMockQueue('test-queue', {
+          members: [createMockMember(TEST_FIXTURES.members.sip1000, initialState)],
+        }))
 
-      await pauseMember('test-queue', 'SIP/1000', 'Lunch')
+        await action({ [operation]: memberOp, queues })
 
-      expect(mockClient.queuePause).toHaveBeenCalledWith('test-queue', 'SIP/1000', true, 'Lunch')
-      expect(queues.value.get('test-queue')?.members[0].paused).toBe(true)
-      expect(queues.value.get('test-queue')?.members[0].pausedReason).toBe('Lunch')
+        if (operation === 'pauseMember') {
+          expect(mockClient.queuePause).toHaveBeenCalledWith(...expectedCall)
+        } else {
+          expect(mockClient.queuePause).toHaveBeenCalledWith(...expectedCall)
+        }
+
+        const member = queues.value.get('test-queue')?.members[0]
+        expect(member?.paused).toBe(expectedState.paused)
+        expect(member?.pausedReason).toBe(expectedState.pausedReason)
+      })
+
+      it('should call onMemberUpdate callback', async () => {
+        const onMemberUpdate = vi.fn()
+        const { queues, [operation]: memberOp } = useAmiQueues(mockClient, { onMemberUpdate }) as any
+
+        queues.value.set('test-queue', createMockQueue('test-queue', {
+          members: [createMockMember(TEST_FIXTURES.members.sip1000, initialState)],
+        }))
+
+        await action({ [operation]: memberOp, queues })
+
+        expect(onMemberUpdate).toHaveBeenCalled()
+      })
+
+      it('should throw when client is null', async () => {
+        const { [operation]: memberOp } = useAmiQueues(null) as any
+
+        await expect(
+          action({ [operation]: memberOp })
+        ).rejects.toThrow(TEST_FIXTURES.errors.clientNotConnected)
+      })
     })
 
-    it('should call onMemberUpdate callback', async () => {
-      const onMemberUpdate = vi.fn()
-      const { queues, pauseMember } = useAmiQueues(mockClient, { onMemberUpdate })
-
-      queues.value.set('test-queue', createMockQueue('test-queue', {
-        members: [createMockMember('SIP/1000')],
-      }))
-
-      await pauseMember('test-queue', 'SIP/1000', 'Break')
-
-      expect(onMemberUpdate).toHaveBeenCalled()
-    })
-
-    it('should throw when client is null', async () => {
-      const { pauseMember } = useAmiQueues(null)
-
-      await expect(pauseMember('test-queue', 'SIP/1000')).rejects.toThrow('AMI client not connected')
-    })
-  })
-
-  describe('unpauseMember', () => {
-    it('should unpause queue member', async () => {
-      const { queues, unpauseMember } = useAmiQueues(mockClient)
-
-      queues.value.set('test-queue', createMockQueue('test-queue', {
-        members: [createMockMember('SIP/1000', { paused: true, pausedReason: 'Lunch' })],
-      }))
-
-      await unpauseMember('test-queue', 'SIP/1000')
-
-      expect(mockClient.queuePause).toHaveBeenCalledWith('test-queue', 'SIP/1000', false)
-      expect(queues.value.get('test-queue')?.members[0].paused).toBe(false)
-      expect(queues.value.get('test-queue')?.members[0].pausedReason).toBe('')
-    })
-
-    it('should throw when client is null', async () => {
-      const { unpauseMember } = useAmiQueues(null)
-
-      await expect(unpauseMember('test-queue', 'SIP/1000')).rejects.toThrow('AMI client not connected')
-    })
-  })
-
-  describe('addMember', () => {
+    describe('addMember', () => {
     it('should add member to queue', async () => {
       ;(mockClient.getQueueStatus as ReturnType<typeof vi.fn>).mockResolvedValue([
         createMockQueue('test-queue', { members: [createMockMember('SIP/1000')] }),
@@ -385,27 +504,32 @@ describe('useAmiQueues', () => {
     })
   })
 
-  describe('setPenalty', () => {
-    it('should set member penalty', async () => {
-      const { queues, setPenalty } = useAmiQueues(mockClient)
+    describe('setPenalty', () => {
+      it('should set member penalty', async () => {
+        const { queues, setPenalty } = useAmiQueues(mockClient)
 
-      queues.value.set('test-queue', createMockQueue('test-queue', {
-        members: [createMockMember('SIP/1000', { penalty: 0 })],
-      }))
+        queues.value.set('test-queue', createMockQueue('test-queue', {
+          members: [createMockMember('SIP/1000', { penalty: 0 })],
+        }))
 
-      await setPenalty('test-queue', 'SIP/1000', 5)
+        await setPenalty('test-queue', 'SIP/1000', 5)
 
-      expect(mockClient.queuePenalty).toHaveBeenCalledWith('test-queue', 'SIP/1000', 5)
-      expect(queues.value.get('test-queue')?.members[0].penalty).toBe(5)
-    })
+        expect(mockClient.queuePenalty).toHaveBeenCalledWith('test-queue', 'SIP/1000', 5)
+        expect(queues.value.get('test-queue')?.members[0].penalty).toBe(5)
+      })
 
-    it('should throw when client is null', async () => {
-      const { setPenalty } = useAmiQueues(null)
+      it('should throw when client is null', async () => {
+        const { setPenalty } = useAmiQueues(null)
 
-      await expect(setPenalty('test-queue', 'SIP/1000', 5)).rejects.toThrow('AMI client not connected')
+        await expect(setPenalty('test-queue', 'SIP/1000', 5)).rejects.toThrow('AMI client not connected')
+      })
     })
   })
 
+  /**
+   * Computed Properties Tests
+   * Verify aggregated statistics across all queues
+   */
   describe('computed properties', () => {
     it('should compute totalCallers', async () => {
       const { queues, totalCallers } = useAmiQueues(mockClient)
@@ -678,14 +802,38 @@ describe('useAmiQueues', () => {
     })
   })
 
+  /**
+   * Status Label Tests
+   * Verify correct mapping of queue member status codes to human-readable labels
+   */
   describe('getStatusLabel', () => {
-    it('should return correct status labels', () => {
-      const { getStatusLabel } = useAmiQueues(mockClient)
+    describe.each([
+      {
+        status: QueueMemberStatus.NotInUse,
+        expectedLabel: 'Available',
+        description: 'NotInUse status',
+      },
+      {
+        status: QueueMemberStatus.InUse,
+        expectedLabel: 'In Use',
+        description: 'InUse status',
+      },
+      {
+        status: QueueMemberStatus.Busy,
+        expectedLabel: 'Busy',
+        description: 'Busy status',
+      },
+      {
+        status: QueueMemberStatus.Ringing,
+        expectedLabel: 'Ringing',
+        description: 'Ringing status',
+      },
+    ])('$description', ({ status, expectedLabel }) => {
+      it(`should return "${expectedLabel}" for ${status}`, () => {
+        const { getStatusLabel } = useAmiQueues(mockClient)
 
-      expect(getStatusLabel(QueueMemberStatus.NotInUse)).toBe('Available')
-      expect(getStatusLabel(QueueMemberStatus.InUse)).toBe('In Use')
-      expect(getStatusLabel(QueueMemberStatus.Busy)).toBe('Busy')
-      expect(getStatusLabel(QueueMemberStatus.Ringing)).toBe('Ringing')
+        expect(getStatusLabel(status)).toBe(expectedLabel)
+      })
     })
 
     it('should allow custom status labels', () => {

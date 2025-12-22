@@ -64,7 +64,7 @@ export default defineConfig({
 
     // Suppress Vue lifecycle warnings in performance benchmarks
     // These warnings occur because benchmarks test core classes outside Vue component context
-    onConsoleLog: (log, type) => {
+    onConsoleLog: (log, _type) => {
       // Suppress Vue lifecycle warnings in performance benchmarks
       // These are expected in benchmarks that test raw classes without Vue context
       if (

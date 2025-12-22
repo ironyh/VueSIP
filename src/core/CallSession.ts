@@ -22,6 +22,7 @@ import type {
 import { createLogger } from '@/utils/logger'
 import { EventEmitter } from '@/utils/EventEmitter'
 import { CALL_SESSION } from '@/utils/constants'
+import type { MediaManager } from './MediaManager'
 
 const logger = createLogger('CallSession')
 
@@ -71,6 +72,8 @@ export interface CallSessionOptions {
   eventBus: EventBus
   /** Custom data */
   data?: Record<string, any>
+  /** Media manager */
+  mediaManager: MediaManager
 }
 
 /**
@@ -102,6 +105,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
   private readonly rtcSession: any
   private readonly _eventBus: EventBus
   private readonly _data: Record<string, any>
+  private readonly mediaManager: MediaManager
 
   // State
   private _state: CallState = 'idle' as CallState
@@ -147,6 +151,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     this.rtcSession = options.rtcSession
     this._eventBus = options.eventBus
     this._data = options.data ?? {}
+    this.mediaManager = options.mediaManager
 
     // Set initial timing
     this._timing.startTime = new Date()
@@ -258,6 +263,11 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       timing: this.timing,
       terminationCause: this._terminationCause,
       data: { ...this._data },
+      hold: this.hold.bind(this),
+      unhold: this.unhold.bind(this),
+      hangup: this.hangup.bind(this),
+      transfer: this.transfer.bind(this),
+      attendedTransfer: this.attendedTransfer.bind(this),
     }
   }
 
@@ -296,9 +306,11 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       // Prepare answer options
       const answerOptions: any = {}
 
-      // Media constraints
+      // Media constraints (handled by MediaManager)
       if (options?.mediaConstraints) {
-        answerOptions.mediaConstraints = options.mediaConstraints
+        // We handle media acquisition manually before answering
+        // But for JsSIP answer options, we pass the stream directly if we got one
+        // or let JsSIP handle defaults if we don't (which we avoid now)
       }
 
       // RTC configuration
@@ -310,6 +322,13 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       if (options?.extraHeaders) {
         answerOptions.extraHeaders = options.extraHeaders
       }
+
+      // Acquire media stream using MediaManager
+      const constraints = options?.mediaConstraints || { audio: true, video: false }
+      const stream = await this.mediaManager.getUserMedia(constraints)
+      
+      // Pass the acquired stream to JsSIP
+      answerOptions.mediaStream = stream
 
       // Answer the call using JsSIP
       this.rtcSession.answer(answerOptions)
@@ -1060,9 +1079,19 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       }
     })
 
-    // ICE candidate event
-    this.rtcSession.on('icecandidate', (e: any) => {
-      logger.debug(`ICE candidate: ${this._id}`, e.candidate)
+    // Hold events
+    this.rtcSession.on('hold', (e: any) => {
+      logger.debug(`Call held: ${this._id}`, e)
+      this._isOnHold = true
+      // Event emission is handled by SipClient observing the session, 
+      // but we can also emit from here if we want CallSession-level events
+      this.emitCallEvent('call:hold')
+    })
+
+    this.rtcSession.on('unhold', (e: any) => {
+      logger.debug(`Call unheld: ${this._id}`, e)
+      this._isOnHold = false
+      this.emitCallEvent('call:unhold')
     })
 
     // SDP event (for debugging)
@@ -1224,6 +1253,7 @@ export function createCallSession(
   direction: CallDirection,
   localUri: string,
   eventBus: EventBus,
+  mediaManager: MediaManager,
   data?: Record<string, any>
 ): CallSession {
   // Extract session information
@@ -1245,6 +1275,7 @@ export function createCallSession(
     remoteDisplayName,
     rtcSession,
     eventBus,
+    mediaManager,
     data,
   })
 
