@@ -59,25 +59,29 @@ afterEach(() => {
   }
 })
 
-// Mock JsSIP globally
-vi.mock('jssip', () => {
-  const mockUA = {
-    start: vi.fn(),
-    stop: vi.fn(),
-    register: vi.fn(),
-    unregister: vi.fn(),
-    call: vi.fn(),
-    sendMessage: vi.fn(),
-    isConnected: vi.fn().mockReturnValue(false),
-    isRegistered: vi.fn().mockReturnValue(false),
-    on: vi.fn(),
-    once: vi.fn(),
-    off: vi.fn(),
-  }
+// Create shared mockUA instance that can be accessed from test files
+// This is exported so tests can set up event handlers and inspect config
+export const mockUA: any = {
+  start: vi.fn().mockResolvedValue(undefined),
+  stop: vi.fn().mockResolvedValue(undefined),
+  register: vi.fn().mockResolvedValue(undefined),
+  unregister: vi.fn().mockResolvedValue(undefined),
+  call: vi.fn(),
+  sendMessage: vi.fn().mockResolvedValue(undefined),
+  isConnected: vi.fn().mockReturnValue(false),
+  isRegistered: vi.fn().mockReturnValue(false),
+  on: vi.fn(),
+  once: vi.fn(),
+  off: vi.fn(),
+}
 
+// Mock JsSIP globally with Promise support for async operations
+vi.mock('jssip', () => {
   return {
     default: {
-      UA: vi.fn(function () {
+      UA: vi.fn(function (this: any, uaConfig: any) {
+        // Store config for inspection in tests
+        mockUA._config = uaConfig
         return mockUA
       }),
       WebSocketInterface: vi.fn(),
