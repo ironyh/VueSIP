@@ -98,7 +98,7 @@ describe('MediaProvider', () => {
 
   describe('Provider Initialization', () => {
     it('should render without crashing', async () => {
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoEnumerate: false, // Disable auto-enumeration for this test
         },
@@ -194,7 +194,7 @@ describe('MediaProvider', () => {
     it('should provide device lists to children', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         slots: {
           default: () => h(ConsumerComponent),
         },
@@ -211,7 +211,7 @@ describe('MediaProvider', () => {
     it('should auto-select default devices when autoSelectDefaults is true', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoSelectDefaults: true,
         },
@@ -233,7 +233,7 @@ describe('MediaProvider', () => {
     it('should not auto-select devices when autoSelectDefaults is false', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoSelectDefaults: false,
         },
@@ -256,7 +256,7 @@ describe('MediaProvider', () => {
     it('should allow enumerating devices via context', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoEnumerate: false,
         },
@@ -277,7 +277,7 @@ describe('MediaProvider', () => {
     it('should allow selecting audio input via context', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoSelectDefaults: false,
         },
@@ -300,7 +300,7 @@ describe('MediaProvider', () => {
     it('should allow selecting audio output via context', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoSelectDefaults: false,
         },
@@ -323,7 +323,7 @@ describe('MediaProvider', () => {
     it('should allow selecting video input via context', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoSelectDefaults: false,
         },
@@ -346,7 +346,7 @@ describe('MediaProvider', () => {
     it('should allow requesting audio permission via context', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoEnumerate: false,
           autoRequestPermissions: false,
@@ -368,7 +368,7 @@ describe('MediaProvider', () => {
     it('should allow requesting video permission via context', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoEnumerate: false,
           autoRequestPermissions: false,
@@ -406,7 +406,7 @@ describe('MediaProvider', () => {
     it('should allow getting device by ID via context', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         slots: {
           default: () => h(ConsumerComponent),
         },
@@ -495,7 +495,7 @@ describe('MediaProvider', () => {
     })
 
     it('should remove device change listener on unmount', async () => {
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           watchDeviceChanges: true,
         },
@@ -599,7 +599,7 @@ describe('MediaProvider', () => {
     it('should return media context when used within provider', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         slots: {
           default: () => h(ConsumerComponent),
         },
@@ -635,7 +635,7 @@ describe('MediaProvider', () => {
     it('should expose reactive device lists', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         slots: {
           default: () => h(ConsumerComponent),
         },
@@ -655,7 +655,7 @@ describe('MediaProvider', () => {
     it('should expose reactive permission status', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         props: {
           autoEnumerate: false,
           autoRequestPermissions: false,
@@ -676,7 +676,7 @@ describe('MediaProvider', () => {
     it('should update reactive state when devices change', async () => {
       const ConsumerComponent = createConsumerComponent()
 
-      const wrapper = mount(MediaProvider, {
+      const _wrapper = mount(MediaProvider, {
         slots: {
           default: () => h(ConsumerComponent),
         },
@@ -708,6 +708,136 @@ describe('MediaProvider', () => {
 
       // Device count should update
       expect(consumer.vm.media.totalDevices).toBe(2)
+    })
+  })
+
+  describe('Device Testing Methods', () => {
+    it('should expose testAudioInput method via context', async () => {
+      const ConsumerComponent = createConsumerComponent()
+
+      const _wrapper = mount(MediaProvider, {
+        slots: {
+          default: () => h(ConsumerComponent),
+        },
+      })
+
+      await nextTick()
+      await nextTick()
+
+      const consumer = wrapper.findComponent(ConsumerComponent)
+      expect(typeof consumer.vm.media.testAudioInput).toBe('function')
+    })
+
+    it('should expose testAudioOutput method via context', async () => {
+      const ConsumerComponent = createConsumerComponent()
+
+      const _wrapper = mount(MediaProvider, {
+        slots: {
+          default: () => h(ConsumerComponent),
+        },
+      })
+
+      await nextTick()
+      await nextTick()
+
+      const consumer = wrapper.findComponent(ConsumerComponent)
+      expect(typeof consumer.vm.media.testAudioOutput).toBe('function')
+    })
+
+    it('should allow testing audio input device', async () => {
+      const ConsumerComponent = createConsumerComponent()
+
+      const _wrapper = mount(MediaProvider, {
+        slots: {
+          default: () => h(ConsumerComponent),
+        },
+      })
+
+      await flushPromises()
+      await nextTick()
+
+      const consumer = wrapper.findComponent(ConsumerComponent)
+
+      // Test with specific device ID
+      const testResult = await consumer.vm.media.testAudioInput('audio-input-1')
+      expect(testResult).toBeDefined()
+    })
+
+    it('should allow testing audio input device with options', async () => {
+      const ConsumerComponent = createConsumerComponent()
+
+      const _wrapper = mount(MediaProvider, {
+        slots: {
+          default: () => h(ConsumerComponent),
+        },
+      })
+
+      await flushPromises()
+      await nextTick()
+
+      const consumer = wrapper.findComponent(ConsumerComponent)
+
+      // Test with options
+      const options = { duration: 2000 }
+      const testResult = await consumer.vm.media.testAudioInput('audio-input-1', options)
+      expect(testResult).toBeDefined()
+    })
+
+    it('should allow testing default audio input when no deviceId provided', async () => {
+      const ConsumerComponent = createConsumerComponent()
+
+      const _wrapper = mount(MediaProvider, {
+        slots: {
+          default: () => h(ConsumerComponent),
+        },
+      })
+
+      await flushPromises()
+      await nextTick()
+
+      const consumer = wrapper.findComponent(ConsumerComponent)
+
+      // Test without device ID (uses selected or default)
+      const testResult = await consumer.vm.media.testAudioInput()
+      expect(testResult).toBeDefined()
+    })
+
+    it('should allow testing audio output device', async () => {
+      const ConsumerComponent = createConsumerComponent()
+
+      const _wrapper = mount(MediaProvider, {
+        slots: {
+          default: () => h(ConsumerComponent),
+        },
+      })
+
+      await flushPromises()
+      await nextTick()
+
+      const consumer = wrapper.findComponent(ConsumerComponent)
+
+      // Test with specific device ID
+      const testResult = await consumer.vm.media.testAudioOutput('audio-output-1')
+      expect(testResult).toBeDefined()
+    })
+
+    it('should allow testing default audio output when no deviceId provided', async () => {
+      const ConsumerComponent = createConsumerComponent()
+
+      const _wrapper = mount(MediaProvider, {
+        slots: {
+          default: () => h(ConsumerComponent),
+        },
+      })
+
+      await flushPromises()
+      await nextTick()
+
+      const consumer = wrapper.findComponent(ConsumerComponent)
+
+      // Test without device ID (uses selected or default)
+      const testResult = await consumer.vm.media.testAudioOutput()
+      expect(testResult).toBeDefined()
     })
   })
 
@@ -778,6 +908,62 @@ describe('MediaProvider', () => {
       await nextTick()
 
       expect(permissionsDenied).toBe(true)
+    })
+
+    it('should handle device change errors gracefully', async () => {
+      let errorEmitted = false
+
+      const _wrapper = mount(MediaProvider, {
+        props: {
+          watchDeviceChanges: true,
+          onError: () => {
+            errorEmitted = true
+          },
+        },
+        slots: {
+          default: () => h('div', 'Child'),
+        },
+      })
+
+      await flushPromises()
+      await nextTick()
+
+      // Mock enumeration failure on device change
+      mockEnumerateDevices.mockRejectedValue(new Error('Enumeration failed after device change'))
+
+      // Trigger device change event
+      const deviceChangeEvent = new Event('devicechange')
+      mockDeviceChangeListeners.forEach((listener) => listener(deviceChangeEvent))
+
+      await flushPromises()
+      await nextTick()
+
+      expect(errorEmitted).toBe(true)
+    })
+
+    it('should handle non-Error objects in error handling', async () => {
+      mockEnumerateDevices.mockRejectedValue('String error')
+
+      let errorEmitted = false
+
+      const _wrapper = mount(MediaProvider, {
+        props: {
+          onError: (err: Error) => {
+            errorEmitted = true
+            expect(err).toBeInstanceOf(Error)
+            // The error message should be 'Device enumeration failed' as that's what MediaProvider.ts:198 emits
+            expect(err.message).toBe('Device enumeration failed')
+          },
+        },
+        slots: {
+          default: () => h('div', 'Child'),
+        },
+      })
+
+      await flushPromises()
+      await nextTick()
+
+      expect(errorEmitted).toBe(true)
     })
   })
 })

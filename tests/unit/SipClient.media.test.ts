@@ -10,7 +10,7 @@ import type { SipClientConfig } from '@/types/config.types'
 import { ConnectionState } from '@/types/sip.types'
 
 // Mock JsSIP
-const { mockUA, mockWebSocketInterface, triggerEvent, eventHandlers, onceHandlers } = vi.hoisted(() => {
+const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers } = vi.hoisted(() => {
   const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
   const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
 

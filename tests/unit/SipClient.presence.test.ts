@@ -10,7 +10,7 @@ import type { SipClientConfig } from '@/types/config.types'
 import { ConnectionState } from '@/types/sip.types'
 
 // Mock JsSIP with sendRequest support
-const { mockUA, mockWebSocketInterface, triggerEvent, eventHandlers, onceHandlers } = vi.hoisted(() => {
+const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers } = vi.hoisted(() => {
   const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
   const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
 
@@ -138,9 +138,9 @@ describe('SipClient - Presence Features', () => {
 
     it('should throw error when not connected', async () => {
       mockUA.isConnected.mockReturnValue(false)
-      await expect(
-        sipClient.publishPresence({ state: 'available' })
-      ).rejects.toThrow('Not connected')
+      await expect(sipClient.publishPresence({ state: 'available' })).rejects.toThrow(
+        'Not connected'
+      )
     })
 
     it('should throw error when UA is null', async () => {
@@ -158,9 +158,9 @@ describe('SipClient - Presence Features', () => {
         }, 10)
       })
 
-      await expect(
-        sipClient.publishPresence({ state: 'available' })
-      ).rejects.toThrow('PUBLISH failed: 403 Forbidden')
+      await expect(sipClient.publishPresence({ state: 'available' })).rejects.toThrow(
+        'PUBLISH failed: 403 Forbidden'
+      )
     })
 
     it('should handle PUBLISH timeout', async () => {
@@ -170,9 +170,9 @@ describe('SipClient - Presence Features', () => {
         }, 10)
       })
 
-      await expect(
-        sipClient.publishPresence({ state: 'available' })
-      ).rejects.toThrow('PUBLISH request timeout')
+      await expect(sipClient.publishPresence({ state: 'available' })).rejects.toThrow(
+        'PUBLISH request timeout'
+      )
     })
 
     it('should handle PUBLISH transport error', async () => {
@@ -182,9 +182,9 @@ describe('SipClient - Presence Features', () => {
         }, 10)
       })
 
-      await expect(
-        sipClient.publishPresence({ state: 'available' })
-      ).rejects.toThrow('PUBLISH transport error')
+      await expect(sipClient.publishPresence({ state: 'available' })).rejects.toThrow(
+        'PUBLISH transport error'
+      )
     })
   })
 
@@ -220,9 +220,7 @@ describe('SipClient - Presence Features', () => {
 
     it('should throw error when UA is null', async () => {
       const client = new SipClient(config, eventBus)
-      await expect(client.subscribePresence('sip:other@example.com')).rejects.toThrow(
-        'not started'
-      )
+      await expect(client.subscribePresence('sip:other@example.com')).rejects.toThrow('not started')
     })
 
     it('should handle SUBSCRIBE error response', async () => {

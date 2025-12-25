@@ -7,11 +7,11 @@ import { SipClient } from '@/core/SipClient'
 import { createEventBus } from '@/core/EventBus'
 import type { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
-import { ConferenceState, ParticipantState } from '@/types/conference.types'
+import { ConferenceState } from '@/types/conference.types'
 import { ConnectionState } from '@/types/sip.types'
 
 // Mock JsSIP
-const { mockUA, mockWebSocketInterface, triggerEvent, eventHandlers, onceHandlers } = vi.hoisted(() => {
+const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers } = vi.hoisted(() => {
   const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
   const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
 
@@ -127,6 +127,7 @@ describe('SipClient - Conference Features', () => {
 
     it('should throw error when not connected', async () => {
       mockUA.isConnected.mockReturnValue(false)
+      sipClient['state'].connectionState = ConnectionState.Disconnected
       await expect(sipClient.createConference('conf123')).rejects.toThrow('not connected')
     })
 
@@ -189,9 +190,7 @@ describe('SipClient - Conference Features', () => {
     })
 
     it('should throw error for non-existent conference', async () => {
-      await expect(sipClient.startConferenceRecording('nonexistent')).rejects.toThrow(
-        'not found'
-      )
+      await expect(sipClient.startConferenceRecording('nonexistent')).rejects.toThrow('not found')
     })
   })
 
