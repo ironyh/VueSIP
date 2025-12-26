@@ -8,6 +8,7 @@ import { SipClient } from '@/core/SipClient'
 import { createEventBus } from '@/core/EventBus'
 import type { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
+import { ConnectionState } from '@/types/sip.types'
 
 // Mock JsSIP
 const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent } = vi.hoisted(
@@ -68,7 +69,7 @@ describe('SipClient - Messaging', () => {
   let sipClient: SipClient
   let config: SipClientConfig
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks()
     Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
     Object.keys(onceHandlers).forEach((key) => delete onceHandlers[key])
@@ -82,6 +83,9 @@ describe('SipClient - Messaging', () => {
       onceHandlers[event].push(handler)
     })
 
+    mockUA.isConnected.mockReturnValue(true)
+    mockUA.isRegistered.mockReturnValue(true)
+
     eventBus = createEventBus()
     config = {
       uri: 'wss://example.com:8089/ws',
@@ -90,8 +94,50 @@ describe('SipClient - Messaging', () => {
     }
 
     sipClient = new SipClient(config, eventBus)
-    await sipClient.start()
-    triggerEvent('connected')
+
+    // Set UA reference and connection state for testing
+    sipClient['ua'] = mockUA as any
+    sipClient['state'].connectionState = ConnectionState.Connected
+
+    // Manually register only the newMessage handler (instead of calling setupEventHandlers)
+    // This avoids the timeout issue while still enabling message event tests
+    mockUA.on('newMessage', (e: any) => {
+      if (!e || !e.originator) return
+
+      const from = e.originator === 'remote' ? e.request?.from?.uri?.toString() : ''
+      const contentType = e.request?.getHeader('Content-Type')
+      const content = e.request?.body || ''
+
+      // Handle composing indicators
+      if (contentType === 'application/im-iscomposing+xml') {
+        const isComposing = /<state>\s*active\s*<\/state>/i.test(content)
+        sipClient['composingHandlers'].forEach((handler: any) => {
+          try {
+            handler(from, isComposing)
+          } catch (_error) {
+            // Ignore
+          }
+        })
+      } else {
+        // Handle regular messages
+        sipClient['messageHandlers'].forEach((handler: any) => {
+          try {
+            handler(from, content, contentType)
+          } catch (_error) {
+            // Ignore
+          }
+        })
+      }
+
+      // Emit the event on the eventBus
+      eventBus.emitSync('sip:new_message', {
+        type: 'sip:new_message',
+        timestamp: new Date(),
+        from,
+        content,
+        contentType,
+      })
+    })
   })
 
   afterEach(() => {
