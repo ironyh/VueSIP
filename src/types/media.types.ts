@@ -3,6 +3,8 @@
  * @packageDocumentation
  */
 
+import type { BaseEvent } from './events.types'
+
 /**
  * Media device kind
  */
@@ -222,27 +224,29 @@ export interface RecordingData {
 /**
  * Media stream event
  */
-export interface MediaStreamEvent {
+export interface MediaStreamEvent extends BaseEvent {
   /** Event type */
   type: 'addtrack' | 'removetrack' | 'active' | 'inactive'
   /** Media stream */
   stream: MediaStream
   /** Track (if applicable) */
   track?: MediaStreamTrack
-  /** Timestamp */
-  timestamp: Date
+  /** Stream direction (local or remote) */
+  direction?: 'local' | 'remote'
 }
 
 /**
  * Media track event
  */
-export interface MediaTrackEvent {
+export interface MediaTrackEvent extends BaseEvent {
   /** Event type */
-  type: 'mute' | 'unmute' | 'ended'
+  type: 'mute' | 'unmute' | 'ended' | 'added' | 'removed'
   /** Track */
   track: MediaStreamTrack
-  /** Timestamp */
-  timestamp: Date
+  /** Track direction (local or remote) */
+  direction?: 'local' | 'remote'
+  /** Associated streams (if applicable) */
+  streams?: readonly MediaStream[]
 }
 
 /**

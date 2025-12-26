@@ -61,8 +61,21 @@
           <h4>Disconnected</h4>
           <div class="toolbar-preview toolbar-disconnected">
             <div class="toolbar-section">
-              <div class="combined-status status-red" title="Disconnected - Not connected to SIP server">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <div
+                class="combined-status status-red"
+                title="Disconnected - Not connected to SIP server"
+              >
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
                 <span class="status-label">Offline</span>
               </div>
             </div>
@@ -71,7 +84,15 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-primary" title="Connect">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
                 <span class="btn-text">Connect</span>
               </button>
             </div>
@@ -84,8 +105,21 @@
           <h4>Connected (Not Registered)</h4>
           <div class="toolbar-preview toolbar-connecting">
             <div class="toolbar-section">
-              <div class="combined-status status-orange" title="Connected but not registered - Cannot receive calls">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <div
+                class="combined-status status-orange"
+                title="Connected but not registered - Cannot receive calls"
+              >
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
                 <span class="status-label">Connecting</span>
               </div>
             </div>
@@ -94,12 +128,24 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-warning" title="Cancel">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
                 <span class="btn-text">Cancel</span>
               </button>
             </div>
           </div>
-          <p class="state-description">Orange = Connected but not yet registered (cannot receive calls)</p>
+          <p class="state-description">
+            Orange = Connected but not yet registered (cannot receive calls)
+          </p>
         </div>
 
         <!-- Idle / No Call -->
@@ -107,8 +153,20 @@
           <h4>Ready (Idle)</h4>
           <div class="toolbar-preview toolbar-idle">
             <div class="toolbar-section">
-              <div class="combined-status status-green" title="Connected and registered - Ready for calls">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <div
+                class="combined-status status-green"
+                title="Connected and registered - Ready for calls"
+              >
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
                 <span class="status-label">Ready</span>
               </div>
             </div>
@@ -117,7 +175,18 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-settings" title="Settings">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                  />
+                </svg>
                 <span class="btn-text">Settings</span>
               </button>
             </div>
@@ -131,7 +200,16 @@
           <div class="toolbar-preview toolbar-ringing">
             <div class="toolbar-section">
               <div class="combined-status status-green" title="Ready">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
                 <span class="status-label">Ready</span>
               </div>
             </div>
@@ -142,11 +220,32 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-success" title="Answer">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                  />
+                </svg>
                 <span class="btn-text">Answer</span>
               </button>
               <button class="toolbar-btn btn-danger" title="Decline">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
                 <span class="btn-text">Decline</span>
               </button>
             </div>
@@ -160,7 +259,16 @@
           <div class="toolbar-preview toolbar-active">
             <div class="toolbar-section">
               <div class="combined-status status-green" title="Ready">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
                 <span class="status-label">Ready</span>
               </div>
             </div>
@@ -171,19 +279,60 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-secondary" title="Mute">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
                 <span class="btn-text">Mute</span>
               </button>
               <button class="toolbar-btn btn-secondary" title="Hold">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="6" y="4" width="4" height="16" />
+                  <rect x="14" y="4" width="4" height="16" />
+                </svg>
                 <span class="btn-text">Hold</span>
               </button>
               <button class="toolbar-btn btn-secondary" title="Transfer">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
                 <span class="btn-text">Transfer</span>
               </button>
               <button class="toolbar-btn btn-danger" title="Hangup">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
                 <span class="btn-text">Hangup</span>
               </button>
             </div>
@@ -197,7 +346,16 @@
           <div class="toolbar-preview toolbar-incoming-oncall">
             <div class="toolbar-section">
               <div class="combined-status status-green" title="Ready">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
                 <span class="status-label">Ready</span>
               </div>
             </div>
@@ -212,24 +370,67 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-success btn-sm" title="Answer + Hold">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                  />
+                </svg>
                 <span class="btn-text">Answer + Hold</span>
               </button>
               <button class="toolbar-btn btn-success btn-sm" title="Answer + Conference">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
                 <span class="btn-text">Answer + Conference</span>
               </button>
               <button class="toolbar-btn btn-warning btn-sm" title="Ignore">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                </svg>
                 <span class="btn-text">Ignore</span>
               </button>
               <button class="toolbar-btn btn-danger" title="Hangup">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
                 <span class="btn-text">Hangup</span>
               </button>
             </div>
           </div>
-          <p class="state-description">Call waiting - answer and hold current, merge into conference, or ignore</p>
+          <p class="state-description">
+            Call waiting - answer and hold current, merge into conference, or ignore
+          </p>
         </div>
 
         <!-- On Hold -->
@@ -238,7 +439,16 @@
           <div class="toolbar-preview toolbar-hold">
             <div class="toolbar-section">
               <div class="combined-status status-green" title="Ready">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
                 <span class="status-label">Ready</span>
               </div>
             </div>
@@ -249,28 +459,81 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-secondary" title="Mute">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
                 <span class="btn-text">Mute</span>
               </button>
               <button class="toolbar-btn btn-primary" title="Resume">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
                 <span class="btn-text">Resume</span>
               </button>
               <button class="toolbar-btn btn-secondary" title="Conference">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
                 <span class="btn-text">Conference</span>
               </button>
               <button class="toolbar-btn btn-secondary" title="Transfer">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
                 <span class="btn-text">Transfer</span>
               </button>
               <button class="toolbar-btn btn-danger" title="Hangup">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
                 <span class="btn-text">Hangup</span>
               </button>
             </div>
           </div>
-          <p class="state-description">Call is paused - resume, merge into conference, or transfer</p>
+          <p class="state-description">
+            Call is paused - resume, merge into conference, or transfer
+          </p>
         </div>
 
         <!-- Muted -->
@@ -279,7 +542,16 @@
           <div class="toolbar-preview toolbar-muted">
             <div class="toolbar-section">
               <div class="combined-status status-green" title="Ready">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
                 <span class="status-label">Ready</span>
               </div>
             </div>
@@ -291,19 +563,61 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-warning active" title="Unmute">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                  <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+                  <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
                 <span class="btn-text">Unmute</span>
               </button>
               <button class="toolbar-btn btn-secondary" title="Hold">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="6" y="4" width="4" height="16" />
+                  <rect x="14" y="4" width="4" height="16" />
+                </svg>
                 <span class="btn-text">Hold</span>
               </button>
               <button class="toolbar-btn btn-secondary" title="Transfer">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
                 <span class="btn-text">Transfer</span>
               </button>
               <button class="toolbar-btn btn-danger" title="Hangup">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
                 <span class="btn-text">Hangup</span>
               </button>
             </div>
@@ -317,7 +631,16 @@
           <div class="toolbar-preview toolbar-transfer">
             <div class="toolbar-section">
               <div class="combined-status status-green" title="Ready">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
                 <span class="status-label">Ready</span>
               </div>
             </div>
@@ -331,7 +654,17 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-warning" title="Cancel">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
                 <span class="btn-text">Cancel</span>
               </button>
             </div>
@@ -345,7 +678,16 @@
           <div class="toolbar-preview toolbar-dialing">
             <div class="toolbar-section">
               <div class="combined-status status-green" title="Ready">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
                 <span class="status-label">Ready</span>
               </div>
             </div>
@@ -360,14 +702,24 @@
             </div>
             <div class="toolbar-section">
               <button class="toolbar-btn btn-danger" title="Cancel">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
                 <span class="btn-text">Cancel</span>
               </button>
             </div>
           </div>
           <p class="state-description">Waiting for remote party to answer</p>
         </div>
-
       </div>
     </div>
 
@@ -396,20 +748,38 @@
               <span class="tw-text-sm tw-font-medium">Connected</span>
             </div>
             <div class="tw-flex-1 tw-flex tw-items-center tw-justify-center tw-gap-3">
-              <span class="tw-px-2 tw-py-1 tw-bg-emerald-500/20 tw-text-emerald-400 tw-rounded tw-text-xs tw-font-semibold">Active</span>
+              <span
+                class="tw-px-2 tw-py-1 tw-bg-emerald-500/20 tw-text-emerald-400 tw-rounded tw-text-xs tw-font-semibold"
+                >Active</span
+              >
               <span class="tw-font-medium">John Smith</span>
-              <span class="tw-font-mono tw-bg-black/20 tw-px-2 tw-py-1 tw-rounded tw-text-sm">02:45</span>
+              <span
+                class="tw-font-mono tw-bg-var(--surface-900)/20 tw-px-2 tw-py-1 tw-rounded tw-text-sm"
+                >02:45</span
+              >
             </div>
             <div class="tw-flex tw-gap-2">
-              <button class="tw-px-3 tw-py-1.5 tw-bg-white/20 tw-border tw-border-white/30 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-white/30">Mute</button>
-              <button class="tw-px-3 tw-py-1.5 tw-bg-white/20 tw-border tw-border-white/30 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-white/30">Hold</button>
-              <button class="tw-px-3 tw-py-1.5 tw-bg-red-500 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-red-600">Hangup</button>
+              <button
+                class="tw-px-3 tw-py-1.5 tw-bg-var(--surface-0)/20 tw-border tw-border-var(--surface-0)/30 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-var(--surface-0)/30"
+              >
+                Mute
+              </button>
+              <button
+                class="tw-px-3 tw-py-1.5 tw-bg-var(--surface-0)/20 tw-border tw-border-var(--surface-0)/30 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-var(--surface-0)/30"
+              >
+                Hold
+              </button>
+              <button
+                class="tw-px-3 tw-py-1.5 tw-bg-red-500 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-red-600"
+              >
+                Hangup
+              </button>
             </div>
           </div>
 
           <div class="code-block">
             <pre><code>&lt;template&gt;
-  &lt;div class="flex items-center gap-6 px-4 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 text-white"&gt;
+  &lt;div class="flex items-center gap-6 px-4 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 text-var(--surface-0)"&gt;
     &lt;!-- Status --&gt;
     &lt;div class="flex items-center gap-2"&gt;
       &lt;span :class="[
@@ -425,15 +795,15 @@
         {{ state }}
       &lt;/span&gt;
       &lt;span class="font-medium"&gt;{{ remoteDisplayName }}&lt;/span&gt;
-      &lt;span class="font-mono bg-black/20 px-2 py-1 rounded text-sm"&gt;{{ formattedDuration }}&lt;/span&gt;
+      &lt;span class="font-mono bg-var(--surface-900)/20 px-2 py-1 rounded text-sm"&gt;{{ formattedDuration }}&lt;/span&gt;
     &lt;/div&gt;
 
     &lt;!-- Controls --&gt;
     &lt;div class="flex gap-2"&gt;
-      &lt;button @click="toggleMute" class="px-3 py-1.5 bg-white/20 border border-white/30 rounded-md text-sm font-medium transition hover:bg-white/30"&gt;
+      &lt;button @click="toggleMute" class="px-3 py-1.5 bg-var(--surface-0)/20 border border-var(--surface-0)/30 rounded-md text-sm font-medium transition hover:bg-var(--surface-0)/30"&gt;
         {{ isMuted ? 'Unmute' : 'Mute' }}
       &lt;/button&gt;
-      &lt;button @click="toggleHold" class="px-3 py-1.5 bg-white/20 border border-white/30 rounded-md text-sm font-medium transition hover:bg-white/30"&gt;
+      &lt;button @click="toggleHold" class="px-3 py-1.5 bg-var(--surface-0)/20 border border-var(--surface-0)/30 rounded-md text-sm font-medium transition hover:bg-var(--surface-0)/30"&gt;
         {{ isOnHold ? 'Resume' : 'Hold' }}
       &lt;/button&gt;
       &lt;button @click="hangup" class="px-3 py-1.5 bg-red-500 rounded-md text-sm font-medium transition hover:bg-red-600"&gt;
@@ -591,7 +961,7 @@ import Chip from 'primevue/chip'
 
           <div class="code-block">
             <pre><code>&lt;template&gt;
-  &lt;q-toolbar class="bg-deep-purple text-white"&gt;
+  &lt;q-toolbar class="bg-deep-purple text-var(--surface-0)"&gt;
     &lt;q-badge :color="isConnected ? 'positive' : 'negative'" class="q-mr-sm"&gt;
       {{ isConnected ? 'Connected' : 'Disconnected' }}
     &lt;/q-badge&gt;
@@ -604,7 +974,7 @@ import Chip from 'primevue/chip'
     &lt;div v-if="session" class="row items-center q-gutter-sm"&gt;
       &lt;q-badge color="primary" :label="state" /&gt;
       &lt;span class="text-weight-medium"&gt;{{ remoteDisplayName }}&lt;/span&gt;
-      &lt;q-chip dense color="dark" text-color="white" icon="schedule"&gt;
+      &lt;q-chip dense color="dark" text-color="var(--surface-0)" icon="schedule"&gt;
         {{ formattedDuration }}
       &lt;/q-chip&gt;
     &lt;/div&gt;
@@ -702,7 +1072,9 @@ import { Connection, Timer, Microphone, Mute, VideoPlay, VideoPause, Phone } fro
         <!-- Naive UI Example -->
         <div v-if="activeFramework === 'naive'" class="framework-example">
           <h4>Naive UI</h4>
-          <p class="fw-description">Modern, lightweight, and customizable Vue 3 component library</p>
+          <p class="fw-description">
+            Modern, lightweight, and customizable Vue 3 component library
+          </p>
 
           <div class="toolbar-preview-naive">
             <div class="n-status">
@@ -933,9 +1305,9 @@ import { TimeOutline, MicOutline, MicOffOutline, PlayOutline, PauseOutline, Call
       <div class="advanced-section">
         <h3>Nurse Workflow Example</h3>
         <p class="section-description">
-          An advanced example showing user presence/availability states for a healthcare worker.
-          The user can switch between different workflow states, and the system automatically
-          switches to "In Call" when a call becomes active.
+          An advanced example showing user presence/availability states for a healthcare worker. The
+          user can switch between different workflow states, and the system automatically switches
+          to "In Call" when a call becomes active.
         </p>
 
         <!-- Interactive Nurse Workflow Demo -->
@@ -943,8 +1315,20 @@ import { TimeOutline, MicOutline, MicOffOutline, PlayOutline, PauseOutline, Call
           <div class="toolbar-preview toolbar-nurse">
             <div class="toolbar-section">
               <!-- Combined SIP Status -->
-              <div class="combined-status status-green" title="Connected and registered - Ready for calls">
-                <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <div
+                class="combined-status status-green"
+                title="Connected and registered - Ready for calls"
+              >
+                <svg
+                  class="status-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
                 <span class="status-label">Ready</span>
               </div>
 
@@ -955,13 +1339,25 @@ import { TimeOutline, MicOutline, MicOffOutline, PlayOutline, PauseOutline, Call
                   @click="nursePresenceOpen = !nursePresenceOpen"
                   :title="`Current status: ${currentNursePresence.label}`"
                 >
-                  <span class="presence-dot" :style="{ background: currentNursePresence.color }"></span>
+                  <span
+                    class="presence-dot"
+                    :style="{ background: currentNursePresence.color }"
+                  ></span>
                   <span class="presence-label">{{ currentNursePresence.label }}</span>
-                  <span v-if="formattedReturnTime && currentNursePresence.allowsReturnTime" class="return-time-badge">
+                  <span
+                    v-if="formattedReturnTime && currentNursePresence.allowsReturnTime"
+                    class="return-time-badge"
+                  >
                     {{ formattedReturnTime }}
                   </span>
-                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 12 15 18 9"/>
+                  <svg
+                    class="dropdown-arrow"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </button>
                 <div v-if="nursePresenceOpen" class="presence-menu">
@@ -976,8 +1372,16 @@ import { TimeOutline, MicOutline, MicOffOutline, PlayOutline, PauseOutline, Call
                     <span class="presence-option-label">{{ presence.label }}</span>
                     <span class="presence-option-desc">{{ presence.description }}</span>
                     <span v-if="presence.allowsReturnTime" class="return-time-hint">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        width="12"
+                        height="12"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
                       </svg>
                       Can set return time
                     </span>
@@ -986,14 +1390,29 @@ import { TimeOutline, MicOutline, MicOffOutline, PlayOutline, PauseOutline, Call
               </div>
 
               <!-- Return Time Picker (shows when presence allows it) -->
-              <div v-if="currentNursePresence.allowsReturnTime" class="return-time-picker" :class="{ open: returnTimePickerOpen }">
+              <div
+                v-if="currentNursePresence.allowsReturnTime"
+                class="return-time-picker"
+                :class="{ open: returnTimePickerOpen }"
+              >
                 <button
                   class="return-time-button"
                   @click="returnTimePickerOpen = !returnTimePickerOpen"
-                  :title="formattedReturnTime ? `Returns: ${formattedReturnTime}` : 'Set expected return time'"
+                  :title="
+                    formattedReturnTime
+                      ? `Returns: ${formattedReturnTime}`
+                      : 'Set expected return time'
+                  "
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="clock-icon">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="clock-icon"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
                   </svg>
                   <span v-if="formattedReturnTime">{{ formattedReturnTime }}</span>
                   <span v-else class="set-time-text">Set return</span>
@@ -1006,7 +1425,11 @@ import { TimeOutline, MicOutline, MicOffOutline, PlayOutline, PauseOutline, Call
                         v-for="preset in durationPresets"
                         :key="preset.value"
                         class="duration-btn"
-                        :class="{ active: returnTime.type === 'duration' && returnTime.durationMinutes === preset.value }"
+                        :class="{
+                          active:
+                            returnTime.type === 'duration' &&
+                            returnTime.durationMinutes === preset.value,
+                        }"
                         @click="setReturnDuration(preset.value)"
                       >
                         {{ preset.label }}
@@ -1022,9 +1445,21 @@ import { TimeOutline, MicOutline, MicOffOutline, PlayOutline, PauseOutline, Call
                       @change="setReturnSpecificTime(($event.target as HTMLInputElement).value)"
                     />
                   </div>
-                  <button v-if="returnTime.type !== 'none'" class="clear-return-btn" @click="clearReturnTime">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  <button
+                    v-if="returnTime.type !== 'none'"
+                    class="clear-return-btn"
+                    @click="clearReturnTime"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      width="14"
+                      height="14"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
                     Clear return time
                   </button>
@@ -1042,20 +1477,78 @@ import { TimeOutline, MicOutline, MicOffOutline, PlayOutline, PauseOutline, Call
             </div>
 
             <div class="toolbar-section">
-              <button v-if="currentNursePresenceId === 'in-call'" class="toolbar-btn btn-secondary" title="Mute">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              <button
+                v-if="currentNursePresenceId === 'in-call'"
+                class="toolbar-btn btn-secondary"
+                title="Mute"
+              >
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
                 <span class="btn-text">Mute</span>
               </button>
-              <button v-if="currentNursePresenceId === 'in-call'" class="toolbar-btn btn-secondary" title="Hold">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              <button
+                v-if="currentNursePresenceId === 'in-call'"
+                class="toolbar-btn btn-secondary"
+                title="Hold"
+              >
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="6" y="4" width="4" height="16" />
+                  <rect x="14" y="4" width="4" height="16" />
+                </svg>
                 <span class="btn-text">Hold</span>
               </button>
-              <button v-if="currentNursePresenceId === 'in-call'" class="toolbar-btn btn-danger" title="End Call">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" transform="rotate(135 12 12)"/></svg>
+              <button
+                v-if="currentNursePresenceId === 'in-call'"
+                class="toolbar-btn btn-danger"
+                title="End Call"
+              >
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                    transform="rotate(135 12 12)"
+                  />
+                </svg>
                 <span class="btn-text">End</span>
               </button>
-              <button v-if="currentNursePresenceId !== 'in-call'" class="toolbar-btn btn-settings" title="Settings">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <button
+                v-if="currentNursePresenceId !== 'in-call'"
+                class="toolbar-btn btn-settings"
+                title="Settings"
+              >
+                <svg
+                  class="btn-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                  />
+                </svg>
                 <span class="btn-text">Settings</span>
               </button>
             </div>
@@ -1082,8 +1575,16 @@ import { TimeOutline, MicOutline, MicOffOutline, PlayOutline, PauseOutline, Call
                     {{ presence.canReceiveCalls ? 'Can receive calls' : 'Cannot receive calls' }}
                   </span>
                   <span v-if="presence.allowsReturnTime" class="return-time-capability">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      width="12"
+                      height="12"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
                     </svg>
                     Supports return time
                   </span>
@@ -1217,7 +1718,7 @@ const layouts: LayoutOption[] = [
 ]
 
 const currentLayout = ref('top')
-const activeLayout = computed(() => layouts.find(l => l.id === currentLayout.value) || layouts[0])
+const activeLayout = computed(() => layouts.find((l) => l.id === currentLayout.value) || layouts[0])
 
 // Nurse Workflow Presence Demo
 interface NursePresenceOption {
@@ -1227,7 +1728,7 @@ interface NursePresenceOption {
   color: string
   canReceiveCalls: boolean
   statusMessage: string
-  allowsReturnTime: boolean  // Whether this status can have an expected return time
+  allowsReturnTime: boolean // Whether this status can have an expected return time
 }
 
 // Return time types
@@ -1235,8 +1736,8 @@ type ReturnTimeType = 'none' | 'duration' | 'specific'
 
 interface ReturnTimeState {
   type: ReturnTimeType
-  durationMinutes: number | null  // e.g., 10, 15, 30, 60
-  specificTime: string | null     // e.g., "14:30"
+  durationMinutes: number | null // e.g., 10, 15, 30, 60
+  specificTime: string | null // e.g., "14:30"
 }
 
 const nursePresenceOptions: NursePresenceOption[] = [
@@ -1244,64 +1745,64 @@ const nursePresenceOptions: NursePresenceOption[] = [
     id: 'ready',
     label: 'Ready',
     description: 'Available for calls',
-    color: '#10b981',
+    color: 'var(--success)',
     canReceiveCalls: true,
     statusMessage: 'Available and ready for incoming calls',
-    allowsReturnTime: false
+    allowsReturnTime: false,
   },
   {
     id: 'in-call',
     label: 'In Call',
     description: 'Currently on a call',
-    color: '#3b82f6',
+    color: 'var(--info)',
     canReceiveCalls: false,
     statusMessage: 'Currently on an active call',
-    allowsReturnTime: false
+    allowsReturnTime: false,
   },
   {
     id: 'documenting',
     label: 'Documenting',
     description: 'Writing patient notes',
-    color: '#8b5cf6',
+    color: 'var(--primary)',
     canReceiveCalls: true,
     statusMessage: 'Documenting - can still receive urgent calls',
-    allowsReturnTime: true
+    allowsReturnTime: true,
   },
   {
     id: 'in-meeting',
     label: 'In Meeting',
     description: 'Attending a meeting',
-    color: '#f59e0b',
+    color: 'var(--warning)',
     canReceiveCalls: false,
     statusMessage: 'In a meeting - calls will go to voicemail',
-    allowsReturnTime: true
+    allowsReturnTime: true,
   },
   {
     id: 'on-break',
     label: 'On Break',
     description: 'Taking a short break',
-    color: '#6b7280',
+    color: 'var(--text-secondary)',
     canReceiveCalls: false,
     statusMessage: 'On break - back shortly',
-    allowsReturnTime: true
+    allowsReturnTime: true,
   },
   {
     id: 'lunch',
     label: 'Lunch',
     description: 'On lunch break',
-    color: '#f97316',
+    color: 'var(--warning)',
     canReceiveCalls: false,
     statusMessage: 'On lunch break',
-    allowsReturnTime: true
+    allowsReturnTime: true,
   },
   {
     id: 'paused',
     label: 'Paused',
     description: 'Temporarily unavailable',
-    color: '#ef4444',
+    color: 'var(--danger)',
     canReceiveCalls: false,
     statusMessage: 'Temporarily unavailable',
-    allowsReturnTime: true
+    allowsReturnTime: true,
   },
 ]
 
@@ -1321,11 +1822,13 @@ const returnTimePickerOpen = ref(false)
 const returnTime = ref<ReturnTimeState>({
   type: 'none',
   durationMinutes: null,
-  specificTime: null
+  specificTime: null,
 })
 
-const currentNursePresence = computed(() =>
-  nursePresenceOptions.find(p => p.id === currentNursePresenceId.value) || nursePresenceOptions[0]
+const currentNursePresence = computed(
+  () =>
+    nursePresenceOptions.find((p) => p.id === currentNursePresenceId.value) ||
+    nursePresenceOptions[0]
 )
 
 // Format the return time for display
@@ -1337,7 +1840,9 @@ const formattedReturnTime = computed(() => {
     if (mins >= 60) {
       const hours = Math.floor(mins / 60)
       const remainingMins = mins % 60
-      return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours} hour${hours > 1 ? 's' : ''}`
+      return remainingMins > 0
+        ? `${hours}h ${remainingMins}m`
+        : `${hours} hour${hours > 1 ? 's' : ''}`
     }
     return `${mins} min`
   }
@@ -1359,7 +1864,8 @@ const fullStatusMessage = computed(() => {
   if (formattedReturnTime.value && currentNursePresence.value.allowsReturnTime) {
     message += ` - Back in ${formattedReturnTime.value}`
     if (returnTime.value.type === 'specific') {
-      message = currentNursePresence.value.statusMessage + ` - Returns at ${formattedReturnTime.value}`
+      message =
+        currentNursePresence.value.statusMessage + ` - Returns at ${formattedReturnTime.value}`
     }
   }
   return message
@@ -1369,7 +1875,7 @@ const selectNursePresence = (id: string) => {
   currentNursePresenceId.value = id
   nursePresenceOpen.value = false
   // Reset return time when changing presence (unless it allows return time)
-  const presence = nursePresenceOptions.find(p => p.id === id)
+  const presence = nursePresenceOptions.find((p) => p.id === id)
   if (!presence?.allowsReturnTime) {
     returnTime.value = { type: 'none', durationMinutes: null, specificTime: null }
   }
@@ -1379,7 +1885,7 @@ const setReturnDuration = (minutes: number) => {
   returnTime.value = {
     type: 'duration',
     durationMinutes: minutes,
-    specificTime: null
+    specificTime: null,
   }
   returnTimePickerOpen.value = false
 }
@@ -1388,7 +1894,7 @@ const setReturnSpecificTime = (time: string) => {
   returnTime.value = {
     type: 'specific',
     durationMinutes: null,
-    specificTime: time
+    specificTime: time,
   }
   returnTimePickerOpen.value = false
 }
@@ -1419,24 +1925,24 @@ const clearReturnTime = () => {
 }
 
 .status-label {
-  white-space: nowrap;
+  var(--surface-0)-space: nowrap;
 }
 
 .status-red {
   background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  color: var(--danger);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .status-orange {
   background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
+  color: var(--warning);
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .status-green {
   background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+  color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
@@ -1446,8 +1952,13 @@ const clearReturnTime = () => {
 }
 
 @keyframes pulse-orange {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .toolbar-layouts-demo {
@@ -1497,7 +2008,7 @@ const clearReturnTime = () => {
 .tab-btn.active {
   background: var(--primary);
   border-color: var(--primary);
-  color: white;
+  color: var(--surface-0);
 }
 
 .tab-content {
@@ -1505,8 +2016,14 @@ const clearReturnTime = () => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* States Grid */
@@ -1542,8 +2059,8 @@ const clearReturnTime = () => {
   gap: 1.5rem;
   padding: 0.875rem 1.25rem;
   border-radius: 8px;
-  background: linear-gradient(120deg, #667eea 0%, #764ba2 50%, #4f46e5 100%);
-  color: white;
+  background: var(--primary);
+  color: var(--surface-0);
   font-size: 0.875rem;
 }
 
@@ -1563,16 +2080,16 @@ const clearReturnTime = () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--danger);
   flex-shrink: 0;
 }
 
 .status-dot.connected {
-  background: #10b981;
+  background: var(--success);
 }
 
 .status-dot.disconnected {
-  background: #ef4444;
+  background: var(--danger);
 }
 
 .status-text {
@@ -1591,20 +2108,20 @@ const clearReturnTime = () => {
 
 .state-badge.active {
   background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .state-badge.ringing {
   background: rgba(251, 191, 36, 0.2);
-  color: #fbbf24;
+  color: var(--warning);
   border: 1px solid rgba(251, 191, 36, 0.3);
   animation: pulse-ring 1.5s infinite;
 }
 
 .state-badge.hold {
   background: rgba(139, 92, 246, 0.2);
-  color: #a78bfa;
+  color: var(--primary);
   border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
@@ -1621,13 +2138,18 @@ const clearReturnTime = () => {
 }
 
 @keyframes pulse-ring {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* Incoming While On Call */
 .toolbar-incoming-oncall {
-  background: linear-gradient(120deg, #667eea 0%, #764ba2 50%, #4f46e5 100%);
+  background: linear-gradient(120deg, var(--primary) 0%, #764ba2 50%, #4f46e5 100%);
   border: 2px solid #fbbf24;
 }
 
@@ -1654,13 +2176,25 @@ const clearReturnTime = () => {
 }
 
 @keyframes pulse-incoming {
-  0%, 100% { background: rgba(251, 191, 36, 0.3); }
-  50% { background: rgba(251, 191, 36, 0.5); }
+  0%,
+  100% {
+    background: rgba(251, 191, 36, 0.3);
+  }
+  50% {
+    background: rgba(251, 191, 36, 0.5);
+  }
 }
 
 @keyframes pulse-dot {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.3); opacity: 0.7; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
 }
 
 .toolbar-btn.btn-sm {
@@ -1682,7 +2216,7 @@ const clearReturnTime = () => {
 }
 
 .btn-text {
-  white-space: nowrap;
+  var(--surface-0)-space: nowrap;
 }
 
 /* Hide text on mobile, show only icons */
@@ -1721,14 +2255,15 @@ const clearReturnTime = () => {
   border-radius: 4px;
 }
 
-.idle-text, .disconnected-text {
+.idle-text,
+.disconnected-text {
   opacity: 0.8;
   font-style: italic;
 }
 
 .mute-indicator {
-  background: #ef4444;
-  color: white;
+  background: var(--danger);
+  color: var(--surface-0);
   padding: 0.125rem 0.5rem;
   border-radius: 3px;
   font-size: 0.6875rem;
@@ -1756,17 +2291,29 @@ const clearReturnTime = () => {
 .dot-pulse {
   width: 6px;
   height: 6px;
-  background: white;
+  background: var(--surface-0);
   border-radius: 50%;
   animation: dot-pulse 1.4s infinite ease-in-out both;
 }
 
-.dot-pulse:nth-child(1) { animation-delay: -0.32s; }
-.dot-pulse:nth-child(2) { animation-delay: -0.16s; }
+.dot-pulse:nth-child(1) {
+  animation-delay: -0.32s;
+}
+.dot-pulse:nth-child(2) {
+  animation-delay: -0.16s;
+}
 
 @keyframes dot-pulse {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Toolbar Buttons */
@@ -1782,7 +2329,7 @@ const clearReturnTime = () => {
 
 .btn-secondary {
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--surface-0);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
@@ -1795,28 +2342,28 @@ const clearReturnTime = () => {
 }
 
 .btn-primary {
-  background: #3b82f6;
-  color: white;
+  background: var(--info);
+  color: var(--surface-0);
 }
 
 .btn-success {
-  background: #10b981;
-  color: white;
+  background: var(--success);
+  color: var(--surface-0);
 }
 
 .btn-danger {
-  background: #ef4444;
-  color: white;
+  background: var(--danger);
+  color: var(--surface-0);
 }
 
 .btn-warning {
-  background: #f59e0b;
-  color: white;
+  background: var(--warning);
+  color: var(--surface-0);
 }
 
 .btn-settings {
   background: rgba(255, 255, 255, 0.15);
-  color: white;
+  color: var(--surface-0);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
@@ -1847,7 +2394,7 @@ const clearReturnTime = () => {
 .fw-tab.active {
   background: var(--primary);
   border-color: var(--primary);
-  color: white;
+  color: var(--surface-0);
 }
 
 /* Framework Example */
@@ -1874,7 +2421,7 @@ const clearReturnTime = () => {
 }
 
 .code-block {
-  background: #1e1e1e;
+  background: var(--surface-section);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -1889,7 +2436,7 @@ const clearReturnTime = () => {
   font-family: 'Fira Code', 'Consolas', monospace;
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: #d4d4d4;
+  color: var(--text-secondary);
 }
 
 /* Layout Selector */
@@ -1919,7 +2466,7 @@ const clearReturnTime = () => {
 .layout-btn.active {
   border-color: var(--primary);
   background: var(--primary);
-  color: white;
+  color: var(--surface-0);
 }
 
 /* Layout Container */
@@ -1999,8 +2546,8 @@ const clearReturnTime = () => {
 
 /* Demo Toolbar */
 .demo-toolbar {
-  background: linear-gradient(120deg, #667eea 0%, #764ba2 50%, #4f46e5 100%);
-  color: white;
+  background: linear-gradient(120deg, var(--primary) 0%, #764ba2 50%, #4f46e5 100%);
+  color: var(--surface-0);
 }
 
 /* Top Layout */
@@ -2084,7 +2631,7 @@ const clearReturnTime = () => {
 
 .state-badge-small.active {
   background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
@@ -2097,13 +2644,13 @@ const clearReturnTime = () => {
   cursor: pointer;
   text-align: left;
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--surface-0);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .toolbar-btn-vertical.btn-danger {
-  background: #ef4444;
-  border-color: #ef4444;
+  background: var(--danger);
+  border-color: var(--danger);
 }
 
 .icon-buttons {
@@ -2120,13 +2667,13 @@ const clearReturnTime = () => {
   font-weight: 700;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--surface-0);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .toolbar-btn-icon.btn-danger {
-  background: #ef4444;
-  border-color: #ef4444;
+  background: var(--danger);
+  border-color: var(--danger);
 }
 
 /* Bottom Layout */
@@ -2154,7 +2701,7 @@ const clearReturnTime = () => {
   gap: 1.5rem;
   padding: 0.875rem 1.25rem;
   border-radius: 8px;
-  color: white;
+  color: var(--surface-0);
   font-size: 0.875rem;
   margin-bottom: 1.5rem;
 }
@@ -2164,60 +2711,146 @@ const clearReturnTime = () => {
   background: linear-gradient(120deg, #6366f1 0%, #8b5cf6 50%, #4f46e5 100%);
 }
 
-.tw-flex { display: flex; }
-.tw-flex-1 { flex: 1; }
-.tw-items-center { align-items: center; }
-.tw-justify-center { justify-content: center; }
-.tw-gap-2 { gap: 0.5rem; }
-.tw-gap-3 { gap: 0.75rem; }
-.tw-gap-4 { gap: 1rem; }
-.tw-w-3 { width: 0.75rem; }
-.tw-h-3 { height: 0.75rem; }
-.tw-rounded-full { border-radius: 9999px; }
-.tw-rounded { border-radius: 0.25rem; }
-.tw-rounded-md { border-radius: 0.375rem; }
-.tw-bg-emerald-500 { background-color: #10b981; }
-.tw-text-sm { font-size: 0.875rem; }
-.tw-text-xs { font-size: 0.75rem; }
-.tw-font-medium { font-weight: 500; }
-.tw-font-semibold { font-weight: 600; }
-.tw-font-mono { font-family: monospace; }
-.tw-px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
-.tw-px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
-.tw-py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-.tw-py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
-.tw-bg-emerald-500\/20 { background-color: rgba(16, 185, 129, 0.2); }
-.tw-text-emerald-400 { color: #34d399; }
-.tw-bg-black\/20 { background-color: rgba(0, 0, 0, 0.2); }
-.tw-bg-white\/20 { background-color: rgba(255, 255, 255, 0.2); }
-.tw-border { border-width: 1px; }
-.tw-border-white\/30 { border-color: rgba(255, 255, 255, 0.3); }
-.tw-bg-red-500 { background-color: #ef4444; }
+.tw-flex {
+  display: flex;
+}
+.tw-flex-1 {
+  flex: 1;
+}
+.tw-items-center {
+  align-items: center;
+}
+.tw-justify-center {
+  justify-content: center;
+}
+.tw-gap-2 {
+  gap: 0.5rem;
+}
+.tw-gap-3 {
+  gap: 0.75rem;
+}
+.tw-gap-4 {
+  gap: 1rem;
+}
+.tw-w-3 {
+  width: 0.75rem;
+}
+.tw-h-3 {
+  height: 0.75rem;
+}
+.tw-rounded-full {
+  border-radius: 9999px;
+}
+.tw-rounded {
+  border-radius: 0.25rem;
+}
+.tw-rounded-md {
+  border-radius: 0.375rem;
+}
+.tw-bg-emerald-500 {
+  background-color: var(--success);
+}
+.tw-text-sm {
+  font-size: 0.875rem;
+}
+.tw-text-xs {
+  font-size: 0.75rem;
+}
+.tw-font-medium {
+  font-weight: 500;
+}
+.tw-font-semibold {
+  font-weight: 600;
+}
+.tw-font-mono {
+  font-family: monospace;
+}
+.tw-px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.tw-px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+.tw-py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+.tw-py-1\.5 {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.tw-bg-emerald-500\/20 {
+  background-color: rgba(16, 185, 129, 0.2);
+}
+.tw-text-emerald-400 {
+  color: var(--success-light);
+}
+.tw-bg-var(--surface-900)\/20 {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+.tw-bg-var(--surface-0)\/20 {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.tw-border {
+  border-width: 1px;
+}
+.tw-border-var(--surface-0)\/30 {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.tw-bg-red-500 {
+  background-color: var(--danger);
+}
 
 /* PrimeVue Preview */
 .toolbar-preview-primevue {
-  background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%);
+  background: linear-gradient(120deg, var(--info) 0%, #6366f1 100%);
 }
 
-.pv-status-section { display: flex; gap: 0.5rem; }
+.pv-status-section {
+  display: flex;
+  gap: 0.5rem;
+}
 .pv-badge {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
 }
-.pv-badge-success { background: #22c55e; }
-.pv-call-info { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+.pv-badge-success {
+  background: #22c55e;
+}
+.pv-call-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
 .pv-tag {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
 }
-.pv-tag-info { background: rgba(59, 130, 246, 0.3); color: #93c5fd; }
-.pv-caller { font-weight: 500; }
-.pv-duration { font-family: monospace; background: rgba(0,0,0,0.2); padding: 0.25rem 0.5rem; border-radius: 4px; }
-.pv-button-group { display: flex; gap: 0.5rem; }
+.pv-tag-info {
+  background: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+.pv-caller {
+  font-weight: 500;
+}
+.pv-duration {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+.pv-button-group {
+  display: flex;
+  gap: 0.5rem;
+}
 .pv-button {
   padding: 0.375rem 0.75rem;
   border-radius: 4px;
@@ -2226,27 +2859,57 @@ const clearReturnTime = () => {
   border: none;
   cursor: pointer;
 }
-.pv-button-outlined { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; }
-.pv-button-danger { background: #ef4444; color: white; }
+.pv-button-outlined {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--surface-0);
+}
+.pv-button-danger {
+  background: var(--danger);
+  color: var(--surface-0);
+}
 
 /* Vuetify Preview */
 .toolbar-preview-vuetify {
   background: linear-gradient(120deg, #673ab7 0%, #9c27b0 100%);
 }
 
-.v-status { display: flex; gap: 0.5rem; }
+.v-status {
+  display: flex;
+  gap: 0.5rem;
+}
 .v-chip {
   padding: 0.25rem 0.625rem;
   border-radius: 16px;
   font-size: 0.75rem;
   font-weight: 500;
 }
-.v-chip-success { background: #4caf50; }
-.v-chip-primary { background: #2196f3; }
-.v-call-info { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
-.v-caller { font-weight: 500; }
-.v-duration { font-family: monospace; background: rgba(0,0,0,0.2); padding: 0.25rem 0.5rem; border-radius: 4px; }
-.v-btn-group { display: flex; gap: 0.25rem; }
+.v-chip-success {
+  background: #4caf50;
+}
+.v-chip-primary {
+  background: #2196f3;
+}
+.v-call-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.v-caller {
+  font-weight: 500;
+}
+.v-duration {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+.v-btn-group {
+  display: flex;
+  gap: 0.25rem;
+}
 .v-btn {
   padding: 0.375rem 0.75rem;
   border-radius: 4px;
@@ -2257,28 +2920,59 @@ const clearReturnTime = () => {
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
-.v-btn-text { background: transparent; color: white; }
-.v-btn-text:hover { background: rgba(255,255,255,0.1); }
-.v-btn-error { background: #f44336; color: white; }
+.v-btn-text {
+  background: transparent;
+  color: var(--surface-0);
+}
+.v-btn-text:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.v-btn-error {
+  background: #f44336;
+  color: var(--surface-0);
+}
 
 /* Quasar Preview */
 .toolbar-preview-quasar {
   background: linear-gradient(120deg, #1976d2 0%, #7c4dff 100%);
 }
 
-.q-status { display: flex; gap: 0.5rem; }
+.q-status {
+  display: flex;
+  gap: 0.5rem;
+}
 .q-badge {
   padding: 0.25rem 0.5rem;
   border-radius: 3px;
   font-size: 0.75rem;
   font-weight: 600;
 }
-.q-badge-positive { background: #21ba45; }
-.q-badge-primary { background: #1976d2; }
-.q-call-info { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
-.q-caller { font-weight: 500; }
-.q-duration { font-family: monospace; background: rgba(0,0,0,0.2); padding: 0.25rem 0.5rem; border-radius: 4px; }
-.q-btn-group { display: flex; gap: 0.25rem; }
+.q-badge-positive {
+  background: #21ba45;
+}
+.q-badge-primary {
+  background: #1976d2;
+}
+.q-call-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.q-caller {
+  font-weight: 500;
+}
+.q-duration {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+.q-btn-group {
+  display: flex;
+  gap: 0.25rem;
+}
 .q-btn {
   padding: 0.375rem 0.75rem;
   border-radius: 3px;
@@ -2288,16 +2982,27 @@ const clearReturnTime = () => {
   cursor: pointer;
   text-transform: uppercase;
 }
-.q-btn-flat { background: transparent; color: white; }
-.q-btn-flat:hover { background: rgba(255,255,255,0.1); }
-.q-btn-negative { background: #c10015; color: white; }
+.q-btn-flat {
+  background: transparent;
+  color: var(--surface-0);
+}
+.q-btn-flat:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.q-btn-negative {
+  background: #c10015;
+  color: var(--surface-0);
+}
 
 /* Element Plus Preview */
 .toolbar-preview-element {
   background: linear-gradient(120deg, #409eff 0%, #67c23a 100%);
 }
 
-.el-status { display: flex; gap: 0.5rem; }
+.el-status {
+  display: flex;
+  gap: 0.5rem;
+}
 .el-tag {
   padding: 0.125rem 0.5rem;
   border-radius: 4px;
@@ -2305,41 +3010,95 @@ const clearReturnTime = () => {
   font-weight: 500;
   border: 1px solid transparent;
 }
-.el-tag-success { background: #67c23a; border-color: #67c23a; }
-.el-tag-primary { background: #409eff; border-color: #409eff; }
-.el-call-info { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
-.el-caller { font-weight: 500; }
-.el-duration { font-family: monospace; background: rgba(0,0,0,0.2); padding: 0.25rem 0.5rem; border-radius: 4px; }
-.el-btn-group { display: flex; gap: 0.5rem; }
+.el-tag-success {
+  background: #67c23a;
+  border-color: #67c23a;
+}
+.el-tag-primary {
+  background: #409eff;
+  border-color: #409eff;
+}
+.el-call-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.el-caller {
+  font-weight: 500;
+}
+.el-duration {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+.el-btn-group {
+  display: flex;
+  gap: 0.5rem;
+}
 .el-button {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   font-size: 0.875rem;
   font-weight: 500;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
 }
-.el-button-default { background: rgba(255,255,255,0.1); color: white; }
-.el-button-danger { background: #f56c6c; border-color: #f56c6c; color: white; }
+.el-button-default {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--surface-0);
+}
+.el-button-danger {
+  background: #f56c6c;
+  border-color: #f56c6c;
+  color: var(--surface-0);
+}
 
 /* Naive UI Preview */
 .toolbar-preview-naive {
   background: linear-gradient(120deg, #18a058 0%, #2080f0 100%);
 }
 
-.n-status { display: flex; gap: 0.5rem; }
+.n-status {
+  display: flex;
+  gap: 0.5rem;
+}
 .n-tag {
   padding: 0.125rem 0.5rem;
   border-radius: 3px;
   font-size: 0.75rem;
   font-weight: 500;
 }
-.n-tag-success { background: rgba(24, 160, 88, 0.3); color: #63e2b7; }
-.n-tag-info { background: rgba(32, 128, 240, 0.3); color: #70c0e8; }
-.n-call-info { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
-.n-caller { font-weight: 500; }
-.n-duration { font-family: monospace; background: rgba(0,0,0,0.2); padding: 0.25rem 0.5rem; border-radius: 4px; }
-.n-btn-group { display: flex; gap: 0.5rem; }
+.n-tag-success {
+  background: rgba(24, 160, 88, 0.3);
+  color: #63e2b7;
+}
+.n-tag-info {
+  background: rgba(32, 128, 240, 0.3);
+  color: #70c0e8;
+}
+.n-call-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+.n-caller {
+  font-weight: 500;
+}
+.n-duration {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+.n-btn-group {
+  display: flex;
+  gap: 0.5rem;
+}
 .n-button {
   padding: 0.375rem 0.875rem;
   border-radius: 3px;
@@ -2348,8 +3107,15 @@ const clearReturnTime = () => {
   border: none;
   cursor: pointer;
 }
-.n-button-default { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.2); }
-.n-button-error { background: #d03050; color: white; }
+.n-button-default {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--surface-0);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.n-button-error {
+  background: #d03050;
+  color: var(--surface-0);
+}
 
 /* Advanced Examples Tab - Nurse Workflow */
 .advanced-section {
@@ -2375,14 +3141,14 @@ const clearReturnTime = () => {
 }
 
 .toolbar-nurse {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
   border-radius: 10px;
   padding: 0.875rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  color: white;
+  color: var(--surface-0);
 }
 
 /* Presence Dropdown */
@@ -2398,7 +3164,7 @@ const clearReturnTime = () => {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 20px;
-  color: white;
+  color: var(--surface-0);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -2421,7 +3187,7 @@ const clearReturnTime = () => {
 }
 
 .presence-label {
-  white-space: nowrap;
+  var(--surface-0)-space: nowrap;
 }
 
 .dropdown-arrow {
@@ -2440,7 +3206,7 @@ const clearReturnTime = () => {
   top: calc(100% + 8px);
   left: 0;
   min-width: 220px;
-  background: white;
+  background: var(--surface-0);
   border-radius: 10px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   z-index: 100;
@@ -2466,7 +3232,7 @@ const clearReturnTime = () => {
 }
 
 .presence-option.active {
-  background: #eff6ff;
+  background: var(--surface-ground);
 }
 
 .presence-option-label {
@@ -2492,7 +3258,7 @@ const clearReturnTime = () => {
 /* Return Time Hint in Presence Options */
 .return-time-hint {
   font-size: 0.625rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   padding-left: 1.375rem;
   font-style: italic;
 }
@@ -2510,7 +3276,7 @@ const clearReturnTime = () => {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 16px;
-  color: white;
+  color: var(--surface-0);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -2542,7 +3308,7 @@ const clearReturnTime = () => {
   top: calc(100% + 8px);
   right: 0;
   min-width: 200px;
-  background: white;
+  background: var(--surface-0);
   border-radius: 10px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   z-index: 100;
@@ -2591,8 +3357,8 @@ const clearReturnTime = () => {
 }
 
 .duration-btn.active {
-  background: #667eea;
-  color: white;
+  background: var(--primary);
+  color: var(--surface-0);
   border-color: #5a67d8;
 }
 
@@ -2609,7 +3375,7 @@ const clearReturnTime = () => {
 
 .time-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
@@ -2618,7 +3384,7 @@ const clearReturnTime = () => {
   padding: 0.5rem;
   background: none;
   border: none;
-  color: #ef4444;
+  color: var(--danger);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -2650,7 +3416,7 @@ const clearReturnTime = () => {
   align-items: center;
   gap: 0.25rem;
   font-size: 0.625rem;
-  color: #667eea;
+  color: var(--primary);
   margin-top: 0.25rem;
   padding-left: 1.375rem;
 }
@@ -2671,7 +3437,7 @@ const clearReturnTime = () => {
 .call-state-tag {
   padding: 0.25rem 0.625rem;
   background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  color: var(--success);
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -2711,7 +3477,7 @@ const clearReturnTime = () => {
 }
 
 .presence-card {
-  background: white;
+  background: var(--surface-0);
   border: 2px solid #e2e8f0;
   border-radius: 10px;
   padding: 1rem;
@@ -2720,12 +3486,12 @@ const clearReturnTime = () => {
 }
 
 .presence-card:hover {
-  border-color: #667eea;
+  border-color: var(--primary);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 .presence-card.active {
-  border-color: #667eea;
+  border-color: var(--primary);
   background: #f5f3ff;
 }
 
@@ -2759,17 +3525,17 @@ const clearReturnTime = () => {
 }
 
 .call-capability.enabled {
-  color: #10b981;
+  color: var(--success);
 }
 
 .call-capability:not(.enabled) {
-  color: #ef4444;
+  color: var(--danger);
 }
 
 /* Code Example in Advanced Tab */
 .nurse-workflow-demo .code-example {
   margin-top: 1.5rem;
-  background: white;
+  background: var(--surface-0);
   border-radius: 10px;
   padding: 1rem;
 }

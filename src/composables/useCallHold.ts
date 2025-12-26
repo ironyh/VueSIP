@@ -10,6 +10,7 @@
 import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import type { CallSession } from '@/core/CallSession'
 import { HoldState, type HoldOptions, type HoldEvent, type HoldResult } from '@/types/call.types'
+import type { BaseEvent } from '@/types/events.types'
 import { createLogger } from '@/utils/logger'
 import { logErrorWithContext, ErrorSeverity, createOperationTimer } from '@/utils/errorContext'
 
@@ -205,7 +206,7 @@ export function useCallHold(session: Ref<CallSession | null>): UseCallHoldReturn
     }
 
     // Hold event
-    const holdListenerId = eventBus.on('call:hold', (event: any) => {
+    const holdListenerId = eventBus.on('call:hold', (event) => {
       log.debug('Hold event:', event)
 
       if (event.originator === 'local') {
@@ -218,7 +219,7 @@ export function useCallHold(session: Ref<CallSession | null>): UseCallHoldReturn
     })
 
     // Unhold event
-    const unholdListenerId = eventBus.on('call:unhold', (event: any) => {
+    const unholdListenerId = eventBus.on('call:unhold', (event) => {
       log.debug('Unhold event:', event)
 
       if (event.originator === 'local') {
@@ -231,20 +232,26 @@ export function useCallHold(session: Ref<CallSession | null>): UseCallHoldReturn
     })
 
     // Hold failed event
-    const holdFailedListenerId = eventBus.on('call:hold_failed', (event: any) => {
-      log.error('Hold failed event:', event)
-      holdState.value = HoldState.Active
-      holdError.value = event.error || 'Hold operation failed'
-      clearHoldTimeout()
-    })
+    const holdFailedListenerId = eventBus.on(
+      'call:hold_failed',
+      (event: BaseEvent & { error?: string }) => {
+        log.error('Hold failed event:', event)
+        holdState.value = HoldState.Active
+        holdError.value = event.error || 'Hold operation failed'
+        clearHoldTimeout()
+      }
+    )
 
     // Unhold failed event
-    const unholdFailedListenerId = eventBus.on('call:unhold_failed', (event: any) => {
-      log.error('Unhold failed event:', event)
-      holdState.value = HoldState.Held
-      holdError.value = event.error || 'Unhold operation failed'
-      clearHoldTimeout()
-    })
+    const unholdFailedListenerId = eventBus.on(
+      'call:unhold_failed',
+      (event: BaseEvent & { error?: string }) => {
+        log.error('Unhold failed event:', event)
+        holdState.value = HoldState.Held
+        holdError.value = event.error || 'Unhold operation failed'
+        clearHoldTimeout()
+      }
+    )
 
     // Store cleanup functions
     eventListenerCleanups.push(() => {

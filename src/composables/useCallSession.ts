@@ -18,9 +18,9 @@ import type {
   AnswerOptions,
   DTMFOptions,
   CallTimingInfo,
-  CallStatistics,
-  TerminationCause,
 } from '../types/call.types'
+import { TransferState } from '../types/transfer.types'
+import type { CallStatistics, TerminationCause } from '../types/call.types'
 import type { TransferOptions, TransferResult } from '../types/transfer.types'
 import { createLogger } from '../utils/logger'
 import { validateSipUri } from '@/utils/validators'
@@ -1067,7 +1067,7 @@ export function useCallSession(
       return {
         success: false,
         error,
-        state: 'failed' as any,
+        state: TransferState.Failed,
       }
     }
 
@@ -1105,7 +1105,7 @@ export function useCallSession(
       return {
         success: true,
         transferId: `transfer-${Date.now()}`,
-        state: 'initiated' as any,
+        state: TransferState.Initiated,
       }
     } catch (error) {
       logErrorWithContext(
@@ -1132,7 +1132,7 @@ export function useCallSession(
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
-        state: 'failed' as any,
+        state: TransferState.Failed,
       }
     }
   }

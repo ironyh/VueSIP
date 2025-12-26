@@ -19,16 +19,15 @@ import {
   createDocumentProcessor,
   createVectorStore,
   type RAGConfig,
-  type DocumentMetadata,
   DEFAULTS,
-} from '../src/lib/agentdb';
+} from '../src/lib/agentdb'
 
 // ============================================================================
 // Example 1: Quick Setup with setupRAG()
 // ============================================================================
 
 async function quickSetupExample() {
-  console.log('=== Quick Setup Example ===\n');
+  console.log('=== Quick Setup Example ===\n')
 
   // The simplest way to get started - just provide a database path
   const rag = await setupRAG({
@@ -39,7 +38,7 @@ async function quickSetupExample() {
     chunkOverlap: 200,
     defaultLimit: 5,
     defaultMinScore: 0.7,
-  });
+  })
 
   // Ingest some documents
   await rag.ingestText(
@@ -52,7 +51,7 @@ async function quickSetupExample() {
       category: 'technology',
       topic: 'machine-learning',
     }
-  );
+  )
 
   await rag.ingestText(
     `Deep learning is a subset of machine learning that uses neural networks
@@ -64,7 +63,7 @@ async function quickSetupExample() {
       category: 'technology',
       topic: 'deep-learning',
     }
-  );
+  )
 
   // Query for relevant context
   const context = await rag.query({
@@ -72,16 +71,16 @@ async function quickSetupExample() {
     topK: 3,
     minScore: 0.7,
     includeSources: true,
-  });
+  })
 
-  console.log('Query Results:');
-  console.log('- Chunks found:', context.chunks.length);
-  console.log('- Token count:', context.tokenCount);
-  console.log('- Search time:', context.searchMetadata.searchTimeMs, 'ms');
-  console.log('\nContext for LLM:');
-  console.log(context.contextText);
+  console.log('Query Results:')
+  console.log('- Chunks found:', context.chunks.length)
+  console.log('- Token count:', context.tokenCount)
+  console.log('- Search time:', context.searchMetadata.searchTimeMs, 'ms')
+  console.log('\nContext for LLM:')
+  console.log(context.contextText)
 
-  await rag.close();
+  await rag.close()
 }
 
 // ============================================================================
@@ -89,13 +88,13 @@ async function quickSetupExample() {
 // ============================================================================
 
 async function customConfigExample() {
-  console.log('\n=== Custom Configuration Example ===\n');
+  console.log('\n=== Custom Configuration Example ===\n')
 
   // Create a custom embedding provider
   const embeddingProvider = createOpenAIProvider({
     apiKey: process.env.OPENAI_API_KEY,
     model: 'text-embedding-ada-002',
-  });
+  })
 
   // Full configuration control
   const config: RAGConfig = {
@@ -121,9 +120,9 @@ async function customConfigExample() {
       useMMR: true, // Maximal Marginal Relevance for diverse results
       mmrLambda: 0.7, // Balance between relevance and diversity
     },
-  };
+  }
 
-  const rag = await createRAGPipeline(config, embeddingProvider);
+  const rag = await createRAGPipeline(config, embeddingProvider)
 
   // Ingest structured documentation
   const docs = [
@@ -152,21 +151,21 @@ Run \`npm install our-sdk\` to install the SDK.
 3. Make your first API call`,
       metadata: { source: 'getting-started.md', category: 'documentation', type: 'guide' },
     },
-  ];
+  ]
 
-  await rag.ingestTexts(docs);
+  await rag.ingestTexts(docs)
 
   // Query with metadata filtering
   const apiContext = await rag.query({
     query: 'How do I authenticate API requests?',
     topK: 3,
     filters: { type: 'api' }, // Only search API documentation
-  });
+  })
 
-  console.log('API Documentation Results:');
-  console.log(apiContext.contextText);
+  console.log('API Documentation Results:')
+  console.log(apiContext.contextText)
 
-  await rag.close();
+  await rag.close()
 }
 
 // ============================================================================
@@ -174,50 +173,62 @@ Run \`npm install our-sdk\` to install the SDK.
 // ============================================================================
 
 async function advancedSearchExample() {
-  console.log('\n=== Advanced Search Patterns Example ===\n');
+  console.log('\n=== Advanced Search Patterns Example ===\n')
 
   const rag = await setupRAG({
     dbPath: '.agentdb/advanced.db',
     openaiApiKey: process.env.OPENAI_API_KEY,
-  });
+  })
 
   // Ingest diverse content
   const documents = [
-    { text: 'Python is excellent for data science and machine learning.', metadata: { lang: 'python' } },
-    { text: 'JavaScript powers modern web applications and Node.js servers.', metadata: { lang: 'javascript' } },
+    {
+      text: 'Python is excellent for data science and machine learning.',
+      metadata: { lang: 'python' },
+    },
+    {
+      text: 'JavaScript powers modern web applications and Node.js servers.',
+      metadata: { lang: 'javascript' },
+    },
     { text: 'Rust provides memory safety without garbage collection.', metadata: { lang: 'rust' } },
-    { text: 'Python has extensive libraries like NumPy and Pandas for data analysis.', metadata: { lang: 'python' } },
-    { text: 'TypeScript adds static typing to JavaScript for better developer experience.', metadata: { lang: 'typescript' } },
-  ];
+    {
+      text: 'Python has extensive libraries like NumPy and Pandas for data analysis.',
+      metadata: { lang: 'python' },
+    },
+    {
+      text: 'TypeScript adds static typing to JavaScript for better developer experience.',
+      metadata: { lang: 'typescript' },
+    },
+  ]
 
-  await rag.ingestTexts(documents);
+  await rag.ingestTexts(documents)
 
   // 1. Basic semantic search
-  console.log('1. Basic Semantic Search:');
+  console.log('1. Basic Semantic Search:')
   const basicResult = await rag.query({
     query: 'programming language for data science',
     topK: 2,
     minScore: 0.5,
-  });
-  console.log('Found:', basicResult.chunks.map((c) => c.document.content).join('\n'));
+  })
+  console.log('Found:', basicResult.chunks.map((c) => c.document.content).join('\n'))
 
   // 2. Hybrid search with keywords
-  console.log('\n2. Hybrid Search (semantic + keywords):');
+  console.log('\n2. Hybrid Search (semantic + keywords):')
   const hybridResult = await rag.hybridQuery(
     { query: 'programming language', topK: 3, minScore: 0.3 },
     ['Python', 'data'] // Must contain these keywords
-  );
-  console.log('Found:', hybridResult.chunks.map((c) => c.document.content).join('\n'));
+  )
+  console.log('Found:', hybridResult.chunks.map((c) => c.document.content).join('\n'))
 
   // 3. Multi-query retrieval
-  console.log('\n3. Multi-Query Retrieval:');
+  console.log('\n3. Multi-Query Retrieval:')
   const multiResult = await rag.multiQuery(
     ['web development', 'frontend programming', 'JavaScript frameworks'],
     { topK: 3, minScore: 0.3 }
-  );
-  console.log('Found:', multiResult.chunks.map((c) => c.document.content).join('\n'));
+  )
+  console.log('Found:', multiResult.chunks.map((c) => c.document.content).join('\n'))
 
-  await rag.close();
+  await rag.close()
 }
 
 // ============================================================================
@@ -225,11 +236,11 @@ async function advancedSearchExample() {
 // ============================================================================
 
 async function vectorStoreDirectExample() {
-  console.log('\n=== Direct VectorStore Usage Example ===\n');
+  console.log('\n=== Direct VectorStore Usage Example ===\n')
 
   const embeddingProvider = createOpenAIProvider({
     apiKey: process.env.OPENAI_API_KEY,
-  });
+  })
 
   // Create vector store directly for more control
   const store = createVectorStore({
@@ -237,14 +248,14 @@ async function vectorStoreDirectExample() {
     dimensions: DEFAULTS.OPENAI_DIMENSIONS,
     quantization: 'binary', // 32x memory reduction
     cacheSize: 1000,
-  });
+  })
 
-  await store.initialize();
-  store.setEmbeddingProvider(embeddingProvider);
+  await store.initialize()
+  store.setEmbeddingProvider(embeddingProvider)
 
   // Store documents with pre-computed embeddings
-  const text1 = 'The quick brown fox jumps over the lazy dog.';
-  const embedding1 = (await embeddingProvider.embed(text1)).embedding;
+  const text1 = 'The quick brown fox jumps over the lazy dog.'
+  const embedding1 = (await embeddingProvider.embed(text1)).embedding
 
   await store.store({
     id: 'doc-1',
@@ -254,27 +265,27 @@ async function vectorStoreDirectExample() {
       source: 'test.txt',
       category: 'example',
     },
-  });
+  })
 
   // Search by text (uses embedding provider)
   const results = await store.searchByText('fast animal jumping', {
     limit: 5,
     minScore: 0.5,
-  });
+  })
 
-  console.log('Search Results:');
+  console.log('Search Results:')
   results.results.forEach((r) => {
-    console.log(`- [${r.score.toFixed(3)}] ${r.document.content}`);
-  });
+    console.log(`- [${r.score.toFixed(3)}] ${r.document.content}`)
+  })
 
   // Get store statistics
-  const stats = await store.getStats();
-  console.log('\nStore Statistics:');
-  console.log('- Total documents:', stats.totalDocuments);
-  console.log('- Index type:', stats.indexType);
-  console.log('- Cache hit rate:', (stats.cacheHitRate * 100).toFixed(1), '%');
+  const stats = await store.getStats()
+  console.log('\nStore Statistics:')
+  console.log('- Total documents:', stats.totalDocuments)
+  console.log('- Index type:', stats.indexType)
+  console.log('- Cache hit rate:', (stats.cacheHitRate * 100).toFixed(1), '%')
 
-  await store.close();
+  await store.close()
 }
 
 // ============================================================================
@@ -282,10 +293,10 @@ async function vectorStoreDirectExample() {
 // ============================================================================
 
 async function documentProcessingExample() {
-  console.log('\n=== Document Processing Example ===\n');
+  console.log('\n=== Document Processing Example ===\n')
 
   // Different chunking strategies
-  const strategies = ['fixed', 'sentence', 'paragraph', 'semantic'] as const;
+  const strategies = ['fixed', 'sentence', 'paragraph', 'semantic'] as const
 
   const longDocument = `
 # Introduction to Machine Learning
@@ -310,7 +321,7 @@ Machine learning powers many modern applications:
 - Natural language processing
 - Recommendation systems
 - Autonomous vehicles
-`;
+`
 
   for (const strategy of strategies) {
     const processor = createDocumentProcessor({
@@ -318,15 +329,17 @@ Machine learning powers many modern applications:
       chunkOverlap: 50,
       strategy,
       minChunkSize: 30,
-    });
+    })
 
-    const doc = processor.createDocument(longDocument, { source: 'ml-intro.md' });
-    const chunks = processor.chunk(doc);
+    const doc = processor.createDocument(longDocument, { source: 'ml-intro.md' })
+    const chunks = processor.chunk(doc)
 
-    console.log(`\n${strategy.toUpperCase()} Strategy: ${chunks.length} chunks`);
+    console.log(`\n${strategy.toUpperCase()} Strategy: ${chunks.length} chunks`)
     chunks.slice(0, 2).forEach((chunk, i) => {
-      console.log(`  Chunk ${i + 1} (${chunk.content.length} chars): "${chunk.content.slice(0, 50)}..."`);
-    });
+      console.log(
+        `  Chunk ${i + 1} (${chunk.content.length} chars): "${chunk.content.slice(0, 50)}..."`
+      )
+    })
   }
 }
 
@@ -335,12 +348,12 @@ Machine learning powers many modern applications:
 // ============================================================================
 
 async function ragChatbotExample() {
-  console.log('\n=== RAG Chatbot Example ===\n');
+  console.log('\n=== RAG Chatbot Example ===\n')
 
   const rag = await setupRAG({
     dbPath: '.agentdb/chatbot.db',
     openaiApiKey: process.env.OPENAI_API_KEY,
-  });
+  })
 
   // Ingest knowledge base
   const knowledgeBase = [
@@ -360,30 +373,30 @@ async function ragChatbotExample() {
       text: 'To reset your password, go to Settings > Security > Reset Password.',
       metadata: { category: 'support', topic: 'account' },
     },
-  ];
+  ]
 
-  await rag.ingestTexts(knowledgeBase);
+  await rag.ingestTexts(knowledgeBase)
 
   // Simulate chatbot queries
   const userQueries = [
     'How much does the Pro plan cost?',
     'When can I contact support?',
     'How do I change my password?',
-  ];
+  ]
 
   for (const query of userQueries) {
-    console.log(`User: ${query}`);
+    console.log(`User: ${query}`)
 
     const context = await rag.query({
       query,
       topK: 2,
       minScore: 0.6,
       includeSources: false,
-    });
+    })
 
     // In a real chatbot, you would send this context to an LLM
     // Here we just show what context was retrieved
-    console.log(`Bot Context: ${context.contextText}\n`);
+    console.log(`Bot Context: ${context.contextText}\n`)
 
     // Example LLM prompt you would construct:
     // const prompt = `Answer the user's question using only the following context.
@@ -397,7 +410,7 @@ async function ragChatbotExample() {
     // Answer:`;
   }
 
-  await rag.close();
+  await rag.close()
 }
 
 // ============================================================================
@@ -405,29 +418,29 @@ async function ragChatbotExample() {
 // ============================================================================
 
 async function main() {
-  console.log('AgentDB RAG Pipeline Examples');
-  console.log('============================\n');
+  console.log('AgentDB RAG Pipeline Examples')
+  console.log('============================\n')
 
   if (!process.env.OPENAI_API_KEY) {
-    console.log('Note: Set OPENAI_API_KEY environment variable to run these examples.\n');
-    console.log('Example: export OPENAI_API_KEY=sk-your-key-here\n');
+    console.log('Note: Set OPENAI_API_KEY environment variable to run these examples.\n')
+    console.log('Example: export OPENAI_API_KEY=sk-your-key-here\n')
 
     // Run the document processing example which doesn't need API
-    await documentProcessingExample();
-    return;
+    await documentProcessingExample()
+    return
   }
 
   try {
-    await quickSetupExample();
-    await customConfigExample();
-    await advancedSearchExample();
-    await vectorStoreDirectExample();
-    await documentProcessingExample();
-    await ragChatbotExample();
+    await quickSetupExample()
+    await customConfigExample()
+    await advancedSearchExample()
+    await vectorStoreDirectExample()
+    await documentProcessingExample()
+    await ragChatbotExample()
   } catch (error) {
-    console.error('Error running examples:', error);
+    console.error('Error running examples:', error)
   }
 }
 
 // Run if called directly
-main().catch(console.error);
+main().catch(console.error)

@@ -4,7 +4,7 @@
  * Type definitions for the multi-agent SIP testing framework
  */
 
-import type { MockUA, MockRTCSession } from '../helpers/MockSipServer'
+import type { _MockUA, MockRTCSession } from '../helpers/MockSipServer'
 
 /**
  * Agent identity and credentials

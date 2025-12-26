@@ -22,16 +22,16 @@
 
     <div class="info-section">
       <p>
-        Speed Dial allows you to save frequently called contacts for quick access. Click any
-        contact to instantly initiate a call. Contacts are saved in localStorage and persist
-        across sessions.
+        Speed Dial allows you to save frequently called contacts for quick access. Click any contact
+        to instantly initiate a call. Contacts are saved in localStorage and persist across
+        sessions.
       </p>
     </div>
 
     <!-- Connection Status -->
-    <div v-if="!isConnected" class="status-message info">
+    <Message v-if="!isConnected" severity="info" class="mb-3">
       Connect to a SIP server to use speed dial (use the Basic Call demo to connect)
-    </div>
+    </Message>
 
     <!-- Speed Dial Interface -->
     <div v-else class="speed-dial-interface">
@@ -45,7 +45,7 @@
         >
           <!-- Empty Slot -->
           <div v-if="!contact" class="empty-slot" @click="showAddDialog(index)">
-            <div class="slot-icon">➕</div>
+            <div class="slot-icon">+</div>
             <div class="slot-label">Add Contact</div>
           </div>
 
@@ -70,55 +70,56 @@
       </div>
 
       <!-- Add/Edit Dialog -->
-      <div v-if="showDialog" class="dialog-overlay" @click="handleDialogClose">
-        <div class="dialog" @click.stop>
-          <h3>{{ editingContact ? 'Edit' : 'Add' }} Speed Dial Contact</h3>
+      <Dialog
+        v-model:visible="showDialog"
+        :header="(editingContact ? 'Edit' : 'Add') + ' Speed Dial Contact'"
+        :modal="true"
+        :closable="true"
+        :style="{ width: '400px' }"
+        @hide="handleDialogClose"
+      >
+        <div class="form-group">
+          <label for="contact-name">Name</label>
+          <InputText
+            id="contact-name"
+            v-model="dialogContact.name"
+            type="text"
+            placeholder="John Doe"
+            class="w-full"
+            @keyup.enter="handleSave"
+          />
+        </div>
 
-          <div class="form-group">
-            <label for="contact-name">Name</label>
-            <input
-              id="contact-name"
-              v-model="dialogContact.name"
-              type="text"
-              placeholder="John Doe"
-              @keyup.enter="handleSave"
-            />
-          </div>
+        <div class="form-group">
+          <label for="contact-number">SIP URI or Number</label>
+          <InputText
+            id="contact-number"
+            v-model="dialogContact.number"
+            type="text"
+            placeholder="sip:user@example.com or 1234"
+            class="w-full"
+            @keyup.enter="handleSave"
+          />
+        </div>
 
-          <div class="form-group">
-            <label for="contact-number">SIP URI or Number</label>
-            <input
-              id="contact-number"
-              v-model="dialogContact.number"
-              type="text"
-              placeholder="sip:user@example.com or 1234"
-              @keyup.enter="handleSave"
-            />
-          </div>
-
+        <template #footer>
           <div class="dialog-actions">
-            <button
-              class="btn btn-primary"
+            <Button
+              label="Save"
               :disabled="!dialogContact.name.trim() || !dialogContact.number.trim()"
               @click="handleSave"
-            >
-              Save
-            </button>
-            <button class="btn btn-secondary" @click="handleDialogClose">
-              Cancel
-            </button>
+            />
+            <Button label="Cancel" severity="secondary" @click="handleDialogClose" />
           </div>
-        </div>
-      </div>
+        </template>
+      </Dialog>
 
       <!-- Current Call Status -->
       <div v-if="callState !== 'idle'" class="call-status">
         <div class="status-badge">
-          {{ callState === 'active' ? '📞 In Call' : '📱 Calling...' }}
+          {{ callState === 'active' ? 'In Call' : 'Calling...' }}
         </div>
-        <div v-if="remoteUri" class="status-info">
-          Connected to: {{ remoteUri }}
-        </div>
+        <div v-if="remoteUri" class="status-info">Connected to: {{ remoteUri }}</div>
       </div>
     </div>
 
@@ -181,6 +182,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Message, Dialog } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -206,7 +208,7 @@ const isConnected = computed(() =>
 const isRegistered = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsRegistered.value
 )
-const effectiveCallState = computed(() =>
+const _effectiveCallState = computed(() =>
   isSimulationMode.value ? simulation.state.value : callState.value
 )
 
@@ -287,7 +289,9 @@ const handleSpeedDial = async (contact: SpeedDialContact, index: number) => {
     await makeCall(contact.number)
   } catch (error) {
     console.error('Speed dial call failed:', error)
-    alert(`Failed to call ${contact.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    alert(
+      `Failed to call ${contact.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   } finally {
     // Reset calling index after a short delay
     setTimeout(() => {
@@ -299,7 +303,7 @@ const handleSpeedDial = async (contact: SpeedDialContact, index: number) => {
 const getInitials = (name: string): string => {
   return name
     .split(' ')
-    .map(part => part[0])
+    .map((part) => part[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
@@ -319,28 +323,15 @@ onMounted(() => {
 
 .info-section {
   padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius-lg);
   margin-bottom: 1.5rem;
 }
 
 .info-section p {
   margin: 0;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   line-height: 1.6;
-}
-
-.status-message {
-  padding: 1rem;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 0.875rem;
-  margin-bottom: 1.5rem;
-}
-
-.status-message.info {
-  background: #eff6ff;
-  color: #1e40af;
 }
 
 .speed-dial-interface {
@@ -356,14 +347,14 @@ onMounted(() => {
 
 .speed-dial-slot {
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: var(--vuesip-border-radius-lg);
   overflow: hidden;
-  transition: all 0.2s;
+  transition: all var(--vuesip-transition);
 }
 
 .speed-dial-slot.empty {
-  border: 2px dashed #d1d5db;
-  background: white;
+  border: 2px dashed var(--vuesip-border);
+  background: var(--vuesip-bg-primary);
 }
 
 .speed-dial-slot.calling {
@@ -371,7 +362,8 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -387,12 +379,12 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--vuesip-transition);
 }
 
 .empty-slot:hover {
-  background: #f9fafb;
-  border-color: #667eea;
+  background: var(--vuesip-bg-secondary);
+  border-color: var(--vuesip-primary);
 }
 
 .slot-icon {
@@ -403,7 +395,7 @@ onMounted(() => {
 
 .slot-label {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   font-weight: 500;
 }
 
@@ -411,9 +403,9 @@ onMounted(() => {
   position: relative;
   width: 100%;
   height: 100%;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--vuesip-bg-primary);
+  border: 2px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
 }
 
 .call-button {
@@ -428,11 +420,11 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   padding: 1rem;
-  transition: all 0.2s;
+  transition: all var(--vuesip-transition);
 }
 
 .call-button:not(:disabled):hover {
-  background: #f9fafb;
+  background: var(--vuesip-bg-secondary);
 }
 
 .call-button:disabled {
@@ -444,8 +436,8 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--vuesip-primary) 0%, #764ba2 100%);
+  color: var(--surface-0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -461,7 +453,7 @@ onMounted(() => {
 .contact-name {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #333;
+  color: var(--vuesip-text-primary);
   margin-bottom: 0.25rem;
   white-space: nowrap;
   overflow: hidden;
@@ -470,7 +462,7 @@ onMounted(() => {
 
 .contact-number {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -483,8 +475,8 @@ onMounted(() => {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #ef4444;
-  color: white;
+  background: var(--vuesip-danger);
+  color: var(--surface-0);
   border: none;
   cursor: pointer;
   font-size: 0.75rem;
@@ -500,34 +492,7 @@ onMounted(() => {
 }
 
 .delete-button:hover {
-  background: #dc2626;
-}
-
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.dialog h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
+  background: var(--vuesip-danger-dark);
 }
 
 .form-group {
@@ -538,22 +503,8 @@ onMounted(() => {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #333;
+  color: var(--vuesip-text-primary);
   font-size: 0.875rem;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .dialog-actions {
@@ -561,76 +512,42 @@ onMounted(() => {
   gap: 0.75rem;
 }
 
-.btn {
-  flex: 1;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #4b5563;
-}
-
 .call-status {
-  background: #d1fae5;
+  background: var(--vuesip-success-light);
   padding: 1rem;
-  border-radius: 8px;
+  border-radius: var(--vuesip-border-radius-lg);
   text-align: center;
 }
 
 .status-badge {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #065f46;
+  color: var(--vuesip-success-dark);
   margin-bottom: 0.5rem;
 }
 
 .status-info {
   font-size: 0.875rem;
-  color: #047857;
+  color: var(--success-active);
 }
 
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius-lg);
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--vuesip-text-primary);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--surface-section);
+  color: var(--text-secondary);
   padding: 1.5rem;
-  border-radius: 6px;
+  border-radius: var(--vuesip-border-radius);
   overflow-x: auto;
   margin: 0;
 }
@@ -641,9 +558,85 @@ onMounted(() => {
   line-height: 1.6;
 }
 
+/* Utility Classes */
+.w-full {
+  width: 100%;
+}
+
+.mb-3 {
+  margin-bottom: 1rem;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .speed-dial-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .contact-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .contact-name {
+    font-size: 0.8125rem;
+  }
+
+  .contact-number {
+    font-size: 0.6875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .speed-dial-demo {
+    padding: 0 0.5rem;
+  }
+
+  .speed-dial-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .speed-dial-slot {
+    min-height: 120px;
+  }
+
+  .slot-icon {
+    font-size: 1.5rem;
+  }
+
+  .slot-label {
+    font-size: 0.6875rem;
+  }
+
+  .code-example pre {
+    font-size: 0.75rem;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .speed-dial-interface {
+    padding: 1rem;
+  }
+
+  .info-section {
+    padding: 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .contact-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.875rem;
+  }
+
+  .delete-button {
+    width: 20px;
+    height: 20px;
+    font-size: 0.625rem;
   }
 }
 </style>

@@ -8,8 +8,8 @@ const callState = reactive({
     id: 'call-123',
     remoteNumber: '+1 (555) 123-4567',
     duration: 125,
-    status: 'connected'
-  }
+    status: 'connected',
+  },
 })
 
 const transferType = ref<'blind' | 'attended'>('blind')
@@ -23,7 +23,7 @@ const addEvent = (type: string, data: string) => {
   events.value.unshift({
     time: now.toLocaleTimeString(),
     type,
-    data
+    data,
   })
   if (events.value.length > 20) events.value.pop()
 }
@@ -116,7 +116,11 @@ addEvent('INFO', 'Active call with +1 (555) 123-4567')
         <span>Call: {{ callState.activeCall.remoteNumber }}</span>
       </div>
       <div class="status-item">
-        <span>Duration: {{ Math.floor(callState.activeCall.duration / 60) }}:{{ String(callState.activeCall.duration % 60).padStart(2, '0') }}</span>
+        <span
+          >Duration: {{ Math.floor(callState.activeCall.duration / 60) }}:{{
+            String(callState.activeCall.duration % 60).padStart(2, '0')
+          }}</span
+        >
       </div>
     </div>
 
@@ -139,12 +143,14 @@ addEvent('INFO', 'Active call with +1 (555) 123-4567')
         </button>
       </div>
 
-      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem">
         <strong v-if="transferType === 'blind'">Blind:</strong>
         <strong v-else>Attended:</strong>
-        {{ transferType === 'blind'
-          ? 'Immediately transfers call without consultation'
-          : 'Consult with target before completing transfer' }}
+        {{
+          transferType === 'blind'
+            ? 'Immediately transfers call without consultation'
+            : 'Consult with target before completing transfer'
+        }}
       </p>
     </div>
 
@@ -160,20 +166,21 @@ addEvent('INFO', 'Active call with +1 (555) 123-4567')
       </div>
 
       <div class="btn-group" v-if="transferStatus === 'idle'">
-        <button
-          class="btn btn-primary"
-          @click="initiateTransfer"
-          :disabled="!transferTarget"
-        >
+        <button class="btn btn-primary" @click="initiateTransfer" :disabled="!transferTarget">
           {{ transferType === 'blind' ? '🔀 Transfer Now' : '📞 Start Consultation' }}
         </button>
       </div>
 
       <div v-else-if="transferStatus === 'consulting'" class="transfer-panel">
-        <h4 style="margin-bottom: 0.75rem;">📞 Consultation Call</h4>
-        <div class="status-bar" style="margin-bottom: 0.75rem;">
+        <h4 style="margin-bottom: 0.75rem">📞 Consultation Call</h4>
+        <div class="status-bar" style="margin-bottom: 0.75rem">
           <div class="status-item">
-            <span :class="['status-dot', consultCall?.status === 'connected' ? 'connected' : 'connecting']"></span>
+            <span
+              :class="[
+                'status-dot',
+                consultCall?.status === 'connected' ? 'connected' : 'connecting',
+              ]"
+            ></span>
             <span>{{ consultCall?.number }}</span>
           </div>
           <div class="status-item">
@@ -188,20 +195,18 @@ addEvent('INFO', 'Active call with +1 (555) 123-4567')
           >
             ✅ Complete Transfer
           </button>
-          <button class="btn btn-danger" @click="cancelTransfer">
-            ❌ Cancel
-          </button>
+          <button class="btn btn-danger" @click="cancelTransfer">❌ Cancel</button>
         </div>
       </div>
 
-      <div v-else-if="transferStatus === 'transferring'" style="text-align: center; padding: 1rem;">
-        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔄</div>
+      <div v-else-if="transferStatus === 'transferring'" style="text-align: center; padding: 1rem">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem">🔄</div>
         <p>Transfer in progress...</p>
       </div>
 
-      <div v-else-if="transferStatus === 'completed'" style="text-align: center; padding: 1rem;">
-        <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
-        <p style="color: var(--success); margin-bottom: 1rem;">Transfer Completed!</p>
+      <div v-else-if="transferStatus === 'completed'" style="text-align: center; padding: 1rem">
+        <div style="font-size: 2rem; margin-bottom: 0.5rem">✅</div>
+        <p style="color: var(--success); margin-bottom: 1rem">Transfer Completed!</p>
         <button class="btn btn-outline" @click="resetDemo">Reset Demo</button>
       </div>
     </div>
@@ -212,7 +217,9 @@ addEvent('INFO', 'Active call with +1 (555) 123-4567')
         <button class="btn btn-outline" @click="transferTarget = '+1-555-100'">Reception</button>
         <button class="btn btn-outline" @click="transferTarget = '+1-555-200'">Support</button>
         <button class="btn btn-outline" @click="transferTarget = '+1-555-300'">Sales</button>
-        <button class="btn btn-outline" @click="transferTarget = 'sip:queue@pbx.local'">Queue</button>
+        <button class="btn btn-outline" @click="transferTarget = 'sip:queue@pbx.local'">
+          Queue
+        </button>
       </div>
     </div>
   </div>
@@ -227,28 +234,30 @@ addEvent('INFO', 'Active call with +1 (555) 123-4567')
       </div>
     </div>
 
-    <div class="demo-section" style="margin-top: 1.5rem;">
+    <div class="demo-section" style="margin-top: 1.5rem">
       <h3>API Usage</h3>
       <div class="code-preview">
         <code>
-<span class="comment">// Import the composable</span>
-<span class="keyword">import</span> { useCallTransfer } <span class="keyword">from</span> <span class="string">'vuesip'</span>
+          <span class="comment">// Import the composable</span>
+          <span class="keyword">import</span> { useCallTransfer } <span class="keyword">from</span>
+          <span class="string">'vuesip'</span>
 
-<span class="comment">// In your component</span>
-<span class="keyword">const</span> {
-  <span class="function">blindTransfer</span>,
-  <span class="function">attendedTransfer</span>,
-  <span class="function">completeTransfer</span>,
-  transferState
-} = <span class="function">useCallTransfer</span>()
+          <span class="comment">// In your component</span>
+          <span class="keyword">const</span> { <span class="function">blindTransfer</span>,
+          <span class="function">attendedTransfer</span>,
+          <span class="function">completeTransfer</span>, transferState } =
+          <span class="function">useCallTransfer</span>()
 
-<span class="comment">// Blind transfer</span>
-<span class="keyword">await</span> <span class="function">blindTransfer</span>(callSession, <span class="string">'sip:target@domain'</span>)
+          <span class="comment">// Blind transfer</span>
+          <span class="keyword">await</span>
+          <span class="function">blindTransfer</span>(callSession,
+          <span class="string">'sip:target@domain'</span>)
 
-<span class="comment">// Attended transfer</span>
-<span class="keyword">const</span> consultSession = <span class="keyword">await</span> <span class="function">attendedTransfer</span>(callSession, target)
-<span class="comment">// ... consult with target ...</span>
-<span class="keyword">await</span> <span class="function">completeTransfer</span>()
+          <span class="comment">// Attended transfer</span>
+          <span class="keyword">const</span> consultSession = <span class="keyword">await</span>
+          <span class="function">attendedTransfer</span>(callSession, target)
+          <span class="comment">// ... consult with target ...</span>
+          <span class="keyword">await</span> <span class="function">completeTransfer</span>()
         </code>
       </div>
     </div>

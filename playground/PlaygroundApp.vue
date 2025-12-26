@@ -1,33 +1,56 @@
 <template>
-  <div :class="['playground', { compact: isCompactMode }]" data-testid="sip-client">
+  <div class="playground" data-testid="sip-client">
     <!-- Header -->
     <header class="playground-header">
       <div class="container">
         <div class="header-content">
           <div class="header-title">
             <h1>VueSIP Playground</h1>
-            <p class="subtitle">
-              Interactive demos for SIP/VoIP composables
-            </p>
+            <p class="subtitle">Interactive demos for SIP/VoIP composables</p>
           </div>
           <div class="header-actions">
-            <button
-              @click="toggleCompact"
-              class="density-toggle"
-              :aria-pressed="isCompactMode"
-              :aria-label="isCompactMode ? 'Disable compact mode' : 'Enable compact mode'"
-              type="button"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            </button>
             <button
               @click="toggleTheme"
               class="theme-toggle"
               :aria-label="`Switch to ${isDarkMode ? 'light' : 'dark'} mode`"
               type="button"
             >
-              <svg v-if="isDarkMode" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              <svg
+                v-if="isDarkMode"
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
             </button>
           </div>
         </div>
@@ -47,13 +70,6 @@
           <!-- Category Filter - Segmented Control -->
           <div class="category-filter" role="tablist" aria-label="Filter by category">
             <div class="filter-track">
-              <div
-                class="filter-indicator"
-                :style="{
-                  '--segment-count': categoryOrder.length + 1,
-                  '--active-index': activeCategory === 'all' ? 0 : categoryOrder.indexOf(activeCategory as ExampleCategory) + 1
-                }"
-              ></div>
               <button
                 :class="['filter-segment', { active: activeCategory === 'all' }]"
                 @click="selectCategory('all')"
@@ -62,7 +78,9 @@
                 :aria-selected="activeCategory === 'all'"
               >
                 <span class="segment-label">All</span>
-                <span class="segment-count">{{ categoryCounts.all }}</span>
+                <span v-if="activeCategory === 'all'" class="segment-count">{{
+                  categoryCounts.all
+                }}</span>
               </button>
               <button
                 v-for="cat in categoryOrder"
@@ -74,9 +92,23 @@
                 :aria-selected="activeCategory === cat"
                 :title="categoryInfo[cat].description"
               >
-                <span class="segment-icon">{{ categoryInfo[cat].icon }}</span>
-                <span class="segment-label">{{ categoryInfo[cat].label }}</span>
-                <span class="segment-count">{{ categoryCounts[cat] }}</span>
+                <svg
+                  class="segment-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path :d="categoryInfo[cat].icon" />
+                </svg>
+                <span v-if="activeCategory === cat" class="segment-label">{{
+                  categoryInfo[cat].label
+                }}</span>
+                <span v-if="activeCategory === cat" class="segment-count">{{
+                  categoryCounts[cat]
+                }}</span>
               </button>
             </div>
           </div>
@@ -86,7 +118,11 @@
             <input
               v-model="searchQuery"
               type="search"
-              :placeholder="activeCategory === 'all' ? 'Search all demos...' : `Search ${categoryInfo[activeCategory]?.label || 'demos'}...`"
+              :placeholder="
+                activeCategory === 'all'
+                  ? 'Search all demos...'
+                  : `Search ${categoryInfo[activeCategory]?.label || 'demos'}...`
+              "
               class="search-input"
               aria-label="Search demos"
             />
@@ -122,12 +158,11 @@
                 <p v-html="highlightMatch(example.description)"></p>
               </div>
               <!-- Show matching tags when searching -->
-              <div v-if="searchQuery && getMatchingTags(example.tags).length > 0" class="matching-tags">
-                <span
-                  v-for="tag in getMatchingTags(example.tags)"
-                  :key="tag"
-                  class="tag-badge"
-                >
+              <div
+                v-if="searchQuery && getMatchingTags(example.tags).length > 0"
+                class="matching-tags"
+              >
+                <span v-for="tag in getMatchingTags(example.tags)" :key="tag" class="tag-badge">
                   {{ tag }}
                 </span>
               </div>
@@ -137,7 +172,9 @@
           <!-- No Results Message -->
           <div v-if="filteredExamples.length === 0" class="no-results">
             <p>No demos found matching "{{ searchQuery }}"</p>
-            <button @click="searchQuery = ''" type="button" class="btn-secondary">Clear search</button>
+            <button @click="searchQuery = ''" type="button" class="btn-secondary">
+              Clear search
+            </button>
           </div>
         </nav>
 
@@ -171,8 +208,35 @@
               :aria-label="linkCopied ? 'Link copied!' : 'Copy link to this demo'"
               type="button"
             >
-              <svg v-if="!linkCopied" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg
+                v-if="!linkCopied"
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
               <span>{{ linkCopied ? 'Copied!' : 'Share' }}</span>
             </button>
           </div>
@@ -184,22 +248,9 @@
 
         <!-- Tab Navigation -->
         <div class="tab-navigation">
-          <button
-            :class="{ active: activeTab === 'demo' }"
-            @click="selectTab('demo')"
-          >
-            Demo
-          </button>
-          <button
-            :class="{ active: activeTab === 'code' }"
-            @click="selectTab('code')"
-          >
-            Code
-          </button>
-          <button
-            :class="{ active: activeTab === 'setup' }"
-            @click="selectTab('setup')"
-          >
+          <button :class="{ active: activeTab === 'demo' }" @click="selectTab('demo')">Demo</button>
+          <button :class="{ active: activeTab === 'code' }" @click="selectTab('code')">Code</button>
+          <button :class="{ active: activeTab === 'setup' }" @click="selectTab('setup')">
             Setup
           </button>
         </div>
@@ -222,7 +273,11 @@
 
           <!-- Code Examples Tab -->
           <div v-show="activeTab === 'code'" class="code-container">
-            <div v-for="(snippet, index) in activeExample.codeSnippets" :key="index" class="code-snippet">
+            <div
+              v-for="(snippet, index) in activeExample.codeSnippets"
+              :key="index"
+              class="code-snippet"
+            >
               <h3>{{ snippet.title }}</h3>
               <p v-if="snippet.description" class="snippet-description">
                 {{ snippet.description }}
@@ -287,8 +342,12 @@ import { allExamples, examplesByCategory, categoryInfo } from './examples'
 import type { ExampleCategory } from './examples'
 import CallToolbar from './components/CallToolbar.vue'
 import { playgroundSipClient } from './sipClient'
+import { useConnectionManager } from './composables/useConnectionManager'
 
-// localStorage keys for credentials
+// Connection Manager for auto-connect
+const connectionManager = useConnectionManager()
+
+// Legacy localStorage keys (for migration support)
 const CREDENTIALS_STORAGE_KEY = 'vuesip-credentials'
 const CREDENTIALS_OPTIONS_KEY = 'vuesip-credentials-options'
 
@@ -309,7 +368,7 @@ interface CredentialsOptions {
 const examples = allExamples
 
 // Get shared SIP client for global auto-connect (lazy-loaded via Proxy)
-const { connect, disconnect, isConnected, updateConfig } = playgroundSipClient
+const { connect, disconnect: _disconnect, isConnected, updateConfig } = playgroundSipClient
 
 // State
 const currentExample = ref('basic-call')
@@ -317,7 +376,6 @@ const activeTab = ref<'demo' | 'code' | 'setup'>('demo')
 const searchQuery = ref('')
 const copiedSnippets = ref<Record<number, boolean>>({})
 const isDarkMode = ref(false)
-const isCompactMode = ref(false)
 const linkCopied = ref(false)
 const activeCategory = ref<ExampleCategory | 'all'>('all')
 
@@ -335,7 +393,7 @@ const parseHashRoute = () => {
   const tab = (parts[1] as 'demo' | 'code' | 'setup') || 'demo'
 
   // Validate example exists
-  const validExample = examples.find(ex => ex.id === example) ? example : 'basic-call'
+  const validExample = examples.find((ex) => ex.id === example) ? example : 'basic-call'
   // Validate tab
   const validTab = ['demo', 'code', 'setup'].includes(tab) ? tab : 'demo'
 
@@ -366,7 +424,7 @@ const filteredExamples = computed(() => {
   }
 
   const query = searchQuery.value.toLowerCase()
-  return baseExamples.filter(example => {
+  return baseExamples.filter((example) => {
     // Search in title
     if (example.title.toLowerCase().includes(query)) return true
 
@@ -374,7 +432,7 @@ const filteredExamples = computed(() => {
     if (example.description.toLowerCase().includes(query)) return true
 
     // Search in tags
-    if (example.tags.some(tag => tag.toLowerCase().includes(query))) return true
+    if (example.tags.some((tag) => tag.toLowerCase().includes(query))) return true
 
     return false
   })
@@ -448,7 +506,7 @@ const getMatchingTags = (tags: string[]): string[] => {
   if (!searchQuery.value.trim()) return []
 
   const query = searchQuery.value.toLowerCase()
-  return tags.filter(tag => tag.toLowerCase().includes(query))
+  return tags.filter((tag) => tag.toLowerCase().includes(query))
 }
 
 const copyCode = async (code: string, index: number) => {
@@ -493,12 +551,59 @@ const applyTheme = (dark: boolean) => {
   }
 }
 
-const toggleCompact = () => {
-  isCompactMode.value = !isCompactMode.value
-}
-
 // Global credential loading for auto-connect across all demos
 const loadAndConnectCredentials = async () => {
+  // First, try to use the Connection Manager's default connection
+  const defaultConnection = connectionManager.defaultConnection.value
+
+  if (defaultConnection && !isConnected.value) {
+    console.log('🔍 PlaygroundApp: Found default connection:', defaultConnection.name)
+
+    // Build config object from the default connection
+    const config: any = {
+      uri: defaultConnection.uri,
+      sipUri: defaultConnection.sipUri,
+      displayName: defaultConnection.displayName || undefined,
+      autoRegister: true,
+      connectionTimeout: 10000,
+      registerExpires: 600,
+    }
+
+    // Add password if it was saved
+    if (defaultConnection.savePassword && defaultConnection.password) {
+      config.password = defaultConnection.password
+    }
+
+    console.log('📝 PlaygroundApp: Auto-connecting with default connection:', {
+      name: defaultConnection.name,
+      uri: config.uri,
+      sipUri: config.sipUri,
+      hasPassword: !!config.password,
+    })
+
+    // Update configuration
+    const validationResult = updateConfig(config)
+
+    if (!validationResult.valid) {
+      console.error('PlaygroundApp: Invalid default connection config:', validationResult.errors)
+      return
+    }
+
+    // Mark this connection as active
+    connectionManager.setActiveConnection(defaultConnection.id)
+
+    // Auto-connect
+    try {
+      await connect()
+      console.log('✅ PlaygroundApp: Auto-connect with default connection successful')
+      return // Success - no need to try legacy storage
+    } catch (error) {
+      console.error('❌ PlaygroundApp: Auto-connect with default connection failed:', error)
+      // Continue to try legacy storage as fallback
+    }
+  }
+
+  // Fallback: Try legacy localStorage credentials
   const saved = localStorage.getItem(CREDENTIALS_STORAGE_KEY)
   const options = localStorage.getItem(CREDENTIALS_OPTIONS_KEY)
 
@@ -508,20 +613,18 @@ const loadAndConnectCredentials = async () => {
       const opts: CredentialsOptions = JSON.parse(options)
 
       // Debug: Log what was loaded from localStorage
-      console.log('🔍 PlaygroundApp: Loaded from localStorage:', {
+      console.log('🔍 PlaygroundApp: Loaded from legacy localStorage:', {
         uri: credentials.uri,
         sipUri: credentials.sipUri,
         displayName: credentials.displayName,
         hasPassword: !!credentials.password,
-        passwordLength: credentials.password?.length,
-        passwordChars: credentials.password ? Array.from(credentials.password).map(c => c.charCodeAt(0)) : [],
         rememberMe: opts.rememberMe,
-        savePassword: opts.savePassword
+        savePassword: opts.savePassword,
       })
 
       // Only auto-connect if rememberMe is enabled and not already connected
       if (opts.rememberMe && !isConnected.value) {
-        console.log('🌐 PlaygroundApp: Loading saved credentials for global auto-connect...')
+        console.log('🌐 PlaygroundApp: Loading legacy credentials for global auto-connect...')
 
         // Build config object
         const config: any = {
@@ -538,35 +641,25 @@ const loadAndConnectCredentials = async () => {
           config.password = credentials.password
         }
 
-        // Debug: Log config before updating
-        console.log('📝 PlaygroundApp: Config to be applied:', {
-          uri: config.uri,
-          sipUri: config.sipUri,
-          displayName: config.displayName,
-          hasPassword: !!config.password,
-          passwordLength: config.password?.length,
-          passwordPreview: config.password ? `${config.password.substring(0, 3)}...` : 'none'
-        })
-
         // Update configuration
         const validationResult = updateConfig(config)
 
         if (!validationResult.valid) {
-          console.error('PlaygroundApp: Invalid saved credentials:', validationResult.errors)
+          console.error('PlaygroundApp: Invalid legacy credentials:', validationResult.errors)
           return
         }
 
         // Auto-connect
         try {
           await connect()
-          console.log('✅ PlaygroundApp: Global auto-connect successful')
+          console.log('✅ PlaygroundApp: Global auto-connect with legacy credentials successful')
         } catch (error) {
           console.error('❌ PlaygroundApp: Global auto-connect failed:', error)
           // Don't throw - allow user to manually connect from BasicCallDemo
         }
       }
     } catch (error) {
-      console.error('PlaygroundApp: Failed to load credentials:', error)
+      console.error('PlaygroundApp: Failed to load legacy credentials:', error)
     }
   }
 }
@@ -601,12 +694,6 @@ onMounted(async () => {
     isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
   }
   applyTheme(isDarkMode.value)
-
-  // 4. Initialize compact mode
-  const compactStored = localStorage.getItem('vuesip-compact')
-  if (compactStored) {
-    isCompactMode.value = compactStored === 'on'
-  }
 })
 
 // Cleanup
@@ -618,10 +705,6 @@ onUnmounted(() => {
 watch(isDarkMode, (newValue) => {
   applyTheme(newValue)
   localStorage.setItem('vuesip-theme', newValue ? 'dark' : 'light')
-})
-
-watch(isCompactMode, (newVal) => {
-  localStorage.setItem('vuesip-compact', newVal ? 'on' : 'off')
 })
 </script>
 
@@ -691,30 +774,7 @@ watch(isCompactMode, (newVal) => {
   backdrop-filter: blur(6px) saturate(120%);
 }
 
-.density-toggle {
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 1.2rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  backdrop-filter: blur(6px) saturate(120%);
-}
-
 .theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px) scale(1.05);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-}
-
-.density-toggle:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px) scale(1.05);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
@@ -745,7 +805,9 @@ watch(isCompactMode, (newVal) => {
   border-radius: 12px;
   padding: 1.5rem;
   height: fit-content;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
   position: sticky;
   top: 2rem;
 }
@@ -772,38 +834,27 @@ watch(isCompactMode, (newVal) => {
   overflow: hidden;
 }
 
-.filter-indicator {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc((100% - 6px) / var(--segment-count) - 2px);
-  background: linear-gradient(135deg, var(--primary), #4f46e5);
-  border-radius: 7px;
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
-  z-index: 0;
-  transform: translateX(calc(var(--active-index) * (100% + 4px)));
-}
-
 .filter-segment {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
-  flex: 1;
+  flex: 0 0 auto;
   padding: 0.4rem 0.5rem;
   background: transparent;
   border: none;
   border-radius: 7px;
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--gray-700);
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    flex 0.2s ease;
   white-space: nowrap;
   position: relative;
   z-index: 1;
+  min-width: 32px;
 }
 
 .filter-segment:hover:not(.active) {
@@ -812,15 +863,31 @@ watch(isCompactMode, (newVal) => {
 
 .filter-segment.active {
   color: white;
+  flex: 1 1 auto;
+  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
 }
 
 .segment-icon {
-  font-size: 0.8rem;
-  line-height: 1;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .segment-label {
   display: inline;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .segment-count {
@@ -965,7 +1032,8 @@ watch(isCompactMode, (newVal) => {
   cursor: pointer;
   transition: all 0.2s;
   border: 1.5px solid var(--border-color);
-  background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+  background:
+    linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
     linear-gradient(180deg, transparent, rgba(102, 126, 234, 0.15)) border-box;
   position: relative;
   overflow: hidden;
@@ -973,17 +1041,24 @@ watch(isCompactMode, (newVal) => {
 
 .example-list li:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .example-list li::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.06) 35%, transparent 65%);
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 35%,
+    transparent 65%
+  );
   opacity: 0;
   transform: translateX(-15%);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
   pointer-events: none;
 }
 
@@ -993,7 +1068,8 @@ watch(isCompactMode, (newVal) => {
 }
 
 .example-list li.active {
-  background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+  background:
+    linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
     linear-gradient(180deg, rgba(102, 126, 234, 0.6), rgba(99, 102, 241, 0.6)) border-box;
   border-color: transparent;
 }
@@ -1045,11 +1121,13 @@ watch(isCompactMode, (newVal) => {
   display: block;
   padding: 0.5rem;
   border-radius: 4px;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .quick-links a:hover {
-  background: rgba(102,126,234,0.08);
+  background: rgba(102, 126, 234, 0.08);
   color: var(--primary-dark);
 }
 
@@ -1058,7 +1136,9 @@ watch(isCompactMode, (newVal) => {
   background: var(--bg-primary);
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
   min-height: 600px;
   border: 1px solid var(--border-color);
 }
@@ -1128,8 +1208,9 @@ watch(isCompactMode, (newVal) => {
 }
 
 .tag {
-  background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
-    linear-gradient(90deg, rgba(99,102,241,0.65), rgba(59,130,246,0.65)) border-box;
+  background:
+    linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+    linear-gradient(90deg, rgba(99, 102, 241, 0.65), rgba(59, 130, 246, 0.65)) border-box;
   border: 1px solid transparent;
   color: var(--primary);
   padding: 0.25rem 0.75rem;
@@ -1163,7 +1244,7 @@ watch(isCompactMode, (newVal) => {
 
 .tab-navigation button:hover {
   color: var(--text-primary);
-  background: rgba(102,126,234,0.06);
+  background: rgba(102, 126, 234, 0.06);
 }
 
 .tab-navigation button.active {
@@ -1266,7 +1347,7 @@ watch(isCompactMode, (newVal) => {
   overflow-x: auto;
   margin: 0;
   border: 1px solid #1f2937;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   position: relative;
 }
 
@@ -1364,179 +1445,17 @@ watch(isCompactMode, (newVal) => {
   }
 
   .segment-label {
-    display: none;
+    display: none !important;
   }
 
   .segment-icon {
-    font-size: 0.9rem;
+    width: 18px;
+    height: 18px;
   }
 
   .segment-count {
     font-size: 0.55rem;
   }
-}
-
-/* Compact mode adjustments */
-.compact .playground-header {
-  padding: 1.5rem 0;
-}
-
-.compact .playground-header h1 {
-  font-size: 2rem;
-}
-
-.compact .subtitle {
-  font-size: 1rem;
-}
-
-.compact .playground-content {
-  gap: 1.25rem;
-  padding: 0 1rem;
-  grid-template-columns: 240px 1fr;
-}
-
-.compact .playground-sidebar {
-  padding: 1rem;
-}
-
-.compact .category-filter {
-  margin-bottom: 0.5rem;
-}
-
-.compact .filter-track {
-  padding: 2px;
-  border-radius: 8px;
-  gap: 1px;
-}
-
-.compact .filter-indicator {
-  top: 2px;
-  bottom: 2px;
-  left: 2px;
-  width: calc((100% - 4px) / var(--segment-count) - 1px);
-  border-radius: 6px;
-  transform: translateX(calc(var(--active-index) * (100% + 2px)));
-}
-
-.compact .filter-segment {
-  padding: 0.3rem 0.35rem;
-  font-size: 0.6rem;
-  gap: 0.15rem;
-  border-radius: 6px;
-}
-
-.compact .segment-icon {
-  font-size: 0.7rem;
-}
-
-.compact .segment-label {
-  display: none;
-}
-
-.compact .segment-count {
-  font-size: 0.5rem;
-  padding: 0.05rem 0.2rem;
-  min-width: 0.85rem;
-}
-
-.compact .search-input {
-  padding: 0.5rem 2rem 0.5rem 0.75rem;
-  font-size: 0.85rem;
-}
-
-.compact .example-list li {
-  padding: 0.75rem;
-}
-
-.compact .tab-navigation {
-  padding: 0.25rem;
-  gap: 0.25rem;
-}
-
-.compact .tab-navigation button {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-}
-
-.compact .playground-main {
-  padding: 1.25rem;
-}
-
-.compact .code-snippet pre {
-  padding: 2.25rem 1rem 1rem 1rem;
-}
-
-.compact .setup-content pre {
-  padding: 1rem;
-}
-
-/* Additional compact refinements */
-.compact .example-header h2 {
-  font-size: 1.5rem;
-}
-
-.compact .example-header p {
-  font-size: 1rem;
-  margin: 0 0 0.75rem 0;
-}
-
-.compact .example-tags {
-  gap: 0.375rem;
-  margin-bottom: 1rem;
-}
-
-.compact .tag {
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 10px;
-}
-
-.compact .example-icon {
-  font-size: 1.5rem;
-}
-
-.compact .example-info h3 {
-  font-size: 0.95rem;
-}
-
-.compact .example-info p {
-  font-size: 0.8rem;
-}
-
-.compact .copy-button {
-  padding: 0.375rem 0.5rem;
-  min-height: 28px;
-  min-width: 68px;
-}
-
-.compact .code-snippet code,
-.compact .setup-content code {
-  font-size: 0.8rem;
-  line-height: 1.5;
-}
-
-.compact .quick-links {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-}
-
-.compact .quick-links a {
-  padding: 0.375rem;
-  font-size: 0.82rem;
-}
-
-.compact .search-box {
-  margin-bottom: 0.75rem;
-}
-
-.compact .playground-sidebar h2 {
-  font-size: 1.1rem;
-  margin-bottom: 0.75rem;
-}
-
-.compact .filter-stats {
-  padding: 0.375rem;
-  margin-bottom: 0.5rem;
 }
 
 /* Decorative header blobs */
@@ -1554,7 +1473,7 @@ watch(isCompactMode, (newVal) => {
   height: 420px;
   top: -120px;
   left: -120px;
-  background: radial-gradient(closest-side, rgba(255,255,255,0.25), transparent 70%);
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.25), transparent 70%);
   animation: floatY 12s ease-in-out infinite alternate;
 }
 
@@ -1563,18 +1482,28 @@ watch(isCompactMode, (newVal) => {
   height: 360px;
   right: -120px;
   bottom: -120px;
-  background: radial-gradient(closest-side, rgba(99,102,241,0.45), transparent 70%);
+  background: radial-gradient(closest-side, rgba(99, 102, 241, 0.45), transparent 70%);
   animation: floatY 14s ease-in-out infinite alternate-reverse;
 }
 
 @keyframes headerGradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes floatY {
-  0% { transform: translateY(0) translateZ(0); }
-  100% { transform: translateY(10px) translateZ(0); }
+  0% {
+    transform: translateY(0) translateZ(0);
+  }
+  100% {
+    transform: translateY(10px) translateZ(0);
+  }
 }
 </style>

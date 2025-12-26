@@ -22,9 +22,9 @@
 
     <div class="info-section">
       <p>
-        Auto-Answer mode automatically answers incoming calls based on configurable rules.
-        Supports SIP header detection (intercom mode), whitelisted callers, and configurable delays.
-        Perfect for hands-free operation, intercom systems, and call center auto-answer scenarios.
+        Auto-Answer mode automatically answers incoming calls based on configurable rules. Supports
+        SIP header detection (intercom mode), whitelisted callers, and configurable delays. Perfect
+        for hands-free operation, intercom systems, and call center auto-answer scenarios.
       </p>
     </div>
 
@@ -38,8 +38,13 @@
       <!-- Main Toggle -->
       <div class="toggle-card">
         <div class="toggle-header">
-          <div class="toggle-icon" :class="{ active: isEnabled }">
-            {{ isEnabled ? '📞' : '📵' }}
+          <div
+            class="toggle-icon"
+            :class="{ active: isEnabled }"
+            role="img"
+            :aria-label="`Auto-answer is ${isEnabled ? 'enabled' : 'disabled'}`"
+          >
+            {{ isEnabled ? 'ON' : 'OFF' }}
           </div>
           <div class="toggle-info">
             <h3>Auto-Answer</h3>
@@ -48,8 +53,16 @@
         </div>
 
         <div class="toggle-control">
-          <label class="switch">
-            <input type="checkbox" :checked="isEnabled" @change="handleToggle" />
+          <label class="switch" for="auto-answer-toggle">
+            <input
+              id="auto-answer-toggle"
+              type="checkbox"
+              :checked="isEnabled"
+              @change="handleToggle"
+              role="switch"
+              :aria-checked="isEnabled"
+              aria-label="Enable or disable auto-answer"
+            />
             <span class="slider"></span>
           </label>
           <span class="toggle-label">
@@ -65,13 +78,13 @@
           <button
             v-for="modeOption in modeOptions"
             :key="modeOption.value"
-            class="mode-btn"
+            class="mode-btn w-full sm:w-auto"
             :class="{ active: mode === modeOption.value }"
             @click="setMode(modeOption.value)"
           >
             <span class="mode-icon">{{ modeOption.icon }}</span>
             <span class="mode-label">{{ modeOption.label }}</span>
-            <span class="mode-desc">{{ modeOption.desc }}</span>
+            <span class="mode-desc hidden sm:inline">{{ modeOption.desc }}</span>
           </button>
         </div>
       </div>
@@ -80,13 +93,20 @@
       <div class="delay-section">
         <h4>Answer Delay</h4>
         <div class="delay-control">
+          <label for="delay-slider" class="sr-only">Answer delay in milliseconds</label>
           <input
+            id="delay-slider"
             type="range"
             min="0"
             max="5000"
             step="100"
             :value="settings.delay"
             @input="handleDelayChange"
+            aria-label="Delay before automatically answering calls"
+            aria-valuemin="0"
+            aria-valuemax="5000"
+            :aria-valuenow="settings.delay"
+            :aria-valuetext="formatDelay(settings.delay)"
           />
           <div class="delay-labels">
             <span>Instant</span>
@@ -99,42 +119,52 @@
         </p>
       </div>
 
-      <!-- Whitelist Section -->
+      <!-- whitelist Section -->
       <div v-if="mode === 'whitelist'" class="whitelist-section">
-        <h4>Whitelist</h4>
+        <h4>whitelist</h4>
         <p class="section-desc">
           Only auto-answer calls from these numbers or patterns. Use * as wildcard.
         </p>
 
         <!-- Add Entry Form -->
-        <div class="add-entry-form">
+        <div class="add-entry-form flex flex-column md:flex-row gap-3">
+          <label for="whitelist-pattern" class="sr-only">Phone number or pattern</label>
           <input
+            id="whitelist-pattern"
             v-model="newPattern"
             type="text"
             placeholder="Phone number or pattern (e.g., +1555* or sip:*@domain.com)"
-            class="input-text"
+            class="input-text w-full md:flex-1"
+            aria-required="true"
+            aria-describedby="whitelist-pattern-hint"
           />
+          <small id="whitelist-pattern-hint" class="sr-only">
+            Enter a phone number or pattern with * as wildcard
+          </small>
+          <label for="whitelist-name" class="sr-only">Contact name (optional)</label>
           <input
+            id="whitelist-name"
             v-model="newName"
             type="text"
             placeholder="Name (optional)"
-            class="input-text input-small"
+            class="input-text w-full md:w-auto"
           />
-          <button class="btn btn-primary" @click="handleAddToWhitelist">Add</button>
+          <Button
+            label="Add"
+            class="w-full md:w-auto"
+            @click="handleAddTowhitelist"
+            aria-label="Add phone number or pattern to whitelist"
+          />
         </div>
 
-        <!-- Whitelist Entries -->
+        <!-- whitelist Entries -->
         <div v-if="settings.whitelist.length > 0" class="whitelist-entries">
-          <div
-            v-for="entry in settings.whitelist"
-            :key="entry.pattern"
-            class="whitelist-entry"
-          >
+          <div v-for="entry in settings.whitelist" :key="entry.pattern" class="whitelist-entry">
             <label class="entry-enabled">
               <input
                 type="checkbox"
                 :checked="entry.enabled"
-                @change="handleToggleWhitelistEntry(entry.pattern)"
+                @change="handleTogglewhitelistEntry(entry.pattern)"
               />
             </label>
             <div class="entry-info">
@@ -144,13 +174,14 @@
             <div v-if="entry.delay !== undefined" class="entry-delay">
               {{ formatDelay(entry.delay) }}
             </div>
-            <button
-              class="btn btn-icon btn-danger"
-              @click="removeFromWhitelist(entry.pattern)"
+            <Button
+              label="✕"
+              class="btn-icon"
+              severity="danger"
+              size="small"
+              @click="removeFromwhitelist(entry.pattern)"
               title="Remove"
-            >
-              ✕
-            </button>
+            />
           </div>
         </div>
         <div v-else class="empty-whitelist">
@@ -213,11 +244,7 @@
         <div class="notification-options">
           <div class="option-item">
             <label>
-              <input
-                type="checkbox"
-                :checked="settings.playBeep"
-                @change="handleBeepToggle"
-              />
+              <input type="checkbox" :checked="settings.playBeep" @change="handleBeepToggle" />
               Play beep sound before answering
             </label>
           </div>
@@ -248,7 +275,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-value">{{ stats.whitelistTriggered }}</div>
-            <div class="stat-label">Whitelist Triggered</div>
+            <div class="stat-label">whitelist Triggered</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">{{ stats.intercomTriggered }}</div>
@@ -263,20 +290,14 @@
             <div class="stat-label">Skipped</div>
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" @click="resetStats">
-          Reset Statistics
-        </button>
+        <Button label="Reset Statistics" severity="secondary" size="small" @click="resetStats" />
       </div>
 
       <!-- Pending Calls -->
       <div v-if="pendingCalls.length > 0" class="pending-section">
         <h4>Pending Auto-Answer</h4>
         <div class="pending-list">
-          <div
-            v-for="pending in pendingCalls"
-            :key="pending.callId"
-            class="pending-item"
-          >
+          <div v-for="pending in pendingCalls" :key="pending.callId" class="pending-item">
             <div class="pending-info">
               <div class="pending-caller">{{ pending.caller }}</div>
               <div class="pending-trigger">{{ pending.trigger }}</div>
@@ -284,14 +305,15 @@
             <div class="pending-countdown">
               {{ formatDelay(pending.remainingTime) }}
             </div>
-            <button
+            <Button
               v-if="pending.cancellable"
-              class="btn btn-icon btn-warning"
+              label="✕"
+              class="btn-icon"
+              severity="warn"
+              size="small"
               @click="cancelPending(pending.callId)"
               title="Cancel"
-            >
-              ✕
-            </button>
+            />
           </div>
         </div>
       </div>
@@ -317,9 +339,13 @@
 import { ref, computed, watch } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
 import { useSipAutoAnswer } from '../../src/composables/useSipAutoAnswer'
-import type { AutoAnswerMode, IntercomMode as _IntercomMode } from '../../src/types/autoanswer.types'
+import type {
+  AutoAnswerMode,
+  IntercomMode as _IntercomMode,
+} from '../../src/types/autoanswer.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -348,9 +374,9 @@ const {
   setMode,
   setDelay,
   setIntercomMode,
-  addToWhitelist,
-  removeFromWhitelist,
-  updateWhitelistEntry,
+  addTowhitelist,
+  removeFromwhitelist,
+  updatewhitelistEntry,
   shouldAutoAnswer,
   cancelPending,
   resetStats,
@@ -372,10 +398,25 @@ const newName = ref('')
 
 // Mode options
 const modeOptions = [
-  { value: 'disabled' as AutoAnswerMode, icon: '🚫', label: 'Disabled', desc: 'No auto-answer' },
-  { value: 'all' as AutoAnswerMode, icon: '📞', label: 'All Calls', desc: 'Answer all incoming calls' },
-  { value: 'whitelist' as AutoAnswerMode, icon: '📋', label: 'Whitelist', desc: 'Only whitelisted numbers' },
-  { value: 'intercom' as AutoAnswerMode, icon: '📢', label: 'Intercom', desc: 'Only intercom calls' },
+  { value: 'disabled' as AutoAnswerMode, icon: 'OFF', label: 'Disabled', desc: 'No auto-answer' },
+  {
+    value: 'all' as AutoAnswerMode,
+    icon: 'ALL',
+    label: 'All Calls',
+    desc: 'Answer all incoming calls',
+  },
+  {
+    value: 'whitelist' as AutoAnswerMode,
+    icon: 'LIST',
+    label: 'whitelist',
+    desc: 'Only whitelisted numbers',
+  },
+  {
+    value: 'intercom' as AutoAnswerMode,
+    icon: 'ICOM',
+    label: 'Intercom',
+    desc: 'Only intercom calls',
+  },
 ]
 
 // Watch for incoming calls
@@ -392,7 +433,7 @@ watch(callState, async (newState) => {
       console.log('Auto-answering call with delay:', result.delay)
 
       if (result.delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, result.delay))
+        await new Promise((resolve) => setTimeout(resolve, result.delay))
       }
 
       try {
@@ -415,10 +456,10 @@ const handleDelayChange = (event: Event) => {
   setDelay(parseInt(target.value, 10))
 }
 
-const handleAddToWhitelist = () => {
+const handleAddTowhitelist = () => {
   if (!newPattern.value.trim()) return
 
-  addToWhitelist({
+  addTowhitelist({
     pattern: newPattern.value.trim(),
     name: newName.value.trim() || undefined,
     enabled: true,
@@ -428,10 +469,10 @@ const handleAddToWhitelist = () => {
   newName.value = ''
 }
 
-const handleToggleWhitelistEntry = (pattern: string) => {
-  const entry = settings.value.whitelist.find(e => e.pattern === pattern)
+const handleTogglewhitelistEntry = (pattern: string) => {
+  const entry = settings.value.whitelist.find((e) => e.pattern === pattern)
   if (entry) {
-    updateWhitelistEntry(pattern, { enabled: !entry.enabled })
+    updatewhitelistEntry(pattern, { enabled: !entry.enabled })
   }
 }
 
@@ -460,7 +501,7 @@ const getStatusDescription = (): string => {
     case 'all':
       return 'All incoming calls will be auto-answered'
     case 'whitelist':
-      return `Auto-answering ${settings.value.whitelist.filter(e => e.enabled).length} whitelisted numbers`
+      return `Auto-answering ${settings.value.whitelist.filter((e) => e.enabled).length} whitelisted numbers`
     case 'intercom':
       return 'Only intercom calls will be auto-answered'
     default:
@@ -470,10 +511,14 @@ const getStatusDescription = (): string => {
 
 const getBannerIcon = (): string => {
   switch (mode.value) {
-    case 'all': return '📞'
-    case 'whitelist': return '📋'
-    case 'intercom': return '📢'
-    default: return '📵'
+    case 'all':
+      return 'ALL'
+    case 'whitelist':
+      return 'LIST'
+    case 'intercom':
+      return 'ICOM'
+    default:
+      return 'OFF'
   }
 }
 
@@ -482,7 +527,7 @@ const getBannerText = (): string => {
     case 'all':
       return `Auto-Answer enabled (${formatDelay(settings.value.delay)} delay)`
     case 'whitelist':
-      return `Whitelist mode active (${settings.value.whitelist.filter(e => e.enabled).length} entries)`
+      return `whitelist mode active (${settings.value.whitelist.filter((e) => e.enabled).length} entries)`
     case 'intercom':
       return `Intercom mode (${settings.value.intercomMode})`
     default:
@@ -503,7 +548,7 @@ const {
   disable,
   setMode,
   setDelay,
-  addToWhitelist,
+  addTowhitelist,
   shouldAutoAnswer,
   cancelPending,
 } = useSipAutoAnswer({
@@ -519,7 +564,7 @@ enable()
 
 // Or use whitelist mode
 setMode('whitelist')
-addToWhitelist({ pattern: '+1555*', name: 'Office', enabled: true })
+addTowhitelist({ pattern: '+1555*', name: 'Office', enabled: true })
 
 // Check if a call should be auto-answered
 const result = shouldAutoAnswer('call-id', 'sip:1234@example.com', {
@@ -539,28 +584,28 @@ if (result.shouldAnswer) {
 
 .info-section {
   padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius-lg);
   margin-bottom: 1.5rem;
 }
 
 .info-section p {
   margin: 0;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   line-height: 1.6;
 }
 
 .status-message {
   padding: 1rem;
-  border-radius: 6px;
+  border-radius: var(--vuesip-border-radius);
   text-align: center;
   font-size: 0.875rem;
   margin-bottom: 1.5rem;
 }
 
 .status-message.info {
-  background: #eff6ff;
-  color: #1e40af;
+  background: var(--surface-ground);
+  color: var(--vuesip-info-dark);
 }
 
 .auto-answer-interface {
@@ -569,9 +614,9 @@ if (result.shouldAnswer) {
 
 /* Toggle Card */
 .toggle-card {
-  background: white;
-  border-radius: 12px;
-  border: 2px solid #e5e7eb;
+  background: var(--vuesip-bg-primary);
+  border-radius: var(--vuesip-border-radius-lg);
+  border: 2px solid var(--vuesip-border);
   padding: 2rem;
   margin-bottom: 1.5rem;
   display: flex;
@@ -594,23 +639,23 @@ if (result.shouldAnswer) {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #f3f4f6;
+  background: var(--vuesip-bg-secondary);
   transition: all 0.3s;
 }
 
 .toggle-icon.active {
-  background: #dcfce7;
+  background: var(--green-50);
 }
 
 .toggle-info h3 {
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: var(--vuesip-text-primary);
   font-size: 1.25rem;
 }
 
 .toggle-info p {
   margin: 0;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   font-size: 0.875rem;
 }
 
@@ -624,7 +669,7 @@ if (result.shouldAnswer) {
 .toggle-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #666;
+  color: var(--vuesip-text-secondary);
 }
 
 /* Switch Toggle */
@@ -660,13 +705,13 @@ if (result.shouldAnswer) {
   width: 26px;
   left: 4px;
   bottom: 4px;
-  background-color: white;
+  background-color: var(--surface-0);
   transition: 0.4s;
   border-radius: 50%;
 }
 
 input:checked + .slider {
-  background-color: #22c55e;
+  background-color: var(--green-500);
 }
 
 input:checked + .slider:before {
@@ -680,7 +725,7 @@ input:checked + .slider:before {
 
 .mode-section h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--vuesip-text-primary);
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -688,8 +733,14 @@ input:checked + .slider:before {
 
 .mode-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .mode-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .mode-btn {
@@ -697,20 +748,20 @@ input:checked + .slider:before {
   flex-direction: column;
   align-items: center;
   padding: 1rem;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-primary);
+  border: 2px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--vuesip-transition);
 }
 
 .mode-btn:hover {
-  border-color: #667eea;
+  border-color: var(--vuesip-primary);
 }
 
 .mode-btn.active {
-  border-color: #667eea;
-  background: #eff6ff;
+  border-color: var(--vuesip-primary);
+  background: var(--surface-ground);
 }
 
 .mode-icon {
@@ -721,28 +772,28 @@ input:checked + .slider:before {
 .mode-label {
   font-weight: 600;
   font-size: 0.875rem;
-  color: #333;
+  color: var(--vuesip-text-primary);
 }
 
 .mode-desc {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   text-align: center;
   margin-top: 0.25rem;
 }
 
 /* Delay Section */
 .delay-section {
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-primary);
+  border: 2px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .delay-section h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--vuesip-text-primary);
   font-size: 1rem;
 }
 
@@ -750,20 +801,20 @@ input:checked + .slider:before {
   margin-bottom: 0.75rem;
 }
 
-.delay-control input[type="range"] {
+.delay-control input[type='range'] {
   width: 100%;
   height: 8px;
   -webkit-appearance: none;
-  background: #e5e7eb;
-  border-radius: 4px;
+  background: var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius);
   outline: none;
 }
 
-.delay-control input[type="range"]::-webkit-slider-thumb {
+.delay-control input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 20px;
   height: 20px;
-  background: #667eea;
+  background: var(--vuesip-primary);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -773,24 +824,24 @@ input:checked + .slider:before {
   justify-content: space-between;
   margin-top: 0.5rem;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--vuesip-text-secondary);
 }
 
 .delay-value {
   font-weight: 600;
-  color: #667eea;
+  color: var(--vuesip-primary);
 }
 
 .delay-info {
   margin: 0;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--vuesip-text-secondary);
 }
 
-/* Whitelist Section */
+/* whitelist Section */
 .whitelist-section {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--surface-card);
+  border: 2px solid var(--surface-border);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -798,14 +849,14 @@ input:checked + .slider:before {
 
 .whitelist-section h4 {
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 1rem;
 }
 
 .section-desc {
   margin: 0 0 1rem 0;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-color-secondary);
 }
 
 .add-entry-form {
@@ -819,14 +870,14 @@ input:checked + .slider:before {
   flex: 1;
   min-width: 200px;
   padding: 0.5rem 0.75rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--surface-border);
   border-radius: 6px;
   font-size: 0.875rem;
 }
 
 .input-text:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary-500);
 }
 
 .input-small {
@@ -835,7 +886,7 @@ input:checked + .slider:before {
 }
 
 .whitelist-entries {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--surface-border);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -845,7 +896,7 @@ input:checked + .slider:before {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--surface-section);
 }
 
 .whitelist-entry:last-child {
@@ -866,31 +917,31 @@ input:checked + .slider:before {
 .entry-pattern {
   font-weight: 500;
   font-size: 0.875rem;
-  color: #333;
+  color: var(--text-color);
 }
 
 .entry-name {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-color-secondary);
 }
 
 .entry-delay {
   font-size: 0.75rem;
-  color: #667eea;
+  color: var(--primary-500);
   font-weight: 500;
 }
 
 .empty-whitelist {
   text-align: center;
   padding: 1.5rem;
-  color: #666;
+  color: var(--text-color-secondary);
   font-size: 0.875rem;
 }
 
 /* Intercom Section */
 .intercom-section {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--surface-card);
+  border: 2px solid var(--surface-border);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -898,7 +949,7 @@ input:checked + .slider:before {
 
 .intercom-section h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 1rem;
 }
 
@@ -911,7 +962,7 @@ input:checked + .slider:before {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--surface-border);
   border-radius: 6px;
   cursor: pointer;
   margin-bottom: 0.5rem;
@@ -919,11 +970,11 @@ input:checked + .slider:before {
 }
 
 .radio-label:hover {
-  border-color: #667eea;
+  border-color: var(--primary-500);
 }
 
 .radio-label input:checked ~ .radio-text {
-  color: #667eea;
+  color: var(--primary-500);
 }
 
 .radio-text {
@@ -937,7 +988,7 @@ input:checked + .slider:before {
 
 .radio-desc {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-color-secondary);
   margin-top: 0.25rem;
 }
 
@@ -955,7 +1006,7 @@ input:checked + .slider:before {
   gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-color);
   cursor: pointer;
 }
 
@@ -968,13 +1019,13 @@ input:checked + .slider:before {
 .option-desc {
   margin: 0.5rem 0 0 1.625rem;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-color-secondary);
 }
 
 /* Notification Section */
 .notification-section {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--surface-card);
+  border: 2px solid var(--surface-border);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -982,7 +1033,7 @@ input:checked + .slider:before {
 
 .notification-section h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 1rem;
 }
 
@@ -993,7 +1044,7 @@ input:checked + .slider:before {
 
 .stats-section h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1007,8 +1058,8 @@ input:checked + .slider:before {
 }
 
 .stat-card {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--surface-card);
+  border: 2px solid var(--surface-border);
   border-radius: 8px;
   padding: 1rem;
   text-align: center;
@@ -1017,22 +1068,22 @@ input:checked + .slider:before {
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #667eea;
+  color: var(--primary-500);
   margin-bottom: 0.25rem;
   font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
   font-size: 0.625rem;
-  color: #666;
+  color: var(--text-color-secondary);
   font-weight: 500;
   text-transform: uppercase;
 }
 
 /* Pending Section */
 .pending-section {
-  background: #fef3c7;
-  border: 2px solid #f59e0b;
+  background: var(--yellow-50);
+  border: 2px solid var(--yellow-500);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -1040,7 +1091,7 @@ input:checked + .slider:before {
 
 .pending-section h4 {
   margin: 0 0 1rem 0;
-  color: #92400e;
+  color: var(--yellow-900);
   font-size: 1rem;
 }
 
@@ -1055,7 +1106,7 @@ input:checked + .slider:before {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem;
-  background: white;
+  background: var(--surface-card);
   border-radius: 6px;
 }
 
@@ -1066,18 +1117,18 @@ input:checked + .slider:before {
 .pending-caller {
   font-weight: 600;
   font-size: 0.875rem;
-  color: #333;
+  color: var(--text-color);
 }
 
 .pending-trigger {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-color-secondary);
 }
 
 .pending-countdown {
   font-weight: 700;
   font-size: 1rem;
-  color: #f59e0b;
+  color: var(--yellow-500);
 }
 
 /* Status Banner */
@@ -1088,18 +1139,18 @@ input:checked + .slider:before {
 }
 
 .status-banner.all {
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  border: 2px solid #22c55e;
+  background: linear-gradient(135deg, var(--green-50) 0%, var(--green-100) 100%);
+  border: 2px solid var(--green-500);
 }
 
 .status-banner.whitelist {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border: 2px solid #3b82f6;
+  background: linear-gradient(135deg, var(--blue-50) 0%, var(--blue-100) 100%);
+  border: 2px solid var(--blue-500);
 }
 
 .status-banner.intercom {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border: 2px solid #f59e0b;
+  background: linear-gradient(135deg, var(--yellow-50) 0%, var(--yellow-100) 100%);
+  border: 2px solid var(--yellow-500);
 }
 
 .banner-content {
@@ -1116,84 +1167,33 @@ input:checked + .slider:before {
 .banner-text {
   font-size: 1rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
 }
 
-/* Buttons */
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #5a67d8;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #4b5563;
-}
-
+/* Button Icon Custom Styling */
 .btn-icon {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #dc2626;
-}
-
-.btn-warning {
-  background: #f59e0b;
-  color: white;
-}
-
-.btn-warning:hover {
-  background: #d97706;
-}
-
-.btn-sm {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
 }
 
 /* Code Example */
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--surface-section);
   border-radius: 8px;
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--surface-section);
+  color: var(--text-secondary);
   padding: 1.5rem;
-  border-radius: 6px;
+  border-radius: var(--vuesip-border-radius);
   overflow-x: auto;
   margin: 0;
 }

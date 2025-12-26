@@ -13,9 +13,7 @@
 
     <header>
       <h1>Basic Audio Call Example</h1>
-      <p class="subtitle">
-        A simple one-to-one audio call demonstration using VueSip composables
-      </p>
+      <p class="subtitle">A simple one-to-one audio call demonstration using VueSip composables</p>
     </header>
 
     <main id="main-content" role="main">
@@ -88,27 +86,20 @@
       />
 
       <!-- Call Statistics (Debug Info) -->
-      <section v-if="session && callState === 'active'" class="card debug-info" role="region" aria-label="Debug information">
+      <section
+        v-if="session && callState === 'active'"
+        class="card debug-info"
+        role="region"
+        aria-label="Debug information"
+      >
         <h3>Debug Information</h3>
         <div class="stats-grid">
-          <div>
-            <strong>Call ID:</strong> {{ callId || 'N/A' }}
-          </div>
-          <div>
-            <strong>Direction:</strong> {{ direction || 'N/A' }}
-          </div>
-          <div>
-            <strong>Local URI:</strong> {{ localUri || 'N/A' }}
-          </div>
-          <div>
-            <strong>State:</strong> {{ callState }}
-          </div>
-          <div>
-            <strong>Muted:</strong> {{ isMuted ? 'Yes' : 'No' }}
-          </div>
-          <div>
-            <strong>On Hold:</strong> {{ isOnHold ? 'Yes' : 'No' }}
-          </div>
+          <div><strong>Call ID:</strong> {{ callId || 'N/A' }}</div>
+          <div><strong>Direction:</strong> {{ direction || 'N/A' }}</div>
+          <div><strong>Local URI:</strong> {{ localUri || 'N/A' }}</div>
+          <div><strong>State:</strong> {{ callState }}</div>
+          <div><strong>Muted:</strong> {{ isMuted ? 'Yes' : 'No' }}</div>
+          <div><strong>On Hold:</strong> {{ isOnHold ? 'Yes' : 'No' }}</div>
         </div>
       </section>
     </main>
@@ -152,7 +143,6 @@ const {
   remoteDisplayName,
   isOnHold,
   isMuted,
-  localStream,
   remoteStream,
   duration,
   makeCall,

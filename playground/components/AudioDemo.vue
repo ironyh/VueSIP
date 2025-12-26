@@ -11,7 +11,7 @@ const audioState = reactive({
   isMuted: false,
   noiseSuppression: true,
   echoCancellation: true,
-  autoGainControl: true
+  autoGainControl: true,
 })
 
 const availableDevices = reactive({
@@ -25,7 +25,7 @@ const availableDevices = reactive({
     { id: 'speaker-1', label: 'External USB Speakers' },
     { id: 'speaker-2', label: 'Bluetooth Headphones' },
     { id: 'speaker-3', label: 'HDMI Audio Output' },
-  ]
+  ],
 })
 
 const events = ref<Array<{ time: string; type: string; data: string }>>([])
@@ -35,19 +35,19 @@ const addEvent = (type: string, data: string) => {
   events.value.unshift({
     time: now.toLocaleTimeString(),
     type,
-    data
+    data,
   })
   if (events.value.length > 20) events.value.pop()
 }
 
 // Simulate audio levels
-let levelInterval: ReturnType<typeof setInterval> | null = null
+let _levelInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  levelInterval = setInterval(() => {
+  _levelInterval = setInterval(() => {
     if (!audioState.isMuted) {
-      audioState.inputLevel = Math.floor(Math.random() * 40) + 20 + (audioState.inputVolume / 4)
-      audioState.outputLevel = Math.floor(Math.random() * 30) + 30 + (audioState.outputVolume / 4)
+      audioState.inputLevel = Math.floor(Math.random() * 40) + 20 + audioState.inputVolume / 4
+      audioState.outputLevel = Math.floor(Math.random() * 30) + 30 + audioState.outputVolume / 4
     } else {
       audioState.inputLevel = 0
     }
@@ -56,7 +56,7 @@ onMounted(() => {
 
 const changeInputDevice = (deviceId: string) => {
   audioState.inputDevice = deviceId
-  const device = availableDevices.inputs.find(d => d.id === deviceId)
+  const device = availableDevices.inputs.find((d) => d.id === deviceId)
   addEvent('AUDIO', `Input device changed to: ${device?.label}`)
   addEvent('MEDIA', 'Reacquiring media stream with new device...')
   setTimeout(() => {
@@ -66,7 +66,7 @@ const changeInputDevice = (deviceId: string) => {
 
 const changeOutputDevice = (deviceId: string) => {
   audioState.outputDevice = deviceId
-  const device = availableDevices.outputs.find(d => d.id === deviceId)
+  const device = availableDevices.outputs.find((d) => d.id === deviceId)
   addEvent('AUDIO', `Output device changed to: ${device?.label}`)
   addEvent('MEDIA', 'setSinkId() called on audio element')
 }
@@ -89,7 +89,9 @@ const updateOutputVolume = (e: Event) => {
   addEvent('AUDIO', `Output volume: ${value}%`)
 }
 
-const toggleConstraint = (constraint: 'noiseSuppression' | 'echoCancellation' | 'autoGainControl') => {
+const toggleConstraint = (
+  constraint: 'noiseSuppression' | 'echoCancellation' | 'autoGainControl'
+) => {
   audioState[constraint] = !audioState[constraint]
   addEvent('MEDIA', `${constraint}: ${audioState[constraint]}`)
   addEvent('MEDIA', 'Applying updated constraints to media track...')
@@ -131,15 +133,19 @@ enumerateDevices()
     <div class="demo-section">
       <h3>🎤 Input Device (Microphone)</h3>
       <div class="device-selector">
-        <select class="select" style="width: 100%;" @change="changeInputDevice(($event.target as HTMLSelectElement).value)">
+        <select
+          class="select"
+          style="width: 100%"
+          @change="changeInputDevice(($event.target as HTMLSelectElement).value)"
+        >
           <option v-for="device in availableDevices.inputs" :key="device.id" :value="device.id">
             {{ device.label }}
           </option>
         </select>
       </div>
 
-      <div class="volume-control" style="margin-bottom: 1rem;">
-        <span style="font-size: 1.25rem;">🎤</span>
+      <div class="volume-control" style="margin-bottom: 1rem">
+        <span style="font-size: 1.25rem">🎤</span>
         <input
           type="range"
           min="0"
@@ -148,24 +154,36 @@ enumerateDevices()
           class="volume-slider"
           @input="updateInputVolume"
         />
-        <span style="min-width: 3rem; text-align: right;">{{ audioState.inputVolume }}%</span>
+        <span style="min-width: 3rem; text-align: right">{{ audioState.inputVolume }}%</span>
       </div>
 
-      <div style="background: var(--bg); border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 1rem;">
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">Input Level</div>
-        <div style="height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden;">
+      <div
+        style="background: var(--bg); border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 1rem"
+      >
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem">
+          Input Level
+        </div>
+        <div style="height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden">
           <div
             :style="{
               width: `${Math.min(audioState.inputLevel, 100)}%`,
               height: '100%',
-              background: audioState.inputLevel > 90 ? 'var(--danger)' : audioState.inputLevel > 70 ? 'var(--warning)' : 'var(--success)',
-              transition: 'width 0.1s'
+              background:
+                audioState.inputLevel > 90
+                  ? 'var(--danger)'
+                  : audioState.inputLevel > 70
+                    ? 'var(--warning)'
+                    : 'var(--success)',
+              transition: 'width 0.1s',
             }"
           ></div>
         </div>
       </div>
 
-      <button :class="['btn', audioState.isMuted ? 'btn-danger' : 'btn-outline']" @click="toggleMute">
+      <button
+        :class="['btn', audioState.isMuted ? 'btn-danger' : 'btn-outline']"
+        @click="toggleMute"
+      >
         {{ audioState.isMuted ? '🔇 Unmute' : '🔊 Mute' }}
       </button>
     </div>
@@ -173,15 +191,19 @@ enumerateDevices()
     <div class="demo-section">
       <h3>🔊 Output Device (Speakers)</h3>
       <div class="device-selector">
-        <select class="select" style="width: 100%;" @change="changeOutputDevice(($event.target as HTMLSelectElement).value)">
+        <select
+          class="select"
+          style="width: 100%"
+          @change="changeOutputDevice(($event.target as HTMLSelectElement).value)"
+        >
           <option v-for="device in availableDevices.outputs" :key="device.id" :value="device.id">
             {{ device.label }}
           </option>
         </select>
       </div>
 
-      <div class="volume-control" style="margin-bottom: 1rem;">
-        <span style="font-size: 1.25rem;">🔊</span>
+      <div class="volume-control" style="margin-bottom: 1rem">
+        <span style="font-size: 1.25rem">🔊</span>
         <input
           type="range"
           min="0"
@@ -190,18 +212,22 @@ enumerateDevices()
           class="volume-slider"
           @input="updateOutputVolume"
         />
-        <span style="min-width: 3rem; text-align: right;">{{ audioState.outputVolume }}%</span>
+        <span style="min-width: 3rem; text-align: right">{{ audioState.outputVolume }}%</span>
       </div>
 
-      <div style="background: var(--bg); border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 1rem;">
-        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">Output Level</div>
-        <div style="height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden;">
+      <div
+        style="background: var(--bg); border-radius: 0.5rem; padding: 0.5rem; margin-bottom: 1rem"
+      >
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem">
+          Output Level
+        </div>
+        <div style="height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden">
           <div
             :style="{
               width: `${Math.min(audioState.outputLevel, 100)}%`,
               height: '100%',
               background: 'var(--primary)',
-              transition: 'width 0.1s'
+              transition: 'width 0.1s',
             }"
           ></div>
         </div>
@@ -212,21 +238,35 @@ enumerateDevices()
 
     <div class="demo-section">
       <h3>⚙️ Audio Processing</h3>
-      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
-          <input type="checkbox" v-model="audioState.echoCancellation" @change="toggleConstraint('echoCancellation')" />
+      <div style="display: flex; flex-direction: column; gap: 0.75rem">
+        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer">
+          <input
+            type="checkbox"
+            v-model="audioState.echoCancellation"
+            @change="toggleConstraint('echoCancellation')"
+          />
           <span>Echo Cancellation (AEC)</span>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Removes echo from speakers</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted)"
+            >Removes echo from speakers</span
+          >
         </label>
-        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
-          <input type="checkbox" v-model="audioState.noiseSuppression" @change="toggleConstraint('noiseSuppression')" />
+        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer">
+          <input
+            type="checkbox"
+            v-model="audioState.noiseSuppression"
+            @change="toggleConstraint('noiseSuppression')"
+          />
           <span>Noise Suppression</span>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Reduces background noise</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted)">Reduces background noise</span>
         </label>
-        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
-          <input type="checkbox" v-model="audioState.autoGainControl" @change="toggleConstraint('autoGainControl')" />
+        <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer">
+          <input
+            type="checkbox"
+            v-model="audioState.autoGainControl"
+            @change="toggleConstraint('autoGainControl')"
+          />
           <span>Auto Gain Control (AGC)</span>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">Normalizes volume levels</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted)">Normalizes volume levels</span>
         </label>
       </div>
     </div>
@@ -250,33 +290,31 @@ enumerateDevices()
       <h3>API Usage</h3>
       <div class="code-preview">
         <code>
-<span class="keyword">import</span> { useAudioDevices } <span class="keyword">from</span> <span class="string">'vuesip'</span>
+          <span class="keyword">import</span> { useAudioDevices } <span class="keyword">from</span>
+          <span class="string">'vuesip'</span>
 
-<span class="keyword">const</span> {
-  audioInputs,
-  audioOutputs,
-  selectedInput,
-  selectedOutput,
-  inputVolume,
-  outputVolume,
-  <span class="function">setInputDevice</span>,
-  <span class="function">setOutputDevice</span>,
-  <span class="function">setInputVolume</span>,
-  <span class="function">setOutputVolume</span>,
-  <span class="function">toggleMute</span>,
-  isMuted
-} = <span class="function">useAudioDevices</span>()
+          <span class="keyword">const</span> { audioInputs, audioOutputs, selectedInput,
+          selectedOutput, inputVolume, outputVolume, <span class="function">setInputDevice</span>,
+          <span class="function">setOutputDevice</span>,
+          <span class="function">setInputVolume</span>,
+          <span class="function">setOutputVolume</span>, <span class="function">toggleMute</span>,
+          isMuted } = <span class="function">useAudioDevices</span>()
 
-<span class="comment">// Change devices</span>
-<span class="keyword">await</span> <span class="function">setInputDevice</span>(<span class="string">'device-id'</span>)
-<span class="keyword">await</span> <span class="function">setOutputDevice</span>(<span class="string">'device-id'</span>)
+          <span class="comment">// Change devices</span>
+          <span class="keyword">await</span> <span class="function">setInputDevice</span>(<span
+            class="string"
+            >'device-id'</span
+          >) <span class="keyword">await</span> <span class="function">setOutputDevice</span>(<span
+            class="string"
+            >'device-id'</span
+          >)
 
-<span class="comment">// Adjust volume</span>
-<span class="function">setInputVolume</span>(<span class="number">0.8</span>)
-<span class="function">setOutputVolume</span>(<span class="number">0.7</span>)
+          <span class="comment">// Adjust volume</span>
+          <span class="function">setInputVolume</span>(<span class="number">0.8</span>)
+          <span class="function">setOutputVolume</span>(<span class="number">0.7</span>)
 
-<span class="comment">// Toggle mute</span>
-<span class="function">toggleMute</span>()
+          <span class="comment">// Toggle mute</span>
+          <span class="function">toggleMute</span>()
         </code>
       </div>
     </div>
@@ -285,14 +323,11 @@ enumerateDevices()
       <h3>Current Constraints</h3>
       <div class="code-preview">
         <code>
-{
-  audio: {
-    deviceId: <span class="string">"{{ audioState.inputDevice }}"</span>,
-    echoCancellation: <span class="keyword">{{ audioState.echoCancellation }}</span>,
-    noiseSuppression: <span class="keyword">{{ audioState.noiseSuppression }}</span>,
-    autoGainControl: <span class="keyword">{{ audioState.autoGainControl }}</span>
-  }
-}
+          { audio: { deviceId: <span class="string">"{{ audioState.inputDevice }}"</span>,
+          echoCancellation: <span class="keyword">{{ audioState.echoCancellation }}</span
+          >, noiseSuppression: <span class="keyword">{{ audioState.noiseSuppression }}</span
+          >, autoGainControl: <span class="keyword">{{ audioState.autoGainControl }}</span>
+          } }
         </code>
       </div>
     </div>

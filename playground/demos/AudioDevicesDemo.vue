@@ -37,9 +37,7 @@
       <div class="status-message warning">
         Microphone permissions needed to access audio devices
       </div>
-      <button class="btn btn-primary" @click="requestPermissions">
-        Grant Microphone Access
-      </button>
+      <button class="btn btn-primary" @click="requestPermissions">Grant Microphone Access</button>
     </div>
 
     <!-- Device Selection -->
@@ -47,9 +45,7 @@
       <!-- Audio Input Devices -->
       <div class="device-group">
         <h3>Audio Input (Microphone)</h3>
-        <div v-if="audioInputDevices.length === 0" class="no-devices">
-          No microphones detected
-        </div>
+        <div v-if="audioInputDevices.length === 0" class="no-devices">No microphones detected</div>
         <div v-else class="device-list">
           <div
             v-for="device in audioInputDevices"
@@ -65,7 +61,7 @@
               <div class="device-id">ID: {{ device.deviceId.slice(0, 16) }}...</div>
             </div>
             <div v-if="device.deviceId === selectedAudioInputId" class="selected-badge">
-              ✓ Selected
+              Selected
             </div>
           </div>
         </div>
@@ -74,9 +70,7 @@
       <!-- Audio Output Devices -->
       <div class="device-group">
         <h3>Audio Output (Speaker)</h3>
-        <div v-if="audioOutputDevices.length === 0" class="no-devices">
-          No speakers detected
-        </div>
+        <div v-if="audioOutputDevices.length === 0" class="no-devices">No speakers detected</div>
         <div v-else class="device-list">
           <div
             v-for="device in audioOutputDevices"
@@ -92,7 +86,7 @@
               <div class="device-id">ID: {{ device.deviceId.slice(0, 16) }}...</div>
             </div>
             <div v-if="device.deviceId === selectedAudioOutputId" class="selected-badge">
-              ✓ Selected
+              Selected
             </div>
           </div>
         </div>
@@ -100,9 +94,7 @@
 
       <!-- Refresh Button -->
       <div class="refresh-section">
-        <button class="btn btn-secondary" @click="refresh">
-          Refresh Devices
-        </button>
+        <button class="btn btn-secondary" @click="refresh">Refresh Devices</button>
         <small>Click to detect newly connected audio devices</small>
       </div>
 
@@ -167,15 +159,51 @@ const {
 
 // Mock devices for simulation
 const mockAudioInputDevices = ref([
-  { deviceId: 'mock-mic-1', label: 'Built-in Microphone', kind: 'audioinput' as const, groupId: 'group1', toJSON: () => ({}) },
-  { deviceId: 'mock-mic-2', label: 'USB Headset Microphone', kind: 'audioinput' as const, groupId: 'group2', toJSON: () => ({}) },
-  { deviceId: 'mock-mic-3', label: 'Bluetooth Earbuds', kind: 'audioinput' as const, groupId: 'group3', toJSON: () => ({}) },
+  {
+    deviceId: 'mock-mic-1',
+    label: 'Built-in Microphone',
+    kind: 'audioinput' as const,
+    groupId: 'group1',
+    toJSON: () => ({}),
+  },
+  {
+    deviceId: 'mock-mic-2',
+    label: 'USB Headset Microphone',
+    kind: 'audioinput' as const,
+    groupId: 'group2',
+    toJSON: () => ({}),
+  },
+  {
+    deviceId: 'mock-mic-3',
+    label: 'Bluetooth Earbuds',
+    kind: 'audioinput' as const,
+    groupId: 'group3',
+    toJSON: () => ({}),
+  },
 ])
 
 const mockAudioOutputDevices = ref([
-  { deviceId: 'mock-speaker-1', label: 'Built-in Speakers', kind: 'audiooutput' as const, groupId: 'group1', toJSON: () => ({}) },
-  { deviceId: 'mock-speaker-2', label: 'USB Headset', kind: 'audiooutput' as const, groupId: 'group2', toJSON: () => ({}) },
-  { deviceId: 'mock-speaker-3', label: 'HDMI Audio Output', kind: 'audiooutput' as const, groupId: 'group4', toJSON: () => ({}) },
+  {
+    deviceId: 'mock-speaker-1',
+    label: 'Built-in Speakers',
+    kind: 'audiooutput' as const,
+    groupId: 'group1',
+    toJSON: () => ({}),
+  },
+  {
+    deviceId: 'mock-speaker-2',
+    label: 'USB Headset',
+    kind: 'audiooutput' as const,
+    groupId: 'group2',
+    toJSON: () => ({}),
+  },
+  {
+    deviceId: 'mock-speaker-3',
+    label: 'HDMI Audio Output',
+    kind: 'audiooutput' as const,
+    groupId: 'group4',
+    toJSON: () => ({}),
+  },
 ])
 
 const mockSelectedInputId = ref('mock-mic-1')
@@ -238,7 +266,9 @@ const selectInput = (deviceId: string) => {
     showChangeMessage('Microphone changed successfully')
   } catch (error) {
     console.error('Select input error:', error)
-    alert(`Failed to select microphone: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    alert(
+      `Failed to select microphone: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   }
 }
 
@@ -288,7 +318,7 @@ onMounted(async () => {
     // Try to enumerate devices - if permissions are already granted, this will work
     await enumerateDevices()
     permissionsGranted.value = audioInputDevices.value.length > 0
-  } catch (error) {
+  } catch {
     console.log('Permissions not yet granted')
   }
 })
@@ -302,14 +332,14 @@ onMounted(async () => {
 
 .info-section {
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--bg-secondary, #f9fafb);
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
 
 .info-section p {
   margin: 0 0 1rem 0;
-  color: #666;
+  color: var(--text-secondary, #666);
   line-height: 1.6;
 }
 
@@ -319,8 +349,8 @@ onMounted(async () => {
 
 .note {
   padding: 1rem;
-  background: #eff6ff;
-  border-left: 3px solid #667eea;
+  background: var(--info-bg, #eff6ff);
+  border-left: 3px solid var(--primary, #667eea);
   border-radius: 4px;
   font-size: 0.875rem;
 }
@@ -338,8 +368,8 @@ onMounted(async () => {
 }
 
 .status-message.warning {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-text, #92400e);
 }
 
 .devices-section {
@@ -352,17 +382,17 @@ onMounted(async () => {
 
 .device-group h3 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-primary, #333);
   font-size: 1.25rem;
 }
 
 .no-devices {
   padding: 1rem;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
+  background: var(--bg-secondary, #f9fafb);
+  border: 1px dashed var(--border-color, #d1d5db);
   border-radius: 6px;
   text-align: center;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 0.875rem;
 }
 
@@ -377,21 +407,21 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--bg-primary, white);
+  border: 2px solid var(--border-color, #e5e7eb);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .device-item:hover {
-  border-color: #667eea;
+  border-color: var(--primary, #667eea);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .device-item.selected {
-  border-color: #667eea;
-  background: #eff6ff;
+  border-color: var(--primary, #667eea);
+  background: var(--primary-bg, #eff6ff);
 }
 
 .device-info {
@@ -400,19 +430,19 @@ onMounted(async () => {
 
 .device-name {
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary, #333);
   margin-bottom: 0.25rem;
 }
 
 .device-id {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-muted, #6b7280);
   font-family: monospace;
 }
 
 .selected-badge {
   padding: 0.25rem 0.75rem;
-  background: #667eea;
+  background: var(--primary, #667eea);
   color: white;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -427,15 +457,15 @@ onMounted(async () => {
 .refresh-section small {
   display: block;
   margin-top: 0.5rem;
-  color: #6b7280;
+  color: var(--text-muted, #6b7280);
   font-size: 0.75rem;
 }
 
 .success-message {
   margin-top: 1rem;
   padding: 1rem;
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--success-bg, #d1fae5);
+  color: var(--success-text, #065f46);
   border-radius: 6px;
   text-align: center;
   font-size: 0.875rem;
@@ -452,38 +482,38 @@ onMounted(async () => {
 }
 
 .btn-primary {
-  background: #667eea;
+  background: var(--primary, #667eea);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #5568d3;
+  background: var(--primary-hover, #5568d3);
 }
 
 .btn-secondary {
-  background: #6b7280;
+  background: var(--secondary, #6b7280);
   color: white;
 }
 
 .btn-secondary:hover {
-  background: #4b5563;
+  background: var(--secondary-hover, #4b5563);
 }
 
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--bg-secondary, #f9fafb);
   border-radius: 8px;
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--code-bg, #1e1e1e);
+  color: var(--code-text, #d4d4d4);
   padding: 1.5rem;
   border-radius: 6px;
   overflow-x: auto;

@@ -52,9 +52,8 @@ vi.mock('jssip', () => ({
 }))
 
 describe('useSipClient', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockSipClient: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let mockEventBus: any
   let testConfig: SipClientConfig
 
@@ -105,7 +104,10 @@ describe('useSipClient', () => {
         await Promise.resolve()
         mockState.registrationState = 'registered'
         mockState.isRegistered = true
-        emitEvent('sip:registered', { uri: testConfig?.sipUri || 'sip:test@example.com', expires: 600 })
+        emitEvent('sip:registered', {
+          uri: testConfig?.sipUri || 'sip:test@example.com',
+          expires: 600,
+        })
       }),
       unregister: vi.fn().mockImplementation(async () => {
         // Allow intermediate 'unregistering' state to be observed
@@ -565,12 +567,14 @@ describe('useSipClient', () => {
     })
   })
 
-describe('reconnect()', () => {
+  describe('reconnect()', () => {
     it('should reconnect successfully', async () => {
-      const { result, unmount } = withSetup(() => useSipClient({
-        ...testConfig,
-        reconnectDelay: 10, // Short delay for test
-      }))
+      const { result, unmount } = withSetup(() =>
+        useSipClient({
+          ...testConfig,
+          reconnectDelay: 10, // Short delay for test
+        })
+      )
       const { connect, disconnect, reconnect } = result
 
       // First connect
@@ -614,10 +618,12 @@ describe('reconnect()', () => {
       vi.useFakeTimers()
 
       try {
-        const { result, unmount } = withSetup(() => useSipClient({
-          ...testConfig,
-          reconnectDelay: 1000, // 1 second delay
-        }))
+        const { result, unmount } = withSetup(() =>
+          useSipClient({
+            ...testConfig,
+            reconnectDelay: 1000, // 1 second delay
+          })
+        )
         const { connect, reconnect } = result
 
         // Perform initial connect
@@ -895,10 +901,14 @@ describe('reconnect()', () => {
       const sharedBus = new EventBus()
 
       // Create first instance - should not warn
-      const { unmount: unmount1 } = withSetup(() => useSipClient(testConfig, { eventBus: sharedBus }))
+      const { unmount: unmount1 } = withSetup(() =>
+        useSipClient(testConfig, { eventBus: sharedBus })
+      )
 
       // Create second instance - should warn about conflict
-      const { unmount: unmount2 } = withSetup(() => useSipClient(testConfig, { eventBus: sharedBus }))
+      const { unmount: unmount2 } = withSetup(() =>
+        useSipClient(testConfig, { eventBus: sharedBus })
+      )
 
       // The warning is logged via logger.warn
       // Test verifies multiple instances work without errors
@@ -915,7 +925,9 @@ describe('reconnect()', () => {
       vi.useFakeTimers()
 
       try {
-        const { result, unmount } = withSetup(() => useSipClient(testConfig, { reconnectDelay: 2000 }))
+        const { result, unmount } = withSetup(() =>
+          useSipClient(testConfig, { reconnectDelay: 2000 })
+        )
         const { connect, reconnect } = result
 
         // Connect

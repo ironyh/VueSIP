@@ -20,7 +20,7 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <h2>📡 Network Condition Simulator</h2>
+    <h2>Network Condition Simulator</h2>
     <p class="description">
       Simulate various network conditions to test call quality and resilience.
     </p>
@@ -49,7 +49,9 @@
           :class="['profile-card', { active: activeProfile === profile.name }]"
           @click="applyProfile(profile)"
         >
-          <div class="profile-icon">{{ profile.icon }}</div>
+          <div class="profile-icon">
+            <span :class="['profile-indicator', getProfileClass(profile.name)]"></span>
+          </div>
           <div class="profile-name">{{ profile.name }}</div>
           <div class="profile-stats">
             <div class="stat">
@@ -137,7 +139,7 @@
           @keyup.enter="makeCall"
         />
       </div>
-      <button @click="makeCall" :disabled="hasActiveCall">📞 Make Test Call</button>
+      <button @click="makeCall" :disabled="hasActiveCall">Make Test Call</button>
     </div>
 
     <!-- Active Call with Network Stats -->
@@ -149,7 +151,7 @@
         <h4>Real-time Network Metrics</h4>
         <div class="metrics-grid">
           <div class="metric-card">
-            <div class="metric-icon">⏱️</div>
+            <div class="metric-icon latency-icon"></div>
             <div class="metric-value">{{ currentMetrics.latency }}ms</div>
             <div class="metric-label">Current Latency</div>
             <div :class="['quality-indicator', getQualityClass(currentMetrics.latency, 'latency')]">
@@ -158,7 +160,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="metric-icon">📉</div>
+            <div class="metric-icon packet-loss-icon"></div>
             <div class="metric-value">{{ currentMetrics.packetLoss.toFixed(1) }}%</div>
             <div class="metric-label">Packet Loss</div>
             <div
@@ -172,7 +174,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="metric-icon">📊</div>
+            <div class="metric-icon jitter-icon"></div>
             <div class="metric-value">{{ currentMetrics.jitter }}ms</div>
             <div class="metric-label">Jitter</div>
             <div :class="['quality-indicator', getQualityClass(currentMetrics.jitter, 'jitter')]">
@@ -181,7 +183,7 @@
           </div>
 
           <div class="metric-card">
-            <div class="metric-icon">🎯</div>
+            <div class="metric-icon quality-icon"></div>
             <div class="metric-value">{{ currentMetrics.quality }}</div>
             <div class="metric-label">Overall Quality</div>
             <div :class="['quality-score', currentMetrics.quality.toLowerCase()]">
@@ -227,14 +229,14 @@
 
       <!-- Call Controls -->
       <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">✅ Answer</button>
-        <button @click="hangup" class="danger">📞 Hang Up</button>
+        <button @click="answer" v-if="callState === 'incoming'">Answer</button>
+        <button @click="hangup" class="danger">Hang Up</button>
       </div>
     </div>
 
     <!-- Recommendations -->
     <div v-if="recommendations.length > 0" class="recommendations-section">
-      <h3>💡 Recommendations</h3>
+      <h3>Recommendations</h3>
       <ul>
         <li v-for="(rec, index) in recommendations" :key="index">
           {{ rec }}
@@ -259,15 +261,22 @@ const { isSimulationMode, activeScenario } = simulation
 const targetUri = ref('sip:1000@example.com')
 
 // SIP Client - use shared playground instance (credentials managed globally)
-const { connectionState: realConnectionState, isConnected: realIsConnected, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  getClient,
+} = playgroundSipClient
 
 // Effective values for simulation
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
 )
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 
 // Call Management - useCallSession requires a Ref
@@ -276,7 +285,7 @@ const {
   makeCall: makeCallFn,
   answer,
   hangup,
-  session: currentCall,
+  session: _currentCall,
   state: callState,
   isActive: hasActiveCall,
 } = useCallSession(sipClientRef)
@@ -294,7 +303,7 @@ interface NetworkProfile {
 const networkProfiles: NetworkProfile[] = [
   {
     name: 'Excellent',
-    icon: '🟢',
+    icon: 'excellent',
     latency: 20,
     packetLoss: 0,
     jitter: 5,
@@ -302,7 +311,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: 'Good',
-    icon: '🟡',
+    icon: 'good',
     latency: 80,
     packetLoss: 1,
     jitter: 15,
@@ -310,7 +319,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: '4G Mobile',
-    icon: '📱',
+    icon: 'mobile4g',
     latency: 100,
     packetLoss: 2,
     jitter: 25,
@@ -318,7 +327,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: '3G Mobile',
-    icon: '📶',
+    icon: 'mobile3g',
     latency: 200,
     packetLoss: 5,
     jitter: 50,
@@ -326,7 +335,7 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: 'Poor WiFi',
-    icon: '📡',
+    icon: 'wifi-poor',
     latency: 300,
     packetLoss: 10,
     jitter: 100,
@@ -334,13 +343,26 @@ const networkProfiles: NetworkProfile[] = [
   },
   {
     name: 'Congested',
-    icon: '🔴',
+    icon: 'congested',
     latency: 500,
     packetLoss: 20,
     jitter: 150,
     bandwidth: 64,
   },
 ]
+
+// Helper for profile indicator class
+const getProfileClass = (profileName: string): string => {
+  const mapping: Record<string, string> = {
+    Excellent: 'excellent',
+    Good: 'good',
+    '4G Mobile': 'mobile4g',
+    '3G Mobile': 'mobile3g',
+    'Poor WiFi': 'wifi-poor',
+    Congested: 'congested',
+  }
+  return mapping[profileName] || 'default'
+}
 
 const activeProfile = ref('Excellent')
 const customLatency = ref(20)
@@ -372,11 +394,11 @@ const metricsTimer = ref<number | null>(null)
 // Computed
 const networkQualityColor = computed(() => {
   const quality = currentMetrics.value.quality.toLowerCase()
-  if (quality === 'excellent') return '#10b981'
-  if (quality === 'good') return '#84cc16'
-  if (quality === 'fair') return '#f59e0b'
-  if (quality === 'poor') return '#ef4444'
-  return '#6b7280'
+  if (quality === 'excellent') return 'var(--success)'
+  if (quality === 'good') return 'var(--success)'
+  if (quality === 'fair') return 'var(--warning)'
+  if (quality === 'poor') return 'var(--danger)'
+  return 'var(--text-secondary)'
 })
 
 const recommendations = computed(() => {
@@ -519,10 +541,10 @@ const getQualityLabel = (value: number, type: string): string => {
 }
 
 const getLatencyColor = (latency: number): string => {
-  if (latency < 100) return '#10b981'
-  if (latency < 200) return '#84cc16'
-  if (latency < 300) return '#f59e0b'
-  return '#ef4444'
+  if (latency < 100) return 'var(--success)'
+  if (latency < 200) return 'var(--success)'
+  if (latency < 300) return 'var(--warning)'
+  return 'var(--danger)'
 }
 
 // Log Event
@@ -584,9 +606,18 @@ onUnmounted(() => {
 
 .status-section {
   display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .status-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .status-badge {
@@ -598,18 +629,18 @@ onUnmounted(() => {
 }
 
 .status-badge.connected {
-  background-color: #10b981;
-  color: white;
+  background-color: var(--success);
+  color: var(--surface-0);
 }
 
 .status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
+  background-color: var(--text-secondary);
+  color: var(--surface-0);
 }
 
 .status-badge.connecting {
-  background-color: #f59e0b;
-  color: white;
+  background-color: var(--warning);
+  color: var(--surface-0);
 }
 
 .network-status {
@@ -621,7 +652,7 @@ onUnmounted(() => {
 
 .connection-hint {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   padding: 0.5rem 0.75rem;
   background: #fef3c7;
   border-radius: 6px;
@@ -644,8 +675,8 @@ onUnmounted(() => {
 .call-section,
 .active-call-section,
 .recommendations-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-50);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -684,8 +715,8 @@ h4 {
 
 button {
   padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--info);
+  color: var(--surface-0);
   border: none;
   border-radius: 4px;
   font-size: 0.875rem;
@@ -695,7 +726,7 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background-color: #2563eb;
+  background-color: var(--info-hover);
 }
 
 button:disabled {
@@ -704,11 +735,11 @@ button:disabled {
 }
 
 button.danger {
-  background-color: #ef4444;
+  background-color: var(--danger);
 }
 
 button.danger:hover:not(:disabled) {
-  background-color: #dc2626;
+  background-color: var(--danger-hover);
 }
 
 .profiles-grid {
@@ -717,9 +748,15 @@ button.danger:hover:not(:disabled) {
   gap: 1rem;
 }
 
+@media (max-width: 768px) {
+  .profiles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .profile-card {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--surface-0);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   padding: 1rem;
   text-align: center;
@@ -728,18 +765,68 @@ button.danger:hover:not(:disabled) {
 }
 
 .profile-card:hover {
-  border-color: #3b82f6;
+  border-color: var(--info);
   transform: translateY(-2px);
 }
 
 .profile-card.active {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: var(--info);
+  background: var(--surface-ground);
 }
 
 .profile-icon {
-  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 0.5rem;
+  height: 2rem;
+}
+
+.profile-indicator {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.profile-indicator.excellent {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.profile-indicator.good {
+  background: var(--warning);
+  border-color: var(--warning);
+}
+
+.profile-indicator.mobile4g,
+.profile-indicator.mobile3g {
+  background: var(--info);
+  border-color: var(--info);
+  position: relative;
+}
+
+.profile-indicator.mobile4g::after,
+.profile-indicator.mobile3g::after {
+  content: '';
+  position: absolute;
+  width: 0.5rem;
+  height: 0.75rem;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--surface-0);
+  clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
+}
+
+.profile-indicator.wifi-poor {
+  background: var(--warning);
+  border-color: var(--warning);
+}
+
+.profile-indicator.congested {
+  background: var(--danger);
+  border-color: var(--danger);
 }
 
 .profile-name {
@@ -749,7 +836,7 @@ button.danger:hover:not(:disabled) {
 
 .profile-stats {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .stat {
@@ -769,6 +856,12 @@ button.danger:hover:not(:disabled) {
   margin-bottom: 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .setting-group label {
   display: block;
   margin-bottom: 0.5rem;
@@ -784,12 +877,12 @@ button.danger:hover:not(:disabled) {
 .setting-group .value {
   display: inline-block;
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--info);
 }
 
 .indicator-bar {
   height: 6px;
-  background: #e5e7eb;
+  background: var(--border-color);
   border-radius: 3px;
   overflow: hidden;
   margin-top: 0.5rem;
@@ -801,19 +894,19 @@ button.danger:hover:not(:disabled) {
 }
 
 .indicator-fill.latency {
-  background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+  background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
 }
 
 .indicator-fill.packet-loss {
-  background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+  background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
 }
 
 .indicator-fill.jitter {
-  background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+  background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
 }
 
 .indicator-fill.bandwidth {
-  background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+  background: linear-gradient(90deg, var(--danger), var(--warning), var(--success));
 }
 
 .apply-btn {
@@ -830,17 +923,47 @@ button.danger:hover:not(:disabled) {
   gap: 1rem;
 }
 
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .metric-card {
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-0);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1rem;
   text-align: center;
 }
 
 .metric-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0 auto 0.5rem;
+  border-radius: 4px;
+}
+
+.metric-icon.latency-icon {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+}
+
+.metric-icon.packet-loss-icon {
+  background: linear-gradient(135deg, var(--warning) 0%, var(--warning-dark) 100%);
+}
+
+.metric-icon.jitter-icon {
+  background: linear-gradient(135deg, var(--info) 0%, var(--info-dark) 100%);
+}
+
+.metric-icon.quality-icon {
+  background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
 }
 
 .metric-value {
@@ -851,7 +974,7 @@ button.danger:hover:not(:disabled) {
 
 .metric-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 0.5rem;
 }
 
@@ -907,7 +1030,7 @@ button.danger:hover:not(:disabled) {
 }
 
 .chart-section {
-  background: white;
+  background: var(--surface-0);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -918,7 +1041,7 @@ button.danger:hover:not(:disabled) {
   align-items: flex-end;
   gap: 2px;
   height: 100px;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 4px;
   padding: 0.5rem;
   margin-bottom: 0.5rem;
@@ -935,12 +1058,12 @@ button.danger:hover:not(:disabled) {
 
 .chart-legend {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   text-align: center;
 }
 
 .events-section {
-  background: white;
+  background: var(--surface-0);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -961,23 +1084,23 @@ button.danger:hover:not(:disabled) {
 }
 
 .event-item.info {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: var(--info);
+  background: var(--surface-ground);
 }
 
 .event-item.warning {
-  border-color: #f59e0b;
+  border-color: var(--warning);
   background: #fef3c7;
 }
 
 .event-item.error {
-  border-color: #ef4444;
+  border-color: var(--danger);
   background: #fee2e2;
 }
 
 .event-time {
   font-weight: 600;
-  white-space: nowrap;
+  var(--surface-0)-space: nowrap;
 }
 
 .button-group {

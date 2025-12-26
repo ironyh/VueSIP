@@ -2,8 +2,8 @@
   <div class="video-call-demo">
     <div class="info-section">
       <p>
-        VueSip supports video calling with full camera and screen sharing capabilities. Enable
-        video during calls to have face-to-face conversations.
+        VueSip supports video calling with full camera and screen sharing capabilities. Enable video
+        during calls to have face-to-face conversations.
       </p>
       <p class="note">
         <strong>Note:</strong> Your browser will request camera and microphone permissions. Grant
@@ -42,14 +42,24 @@
             @click="startPreview"
             :disabled="videoInputDevices.length === 0"
           >
-            📹 Start Preview
+            <svg
+              class="icon-inline"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M23 7l-7 5 7 5V7z" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+            Start Preview
           </button>
-          <button
-            v-else
-            class="btn btn-secondary btn-sm"
-            @click="stopPreview"
-          >
-            ⏹ Stop Preview
+          <button v-else class="btn btn-secondary btn-sm" @click="stopPreview">
+            <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+            Stop Preview
           </button>
           <button
             v-if="videoInputDevices.length > 1"
@@ -58,7 +68,7 @@
             @click="toggleMultiCameraView"
             :disabled="!isPreviewActive"
           >
-            {{ showMultiCameraGrid ? '📷 Single View' : '📷📷 Multi-Camera' }}
+            {{ showMultiCameraGrid ? 'Single View' : 'Multi-Camera' }}
           </button>
         </div>
       </div>
@@ -66,13 +76,7 @@
       <!-- Single Camera Preview -->
       <div v-if="isPreviewActive && !showMultiCameraGrid" class="single-preview">
         <div class="preview-container">
-          <video
-            ref="previewVideoEl"
-            class="preview-video"
-            autoplay
-            playsinline
-            muted
-          ></video>
+          <video ref="previewVideoEl" class="preview-video" autoplay playsinline muted></video>
           <div class="preview-label">
             {{ currentCameraLabel }}
           </div>
@@ -100,24 +104,37 @@
           :class="{ 'is-selected': deviceId === selectedVideoInputId }"
           @click="selectCameraFromGrid(deviceId)"
         >
-          <video
-            :ref="el => setCameraVideoRef(deviceId, el)"
-            autoplay
-            playsinline
-            muted
-          ></video>
+          <video :ref="(el) => setCameraVideoRef(deviceId, el)" autoplay playsinline muted></video>
           <div class="tile-label">
             {{ getCameraLabel(deviceId) }}
           </div>
           <div v-if="deviceId === selectedVideoInputId" class="selected-badge">
-            ✓ Selected
+            <svg
+              class="icon-inline"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Selected
           </div>
         </div>
       </div>
 
       <!-- No Cameras Message -->
       <div v-if="videoInputDevices.length === 0" class="no-cameras-message">
-        <span class="icon">📷</span>
+        <svg
+          class="icon-large"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M23 7l-7 5 7 5V7z" />
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+        </svg>
         <p>No cameras detected. Please connect a camera or grant camera permissions.</p>
         <button class="btn btn-primary btn-sm" @click="requestCameraPermission">
           Request Permission
@@ -126,13 +143,22 @@
 
       <!-- Camera Count Info -->
       <div v-if="videoInputDevices.length > 0" class="camera-info">
-        <span class="camera-count">{{ videoInputDevices.length }} camera{{ videoInputDevices.length > 1 ? 's' : '' }} available</span>
+        <span class="camera-count"
+          >{{ videoInputDevices.length }} camera{{
+            videoInputDevices.length > 1 ? 's' : ''
+          }}
+          available</span
+        >
       </div>
     </div>
 
     <!-- Connection Status -->
     <div v-if="!isConnected" class="status-message info">
-      {{ isSimulationMode ? 'Enable simulation and run a scenario to test video call features' : 'Connect to a SIP server to use video features (use the Basic Call demo to connect)' }}
+      {{
+        isSimulationMode
+          ? 'Enable simulation and run a scenario to test video call features'
+          : 'Connect to a SIP server to use video features (use the Basic Call demo to connect)'
+      }}
     </div>
 
     <!-- Video Call Interface -->
@@ -141,17 +167,23 @@
       <div class="video-display">
         <!-- Remote Video (Main Display) -->
         <div class="remote-video-container">
-          <video
-            ref="remoteVideoEl"
-            class="remote-video"
-            autoplay
-            playsinline
-          ></video>
+          <video ref="remoteVideoEl" class="remote-video" autoplay playsinline></video>
           <div v-if="!remoteStream" class="video-placeholder remote">
             <div class="placeholder-content">
-              <span class="icon">📹</span>
+              <svg
+                class="icon-large"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M23 7l-7 5 7 5V7z" />
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+              </svg>
               <span class="text">
-                {{ callState === 'active' ? 'Waiting for remote video...' : 'No active video call' }}
+                {{
+                  callState === 'active' ? 'Waiting for remote video...' : 'No active video call'
+                }}
               </span>
             </div>
           </div>
@@ -162,13 +194,7 @@
 
         <!-- Local Video (Picture-in-Picture) -->
         <div class="local-video-container" v-if="localStream">
-          <video
-            ref="localVideoEl"
-            class="local-video"
-            autoplay
-            playsinline
-            muted
-          ></video>
+          <video ref="localVideoEl" class="local-video" autoplay playsinline muted></video>
           <div class="local-video-label">You</div>
         </div>
       </div>
@@ -188,7 +214,17 @@
             :disabled="!dialNumber.trim() || !isRegistered"
             @click="handleMakeCall"
           >
-            📹 Start Video Call
+            <svg
+              class="icon-inline"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M23 7l-7 5 7 5V7z" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+            Start Video Call
           </button>
         </div>
 
@@ -203,12 +239,17 @@
           </div>
 
           <div class="control-buttons">
-            <button
-              v-if="callState === 'ringing'"
-              class="btn btn-success"
-              @click="handleAnswer"
-            >
-              ✓ Answer
+            <button v-if="callState === 'ringing'" class="btn btn-success" @click="handleAnswer">
+              <svg
+                class="icon-inline"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Answer
             </button>
 
             <button
@@ -217,7 +258,34 @@
               :title="isMuted ? 'Unmute' : 'Mute'"
               @click="handleToggleMute"
             >
-              {{ isMuted ? '🔇' : '🎤' }}
+              <svg
+                v-if="isMuted"
+                class="icon-inline"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="1" y1="1" x2="23" y2="23" />
+                <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+                <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+              <svg
+                v-else
+                class="icon-inline"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+              {{ isMuted ? 'Unmute' : 'Mute' }}
             </button>
 
             <button
@@ -226,14 +294,40 @@
               :title="hasLocalVideoFromSession ? 'Stop Video' : 'Start Video'"
               @click="handleToggleVideo"
             >
-              {{ hasLocalVideoFromSession ? '📹' : '📷' }}
+              <svg
+                v-if="hasLocalVideoFromSession"
+                class="icon-inline"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M23 7l-7 5 7 5V7z" />
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+              </svg>
+              <svg
+                v-else
+                class="icon-inline"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="1" y1="1" x2="23" y2="23" />
+                <path
+                  d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"
+                />
+              </svg>
+              {{ hasLocalVideoFromSession ? 'Video On' : 'Video Off' }}
             </button>
 
-            <button
-              class="btn btn-danger"
-              @click="handleHangup"
-            >
-              📞 End Call
+            <button class="btn btn-danger" @click="handleHangup">
+              <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"
+                />
+              </svg>
+              End Call
             </button>
           </div>
         </div>
@@ -244,11 +338,7 @@
         <h4>Camera Settings</h4>
         <div class="device-selector">
           <label for="camera-select">Select Camera:</label>
-          <select
-            id="camera-select"
-            v-model="selectedVideoInputId"
-            @change="handleCameraChange"
-          >
+          <select id="camera-select" v-model="selectedVideoInputId" @change="handleCameraChange">
             <option
               v-for="device in videoInputDevices"
               :key="device.deviceId"
@@ -406,12 +496,8 @@ const duration = computed(() =>
 )
 
 // Media Devices
-const {
-  videoInputDevices,
-  selectedVideoInputId,
-  selectVideoInput,
-  enumerateDevices,
-} = useMediaDevices()
+const { videoInputDevices, selectedVideoInputId, selectVideoInput, enumerateDevices } =
+  useMediaDevices()
 
 // State
 const dialNumber = ref('')
@@ -440,7 +526,7 @@ const callStateDisplay = computed(() => {
   return states[callState.value] || callState.value
 })
 
-const hasLocalVideoDisplay = computed(() => {
+const _hasLocalVideoDisplay = computed(() => {
   if (!localStream.value) return false
   const videoTracks = localStream.value.getVideoTracks()
   return videoTracks.length > 0 && videoTracks[0].enabled
@@ -448,13 +534,13 @@ const hasLocalVideoDisplay = computed(() => {
 
 // Camera Preview Computed
 const currentCameraLabel = computed(() => {
-  const device = videoInputDevices.value.find(d => d.deviceId === previewCameraId.value)
+  const device = videoInputDevices.value.find((d) => d.deviceId === previewCameraId.value)
   return device?.label || `Camera ${previewCameraId.value.slice(0, 8)}`
 })
 
 // Camera Preview Methods
 const getCameraLabel = (deviceId: string): string => {
-  const device = videoInputDevices.value.find(d => d.deviceId === deviceId)
+  const device = videoInputDevices.value.find((d) => d.deviceId === deviceId)
   return device?.label || `Camera ${deviceId.slice(0, 8)}`
 }
 
@@ -478,7 +564,7 @@ const startPreview = async () => {
     previewCameraId.value = cameraId
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { deviceId: { exact: cameraId } },
-      audio: false
+      audio: false,
     })
 
     previewStream.value = stream
@@ -499,13 +585,13 @@ const startPreview = async () => {
 const stopPreview = () => {
   // Stop single preview stream
   if (previewStream.value) {
-    previewStream.value.getTracks().forEach(track => track.stop())
+    previewStream.value.getTracks().forEach((track) => track.stop())
     previewStream.value = null
   }
 
   // Stop all multi-camera streams
-  Object.values(cameraStreams.value).forEach(stream => {
-    stream.getTracks().forEach(track => track.stop())
+  Object.values(cameraStreams.value).forEach((stream) => {
+    stream.getTracks().forEach((track) => track.stop())
   })
   cameraStreams.value = {}
   cameraVideoRefs.value = {}
@@ -519,13 +605,13 @@ const switchPreviewCamera = async () => {
 
   // Stop current stream
   if (previewStream.value) {
-    previewStream.value.getTracks().forEach(track => track.stop())
+    previewStream.value.getTracks().forEach((track) => track.stop())
   }
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { deviceId: { exact: previewCameraId.value } },
-      audio: false
+      audio: false,
     })
 
     previewStream.value = stream
@@ -544,8 +630,8 @@ const toggleMultiCameraView = async () => {
     showMultiCameraGrid.value = false
 
     // Stop multi-camera streams
-    Object.values(cameraStreams.value).forEach(stream => {
-      stream.getTracks().forEach(track => track.stop())
+    Object.values(cameraStreams.value).forEach((stream) => {
+      stream.getTracks().forEach((track) => track.stop())
     })
     cameraStreams.value = {}
     cameraVideoRefs.value = {}
@@ -558,7 +644,7 @@ const toggleMultiCameraView = async () => {
 
     // Stop single preview
     if (previewStream.value) {
-      previewStream.value.getTracks().forEach(track => track.stop())
+      previewStream.value.getTracks().forEach((track) => track.stop())
       previewStream.value = null
     }
 
@@ -567,7 +653,7 @@ const toggleMultiCameraView = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { deviceId: { exact: device.deviceId } },
-          audio: false
+          audio: false,
         })
         cameraStreams.value[device.deviceId] = stream
 
@@ -950,9 +1036,19 @@ onUnmounted(() => {
   color: #6b7280;
 }
 
-.no-cameras-message .icon {
-  font-size: 3rem;
+.icon-large {
+  width: 48px;
+  height: 48px;
   opacity: 0.5;
+  color: var(--text-secondary, currentColor);
+}
+
+.icon-inline {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
 }
 
 .no-cameras-message p {
@@ -1031,8 +1127,9 @@ onUnmounted(() => {
   color: #9ca3af;
 }
 
-.placeholder-content .icon {
-  font-size: 4rem;
+.placeholder-content .icon-large {
+  width: 64px;
+  height: 64px;
   opacity: 0.5;
 }
 
@@ -1134,7 +1231,8 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

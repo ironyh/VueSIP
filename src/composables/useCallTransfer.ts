@@ -15,6 +15,11 @@ import {
   type TransferOptions,
   type TransferProgress,
 } from '@/types/transfer.types'
+import type {
+  CallTransferInitiatedEvent,
+  CallTransferAcceptedEvent,
+  BaseEvent,
+} from '@/types/events.types'
 import { createLogger } from '@/utils/logger'
 import { validateSipUri } from '@/utils/validators'
 import { logErrorWithContext, ErrorSeverity, createOperationTimer } from '@/utils/errorContext'
@@ -221,36 +226,45 @@ export function useCallTransfer(session: Ref<CallSession | null>): UseCallTransf
     }
 
     // Transfer initiated
-    const initiatedListenerId = eventBus.on('call:transfer_initiated', (event: any) => {
-      log.debug('Transfer initiated event:', event)
-      transferState.value = TransferState.Initiated
-      transferType.value = event.transferType
-      transferTarget.value = event.target
-      startTransferTimeout()
-    })
+    const initiatedListenerId = eventBus.on(
+      'call:transfer_initiated',
+      (event: CallTransferInitiatedEvent) => {
+        log.debug('Transfer initiated event:', event)
+        transferState.value = TransferState.Initiated
+        transferType.value = (event.transferType as TransferType) || null
+        transferTarget.value = event.target || null
+        startTransferTimeout()
+      }
+    )
 
     // Transfer accepted
-    const acceptedListenerId = eventBus.on('call:transfer_accepted', (event: any) => {
-      log.debug('Transfer accepted event:', event)
-      transferState.value = TransferState.Accepted
-      transferError.value = null
-    })
+    const acceptedListenerId = eventBus.on(
+      'call:transfer_accepted',
+      (event: CallTransferAcceptedEvent) => {
+        log.debug('Transfer accepted event:', event)
+        transferState.value = TransferState.Accepted
+        transferError.value = null
+      }
+    )
 
     // Transfer progress
-    const progressListenerId = eventBus.on('call:transfer_progress', (event: any) => {
-      log.debug('Transfer progress event:', event)
-      transferState.value = TransferState.InProgress
-      transferProgress.value = {
-        id: event.transferId,
-        state: event.state,
-        type: transferType.value || TransferType.Blind,
-        target: transferTarget.value || '',
-        progress: event.progress,
+    const progressListenerId = eventBus.on(
+      'call:transfer_progress',
+      (event: BaseEvent & { transferId?: string; state?: string; progress?: number }) => {
+        log.debug('Transfer progress event:', event)
+        transferState.value = TransferState.InProgress
+        transferProgress.value = {
+          id: event.transferId || '',
+          state: (event.state as TransferState) || TransferState.InProgress,
+          type: transferType.value || TransferType.Blind,
+          target: transferTarget.value || '',
+          progress: event.progress || 0,
+        }
       }
-    })
+    )
 
     // Transfer completed
-    const completedListenerId = eventBus.on('call:transfer_completed', (event: any) => {
+    const completedListenerId = eventBus.on('call:transfer_completed', (event) => {
       log.info('Transfer completed event:', event)
       transferState.value = TransferState.Completed
       transferError.value = null
@@ -258,7 +272,7 @@ export function useCallTransfer(session: Ref<CallSession | null>): UseCallTransf
     })
 
     // Transfer failed
-    const failedListenerId = eventBus.on('call:transfer_failed', (event: any) => {
+    const failedListenerId = eventBus.on('call:transfer_failed', (event) => {
       log.error('Transfer failed event:', event)
       transferState.value = TransferState.Failed
       transferError.value = event.error || 'Unknown transfer error'
@@ -266,7 +280,7 @@ export function useCallTransfer(session: Ref<CallSession | null>): UseCallTransf
     })
 
     // Transfer canceled
-    const canceledListenerId = eventBus.on('call:transfer_canceled', (event: any) => {
+    const canceledListenerId = eventBus.on('call:transfer_canceled', (event) => {
       log.info('Transfer canceled event:', event)
       transferState.value = TransferState.Canceled
       transferError.value = null

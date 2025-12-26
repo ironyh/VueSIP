@@ -50,7 +50,7 @@ function getFileSize(filePath: string): number {
   try {
     const stats = statSync(filePath)
     return stats.size
-  } catch (error) {
+  } catch (_error) {
     return -1
   }
 }
@@ -63,7 +63,7 @@ function getGzippedSize(filePath: string): number {
     const content = readFileSync(filePath)
     const gzipped = gzipSync(content, { level: 9 })
     return gzipped.length
-  } catch (error) {
+  } catch (_error) {
     return -1
   }
 }

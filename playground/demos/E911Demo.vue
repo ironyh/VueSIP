@@ -22,12 +22,12 @@
 
     <div class="info-section">
       <p>
-        E911 Emergency Call Handling demo. Configure locations, notification recipients,
-        and monitor emergency calls for Kari's Law and RAY BAUM's Act compliance.
+        E911 Emergency Call Handling demo. Configure locations, notification recipients, and monitor
+        emergency calls for Kari's Law and RAY BAUM's Act compliance.
       </p>
       <p class="note warning">
-        <strong>Important:</strong> This is a demo/simulation. In production, ensure proper
-        E911 service provider integration and compliance verification.
+        <strong>Important:</strong> This is a demo/simulation. In production, ensure proper E911
+        service provider integration and compliance verification.
       </p>
     </div>
 
@@ -36,7 +36,9 @@
       <h3>Compliance Status</h3>
       <div class="compliance-card" :class="{ compliant: complianceStatus.compliant }">
         <div class="compliance-header">
-          <span class="compliance-icon">{{ complianceStatus.compliant ? '✅' : '⚠️' }}</span>
+          <span class="compliance-icon" :class="{ compliant: complianceStatus.compliant }">
+            {{ complianceStatus.compliant ? 'OK' : 'WARN' }}
+          </span>
           <span class="compliance-title">
             {{ complianceStatus.compliant ? 'Compliant' : 'Issues Found' }}
           </span>
@@ -52,7 +54,7 @@
     <!-- Active Emergency Alert -->
     <div v-if="hasActiveEmergency" class="emergency-alert">
       <div class="alert-header">
-        <span class="alert-icon">🚨</span>
+        <span class="alert-icon">EMERGENCY</span>
         <span class="alert-title">ACTIVE EMERGENCY CALL</span>
       </div>
       <div class="active-calls">
@@ -61,9 +63,7 @@
             <div class="caller">{{ call.callerIdName || 'Unknown' }} ({{ call.callerIdNum }})</div>
             <div class="extension">Extension: {{ call.callerExtension }}</div>
             <div class="time">Started: {{ formatTime(call.startTime) }}</div>
-            <div v-if="call.location" class="location">
-              Location: {{ call.location.name }}
-            </div>
+            <div v-if="call.location" class="location">Location: {{ call.location.name }}</div>
           </div>
           <div class="call-status" :class="call.status">
             {{ call.status.replace('_', ' ').toUpperCase() }}
@@ -74,24 +74,21 @@
 
     <!-- Configuration Tabs -->
     <div class="tabs">
-      <button
+      <Button
         v-for="tab in tabs"
         :key="tab.id"
+        :label="tab.label"
         class="tab-btn"
         :class="{ active: activeTab === tab.id }"
         @click="activeTab = tab.id"
-      >
-        {{ tab.icon }} {{ tab.label }}
-      </button>
+      />
     </div>
 
     <!-- Locations Tab -->
     <div v-if="activeTab === 'locations'" class="tab-content">
       <div class="section-header">
         <h3>Locations</h3>
-        <button class="btn btn-primary" @click="showAddLocation = true">
-          Add Location
-        </button>
+        <Button label="Add Location" @click="showAddLocation = true" />
       </div>
 
       <div class="locations-list">
@@ -117,31 +114,31 @@
             {{ location.extensions.length > 0 ? location.extensions.join(', ') : 'None assigned' }}
           </div>
           <div class="location-actions">
-            <button
+            <Button
               v-if="!location.isDefault"
-              class="btn btn-sm btn-secondary"
+              label="Set Default"
+              size="small"
+              severity="secondary"
               @click="handleSetDefault(location.id)"
-            >
-              Set Default
-            </button>
-            <button
+            />
+            <Button
               v-if="!location.isVerified"
-              class="btn btn-sm btn-secondary"
+              label="Verify"
+              size="small"
+              severity="secondary"
               @click="handleVerify(location.id)"
-            >
-              Verify
-            </button>
-            <button
-              class="btn btn-sm btn-danger"
+            />
+            <Button
+              label="Remove"
+              size="small"
+              severity="danger"
               @click="handleRemoveLocation(location.id)"
-            >
-              Remove
-            </button>
+            />
           </div>
         </div>
 
         <div v-if="locationList.length === 0" class="empty-state">
-          <div class="empty-icon">📍</div>
+          <div class="empty-icon">LOCATION</div>
           <p>No locations configured. Add a location to enable dispatchable E911.</p>
         </div>
       </div>
@@ -151,9 +148,7 @@
     <div v-if="activeTab === 'recipients'" class="tab-content">
       <div class="section-header">
         <h3>Notification Recipients</h3>
-        <button class="btn btn-primary" @click="showAddRecipient = true">
-          Add Recipient
-        </button>
+        <Button label="Add Recipient" @click="showAddRecipient = true" />
       </div>
 
       <div class="recipients-list">
@@ -168,39 +163,42 @@
             <span class="recipient-priority">Priority: {{ recipient.priority }}</span>
           </div>
           <div class="recipient-details">
-            <div v-if="recipient.email">📧 {{ recipient.email }}</div>
-            <div v-if="recipient.phone">📱 {{ recipient.phone }}</div>
-            <div class="recipient-types">
-              Types: {{ recipient.notificationTypes.join(', ') }}
+            <div v-if="recipient.email">
+              <span class="contact-type">Email:</span> {{ recipient.email }}
             </div>
+            <div v-if="recipient.phone">
+              <span class="contact-type">Phone:</span> {{ recipient.phone }}
+            </div>
+            <div class="recipient-types">Types: {{ recipient.notificationTypes.join(', ') }}</div>
           </div>
           <div class="recipient-actions">
-            <button
-              class="btn btn-sm"
-              :class="recipient.enabled ? 'btn-warning' : 'btn-success'"
+            <Button
+              :label="recipient.enabled ? 'Disable' : 'Enable'"
+              size="small"
+              :severity="recipient.enabled ? 'warning' : 'success'"
               @click="handleToggleRecipient(recipient.id)"
-            >
-              {{ recipient.enabled ? 'Disable' : 'Enable' }}
-            </button>
-            <button
-              class="btn btn-sm btn-danger"
+            />
+            <Button
+              label="Remove"
+              size="small"
+              severity="danger"
               @click="handleRemoveRecipient(recipient.id)"
-            >
-              Remove
-            </button>
+            />
           </div>
         </div>
 
         <div v-if="config.recipients.length === 0" class="empty-state">
-          <div class="empty-icon">👥</div>
+          <div class="empty-icon">RECIPIENTS</div>
           <p>No notification recipients. Add recipients for Kari's Law compliance.</p>
         </div>
       </div>
 
       <div v-if="config.recipients.length > 0" class="test-notification">
-        <button class="btn btn-secondary" @click="handleTestNotification">
-          Send Test Notification
-        </button>
+        <Button
+          label="Send Test Notification"
+          severity="secondary"
+          @click="handleTestNotification"
+        />
       </div>
     </div>
 
@@ -211,17 +209,13 @@
       <div class="settings-form">
         <div class="form-group">
           <label>Default Callback Number</label>
-          <input
-            v-model="settingsForm.callbackNumber"
-            type="text"
-            placeholder="+15551234567"
-          />
+          <InputText v-model="settingsForm.callbackNumber" placeholder="+15551234567" />
           <span class="form-hint">Number for PSAP to call back</span>
         </div>
 
         <div class="form-group checkbox-group">
           <label>
-            <input v-model="settingsForm.directDialing" type="checkbox" />
+            <Checkbox v-model="settingsForm.directDialing" :binary="true" />
             Direct 911 Dialing (Kari's Law)
           </label>
           <span class="form-hint">Allow 911 without prefix or access codes</span>
@@ -229,7 +223,7 @@
 
         <div class="form-group checkbox-group">
           <label>
-            <input v-model="settingsForm.onSiteNotification" type="checkbox" />
+            <Checkbox v-model="settingsForm.onSiteNotification" :binary="true" />
             On-Site Notification (Kari's Law)
           </label>
           <span class="form-hint">Notify security/front desk on 911 calls</span>
@@ -237,7 +231,7 @@
 
         <div class="form-group checkbox-group">
           <label>
-            <input v-model="settingsForm.dispatchableLocation" type="checkbox" />
+            <Checkbox v-model="settingsForm.dispatchableLocation" :binary="true" />
             Require Dispatchable Location (RAY BAUM's Act)
           </label>
           <span class="form-hint">Require verified location for all extensions</span>
@@ -245,21 +239,19 @@
 
         <div class="form-group checkbox-group">
           <label>
-            <input v-model="settingsForm.recordCalls" type="checkbox" />
+            <Checkbox v-model="settingsForm.recordCalls" :binary="true" />
             Record Emergency Calls
           </label>
         </div>
 
         <div class="form-group checkbox-group">
           <label>
-            <input v-model="settingsForm.autoAnswerCallback" type="checkbox" />
+            <Checkbox v-model="settingsForm.autoAnswerCallback" :binary="true" />
             Auto-Answer PSAP Callbacks
           </label>
         </div>
 
-        <button class="btn btn-primary" @click="handleSaveSettings">
-          Save Settings
-        </button>
+        <Button label="Save Settings" @click="handleSaveSettings" />
       </div>
     </div>
 
@@ -268,29 +260,30 @@
       <div class="section-header">
         <h3>Compliance Logs</h3>
         <div class="log-actions">
-          <button class="btn btn-sm btn-secondary" @click="handleExportLogs('json')">
-            Export JSON
-          </button>
-          <button class="btn btn-sm btn-secondary" @click="handleExportLogs('csv')">
-            Export CSV
-          </button>
+          <Button
+            label="Export JSON"
+            size="small"
+            severity="secondary"
+            @click="handleExportLogs('json')"
+          />
+          <Button
+            label="Export CSV"
+            size="small"
+            severity="secondary"
+            @click="handleExportLogs('csv')"
+          />
         </div>
       </div>
 
       <div class="logs-list">
-        <div
-          v-for="log in recentLogs"
-          :key="log.id"
-          class="log-entry"
-          :class="log.severity"
-        >
+        <div v-for="log in recentLogs" :key="log.id" class="log-entry" :class="log.severity">
           <div class="log-time">{{ formatTime(log.timestamp) }}</div>
           <div class="log-event">{{ log.event }}</div>
           <div class="log-description">{{ log.description }}</div>
         </div>
 
         <div v-if="recentLogs.length === 0" class="empty-state">
-          <div class="empty-icon">📋</div>
+          <div class="empty-icon">LOGS</div>
           <p>No compliance logs yet.</p>
         </div>
       </div>
@@ -302,25 +295,27 @@
       <div class="simulation-form">
         <div class="input-group">
           <label>Extension</label>
-          <input v-model="simExtension" type="text" placeholder="1001" />
+          <InputText v-model="simExtension" placeholder="1001" />
         </div>
         <div class="input-group">
           <label>Number</label>
-          <select v-model="simNumber">
-            <option value="911">911 (Emergency)</option>
-            <option value="933">933 (Test)</option>
-          </select>
+          <Dropdown
+            v-model="simNumber"
+            :options="[
+              { label: '911 (Emergency)', value: '911' },
+              { label: '933 (Test)', value: '933' },
+            ]"
+            optionLabel="label"
+            optionValue="value"
+          />
         </div>
-        <button class="btn btn-danger" @click="simulateEmergencyCall">
-          Simulate Call
-        </button>
-        <button
+        <Button label="Simulate Call" severity="danger" @click="simulateEmergencyCall" />
+        <Button
           v-if="hasActiveEmergency"
-          class="btn btn-secondary"
+          label="End Call"
+          severity="secondary"
           @click="simulateEndCall"
-        >
-          End Call
-        </button>
+        />
       </div>
     </div>
 
@@ -330,49 +325,49 @@
         <h4>Add Location</h4>
         <div class="form-group">
           <label>Name</label>
-          <input v-model="locationForm.name" type="text" placeholder="Main Office" />
+          <InputText v-model="locationForm.name" placeholder="Main Office" />
         </div>
         <div class="form-group">
           <label>Street Address</label>
-          <input v-model="locationForm.streetAddress" type="text" placeholder="123 Main St" />
+          <InputText v-model="locationForm.streetAddress" placeholder="123 Main St" />
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>City</label>
-            <input v-model="locationForm.city" type="text" placeholder="Anytown" />
+            <InputText v-model="locationForm.city" placeholder="Anytown" />
           </div>
           <div class="form-group">
             <label>State</label>
-            <input v-model="locationForm.state" type="text" placeholder="CA" />
+            <InputText v-model="locationForm.state" placeholder="CA" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>ZIP</label>
-            <input v-model="locationForm.zip" type="text" placeholder="12345" />
+            <InputText v-model="locationForm.zip" placeholder="12345" />
           </div>
           <div class="form-group">
             <label>Country</label>
-            <input v-model="locationForm.country" type="text" placeholder="US" />
+            <InputText v-model="locationForm.country" placeholder="US" />
           </div>
         </div>
         <div class="form-group">
           <label>Additional Info</label>
-          <input v-model="locationForm.additionalInfo" type="text" placeholder="Floor 3, Suite 301" />
+          <InputText v-model="locationForm.additionalInfo" placeholder="Floor 3, Suite 301" />
         </div>
         <div class="form-group">
           <label>Extensions (comma-separated)</label>
-          <input v-model="locationForm.extensions" type="text" placeholder="1001, 1002, 1003" />
+          <InputText v-model="locationForm.extensions" placeholder="1001, 1002, 1003" />
         </div>
         <div class="form-group checkbox-group">
           <label>
-            <input v-model="locationForm.isDefault" type="checkbox" />
+            <Checkbox v-model="locationForm.isDefault" :binary="true" />
             Set as default location
           </label>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" @click="showAddLocation = false">Cancel</button>
-          <button class="btn btn-primary" @click="handleAddLocation">Add Location</button>
+          <Button label="Cancel" severity="secondary" @click="showAddLocation = false" />
+          <Button label="Add Location" @click="handleAddLocation" />
         </div>
       </div>
     </div>
@@ -383,23 +378,27 @@
         <h4>Add Notification Recipient</h4>
         <div class="form-group">
           <label>Name</label>
-          <input v-model="recipientForm.name" type="text" placeholder="Security Team" />
+          <InputText v-model="recipientForm.name" placeholder="Security Team" />
         </div>
         <div class="form-group">
           <label>Email</label>
-          <input v-model="recipientForm.email" type="email" placeholder="security@example.com" />
+          <InputText
+            v-model="recipientForm.email"
+            type="email"
+            placeholder="security@example.com"
+          />
         </div>
         <div class="form-group">
           <label>Phone (for SMS)</label>
-          <input v-model="recipientForm.phone" type="text" placeholder="+15551234567" />
+          <InputText v-model="recipientForm.phone" placeholder="+15551234567" />
         </div>
         <div class="form-group">
           <label>Priority (1 = highest)</label>
-          <input v-model.number="recipientForm.priority" type="number" min="1" max="10" />
+          <InputText v-model.number="recipientForm.priority" type="number" />
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" @click="showAddRecipient = false">Cancel</button>
-          <button class="btn btn-primary" @click="handleAddRecipient">Add Recipient</button>
+          <Button label="Cancel" severity="secondary" @click="showAddRecipient = false" />
+          <Button label="Add Recipient" @click="handleAddRecipient" />
         </div>
       </div>
     </div>
@@ -462,7 +461,7 @@ startMonitoring()</code></pre>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onUnmounted, watch } from 'vue'
+import { ref, computed, reactive, onUnmounted, watch as _watch } from 'vue'
 import type {
   E911Config,
   E911Location,
@@ -472,6 +471,7 @@ import type {
 } from '../../src/types/e911.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Checkbox, Dropdown } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -506,10 +506,10 @@ const simExtension = ref('1001')
 const simNumber = ref('911')
 
 const tabs = [
-  { id: 'locations', label: 'Locations', icon: '📍' },
-  { id: 'recipients', label: 'Recipients', icon: '👥' },
-  { id: 'settings', label: 'Settings', icon: '⚙️' },
-  { id: 'logs', label: 'Logs', icon: '📋' },
+  { id: 'locations', label: 'Locations' },
+  { id: 'recipients', label: 'Recipients' },
+  { id: 'settings', label: 'Settings' },
+  { id: 'logs', label: 'Logs' },
 ]
 
 // Forms
@@ -637,7 +637,10 @@ function handleAddLocation() {
     },
     isDefault: locationForm.isDefault,
     isVerified: false,
-    extensions: locationForm.extensions.split(',').map((e) => e.trim()).filter(Boolean),
+    extensions: locationForm.extensions
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean),
     lastUpdated: new Date(),
   }
 
@@ -723,7 +726,10 @@ function handleToggleRecipient(id: string) {
   const recipient = config.value.recipients.find((r) => r.id === id)
   if (recipient) {
     recipient.enabled = !recipient.enabled
-    addLog('config_changed', `Recipient ${recipient.enabled ? 'enabled' : 'disabled'}: ${recipient.name}`)
+    addLog(
+      'config_changed',
+      `Recipient ${recipient.enabled ? 'enabled' : 'disabled'}: ${recipient.name}`
+    )
   }
 }
 
@@ -783,9 +789,10 @@ let callCounter = 0
 function simulateEmergencyCall() {
   callCounter++
   const channel = `PJSIP/${simExtension.value}-${callCounter.toString().padStart(8, '0')}`
-  const location = locationList.value.find((loc) =>
-    loc.extensions.includes(simExtension.value)
-  ) || locationList.value.find((loc) => loc.isDefault) || null
+  const location =
+    locationList.value.find((loc) => loc.extensions.includes(simExtension.value)) ||
+    locationList.value.find((loc) => loc.isDefault) ||
+    null
 
   const call: E911Call = {
     id: generateId(),
@@ -863,8 +870,9 @@ onUnmounted(() => {
 }
 
 .note.warning {
-  background: var(--color-warning-bg, #fff3cd);
-  border-left: 4px solid var(--color-warning, #ffc107);
+  background: rgba(245, 158, 11, 0.15);
+  border-left: 4px solid var(--warning);
+  transition: all 0.3s ease;
 }
 
 .compliance-section {
@@ -872,15 +880,17 @@ onUnmounted(() => {
 }
 
 .compliance-card {
-  background: var(--color-danger-bg, #f8d7da);
-  border: 1px solid var(--color-danger, #dc3545);
+  background: rgba(239, 68, 68, 0.15);
+  border: var(--border-width) solid var(--danger);
+  transition: all 0.3s ease;
   border-radius: 8px;
   padding: 1rem;
 }
 
 .compliance-card.compliant {
-  background: var(--color-success-bg, #d4edda);
-  border-color: var(--color-success, #28a745);
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--success);
+  transition: all 0.3s ease;
 }
 
 .compliance-header {
@@ -891,7 +901,19 @@ onUnmounted(() => {
   font-size: 1.1rem;
 }
 
-.compliance-icon { font-size: 1.5rem; }
+.compliance-icon {
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  background: var(--red-100);
+  color: var(--red-900);
+}
+
+.compliance-icon.compliant {
+  background: var(--green-100);
+  color: var(--green-900);
+}
 
 .compliance-issues {
   margin-top: 0.75rem;
@@ -905,8 +927,9 @@ onUnmounted(() => {
 }
 
 .emergency-alert {
-  background: var(--color-danger, #dc3545);
-  color: white;
+  background: var(--danger);
+  transition: background-color 0.3s ease;
+  color: var(--surface-0);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -914,8 +937,13 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .alert-header {
@@ -927,7 +955,13 @@ onUnmounted(() => {
   margin-bottom: 0.75rem;
 }
 
-.alert-icon { font-size: 1.5rem; }
+.alert-icon {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
 
 .active-call-card {
   background: rgba(255, 255, 255, 0.2);
@@ -938,8 +972,12 @@ onUnmounted(() => {
   align-items: center;
 }
 
-.call-info > div { margin: 0.25rem 0; }
-.caller { font-weight: 600; }
+.call-info > div {
+  margin: 0.25rem 0;
+}
+.caller {
+  font-weight: 600;
+}
 .call-status {
   background: rgba(255, 255, 255, 0.3);
   padding: 0.25rem 0.75rem;
@@ -952,7 +990,8 @@ onUnmounted(() => {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border, #ddd);
+  border-bottom: var(--border-width) solid var(--surface-border);
+  transition: border-color 0.3s ease;
   padding-bottom: 0.5rem;
 }
 
@@ -965,13 +1004,19 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.tab-btn:hover { background: var(--color-bg-secondary, #f8f9fa); }
+.tab-btn:hover {
+  background: var(--surface-ground);
+  transition: background-color 0.3s ease;
+}
 .tab-btn.active {
-  background: var(--color-primary, #007bff);
-  color: white;
+  background: var(--primary);
+  transition: background-color 0.3s ease;
+  color: var(--surface-0);
 }
 
-.tab-content { margin-bottom: 2rem; }
+.tab-content {
+  margin-bottom: 2rem;
+}
 
 .section-header {
   display: flex;
@@ -980,7 +1025,9 @@ onUnmounted(() => {
   margin-bottom: 1rem;
 }
 
-.section-header h3 { margin: 0; }
+.section-header h3 {
+  margin: 0;
+}
 
 .locations-list,
 .recipients-list {
@@ -991,15 +1038,22 @@ onUnmounted(() => {
 
 .location-card,
 .recipient-card {
-  background: var(--color-card-bg, #fff);
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 8px;
-  padding: 1rem;
+  background: var(--surface-card);
+  border: var(--border-width) solid var(--surface-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  transition: all 0.3s ease;
 }
 
-.location-card.default { border-color: var(--color-primary, #007bff); }
-.location-card.verified { background: var(--color-success-bg, #d4edda); }
-.recipient-card.disabled { opacity: 0.6; }
+.location-card.default {
+  border-color: var(--primary);
+}
+.location-card.verified {
+  background: rgba(16, 185, 129, 0.15);
+}
+.recipient-card.disabled {
+  opacity: 0.6;
+}
 
 .location-header,
 .recipient-header {
@@ -1010,9 +1064,14 @@ onUnmounted(() => {
 }
 
 .location-name,
-.recipient-name { font-weight: 600; }
+.recipient-name {
+  font-weight: 600;
+}
 
-.location-badges { display: flex; gap: 0.5rem; }
+.location-badges {
+  display: flex;
+  gap: 0.5rem;
+}
 
 .badge {
   font-size: 0.75rem;
@@ -1021,15 +1080,28 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.badge-primary { background: var(--color-primary, #007bff); color: white; }
-.badge-success { background: var(--color-success, #28a745); color: white; }
-.badge-warning { background: var(--color-warning, #ffc107); color: #212529; }
+.badge-primary {
+  background: var(--primary);
+  transition: background-color 0.3s ease;
+  color: var(--surface-0);
+}
+.badge-success {
+  background: var(--success);
+  transition: background-color 0.3s ease;
+  color: var(--surface-0);
+}
+.badge-warning {
+  background: var(--warning);
+  transition: background-color 0.3s ease;
+  color: var(--gray-900);
+}
 
 .location-address,
 .location-extensions,
 .recipient-details {
   font-size: 0.9rem;
-  color: var(--color-text-secondary, #666);
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
   margin-bottom: 0.5rem;
 }
 
@@ -1040,7 +1112,9 @@ onUnmounted(() => {
   margin-top: 0.75rem;
 }
 
-.test-notification { margin-top: 1rem; }
+.test-notification {
+  margin-top: 1rem;
+}
 
 .settings-form {
   max-width: 500px;
@@ -1056,13 +1130,8 @@ onUnmounted(() => {
   margin-bottom: 0.25rem;
 }
 
-.form-group input[type="text"],
-.form-group input[type="email"],
-.form-group input[type="number"] {
+.form-group .p-inputtext {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
 }
 
 .checkbox-group label {
@@ -1074,7 +1143,8 @@ onUnmounted(() => {
 
 .form-hint {
   font-size: 0.8rem;
-  color: var(--color-text-secondary, #666);
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
   display: block;
   margin-top: 0.25rem;
 }
@@ -1084,7 +1154,9 @@ onUnmounted(() => {
   gap: 1rem;
 }
 
-.form-row .form-group { flex: 1; }
+.form-row .form-group {
+  flex: 1;
+}
 
 .logs-list {
   max-height: 400px;
@@ -1095,15 +1167,23 @@ onUnmounted(() => {
   display: flex;
   gap: 1rem;
   padding: 0.5rem;
-  border-bottom: 1px solid var(--color-border, #ddd);
+  border-bottom: var(--border-width) solid var(--surface-border);
+  transition: border-color 0.3s ease;
   font-size: 0.85rem;
 }
 
-.log-entry.critical { background: var(--color-danger-bg, #f8d7da); }
-.log-entry.warning { background: var(--color-warning-bg, #fff3cd); }
+.log-entry.critical {
+  background: rgba(239, 68, 68, 0.15);
+  transition: background-color 0.3s ease;
+}
+.log-entry.warning {
+  background: rgba(245, 158, 11, 0.15);
+  transition: background-color 0.3s ease;
+}
 
 .log-time {
-  color: var(--color-text-secondary, #666);
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
   min-width: 80px;
 }
 
@@ -1112,18 +1192,26 @@ onUnmounted(() => {
   min-width: 120px;
 }
 
-.log-description { flex: 1; }
+.log-description {
+  flex: 1;
+}
 
-.log-actions { display: flex; gap: 0.5rem; }
+.log-actions {
+  display: flex;
+  gap: 0.5rem;
+}
 
 .simulation-section {
-  background: var(--color-bg-secondary, #f8f9fa);
+  background: var(--surface-ground);
+  transition: background-color 0.3s ease;
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 2rem;
 }
 
-.simulation-section h4 { margin-bottom: 0.75rem; }
+.simulation-section h4 {
+  margin-bottom: 0.75rem;
+}
 
 .simulation-form {
   display: flex;
@@ -1138,36 +1226,30 @@ onUnmounted(() => {
   gap: 0.25rem;
 }
 
-.simulation-form input,
-.simulation-form select {
-  padding: 0.5rem;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
-}
-
 .empty-state {
   text-align: center;
   padding: 2rem;
-  color: var(--color-text-secondary, #666);
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
-.empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
+.empty-icon {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.75rem 1.5rem;
+  margin-bottom: 0.5rem;
+  background: var(--surface-ground);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  display: inline-block;
+  transition: all 0.3s ease;
 }
 
-.btn-primary { background: var(--color-primary, #007bff); color: white; }
-.btn-secondary { background: var(--color-secondary, #6c757d); color: white; }
-.btn-danger { background: var(--color-danger, #dc3545); color: white; }
-.btn-success { background: var(--color-success, #28a745); color: white; }
-.btn-warning { background: var(--color-warning, #ffc107); color: #212529; }
-.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.contact-type {
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
 
 .modal-overlay {
   position: fixed;
@@ -1183,14 +1265,17 @@ onUnmounted(() => {
 }
 
 .modal {
-  background: var(--color-card-bg, #fff);
-  padding: 1.5rem;
-  border-radius: 8px;
+  background: var(--surface-card);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-lg);
   min-width: 400px;
   max-width: 90%;
+  transition: all 0.3s ease;
 }
 
-.modal h4 { margin-top: 0; }
+.modal h4 {
+  margin-top: 0;
+}
 
 .modal-actions {
   display: flex;
@@ -1200,24 +1285,223 @@ onUnmounted(() => {
 }
 
 .code-example {
-  margin-top: 2rem;
-  background: var(--color-code-bg, #1e1e1e);
-  border-radius: 8px;
-  padding: 1rem;
+  margin-top: var(--spacing-2xl);
+  background: var(--gray-900);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
   overflow-x: auto;
+  transition: background-color 0.3s ease;
 }
 
 .code-example h4 {
-  color: var(--color-text-light, #fff);
+  color: var(--gray-50);
   margin-bottom: 0.75rem;
+  transition: color 0.3s ease;
 }
 
-.code-example pre { margin: 0; }
+.code-example pre {
+  margin: 0;
+}
 
 .code-example code {
-  color: var(--color-code-text, #d4d4d4);
+  color: var(--gray-100);
   font-family: 'Fira Code', monospace;
   font-size: 0.85rem;
   line-height: 1.6;
+  transition: color 0.3s ease;
+}
+
+/* Mobile-First Responsive Design */
+@media (max-width: 768px) {
+  .e911-demo {
+    padding: 0.75rem;
+  }
+
+  /* Touch-friendly tabs */
+  .tabs {
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  /* Section headers stack on mobile */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .section-header .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Location and recipient cards */
+  .location-card,
+  .recipient-card {
+    padding: 1rem;
+  }
+
+  .location-header,
+  .recipient-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .location-badges {
+    width: 100%;
+  }
+
+  .location-actions,
+  .recipient-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .location-actions .btn,
+  .recipient-actions .btn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  /* Settings form */
+  .settings-form {
+    max-width: 100%;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .form-row .form-group {
+    width: 100%;
+  }
+
+  .checkbox-group input[type='checkbox'] {
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  /* Logs section */
+  .log-entry {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .log-time,
+  .log-event {
+    min-width: auto;
+  }
+
+  .log-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .log-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Simulation form */
+  .simulation-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .simulation-form .input-group {
+    width: 100%;
+  }
+
+  .simulation-form input,
+  .simulation-form select {
+    width: 100%;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .simulation-form .btn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  /* Modal adjustments */
+  .modal {
+    min-width: 95%;
+    max-width: 95%;
+    padding: 1.25rem;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Compliance card */
+  .compliance-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .compliance-icon {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+
+  /* Emergency alert */
+  .active-call-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .call-status {
+    width: 100%;
+    text-align: center;
+    padding: 0.5rem;
+  }
+
+  /* Test notification button */
+  .test-notification .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* General button sizing */
+  .btn {
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .btn-sm {
+    min-height: 36px;
+    font-size: 0.9rem;
+  }
+
+  /* Code example */
+  .code-example {
+    padding: 1rem;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    border-radius: 0;
+  }
+
+  .code-example code {
+    font-size: 0.75rem;
+  }
 }
 </style>

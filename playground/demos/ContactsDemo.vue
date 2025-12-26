@@ -24,8 +24,8 @@
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>Contacts/Phonebook Demo</h3>
       <p class="info-text">
-        Manage contacts stored in Asterisk's internal database (AstDB).
-        Contacts are stored server-side and accessible from any device.
+        Manage contacts stored in Asterisk's internal database (AstDB). Contacts are stored
+        server-side and accessible from any device.
       </p>
 
       <div class="form-group">
@@ -68,7 +68,7 @@
           <span>Groups: {{ groups.length }}</span>
         </div>
         <button class="btn btn-sm btn-secondary" @click="handleExport" title="Export contacts">
-          📤 Export
+          Export
         </button>
         <input
           ref="importInput"
@@ -78,11 +78,9 @@
           @change="handleImportFile"
         />
         <button class="btn btn-sm btn-secondary" @click="triggerImport" title="Import contacts">
-          📥 Import
+          Import
         </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
       </div>
 
       <!-- Main Content -->
@@ -109,7 +107,11 @@
               placeholder="New group name"
               @keyup.enter="addGroup"
             />
-            <button class="btn btn-sm btn-primary" @click="addGroup" :disabled="!newGroupName.trim()">
+            <button
+              class="btn btn-sm btn-primary"
+              @click="addGroup"
+              :disabled="!newGroupName.trim()"
+            >
               +
             </button>
           </div>
@@ -120,31 +122,25 @@
           <!-- Search & Add -->
           <div class="toolbar">
             <div class="search-box">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search contacts..."
-              />
+              <input v-model="searchQuery" type="text" placeholder="Search contacts..." />
             </div>
-            <button class="btn btn-primary" @click="showAddDialog">
-              + Add Contact
-            </button>
+            <button class="btn btn-primary" @click="showAddDialog">+ Add Contact</button>
           </div>
 
           <!-- Contacts List -->
           <div v-if="filteredContacts.length === 0" class="empty-state">
-            <p>📇 No contacts found</p>
+            <p>No contacts found</p>
             <p class="info-text">
-              {{ searchQuery ? 'Try a different search term.' : 'Add your first contact to get started.' }}
+              {{
+                searchQuery
+                  ? 'Try a different search term.'
+                  : 'Add your first contact to get started.'
+              }}
             </p>
           </div>
 
           <div v-else class="contacts-list">
-            <div
-              v-for="contact in filteredContacts"
-              :key="contact.id"
-              class="contact-card"
-            >
+            <div v-for="contact in filteredContacts" :key="contact.id" class="contact-card">
               <div class="contact-avatar">
                 {{ getInitials(contact.name) }}
               </div>
@@ -159,13 +155,17 @@
               </div>
               <div class="contact-actions">
                 <button class="btn btn-sm btn-icon" title="Call" @click="handleCall(contact)">
-                  📞
+                  Call
                 </button>
                 <button class="btn btn-sm btn-icon" title="Edit" @click="editContact(contact)">
-                  ✏️
+                  Edit
                 </button>
-                <button class="btn btn-sm btn-icon btn-danger" title="Delete" @click="confirmDelete(contact)">
-                  🗑️
+                <button
+                  class="btn btn-sm btn-icon btn-danger"
+                  title="Delete"
+                  @click="confirmDelete(contact)"
+                >
+                  Delete
                 </button>
               </div>
             </div>
@@ -213,16 +213,10 @@
           </div>
 
           <div class="dialog-actions">
-            <button
-              class="btn btn-primary"
-              :disabled="!isFormValid || saving"
-              @click="saveContact"
-            >
+            <button class="btn btn-primary" :disabled="!isFormValid || saving" @click="saveContact">
               {{ saving ? 'Saving...' : 'Save' }}
             </button>
-            <button class="btn btn-secondary" @click="closeDialog">
-              Cancel
-            </button>
+            <button class="btn btn-secondary" @click="closeDialog">Cancel</button>
           </div>
 
           <div v-if="formError" class="error-message">
@@ -235,14 +229,13 @@
       <div v-if="deleteTarget" class="dialog-overlay" @click.self="cancelDelete">
         <div class="dialog">
           <h3>Delete Contact</h3>
-          <p>Are you sure you want to delete <strong>{{ deleteTarget.name }}</strong>?</p>
+          <p>
+            Are you sure you want to delete <strong>{{ deleteTarget.name }}</strong
+            >?
+          </p>
           <div class="dialog-actions">
-            <button class="btn btn-danger" @click="handleDelete">
-              Delete
-            </button>
-            <button class="btn btn-secondary" @click="cancelDelete">
-              Cancel
-            </button>
+            <button class="btn btn-danger" @click="handleDelete">Delete</button>
+            <button class="btn btn-secondary" @click="cancelDelete">Cancel</button>
           </div>
         </div>
       </div>
@@ -251,7 +244,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch as _watch } from 'vue'
 import { useAmi, useAmiDatabase } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
@@ -509,7 +502,11 @@ async function handleImportFile(event: Event) {
 
   try {
     const text = await file.text()
-    const contacts = JSON.parse(text) as Array<{ name: string; number: string; [key: string]: unknown }>
+    const contacts = JSON.parse(text) as Array<{
+      name: string
+      number: string
+      [key: string]: unknown
+    }>
 
     const imported = await dbComposable.value.importContacts(contacts)
     alert(`Successfully imported ${imported.length} contacts`)
@@ -594,17 +591,48 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5568d3; }
-.btn-secondary { background: #6b7280; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #4b5563; }
-.btn-danger { background: #ef4444; color: white; }
-.btn-danger:hover:not(:disabled) { background: #dc2626; }
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
-.btn-icon { padding: 0.5rem; min-width: 36px; background: #f3f4f6; color: #374151; }
-.btn-icon:hover { background: #e5e7eb; }
-.btn-icon.btn-danger { background: #fee2e2; color: #991b1b; }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+}
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+}
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+.btn-icon {
+  padding: 0.5rem;
+  min-width: 36px;
+  background: #f3f4f6;
+  color: #374151;
+}
+.btn-icon:hover {
+  background: #e5e7eb;
+}
+.btn-icon.btn-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
 .error-message {
   margin-top: 1rem;

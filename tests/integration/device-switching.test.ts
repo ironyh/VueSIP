@@ -13,8 +13,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { MediaManager } from '../../src/core/MediaManager'
 import { CallSession } from '../../src/core/CallSession'
 import { EventBus } from '../../src/core/EventBus'
-import { createMockSipServer, type MockRTCSession } from '../helpers/MockSipServer'
-import { MediaDeviceKind, type ExtendedMediaStreamConstraints } from '../../src/types/media.types'
+import { createMockSipServer } from '../helpers/MockSipServer'
+import { MediaDeviceKind } from '../../src/types/media.types'
 import { waitForNextTick, waitForEvent } from '../utils/test-helpers'
 
 /**
@@ -55,7 +55,7 @@ function setupMockMediaDevices(devices: MediaDeviceInfo[], shouldFailOnCall?: nu
       if (shouldFailOnCall && getUserMediaCallCount === shouldFailOnCall) {
         return Promise.reject(new Error('Device not available'))
       }
-      
+
       streamCounter++
       const deviceId = constraints?.audio?.deviceId?.exact || 'default'
       return Promise.resolve({
@@ -104,10 +104,30 @@ describe('Device Switching Integration Tests', () => {
   let mockSipServer: ReturnType<typeof createMockSipServer>
 
   // Mock media devices
-  const mockAudioInputDevice1 = createMockDevice('audioinput1', 'audioinput', 'Microphone 1', 'group1')
-  const mockAudioInputDevice2 = createMockDevice('audioinput2', 'audioinput', 'Microphone 2', 'group2')
-  const mockAudioOutputDevice1 = createMockDevice('audiooutput1', 'audiooutput', 'Speaker 1', 'group1')
-  const mockAudioOutputDevice2 = createMockDevice('audiooutput2', 'audiooutput', 'Speaker 2', 'group2')
+  const mockAudioInputDevice1 = createMockDevice(
+    'audioinput1',
+    'audioinput',
+    'Microphone 1',
+    'group1'
+  )
+  const mockAudioInputDevice2 = createMockDevice(
+    'audioinput2',
+    'audioinput',
+    'Microphone 2',
+    'group2'
+  )
+  const mockAudioOutputDevice1 = createMockDevice(
+    'audiooutput1',
+    'audiooutput',
+    'Speaker 1',
+    'group1'
+  )
+  const mockAudioOutputDevice2 = createMockDevice(
+    'audiooutput2',
+    'audiooutput',
+    'Speaker 2',
+    'group2'
+  )
   const mockVideoDevice1 = createMockDevice('videoinput1', 'videoinput', 'Camera 1', 'group1')
   const mockVideoDevice2 = createMockDevice('videoinput2', 'videoinput', 'Camera 2', 'group2')
 
@@ -149,7 +169,7 @@ describe('Device Switching Integration Tests', () => {
 
       // Create mock session for call and set it to active state
       const mockSession = mockSipServer.createSession('test-call')
-      
+
       // Create call session
       const callSession = new CallSession({
         id: mockSession.id,
@@ -206,7 +226,7 @@ describe('Device Switching Integration Tests', () => {
       // Simulate device failure when trying to switch
       // Modify the existing mock to reject on the next call
       const getUserMediaMock = global.navigator.mediaDevices.getUserMedia as any
-      
+
       // Override the next call to reject
       getUserMediaMock.mockRejectedValueOnce(new Error('Device not available'))
 
@@ -231,7 +251,7 @@ describe('Device Switching Integration Tests', () => {
       eventBus.on('media:stream:added', () => events.push('added'))
       eventBus.on('media:stream:removed', () => events.push('removed'))
 
-      const stream1 = await mediaManager.getUserMedia({
+      await mediaManager.getUserMedia({
         audio: { deviceId: { exact: 'audioinput1' } },
         video: false,
       })
@@ -240,7 +260,7 @@ describe('Device Switching Integration Tests', () => {
 
       mediaManager.stopLocalStream()
 
-      const stream2 = await mediaManager.getUserMedia({
+      await mediaManager.getUserMedia({
         audio: { deviceId: { exact: 'audioinput2' } },
         video: false,
       })
@@ -384,7 +404,7 @@ describe('Device Switching Integration Tests', () => {
         mockVideoDevice2,
         newDevice,
       ]
-      
+
       // Mock should return updated list after device change
       ;(global.navigator.mediaDevices.enumerateDevices as any).mockImplementation(async () => {
         // After device change, return the updated list
@@ -417,16 +437,22 @@ describe('Device Switching Integration Tests', () => {
       const devices = await mediaManager.enumerateDevices()
       const initialCount = devices.length
 
-      // Simulate device removal
-      const deviceList = (global.navigator.mediaDevices as any).__deviceList as MediaDeviceInfo[]
-      const index = deviceList.findIndex((device) => device.deviceId === mockAudioInputDevice2.deviceId)
-      if (index !== -1) {
-        deviceList.splice(index, 1)
-      }
+      // Simulate device removal by mocking the next enumerateDevices call
+      const mockEnum = global.navigator.mediaDevices.enumerateDevices as any
+      mockEnum.mockImplementationOnce(async () => [
+        mockAudioInputDevice1,
+        // Removed: mockAudioInputDevice2
+        mockAudioOutputDevice1,
+        mockAudioOutputDevice2,
+        mockVideoDevice1,
+        mockVideoDevice2,
+      ])
 
-      const newDevices = await mediaManager.enumerateDevices()
+      // Force refresh to bypass cache and trigger the mocked enumerateDevices
+      const newDevices = await mediaManager.enumerateDevices(true)
 
       expect(newDevices.length).toBeLessThan(initialCount)
+      expect(newDevices.length).toBe(5) // Was 6, removed 1
     })
 
     it('should handle active device being unplugged', async () => {

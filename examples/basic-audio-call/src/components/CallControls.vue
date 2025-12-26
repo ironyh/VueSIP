@@ -3,12 +3,7 @@
     <h2>Call Controls</h2>
 
     <!-- Incoming Call Alert -->
-    <div
-      v-if="callState === 'incoming'"
-      class="incoming-call"
-      role="alert"
-      aria-live="assertive"
-    >
+    <div v-if="callState === 'incoming'" class="incoming-call" role="alert" aria-live="assertive">
       <div class="incoming-call-info">
         <h3>Incoming Call</h3>
         <p class="caller-id">{{ remoteDisplayName || remoteUri }}</p>
@@ -112,7 +107,7 @@
         autoplay
         style="display: none"
         aria-hidden="true"
-      />
+      ></audio>
     </div>
   </div>
 </template>

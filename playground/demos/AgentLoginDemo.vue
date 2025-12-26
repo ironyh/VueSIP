@@ -24,8 +24,8 @@
     <div v-if="!amiConnected" class="config-panel">
       <h3>AMI Server Configuration</h3>
       <p class="info-text">
-        Configure your AMI WebSocket connection to test agent queue login/logout functionality.
-        This demo allows agents to log in/out of queues, pause/unpause, and track session metrics.
+        Configure your AMI WebSocket connection to test agent queue login/logout functionality. This
+        demo allows agents to log in/out of queues, pause/unpause, and track session metrics.
       </p>
 
       <div class="form-group">
@@ -111,21 +111,19 @@
         <small>Enter the queues the agent can log into</small>
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
+        :label="connecting ? 'Connecting...' : 'Connect to AMI'"
         :disabled="!isConfigValid || connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
+      />
 
       <div v-if="connectionError" class="error-message">
         {{ connectionError }}
       </div>
 
       <div class="demo-tip">
-        <strong>Tip:</strong> This demo requires an AMI WebSocket proxy. Make sure your
-        Asterisk server has the AMI interface configured and a WebSocket proxy is running.
+        <strong>Tip:</strong> This demo requires an AMI WebSocket proxy. Make sure your Asterisk
+        server has the AMI interface configured and a WebSocket proxy is running.
       </div>
     </div>
 
@@ -140,20 +138,18 @@
           </div>
           <div class="status-item">
             <span class="status-icon" :class="getStatusClass(status)">
-              {{ getStatusIcon(status) }}
+              <span class="status-badge">{{ getStatusIcon(status) }}</span>
             </span>
             <span>{{ formatStatus(status) }}</span>
           </div>
           <div v-if="isOnShift !== undefined" class="status-item">
             <span class="status-icon" :class="{ 'on-shift': isOnShift }">
-              {{ isOnShift ? '🕐' : '🕑' }}
+              <span class="shift-badge">{{ isOnShift ? 'ON' : 'OFF' }}</span>
             </span>
             <span>{{ isOnShift ? 'On Shift' : 'Off Shift' }}</span>
           </div>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <Button label="Disconnect" severity="secondary" size="small" @click="handleDisconnect" />
       </div>
 
       <!-- Agent Panel -->
@@ -211,41 +207,38 @@
                 </span>
               </div>
               <div class="queue-actions">
-                <button
+                <Button
                   v-if="!isLoggedIntoQueue(queue)"
-                  class="btn btn-sm btn-success"
+                  label="Login"
+                  severity="success"
+                  size="small"
                   :disabled="isLoading"
                   @click="handleLoginQueue(queue)"
-                >
-                  Login
-                </button>
-                <button
+                />
+                <Button
                   v-else
-                  class="btn btn-sm btn-danger"
+                  label="Logout"
+                  severity="danger"
+                  size="small"
                   :disabled="isLoading"
                   @click="handleLogoutQueue(queue)"
-                >
-                  Logout
-                </button>
+                />
               </div>
             </div>
           </div>
 
           <div class="queue-actions-bar">
-            <button
-              class="btn btn-primary"
+            <Button
+              label="Login to All"
               :disabled="isLoading || loggedInQueues.length === availableQueues.length"
               @click="handleLoginAll"
-            >
-              Login to All
-            </button>
-            <button
-              class="btn btn-danger"
+            />
+            <Button
+              label="Logout from All"
+              severity="danger"
               :disabled="isLoading || loggedInQueues.length === 0"
               @click="handleLogoutAll"
-            >
-              Logout from All
-            </button>
+            />
           </div>
         </div>
 
@@ -268,30 +261,28 @@
                 </option>
               </select>
             </div>
-            <button
-              class="btn btn-warning"
+            <Button
+              label="Pause Agent"
+              severity="warn"
               :disabled="!isLoggedIn || !selectedPauseReason || isLoading"
               @click="handlePause"
-            >
-              Pause Agent
-            </button>
+            />
           </div>
 
           <div v-else class="paused-state">
             <div class="paused-info">
-              <span class="paused-icon">⏸️</span>
+              <span class="paused-icon">PAUSED</span>
               <div class="paused-details">
                 <span class="paused-label">Currently Paused</span>
                 <span class="paused-reason">{{ session.pauseReason || 'No reason' }}</span>
               </div>
             </div>
-            <button
-              class="btn btn-success"
+            <Button
+              label="Unpause Agent"
+              severity="success"
               :disabled="isLoading"
               @click="handleUnpause"
-            >
-              Unpause Agent
-            </button>
+            />
           </div>
         </div>
 
@@ -300,7 +291,7 @@
           <h3>Queue Memberships ({{ loggedInQueues.length }})</h3>
           <div class="membership-list">
             <div
-              v-for="membership in session.queues.filter(q => q.isMember)"
+              v-for="membership in session.queues.filter((q) => q.isMember)"
               :key="membership.queue"
               class="membership-item"
             >
@@ -345,6 +336,7 @@ import type { AmiClient } from '../../src/core/AmiClient'
 import type { AgentLoginStatus } from '../../src/types/agent.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button } from './shared-components'
 // Note: In production, import from the library
 // import { useAmiAgentLogin } from 'vuesip'
 
@@ -376,7 +368,10 @@ const queuesInput = ref('sales,support,billing')
 
 // Derived state
 const availableQueues = computed(() =>
-  queuesInput.value.split(',').map(q => q.trim()).filter(q => q.length > 0)
+  queuesInput.value
+    .split(',')
+    .map((q) => q.trim())
+    .filter((q) => q.length > 0)
 )
 
 // Agent state (simulated - would come from useAmiAgentLogin)
@@ -418,24 +413,26 @@ let sessionTimer: ReturnType<typeof setInterval> | null = null
 
 // Computed
 const status = computed(() => session.status)
-const isLoggedIn = computed(() => session.queues.some(q => q.isMember))
+const isLoggedIn = computed(() => session.queues.some((q) => q.isMember))
 const isPaused = computed(() => session.isPaused)
 const isOnShift = computed(() => session.isOnShift)
-const loggedInQueues = computed(() => session.queues.filter(q => q.isMember).map(q => q.queue))
+const loggedInQueues = computed(() => session.queues.filter((q) => q.isMember).map((q) => q.queue))
 const sessionDurationFormatted = computed(() => formatDuration(session.sessionDuration))
 
-const isConfigValid = computed(() =>
-  config.url && // username/password optional - some AMI setups allow unauthenticated connections
-  agentConfig.agentId && agentConfig.interface
+const isConfigValid = computed(
+  () =>
+    config.url && // username/password optional - some AMI setups allow unauthenticated connections
+    agentConfig.agentId &&
+    agentConfig.interface
 )
 
 // Methods
 function isLoggedIntoQueue(queue: string): boolean {
-  return session.queues.some(q => q.queue === queue && q.isMember)
+  return session.queues.some((q) => q.queue === queue && q.isMember)
 }
 
 function getQueueStatusText(queue: string): string {
-  const membership = session.queues.find(q => q.queue === queue)
+  const membership = session.queues.find((q) => q.queue === queue)
   if (!membership) return ''
   if (membership.isPaused) return 'Paused'
   if (membership.inCall) return 'On Call'
@@ -454,12 +451,12 @@ function formatStatus(status: AgentLoginStatus): string {
 
 function getStatusIcon(status: AgentLoginStatus): string {
   const icons: Record<AgentLoginStatus, string> = {
-    logged_out: '⚫',
-    logged_in: '🟢',
-    paused: '🟡',
-    on_call: '🔵',
+    logged_out: 'OFF',
+    logged_in: 'ON',
+    paused: 'PAUSE',
+    on_call: 'CALL',
   }
-  return icons[status] || '⚪'
+  return icons[status] || 'UNK'
 }
 
 function getStatusClass(status: AgentLoginStatus): string {
@@ -483,9 +480,9 @@ function formatTimestamp(ts: number): string {
 }
 
 function updateStatus(): void {
-  if (!session.queues.some(q => q.isMember)) {
+  if (!session.queues.some((q) => q.isMember)) {
     session.status = 'logged_out'
-  } else if (session.queues.some(q => q.inCall)) {
+  } else if (session.queues.some((q) => q.inCall)) {
     session.status = 'on_call'
   } else if (session.isPaused) {
     session.status = 'paused'
@@ -517,7 +514,7 @@ async function handleConnect() {
 
   try {
     // Simulate connection (in production, use actual AMI client)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
     // Initialize agent session
     session.agentId = agentConfig.agentId
@@ -549,7 +546,7 @@ async function handleLoginQueue(queue: string) {
 
   try {
     // Simulate login (in production, use actual AMI client)
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     session.queues.push({
       queue,
@@ -581,14 +578,14 @@ async function handleLogoutQueue(queue: string) {
   error.value = null
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
-    const idx = session.queues.findIndex(q => q.queue === queue)
+    const idx = session.queues.findIndex((q) => q.queue === queue)
     if (idx >= 0) {
       session.queues.splice(idx, 1)
     }
 
-    if (!session.queues.some(q => q.isMember)) {
+    if (!session.queues.some((q) => q.isMember)) {
       session.loginTime = null
       stopSessionTimer()
     }
@@ -623,7 +620,7 @@ async function handlePause() {
   error.value = null
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     session.isPaused = true
     session.pauseReason = selectedPauseReason.value
@@ -649,7 +646,7 @@ async function handleUnpause() {
   error.value = null
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     session.isPaused = false
     session.pauseReason = undefined
@@ -688,12 +685,12 @@ onUnmounted(() => {
 
 .config-panel h3 {
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .info-text {
   margin-bottom: 1.5rem;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -715,80 +712,59 @@ onUnmounted(() => {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .form-group input,
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
+  background: var(--surface-card);
+  color: var(--text-primary);
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
 }
 
 .form-group input:disabled,
 .form-group select:disabled {
-  background: #f3f4f6;
+  background: var(--surface-ground);
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .form-group small {
   display: block;
   margin-top: 0.25rem;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.75rem;
 }
-
-/* Buttons */
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5568d3; }
-
-.btn-secondary { background: #6b7280; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #4b5563; }
-
-.btn-success { background: #10b981; color: white; }
-.btn-success:hover:not(:disabled) { background: #059669; }
-
-.btn-danger { background: #ef4444; color: white; }
-.btn-danger:hover:not(:disabled) { background: #dc2626; }
-
-.btn-warning { background: #f59e0b; color: white; }
-.btn-warning:hover:not(:disabled) { background: #d97706; }
-
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
 
 .error-message {
   margin-top: 1rem;
   padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  color: var(--text-danger);
   font-size: 0.875rem;
 }
 
 .demo-tip {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.15);
+  border-left: 4px solid var(--info);
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
+  color: var(--text-primary);
 }
 
 /* Connected Interface */
@@ -801,8 +777,8 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  background: var(--surface-ground);
+  border-radius: var(--radius-lg);
   margin-bottom: 2rem;
 }
 
@@ -822,13 +798,19 @@ onUnmounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--danger);
 }
 
-.status-dot.connected { background: #10b981; }
+.status-dot.connected {
+  background: var(--success);
+}
 
-.status-icon { font-size: 1.25rem; }
-.status-icon.on-shift { color: #10b981; }
+.status-icon {
+  font-size: 1.25rem;
+}
+.status-icon.on-shift {
+  color: var(--success);
+}
 
 /* Agent Panel */
 .agent-panel {
@@ -841,10 +823,19 @@ onUnmounted(() => {
 .queue-section,
 .pause-section,
 .membership-details {
-  padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  padding: 1rem;
+  background: var(--surface-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+}
+
+@media (min-width: 640px) {
+  .session-info,
+  .queue-section,
+  .pause-section,
+  .membership-details {
+    padding: 1.5rem;
+  }
 }
 
 .session-info h3,
@@ -852,13 +843,26 @@ onUnmounted(() => {
 .pause-section h3,
 .membership-details h3 {
   margin-bottom: 1rem;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .info-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
 }
 
 .info-item {
@@ -869,13 +873,13 @@ onUnmounted(() => {
 
 .info-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
 }
 
 .info-value {
   font-weight: 500;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 /* Queue Section */
@@ -888,18 +892,28 @@ onUnmounted(() => {
 
 .queue-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  transition: all 0.2s;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  background: var(--surface-ground);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .queue-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+  }
 }
 
 .queue-item.logged-in {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--success);
 }
 
 .queue-info {
@@ -910,17 +924,25 @@ onUnmounted(() => {
 
 .queue-name {
   font-weight: 500;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .queue-status {
   font-size: 0.75rem;
-  color: #059669;
+  color: var(--success);
 }
 
 .queue-actions-bar {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 640px) {
+  .queue-actions-bar {
+    gap: 1rem;
+    flex-wrap: nowrap;
+  }
 }
 
 /* Pause Section */
@@ -938,19 +960,36 @@ onUnmounted(() => {
 .pause-select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
+  background: var(--surface-card);
+  color: var(--text-primary);
+  transition: border-color 0.3s ease;
+}
+
+.pause-select:focus {
+  outline: none;
+  border-color: var(--primary);
 }
 
 .paused-state {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: 6px;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-md);
+}
+
+@media (min-width: 640px) {
+  .paused-state {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+  }
 }
 
 .paused-info {
@@ -961,6 +1000,7 @@ onUnmounted(() => {
 
 .paused-icon {
   font-size: 2rem;
+  color: var(--warning);
 }
 
 .paused-details {
@@ -971,12 +1011,12 @@ onUnmounted(() => {
 
 .paused-label {
   font-weight: 500;
-  color: #92400e;
+  color: var(--text-warning);
 }
 
 .paused-reason {
   font-size: 0.875rem;
-  color: #b45309;
+  color: var(--text-warning);
 }
 
 /* Membership Details */
@@ -988,9 +1028,9 @@ onUnmounted(() => {
 
 .membership-item {
   padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  background: var(--surface-ground);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
 }
 
 .membership-header {
@@ -1002,21 +1042,21 @@ onUnmounted(() => {
 
 .membership-queue {
   font-weight: 500;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .membership-status {
   padding: 0.25rem 0.75rem;
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--text-success);
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
 }
 
 .membership-status.paused {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--text-warning);
 }
 
 .membership-stats {
@@ -1032,52 +1072,114 @@ onUnmounted(() => {
 
 .stat-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .stat-value {
   font-weight: 500;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 /* Status Colors */
-.status-logged-out { color: #6b7280; }
-.status-logged-in { color: #10b981; }
-.status-paused { color: #f59e0b; }
-.status-on-call { color: #3b82f6; }
+.status-logged-out {
+  color: var(--text-secondary);
+}
+.status-logged-in {
+  color: var(--success);
+}
+.status-paused {
+  color: var(--warning);
+}
+.status-on-call {
+  color: var(--info);
+}
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Mobile-First Responsive - Base styles for mobile (320px+) */
+
+/* Form Row - Mobile: column, Tablet+: row */
+.form-row {
+  flex-direction: column;
+  gap: 0;
+}
+
+@media (min-width: 640px) {
   .form-row {
-    flex-direction: column;
-    gap: 0;
+    flex-direction: row;
+    gap: 1rem;
   }
+}
 
+/* Status Bar - Mobile: column, Tablet+: row */
+.status-bar {
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
   .status-bar {
-    flex-direction: column;
-    gap: 1rem;
+    flex-direction: row;
+    gap: 1.5rem;
   }
+}
 
+/* Status Items - Mobile: column, Tablet+: row */
+.status-items {
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
   .status-items {
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-direction: row;
+    gap: 1.5rem;
   }
+}
 
+/* Queue Actions Bar - Mobile: column, Tablet+: row */
+.queue-actions-bar {
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
   .queue-actions-bar {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
   }
+}
 
+/* Pause Form - Mobile: column, Tablet+: row */
+.pause-form {
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
   .pause-form {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
   }
+}
 
+/* Membership Stats - Mobile: wrap, Tablet+: nowrap */
+.membership-stats {
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
   .membership-stats {
-    flex-wrap: wrap;
-    gap: 1rem;
+    flex-wrap: nowrap;
+    gap: 1.5rem;
   }
+}
 
+/* Info Grid - Mobile: 1 column, Tablet+: 2 columns */
+.info-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
   .info-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>

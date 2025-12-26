@@ -145,6 +145,13 @@ export default [
       '.output/**',
       'playwright-report/**',
       'test-results/**',
+      // VitePress generated files - cache, build output, and temp files
+      'docs/.vitepress/cache/**',
+      'docs/.vitepress/dist/**',
+      'docs/.vitepress/.temp/**',
+      '.vitepress/cache/**',
+      '.vitepress/dist/**',
+      '.vitepress/.temp/**',
     ],
   },
 

@@ -2,8 +2,6 @@
  * CallSession unit tests
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 // Note: Test mocks use 'any' for flexibility and non-null assertions for test setup
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'

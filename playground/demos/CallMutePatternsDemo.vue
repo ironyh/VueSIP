@@ -20,7 +20,7 @@
       @toggle-mute="simulation.toggleMute"
     />
 
-    <h2>🔇 Call Mute Patterns</h2>
+    <h2>Call Mute Patterns</h2>
     <p class="description">
       Advanced mute/unmute patterns with push-to-talk, auto-mute, and visual indicators.
     </p>
@@ -39,15 +39,23 @@
     <div v-if="isConnected" class="call-section">
       <h3>Make a Call</h3>
       <div class="form-group">
-        <label>Target SIP URI</label>
+        <label for="target-uri-input">Target SIP URI</label>
         <input
+          id="target-uri-input"
           v-model="targetUri"
           type="text"
           placeholder="sip:target@example.com"
           @keyup.enter="makeCall"
+          aria-required="true"
         />
       </div>
-      <button @click="makeCall" :disabled="hasActiveCall">📞 Make Call</button>
+      <Button
+        label="Make Call"
+        @click="makeCall"
+        :disabled="hasActiveCall"
+        :aria-disabled="hasActiveCall"
+        aria-label="Make outgoing call"
+      />
     </div>
 
     <!-- Active Call with Mute Patterns -->
@@ -67,9 +75,6 @@
 
       <!-- Mute Status Indicator -->
       <div :class="['mute-status', { muted: isMuted, 'push-to-talk': isPushToTalkActive }]">
-        <div class="status-icon">
-          {{ isMuted ? '🔇' : '🔊' }}
-        </div>
         <div class="status-text">
           <div class="primary">
             {{ isMuted ? 'MICROPHONE MUTED' : 'MICROPHONE ACTIVE' }}
@@ -96,8 +101,14 @@
             </label>
           </div>
           <p class="pattern-description">Click to toggle mute on/off</p>
-          <button @click="toggleMute" :disabled="muteMode !== 'standard'" class="mute-btn">
-            {{ isMuted ? '🔊 Unmute' : '🔇 Mute' }}
+          <button
+            @click="toggleMute"
+            :disabled="muteMode !== 'standard'"
+            :aria-disabled="muteMode !== 'standard'"
+            class="mute-btn w-full"
+            :aria-label="isMuted ? 'Unmute microphone' : 'Mute microphone'"
+          >
+            {{ isMuted ? 'Unmute' : 'Mute' }}
           </button>
         </div>
 
@@ -122,7 +133,7 @@
             :disabled="muteMode !== 'push-to-talk'"
             :class="['ptt-btn', { active: isPushToTalkActive }]"
           >
-            {{ isPushToTalkActive ? '🎤 TALKING' : '🔇 HOLD TO TALK' }}
+            {{ isPushToTalkActive ? 'TALKING' : 'HOLD TO TALK' }}
           </button>
           <div class="keyboard-hint">Keyboard: Hold <kbd>Space</kbd> to talk</div>
         </div>
@@ -149,14 +160,19 @@
             <div class="level-value">{{ audioLevel }}%</div>
           </div>
           <div class="form-group">
-            <label>Auto-mute Delay (seconds)</label>
+            <label for="auto-mute-delay-slider">Auto-mute Delay (seconds)</label>
             <input
+              id="auto-mute-delay-slider"
               type="range"
               v-model="autoMuteDelay"
               min="1000"
               max="10000"
               step="1000"
               :disabled="muteMode !== 'auto-silence'"
+              aria-label="Auto-mute delay in seconds"
+              aria-valuemin="1"
+              aria-valuemax="10"
+              :aria-valuenow="autoMuteDelay / 1000"
             />
             <span>{{ autoMuteDelay / 1000 }}s</span>
           </div>
@@ -178,23 +194,27 @@
           <p class="pattern-description">Alternate between mute/unmute on schedule</p>
           <div class="schedule-controls">
             <div class="form-group">
-              <label>Talk Duration (seconds)</label>
+              <label for="talk-duration-input">Talk Duration (seconds)</label>
               <input
+                id="talk-duration-input"
                 type="number"
                 v-model.number="talkDuration"
                 min="1"
                 max="60"
                 :disabled="muteMode !== 'scheduled'"
+                aria-label="Talk duration in seconds"
               />
             </div>
             <div class="form-group">
-              <label>Mute Duration (seconds)</label>
+              <label for="mute-duration-input">Mute Duration (seconds)</label>
               <input
+                id="mute-duration-input"
                 type="number"
                 v-model.number="muteDuration"
                 min="1"
                 max="60"
                 :disabled="muteMode !== 'scheduled'"
+                aria-label="Mute duration in seconds"
               />
             </div>
           </div>
@@ -229,8 +249,8 @@
 
       <!-- Call Controls -->
       <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">✅ Answer</button>
-        <button @click="hangup" class="danger">📞 Hang Up</button>
+        <Button label="Answer" @click="answer" v-if="callState === 'incoming'" />
+        <Button label="Hang Up" severity="danger" @click="hangup" />
       </div>
     </div>
   </div>
@@ -242,6 +262,7 @@ import { useCallSession } from '../../src/composables/useCallSession'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -251,15 +272,22 @@ const { isSimulationMode, activeScenario } = simulation
 const targetUri = ref('sip:1000@example.com')
 
 // SIP Client - use shared playground instance (credentials managed globally)
-const { connectionState: realConnectionState, isConnected: realIsConnected, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  getClient,
+} = playgroundSipClient
 
 // Effective values for simulation
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
 )
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 
 // Call Management - useCallSession requires a Ref
@@ -270,10 +298,10 @@ const {
   hangup,
   mute,
   unmute,
-  session: currentCall,
+  session: _currentCall,
   state: callState,
   isActive: hasActiveCall,
-  isMuted: isCallMuted,
+  isMuted: _isCallMuted,
 } = useCallSession(sipClientRef)
 
 // Mute State
@@ -584,7 +612,7 @@ onUnmounted(() => {
 }
 
 .description {
-  color: #666;
+  color: var(--vuesip-text-secondary);
   margin-bottom: 2rem;
 }
 
@@ -597,45 +625,45 @@ onUnmounted(() => {
 
 .connection-hint {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
   padding: 0.5rem 0.75rem;
-  background: #fef3c7;
+  background: var(--yellow-50);
   border-radius: 6px;
-  border: 1px solid #fcd34d;
+  border: 1px solid var(--yellow-500);
 }
 
 .connection-hint strong {
-  color: #92400e;
+  color: var(--yellow-900);
 }
 
 .status-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: 6px;
   font-weight: 600;
   font-size: 0.875rem;
 }
 
 .status-badge.connected {
-  background-color: #10b981;
-  color: white;
+  background-color: var(--green-500);
+  color: var(--surface-0);
 }
 
 .status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
+  background-color: var(--surface-400);
+  color: var(--surface-0);
 }
 
 .status-badge.connecting {
-  background-color: #f59e0b;
-  color: white;
+  background-color: var(--yellow-500);
+  color: var(--surface-0);
 }
 
 .config-section,
 .call-section,
 .active-call-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-section);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -675,8 +703,8 @@ h5 {
 .form-group input[type='number'] {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
   font-size: 0.875rem;
 }
 
@@ -685,37 +713,8 @@ h5 {
   margin-right: 0.5rem;
 }
 
-button {
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-button.danger {
-  background-color: #ef4444;
-}
-
-button.danger:hover:not(:disabled) {
-  background-color: #dc2626;
-}
-
 .call-info {
-  background: white;
+  background: var(--surface-card);
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -725,7 +724,7 @@ button.danger:hover:not(:disabled) {
   display: flex;
   justify-content: space-between;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .info-item:last-child {
@@ -734,11 +733,11 @@ button.danger:hover:not(:disabled) {
 
 .info-item .label {
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .info-item .value {
-  color: #111827;
+  color: var(--text-color);
 }
 
 .mute-status {
@@ -746,25 +745,21 @@ button.danger:hover:not(:disabled) {
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background: #d1fae5;
-  border: 2px solid #10b981;
+  background: var(--green-50);
+  border: 2px solid var(--green-500);
   border-radius: 8px;
   margin-bottom: 1.5rem;
   transition: all 0.3s;
 }
 
 .mute-status.muted {
-  background: #fee2e2;
-  border-color: #ef4444;
+  background: var(--red-50);
+  border-color: var(--red-500);
 }
 
 .mute-status.push-to-talk {
-  background: #dbeafe;
-  border-color: #3b82f6;
-}
-
-.status-icon {
-  font-size: 3rem;
+  background: var(--blue-50);
+  border-color: var(--blue-500);
 }
 
 .status-text .primary {
@@ -775,19 +770,31 @@ button.danger:hover:not(:disabled) {
 
 .status-text .secondary {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .mute-patterns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
+@media (min-width: 768px) {
+  .mute-patterns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .mute-patterns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .pattern-card {
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   padding: 1rem;
 }
@@ -801,7 +808,7 @@ button.danger:hover:not(:disabled) {
 
 .pattern-description {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
   margin-bottom: 1rem;
 }
 
@@ -825,7 +832,7 @@ button.danger:hover:not(:disabled) {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #cbd5e1;
+  background-color: var(--surface-300);
   transition: 0.3s;
   border-radius: 24px;
 }
@@ -837,13 +844,13 @@ button.danger:hover:not(:disabled) {
   width: 18px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--surface-0);
   transition: 0.3s;
   border-radius: 50%;
 }
 
 input:checked + .slider {
-  background-color: #3b82f6;
+  background-color: var(--blue-500);
 }
 
 input:checked + .slider:before {
@@ -856,20 +863,20 @@ input:checked + .slider:before {
 }
 
 .ptt-btn.active {
-  background-color: #10b981;
+  background-color: var(--green-500);
   transform: scale(1.05);
 }
 
 .keyboard-hint {
   margin-top: 0.5rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
   text-align: center;
 }
 
 kbd {
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background: var(--surface-section);
+  border: 1px solid var(--surface-border);
   border-radius: 3px;
   padding: 0.125rem 0.375rem;
   font-family: monospace;
@@ -892,14 +899,14 @@ kbd {
 .level-bar-container {
   flex: 1;
   height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
+  background: var(--surface-border);
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .level-bar {
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #3b82f6);
+  background: linear-gradient(90deg, var(--green-500), var(--blue-500));
   transition: width 0.1s;
 }
 
@@ -919,15 +926,15 @@ kbd {
 
 .schedule-status {
   padding: 0.75rem;
-  background: #fef3c7;
+  background: var(--yellow-50);
   border-radius: 6px;
   text-align: center;
   font-weight: 600;
-  color: #92400e;
+  color: var(--yellow-900);
 }
 
 .mute-stats {
-  background: white;
+  background: var(--surface-card);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -946,13 +953,13 @@ kbd {
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-color);
   margin-bottom: 0.25rem;
 }
 
 .stat-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

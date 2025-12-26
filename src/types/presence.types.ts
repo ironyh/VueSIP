@@ -258,8 +258,8 @@ export interface PresenceEvent {
  * Presence options for publishing status
  */
 export interface PresencePublishOptions {
-  /** Presence state */
-  state: PresenceState
+  /** Presence state - accepts enum values or raw PIDF basic status ('open' | 'closed') */
+  state: PresenceState | 'open' | 'closed'
   /** Status message */
   statusMessage?: string
   /** Expiry time in seconds */

@@ -15,7 +15,7 @@ import {
   createAgentIdentity,
   NETWORK_PROFILES,
   type AgentManager,
-  type SipTestAgent,
+  type SipTestAgent as _SipTestAgent,
 } from '../agents'
 import { waitForCondition } from '../utils/test-helpers'
 
@@ -427,7 +427,7 @@ describe('Agent Network Conditions Integration Tests', () => {
 
     it('should handle messaging between agents with high latency', async () => {
       // Both agents have high latency (satellite)
-      const alice = await manager.createAgent({
+      const _alice = await manager.createAgent({
         identity: createAgentIdentity('alice'),
         networkProfile: NETWORK_PROFILES.SATELLITE,
         autoRegister: true,
@@ -447,7 +447,7 @@ describe('Agent Network Conditions Integration Tests', () => {
       // Send message
       await manager.sendMessageBetweenAgents('alice', 'bob', 'Hello Bob!')
 
-      const duration = Date.now() - start
+      const _duration = Date.now() - start
 
       // Message should still be delivered
       const bobMessages = bob.presence.getMessages()

@@ -72,7 +72,7 @@
             placeholder="Search by name or number..."
             @input="handleSearch"
           />
-          <span class="search-icon">🔍</span>
+          <!-- Search icon removed -->
         </div>
 
         <select v-model="filterDirection" @change="handleFilterChange">
@@ -89,19 +89,15 @@
       </div>
 
       <div class="action-buttons">
-        <button
-          class="btn btn-secondary"
-          :disabled="totalCalls === 0"
-          @click="handleExport"
-        >
-          📥 Export CSV
+        <button class="btn btn-secondary" :disabled="totalCalls === 0" @click="handleExport">
+          Export CSV
         </button>
         <button
           class="btn btn-danger-outline"
           :disabled="totalCalls === 0"
           @click="handleClearHistory"
         >
-          🗑️ Clear All
+          Clear All
         </button>
       </div>
     </div>
@@ -109,13 +105,11 @@
     <!-- Call History List -->
     <div class="history-list">
       <div v-if="totalCalls === 0" class="empty-state">
-        <div class="empty-icon">📞</div>
         <h4>No Call History</h4>
         <p>Your call history will appear here after you make or receive calls.</p>
       </div>
 
       <div v-else-if="filteredHistory.length === 0" class="empty-state">
-        <div class="empty-icon">🔍</div>
         <h4>No Results Found</h4>
         <p>No calls match your current filters. Try adjusting your search.</p>
       </div>
@@ -127,13 +121,13 @@
           class="history-entry"
           :class="{
             missed: entry.wasMissed && !entry.wasAnswered,
-            'has-video': entry.hasVideo
+            'has-video': entry.hasVideo,
           }"
         >
           <div class="entry-icon">
-            <span v-if="entry.direction === 'incoming'">📥</span>
-            <span v-else>📤</span>
-            <span v-if="entry.hasVideo" class="video-badge">📹</span>
+            <span v-if="entry.direction === 'incoming'">IN</span>
+            <span v-else>OUT</span>
+            <span v-if="entry.hasVideo" class="video-badge">VIDEO</span>
           </div>
 
           <div class="entry-info">
@@ -154,20 +148,12 @@
             <div class="entry-duration" v-if="entry.wasAnswered">
               {{ formatDuration(entry.duration) }}
             </div>
-            <div class="entry-badge" v-if="entry.wasMissed && !entry.wasAnswered">
-              Missed
-            </div>
-            <div class="entry-badge answered" v-else-if="entry.wasAnswered">
-              Answered
-            </div>
+            <div class="entry-badge" v-if="entry.wasMissed && !entry.wasAnswered">Missed</div>
+            <div class="entry-badge answered" v-else-if="entry.wasAnswered">Answered</div>
           </div>
 
           <div class="entry-actions">
-            <button
-              class="btn-icon"
-              title="Delete entry"
-              @click="handleDeleteEntry(entry.id)"
-            >
+            <button class="btn-icon" title="Delete entry" @click="handleDeleteEntry(entry.id)">
               ✕
             </button>
           </div>
@@ -176,21 +162,11 @@
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="pagination">
-        <button
-          class="btn btn-sm"
-          :disabled="currentPage === 1"
-          @click="currentPage--"
-        >
+        <button class="btn btn-sm" :disabled="currentPage === 1" @click="currentPage--">
           ← Previous
         </button>
-        <span class="page-info">
-          Page {{ currentPage }} of {{ totalPages }}
-        </span>
-        <button
-          class="btn btn-sm"
-          :disabled="currentPage === totalPages"
-          @click="currentPage++"
-        >
+        <span class="page-info"> Page {{ currentPage }} of {{ totalPages }} </span>
+        <button class="btn btn-sm" :disabled="currentPage === totalPages" @click="currentPage++">
           Next →
         </button>
       </div>
@@ -250,11 +226,11 @@ const { isSimulationMode, activeScenario } = simulation
 
 // Call History composable
 const {
-  history,
+  history: _history,
   filteredHistory,
   totalCalls,
-  missedCallsCount,
-  searchHistory,
+  missedCallsCount: _missedCallsCount,
+  searchHistory: _searchHistory,
   getStatistics,
   exportHistory,
   setFilter,
@@ -382,14 +358,14 @@ const formatDate = (date: Date): string => {
 
 .info-section {
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--bg-secondary, #f9fafb);
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
 
 .info-section p {
   margin: 0 0 1rem 0;
-  color: #666;
+  color: var(--text-secondary, #666);
   line-height: 1.6;
 }
 
@@ -399,8 +375,8 @@ const formatDate = (date: Date): string => {
 
 .note {
   padding: 1rem;
-  background: #eff6ff;
-  border-left: 3px solid #667eea;
+  background: var(--bg-secondary, #f9fafb);
+  border-left: 3px solid var(--primary, #667eea);
   border-radius: 4px;
   font-size: 0.875rem;
 }
@@ -411,7 +387,7 @@ const formatDate = (date: Date): string => {
 
 .stats-overview h3 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .stats-grid {
@@ -421,38 +397,38 @@ const formatDate = (date: Date): string => {
 }
 
 .stat-card {
-  background: white;
+  background: var(--bg-primary, white);
   padding: 1.5rem;
   border-radius: 8px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color, #e5e7eb);
   text-align: center;
   transition: all 0.2s;
 }
 
 .stat-card:hover {
-  border-color: #667eea;
+  border-color: var(--primary, #667eea);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .stat-card.missed {
-  background: #fef2f2;
-  border-color: #fecaca;
+  background: var(--bg-secondary, #f9fafb);
+  border-color: var(--danger, #ef4444);
 }
 
 .stat-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #667eea;
+  color: var(--primary, #667eea);
   margin-bottom: 0.5rem;
 }
 
 .stat-card.missed .stat-value {
-  color: #ef4444;
+  color: var(--danger, #ef4444);
 }
 
 .stat-label {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-weight: 500;
 }
 
@@ -481,14 +457,14 @@ const formatDate = (date: Date): string => {
 .search-box input {
   width: 100%;
   padding: 0.75rem 2.5rem 0.75rem 1rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 6px;
   font-size: 0.875rem;
 }
 
 .search-box input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary, #667eea);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -503,16 +479,16 @@ const formatDate = (date: Date): string => {
 
 .filter-controls select {
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 6px;
   font-size: 0.875rem;
-  background: white;
+  background: var(--bg-primary, white);
   cursor: pointer;
 }
 
 .filter-controls select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary, #667eea);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -538,23 +514,23 @@ const formatDate = (date: Date): string => {
 }
 
 .btn-secondary {
-  background: #6b7280;
-  color: white;
+  background: var(--text-muted, #6b7280);
+  color: var(--bg-primary, white);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
+  background: var(--text-secondary, #666);
 }
 
 .btn-danger-outline {
-  background: white;
-  color: #ef4444;
-  border: 1px solid #ef4444;
+  background: var(--bg-primary, white);
+  color: var(--danger, #ef4444);
+  border: 1px solid var(--danger, #ef4444);
 }
 
 .btn-danger-outline:hover:not(:disabled) {
-  background: #ef4444;
-  color: white;
+  background: var(--danger, #ef4444);
+  color: var(--bg-primary, white);
 }
 
 .btn-sm {
@@ -563,27 +539,21 @@ const formatDate = (date: Date): string => {
 }
 
 .history-list {
-  background: white;
+  background: var(--bg-primary, white);
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color, #e5e7eb);
   overflow: hidden;
 }
 
 .empty-state {
   padding: 3rem;
   text-align: center;
-  color: #666;
-}
-
-.empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
+  color: var(--text-secondary, #666);
 }
 
 .empty-state h4 {
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .empty-state p {
@@ -601,7 +571,7 @@ const formatDate = (date: Date): string => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
   transition: background 0.2s;
 }
 
@@ -610,30 +580,33 @@ const formatDate = (date: Date): string => {
 }
 
 .history-entry:hover {
-  background: #f9fafb;
+  background: var(--bg-secondary, #f9fafb);
 }
 
 .history-entry.missed {
-  background: #fef2f2;
+  background: var(--bg-secondary, #f9fafb);
 }
 
 .history-entry.missed:hover {
-  background: #fee2e2;
+  background: var(--bg-secondary, #f9fafb);
 }
 
 .entry-icon {
   position: relative;
-  font-size: 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   flex-shrink: 0;
+  color: var(--text-secondary);
 }
 
 .video-badge {
   position: absolute;
   bottom: -4px;
   right: -4px;
-  font-size: 0.875rem;
-  background: white;
-  border-radius: 50%;
+  font-size: 0.625rem;
+  padding: 0.125rem 0.25rem;
+  background: var(--bg-secondary);
+  border-radius: 3px;
 }
 
 .entry-info {
@@ -643,7 +616,7 @@ const formatDate = (date: Date): string => {
 
 .entry-name {
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary, #333);
   margin-bottom: 0.25rem;
   white-space: nowrap;
   overflow: hidden;
@@ -654,7 +627,7 @@ const formatDate = (date: Date): string => {
   display: flex;
   gap: 1rem;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .entry-uri {
@@ -671,23 +644,23 @@ const formatDate = (date: Date): string => {
 .entry-duration {
   font-family: monospace;
   font-weight: 500;
-  color: #667eea;
+  color: var(--primary, #667eea);
   margin-bottom: 0.25rem;
 }
 
 .entry-badge {
   display: inline-block;
   padding: 0.25rem 0.5rem;
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--danger, #ef4444);
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
 }
 
 .entry-badge.answered {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--success, #10b981);
 }
 
 .entry-actions {
@@ -697,7 +670,7 @@ const formatDate = (date: Date): string => {
 .btn-icon {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--text-muted, #6b7280);
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 4px;
@@ -706,8 +679,8 @@ const formatDate = (date: Date): string => {
 }
 
 .btn-icon:hover {
-  background: #f3f4f6;
-  color: #ef4444;
+  background: var(--bg-secondary, #f9fafb);
+  color: var(--danger, #ef4444);
 }
 
 .pagination {
@@ -716,29 +689,29 @@ const formatDate = (date: Date): string => {
   justify-content: center;
   gap: 1rem;
   padding: 1rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color, #e5e7eb);
 }
 
 .page-info {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--bg-secondary, #f9fafb);
   border-radius: 8px;
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--text-primary, #333);
+  color: var(--bg-secondary, #f9fafb);
   padding: 1.5rem;
   border-radius: 6px;
   overflow-x: auto;

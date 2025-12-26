@@ -8,7 +8,6 @@
 import { EventBus } from '../src/core/EventBus'
 import { useSipClient } from '../src'
 import { useAmi } from '../src/composables/useAmi'
-import { ref, computed } from 'vue'
 
 // ============================================================================
 // LocalStorage Keys (standardized across all demos)
@@ -74,7 +73,7 @@ export const playgroundSipClient = new Proxy({} as ReturnType<typeof useSipClien
       return value.bind(_lazyClient)
     }
     return value
-  }
+  },
 })
 
 // ============================================================================
@@ -116,7 +115,7 @@ export const playgroundAmiClient = new Proxy({} as ReturnType<typeof useAmi>, {
       return value.bind(_lazyAmiClient)
     }
     return value
-  }
+  },
 })
 
 // ============================================================================

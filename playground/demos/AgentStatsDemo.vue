@@ -35,17 +35,26 @@
     <div class="controls-section">
       <div class="agent-config">
         <div class="input-group">
-          <label>Agent ID</label>
+          <label for="agent-id-input">Agent ID</label>
           <input
+            id="agent-id-input"
             v-model="agentIdInput"
             type="text"
             placeholder="e.g., 1001"
             :disabled="isTracking"
+            aria-required="true"
+            :aria-disabled="isTracking"
           />
         </div>
         <div class="input-group">
-          <label>Period</label>
-          <select v-model="selectedPeriod" :disabled="isTracking" @change="handlePeriodChange">
+          <label for="time-period-select">Period</label>
+          <select
+            id="time-period-select"
+            v-model="selectedPeriod"
+            :disabled="isTracking"
+            @change="handlePeriodChange"
+            :aria-disabled="isTracking"
+          >
             <option value="today">Today</option>
             <option value="week">This Week</option>
             <option value="month">This Month</option>
@@ -54,90 +63,86 @@
       </div>
 
       <div class="action-buttons">
-        <button
+        <Button
           v-if="!isTracking"
-          class="btn btn-primary"
+          label="Start Tracking"
           @click="handleStartTracking"
-        >
-          Start Tracking
-        </button>
-        <button
+          aria-label="Start tracking agent statistics"
+        />
+        <Button
           v-else
-          class="btn btn-danger"
+          label="Stop Tracking"
+          severity="danger"
           @click="handleStopTracking"
-        >
-          Stop Tracking
-        </button>
-        <button
-          class="btn btn-secondary"
+          aria-label="Stop tracking agent statistics"
+        />
+        <Button
+          label="Simulate Call"
+          severity="secondary"
           :disabled="!isTracking"
           @click="handleSimulateCall"
-        >
-          Simulate Call
-        </button>
-        <button
-          class="btn btn-secondary"
+          :aria-disabled="!isTracking"
+          aria-label="Simulate a new call for testing"
+        />
+        <Button
+          label="Refresh"
+          severity="secondary"
           :disabled="!isTracking || !stats"
           @click="handleRefresh"
-        >
-          Refresh
-        </button>
+          :aria-disabled="!isTracking || !stats"
+          aria-label="Refresh statistics data"
+        />
       </div>
     </div>
 
     <!-- Performance Level Badge -->
     <div v-if="stats" class="performance-badge-container">
-      <div
-        class="performance-badge"
-        :class="performanceLevel || 'average'"
-      >
+      <div class="performance-badge" :class="performanceLevel || 'average'">
         <span class="badge-icon">{{ performanceIcon }}</span>
         <span class="badge-text">{{ formatPerformanceLevel(performanceLevel) }}</span>
       </div>
-      <div class="last-updated">
-        Last updated: {{ formatTime(stats.lastUpdated) }}
-      </div>
+      <div class="last-updated">Last updated: {{ formatTime(stats.lastUpdated) }}</div>
     </div>
 
     <!-- KPI Cards -->
     <div v-if="stats" class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-icon">📞</div>
+        <div class="kpi-icon">CALLS</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ callsPerHour.toFixed(1) }}</div>
           <div class="kpi-label">Calls/Hour</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">⏱️</div>
+        <div class="kpi-icon">TIME</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ formatSeconds(avgHandleTime) }}</div>
           <div class="kpi-label">Avg Handle Time</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">🎯</div>
+        <div class="kpi-icon">TARGET</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ serviceLevel.toFixed(1) }}%</div>
           <div class="kpi-label">Service Level</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">📊</div>
+        <div class="kpi-icon">CHART</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ occupancy.toFixed(1) }}%</div>
           <div class="kpi-label">Occupancy</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">⚡</div>
+        <div class="kpi-icon">POWER</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ utilization.toFixed(1) }}%</div>
           <div class="kpi-label">Utilization</div>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">🗣️</div>
+        <div class="kpi-icon">TALK</div>
         <div class="kpi-content">
           <div class="kpi-value">{{ formattedTalkTime }}</div>
           <div class="kpi-label">Total Talk Time</div>
@@ -177,10 +182,12 @@
     </div>
 
     <!-- Alerts -->
-    <div v-if="alerts.length > 0" class="alerts-section">
+    <div v-if="alerts.length > 0" class="alerts-section" role="region" aria-label="Active alerts">
       <h3>
         Active Alerts
-        <span class="alert-count">{{ alertCount }}</span>
+        <span class="alert-count" aria-label="Number of unacknowledged alerts">{{
+          alertCount
+        }}</span>
       </h3>
       <div class="alerts-list">
         <div
@@ -188,42 +195,40 @@
           :key="alert.id"
           class="alert-item"
           :class="{ [alert.level]: true, acknowledged: alert.acknowledged }"
+          role="alert"
         >
-          <div class="alert-icon">
-            {{ alert.level === 'critical' ? '🚨' : '⚠️' }}
+          <div class="alert-icon" role="img" :aria-label="`${alert.level} alert level`">
+            {{ alert.level === 'critical' ? 'CRITICAL' : 'WARNING' }}
           </div>
           <div class="alert-content">
             <div class="alert-message">{{ alert.message }}</div>
             <div class="alert-time">{{ formatTime(alert.timestamp) }}</div>
           </div>
-          <button
+          <Button
             v-if="!alert.acknowledged"
-            class="btn-icon"
-            title="Acknowledge"
+            label="OK"
+            size="small"
             @click="acknowledgeAlert(alert.id)"
-          >
-            ✓
-          </button>
+            title="Acknowledge"
+            aria-label="Acknowledge this alert"
+          />
         </div>
       </div>
-      <button
+      <Button
         v-if="alertCount > 0"
-        class="btn btn-sm btn-secondary"
+        label="Acknowledge All"
+        severity="secondary"
+        size="small"
         @click="acknowledgeAllAlerts"
-      >
-        Acknowledge All
-      </button>
+        aria-label="Acknowledge all alerts"
+      />
     </div>
 
     <!-- Queue Stats -->
     <div v-if="stats && topQueues.length > 0" class="queue-stats-section">
       <h3>Queue Performance</h3>
       <div class="queue-list">
-        <div
-          v-for="queue in topQueues"
-          :key="queue.queue"
-          class="queue-item"
-        >
+        <div v-for="queue in topQueues" :key="queue.queue" class="queue-item">
           <div class="queue-name">{{ queue.queue }}</div>
           <div class="queue-metrics">
             <span class="queue-metric">
@@ -244,11 +249,7 @@
     <div v-if="stats && hasHourlyData" class="hourly-section">
       <h3>Hourly Distribution</h3>
       <div class="hourly-chart">
-        <div
-          v-for="hour in getHourlyBreakdown()"
-          :key="hour.hour"
-          class="hour-bar-container"
-        >
+        <div v-for="hour in getHourlyBreakdown()" :key="hour.hour" class="hour-bar-container">
           <div
             class="hour-bar"
             :style="{ height: getBarHeight(hour.callCount) + '%' }"
@@ -258,7 +259,7 @@
         </div>
       </div>
       <div v-if="peakHours.length > 0" class="peak-hours">
-        Peak hours: {{ peakHours.map(h => `${h}:00`).join(', ') }}
+        Peak hours: {{ peakHours.map((h) => `${h}:00`).join(', ') }}
       </div>
     </div>
 
@@ -273,7 +274,7 @@
           :class="{ missed: call.disposition === 'missed' }"
         >
           <div class="call-icon">
-            {{ call.direction === 'inbound' ? '📥' : '📤' }}
+            {{ call.direction === 'inbound' ? 'IN' : 'OUT' }}
           </div>
           <div class="call-info">
             <div class="call-party">{{ call.remoteParty }}</div>
@@ -298,21 +299,15 @@
     <div v-if="stats" class="export-section">
       <h3>Export Data</h3>
       <div class="export-buttons">
-        <button class="btn btn-secondary" @click="handleExportCsv">
-          📥 Export CSV
-        </button>
-        <button class="btn btn-secondary" @click="handleExportJson">
-          📥 Export JSON
-        </button>
-        <button class="btn btn-danger-outline" @click="handleResetStats">
-          🗑️ Reset Stats
-        </button>
+        <Button label="Export CSV" severity="secondary" @click="handleExportCsv" />
+        <Button label="Export JSON" severity="secondary" @click="handleExportJson" />
+        <Button label="Reset Stats" severity="danger" outlined @click="handleResetStats" />
       </div>
     </div>
 
     <!-- Empty State -->
     <div v-if="!stats && !isTracking" class="empty-state">
-      <div class="empty-icon">📊</div>
+      <div class="empty-icon">STATS</div>
       <h4>No Statistics Available</h4>
       <p>Enter an agent ID and click "Start Tracking" to begin monitoring agent performance.</p>
     </div>
@@ -376,6 +371,7 @@ import type {
 } from '../../src/types/agentstats.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -404,7 +400,7 @@ const serviceLevel = computed(() => stats.value?.performance.serviceLevel ?? 100
 const occupancy = computed(() => stats.value?.performance.occupancy ?? 0)
 const utilization = computed(() => stats.value?.performance.utilization ?? 0)
 const formattedTalkTime = computed(() => formatDuration(stats.value?.totalTalkTime ?? 0))
-const alertCount = computed(() => alerts.value.filter(a => !a.acknowledged).length)
+const alertCount = computed(() => alerts.value.filter((a) => !a.acknowledged).length)
 
 const topQueues = computed(() => {
   if (!stats.value?.queueStats.length) return []
@@ -427,12 +423,18 @@ const hasHourlyData = computed(() => {
 
 const performanceIcon = computed(() => {
   switch (performanceLevel.value) {
-    case 'excellent': return '🌟'
-    case 'good': return '👍'
-    case 'average': return '📊'
-    case 'needs_improvement': return '📉'
-    case 'critical': return '🚨'
-    default: return '📊'
+    case 'excellent':
+      return 'STAR'
+    case 'good':
+      return 'GOOD'
+    case 'average':
+      return 'AVG'
+    case 'needs_improvement':
+      return 'LOW'
+    case 'critical':
+      return 'CRIT'
+    default:
+      return 'AVG'
   }
 })
 
@@ -528,7 +530,9 @@ function handleSimulateCall() {
   const call = {
     callId: `call-${Date.now()}`,
     queue: direction === 'inbound' ? queue : undefined,
-    remoteParty: `+1555${Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}`,
+    remoteParty: `+1555${Math.floor(Math.random() * 10000000)
+      .toString()
+      .padStart(7, '0')}`,
     direction,
     startTime: new Date(Date.now() - (talkTime + waitTime) * 1000),
     answerTime: disposition === 'answered' ? new Date(Date.now() - talkTime * 1000) : undefined,
@@ -603,7 +607,14 @@ function handleSimulateCall() {
 function updatePerformance() {
   if (!stats.value) return
 
-  const { totalCalls, totalTalkTime, totalHandleTime, totalWrapTime, totalLoginTime, transferredCalls } = stats.value
+  const {
+    totalCalls,
+    totalTalkTime,
+    totalHandleTime,
+    totalWrapTime,
+    totalLoginTime,
+    transferredCalls,
+  } = stats.value
   const loginHours = totalLoginTime / 3600
 
   stats.value.performance = {
@@ -629,7 +640,9 @@ function calculateServiceLevel(): number {
   const answeredInTime = stats.value.recentCalls.filter(
     (c: any) => c.disposition === 'answered' && c.waitTime <= 20
   ).length
-  const totalAnswered = stats.value.recentCalls.filter((c: any) => c.disposition === 'answered').length
+  const totalAnswered = stats.value.recentCalls.filter(
+    (c: any) => c.disposition === 'answered'
+  ).length
   return totalAnswered > 0 ? (answeredInTime / totalAnswered) * 100 : 100
 }
 
@@ -695,7 +708,12 @@ function checkThresholds() {
   if (!stats.value) return
 
   const thresholds = [
-    { metric: 'avgHandleTime', warningThreshold: 300, criticalThreshold: 600, higherIsBetter: false },
+    {
+      metric: 'avgHandleTime',
+      warningThreshold: 300,
+      criticalThreshold: 600,
+      higherIsBetter: false,
+    },
     { metric: 'serviceLevel', warningThreshold: 80, criticalThreshold: 60, higherIsBetter: true },
     { metric: 'occupancy', warningThreshold: 30, criticalThreshold: 20, higherIsBetter: true },
   ]
@@ -714,7 +732,7 @@ function checkThresholds() {
 
     if (level) {
       const existingAlert = alerts.value.find(
-        a => a.agentId === stats.value.agentId && a.metric === threshold.metric && !a.acknowledged
+        (a) => a.agentId === stats.value.agentId && a.metric === threshold.metric && !a.acknowledged
       )
 
       if (!existingAlert) {
@@ -723,7 +741,8 @@ function checkThresholds() {
           agentId: stats.value.agentId,
           metric: threshold.metric,
           currentValue: value,
-          thresholdValue: level === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold,
+          thresholdValue:
+            level === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold,
           level,
           message: `${threshold.metric} is ${threshold.higherIsBetter ? 'below' : 'above'} ${level} threshold: ${value.toFixed(1)}`,
           timestamp: new Date(),
@@ -748,14 +767,14 @@ function handlePeriodChange() {
 }
 
 function acknowledgeAlert(alertId: string) {
-  const alert = alerts.value.find(a => a.id === alertId)
+  const alert = alerts.value.find((a) => a.id === alertId)
   if (alert) {
     alert.acknowledged = true
   }
 }
 
 function acknowledgeAllAlerts() {
-  alerts.value.forEach(alert => {
+  alerts.value.forEach((alert) => {
     alert.acknowledged = true
   })
 }
@@ -774,21 +793,30 @@ function handleExportCsv() {
   if (!stats.value) return
 
   const headers = [
-    'Call ID', 'Queue', 'Remote Party', 'Direction', 'Start Time',
-    'End Time', 'Wait Time', 'Talk Time', 'Disposition'
+    'Call ID',
+    'Queue',
+    'Remote Party',
+    'Direction',
+    'Start Time',
+    'End Time',
+    'Wait Time',
+    'Talk Time',
+    'Disposition',
   ]
 
-  const rows = stats.value.recentCalls.map((call: any) => [
-    call.callId,
-    call.queue || '',
-    call.remoteParty,
-    call.direction,
-    call.startTime.toISOString(),
-    call.endTime?.toISOString() || '',
-    call.waitTime,
-    call.talkTime,
-    call.disposition,
-  ].join(','))
+  const rows = stats.value.recentCalls.map((call: any) =>
+    [
+      call.callId,
+      call.queue || '',
+      call.remoteParty,
+      call.direction,
+      call.startTime.toISOString(),
+      call.endTime?.toISOString() || '',
+      call.waitTime,
+      call.talkTime,
+      call.disposition,
+    ].join(',')
+  )
 
   const csv = [headers.join(','), ...rows].join('\n')
   downloadFile(csv, 'agent-stats.csv', 'text/csv')
@@ -840,7 +868,10 @@ function formatTime(date: Date): string {
 
 function formatPerformanceLevel(level: AgentPerformanceLevel | null): string {
   if (!level) return 'Unknown'
-  return level.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  return level
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
 }
 
 onUnmounted(() => {
@@ -855,16 +886,18 @@ onUnmounted(() => {
 }
 
 .info-section {
-  padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+  padding: var(--spacing-lg);
+  background: var(--surface-ground);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+  transition: background-color 0.3s ease;
 }
 
 .info-section p {
-  margin: 0 0 1rem 0;
-  color: #666;
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text-secondary);
   line-height: 1.6;
+  transition: color 0.3s ease;
 }
 
 .info-section p:last-child {
@@ -872,11 +905,12 @@ onUnmounted(() => {
 }
 
 .note {
-  padding: 1rem;
-  background: #eff6ff;
-  border-left: 3px solid #667eea;
-  border-radius: 4px;
+  padding: var(--spacing-md);
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
+  transition: all 0.3s ease;
 }
 
 .controls-section {
@@ -903,14 +937,16 @@ onUnmounted(() => {
 .input-group label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .input-group input,
 .input-group select {
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: var(--border-width) solid var(--border-color);
+  transition: border-color 0.3s ease;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
   min-width: 150px;
 }
@@ -918,13 +954,15 @@ onUnmounted(() => {
 .input-group input:focus,
 .input-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary);
+  transition: border-color 0.3s ease;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .input-group input:disabled,
 .input-group select:disabled {
-  background: #f3f4f6;
+  background: var(--surface-ground);
+  transition: background-color 0.3s ease;
   cursor: not-allowed;
 }
 
@@ -932,81 +970,6 @@ onUnmounted(() => {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-}
-
-.btn {
-  padding: 0.75rem 1rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #5a67d8;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.btn-danger-outline {
-  background: white;
-  color: #ef4444;
-  border: 1px solid #ef4444;
-}
-
-.btn-danger-outline:hover:not(:disabled) {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-sm {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: all 0.2s;
-  font-size: 1rem;
-}
-
-.btn-icon:hover {
-  background: #f3f4f6;
-  color: #10b981;
 }
 
 .performance-badge-container {
@@ -1027,28 +990,28 @@ onUnmounted(() => {
 }
 
 .performance-badge.excellent {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
+  color: var(--surface-0);
 }
 
 .performance-badge.good {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: white;
+  background: linear-gradient(135deg, var(--info), var(--info-dark));
+  color: var(--surface-0);
 }
 
 .performance-badge.average {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
+  background: linear-gradient(135deg, var(--warning), var(--warning-dark));
+  color: var(--surface-0);
 }
 
 .performance-badge.needs_improvement {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: white;
+  background: linear-gradient(135deg, var(--warning), var(--warning-dark));
+  color: var(--surface-0);
 }
 
 .performance-badge.critical {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
+  background: linear-gradient(135deg, var(--danger), var(--danger-dark));
+  color: var(--surface-0);
 }
 
 .badge-icon {
@@ -1057,7 +1020,8 @@ onUnmounted(() => {
 
 .last-updated {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
 }
 
 .kpi-grid {
@@ -1068,18 +1032,21 @@ onUnmounted(() => {
 }
 
 .kpi-card {
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
+  background: var(--surface-card);
+  transition: background-color 0.3s ease;
+  border: var(--border-width-thick) solid var(--border-color);
+  transition: border-color 0.3s ease;
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .kpi-card:hover {
-  border-color: #667eea;
+  border-color: var(--primary);
+  transition: border-color 0.3s ease;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
 }
 
@@ -1096,13 +1063,15 @@ onUnmounted(() => {
 .kpi-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
   line-height: 1.2;
 }
 
 .kpi-label {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
   font-weight: 500;
   margin-top: 0.25rem;
 }
@@ -1113,9 +1082,11 @@ onUnmounted(() => {
 .hourly-section,
 .recent-calls-section,
 .export-section {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--surface-card);
+  transition: background-color 0.3s ease;
+  border: var(--border-width) solid var(--border-color);
+  transition: border-color 0.3s ease;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
@@ -1127,7 +1098,8 @@ onUnmounted(() => {
 .recent-calls-section h3,
 .export-section h3 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
   font-size: 1rem;
   display: flex;
   align-items: center;
@@ -1144,28 +1116,33 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
+  background: var(--surface-ground);
+  transition: background-color 0.3s ease;
+  border-radius: var(--radius-md);
 }
 
 .stat-item.missed {
-  background: #fef2f2;
+  background: rgba(239, 68, 68, 0.15);
+  transition: background-color 0.3s ease;
 }
 
 .stat-item .stat-label {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
   margin-bottom: 0.5rem;
 }
 
 .stat-item .stat-value {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .stat-item.missed .stat-value {
-  color: #ef4444;
+  color: var(--danger);
+  transition: color 0.3s ease;
 }
 
 .alert-count {
@@ -1175,8 +1152,9 @@ onUnmounted(() => {
   min-width: 1.5rem;
   height: 1.5rem;
   padding: 0 0.5rem;
-  background: #ef4444;
-  color: white;
+  background: var(--danger);
+  transition: background-color 0.3s ease;
+  color: var(--surface-0);
   border-radius: 50px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -1194,18 +1172,21 @@ onUnmounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   border: 1px solid;
 }
 
 .alert-item.warning {
-  background: #fffbeb;
-  border-color: #fcd34d;
+  background: rgba(245, 158, 11, 0.15);
+  transition: background-color 0.3s ease;
+  border-color: var(--vuesip-warning);
 }
 
 .alert-item.critical {
-  background: #fef2f2;
-  border-color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+  transition: background-color 0.3s ease;
+  border-color: var(--danger);
+  transition: border-color 0.3s ease;
 }
 
 .alert-item.acknowledged {
@@ -1224,13 +1205,15 @@ onUnmounted(() => {
 
 .alert-message {
   font-size: 0.875rem;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
   margin-bottom: 0.25rem;
 }
 
 .alert-time {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .queue-list {
@@ -1244,24 +1227,28 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
+  background: var(--surface-ground);
+  transition: background-color 0.3s ease;
+  border-radius: var(--radius-md);
 }
 
 .queue-name {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .queue-metrics {
   display: flex;
   gap: 1rem;
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .queue-metric strong {
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .hourly-chart {
@@ -1282,22 +1269,24 @@ onUnmounted(() => {
 
 .hour-bar {
   width: 100%;
-  background: linear-gradient(to top, #667eea, #a78bfa);
-  border-radius: 4px 4px 0 0;
+  background: linear-gradient(to top, var(--primary), var(--primary-light));
+  border-radius: var(--radius-md) 4px 0 0;
   min-height: 2px;
-  transition: height 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .hour-label {
   font-size: 0.625rem;
-  color: #9ca3af;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
   margin-top: 0.25rem;
 }
 
 .peak-hours {
   margin-top: 1rem;
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .calls-list {
@@ -1311,17 +1300,20 @@ onUnmounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 6px;
+  background: var(--surface-ground);
+  transition: background-color 0.3s ease;
+  border-radius: var(--radius-md);
   transition: background 0.2s;
 }
 
 .call-item:hover {
-  background: #f3f4f6;
+  background: var(--surface-ground);
+  transition: background-color 0.3s ease;
 }
 
 .call-item.missed {
-  background: #fef2f2;
+  background: rgba(239, 68, 68, 0.15);
+  transition: background-color 0.3s ease;
 }
 
 .call-icon {
@@ -1336,7 +1328,8 @@ onUnmounted(() => {
 
 .call-party {
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1346,7 +1339,8 @@ onUnmounted(() => {
   display: flex;
   gap: 0.75rem;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
   margin-top: 0.25rem;
 }
 
@@ -1358,30 +1352,37 @@ onUnmounted(() => {
 .call-duration {
   font-family: monospace;
   font-weight: 500;
-  color: #667eea;
+  color: var(--primary);
+  transition: color 0.3s ease;
 }
 
 .call-disposition {
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   margin-top: 0.25rem;
   display: inline-block;
 }
 
 .call-disposition.answered {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(16, 185, 129, 0.15);
+  transition: background-color 0.3s ease;
+  color: var(--text-success);
+  transition: color 0.3s ease;
 }
 
 .call-disposition.missed {
-  background: #fee2e2;
-  color: #991b1b;
+  background: rgba(239, 68, 68, 0.15);
+  transition: background-color 0.3s ease;
+  color: var(--text-danger);
+  transition: color 0.3s ease;
 }
 
 .call-disposition.transferred {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(59, 130, 246, 0.15);
+  transition: background-color 0.3s ease;
+  color: var(--text-info);
+  transition: color 0.3s ease;
 }
 
 .export-buttons {
@@ -1393,10 +1394,13 @@ onUnmounted(() => {
 .empty-state {
   padding: 3rem;
   text-align: center;
-  color: #666;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+  background: var(--surface-card);
+  transition: background-color 0.3s ease;
+  border: var(--border-width) solid var(--border-color);
+  transition: border-color 0.3s ease;
+  border-radius: var(--radius-lg);
   margin-bottom: 1.5rem;
 }
 
@@ -1408,7 +1412,8 @@ onUnmounted(() => {
 
 .empty-state h4 {
   margin: 0 0 0.5rem 0;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .empty-state p {
@@ -1418,22 +1423,25 @@ onUnmounted(() => {
 
 .code-example {
   padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  background: var(--surface-ground);
+  transition: background-color 0.3s ease;
+  border-radius: var(--radius-lg);
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
-  padding: 1.5rem;
-  border-radius: 6px;
+  background: var(--gray-900);
+  color: var(--gray-100);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
   overflow-x: auto;
   margin: 0;
+  transition: all 0.3s ease;
 }
 
 .code-example code {

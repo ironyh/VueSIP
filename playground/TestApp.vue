@@ -63,9 +63,9 @@
               placeholder="sip:user@example.com"
               aria-describedby="sip-uri-hint"
             />
-            <span id="sip-uri-hint" class="sr-only"
-              >Enter your SIP address in the format sip:user@domain</span
-            >
+            <span id="sip-uri-hint" class="sr-only">
+              Enter your SIP address in the format sip:user@domain
+            </span>
           </div>
           <div class="form-group">
             <label for="password-input">Password:</label>

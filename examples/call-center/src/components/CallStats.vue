@@ -8,8 +8,18 @@
       <div class="stats-grid" role="list">
         <div class="stat-card" role="listitem">
           <div class="stat-icon blue" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+              />
             </svg>
           </div>
           <div class="stat-content">
@@ -21,8 +31,16 @@
 
         <div class="stat-card" role="listitem">
           <div class="stat-icon green" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"></polyline>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
           <div class="stat-content">
@@ -34,9 +52,17 @@
 
         <div class="stat-card" role="listitem">
           <div class="stat-icon red" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </div>
           <div class="stat-content">
@@ -48,16 +74,28 @@
 
         <div class="stat-card" role="listitem">
           <div class="stat-icon purple" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
             </svg>
           </div>
           <div class="stat-content">
-            <div class="stat-value" id="avg-duration-value">{{ formatDuration(statistics.averageDuration) }}</div>
+            <div class="stat-value" id="avg-duration-value">
+              {{ formatDuration(statistics.averageDuration) }}
+            </div>
             <div class="stat-label" id="avg-duration-label">Avg Duration</div>
           </div>
-          <span class="sr-only">Average duration: {{ formatDuration(statistics.averageDuration) }}</span>
+          <span class="sr-only"
+            >Average duration: {{ formatDuration(statistics.averageDuration) }}</span
+          >
         </div>
       </div>
     </section>
@@ -71,7 +109,14 @@
             <span>Incoming</span>
             <span class="bar-value">{{ statistics.incomingCalls }}</span>
           </div>
-          <div class="bar-track" role="progressbar" :aria-valuenow="getPercentage(statistics.incomingCalls)" aria-valuemin="0" aria-valuemax="100" :aria-label="`Incoming calls: ${statistics.incomingCalls} (${getPercentage(statistics.incomingCalls)}%)`">
+          <div
+            class="bar-track"
+            role="progressbar"
+            :aria-valuenow="getPercentage(statistics.incomingCalls)"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-label="`Incoming calls: ${statistics.incomingCalls} (${getPercentage(statistics.incomingCalls)}%)`"
+          >
             <div
               class="bar-fill incoming"
               :style="{ width: `${getPercentage(statistics.incomingCalls)}%` }"
@@ -79,7 +124,8 @@
             ></div>
           </div>
           <span class="sr-only">
-            Incoming: {{ statistics.incomingCalls }} calls, {{ getPercentage(statistics.incomingCalls) }}% of total
+            Incoming: {{ statistics.incomingCalls }} calls,
+            {{ getPercentage(statistics.incomingCalls) }}% of total
           </span>
         </div>
 
@@ -88,7 +134,14 @@
             <span>Outgoing</span>
             <span class="bar-value">{{ statistics.outgoingCalls }}</span>
           </div>
-          <div class="bar-track" role="progressbar" :aria-valuenow="getPercentage(statistics.outgoingCalls)" aria-valuemin="0" aria-valuemax="100" :aria-label="`Outgoing calls: ${statistics.outgoingCalls} (${getPercentage(statistics.outgoingCalls)}%)`">
+          <div
+            class="bar-track"
+            role="progressbar"
+            :aria-valuenow="getPercentage(statistics.outgoingCalls)"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-label="`Outgoing calls: ${statistics.outgoingCalls} (${getPercentage(statistics.outgoingCalls)}%)`"
+          >
             <div
               class="bar-fill outgoing"
               :style="{ width: `${getPercentage(statistics.outgoingCalls)}%` }"
@@ -96,14 +149,19 @@
             ></div>
           </div>
           <span class="sr-only">
-            Outgoing: {{ statistics.outgoingCalls }} calls, {{ getPercentage(statistics.outgoingCalls) }}% of total
+            Outgoing: {{ statistics.outgoingCalls }} calls,
+            {{ getPercentage(statistics.outgoingCalls) }}% of total
           </span>
         </div>
       </div>
     </section>
 
     <!-- Frequent Contacts -->
-    <section v-if="statistics.frequentContacts && statistics.frequentContacts.length > 0" class="frequent-contacts" aria-label="Frequent contacts">
+    <section
+      v-if="statistics.frequentContacts && statistics.frequentContacts.length > 0"
+      class="frequent-contacts"
+      aria-label="Frequent contacts"
+    >
       <h3>Frequent Contacts</h3>
       <ul class="contact-list" role="list">
         <li
@@ -126,8 +184,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-
 // ============================================================================
 // Props
 // ============================================================================

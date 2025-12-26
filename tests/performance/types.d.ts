@@ -20,7 +20,7 @@ interface MemoryInfo {
 /**
  * Extended Performance interface with memory tracking
  */
-interface Performance {
+interface _Performance {
   /**
    * Memory usage information (Chrome/V8 specific)
    * Available in Chrome and Node.js with appropriate flags

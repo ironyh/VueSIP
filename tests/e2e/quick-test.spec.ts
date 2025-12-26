@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect as _expect } from './fixtures'
 import { APP_URL } from './fixtures'
 
 test('quick EventBridge check', async ({ page, mockSipServer, mockMediaDevices, configureSip }) => {

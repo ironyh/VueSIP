@@ -10,6 +10,7 @@ const mockDevices = [
 ];
 
 // Shared mock instance
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let mockAudioManagerInstance: any;
 
 // Mock AudioManager with a class pattern (required for `new` keyword)

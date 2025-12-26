@@ -40,13 +40,13 @@ const log = createLogger('FreePBXPresenceBridge')
  * FreePBX hint state to presence code mapping
  */
 const HINT_STATE_MAP: Record<string, FreePBXPresenceCode> = {
-  'NOT_INUSE': FreePBXPresenceCode.Available,
-  'INUSE': FreePBXPresenceCode.OnPhone,
-  'BUSY': FreePBXPresenceCode.Busy,
-  'UNAVAILABLE': FreePBXPresenceCode.Offline,
-  'RINGING': FreePBXPresenceCode.OnPhone,
-  'ONHOLD': FreePBXPresenceCode.OnPhone,
-  'IDLE': FreePBXPresenceCode.Available,
+  NOT_INUSE: FreePBXPresenceCode.Available,
+  INUSE: FreePBXPresenceCode.OnPhone,
+  BUSY: FreePBXPresenceCode.Busy,
+  UNAVAILABLE: FreePBXPresenceCode.Offline,
+  RINGING: FreePBXPresenceCode.OnPhone,
+  ONHOLD: FreePBXPresenceCode.OnPhone,
+  IDLE: FreePBXPresenceCode.Available,
 }
 
 /**
@@ -67,7 +67,9 @@ export class FreePBXPresenceBridge {
 
   // Event callbacks
   private onPresenceUpdate: ((event: FreePBXPresenceEvent) => void) | null = null
-  private onReturnTimeUpdate: ((extension: string, returnTime: ReturnTimeSpec | null) => void) | null = null
+  private onReturnTimeUpdate:
+    | ((extension: string, returnTime: ReturnTimeSpec | null) => void)
+    | null = null
 
   /**
    * Create a FreePBX Presence Bridge instance
@@ -123,9 +125,8 @@ export class FreePBXPresenceBridge {
     }
 
     // Determine which extensions to subscribe to
-    const extensions = options.extensions === 'all'
-      ? await this.fetchAllExtensions()
-      : options.extensions
+    const extensions =
+      options.extensions === 'all' ? await this.fetchAllExtensions() : options.extensions
 
     if (this.config.useRestApi) {
       // Use REST API polling
@@ -171,9 +172,10 @@ export class FreePBXPresenceBridge {
       // Extract basic state
       const basicMatch = xml.match(/<basic>([^<]+)<\/basic>/i)
       if (basicMatch && basicMatch[1]) {
-        result.presenceCode = basicMatch[1].toLowerCase() === 'open'
-          ? FreePBXPresenceCode.Available
-          : FreePBXPresenceCode.Offline
+        result.presenceCode =
+          basicMatch[1].toLowerCase() === 'open'
+            ? FreePBXPresenceCode.Available
+            : FreePBXPresenceCode.Offline
       }
 
       // Extract note/status message (may contain return time)
@@ -182,13 +184,15 @@ export class FreePBXPresenceBridge {
         const statusMessage = noteMatch[1]
         result.awayMessage = statusMessage
 
+        // Always detect away reason from status message
+        result.awayReason = this.detectAwayReason(statusMessage)
+
         // Parse return time from status message
         if (this.config.parseReturnTime) {
           const returnTime = this.parseReturnTimeFromMessage(statusMessage)
           if (returnTime) {
             result.returnTime = returnTime
             result.presenceCode = FreePBXPresenceCode.ExtendedAway
-            result.awayReason = this.detectAwayReason(statusMessage)
           }
         }
       }
@@ -252,7 +256,8 @@ export class FreePBXPresenceBridge {
     const group2 = match[2] || ''
 
     // Pattern: "2:30 PM" or "14:30" - absolute time
-    if (matchedStr.includes(':') && !matchedStr.toLowerCase().includes('in')) {
+    // Check for " in " as a whole word to avoid false positives like "Returning"
+    if (matchedStr.includes(':') && !/\bin\b/i.test(matchedStr)) {
       returnTime = this.parseTimeString(group1, now)
     }
     // Pattern: "30 minutes" or "1 hour" - relative duration
@@ -292,13 +297,13 @@ export class FreePBXPresenceBridge {
   }
 
   /**
-   * Parse time string like "2:30 PM" or "14:30" into Date
+   * Parse time string like "2:30 PM", "14:30", or "14:0" into Date
    */
   private parseTimeString(timeStr: string, referenceDate: Date): Date {
     const result = new Date(referenceDate)
 
-    // Try to parse 12-hour format (2:30 PM, 2:30pm, 2:30p)
-    const match12h = timeStr.match(/(\d{1,2}):(\d{2})\s*([ap]m?)?/i)
+    // Try to parse 12-hour format (2:30 PM, 2:30pm, 2:30p, 2:0)
+    const match12h = timeStr.match(/(\d{1,2}):(\d{1,2})\s*([ap]m?)?/i)
     if (match12h && match12h[1] && match12h[2]) {
       let hours = parseInt(match12h[1], 10)
       const minutes = parseInt(match12h[2], 10)
@@ -312,8 +317,13 @@ export class FreePBXPresenceBridge {
 
       result.setHours(hours, minutes, 0, 0)
 
-      // If parsed time is earlier than now, assume tomorrow
-      if (result.getTime() < referenceDate.getTime()) {
+      // If parsed time is earlier than now, check if it's overdue or meant for tomorrow
+      // Only assume tomorrow if the time is more than 4 hours in the past
+      // (within 4 hours = likely overdue, beyond 4 hours = likely tomorrow)
+      const timeDiff = result.getTime() - referenceDate.getTime()
+      const ASSUME_TOMORROW_THRESHOLD = 4 * 60 * 60 * 1000 // 4 hours in ms
+
+      if (timeDiff < 0 && Math.abs(timeDiff) > ASSUME_TOMORROW_THRESHOLD) {
         result.setDate(result.getDate() + 1)
       }
 
@@ -347,7 +357,10 @@ export class FreePBXPresenceBridge {
    * Start REST API polling for presence updates
    */
   private async startPolling(extensions: string[], intervalMs: number): Promise<void> {
-    log.info('Starting REST API polling for presence', { extensions: extensions.length, intervalMs })
+    log.info('Starting REST API polling for presence', {
+      extensions: extensions.length,
+      intervalMs,
+    })
 
     // Initial fetch
     await this.pollPresenceStatus(extensions)
@@ -372,17 +385,14 @@ export class FreePBXPresenceBridge {
     try {
       const baseUrl = `https://${this.config.host}:${this.config.restPort}`
       const headers: HeadersInit = {
-        'Authorization': `Bearer ${this.config.apiToken}`,
+        Authorization: `Bearer ${this.config.apiToken}`,
         'Content-Type': 'application/json',
       }
 
       for (const extension of extensions) {
         try {
           // Fetch presence status from FreePBX REST API
-          const response = await fetch(
-            `${baseUrl}/api/presence/${extension}`,
-            { headers }
-          )
+          const response = await fetch(`${baseUrl}/api/presence/${extension}`, { headers })
 
           if (response.ok) {
             const data = await response.json()
@@ -402,23 +412,23 @@ export class FreePBXPresenceBridge {
   /**
    * Update presence status from REST API response
    */
-  private updatePresenceFromREST(extension: string, data: any): void {
+  private updatePresenceFromREST(extension: string, data: Record<string, unknown>): void {
     const presenceData: Partial<FreePBXPresenceStatus> = {
       extension,
-      presenceCode: this.mapRESTStatusToCode(data.status),
-      displayName: data.displayName || data.name,
-      department: data.department,
-      location: data.location,
-      awayMessage: data.statusMessage,
+      presenceCode: this.mapRESTStatusToCode(data.status as string),
+      displayName: (data.displayName as string) || (data.name as string),
+      department: data.department as string | undefined,
+      location: data.location as string | undefined,
+      awayMessage: data.statusMessage as string | undefined,
     }
 
     // Parse return time from status message
     if (this.config.parseReturnTime && data.statusMessage) {
-      const returnTime = this.parseReturnTimeFromMessage(data.statusMessage)
+      const returnTime = this.parseReturnTimeFromMessage(data.statusMessage as string)
       if (returnTime) {
         presenceData.returnTime = returnTime
         presenceData.presenceCode = FreePBXPresenceCode.ExtendedAway
-        presenceData.awayReason = this.detectAwayReason(data.statusMessage)
+        presenceData.awayReason = this.detectAwayReason(data.statusMessage as string)
       }
     }
 
@@ -430,15 +440,15 @@ export class FreePBXPresenceBridge {
    */
   private mapRESTStatusToCode(status: string): FreePBXPresenceCode {
     const statusMap: Record<string, FreePBXPresenceCode> = {
-      'available': FreePBXPresenceCode.Available,
-      'on_phone': FreePBXPresenceCode.OnPhone,
-      'busy': FreePBXPresenceCode.Busy,
-      'away': FreePBXPresenceCode.Away,
-      'extended_away': FreePBXPresenceCode.ExtendedAway,
-      'lunch': FreePBXPresenceCode.Lunch,
-      'meeting': FreePBXPresenceCode.InMeeting,
-      'dnd': FreePBXPresenceCode.Busy,
-      'offline': FreePBXPresenceCode.Offline,
+      available: FreePBXPresenceCode.Available,
+      on_phone: FreePBXPresenceCode.OnPhone,
+      busy: FreePBXPresenceCode.Busy,
+      away: FreePBXPresenceCode.Away,
+      extended_away: FreePBXPresenceCode.ExtendedAway,
+      lunch: FreePBXPresenceCode.Lunch,
+      meeting: FreePBXPresenceCode.InMeeting,
+      dnd: FreePBXPresenceCode.Busy,
+      offline: FreePBXPresenceCode.Offline,
     }
 
     return statusMap[status.toLowerCase()] || FreePBXPresenceCode.Offline
@@ -470,7 +480,7 @@ export class FreePBXPresenceBridge {
       } else if (
         data.returnTime &&
         (!previousStatus.returnTime ||
-         previousStatus.returnTime.returnTime.getTime() !== data.returnTime.returnTime.getTime())
+          previousStatus.returnTime.returnTime.getTime() !== data.returnTime.returnTime.getTime())
       ) {
         eventType = 'return_time_updated'
       }
@@ -500,9 +510,23 @@ export class FreePBXPresenceBridge {
   /**
    * Start countdown timer for return time updates
    */
-  private startReturnTimeCountdown(extension: string, _returnTime: ReturnTimeSpec): void {
+  private startReturnTimeCountdown(extension: string, returnTime: ReturnTimeSpec): void {
     // Clear existing timer
     this.stopReturnTimeCountdown(extension)
+
+    // If return time is already overdue, emit event immediately
+    if (returnTime.isOverdue) {
+      const status = this.presenceStatus.get(extension)
+      if (status) {
+        this.emitPresenceEvent({
+          type: 'return_time_expired',
+          extension,
+          uri: `sip:${extension}@${this.config.host}`,
+          currentStatus: status,
+          timestamp: new Date(),
+        })
+      }
+    }
 
     // Update return time every second
     const timer = setInterval(() => {
@@ -615,18 +639,17 @@ export class FreePBXPresenceBridge {
 
     try {
       const baseUrl = `https://${this.config.host}:${this.config.restPort}`
-      const response = await fetch(
-        `${baseUrl}/api/extensions`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.config.apiToken}`,
-          },
-        }
-      )
+      const response = await fetch(`${baseUrl}/api/extensions`, {
+        headers: {
+          Authorization: `Bearer ${this.config.apiToken}`,
+        },
+      })
 
       if (response.ok) {
         const data = await response.json()
-        return data.extensions?.map((ext: any) => ext.extension || ext.number) || []
+        return (
+          data.extensions?.map((ext: Record<string, unknown>) => ext.extension || ext.number) || []
+        )
       }
     } catch (error) {
       log.error('Error fetching extensions:', error)
@@ -691,9 +714,8 @@ export class FreePBXPresenceBridge {
       return
     }
 
-    const returnDate = typeof returnTime === 'number'
-      ? new Date(Date.now() + returnTime * 60000)
-      : returnTime
+    const returnDate =
+      typeof returnTime === 'number' ? new Date(Date.now() + returnTime * 60000) : returnTime
 
     const remainingMs = returnDate.getTime() - Date.now()
 

@@ -1,6 +1,18 @@
 <template>
   <div class="call-recording-demo">
-    <h2>📹 Call Recording</h2>
+    <h2>
+      <svg
+        class="icon-inline"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="3" fill="currentColor" />
+      </svg>
+      Call Recording
+    </h2>
     <p class="description">
       Record and playback call audio with duration tracking and file management.
     </p>
@@ -39,15 +51,24 @@
     <div v-if="isConnected" class="call-section">
       <h3>Make a Call</h3>
       <div class="form-group">
-        <label>Target SIP URI</label>
+        <label for="rec-target-uri">Target SIP URI</label>
         <input
+          id="rec-target-uri"
           v-model="targetUri"
           type="text"
           placeholder="sip:target@example.com"
           @keyup.enter="makeCall"
+          aria-required="true"
         />
       </div>
-      <button @click="makeCall" :disabled="hasActiveCall">📞 Make Call</button>
+      <button @click="makeCall" :disabled="hasActiveCall" class="w-full sm:w-auto">
+        <svg aria-hidden="true" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"
+          />
+        </svg>
+        Make Call
+      </button>
     </div>
 
     <!-- Active Call with Recording -->
@@ -69,52 +90,93 @@
       <div class="recording-controls">
         <h4>Recording</h4>
 
-        <div v-if="!isRecording && !recordedBlob" class="recording-status">
-          <span class="indicator idle">⚪</span>
+        <div v-if="!isRecording && !recordedBlob" class="recording-status" role="status">
+          <svg aria-hidden="true" class="indicator idle" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="10" />
+          </svg>
           <span>Ready to record</span>
         </div>
 
-        <div v-if="isRecording" class="recording-status recording">
-          <span class="indicator pulse">🔴</span>
+        <div v-if="isRecording" class="recording-status recording" role="status" aria-live="polite">
+          <svg aria-hidden="true" class="indicator pulse" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="10" />
+          </svg>
           <span>Recording: {{ recordingDuration }}</span>
         </div>
 
-        <div v-if="recordedBlob && !isRecording" class="recording-status">
-          <span class="indicator">✅</span>
+        <div v-if="recordedBlob && !isRecording" class="recording-status" role="status">
+          <svg
+            class="indicator"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            aria-hidden="true"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
           <span>Recording saved ({{ recordingSize }})</span>
         </div>
 
-        <div class="button-group">
+        <div class="button-group flex flex-column sm:flex-row gap-2">
           <button
             v-if="!isRecording"
             @click="startRecording"
             :disabled="!canRecord"
-            class="record-btn"
+            class="record-btn w-full sm:flex-1"
           >
-            🎙️ Start Recording
+            <svg aria-hidden="true" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"
+              />
+            </svg>
+            <span class="sm:inline hidden">Start </span>Record<span class="sm:inline hidden"
+              >ing</span
+            >
           </button>
-          <button v-if="isRecording" @click="stopRecording" class="stop-btn">
-            ⏹️ Stop Recording
+          <button v-if="isRecording" @click="stopRecording" class="stop-btn w-full sm:flex-1">
+            <svg aria-hidden="true" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" />
+            </svg>
+            Stop<span class="sm:inline hidden"> Recording</span>
           </button>
         </div>
 
         <!-- Recording Options -->
         <div class="recording-options">
           <label>
-            <input type="checkbox" v-model="autoRecord" />
+            <Checkbox v-model="autoRecord" binary />
             Auto-record calls
           </label>
           <label>
-            <input type="checkbox" v-model="recordRemoteOnly" />
+            <Checkbox v-model="recordRemoteOnly" binary />
             Record remote audio only
           </label>
         </div>
       </div>
 
       <!-- Call Controls -->
-      <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">✅ Answer</button>
-        <button @click="hangup" class="danger">📞 Hang Up</button>
+      <div class="button-group flex flex-column sm:flex-row gap-2">
+        <button @click="answer" v-if="callState === 'incoming'" class="w-full sm:flex-1">
+          <svg
+            class="icon-inline"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Answer
+        </button>
+        <button @click="hangup" class="danger w-full sm:flex-1">
+          <svg aria-hidden="true" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"
+            />
+          </svg>
+          Hang Up
+        </button>
       </div>
     </div>
 
@@ -139,10 +201,43 @@
               :disabled="currentlyPlaying === recording.id"
               class="play-btn"
             >
-              {{ currentlyPlaying === recording.id ? '⏸️ Playing' : '▶️ Play' }}
+              <svg
+                v-if="currentlyPlaying === recording.id"
+                class="icon-inline"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+              </svg>
+              <svg v-else class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              {{ currentlyPlaying === recording.id ? 'Playing' : 'Play' }}
             </button>
-            <button @click="downloadRecording(recording)" class="download-btn">💾 Download</button>
-            <button @click="deleteRecording(recording.id)" class="delete-btn">🗑️</button>
+            <button
+              @click="downloadRecording(recording)"
+              class="download-btn"
+              aria-label="Download recording"
+            >
+              <svg aria-hidden="true" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"
+                />
+              </svg>
+              Download
+            </button>
+            <button
+              @click="deleteRecording(recording.id)"
+              class="delete-btn"
+              aria-label="Delete recording"
+            >
+              <svg aria-hidden="true" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                />
+              </svg>
+              Delete
+            </button>
           </div>
         </div>
       </div>
@@ -163,6 +258,7 @@ import { useCallSession } from '../../src/composables/useCallSession'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Checkbox } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -172,12 +268,19 @@ const { isSimulationMode, activeScenario } = simulation
 const targetUri = ref('sip:1000@example.com')
 
 // SIP Client - use shared playground instance (credentials managed globally)
-const { connectionState: realConnectionState, isConnected: realIsConnected, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  getClient,
+} = playgroundSipClient
 
 // Effective values - use simulation or real data based on mode
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
@@ -483,7 +586,7 @@ onUnmounted(() => {
 }
 
 .description {
-  color: #666;
+  color: var(--text-color-secondary);
   margin-bottom: 2rem;
 }
 
@@ -496,15 +599,15 @@ onUnmounted(() => {
 
 .connection-hint {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
   padding: 0.5rem 0.75rem;
-  background: #fef3c7;
+  background: var(--yellow-50);
   border-radius: 6px;
-  border: 1px solid #fcd34d;
+  border: 1px solid var(--yellow-200);
 }
 
 .connection-hint strong {
-  color: #92400e;
+  color: var(--yellow-900);
 }
 
 .status-badge {
@@ -516,26 +619,26 @@ onUnmounted(() => {
 }
 
 .status-badge.connected {
-  background-color: #10b981;
-  color: white;
+  background-color: var(--green-500);
+  color: var(--surface-0);
 }
 
 .status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
+  background-color: var(--surface-400);
+  color: var(--surface-0);
 }
 
 .status-badge.connecting {
-  background-color: #f59e0b;
-  color: white;
+  background-color: var(--yellow-500);
+  color: var(--surface-0);
 }
 
 .config-section,
 .call-section,
 .active-call-section,
 .recordings-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-section);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
@@ -567,15 +670,15 @@ h4 {
 .form-group input {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--surface-border);
   border-radius: 4px;
   font-size: 0.875rem;
 }
 
 button {
   padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--blue-500);
+  color: var(--surface-0);
   border: none;
   border-radius: 4px;
   font-size: 0.875rem;
@@ -585,24 +688,24 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background-color: #2563eb;
+  background-color: var(--blue-600);
 }
 
 button:disabled {
-  background-color: #9ca3af;
+  background-color: var(--surface-400);
   cursor: not-allowed;
 }
 
 button.danger {
-  background-color: #ef4444;
+  background-color: var(--red-500);
 }
 
 button.danger:hover:not(:disabled) {
-  background-color: #dc2626;
+  background-color: var(--red-600);
 }
 
 .call-info {
-  background: white;
+  background: var(--surface-card);
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -612,7 +715,7 @@ button.danger:hover:not(:disabled) {
   display: flex;
   justify-content: space-between;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .info-item:last-child {
@@ -621,15 +724,15 @@ button.danger:hover:not(:disabled) {
 
 .info-item .label {
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .info-item .value {
-  color: #111827;
+  color: var(--text-color);
 }
 
 .recording-controls {
-  background: white;
+  background: var(--surface-card);
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -640,19 +743,33 @@ button.danger:hover:not(:disabled) {
   align-items: center;
   gap: 0.5rem;
   padding: 1rem;
-  background: #f3f4f6;
+  background: var(--surface-100);
   border-radius: 6px;
   margin-bottom: 1rem;
   font-weight: 500;
 }
 
 .recording-status.recording {
-  background: #fef2f2;
-  color: #991b1b;
+  background: var(--red-50);
+  color: var(--red-900);
 }
 
 .indicator {
-  font-size: 1.25rem;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.indicator.idle {
+  color: var(--surface-400);
+}
+
+.icon-inline {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
 }
 
 .indicator.pulse {
@@ -695,19 +812,19 @@ button.danger:hover:not(:disabled) {
 }
 
 .record-btn {
-  background-color: #dc2626;
+  background-color: var(--red-600);
 }
 
 .record-btn:hover:not(:disabled) {
-  background-color: #b91c1c;
+  background-color: var(--red-700);
 }
 
 .stop-btn {
-  background-color: #6b7280;
+  background-color: var(--surface-600);
 }
 
 .stop-btn:hover:not(:disabled) {
-  background-color: #4b5563;
+  background-color: var(--surface-700);
 }
 
 .recordings-list {
@@ -719,12 +836,20 @@ button.danger:hover:not(:disabled) {
 
 .recording-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--surface-card);
   border-radius: 6px;
   padding: 1rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--surface-border);
+}
+
+@media (min-width: 640px) {
+  .recording-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 }
 
 .recording-info {
@@ -738,46 +863,211 @@ button.danger:hover:not(:disabled) {
 
 .recording-meta {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-color-secondary);
 }
 
 .recording-controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
 .recording-controls button {
   padding: 0.375rem 0.75rem;
   font-size: 0.75rem;
+  flex: 1;
+  min-width: 80px;
+}
+
+@media (min-width: 640px) {
+  .recording-controls button {
+    flex: 0 0 auto;
+  }
 }
 
 .play-btn {
-  background-color: #10b981;
+  background-color: var(--green-500);
 }
 
 .play-btn:hover:not(:disabled) {
-  background-color: #059669;
+  background-color: var(--green-600);
 }
 
 .download-btn {
-  background-color: #3b82f6;
+  background-color: var(--blue-500);
 }
 
 .download-btn:hover:not(:disabled) {
-  background-color: #2563eb;
+  background-color: var(--blue-600);
 }
 
 .delete-btn {
-  background-color: #ef4444;
+  background-color: var(--red-500);
 }
 
 .delete-btn:hover:not(:disabled) {
-  background-color: #dc2626;
+  background-color: var(--red-600);
 }
 
 .recordings-actions {
   margin-top: 1rem;
+}
+
+/* Responsive Design - Mobile-First Patterns */
+@media (max-width: 768px) {
+  /* Status section: stack on mobile */
+  .status-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Form inputs: larger touch targets */
+  .form-group input {
+    min-height: 44px;
+    font-size: 1rem;
+    padding: 0.75rem;
+  }
+
+  /* Buttons: full width on mobile */
+  button {
+    min-height: 44px;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+  }
+
+  /* Call info: better mobile spacing */
+  .call-info {
+    padding: 0.75rem;
+  }
+
+  .info-item {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 0;
+  }
+
+  .info-item .label {
+    font-size: 0.875rem;
+  }
+
+  .info-item .value {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  /* Recording controls: stack on mobile */
+  .recording-controls {
+    padding: 0.75rem;
+  }
+
+  .recording-status {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .indicator {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Recording options: better spacing */
+  .recording-options label {
+    padding: 0.5rem 0;
+    font-size: 1rem;
+  }
+
+  .recording-options input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Recordings list: better mobile layout */
+  .recordings-list {
+    gap: 1rem;
+  }
+
+  .recording-item {
+    padding: 1rem;
+  }
+
+  .recording-name {
+    font-size: 1rem;
+  }
+
+  .recording-meta {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Sections: tighter spacing */
+  .config-section,
+  .call-section,
+  .active-call-section,
+  .recordings-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Connection hint: better mobile display */
+  .connection-hint {
+    font-size: 0.875rem;
+    padding: 0.75rem;
+  }
+
+  /* Status badge: larger */
+  .status-badge {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+  }
+
+  /* Headings: better sizing */
+  h3 {
+    font-size: 1.25rem;
+  }
+
+  h4 {
+    font-size: 1.125rem;
+  }
+
+  /* Recording controls: stack buttons */
+  .recording-controls button {
+    min-width: 100%;
+  }
+
+  /* Recordings actions: full width */
+  .recordings-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 375px) {
+  /* Description: smaller text */
+  .description {
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Very tight spacing on smallest screens */
+  .config-section,
+  .call-section,
+  .active-call-section,
+  .recordings-section {
+    padding: 0.75rem;
+  }
+
+  /* Recording meta: stack on very small screens */
+  .recording-meta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  /* Button text: show abbreviated on smallest */
+  button .sm\:inline {
+    display: none;
+  }
 }
 </style>

@@ -24,36 +24,34 @@
     <div v-if="!isAmiConnected" class="config-panel">
       <h3>Supervisor Demo</h3>
       <p class="info-text">
-        Monitor, whisper, and barge into active calls. This demo demonstrates
-        call center supervisor features using Asterisk's ChanSpy application.
+        Monitor, whisper, and barge into active calls. This demo demonstrates call center supervisor
+        features using Asterisk's ChanSpy application.
       </p>
 
       <div class="form-group">
         <label for="ami-url">AMI WebSocket URL</label>
-        <input
+        <InputText
           id="ami-url"
           v-model="amiConfig.url"
-          type="text"
           placeholder="ws://pbx.example.com:8080"
           :disabled="connecting"
+          class="w-full"
         />
         <small>amiws WebSocket proxy URL</small>
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
+        :label="connecting ? 'Connecting...' : 'Connect to AMI'"
         :disabled="!amiConfig.url || connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
+      />
 
-      <div v-if="connectionError" class="error-message">
+      <Message v-if="connectionError" severity="error" class="mt-2">
         {{ connectionError }}
-      </div>
+      </Message>
 
       <div class="demo-tip">
-        <strong>💡 Supervisor Features:</strong>
+        <strong>Supervisor Features:</strong>
         <ul>
           <li><strong>Monitor:</strong> Silent listen to agent calls</li>
           <li><strong>Whisper:</strong> Speak to agent only (coaching)</li>
@@ -76,12 +74,14 @@
         <div class="status-item">
           <span>Sessions: {{ sessionCount }}</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleRefresh" :disabled="loading">
-          🔄 Refresh
-        </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">
-          Disconnect
-        </button>
+        <Button
+          label="Refresh"
+          severity="secondary"
+          size="small"
+          @click="handleRefresh"
+          :disabled="loading"
+        />
+        <Button label="Disconnect" severity="secondary" size="small" @click="handleDisconnect" />
       </div>
 
       <!-- Supervisor Extension -->
@@ -91,10 +91,10 @@
           Enter your supervisor extension to use for monitoring/whisper/barge.
         </p>
         <div class="form-row">
-          <input
+          <InputText
             v-model="supervisorChannel"
-            type="text"
             placeholder="SIP/supervisor or PJSIP/9000"
+            class="w-full"
           />
           <small>Your supervisor phone will ring when you start a session</small>
         </div>
@@ -111,7 +111,6 @@
             :class="session.mode"
           >
             <div class="session-mode">
-              <span class="mode-icon">{{ getModeIcon(session.mode) }}</span>
               <span class="mode-label">{{ getModeLabel(session.mode) }}</span>
             </div>
             <div class="session-info">
@@ -121,59 +120,56 @@
             </div>
             <div class="session-actions">
               <div class="mode-switcher">
-                <button
+                <Button
                   v-if="session.mode !== 'monitor'"
-                  class="btn btn-sm btn-monitor"
+                  label="Monitor"
+                  size="small"
+                  class="btn-monitor"
                   @click="handleSwitchMode(session.id, 'monitor')"
                   title="Switch to silent monitor"
-                >
-                  👁️
-                </button>
-                <button
+                />
+                <Button
                   v-if="session.mode !== 'whisper'"
-                  class="btn btn-sm btn-whisper"
+                  label="Whisper"
+                  size="small"
+                  class="btn-whisper"
                   @click="handleSwitchMode(session.id, 'whisper')"
                   title="Switch to whisper"
-                >
-                  🗣️
-                </button>
-                <button
+                />
+                <Button
                   v-if="session.mode !== 'barge'"
-                  class="btn btn-sm btn-barge"
+                  label="Barge"
+                  size="small"
+                  class="btn-barge"
                   @click="handleSwitchMode(session.id, 'barge')"
                   title="Switch to barge"
-                >
-                  📢
-                </button>
+                />
               </div>
-              <button
-                class="btn btn-sm btn-danger"
+              <Button
+                label="End Session"
+                severity="danger"
+                size="small"
                 @click="handleEndSession(session.id)"
-              >
-                End Session
-              </button>
+              />
             </div>
           </div>
         </div>
-        <button
+        <Button
           v-if="sessionList.length > 1"
-          class="btn btn-secondary"
+          label="End All Sessions"
+          severity="secondary"
           @click="handleEndAllSessions"
-        >
-          End All Sessions
-        </button>
+        />
       </div>
 
       <!-- Active Calls -->
       <div class="calls-panel">
         <h4>Active Calls</h4>
 
-        <div v-if="loading" class="loading-state">
-          Loading calls...
-        </div>
+        <div v-if="loading" class="loading-state">Loading calls...</div>
 
         <div v-else-if="callList.length === 0" class="empty-state">
-          <p>📭 No active calls</p>
+          <p>No active calls</p>
           <p class="info-text">Waiting for calls to monitor...</p>
         </div>
 
@@ -188,7 +184,9 @@
               <div class="call-parties">
                 <span class="caller">{{ call.callerIdName || call.callerIdNum || 'Unknown' }}</span>
                 <span class="arrow">↔</span>
-                <span class="callee">{{ call.connectedLineName || call.connectedLineNum || 'Unknown' }}</span>
+                <span class="callee">{{
+                  call.connectedLineName || call.connectedLineNum || 'Unknown'
+                }}</span>
               </div>
               <div class="call-details">
                 <span class="channel">{{ call.channel }}</span>
@@ -204,43 +202,41 @@
                 {{ getSessionMode(call.channel) }}
               </div>
               <div v-else-if="supervisorChannel" class="action-buttons">
-                <button
-                  class="btn btn-sm btn-monitor"
+                <Button
+                  label="Monitor"
+                  size="small"
+                  class="btn-monitor"
                   :disabled="!canSupervise"
                   @click="handleMonitor(call.channel)"
                   title="Silent listen"
-                >
-                  👁️ Monitor
-                </button>
-                <button
-                  class="btn btn-sm btn-whisper"
+                />
+                <Button
+                  label="Whisper"
+                  size="small"
+                  class="btn-whisper"
                   :disabled="!canSupervise"
                   @click="handleWhisper(call.channel)"
                   title="Speak to agent only"
-                >
-                  🗣️ Whisper
-                </button>
-                <button
-                  class="btn btn-sm btn-barge"
+                />
+                <Button
+                  label="Barge"
+                  size="small"
+                  class="btn-barge"
                   :disabled="!canSupervise"
                   @click="handleBarge(call.channel)"
                   title="Join the call"
-                >
-                  📢 Barge
-                </button>
+                />
               </div>
-              <div v-else class="hint">
-                Enter supervisor channel to enable
-              </div>
+              <div v-else class="hint">Enter supervisor channel to enable</div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-message">
+      <Message v-if="error" severity="error" class="mt-2">
         {{ error }}
-      </div>
+      </Message>
     </div>
   </div>
 </template>
@@ -251,6 +247,7 @@ import { useAmi, useAmiCalls, useAmiSupervisor, type SupervisionMode } from '../
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 import { ChannelState } from '../../src/types/ami.types'
+import { Button, InputText, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -269,7 +266,7 @@ const error = ref('')
 const {
   connect: amiConnect,
   disconnect: amiDisconnect,
-  isConnected: realIsAmiConnected,
+  isConnected: _realIsAmiConnected,
   getClient,
 } = useAmi()
 
@@ -278,42 +275,41 @@ const callsComposable = ref<ReturnType<typeof useAmiCalls> | null>(null)
 const supervisorComposable = ref<ReturnType<typeof useAmiSupervisor> | null>(null)
 
 // Computed
+const isAmiConnected = computed(() =>
+  isSimulationMode.value ? simulation.isConnected.value : _realIsAmiConnected.value
+)
 const loading = computed(() => callsComposable.value?.loading.value ?? false)
 const callList = computed(() => callsComposable.value?.callList.value ?? [])
 const callCount = computed(() => callsComposable.value?.callCount.value ?? 0)
 const sessionList = computed(() =>
-  supervisorComposable.value
-    ? Array.from(supervisorComposable.value.sessions.value.values())
-    : []
+  supervisorComposable.value ? Array.from(supervisorComposable.value.sessions.value.values()) : []
 )
 const sessionCount = computed(() => supervisorComposable.value?.activeSessionCount.value ?? 0)
 const canSupervise = computed(() => supervisorChannel.value.trim().length > 0)
 
 // Helpers
-const getModeIcon = (mode: SupervisionMode): string => {
-  switch (mode) {
-    case 'monitor': return '👁️'
-    case 'whisper': return '🗣️'
-    case 'barge': return '📢'
-    default: return '❓'
-  }
-}
-
 const getModeLabel = (mode: SupervisionMode): string => {
   switch (mode) {
-    case 'monitor': return 'Monitoring'
-    case 'whisper': return 'Whispering'
-    case 'barge': return 'Barging'
-    default: return 'Unknown'
+    case 'monitor':
+      return 'Monitoring'
+    case 'whisper':
+      return 'Whispering'
+    case 'barge':
+      return 'Barging'
+    default:
+      return 'Unknown'
   }
 }
 
 const getCallStateClass = (state: ChannelState): string => {
   switch (state) {
-    case ChannelState.Up: return 'connected'
+    case ChannelState.Up:
+      return 'connected'
     case ChannelState.Ringing:
-    case ChannelState.Ring: return 'ringing'
-    default: return 'unknown'
+    case ChannelState.Ring:
+      return 'ringing'
+    default:
+      return 'unknown'
   }
 }
 
@@ -333,7 +329,7 @@ const isSupervising = (channel: string): boolean => {
 
 const getSessionMode = (channel: string): string => {
   const session = supervisorComposable.value?.getSessionForChannel(channel)
-  return session ? `${getModeIcon(session.mode)} ${getModeLabel(session.mode)}` : ''
+  return session ? getModeLabel(session.mode) : ''
 }
 
 // Handlers
@@ -484,12 +480,12 @@ watch(supervisorChannel, (value) => {
 
 .config-panel h3 {
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--vuesip-text-primary);
 }
 
 .info-text {
   margin-bottom: 1.5rem;
-  color: #666;
+  color: var(--vuesip-text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -502,21 +498,13 @@ watch(supervisorChannel, (value) => {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  color: var(--vuesip-text-primary);
 }
 
 .form-group small {
   display: block;
   margin-top: 0.25rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
   font-size: 0.75rem;
 }
 
@@ -526,53 +514,38 @@ watch(supervisorChannel, (value) => {
   gap: 0.5rem;
 }
 
-.form-row input {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+/* Custom button styling for PrimeVue Button components */
+:deep(.btn-monitor) {
+  background: var(--vuesip-info);
+  border-color: var(--vuesip-info);
 }
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+:deep(.btn-monitor:hover:not(:disabled)) {
+  background: var(--vuesip-info-dark);
+  border-color: var(--vuesip-info-dark);
 }
-
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: #667eea; color: white; }
-.btn-primary:hover:not(:disabled) { background: #5568d3; }
-.btn-secondary { background: #6b7280; color: white; }
-.btn-secondary:hover:not(:disabled) { background: #4b5563; }
-.btn-danger { background: #ef4444; color: white; }
-.btn-danger:hover:not(:disabled) { background: #dc2626; }
-.btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
-
-.btn-monitor { background: #3b82f6; color: white; }
-.btn-monitor:hover:not(:disabled) { background: #2563eb; }
-.btn-whisper { background: #f59e0b; color: white; }
-.btn-whisper:hover:not(:disabled) { background: #d97706; }
-.btn-barge { background: #ef4444; color: white; }
-.btn-barge:hover:not(:disabled) { background: #dc2626; }
-
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
-  font-size: 0.875rem;
+:deep(.btn-whisper) {
+  background: var(--vuesip-warning);
+  border-color: var(--vuesip-warning);
+}
+:deep(.btn-whisper:hover:not(:disabled)) {
+  background: var(--vuesip-warning-dark);
+  border-color: var(--vuesip-warning-dark);
+}
+:deep(.btn-barge) {
+  background: var(--vuesip-danger);
+  border-color: var(--vuesip-danger);
+}
+:deep(.btn-barge:hover:not(:disabled)) {
+  background: var(--vuesip-danger-dark);
+  border-color: var(--vuesip-danger-dark);
 }
 
 .demo-tip {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  border-radius: 4px;
+  background: var(--vuesip-info-light);
+  border-left: 4px solid var(--vuesip-info);
+  border-radius: var(--vuesip-border-radius);
   font-size: 0.875rem;
 }
 
@@ -597,8 +570,8 @@ watch(supervisorChannel, (value) => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius-lg);
   margin-bottom: 2rem;
 }
 
@@ -613,39 +586,39 @@ watch(supervisorChannel, (value) => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--vuesip-danger);
 }
 
 .status-dot.connected {
-  background: #10b981;
+  background: var(--vuesip-success);
 }
 
 /* Supervisor Config */
 .supervisor-config {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-primary);
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
   padding: 1.5rem;
   margin-bottom: 2rem;
 }
 
 .supervisor-config h4 {
   margin-bottom: 0.5rem;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 /* Sessions Panel */
 .sessions-panel {
-  background: #fef3c7;
+  background: var(--vuesip-warning-light);
   border: 1px solid #fbbf24;
-  border-radius: 8px;
+  border-radius: var(--vuesip-border-radius-lg);
   padding: 1.5rem;
   margin-bottom: 2rem;
 }
 
 .sessions-panel h4 {
   margin-bottom: 1rem;
-  color: #92400e;
+  color: var(--vuesip-warning-dark);
 }
 
 .sessions-list {
@@ -660,14 +633,20 @@ watch(supervisorChannel, (value) => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: white;
-  border-radius: 6px;
-  border-left: 4px solid #f59e0b;
+  background: var(--vuesip-bg-primary);
+  border-radius: var(--vuesip-border-radius);
+  border-left: 4px solid var(--vuesip-warning);
 }
 
-.session-card.monitor { border-left-color: #3b82f6; }
-.session-card.whisper { border-left-color: #f59e0b; }
-.session-card.barge { border-left-color: #ef4444; }
+.session-card.monitor {
+  border-left-color: var(--vuesip-info);
+}
+.session-card.whisper {
+  border-left-color: var(--vuesip-warning);
+}
+.session-card.barge {
+  border-left-color: var(--vuesip-danger);
+}
 
 .session-mode {
   display: flex;
@@ -677,13 +656,12 @@ watch(supervisorChannel, (value) => {
   min-width: 80px;
 }
 
-.mode-icon {
-  font-size: 1.5rem;
-}
-
 .mode-label {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: var(--vuesip-border-radius);
 }
 
 .session-info {
@@ -692,13 +670,13 @@ watch(supervisorChannel, (value) => {
 
 .session-target {
   font-weight: 500;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .session-supervisor,
 .session-time {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .session-actions {
@@ -713,32 +691,32 @@ watch(supervisorChannel, (value) => {
   gap: 0.25rem;
 }
 
-.mode-switcher .btn {
+.mode-switcher :deep(.p-button) {
   padding: 0.375rem 0.5rem;
   font-size: 0.875rem;
 }
 
 /* Calls Panel */
 .calls-panel {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--vuesip-bg-primary);
+  border: 1px solid var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius-lg);
   padding: 1.5rem;
 }
 
 .calls-panel h4 {
   margin-bottom: 1rem;
-  color: #111827;
+  color: var(--vuesip-text-primary);
 }
 
 .loading-state,
 .empty-state {
   padding: 2rem;
   text-align: center;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
-  border-radius: 6px;
-  color: #6b7280;
+  background: var(--vuesip-bg-secondary);
+  border: 1px dashed var(--vuesip-border);
+  border-radius: var(--vuesip-border-radius);
+  color: var(--vuesip-text-tertiary);
 }
 
 .calls-list {
@@ -752,14 +730,14 @@ watch(supervisorChannel, (value) => {
   align-items: center;
   gap: 1.5rem;
   padding: 1rem;
-  background: #f9fafb;
-  border-radius: 6px;
-  border-left: 4px solid #e5e7eb;
+  background: var(--vuesip-bg-secondary);
+  border-radius: var(--vuesip-border-radius);
+  border-left: 4px solid var(--vuesip-border);
 }
 
 .call-card.supervised {
-  border-left-color: #3b82f6;
-  background: #eff6ff;
+  border-left-color: var(--vuesip-info);
+  background: var(--surface-ground);
 }
 
 .call-info {
@@ -771,12 +749,12 @@ watch(supervisorChannel, (value) => {
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
-  color: #111827;
+  color: var(--vuesip-text-primary);
   margin-bottom: 0.5rem;
 }
 
 .arrow {
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .call-details {
@@ -784,18 +762,27 @@ watch(supervisorChannel, (value) => {
   flex-wrap: wrap;
   gap: 1rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--vuesip-text-tertiary);
 }
 
 .state-badge {
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--vuesip-border-radius);
   font-weight: 500;
 }
 
-.state-badge.connected { background: #d1fae5; color: #065f46; }
-.state-badge.ringing { background: #dbeafe; color: #1e40af; }
-.state-badge.unknown { background: #e5e7eb; color: #374151; }
+.state-badge.connected {
+  background: var(--vuesip-success-light);
+  color: var(--vuesip-success-dark);
+}
+.state-badge.ringing {
+  background: var(--vuesip-info-light);
+  color: var(--vuesip-info-dark);
+}
+.state-badge.unknown {
+  background: var(--vuesip-border);
+  color: var(--vuesip-text-primary);
+}
 
 .supervision-actions {
   display: flex;
@@ -806,8 +793,8 @@ watch(supervisorChannel, (value) => {
 
 .supervised-badge {
   padding: 0.5rem 1rem;
-  background: #3b82f6;
-  color: white;
+  background: var(--vuesip-info);
+  color: var(--surface-0);
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -820,7 +807,7 @@ watch(supervisorChannel, (value) => {
 
 .hint {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--vuesip-text-tertiary);
   font-style: italic;
 }
 
@@ -849,5 +836,14 @@ watch(supervisorChannel, (value) => {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+/* Utility Classes */
+.w-full {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
 }
 </style>

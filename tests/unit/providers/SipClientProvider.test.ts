@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * SipClientProvider unit tests
  * Tests for Phase 7.1: Provider component implementation
@@ -9,7 +8,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import { SipClientProvider, useSipClientProvider } from '@/providers/SipClientProvider'
 import type { SipClientConfig } from '@/types/config.types'
-import { waitForNextTick, waitForCondition } from '../../utils/test-helpers'
+import { waitForCondition } from '../../utils/test-helpers'
 
 // Mock the logger
 vi.mock('@/utils/logger', () => ({
@@ -53,7 +52,7 @@ vi.mock('@/core/EventBus', () => ({
       emit: vi.fn(),
       emitSync: vi.fn((event: string, data?: any) => {
         const eventHandlers = globalHandlers.get(event) || []
-        eventHandlers.forEach(h => h(data))
+        eventHandlers.forEach((h) => h(data))
       }),
       removeById: vi.fn((id: string) => {
         // Simple cleanup for tests
@@ -121,6 +120,9 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
   describe('Provider Injection', () => {
     it('should provide SIP client context to children', async () => {
+      // Suppress Vue injection warnings in this test
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
       const ChildComponent = defineComponent({
         setup() {
           const context = useSipClientProvider()
@@ -145,9 +147,13 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
+      warnSpy.mockRestore()
     })
 
     it('should throw error when useSipClientProvider is used outside provider', () => {
+      // Suppress Vue injection warnings for this intentional error test
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
       const ChildComponent = defineComponent({
         setup() {
           expect(() => {
@@ -157,7 +163,8 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         },
       })
 
-      mount(ChildComponent)
+      const _wrapper = mount(ChildComponent)
+      warnSpy.mockRestore()
     })
 
     it('should provide readonly refs to children', async () => {
@@ -173,7 +180,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         },
       })
 
-      mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -207,7 +214,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -226,7 +233,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
     it('should validate configuration before initializing', async () => {
       const { validateSipConfig } = await import('@/utils/validators')
 
-      mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -256,11 +263,13 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       let errorEmitted: Error | null = null
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
-          onError: (err: Error) => { errorEmitted = err }
+          onError: (err: Error) => {
+            errorEmitted = err
+          },
         },
       })
 
@@ -305,7 +314,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: true,
@@ -313,7 +322,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
       })
 
       await flushPromises()
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       // Should call start()
       expect(startSpy).toHaveBeenCalled()
@@ -338,16 +347,18 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       let errorEmitted: Error | null = null
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: true,
-          onError: (err: Error) => { errorEmitted = err }
+          onError: (err: Error) => {
+            errorEmitted = err
+          },
         },
       })
 
       await flushPromises()
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       // Should emit error event
       expect(errorEmitted).toBeInstanceOf(Error)
@@ -497,7 +508,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         return mockClient as any
       })
 
-      mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: true,
@@ -507,10 +518,10 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       await flushPromises()
       // Wait for register to be called (mock uses setTimeout with 0 delay)
-      await waitForCondition(
-        () => mockClient.register.mock.calls.length > 0,
-        { timeout: 1000, description: 'register to be called' }
-      )
+      await waitForCondition(() => mockClient.register.mock.calls.length > 0, {
+        timeout: 1000,
+        description: 'register to be called',
+      })
 
       // Should call register after connection
       expect(mockClient.register).toHaveBeenCalled()
@@ -542,12 +553,14 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
           autoRegister: false,
-          onReady: () => { readyEmitted = true }
+          onReady: () => {
+            readyEmitted = true
+          },
         },
       })
 
@@ -591,11 +604,13 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
-          onConnected: () => { connectedEmitted = true }
+          onConnected: () => {
+            connectedEmitted = true
+          },
         },
       })
 
@@ -633,11 +648,13 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
-          onRegistered: (uri: string) => { registeredUri = uri }
+          onRegistered: (uri: string) => {
+            registeredUri = uri
+          },
         },
       })
 
@@ -675,11 +692,13 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
-          onReady: () => { readyEmitted = true }
+          onReady: () => {
+            readyEmitted = true
+          },
         },
       })
 
@@ -717,11 +736,13 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         } as any
       })
 
-      const wrapper = mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
-          onError: (err: Error) => { errorMessage = err.message }
+          onError: (err: Error) => {
+            errorMessage = err.message
+          },
         },
       })
 
@@ -800,7 +821,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         },
       })
 
-      mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -823,7 +844,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         },
       })
 
-      mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,
@@ -846,7 +867,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         },
       })
 
-      mount(SipClientProvider, {
+      const _wrapper = mount(SipClientProvider, {
         props: {
           config: mockConfig,
           autoConnect: false,

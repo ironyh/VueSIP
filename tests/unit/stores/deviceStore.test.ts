@@ -81,7 +81,7 @@ describe('deviceStore', () => {
       expect(deviceStore.hasVideoInputDevices).toBe(true)
     })
 
-    it('should auto-select first device if none selected', () => {
+    it('should not auto-select devices when setting device list', () => {
       const devices = [
         createMockDevice(MediaDeviceKind.AudioInput, 'mic-1', 'Microphone 1'),
         createMockDevice(MediaDeviceKind.AudioInput, 'mic-2', 'Microphone 2'),
@@ -89,10 +89,11 @@ describe('deviceStore', () => {
 
       deviceStore.setAudioInputDevices(devices)
 
-      expect(deviceStore.selectedAudioInputId).toBe('mic-1')
+      // Auto-selection is controlled by MediaProvider, not deviceStore
+      expect(deviceStore.selectedAudioInputId).toBeNull()
     })
 
-    it('should auto-select default device if available', () => {
+    it('should not auto-select even when default device is available', () => {
       const devices = [
         createMockDevice(MediaDeviceKind.AudioInput, 'mic-1', 'Microphone 1'),
         createMockDevice(MediaDeviceKind.AudioInput, 'default', 'Default Mic'),
@@ -100,7 +101,8 @@ describe('deviceStore', () => {
 
       deviceStore.setAudioInputDevices(devices)
 
-      expect(deviceStore.selectedAudioInputId).toBe('default')
+      // Auto-selection is controlled by MediaProvider, not deviceStore
+      expect(deviceStore.selectedAudioInputId).toBeNull()
     })
 
     it('should update all devices from MediaDeviceInfo array', () => {
@@ -168,11 +170,12 @@ describe('deviceStore', () => {
     it('should not select non-existent audio input', () => {
       const devices = [createMockDevice(MediaDeviceKind.AudioInput, 'mic-1', 'Microphone 1')]
       deviceStore.setAudioInputDevices(devices)
+      deviceStore.selectAudioInput('mic-1') // Manually select first
 
       const result = deviceStore.selectAudioInput('non-existent')
 
       expect(result).toBe(false)
-      expect(deviceStore.selectedAudioInputId).toBe('mic-1') // Should remain first device
+      expect(deviceStore.selectedAudioInputId).toBe('mic-1') // Should remain unchanged
     })
 
     it('should select audio output device', () => {
@@ -311,6 +314,7 @@ describe('deviceStore', () => {
     it('should check if device is selected', () => {
       const devices = [createMockDevice(MediaDeviceKind.AudioInput, 'mic-1', 'Microphone 1')]
       deviceStore.setAudioInputDevices(devices)
+      deviceStore.selectAudioInput('mic-1') // Manually select device
 
       expect(deviceStore.isDeviceSelected('mic-1')).toBe(true)
       expect(deviceStore.isDeviceSelected('mic-2')).toBe(false)
@@ -344,6 +348,7 @@ describe('deviceStore', () => {
       deviceStore.setVideoInputDevices([
         createMockDevice(MediaDeviceKind.VideoInput, 'cam-1', 'Camera 1'),
       ])
+      deviceStore.selectAudioInput('mic-1') // Manually select device
       deviceStore.setAudioPermission(PermissionStatus.Granted)
 
       const stats = deviceStore.getStatistics()
@@ -354,7 +359,7 @@ describe('deviceStore', () => {
       expect(stats.totalDevices).toBe(3)
       expect(stats.hasAudioPermission).toBe(true)
       expect(stats.hasVideoPermission).toBe(false)
-      expect(stats.selectedDevices.audioInput).toBe('mic-1') // Auto-selected
+      expect(stats.selectedDevices.audioInput).toBe('mic-1')
     })
   })
 
@@ -376,6 +381,7 @@ describe('deviceStore', () => {
     it('should compute selected devices correctly', () => {
       const devices = [createMockDevice(MediaDeviceKind.AudioInput, 'mic-1', 'Microphone 1')]
       deviceStore.setAudioInputDevices(devices)
+      deviceStore.selectAudioInput('mic-1') // Manually select device
 
       expect(deviceStore.selectedAudioInputDevice?.deviceId).toBe('mic-1')
       expect(deviceStore.selectedAudioOutputDevice).toBeUndefined()
@@ -421,8 +427,8 @@ describe('deviceStore', () => {
 
       deviceStore.setAudioInputDevices(devices)
 
-      // Should select the default one
-      expect(deviceStore.selectedAudioInputId).toBe('default')
+      // Should not auto-select, even with default device
+      expect(deviceStore.selectedAudioInputId).toBeNull()
     })
 
     it('should maintain selection when devices are updated', () => {
@@ -436,7 +442,7 @@ describe('deviceStore', () => {
       ]
       deviceStore.setAudioInputDevices(devices2)
 
-      // Should NOT auto-select since there's already a selection
+      // Should maintain selection when device still exists in new list
       expect(deviceStore.selectedAudioInputId).toBe('mic-1')
     })
   })

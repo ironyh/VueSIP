@@ -1,6 +1,6 @@
 <template>
   <div class="screen-sharing-demo">
-    <h2>🖥️ Screen Sharing</h2>
+    <h2>Screen Sharing</h2>
     <p class="description">
       Share your screen, application windows, or browser tabs during video calls.
     </p>
@@ -51,7 +51,7 @@
           @keyup.enter="makeVideoCall"
         />
       </div>
-      <button @click="makeVideoCall" :disabled="hasActiveCall">📹 Make Video Call</button>
+      <button @click="makeVideoCall" :disabled="hasActiveCall">Make Video Call</button>
     </div>
 
     <!-- Active Call with Screen Sharing -->
@@ -101,10 +101,10 @@
 
           <div class="share-buttons">
             <button @click="shareScreen('screen')" class="share-btn screen">
-              🖥️ Share Entire Screen
+              Share Entire Screen
             </button>
-            <button @click="shareScreen('window')" class="share-btn window">🪟 Share Window</button>
-            <button @click="shareScreen('tab')" class="share-btn tab">🌐 Share Browser Tab</button>
+            <button @click="shareScreen('window')" class="share-btn window">Share Window</button>
+            <button @click="shareScreen('tab')" class="share-btn tab">Share Browser Tab</button>
           </div>
 
           <div class="share-settings">
@@ -122,7 +122,7 @@
 
         <div v-else class="sharing-active">
           <div class="sharing-info">
-            <div class="sharing-icon">🔴</div>
+            <div class="sharing-icon"></div>
             <div class="sharing-text">
               <div class="primary">You are sharing your {{ sharingType }}</div>
               <div class="secondary">{{ sharingDuration }}</div>
@@ -144,7 +144,7 @@
             </div>
           </div>
 
-          <button @click="stopScreenShare" class="stop-share-btn">⏹️ Stop Sharing</button>
+          <button @click="stopScreenShare" class="stop-share-btn">Stop Sharing</button>
         </div>
       </div>
 
@@ -153,16 +153,16 @@
         <h4>Quick Actions</h4>
         <div class="button-grid">
           <button @click="toggleCamera" :class="['action-btn', { active: hasLocalVideo }]">
-            {{ hasLocalVideo ? '📹' : '📹' }} Camera
+            Camera
           </button>
           <button @click="toggleMicrophone" :class="['action-btn', { active: !isMuted }]">
-            {{ isMuted ? '🔇' : '🔊' }} Mic
+            {{ isMuted ? 'Muted' : 'Mic' }}
           </button>
           <button @click="switchCamera" :disabled="!hasLocalVideo" class="action-btn">
-            🔄 Switch Camera
+            Switch Camera
           </button>
           <button @click="takeScreenshot" :disabled="!isSharingScreen" class="action-btn">
-            📸 Screenshot
+            Screenshot
           </button>
         </div>
       </div>
@@ -172,7 +172,7 @@
         <h4>Sharing History</h4>
         <div class="history-list">
           <div v-for="(entry, index) in sharingHistory" :key="index" class="history-item">
-            <div class="history-icon">{{ getShareTypeIcon(entry.type) }}</div>
+            <div :class="['history-icon', getShareTypeClass(entry.type)]"></div>
             <div class="history-info">
               <div class="history-type">{{ entry.type }}</div>
               <div class="history-duration">Duration: {{ entry.duration }}</div>
@@ -184,8 +184,8 @@
 
       <!-- Call Controls -->
       <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">✅ Answer</button>
-        <button @click="hangup" class="danger">📞 Hang Up</button>
+        <button @click="answer" v-if="callState === 'incoming'">Answer</button>
+        <button @click="hangup" class="danger">Hang Up</button>
       </div>
     </div>
 
@@ -194,11 +194,11 @@
       <h3>Browser Compatibility</h3>
       <div class="compat-grid">
         <div :class="['compat-item', { supported: supportsScreenShare }]">
-          <span class="compat-icon">{{ supportsScreenShare ? '✅' : '❌' }}</span>
+          <span :class="['compat-icon', { supported: supportsScreenShare }]"></span>
           <span class="compat-label">Screen Sharing</span>
         </div>
         <div :class="['compat-item', { supported: supportsAudioShare }]">
-          <span class="compat-icon">{{ supportsAudioShare ? '✅' : '❌' }}</span>
+          <span :class="['compat-icon', { supported: supportsAudioShare }]"></span>
           <span class="compat-label">Audio Sharing</span>
         </div>
       </div>
@@ -228,12 +228,22 @@ const password = ref('')
 const targetUri = ref('sip:1000@example.com')
 
 // SIP Client - use shared playground instance
-const { connectionState: realConnectionState, isConnected: realIsConnected, isConnecting, connect, disconnect, getClient } =
-  playgroundSipClient
+const {
+  connectionState: realConnectionState,
+  isConnected: realIsConnected,
+  isConnecting: _isConnecting,
+  connect,
+  disconnect,
+  getClient,
+} = playgroundSipClient
 
 // Effective values - use simulation or real data based on mode
 const connectionState = computed(() =>
-  isSimulationMode.value ? (simulation.isConnected.value ? 'connected' : 'disconnected') : realConnectionState.value
+  isSimulationMode.value
+    ? simulation.isConnected.value
+      ? 'connected'
+      : 'disconnected'
+    : realConnectionState.value
 )
 const isConnected = computed(() =>
   isSimulationMode.value ? simulation.isConnected.value : realIsConnected.value
@@ -308,7 +318,7 @@ const formatTime = (seconds: number): string => {
 }
 
 // Connection Toggle
-const toggleConnection = async () => {
+const _toggleConnection = async () => {
   if (isConnected.value) {
     await disconnect()
   } else {
@@ -532,16 +542,16 @@ const stopSharingTimer = () => {
 }
 
 // Helpers
-const getShareTypeIcon = (type: string): string => {
+const getShareTypeClass = (type: string): string => {
   switch (type) {
     case 'screen':
-      return '🖥️'
+      return 'share-type-screen'
     case 'window':
-      return '🪟'
+      return 'share-type-window'
     case 'tab':
-      return '🌐'
+      return 'share-type-tab'
     default:
-      return '📺'
+      return 'share-type-default'
   }
 }
 
@@ -882,7 +892,10 @@ button.danger:hover:not(:disabled) {
 }
 
 .sharing-icon {
-  font-size: 2rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--color-error, #ef4444);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -987,7 +1000,41 @@ button.danger:hover:not(:disabled) {
 }
 
 .history-icon {
-  font-size: 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 4px;
+}
+
+.history-icon.share-type-screen {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary, #3b82f6) 0%,
+    var(--color-primary-dark, #2563eb) 100%
+  );
+}
+
+.history-icon.share-type-window {
+  background: linear-gradient(
+    135deg,
+    var(--color-info, #06b6d4) 0%,
+    var(--color-info-dark, #0891b2) 100%
+  );
+}
+
+.history-icon.share-type-tab {
+  background: linear-gradient(
+    135deg,
+    var(--color-success, #10b981) 0%,
+    var(--color-success-dark, #059669) 100%
+  );
+}
+
+.history-icon.share-type-default {
+  background: linear-gradient(
+    135deg,
+    var(--color-gray, #6b7280) 0%,
+    var(--color-gray-dark, #4b5563) 100%
+  );
 }
 
 .history-info {
@@ -1037,7 +1084,14 @@ button.danger:hover:not(:disabled) {
 }
 
 .compat-icon {
-  font-size: 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 4px;
+  background: var(--color-error, #ef4444);
+}
+
+.compat-icon.supported {
+  background: var(--color-success, #10b981);
 }
 
 .compat-label {

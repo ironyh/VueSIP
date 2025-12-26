@@ -139,7 +139,6 @@ const {
   connect,
   updateConfig,
   getClient,
-  getEventBus,
 } = useSipClient(undefined, {
   eventBus,
   autoConnect: false,
@@ -162,7 +161,6 @@ const {
   isMuted,
   isOnHold,
   hasLocalVideo,
-  hasRemoteVideo,
   localStream,
   remoteStream,
   duration,
@@ -409,7 +407,7 @@ async function handleCameraSelect(deviceId: string) {
 
         console.log('Camera switched to:', deviceId)
         // Announce camera change
-        const device = videoInputDevices.value.find(d => d.deviceId === deviceId)
+        const device = videoInputDevices.value.find((d) => d.deviceId === deviceId)
         statusAnnouncement.value = `Camera switched to ${device?.label || 'selected camera'}`
       } catch (error) {
         console.error('Failed to switch camera during call:', error)
@@ -466,10 +464,10 @@ watch(sipError, (error) => {
 watch(callState, (newState, oldState) => {
   if (newState !== oldState) {
     const stateMessages: Record<string, string> = {
-      'ringing': 'Call is ringing',
-      'active': 'Call connected',
-      'ended': 'Call ended',
-      'failed': 'Call failed',
+      ringing: 'Call is ringing',
+      active: 'Call connected',
+      ended: 'Call ended',
+      failed: 'Call failed',
     }
     if (stateMessages[newState]) {
       statusAnnouncement.value = stateMessages[newState]

@@ -3,110 +3,106 @@
  * Provides reactive device lists, selection, and stream management
  */
 
-import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue';
-import { AudioManager } from '@/core/AudioManager';
+import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
+import { AudioManager } from '@/core/AudioManager'
 import type {
   AudioDevice,
   AudioConstraints,
   AudioPermissionState,
-  AudioDeviceChangeEvent
-} from '@/types/audio.types';
+  AudioDeviceChangeEvent,
+} from '@/types/audio.types'
 
 export interface UseAudioDevicesReturn {
   // Device lists
-  microphones: Readonly<Ref<AudioDevice[]>>;
-  speakers: Readonly<Ref<AudioDevice[]>>;
-  cameras: Readonly<Ref<AudioDevice[]>>;
-  allDevices: Readonly<Ref<AudioDevice[]>>;
+  microphones: Readonly<Ref<AudioDevice[]>>
+  speakers: Readonly<Ref<AudioDevice[]>>
+  cameras: Readonly<Ref<AudioDevice[]>>
+  allDevices: Readonly<Ref<AudioDevice[]>>
 
   // Current devices
-  currentMicrophone: Readonly<Ref<AudioDevice | null>>;
-  currentSpeaker: Readonly<Ref<AudioDevice | null>>;
-  currentCamera: Readonly<Ref<AudioDevice | null>>;
+  currentMicrophone: Readonly<Ref<AudioDevice | null>>
+  currentSpeaker: Readonly<Ref<AudioDevice | null>>
+  currentCamera: Readonly<Ref<AudioDevice | null>>
 
   // State
-  permissionStatus: Readonly<Ref<AudioPermissionState>>;
-  isLoading: Readonly<Ref<boolean>>;
-  error: Ref<string | null>;
+  permissionStatus: Readonly<Ref<AudioPermissionState>>
+  isLoading: Readonly<Ref<boolean>>
+  error: Ref<string | null>
 
   // Methods
-  refreshDevices: () => Promise<void>;
-  requestPermissions: () => Promise<boolean>;
-  checkAudioPermission: () => Promise<AudioPermissionState>;
-  checkVideoPermission: () => Promise<AudioPermissionState>;
-  selectMicrophone: (deviceId: string) => Promise<void>;
-  selectSpeaker: (deviceId: string) => Promise<void>;
-  selectCamera: (deviceId: string) => Promise<void>;
-  selectDefaultMicrophone: () => Promise<void>;
-  selectDefaultSpeaker: () => Promise<void>;
-  selectDefaultCamera: () => Promise<void>;
-  createAudioStream: (constraints?: AudioConstraints) => Promise<MediaStream | null>;
-  createVideoStream: (constraints?: any) => Promise<MediaStream | null>;
-  getCurrentAudioStream: () => MediaStream | null;
-  getMicrophoneById: (deviceId: string) => AudioDevice | undefined;
-  getSpeakerById: (deviceId: string) => AudioDevice | undefined;
-  getCameraById: (deviceId: string) => AudioDevice | undefined;
-  isDeviceAvailable: (deviceId: string) => boolean;
-  onDeviceAdded: (callback: (device: AudioDevice) => void) => () => void;
-  onDeviceRemoved: (callback: (device: AudioDevice) => void) => () => void;
-  cleanup: () => void;
+  refreshDevices: () => Promise<void>
+  requestPermissions: () => Promise<boolean>
+  checkAudioPermission: () => Promise<AudioPermissionState>
+  checkVideoPermission: () => Promise<AudioPermissionState>
+  selectMicrophone: (deviceId: string) => Promise<void>
+  selectSpeaker: (deviceId: string) => Promise<void>
+  selectCamera: (deviceId: string) => Promise<void>
+  selectDefaultMicrophone: () => Promise<void>
+  selectDefaultSpeaker: () => Promise<void>
+  selectDefaultCamera: () => Promise<void>
+  createAudioStream: (constraints?: AudioConstraints) => Promise<MediaStream | null>
+  createVideoStream: (constraints?: MediaStreamConstraints) => Promise<MediaStream | null>
+  getCurrentAudioStream: () => MediaStream | null
+  getMicrophoneById: (deviceId: string) => AudioDevice | undefined
+  getSpeakerById: (deviceId: string) => AudioDevice | undefined
+  getCameraById: (deviceId: string) => AudioDevice | undefined
+  isDeviceAvailable: (deviceId: string) => boolean
+  onDeviceAdded: (callback: (device: AudioDevice) => void) => () => void
+  onDeviceRemoved: (callback: (device: AudioDevice) => void) => () => void
+  cleanup: () => void
 }
 
 // Helper to make ref readonly
 function readonly<T>(r: Ref<T>): Readonly<Ref<T>> {
-  return r as Readonly<Ref<T>>;
+  return r as Readonly<Ref<T>>
 }
 
 export function useAudioDevices(): UseAudioDevicesReturn {
   // Audio manager instance
-  const audioManager = new AudioManager();
+  const audioManager = new AudioManager()
 
   // Reactive state
-  const microphones = ref<AudioDevice[]>([]);
-  const speakers = ref<AudioDevice[]>([]);
-  const cameras = ref<AudioDevice[]>([]);
-  const currentMicrophone = ref<AudioDevice | null>(null);
-  const currentSpeaker = ref<AudioDevice | null>(null);
-  const currentCamera = ref<AudioDevice | null>(null);
-  const permissionStatus = ref<AudioPermissionState>('prompt');
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const microphones = ref<AudioDevice[]>([])
+  const speakers = ref<AudioDevice[]>([])
+  const cameras = ref<AudioDevice[]>([])
+  const currentMicrophone = ref<AudioDevice | null>(null)
+  const currentSpeaker = ref<AudioDevice | null>(null)
+  const currentCamera = ref<AudioDevice | null>(null)
+  const permissionStatus = ref<AudioPermissionState>('prompt')
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
 
   // Device change callbacks
-  const deviceAddedCallbacks = new Set<(device: AudioDevice) => void>();
-  const deviceRemovedCallbacks = new Set<(device: AudioDevice) => void>();
+  const deviceAddedCallbacks = new Set<(device: AudioDevice) => void>()
+  const deviceRemovedCallbacks = new Set<(device: AudioDevice) => void>()
 
   // Computed
-  const allDevices = computed(() => [
-    ...microphones.value,
-    ...speakers.value,
-    ...cameras.value
-  ]);
+  const allDevices = computed(() => [...microphones.value, ...speakers.value, ...cameras.value])
 
   /**
    * Refresh device lists
    */
   async function refreshDevices(): Promise<void> {
-    isLoading.value = true;
-    error.value = null;
+    isLoading.value = true
+    error.value = null
 
     try {
-      const devices = await audioManager.enumerateDevices();
+      const devices = await audioManager.enumerateDevices()
 
       // Filter by device kind
-      microphones.value = devices.filter(d => d.kind === 'audioinput');
-      speakers.value = devices.filter(d => d.kind === 'audiooutput');
-      cameras.value = devices.filter(d => d.kind === 'videoinput');
+      microphones.value = devices.filter((d) => d.kind === 'audioinput')
+      speakers.value = devices.filter((d) => d.kind === 'audiooutput')
+      cameras.value = devices.filter((d) => d.kind === 'videoinput')
 
       // Update current devices
-      currentMicrophone.value = audioManager.getCurrentInputDevice();
-      currentSpeaker.value = audioManager.getCurrentOutputDevice();
+      currentMicrophone.value = audioManager.getCurrentInputDevice()
+      currentSpeaker.value = audioManager.getCurrentOutputDevice()
     } catch (err) {
-      const errorMessage = (err as Error).message;
-      error.value = errorMessage;
-      console.error('Failed to enumerate devices:', err);
+      const errorMessage = (err as Error).message
+      error.value = errorMessage
+      console.error('Failed to enumerate devices:', err)
     } finally {
-      isLoading.value = false;
+      isLoading.value = false
     }
   }
 
@@ -116,20 +112,20 @@ export function useAudioDevices(): UseAudioDevicesReturn {
   async function requestPermissions(): Promise<boolean> {
     try {
       // Request both audio and video permissions
-      await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      permissionStatus.value = 'granted';
+      await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      permissionStatus.value = 'granted'
 
       // Enumerate devices after permission granted
-      await refreshDevices();
+      await refreshDevices()
 
-      return true;
+      return true
     } catch (err) {
-      const domErr = err as DOMException;
+      const domErr = err as DOMException
       if (domErr.name === 'NotAllowedError') {
-        permissionStatus.value = 'denied';
+        permissionStatus.value = 'denied'
       }
-      error.value = domErr.message;
-      return false;
+      error.value = domErr.message
+      return false
     }
   }
 
@@ -138,15 +134,15 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    */
   async function checkAudioPermission(): Promise<AudioPermissionState> {
     try {
-      const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-      permissionStatus.value = result.state as AudioPermissionState;
-      return result.state as AudioPermissionState;
-    } catch (err) {
+      const result = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+      permissionStatus.value = result.state as AudioPermissionState
+      return result.state as AudioPermissionState
+    } catch (_err) {
       // Fallback: try to get devices and check labels
-      const devices = await audioManager.enumerateDevices();
-      const hasLabels = devices.some(d => d.label !== '');
-      permissionStatus.value = hasLabels ? 'granted' : 'prompt';
-      return permissionStatus.value;
+      const devices = await audioManager.enumerateDevices()
+      const hasLabels = devices.some((d) => d.label !== '')
+      permissionStatus.value = hasLabels ? 'granted' : 'prompt'
+      return permissionStatus.value
     }
   }
 
@@ -155,14 +151,14 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    */
   async function checkVideoPermission(): Promise<AudioPermissionState> {
     try {
-      const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
-      return result.state as AudioPermissionState;
-    } catch (err) {
+      const result = await navigator.permissions.query({ name: 'camera' as PermissionName })
+      return result.state as AudioPermissionState
+    } catch (_err) {
       // Fallback
-      const devices = await audioManager.enumerateDevices();
-      const videoDevices = devices.filter(d => d.kind === 'videoinput');
-      const hasLabels = videoDevices.some(d => d.label !== '');
-      return hasLabels ? 'granted' : 'prompt';
+      const devices = await audioManager.enumerateDevices()
+      const videoDevices = devices.filter((d) => d.kind === 'videoinput')
+      const hasLabels = videoDevices.some((d) => d.label !== '')
+      return hasLabels ? 'granted' : 'prompt'
     }
   }
 
@@ -170,14 +166,14 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    * Select microphone by device ID
    */
   async function selectMicrophone(deviceId: string): Promise<void> {
-    error.value = null;
+    error.value = null
 
     try {
-      await audioManager.setInputDevice(deviceId);
-      currentMicrophone.value = audioManager.getCurrentInputDevice();
+      await audioManager.setInputDevice(deviceId)
+      currentMicrophone.value = audioManager.getCurrentInputDevice()
     } catch (err) {
-      error.value = (err as Error).message;
-      throw err;
+      error.value = (err as Error).message
+      throw err
     }
   }
 
@@ -185,14 +181,14 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    * Select speaker by device ID
    */
   async function selectSpeaker(deviceId: string): Promise<void> {
-    error.value = null;
+    error.value = null
 
     try {
-      await audioManager.setOutputDevice(deviceId);
-      currentSpeaker.value = audioManager.getCurrentOutputDevice();
+      await audioManager.setOutputDevice(deviceId)
+      currentSpeaker.value = audioManager.getCurrentOutputDevice()
     } catch (err) {
-      error.value = (err as Error).message;
-      throw err;
+      error.value = (err as Error).message
+      throw err
     }
   }
 
@@ -200,23 +196,23 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    * Select camera by device ID
    */
   async function selectCamera(deviceId: string): Promise<void> {
-    error.value = null;
+    error.value = null
 
     try {
       // Create video stream with selected camera
       await navigator.mediaDevices.getUserMedia({
         video: { deviceId: { exact: deviceId } },
-        audio: false
-      });
+        audio: false,
+      })
 
       // Update current camera
-      const device = cameras.value.find(c => c.deviceId === deviceId);
+      const device = cameras.value.find((c) => c.deviceId === deviceId)
       if (device) {
-        currentCamera.value = device;
+        currentCamera.value = device
       }
     } catch (err) {
-      error.value = (err as Error).message;
-      throw err;
+      error.value = (err as Error).message
+      throw err
     }
   }
 
@@ -225,12 +221,12 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    */
   async function selectDefaultMicrophone(): Promise<void> {
     if (microphones.value.length === 0) {
-      await refreshDevices();
+      await refreshDevices()
     }
 
-    const defaultMic = microphones.value[0];
+    const defaultMic = microphones.value[0]
     if (defaultMic) {
-      await selectMicrophone(defaultMic.deviceId);
+      await selectMicrophone(defaultMic.deviceId)
     }
   }
 
@@ -239,12 +235,12 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    */
   async function selectDefaultSpeaker(): Promise<void> {
     if (speakers.value.length === 0) {
-      await refreshDevices();
+      await refreshDevices()
     }
 
-    const defaultSpeaker = speakers.value[0];
+    const defaultSpeaker = speakers.value[0]
     if (defaultSpeaker) {
-      await selectSpeaker(defaultSpeaker.deviceId);
+      await selectSpeaker(defaultSpeaker.deviceId)
     }
   }
 
@@ -253,12 +249,12 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    */
   async function selectDefaultCamera(): Promise<void> {
     if (cameras.value.length === 0) {
-      await refreshDevices();
+      await refreshDevices()
     }
 
-    const defaultCamera = cameras.value[0];
+    const defaultCamera = cameras.value[0]
     if (defaultCamera) {
-      await selectCamera(defaultCamera.deviceId);
+      await selectCamera(defaultCamera.deviceId)
     }
   }
 
@@ -266,40 +262,42 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    * Create audio stream with constraints
    */
   async function createAudioStream(constraints?: AudioConstraints): Promise<MediaStream | null> {
-    error.value = null;
+    error.value = null
 
     try {
       if (constraints?.deviceId && typeof constraints.deviceId === 'string') {
-        await audioManager.setInputDevice(constraints.deviceId);
+        await audioManager.setInputDevice(constraints.deviceId)
       }
 
       if (constraints) {
-        await audioManager.applyConstraints(constraints);
+        await audioManager.applyConstraints(constraints)
       }
 
-      return audioManager.getCurrentStream();
+      return audioManager.getCurrentStream()
     } catch (err) {
-      error.value = (err as Error).message;
-      return null;
+      error.value = (err as Error).message
+      return null
     }
   }
 
   /**
    * Create video stream with constraints
    */
-  async function createVideoStream(constraints?: any): Promise<MediaStream | null> {
-    error.value = null;
+  async function createVideoStream(
+    constraints?: MediaStreamConstraints
+  ): Promise<MediaStream | null> {
+    error.value = null
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: constraints || true,
-        audio: false
-      });
+        video: constraints?.video || true,
+        audio: false,
+      })
 
-      return stream;
+      return stream
     } catch (err) {
-      error.value = (err as Error).message;
-      return null;
+      error.value = (err as Error).message
+      return null
     }
   }
 
@@ -307,55 +305,55 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    * Get current audio stream
    */
   function getCurrentAudioStream(): MediaStream | null {
-    return audioManager.getCurrentStream();
+    return audioManager.getCurrentStream()
   }
 
   /**
    * Get microphone by ID
    */
   function getMicrophoneById(deviceId: string): AudioDevice | undefined {
-    return microphones.value.find(m => m.deviceId === deviceId);
+    return microphones.value.find((m) => m.deviceId === deviceId)
   }
 
   /**
    * Get speaker by ID
    */
   function getSpeakerById(deviceId: string): AudioDevice | undefined {
-    return speakers.value.find(s => s.deviceId === deviceId);
+    return speakers.value.find((s) => s.deviceId === deviceId)
   }
 
   /**
    * Get camera by ID
    */
   function getCameraById(deviceId: string): AudioDevice | undefined {
-    return cameras.value.find(c => c.deviceId === deviceId);
+    return cameras.value.find((c) => c.deviceId === deviceId)
   }
 
   /**
    * Check if device is available
    */
   function isDeviceAvailable(deviceId: string): boolean {
-    return allDevices.value.some(d => d.deviceId === deviceId);
+    return allDevices.value.some((d) => d.deviceId === deviceId)
   }
 
   /**
    * Listen for device added events
    */
   function onDeviceAdded(callback: (device: AudioDevice) => void): () => void {
-    deviceAddedCallbacks.add(callback);
+    deviceAddedCallbacks.add(callback)
     return () => {
-      deviceAddedCallbacks.delete(callback);
-    };
+      deviceAddedCallbacks.delete(callback)
+    }
   }
 
   /**
    * Listen for device removed events
    */
   function onDeviceRemoved(callback: (device: AudioDevice) => void): () => void {
-    deviceRemovedCallbacks.add(callback);
+    deviceRemovedCallbacks.add(callback)
     return () => {
-      deviceRemovedCallbacks.delete(callback);
-    };
+      deviceRemovedCallbacks.delete(callback)
+    }
   }
 
   /**
@@ -363,45 +361,45 @@ export function useAudioDevices(): UseAudioDevicesReturn {
    */
   function handleDeviceChange(event: AudioDeviceChangeEvent): void {
     if (event.type === 'added') {
-      deviceAddedCallbacks.forEach(cb => {
+      deviceAddedCallbacks.forEach((cb) => {
         try {
-          cb(event.device);
+          cb(event.device)
         } catch (err) {
-          console.error('Error in device added callback:', err);
+          console.error('Error in device added callback:', err)
         }
-      });
+      })
     } else if (event.type === 'removed') {
-      deviceRemovedCallbacks.forEach(cb => {
+      deviceRemovedCallbacks.forEach((cb) => {
         try {
-          cb(event.device);
+          cb(event.device)
         } catch (err) {
-          console.error('Error in device removed callback:', err);
+          console.error('Error in device removed callback:', err)
         }
-      });
+      })
     }
 
     // Refresh device lists
-    refreshDevices();
+    refreshDevices()
   }
 
   /**
    * Cleanup resources
    */
   function cleanup(): void {
-    audioManager.destroy();
-    deviceAddedCallbacks.clear();
-    deviceRemovedCallbacks.clear();
+    audioManager.destroy()
+    deviceAddedCallbacks.clear()
+    deviceRemovedCallbacks.clear()
   }
 
   // Setup device change listener
   onMounted(() => {
-    audioManager.onDeviceChange(handleDeviceChange);
-  });
+    audioManager.onDeviceChange(handleDeviceChange)
+  })
 
   // Cleanup on unmount
   onUnmounted(() => {
-    cleanup();
-  });
+    cleanup()
+  })
 
   return {
     // Device lists
@@ -440,6 +438,6 @@ export function useAudioDevices(): UseAudioDevicesReturn {
     isDeviceAvailable,
     onDeviceAdded,
     onDeviceRemoved,
-    cleanup
-  };
+    cleanup,
+  }
 }
