@@ -693,7 +693,7 @@ export class SipClient {
       this.eventBus.emitSync('sip:unregistered', {
         type: 'sip:unregistered',
         timestamp: new Date(),
-        cause: e.cause,
+        cause: e?.cause,
       } satisfies SipUnregisteredEvent)
     })
 
@@ -719,6 +719,12 @@ export class SipClient {
     // Call events (will be handled by CallSession)
     this.ua.on('newRTCSession', (e: any) => {
       logger.debug('New RTC session:', e)
+
+      // Guard against null/undefined event or missing session
+      if (!e || !e.session) {
+        logger.warn('Received newRTCSession event with missing data')
+        return
+      }
 
       const rtcSession = e.session
       const callId = rtcSession.id || this.generateCallId()
@@ -754,9 +760,18 @@ export class SipClient {
     this.ua.on('newMessage', (e: any) => {
       logger.debug('New message:', e)
 
+      // Guard against null/undefined event
+      if (!e || !e.originator) {
+        logger.warn('Received newMessage event with missing data')
+        return
+      }
+
       // Extract message details
       const from = e.originator === 'remote' ? e.request?.from?.uri?.toString() : ''
-      const contentType = e.request?.getHeader('Content-Type')
+      const contentType =
+        e.request && typeof e.request.getHeader === 'function'
+          ? e.request.getHeader('Content-Type')
+          : null
       const content = e.request?.body || ''
 
       // Check for composing indicator
