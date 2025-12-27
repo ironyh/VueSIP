@@ -224,12 +224,14 @@ export interface FreePBXUserProfile {
 export const DEFAULT_RETURN_TIME_PATTERNS: RegExp[] = [
   // "Back at 2:30 PM"
   /back\s+(?:at\s+)?(\d{1,2}:\d{2}\s*(?:am|pm)?)/i,
-  // "Return at 14:30"
-  /return\s+(?:at\s+)?(\d{1,2}:\d{2})/i,
+  // "Return at 14:30" or "Returning at 14:30"
+  /return(?:ing)?\s+(?:at\s+)?(\d{1,2}:\d{2})/i,
   // "Back in 30 minutes"
   /back\s+in\s+(\d+)\s*(min(?:ute)?s?|hrs?|hours?)/i,
   // "Return in 1 hour"
   /return\s+in\s+(\d+)\s*(min(?:ute)?s?|hrs?|hours?)/i,
+  // "Away for 1 hour"
+  /away\s+for\s+(\d+)\s*(min(?:ute)?s?|hrs?|hours?)/i,
   // "ETA: 3:00 PM"
   /eta[:\s]+(\d{1,2}:\d{2}\s*(?:am|pm)?)/i,
   // "~15m" or "~2h"
