@@ -109,8 +109,8 @@ describe('MediaProvider', () => {
 
       await nextTick()
 
-      expect(wrapper.exists()).toBe(true)
-      expect(wrapper.text()).toBe('Child')
+      expect(_wrapper.exists()).toBe(true)
+      expect(_wrapper.text()).toBe('Child')
     })
 
     it('should auto-enumerate devices on mount by default', async () => {
@@ -203,7 +203,7 @@ describe('MediaProvider', () => {
       await nextTick()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       expect(consumer.vm.media).toBeDefined()
       expect(consumer.vm.media.audioInputDevices.length).toBeGreaterThan(0)
     })
@@ -224,7 +224,7 @@ describe('MediaProvider', () => {
       await flushPromises()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       expect(consumer.vm.media.selectedAudioInputId).toBe('audio-input-1')
       expect(consumer.vm.media.selectedAudioOutputId).toBe('audio-output-1')
       expect(consumer.vm.media.selectedVideoInputId).toBe('video-input-1')
@@ -245,7 +245,7 @@ describe('MediaProvider', () => {
       await nextTick()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       expect(consumer.vm.media.selectedAudioInputId).toBeNull()
       expect(consumer.vm.media.selectedAudioOutputId).toBeNull()
       expect(consumer.vm.media.selectedVideoInputId).toBeNull()
@@ -267,7 +267,7 @@ describe('MediaProvider', () => {
 
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       const devices = await consumer.vm.media.enumerateDevices()
 
       expect(devices.length).toBe(3)
@@ -289,7 +289,7 @@ describe('MediaProvider', () => {
       await nextTick()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       consumer.vm.media.selectAudioInput('audio-input-1')
 
       await nextTick()
@@ -312,7 +312,7 @@ describe('MediaProvider', () => {
       await nextTick()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       consumer.vm.media.selectAudioOutput('audio-output-1')
 
       await nextTick()
@@ -335,7 +335,7 @@ describe('MediaProvider', () => {
       await nextTick()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       consumer.vm.media.selectVideoInput('video-input-1')
 
       await nextTick()
@@ -358,7 +358,7 @@ describe('MediaProvider', () => {
 
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       const granted = await consumer.vm.media.requestAudioPermission()
 
       expect(granted).toBe(true)
@@ -396,7 +396,7 @@ describe('MediaProvider', () => {
         ],
       })
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       const granted = await consumer.vm.media.requestVideoPermission()
 
       expect(granted).toBe(true)
@@ -415,7 +415,7 @@ describe('MediaProvider', () => {
       await nextTick()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       const device = consumer.vm.media.getDeviceById('audio-input-1')
 
       expect(device).toBeDefined()
@@ -508,7 +508,7 @@ describe('MediaProvider', () => {
 
       const removeEventListenerSpy = vi.spyOn(navigator.mediaDevices, 'removeEventListener')
 
-      wrapper.unmount()
+      _wrapper.unmount()
 
       await nextTick()
 
@@ -607,7 +607,7 @@ describe('MediaProvider', () => {
 
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       expect(consumer.vm.media).toBeDefined()
       expect(typeof consumer.vm.media.enumerateDevices).toBe('function')
     })
@@ -644,7 +644,7 @@ describe('MediaProvider', () => {
       await nextTick()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
 
       expect(consumer.vm.media.audioInputDevices).toBeDefined()
       expect(consumer.vm.media.audioOutputDevices).toBeDefined()
@@ -667,7 +667,7 @@ describe('MediaProvider', () => {
 
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
 
       expect(consumer.vm.media.audioPermission).toBe(PermissionStatus.NotRequested)
       expect(consumer.vm.media.hasAudioPermission).toBe(false)
@@ -686,7 +686,7 @@ describe('MediaProvider', () => {
       await flushPromises()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
 
       // Initial device count
       expect(consumer.vm.media.totalDevices).toBe(3)
@@ -724,7 +724,7 @@ describe('MediaProvider', () => {
       await nextTick()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       expect(typeof consumer.vm.media.testAudioInput).toBe('function')
     })
 
@@ -740,7 +740,7 @@ describe('MediaProvider', () => {
       await nextTick()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
       expect(typeof consumer.vm.media.testAudioOutput).toBe('function')
     })
 
@@ -756,7 +756,7 @@ describe('MediaProvider', () => {
       await flushPromises()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
 
       // Test with specific device ID
       const testResult = await consumer.vm.media.testAudioInput('audio-input-1')
@@ -775,7 +775,7 @@ describe('MediaProvider', () => {
       await flushPromises()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
 
       // Test with options
       const options = { duration: 2000 }
@@ -795,7 +795,7 @@ describe('MediaProvider', () => {
       await flushPromises()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
 
       // Test without device ID (uses selected or default)
       const testResult = await consumer.vm.media.testAudioInput()
@@ -814,7 +814,7 @@ describe('MediaProvider', () => {
       await flushPromises()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
 
       // Test with specific device ID
       const testResult = await consumer.vm.media.testAudioOutput('audio-output-1')
@@ -833,7 +833,7 @@ describe('MediaProvider', () => {
       await flushPromises()
       await nextTick()
 
-      const consumer = wrapper.findComponent(ConsumerComponent)
+      const consumer = _wrapper.findComponent(ConsumerComponent)
 
       // Test without device ID (uses selected or default)
       const testResult = await consumer.vm.media.testAudioOutput()

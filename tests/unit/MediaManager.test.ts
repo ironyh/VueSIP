@@ -462,9 +462,9 @@ describe('MediaManager', () => {
 
       // Simulate gathering complete
       setTimeout(() => {
-        pc.iceGatheringState = 'complete'
-        pc.onicegatheringstatechange?.()
-        pc.onicecandidate?.({ candidate: null } as any)
+        _pc.iceGatheringState = 'complete'
+        _pc.onicegatheringstatechange?.()
+        _pc.onicecandidate?.({ candidate: null } as any)
       }, 100)
 
       await waitPromise
