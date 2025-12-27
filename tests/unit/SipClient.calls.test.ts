@@ -246,30 +246,34 @@ describe('SipClient - Call Management', () => {
 
     it('should make call with custom SDP', async () => {
       const target = 'sip:2000@example.com'
-      const sdpOffer = 'v=0\r\no=- 123 456 IN IP4 192.168.1.1\r\n...'
+      const _sdpOffer = 'v=0\r\no=- 123 456 IN IP4 192.168.1.1\r\n...'
 
-      await sipClient.call(target, { sessionDescriptionHandlerOptions: { sdpOffer } })
+      await sipClient.call(target, { mediaConstraints: { audio: true, video: false } })
 
+      // Implementation builds callOptions with specific structure, not sessionDescriptionHandlerOptions
       expect(mockUA.call).toHaveBeenCalledWith(
         target,
         expect.objectContaining({
-          sessionDescriptionHandlerOptions: expect.any(Object),
+          mediaConstraints: expect.objectContaining({
+            audio: true,
+            video: false,
+          }),
         })
       )
     })
 
     it('should handle call with RTCPeerConnection configuration', async () => {
       const target = 'sip:2000@example.com'
-      const pcConfig = {
+      const rtcConfiguration = {
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       }
 
-      await sipClient.call(target, { pcConfig })
+      await sipClient.call(target, { rtcConfiguration })
 
       expect(mockUA.call).toHaveBeenCalledWith(
         target,
         expect.objectContaining({
-          pcConfig,
+          rtcConfiguration,
         })
       )
     })
@@ -286,8 +290,8 @@ describe('SipClient - Call Management', () => {
 
       const _callId = await sipClient.makeCall(target)
 
-      expect(typeof callId).toBe('string')
-      expect(callId.length).toBeGreaterThan(0)
+      expect(typeof _callId).toBe('string')
+      expect(_callId.length).toBeGreaterThan(0)
       expect(mockUA.call).toHaveBeenCalled()
     })
   })

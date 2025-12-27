@@ -241,6 +241,7 @@ export class MultiLineManager {
   private conferences: Map<string, ConferenceState>
   private parkSlots: Map<string, ParkSlot>
   private callCounter: number
+  private conferenceCounter: number
   private eventBus: EventBus
 
   constructor(config?: Partial<MultiLineConfig>, eventBus?: EventBus) {
@@ -250,6 +251,7 @@ export class MultiLineManager {
     this.conferences = new Map()
     this.parkSlots = new Map()
     this.callCounter = 0
+    this.conferenceCounter = 0
     this.eventBus = eventBus || globalEventBus
 
     this.initializeLines()
@@ -624,7 +626,7 @@ export class MultiLineManager {
       }
     }
 
-    const conferenceId = `conf-${Date.now()}`
+    const conferenceId = `conf-${Date.now()}-${++this.conferenceCounter}`
     const conference: ConferenceState = {
       id: conferenceId,
       lines: lineIds,
@@ -929,5 +931,6 @@ export class MultiLineManager {
 
     this.activeLine = this.config.defaultLine
     this.callCounter = 0
+    this.conferenceCounter = 0
   }
 }

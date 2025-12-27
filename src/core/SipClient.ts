@@ -67,6 +67,17 @@ const isTestEnvironment = (): boolean => {
   return window.location?.search?.includes('test=true') ?? false
 }
 
+const isE2EMode = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  const hasEmitSipEvent =
+    typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
+  const hasEventBridge =
+    typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined'
+  return hasEmitSipEvent || hasEventBridge
+}
+
 /**
  * SIP Client state
  */
@@ -165,6 +176,10 @@ export class SipClient {
    * Check if connected to SIP server
    */
   get isConnected(): boolean {
+    // In E2E test mode, use connection state (no real UA exists)
+    if (isE2EMode()) {
+      return this.state.connectionState === ConnectionState.Connected
+    }
     // In test environment, use connection state as fallback
     // JsSIP's isConnected() may not detect mock WebSocket connections
     if (isTestEnvironment()) {
@@ -383,6 +398,34 @@ export class SipClient {
    * Stop the SIP client (unregister and disconnect)
    */
   async stop(): Promise<void> {
+    // In E2E mode, UA may not exist - just update state
+    if (isE2EMode()) {
+      if (this.isStopping) {
+        logger.warn('SIP client is already stopping')
+        return
+      }
+
+      this.isStopping = true
+
+      try {
+        logger.info('Stopping SIP client (E2E mode)')
+
+        // Update state to disconnected
+        this.updateConnectionState(ConnectionState.Disconnected)
+        this.updateRegistrationState(RegistrationState.Unregistered)
+
+        this.eventBus.emitSync('sip:disconnected', {
+          type: 'sip:disconnected',
+          timestamp: new Date(),
+        } satisfies SipDisconnectedEvent)
+
+        logger.info('SIP client stopped successfully (E2E mode)')
+      } finally {
+        this.isStopping = false
+      }
+      return
+    }
+
     if (!this.ua) {
       logger.warn('SIP client is not started')
       return
@@ -693,7 +736,7 @@ export class SipClient {
       this.eventBus.emitSync('sip:unregistered', {
         type: 'sip:unregistered',
         timestamp: new Date(),
-        cause: e.cause,
+        cause: e?.cause,
       } satisfies SipUnregisteredEvent)
     })
 
@@ -719,6 +762,12 @@ export class SipClient {
     // Call events (will be handled by CallSession)
     this.ua.on('newRTCSession', (e: any) => {
       logger.debug('New RTC session:', e)
+
+      // Guard against null/undefined event or missing session
+      if (!e || !e.session) {
+        logger.warn('Received newRTCSession event with missing data')
+        return
+      }
 
       const rtcSession = e.session
       const callId = rtcSession.id || this.generateCallId()
@@ -754,9 +803,18 @@ export class SipClient {
     this.ua.on('newMessage', (e: any) => {
       logger.debug('New message:', e)
 
+      // Guard against null/undefined event
+      if (!e || !e.originator) {
+        logger.warn('Received newMessage event with missing data')
+        return
+      }
+
       // Extract message details
       const from = e.originator === 'remote' ? e.request?.from?.uri?.toString() : ''
-      const contentType = e.request?.getHeader('Content-Type')
+      const contentType =
+        e.request && typeof e.request.getHeader === 'function'
+          ? e.request.getHeader('Content-Type')
+          : null
       const content = e.request?.body || ''
 
       // Check for composing indicator

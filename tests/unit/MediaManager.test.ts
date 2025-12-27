@@ -306,8 +306,8 @@ describe('MediaManager', () => {
   describe('RTCPeerConnection Lifecycle', () => {
     it('should create peer connection', () => {
       const _pc = mediaManager.createPeerConnection()
-      expect(pc).toBeDefined()
-      expect(pc).toBeInstanceOf(MockRTCPeerConnection)
+      expect(_pc).toBeDefined()
+      expect(_pc).toBeInstanceOf(MockRTCPeerConnection)
     })
 
     it('should get existing peer connection', () => {
@@ -327,7 +327,7 @@ describe('MediaManager', () => {
 
     it('should close peer connection', () => {
       const _pc = mediaManager.createPeerConnection()
-      const closeSpy = vi.spyOn(pc, 'close')
+      const closeSpy = vi.spyOn(_pc, 'close')
 
       mediaManager.closePeerConnection()
       expect(closeSpy).toHaveBeenCalled()
@@ -335,13 +335,13 @@ describe('MediaManager', () => {
 
     it('should setup peer connection event handlers', () => {
       const _pc = mediaManager.createPeerConnection() as MockRTCPeerConnection
-      expect(pc.onicecandidate).toBeDefined()
-      expect(pc.oniceconnectionstatechange).toBeDefined()
-      expect(pc.onicegatheringstatechange).toBeDefined()
-      expect(pc.ontrack).toBeDefined()
-      expect(pc.onsignalingstatechange).toBeDefined()
-      expect(pc.onconnectionstatechange).toBeDefined()
-      expect(pc.onnegotiationneeded).toBeDefined()
+      expect(_pc.onicecandidate).toBeDefined()
+      expect(_pc.oniceconnectionstatechange).toBeDefined()
+      expect(_pc.onicegatheringstatechange).toBeDefined()
+      expect(_pc.ontrack).toBeDefined()
+      expect(_pc.onsignalingstatechange).toBeDefined()
+      expect(_pc.onconnectionstatechange).toBeDefined()
+      expect(_pc.onnegotiationneeded).toBeDefined()
     })
 
     it('should emit ICE candidate event', async () => {
@@ -354,7 +354,7 @@ describe('MediaManager', () => {
       }
 
       const eventPromise = eventBus.waitFor('media:ice:candidate')
-      pc.onicecandidate?.({ candidate: mockCandidate } as any)
+      _pc.onicecandidate?.({ candidate: mockCandidate } as any)
 
       const event = await eventPromise
       expect(event.payload.candidate).toBeDefined()
@@ -364,7 +364,7 @@ describe('MediaManager', () => {
       const _pc = mediaManager.createPeerConnection() as MockRTCPeerConnection
 
       const eventPromise = eventBus.waitFor('media:ice:gathering:complete')
-      pc.onicecandidate?.({ candidate: null } as any)
+      _pc.onicecandidate?.({ candidate: null } as any)
 
       await eventPromise
     })
@@ -374,8 +374,8 @@ describe('MediaManager', () => {
 
       const eventPromise = eventBus.waitFor('media:ice:connection:state')
 
-      pc.iceConnectionState = 'connected'
-      pc.oniceconnectionstatechange?.()
+      _pc.iceConnectionState = 'connected'
+      _pc.oniceconnectionstatechange?.()
 
       const event = await eventPromise
       expect(event.payload.state).toBe('connected')
@@ -386,8 +386,8 @@ describe('MediaManager', () => {
 
       const eventPromise = eventBus.waitFor('media:connection:failed')
 
-      pc.iceConnectionState = 'failed'
-      pc.oniceconnectionstatechange?.()
+      _pc.iceConnectionState = 'failed'
+      _pc.oniceconnectionstatechange?.()
 
       const event = await eventPromise
       expect(event.payload.state).toBe('failed')
@@ -400,7 +400,7 @@ describe('MediaManager', () => {
       const mockStream = new MockMediaStream([mockTrack]) as any
 
       const eventPromise = eventBus.waitFor('media:track:added')
-      pc.ontrack?.({ track: mockTrack, streams: [mockStream] } as any)
+      _pc.ontrack?.({ track: mockTrack, streams: [mockStream] } as any)
 
       const payload = await eventPromise
       expect(payload.track).toBeDefined()
@@ -431,8 +431,8 @@ describe('MediaManager', () => {
       await mediaManager.setLocalDescription(offer)
 
       const _pc = mediaManager.getPeerConnection()
-      expect(pc.localDescription).toBeDefined()
-      expect(pc.localDescription?.type).toBe('offer')
+      expect(_pc.localDescription).toBeDefined()
+      expect(_pc.localDescription?.type).toBe('offer')
     })
 
     it('should set remote description', async () => {
@@ -440,8 +440,8 @@ describe('MediaManager', () => {
       await mediaManager.setRemoteDescription(answer)
 
       const _pc = mediaManager.getPeerConnection()
-      expect(pc.remoteDescription).toBeDefined()
-      expect(pc.remoteDescription?.type).toBe('answer')
+      expect(_pc.remoteDescription).toBeDefined()
+      expect(_pc.remoteDescription?.type).toBe('answer')
     })
 
     it('should add ICE candidate', async () => {
@@ -462,9 +462,9 @@ describe('MediaManager', () => {
 
       // Simulate gathering complete
       setTimeout(() => {
-        pc.iceGatheringState = 'complete'
-        pc.onicegatheringstatechange?.()
-        pc.onicecandidate?.({ candidate: null } as any)
+        _pc.iceGatheringState = 'complete'
+        _pc.onicegatheringstatechange?.()
+        _pc.onicecandidate?.({ candidate: null } as any)
       }, 100)
 
       await waitPromise
@@ -624,7 +624,7 @@ describe('MediaManager', () => {
       mediaManager.removeLocalStream()
 
       const _pc = mediaManager.getPeerConnection()
-      expect(pc.getSenders()).toHaveLength(0)
+      expect(_pc.getSenders()).toHaveLength(0)
     })
 
     it('should stop local stream', () => {
@@ -1056,7 +1056,7 @@ describe('MediaManager', () => {
       const _pc = (mediaManager as any).peerConnection
 
       // Mock getStats to include local and remote candidate types
-      vi.spyOn(pc, 'getStats').mockResolvedValue(
+      vi.spyOn(_pc, 'getStats').mockResolvedValue(
         new Map([
           [
             'local-candidate',
@@ -1095,7 +1095,7 @@ describe('MediaManager', () => {
       const _pc = (mediaManager as any).peerConnection
 
       // Mock getStats to include transport stats
-      vi.spyOn(pc, 'getStats').mockResolvedValue(
+      vi.spyOn(_pc, 'getStats').mockResolvedValue(
         new Map([
           [
             'transport',
@@ -1128,7 +1128,7 @@ describe('MediaManager', () => {
       const _pc = (mediaManager as any).peerConnection
 
       // Mock getStats to include outbound-rtp video stats
-      vi.spyOn(pc, 'getStats').mockResolvedValue(
+      vi.spyOn(_pc, 'getStats').mockResolvedValue(
         new Map([
           [
             'outbound-video',
@@ -1184,7 +1184,7 @@ describe('MediaManager', () => {
 
     it('should close peer connection on destroy', () => {
       const _pc = mediaManager.createPeerConnection()
-      const closeSpy = vi.spyOn(pc, 'close')
+      const closeSpy = vi.spyOn(_pc, 'close')
 
       mediaManager.destroy()
 
@@ -1502,7 +1502,7 @@ describe('MediaManager', () => {
       const _pc = mediaManager.createPeerConnection()
 
       // Mock high packet loss stats
-      vi.spyOn(pc, 'getStats').mockResolvedValue(
+      vi.spyOn(_pc, 'getStats').mockResolvedValue(
         new Map([
           [
             'inbound-audio',
@@ -1536,7 +1536,7 @@ describe('MediaManager', () => {
       const _pc = mediaManager.createPeerConnection()
 
       // Mock high video packet loss
-      vi.spyOn(pc, 'getStats').mockResolvedValue(
+      vi.spyOn(_pc, 'getStats').mockResolvedValue(
         new Map([
           [
             'inbound-video',
@@ -1566,7 +1566,7 @@ describe('MediaManager', () => {
       const _pc = mediaManager.createPeerConnection()
 
       // Mock high RTT
-      vi.spyOn(pc, 'getStats').mockResolvedValue(
+      vi.spyOn(_pc, 'getStats').mockResolvedValue(
         new Map([
           [
             'candidate-pair',
@@ -1615,10 +1615,10 @@ describe('MediaManager', () => {
       const _pc = mediaManager.createPeerConnection()
 
       // Trigger connection success to start quality adjustment
-      const oniceconnectionstatechange = (pc as any).oniceconnectionstatechange
+      const oniceconnectionstatechange = (_pc as any).oniceconnectionstatechange
       if (oniceconnectionstatechange) {
-        ;(pc as any).iceConnectionState = 'connected'
-        oniceconnectionstatechange.call(pc, new Event('iceconnectionstatechange'))
+        ;(_pc as any).iceConnectionState = 'connected'
+        oniceconnectionstatechange.call(_pc, new Event('iceconnectionstatechange'))
       }
 
       mediaManager.destroy()
@@ -1635,20 +1635,20 @@ describe('MediaManager', () => {
       const _pc = mediaManager.createPeerConnection()
 
       // Mock getStats to throw error
-      vi.spyOn(pc, 'getStats').mockRejectedValue(new Error('Stats collection failed'))
+      vi.spyOn(_pc, 'getStats').mockRejectedValue(new Error('Stats collection failed'))
 
       // Trigger connection success to start quality adjustment interval
-      const oniceconnectionstatechange = (pc as any).oniceconnectionstatechange
+      const oniceconnectionstatechange = (_pc as any).oniceconnectionstatechange
       if (oniceconnectionstatechange) {
-        ;(pc as any).iceConnectionState = 'connected'
-        oniceconnectionstatechange.call(pc, new Event('iceconnectionstatechange'))
+        ;(_pc as any).iceConnectionState = 'connected'
+        oniceconnectionstatechange.call(_pc, new Event('iceconnectionstatechange'))
       }
 
       // Advance timers to trigger the interval callback - should not throw
       await vi.advanceTimersByTimeAsync(5000)
 
       // Verify getStats was called (and failed gracefully)
-      expect(pc.getStats).toHaveBeenCalled()
+      expect(_pc.getStats).toHaveBeenCalled()
     })
 
     it('should execute adjustQuality when interval fires', async () => {
@@ -1660,7 +1660,7 @@ describe('MediaManager', () => {
       const _pc = mediaManager.createPeerConnection()
 
       // Mock stats with high packet loss to trigger warning
-      vi.spyOn(pc, 'getStats').mockResolvedValue(
+      vi.spyOn(_pc, 'getStats').mockResolvedValue(
         new Map([
           [
             'inbound-audio',
@@ -1684,17 +1684,17 @@ describe('MediaManager', () => {
       )
 
       // Trigger connection success to start quality adjustment
-      const oniceconnectionstatechange = (pc as any).oniceconnectionstatechange
+      const oniceconnectionstatechange = (_pc as any).oniceconnectionstatechange
       if (oniceconnectionstatechange) {
-        ;(pc as any).iceConnectionState = 'connected'
-        oniceconnectionstatechange.call(pc, new Event('iceconnectionstatechange'))
+        ;(_pc as any).iceConnectionState = 'connected'
+        oniceconnectionstatechange.call(_pc, new Event('iceconnectionstatechange'))
       }
 
       // Advance timers to execute the interval callback
       await vi.advanceTimersByTimeAsync(5000)
 
       // Verify getStats was called by adjustQuality
-      expect(pc.getStats).toHaveBeenCalled()
+      expect(_pc.getStats).toHaveBeenCalled()
     })
 
     it('should skip adjustQuality when peer connection is null', async () => {
@@ -1704,13 +1704,13 @@ describe('MediaManager', () => {
       })
 
       const _pc = mediaManager.createPeerConnection()
-      const getStatsSpy = vi.spyOn(pc, 'getStats')
+      const getStatsSpy = vi.spyOn(_pc, 'getStats')
 
       // Trigger connection success to start quality adjustment
-      const oniceconnectionstatechange = (pc as any).oniceconnectionstatechange
+      const oniceconnectionstatechange = (_pc as any).oniceconnectionstatechange
       if (oniceconnectionstatechange) {
-        ;(pc as any).iceConnectionState = 'connected'
-        oniceconnectionstatechange.call(pc, new Event('iceconnectionstatechange'))
+        ;(_pc as any).iceConnectionState = 'connected'
+        oniceconnectionstatechange.call(_pc, new Event('iceconnectionstatechange'))
       }
 
       // Close peer connection before interval fires
@@ -1733,7 +1733,7 @@ describe('MediaManager', () => {
       const _pc = mediaManager.createPeerConnection()
 
       // Mock getStats to succeed
-      vi.spyOn(pc, 'getStats').mockResolvedValue(
+      vi.spyOn(_pc, 'getStats').mockResolvedValue(
         new Map([
           [
             'inbound-audio',
@@ -1749,19 +1749,19 @@ describe('MediaManager', () => {
       )
 
       // Trigger connection success TWICE - second should hit guard clause on line 1202
-      const oniceconnectionstatechange = (pc as any).oniceconnectionstatechange
+      const oniceconnectionstatechange = (_pc as any).oniceconnectionstatechange
       if (oniceconnectionstatechange) {
-        ;(pc as any).iceConnectionState = 'connected'
-        oniceconnectionstatechange.call(pc, new Event('iceconnectionstatechange'))
+        ;(_pc as any).iceConnectionState = 'connected'
+        oniceconnectionstatechange.call(_pc, new Event('iceconnectionstatechange'))
 
         // Call again - should return early from line 1202
-        oniceconnectionstatechange.call(pc, new Event('iceconnectionstatechange'))
+        oniceconnectionstatechange.call(_pc, new Event('iceconnectionstatechange'))
       }
 
       // Advance timers - interval should run normally
       await vi.advanceTimersByTimeAsync(5000)
 
-      expect(pc.getStats).toHaveBeenCalled()
+      expect(_pc.getStats).toHaveBeenCalled()
     })
 
     it('should detect high video packet loss in adjustQuality', async () => {
@@ -1774,7 +1774,7 @@ describe('MediaManager', () => {
       const _pc = mediaManager.createPeerConnection()
 
       // Mock stats with high VIDEO packet loss to trigger warning on lines 1253-1256
-      vi.spyOn(pc, 'getStats').mockResolvedValue(
+      vi.spyOn(_pc, 'getStats').mockResolvedValue(
         new Map([
           [
             'inbound-video',
@@ -1790,16 +1790,16 @@ describe('MediaManager', () => {
       )
 
       // Trigger connection success to start quality adjustment
-      const oniceconnectionstatechange = (pc as any).oniceconnectionstatechange
+      const oniceconnectionstatechange = (_pc as any).oniceconnectionstatechange
       if (oniceconnectionstatechange) {
-        ;(pc as any).iceConnectionState = 'connected'
-        oniceconnectionstatechange.call(pc, new Event('iceconnectionstatechange'))
+        ;(_pc as any).iceConnectionState = 'connected'
+        oniceconnectionstatechange.call(_pc, new Event('iceconnectionstatechange'))
       }
 
       // Advance timers to execute adjustQuality which should detect high video packet loss
       await vi.advanceTimersByTimeAsync(5000)
 
-      expect(pc.getStats).toHaveBeenCalled()
+      expect(_pc.getStats).toHaveBeenCalled()
     })
   })
 
@@ -2182,12 +2182,12 @@ describe('MediaManager', () => {
 
       const _pc = manager.createPeerConnection()
 
-      expect(pc).toBeDefined()
-      expect((pc as any).config.iceServers).toBeDefined()
-      expect((pc as any).config.iceServers.length).toBeGreaterThan(1)
+      expect(_pc).toBeDefined()
+      expect((_pc as any).config.iceServers).toBeDefined()
+      expect((_pc as any).config.iceServers.length).toBeGreaterThan(1)
 
       // Verify TURN server configuration
-      const turnServer = (pc as any).config.iceServers.find((server: any) =>
+      const turnServer = (_pc as any).config.iceServers.find((server: any) =>
         server.urls.some((url: string) => url.startsWith('turn:'))
       )
       expect(turnServer).toBeDefined()
@@ -2215,9 +2215,9 @@ describe('MediaManager', () => {
 
       const _pc = manager.createPeerConnection()
 
-      expect(pc).toBeDefined()
+      expect(_pc).toBeDefined()
 
-      const turnServer = (pc as any).config.iceServers.find((server: any) => {
+      const turnServer = (_pc as any).config.iceServers.find((server: any) => {
         const urls = Array.isArray(server.urls) ? server.urls : [server.urls]
         return urls.some((url: string) => url.startsWith('turn:'))
       })
@@ -2252,9 +2252,9 @@ describe('MediaManager', () => {
 
       const _pc = manager.createPeerConnection()
 
-      expect(pc).toBeDefined()
+      expect(_pc).toBeDefined()
 
-      const turnServers = (pc as any).config.iceServers.filter((server: any) => {
+      const turnServers = (_pc as any).config.iceServers.filter((server: any) => {
         const urls = Array.isArray(server.urls) ? server.urls : [server.urls]
         return urls.some((url: string) => url.startsWith('turn:'))
       })
