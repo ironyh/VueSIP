@@ -8,5 +8,12 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx"],
-  "exclude": ["src/**/*.vue", "examples/**/*", "node_modules"]
+  "exclude": [
+    "src/**/*.vue",
+    "src/**/__tests__/**/*",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "examples/**/*",
+    "node_modules"
+  ]
 }

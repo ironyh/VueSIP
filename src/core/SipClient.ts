@@ -417,7 +417,6 @@ export class SipClient {
         this.eventBus.emitSync('sip:disconnected', {
           type: 'sip:disconnected',
           timestamp: new Date(),
-          wasError: false,
         } satisfies SipDisconnectedEvent)
 
         logger.info('SIP client stopped successfully (E2E mode)')
