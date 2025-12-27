@@ -67,6 +67,17 @@ const isTestEnvironment = (): boolean => {
   return window.location?.search?.includes('test=true') ?? false
 }
 
+const isE2EMode = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  const hasEmitSipEvent =
+    typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
+  const hasEventBridge =
+    typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined'
+  return hasEmitSipEvent || hasEventBridge
+}
+
 /**
  * SIP Client state
  */
@@ -165,6 +176,10 @@ export class SipClient {
    * Check if connected to SIP server
    */
   get isConnected(): boolean {
+    // In E2E test mode, use connection state (no real UA exists)
+    if (isE2EMode()) {
+      return this.state.connectionState === ConnectionState.Connected
+    }
     // In test environment, use connection state as fallback
     // JsSIP's isConnected() may not detect mock WebSocket connections
     if (isTestEnvironment()) {
@@ -383,6 +398,35 @@ export class SipClient {
    * Stop the SIP client (unregister and disconnect)
    */
   async stop(): Promise<void> {
+    // In E2E mode, UA may not exist - just update state
+    if (isE2EMode()) {
+      if (this.isStopping) {
+        logger.warn('SIP client is already stopping')
+        return
+      }
+
+      this.isStopping = true
+
+      try {
+        logger.info('Stopping SIP client (E2E mode)')
+
+        // Update state to disconnected
+        this.updateConnectionState(ConnectionState.Disconnected)
+        this.updateRegistrationState(RegistrationState.Unregistered)
+
+        this.eventBus.emitSync('sip:disconnected', {
+          type: 'sip:disconnected',
+          timestamp: new Date(),
+          wasError: false,
+        } satisfies SipDisconnectedEvent)
+
+        logger.info('SIP client stopped successfully (E2E mode)')
+      } finally {
+        this.isStopping = false
+      }
+      return
+    }
+
     if (!this.ua) {
       logger.warn('SIP client is not started')
       return
