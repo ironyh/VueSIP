@@ -313,6 +313,11 @@ describe('SipClient - Configuration & Utilities', () => {
   })
 
   describe('State Management Getters', () => {
+    beforeEach(() => {
+      // Temporarily disable E2E mode for state getters tests to test real UA behavior
+      delete (window as any).__emitSipEvent
+    })
+
     it('should return immutable state copy', () => {
       const sipClient = new SipClient(config, eventBus)
       const state1 = sipClient.getState()

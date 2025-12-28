@@ -149,16 +149,16 @@ describe('SipClient - Comprehensive Presence', () => {
     it('should publish basic available presence', async () => {
       await startClient()
       const publishEvents: any[] = []
-      eventBus.on('sip:presencePublish', (e) => publishEvents.push(e))
+      eventBus.on('sip:presence:publish', (e) => publishEvents.push(e))
 
       await sipClient.publishPresence({
         status: 'open',
         note: 'Available',
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
       expect(publishEvents).toHaveLength(1)
-      expect(publishEvents[0].status).toBe('open')
+      expect(publishEvents[0].presence.status).toBe('open')
     })
 
     it('should publish busy presence', async () => {
@@ -168,9 +168,9 @@ describe('SipClient - Comprehensive Presence', () => {
         note: 'In a meeting',
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalledWith(
+      expect(mockUA.sendRequest).toHaveBeenCalledWith(
+        'PUBLISH',
         expect.any(String),
-        expect.stringContaining('busy'),
         expect.objectContaining({
           contentType: 'application/pidf+xml',
         })
@@ -184,7 +184,7 @@ describe('SipClient - Comprehensive Presence', () => {
         note: 'Do Not Disturb',
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
     })
 
     it('should publish away presence', async () => {
@@ -194,7 +194,7 @@ describe('SipClient - Comprehensive Presence', () => {
         note: 'Away from desk',
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
     })
 
     it('should publish offline presence', async () => {
@@ -204,7 +204,7 @@ describe('SipClient - Comprehensive Presence', () => {
         note: 'Offline',
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
     })
 
     it('should publish presence with custom note', async () => {
@@ -216,7 +216,7 @@ describe('SipClient - Comprehensive Presence', () => {
         note: customNote,
       })
 
-      const callArgs = mockUA.sendMessage.mock.calls[0]
+      const callArgs = mockUA.sendRequest.mock.calls[0]
       expect(callArgs[1]).toContain(customNote)
     })
 
@@ -228,7 +228,7 @@ describe('SipClient - Comprehensive Presence', () => {
         activity: 'meeting',
       })
 
-      const callArgs = mockUA.sendMessage.mock.calls[0]
+      const callArgs = mockUA.sendRequest.mock.calls[0]
       expect(callArgs[1]).toContain('meeting')
     })
 
@@ -240,7 +240,7 @@ describe('SipClient - Comprehensive Presence', () => {
         expires: 7200, // 2 hours
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
     })
 
     it('should track published presence state', async () => {
@@ -251,7 +251,7 @@ describe('SipClient - Comprehensive Presence', () => {
       })
 
       // Internal tracking should be updated
-      expect(mockUA.sendMessage).toHaveBeenCalledTimes(1)
+      expect(mockUA.sendRequest).toHaveBeenCalledTimes(1)
     })
 
     it('should handle publish with extra headers', async () => {
@@ -261,7 +261,7 @@ describe('SipClient - Comprehensive Presence', () => {
         extraHeaders: ['X-Custom-Presence: value'],
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalledWith(
+      expect(mockUA.sendRequest).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
         expect.objectContaining({
@@ -278,7 +278,7 @@ describe('SipClient - Comprehensive Presence', () => {
         note: 'Available',
       })
 
-      const [, xml] = mockUA.sendMessage.mock.calls[0]
+      const [, xml] = mockUA.sendRequest.mock.calls[0]
       expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>')
       expect(xml).toContain('<presence')
       expect(xml).toContain('xmlns="urn:ietf:params:xml:ns:pidf"')
@@ -292,7 +292,7 @@ describe('SipClient - Comprehensive Presence', () => {
         note: 'In meeting',
       })
 
-      const [, xml] = mockUA.sendMessage.mock.calls[0]
+      const [, xml] = mockUA.sendRequest.mock.calls[0]
       expect(xml).toContain('<basic>open</basic>') // PIDF uses 'open' with activity
       expect(xml).toContain('In meeting')
     })
@@ -303,7 +303,7 @@ describe('SipClient - Comprehensive Presence', () => {
         note: 'Test',
       })
 
-      const [, xml] = mockUA.sendMessage.mock.calls[0]
+      const [, xml] = mockUA.sendRequest.mock.calls[0]
       expect(xml).toContain('entity="sip:1000@example.com"')
     })
 
@@ -314,7 +314,7 @@ describe('SipClient - Comprehensive Presence', () => {
         note: 'Test',
       })
 
-      const [, xml] = mockUA.sendMessage.mock.calls[0]
+      const [, xml] = mockUA.sendRequest.mock.calls[0]
       expect(xml).toContain('<timestamp>')
     })
 
@@ -324,7 +324,7 @@ describe('SipClient - Comprehensive Presence', () => {
         note: 'Available & ready for <calls>',
       })
 
-      const [, xml] = mockUA.sendMessage.mock.calls[0]
+      const [, xml] = mockUA.sendRequest.mock.calls[0]
       expect(xml).toContain('&amp;')
       expect(xml).toContain('&lt;')
       expect(xml).toContain('&gt;')
@@ -335,11 +335,11 @@ describe('SipClient - Comprehensive Presence', () => {
     it('should subscribe to presence of another user', async () => {
       await startClient()
       const subscribeEvents: any[] = []
-      eventBus.on('sip:presenceSubscribe', (e) => subscribeEvents.push(e))
+      eventBus.on('sip:presence:subscribe', (e) => subscribeEvents.push(e))
 
       await sipClient.subscribePresence('sip:2000@example.com')
 
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
       expect(subscribeEvents).toHaveLength(1)
       expect(subscribeEvents[0].uri).toBe('sip:2000@example.com')
     })
@@ -349,7 +349,7 @@ describe('SipClient - Comprehensive Presence', () => {
         expires: 7200,
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
     })
 
     it('should subscribe with extra headers', async () => {
@@ -357,7 +357,7 @@ describe('SipClient - Comprehensive Presence', () => {
         extraHeaders: ['X-Custom-Subscribe: value'],
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalledWith(
+      expect(mockUA.sendRequest).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
         expect.objectContaining({
@@ -371,7 +371,7 @@ describe('SipClient - Comprehensive Presence', () => {
       await sipClient.subscribePresence('sip:3000@example.com')
 
       // Should track both subscriptions internally
-      expect(mockUA.sendMessage).toHaveBeenCalledTimes(2)
+      expect(mockUA.sendRequest).toHaveBeenCalledTimes(2)
     })
 
     it('should handle duplicate subscription requests', async () => {
@@ -379,7 +379,7 @@ describe('SipClient - Comprehensive Presence', () => {
       await sipClient.subscribePresence('sip:2000@example.com')
 
       // Should handle gracefully (implementation-dependent)
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
     })
   })
 
@@ -392,11 +392,11 @@ describe('SipClient - Comprehensive Presence', () => {
     it('should unsubscribe from presence', async () => {
       await startClient()
       const unsubscribeEvents: any[] = []
-      eventBus.on('sip:presenceUnsubscribe', (e) => unsubscribeEvents.push(e))
+      eventBus.on('sip:presence:unsubscribe', (e) => unsubscribeEvents.push(e))
 
       await sipClient.unsubscribePresence('sip:2000@example.com')
 
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
       expect(unsubscribeEvents).toHaveLength(1)
       expect(unsubscribeEvents[0].uri).toBe('sip:2000@example.com')
     })
@@ -404,7 +404,7 @@ describe('SipClient - Comprehensive Presence', () => {
     it('should send SUBSCRIBE with expires=0 for unsubscribe', async () => {
       await sipClient.unsubscribePresence('sip:2000@example.com')
 
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
       // Should contain expires=0 in headers or body
     })
 
@@ -412,7 +412,7 @@ describe('SipClient - Comprehensive Presence', () => {
       await sipClient.unsubscribePresence('sip:2000@example.com')
 
       // Internal subscription should be removed
-      expect(mockUA.sendMessage).toHaveBeenCalledTimes(1)
+      expect(mockUA.sendRequest).toHaveBeenCalledTimes(1)
     })
 
     it('should handle unsubscribe of non-existent subscription', async () => {
@@ -515,7 +515,7 @@ describe('SipClient - Comprehensive Presence', () => {
 
   describe('Presence Error Handling', () => {
     it('should handle publish failure', async () => {
-      mockUA.sendMessage.mockImplementationOnce(() => {
+      mockUA.sendRequest.mockImplementationOnce(() => {
         throw new Error('Network error')
       })
 
@@ -528,7 +528,7 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should handle subscribe failure', async () => {
-      mockUA.sendMessage.mockImplementationOnce(() => {
+      mockUA.sendRequest.mockImplementationOnce(() => {
         throw new Error('Network error')
       })
 
@@ -603,7 +603,7 @@ describe('SipClient - Comprehensive Presence', () => {
         expires: 3600,
       })
 
-      expect(mockUA.sendMessage).toHaveBeenCalledTimes(2)
+      expect(mockUA.sendRequest).toHaveBeenCalledTimes(2)
     })
 
     it('should support subscription refresh', async () => {
@@ -613,7 +613,7 @@ describe('SipClient - Comprehensive Presence', () => {
       // Refresh subscribe
       await sipClient.subscribePresence('sip:2000@example.com', { expires: 3600 })
 
-      expect(mockUA.sendMessage).toHaveBeenCalledTimes(2)
+      expect(mockUA.sendRequest).toHaveBeenCalledTimes(2)
     })
   })
 
@@ -627,7 +627,7 @@ describe('SipClient - Comprehensive Presence', () => {
 
       await Promise.all(publishes)
 
-      expect(mockUA.sendMessage).toHaveBeenCalledTimes(3)
+      expect(mockUA.sendRequest).toHaveBeenCalledTimes(3)
     })
 
     it('should handle multiple concurrent subscriptions', async () => {
@@ -639,7 +639,7 @@ describe('SipClient - Comprehensive Presence', () => {
 
       await Promise.all(subscriptions)
 
-      expect(mockUA.sendMessage).toHaveBeenCalledTimes(3)
+      expect(mockUA.sendRequest).toHaveBeenCalledTimes(3)
     })
 
     it('should manage multiple active subscriptions', async () => {
@@ -648,7 +648,7 @@ describe('SipClient - Comprehensive Presence', () => {
       await sipClient.unsubscribePresence('sip:2000@example.com')
 
       // Should have 1 active subscription remaining
-      expect(mockUA.sendMessage).toHaveBeenCalled()
+      expect(mockUA.sendRequest).toHaveBeenCalled()
     })
   })
 })
