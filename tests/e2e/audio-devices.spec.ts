@@ -1,9 +1,15 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Audio Device Management', () => {
-  test.beforeEach(async ({ page, context }) => {
-    // Grant permissions for media devices
-    await context.grantPermissions(['microphone', 'camera'])
+  test.beforeEach(async ({ page, context, browserName }) => {
+    // Grant permissions for media devices (not supported in WebKit/Safari)
+    if (browserName !== 'webkit') {
+      try {
+        await context.grantPermissions(['microphone', 'camera'])
+      } catch (error) {
+        console.warn('Failed to grant permissions:', error)
+      }
+    }
 
     // Navigate to app
     await page.goto('/')
@@ -363,8 +369,15 @@ test.describe('Audio Device Management', () => {
 })
 
 test.describe('Audio Constraints Configuration', () => {
-  test.beforeEach(async ({ page, context }) => {
-    await context.grantPermissions(['microphone'])
+  test.beforeEach(async ({ page, context, browserName }) => {
+    // Grant permissions for microphone (not supported in WebKit/Safari)
+    if (browserName !== 'webkit') {
+      try {
+        await context.grantPermissions(['microphone'])
+      } catch (error) {
+        console.warn('Failed to grant microphone permission:', error)
+      }
+    }
     await page.goto('/')
   })
 
