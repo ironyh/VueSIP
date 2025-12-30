@@ -179,7 +179,7 @@ describe('AnalyticsPlugin - Edge Cases', () => {
     it('should timeout long-running requests', async () => {
       const fetchMock = vi.fn().mockImplementation(
         () =>
-          new Promise((resolve) => {
+          new Promise((_resolve) => {
             // Never resolve (simulate hanging request)
           })
       )
@@ -285,7 +285,6 @@ describe('AnalyticsPlugin - Edge Cases', () => {
         endpoint: 'https://analytics.example.com',
         batchEvents: false,
       })
-
       ;(plugin as any).trackEvent('test', null)
       ;(plugin as any).trackEvent('test', undefined)
 

@@ -69,9 +69,7 @@ export class AdapterFactory {
 
       case 'custom': {
         if (!adapterConfig.customAdapter) {
-          throw new Error(
-            'Custom adapter must be provided when library is set to "custom"'
-          )
+          throw new Error('Custom adapter must be provided when library is set to "custom"')
         }
         adapter = adapterConfig.customAdapter
         break
@@ -141,9 +139,7 @@ export class AdapterFactory {
    * @param library - Library to get info for
    * @returns Adapter metadata
    */
-  static async getAdapterInfo(
-    library: 'jssip' | 'sipjs'
-  ): Promise<{
+  static async getAdapterInfo(library: 'jssip' | 'sipjs'): Promise<{
     adapterName: string
     adapterVersion: string
     libraryName: string
@@ -172,7 +168,7 @@ export class AdapterFactory {
       await adapter.destroy()
 
       return info
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }

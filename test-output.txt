@@ -1,0 +1,5 @@
+
+> vuesip@1.0.0 test
+> vitest --coverage --reporter=json --outputFile=coverage-report.json
+
+Killed

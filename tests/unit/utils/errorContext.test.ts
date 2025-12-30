@@ -118,13 +118,7 @@ describe('errorContext utilities', () => {
 
     it('should handle arrays with mixed content', () => {
       const data = {
-        mixed: [
-          'string',
-          123,
-          { name: 'alice', password: 'secret' },
-          null,
-          undefined,
-        ],
+        mixed: ['string', 123, { name: 'alice', password: 'secret' }, null, undefined],
       }
 
       const sanitized = sanitizeContext(data)
@@ -282,9 +276,9 @@ describe('errorContext utilities', () => {
 
       const elapsed1 = timer.elapsed()
       // Small delay
-      let sum = 0
+      let _sum = 0
       for (let i = 0; i < 1000; i++) {
-        sum += i
+        _sum += i
       }
       const elapsed2 = timer.elapsed()
 
@@ -397,7 +391,14 @@ describe('errorContext utilities', () => {
     it('should handle errors without context or state', () => {
       const error = new Error('Test error')
 
-      logErrorWithContext(mockLogger, 'Operation failed', error, 'testOp', 'TestComponent', ErrorSeverity.LOW)
+      logErrorWithContext(
+        mockLogger,
+        'Operation failed',
+        error,
+        'testOp',
+        'TestComponent',
+        ErrorSeverity.LOW
+      )
 
       expect(mockLogger.error).toHaveBeenCalled()
       const loggedArgs = mockLogger.error.mock.calls[0]

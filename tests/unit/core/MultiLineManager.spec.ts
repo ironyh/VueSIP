@@ -4,9 +4,13 @@
  * Comprehensive test suite for multi-line management functionality
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach as _afterEach } from 'vitest'
 import { MultiLineManager } from '../../../src/core/MultiLineManager'
-import type { LineConfig, LineState, MultiLineConfig } from '../../../src/types/multiline.types'
+import type {
+  LineConfig,
+  LineState,
+  MultiLineConfig as _MultiLineConfig,
+} from '../../../src/types/multiline.types'
 import type { CallSession } from '../../../src/types/session.types'
 
 describe('MultiLineManager', () => {
@@ -33,7 +37,7 @@ describe('MultiLineManager', () => {
       const customManager = new MultiLineManager({
         maxLines: 10,
         routingStrategy: 'round_robin',
-        persistLines: false
+        persistLines: false,
       })
       const config = customManager.getConfig()
       expect(config.maxLines).toBe(10)
@@ -55,7 +59,7 @@ describe('MultiLineManager', () => {
       uri: 'sip:user@example.com',
       password: 'secret',
       displayName: 'Test Line',
-      priority: 1
+      priority: 1,
     }
 
     it('should add a new line', async () => {
@@ -78,13 +82,13 @@ describe('MultiLineManager', () => {
     it('should auto-register line when configured', async () => {
       const config: LineConfig = {
         ...validConfig,
-        autoRegister: true
+        autoRegister: true,
       }
       const lineId = await manager.addLine(config)
       const line = manager.getLine(lineId)
 
       // Wait for registration
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       expect(line!.registrationState).toBe('registered')
     })
@@ -92,7 +96,7 @@ describe('MultiLineManager', () => {
     it('should not auto-register when not configured', async () => {
       const config: LineConfig = {
         ...validConfig,
-        autoRegister: false
+        autoRegister: false,
       }
       const lineId = await manager.addLine(config)
       const line = manager.getLine(lineId)
@@ -107,14 +111,14 @@ describe('MultiLineManager', () => {
 
       expect(handler).toHaveBeenCalledWith({
         lineId,
-        line: expect.objectContaining({ id: lineId })
+        line: expect.objectContaining({ id: lineId }),
       })
     })
 
     it('should reject when URI is missing', async () => {
       const invalidConfig = {
         password: 'secret',
-        displayName: 'Test'
+        displayName: 'Test',
       } as LineConfig
 
       await expect(manager.addLine(invalidConfig)).rejects.toThrow(
@@ -125,7 +129,7 @@ describe('MultiLineManager', () => {
     it('should reject when password is missing', async () => {
       const invalidConfig = {
         uri: 'sip:user@example.com',
-        displayName: 'Test'
+        displayName: 'Test',
       } as LineConfig
 
       await expect(manager.addLine(invalidConfig)).rejects.toThrow(
@@ -147,14 +151,14 @@ describe('MultiLineManager', () => {
       await customManager.addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
-        displayName: 'Line 2'
+        displayName: 'Line 2',
       })
 
       await expect(
         customManager.addLine({
           uri: 'sip:user3@example.com',
           password: 'secret',
-          displayName: 'Line 3'
+          displayName: 'Line 3',
         })
       ).rejects.toThrow('Maximum number of lines (2) reached')
     })
@@ -163,7 +167,7 @@ describe('MultiLineManager', () => {
       const config: LineConfig = {
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test'
+        displayName: 'Test',
       }
       const lineId = await manager.addLine(config)
       const line = manager.getLine(lineId)
@@ -175,7 +179,7 @@ describe('MultiLineManager', () => {
       const line2 = await manager.addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
-        displayName: 'Line 2'
+        displayName: 'Line 2',
       })
 
       expect(manager.getAllLines()).toHaveLength(2)
@@ -191,7 +195,7 @@ describe('MultiLineManager', () => {
       lineId = await manager.addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test Line'
+        displayName: 'Test Line',
       })
     })
 
@@ -227,7 +231,7 @@ describe('MultiLineManager', () => {
 
     it('should unregister line before removal', async () => {
       await manager.registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       await manager.removeLine(lineId)
       expect(manager.getLine(lineId)).toBeUndefined()
@@ -237,7 +241,7 @@ describe('MultiLineManager', () => {
       const line2 = await manager.addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
-        displayName: 'Line 2'
+        displayName: 'Line 2',
       })
 
       await manager.setActiveLine(lineId)
@@ -261,13 +265,13 @@ describe('MultiLineManager', () => {
         uri: 'sip:user@example.com',
         password: 'secret',
         displayName: 'Test Line',
-        autoRegister: false
+        autoRegister: false,
       })
     })
 
     it('should register a line', async () => {
       await manager.registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       const line = manager.getLine(lineId)
       expect(line!.registrationState).toBe('registered')
@@ -279,18 +283,18 @@ describe('MultiLineManager', () => {
       manager.on('line:registration', handler)
 
       manager.registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({
           lineId,
-          state: 'registering'
+          state: 'registering',
         })
       )
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({
           lineId,
-          state: 'registered'
+          state: 'registered',
         })
       )
     })
@@ -300,7 +304,7 @@ describe('MultiLineManager', () => {
         uri: 'sip:invalid@example.com',
         password: 'secret',
         displayName: 'Invalid Line',
-        autoRegister: false
+        autoRegister: false,
       })
 
       await expect(manager.registerLine(invalidLineId)).rejects.toThrow('Invalid credentials')
@@ -312,7 +316,7 @@ describe('MultiLineManager', () => {
 
     it('should not re-register already registered line', async () => {
       await manager.registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       const handler = vi.fn()
       manager.on('line:registration', handler)
@@ -329,7 +333,7 @@ describe('MultiLineManager', () => {
 
     it('should update registration timestamp', async () => {
       await manager.registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       const line = manager.getLine(lineId)
       expect(line!.registeredAt).toBeGreaterThan(Date.now() - 1000)
@@ -340,7 +344,7 @@ describe('MultiLineManager', () => {
       line.lastError = 'Previous error'
 
       await manager.registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       expect(line.lastError).toBeUndefined()
     })
@@ -354,14 +358,14 @@ describe('MultiLineManager', () => {
         uri: 'sip:user@example.com',
         password: 'secret',
         displayName: 'Test Line',
-        autoRegister: true
+        autoRegister: true,
       })
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
     })
 
     it('should unregister a line', async () => {
       await manager.unregisterLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       const line = manager.getLine(lineId)
       expect(line!.registrationState).toBe('unregistered')
@@ -376,14 +380,14 @@ describe('MultiLineManager', () => {
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({
           lineId,
-          state: 'unregistered'
+          state: 'unregistered',
         })
       )
     })
 
     it('should not unregister already unregistered line', async () => {
       await manager.unregisterLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       const handler = vi.fn()
       manager.on('line:registration', handler)
@@ -403,7 +407,7 @@ describe('MultiLineManager', () => {
       expect(line!.registeredAt).toBeDefined()
 
       await manager.unregisterLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       expect(line!.registeredAt).toBeUndefined()
     })
@@ -417,12 +421,12 @@ describe('MultiLineManager', () => {
       line1 = await manager.addLine({
         uri: 'sip:user1@example.com',
         password: 'secret',
-        displayName: 'Line 1'
+        displayName: 'Line 1',
       })
       line2 = await manager.addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
-        displayName: 'Line 2'
+        displayName: 'Line 2',
       })
     })
 
@@ -440,7 +444,7 @@ describe('MultiLineManager', () => {
       expect(handler).toHaveBeenCalledWith({
         previousLineId: line1,
         newLineId: line2,
-        timestamp: expect.any(Number)
+        timestamp: expect.any(Number),
       })
     })
 
@@ -467,14 +471,14 @@ describe('MultiLineManager', () => {
       const line3 = await manager.addLine({
         uri: 'sip:user3@example.com',
         password: 'secret',
-        displayName: 'Line 3'
+        displayName: 'Line 3',
       })
       await manager.setActiveLine(line3)
 
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({
           previousLineId: line2,
-          newLineId: line3
+          newLineId: line3,
         })
       )
     })
@@ -488,13 +492,13 @@ describe('MultiLineManager', () => {
       lineId = await manager.addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test Line'
+        displayName: 'Test Line',
       })
       mockCall = {
         id: 'call-1',
         direction: 'outgoing',
         state: 'initial',
-        remoteIdentity: { uri: 'sip:remote@example.com' }
+        remoteIdentity: { uri: 'sip:remote@example.com' },
       } as CallSession
     })
 
@@ -522,7 +526,7 @@ describe('MultiLineManager', () => {
       expect(handler).toHaveBeenCalledWith({
         callId: 'call-1',
         lineId,
-        call: mockCall
+        call: mockCall,
       })
     })
 
@@ -544,7 +548,7 @@ describe('MultiLineManager', () => {
 
       expect(handler).toHaveBeenCalledWith({
         callId: 'call-1',
-        lineId
+        lineId,
       })
     })
 
@@ -581,20 +585,20 @@ describe('MultiLineManager', () => {
         uri: 'sip:user1@example.com',
         password: 'secret',
         displayName: 'Line 1',
-        autoRegister: true
+        autoRegister: true,
       })
       line2 = await manager.addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
         displayName: 'Line 2',
-        autoRegister: true
+        autoRegister: true,
       })
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       mockCall = {
         id: 'call-1',
         direction: 'outgoing',
-        state: 'confirmed'
+        state: 'confirmed',
       } as CallSession
 
       manager.associateCall('call-1', line1, mockCall)
@@ -604,7 +608,7 @@ describe('MultiLineManager', () => {
       await manager.transferCallBetweenLines({
         fromLineId: line1,
         toLineId: line2,
-        callId: 'call-1'
+        callId: 'call-1',
       })
 
       const fromLine = manager.getLine(line1)
@@ -623,14 +627,14 @@ describe('MultiLineManager', () => {
         fromLineId: line1,
         toLineId: line2,
         callId: 'call-1',
-        attended: true
+        attended: true,
       })
 
       expect(handler).toHaveBeenCalledWith({
         callId: 'call-1',
         fromLineId: line1,
         toLineId: line2,
-        attended: true
+        attended: true,
       })
     })
 
@@ -639,7 +643,7 @@ describe('MultiLineManager', () => {
         manager.transferCallBetweenLines({
           fromLineId: 'invalid-line',
           toLineId: line2,
-          callId: 'call-1'
+          callId: 'call-1',
         })
       ).rejects.toThrow('Source line invalid-line not found')
     })
@@ -649,7 +653,7 @@ describe('MultiLineManager', () => {
         manager.transferCallBetweenLines({
           fromLineId: line1,
           toLineId: 'invalid-line',
-          callId: 'call-1'
+          callId: 'call-1',
         })
       ).rejects.toThrow('Target line invalid-line not found')
     })
@@ -661,7 +665,7 @@ describe('MultiLineManager', () => {
         manager.transferCallBetweenLines({
           fromLineId: line1,
           toLineId: line2,
-          callId: 'call-1'
+          callId: 'call-1',
         })
       ).rejects.toThrow(`Target line ${line2} is not registered`)
     })
@@ -671,7 +675,7 @@ describe('MultiLineManager', () => {
         manager.transferCallBetweenLines({
           fromLineId: line1,
           toLineId: line2,
-          callId: 'non-existent-call'
+          callId: 'non-existent-call',
         })
       ).rejects.toThrow('Call non-existent-call not found on line')
     })
@@ -683,15 +687,15 @@ describe('MultiLineManager', () => {
         uri: 'sip:user1@example.com',
         password: 'secret',
         displayName: 'Line 1',
-        autoRegister: true
+        autoRegister: true,
       })
       await manager.addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
         displayName: 'Line 2',
-        autoRegister: false
+        autoRegister: false,
       })
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
     })
 
     it('should return correct statistics', () => {
@@ -733,23 +737,23 @@ describe('MultiLineManager', () => {
         password: 'secret',
         displayName: 'Line 1',
         priority: 1,
-        autoRegister: true
+        autoRegister: true,
       })
       await manager.addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
         displayName: 'Line 2',
         priority: 2,
-        autoRegister: true
+        autoRegister: true,
       })
       await manager.addLine({
         uri: 'sip:user3@example.com',
         password: 'secret',
         displayName: 'Line 3',
         priority: 3,
-        autoRegister: true
+        autoRegister: true,
       })
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
     })
 
     it('should select line by priority', () => {
@@ -796,7 +800,7 @@ describe('MultiLineManager', () => {
 
       expect(handler).toHaveBeenCalledWith(
         expect.objectContaining({
-          routingStrategy: 'round_robin'
+          routingStrategy: 'round_robin',
         })
       )
     })
@@ -816,9 +820,9 @@ describe('MultiLineManager', () => {
         uri: 'sip:user@example.com',
         password: 'secret',
         displayName: 'Test',
-        autoRegister: true
+        autoRegister: true,
       })
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       await manager.destroy()
 
@@ -831,15 +835,15 @@ describe('MultiLineManager', () => {
         uri: 'sip:user1@example.com',
         password: 'secret',
         displayName: 'Line 1',
-        autoRegister: true
+        autoRegister: true,
       })
       await manager.addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
         displayName: 'Line 2',
-        autoRegister: true
+        autoRegister: true,
       })
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       await manager.destroy()
 
@@ -855,7 +859,7 @@ describe('MultiLineManager', () => {
       await manager.addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test'
+        displayName: 'Test',
       })
 
       expect(handler).not.toHaveBeenCalled()
@@ -868,15 +872,15 @@ describe('MultiLineManager', () => {
         uri: 'sip:user1@example.com',
         password: 'secret',
         displayName: 'Line 1',
-        autoRegister: true
+        autoRegister: true,
       })
       await manager.addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
         displayName: 'Line 2',
-        autoRegister: false
+        autoRegister: false,
       })
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
     })
 
     it('should get lines by state', () => {
