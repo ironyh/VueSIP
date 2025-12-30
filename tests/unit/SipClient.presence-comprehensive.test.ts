@@ -125,6 +125,21 @@ describe('SipClient - Comprehensive Presence', () => {
       onceHandlers[event].push(handler)
     })
 
+    // Restore sendRequest mock implementation (critical for presence tests)
+    mockUA.sendRequest.mockImplementation((method: string, target: string, options: any) => {
+      if (options.eventHandlers?.onSuccessResponse) {
+        setTimeout(() => {
+          options.eventHandlers.onSuccessResponse({
+            status_code: 200,
+            getHeader: (name: string) => {
+              if (name === 'SIP-ETag') return 'test-etag-123'
+              return null
+            },
+          })
+        }, 0)
+      }
+    })
+
     // Reset mock return values
     mockUA.isConnected.mockReturnValue(false)
     mockUA.isRegistered.mockReturnValue(false)
@@ -255,6 +270,7 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should handle publish with extra headers', async () => {
+      await startClient()
       await sipClient.publishPresence({
         status: 'open',
         note: 'Available',
@@ -273,6 +289,7 @@ describe('SipClient - Comprehensive Presence', () => {
 
   describe('Presence PIDF+XML Document Generation', () => {
     it('should generate valid PIDF+XML for open status', async () => {
+      await startClient()
       await sipClient.publishPresence({
         status: 'open',
         note: 'Available',
@@ -287,6 +304,7 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should generate valid PIDF+XML for busy status', async () => {
+      await startClient()
       await sipClient.publishPresence({
         status: 'busy',
         note: 'In meeting',
@@ -298,6 +316,7 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should include entity attribute with SIP URI', async () => {
+      await startClient()
       await sipClient.publishPresence({
         status: 'open',
         note: 'Test',
@@ -319,6 +338,7 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should properly escape XML special characters in note', async () => {
+      await startClient()
       await sipClient.publishPresence({
         status: 'open',
         note: 'Available & ready for <calls>',
@@ -345,6 +365,8 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should subscribe with custom expires', async () => {
+      await startClient()
+
       await sipClient.subscribePresence('sip:2000@example.com', {
         expires: 7200,
       })
@@ -353,6 +375,8 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should subscribe with extra headers', async () => {
+      await startClient()
+
       await sipClient.subscribePresence('sip:2000@example.com', {
         extraHeaders: ['X-Custom-Subscribe: value'],
       })
@@ -367,6 +391,8 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should track active subscriptions', async () => {
+      await startClient()
+
       await sipClient.subscribePresence('sip:2000@example.com')
       await sipClient.subscribePresence('sip:3000@example.com')
 
@@ -375,6 +401,8 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should handle duplicate subscription requests', async () => {
+      await startClient()
+
       await sipClient.subscribePresence('sip:2000@example.com')
       await sipClient.subscribePresence('sip:2000@example.com')
 
@@ -385,12 +413,12 @@ describe('SipClient - Comprehensive Presence', () => {
 
   describe('Presence Unsubscription', () => {
     beforeEach(async () => {
+      await startClient()
       await sipClient.subscribePresence('sip:2000@example.com')
       vi.clearAllMocks()
     })
 
     it('should unsubscribe from presence', async () => {
-      await startClient()
       const unsubscribeEvents: any[] = []
       eventBus.on('sip:presence:unsubscribe', (e) => unsubscribeEvents.push(e))
 
@@ -515,6 +543,8 @@ describe('SipClient - Comprehensive Presence', () => {
 
   describe('Presence Error Handling', () => {
     it('should handle publish failure', async () => {
+      await startClient()
+
       mockUA.sendRequest.mockImplementationOnce(() => {
         throw new Error('Network error')
       })
@@ -528,6 +558,8 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should handle subscribe failure', async () => {
+      await startClient()
+
       mockUA.sendRequest.mockImplementationOnce(() => {
         throw new Error('Network error')
       })
@@ -607,6 +639,8 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should support subscription refresh', async () => {
+      await startClient()
+
       // Initial subscribe
       await sipClient.subscribePresence('sip:2000@example.com', { expires: 3600 })
 
@@ -619,6 +653,8 @@ describe('SipClient - Comprehensive Presence', () => {
 
   describe('Multiple Presence Operations', () => {
     it('should handle multiple concurrent publishes', async () => {
+      await startClient()
+
       const publishes = [
         sipClient.publishPresence({ status: 'open', note: 'Test 1' }),
         sipClient.publishPresence({ status: 'busy', note: 'Test 2' }),
@@ -631,6 +667,8 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should handle multiple concurrent subscriptions', async () => {
+      await startClient()
+
       const subscriptions = [
         sipClient.subscribePresence('sip:2000@example.com'),
         sipClient.subscribePresence('sip:3000@example.com'),
@@ -643,6 +681,8 @@ describe('SipClient - Comprehensive Presence', () => {
     })
 
     it('should manage multiple active subscriptions', async () => {
+      await startClient()
+
       await sipClient.subscribePresence('sip:2000@example.com')
       await sipClient.subscribePresence('sip:3000@example.com')
       await sipClient.unsubscribePresence('sip:2000@example.com')
