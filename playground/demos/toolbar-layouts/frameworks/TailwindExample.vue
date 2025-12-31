@@ -11,11 +11,11 @@
       <div class="tw-flex-1 tw-flex tw-items-center tw-justify-center tw-gap-3">
         <span
           class="tw-px-2 tw-py-1 tw-bg-emerald-500/20 tw-text-emerald-400 tw-rounded tw-text-xs tw-font-semibold"
-          >Active</span
+        >Active</span
         >
         <span class="tw-font-medium">John Smith</span>
         <span class="tw-font-mono tw-bg-var(--surface-900)/20 tw-px-2 tw-py-1 tw-rounded tw-text-sm"
-          >02:45</span
+        >02:45</span
         >
       </div>
       <div class="tw-flex tw-gap-2">

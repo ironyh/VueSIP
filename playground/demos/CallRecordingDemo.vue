@@ -131,7 +131,7 @@
               />
             </svg>
             <span class="sm:inline hidden">Start </span>Record<span class="sm:inline hidden"
-              >ing</span
+            >ing</span
             >
           </button>
           <button v-if="isRecording" @click="stopRecording" class="stop-btn w-full sm:flex-1">

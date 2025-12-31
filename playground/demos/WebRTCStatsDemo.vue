@@ -262,7 +262,7 @@
             <div class="history-info">
               <Tag severity="info" :value="`${history.length} samples`" />
               <span class="text-muted"
-                >Last {{ Math.min(history.length, 300) / 60 }} minutes of data</span
+              >Last {{ Math.min(history.length, 300) / 60 }} minutes of data</span
               >
             </div>
             <div class="history-preview">

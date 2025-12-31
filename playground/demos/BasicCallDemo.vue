@@ -91,7 +91,7 @@
               <div class="flex align-items-center">
                 <Checkbox v-model="rememberMe" :binary="true" inputId="remember-me" />
                 <label for="remember-me" class="ml-2 mb-0"
-                  >Remember me (persist credentials across sessions)</label
+                >Remember me (persist credentials across sessions)</label
                 >
               </div>
             </div>
