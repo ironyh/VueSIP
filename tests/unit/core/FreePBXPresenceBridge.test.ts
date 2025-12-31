@@ -275,8 +275,11 @@ describe('FreePBXPresenceBridge', () => {
 
       vi.setSystemTime(now)
 
+      // Format time with zero-padded minutes to match regex pattern \d{1,2}:\d{2}
+      const hours = pastTime.getHours()
+      const minutes = String(pastTime.getMinutes()).padStart(2, '0')
       const pidf = `<?xml version="1.0"?>
-        <presence><tuple><note>Back at ${pastTime.getHours()}:${pastTime.getMinutes()}</note></tuple></presence>`
+        <presence><tuple><note>Back at ${hours}:${minutes}</note></tuple></presence>`
 
       const result = bridge.parsePIDF(pidf, '1001')
 
