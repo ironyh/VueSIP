@@ -262,9 +262,11 @@ describe('FreePBXPresenceBridge', () => {
       const result = bridge.parsePIDF(pidf, '1001')
 
       expect(result.returnTime).toBeDefined()
-      // Should be tomorrow's 9 AM
+      // Should be tomorrow's 9 AM - calculate actual tomorrow to handle month boundaries
+      const tomorrow = new Date(now)
+      tomorrow.setDate(tomorrow.getDate() + 1)
       const returnTime = result.returnTime!.returnTime
-      expect(returnTime.getDate()).toBe(now.getDate() + 1)
+      expect(returnTime.getDate()).toBe(tomorrow.getDate())
     })
 
     it('should detect overdue return times', () => {
