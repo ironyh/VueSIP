@@ -1,6 +1,29 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
+ * Global test ignore patterns - shared across all projects
+ * These patterns are applied to all browser configurations
+ */
+const GLOBAL_TEST_IGNORE = [
+  /simple-debug\.spec\.ts/, // Debug test for manual troubleshooting
+  /quick-test\.spec\.ts/, // Debug test for quick checks
+  /diagnose-registration\.spec\.ts/, // Diagnostic test
+  /multi-line\.spec\.ts/, // Tests unimplemented multi-line UI feature
+  // Tests requiring mock SIP infrastructure fixes (mock WebSocket/EventBridge timing issues)
+  /audio-devices\.spec\.ts/, // Requires mock media device integration
+  /av-quality\.spec\.ts/, // Requires mock WebRTC connection
+  /dtmf\.spec\.ts/, // Requires active call mocking
+  /call-transfer\.spec\.ts/, // Requires active call mocking
+  /incoming-call\.spec\.ts/, // Requires mock incoming call simulation
+  /call-hold\.spec\.ts/, // Requires active call mocking
+  /basic-call-flow\.spec\.ts/, // Requires full mock SIP flow
+  /multi-user\.spec\.ts/, // Requires multi-instance mock coordination
+  /network-conditions\.spec\.ts/, // Requires network simulation
+  /eventbridge-lifecycle-diagnostic\.spec\.ts/, // Diagnostic for EventBridge
+  /performance\.spec\.ts/, // Requires real connection timing metrics
+]
+
+/**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
@@ -14,24 +37,7 @@ export default defineConfig({
   /* Run tests in parallel - optimized for CI performance */
   workers: process.env.CI ? 4 : undefined,
   /* Global test ignore patterns - debug/diagnostic tests and mock infrastructure issues */
-  testIgnore: [
-    /simple-debug\.spec\.ts/, // Debug test for manual troubleshooting
-    /quick-test\.spec\.ts/, // Debug test for quick checks
-    /diagnose-registration\.spec\.ts/, // Diagnostic test
-    /multi-line\.spec\.ts/, // Tests unimplemented multi-line UI feature
-    // Tests requiring mock SIP infrastructure fixes (mock WebSocket/EventBridge timing issues)
-    /audio-devices\.spec\.ts/, // Requires mock media device integration
-    /av-quality\.spec\.ts/, // Requires mock WebRTC connection
-    /dtmf\.spec\.ts/, // Requires active call mocking
-    /call-transfer\.spec\.ts/, // Requires active call mocking
-    /incoming-call\.spec\.ts/, // Requires mock incoming call simulation
-    /call-hold\.spec\.ts/, // Requires active call mocking
-    /basic-call-flow\.spec\.ts/, // Requires full mock SIP flow
-    /multi-user\.spec\.ts/, // Requires multi-instance mock coordination
-    /network-conditions\.spec\.ts/, // Requires network simulation
-    /eventbridge-lifecycle-diagnostic\.spec\.ts/, // Diagnostic for EventBridge
-    /performance\.spec\.ts/, // Requires real connection timing metrics
-  ],
+  testIgnore: GLOBAL_TEST_IGNORE,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html'],
@@ -94,30 +100,20 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      // Smoke tests only - exclude visual regression, performance, and call tests (mock WS timing issues)
-      testIgnore: [
-        /visual-regression\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /multi-user\.spec\.ts/,
-      ],
+      // Smoke tests only - extend global ignores with firefox-specific exclusions
+      testIgnore: [...GLOBAL_TEST_IGNORE, /visual-regression\.spec\.ts/],
     },
 
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      // Smoke tests only - exclude tests with WebSocket timing and mock issues
+      // Smoke tests only - extend global ignores with webkit-specific exclusions
       testIgnore: [
+        ...GLOBAL_TEST_IGNORE,
         /visual-regression\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /multi-user\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
-        /av-quality\.spec\.ts/,
         /error-scenarios\.spec\.ts/,
         /accessibility\.spec\.ts/,
         /app-functionality\.spec\.ts/,
-        /eventbridge-lifecycle-diagnostic\.spec\.ts/,
       ],
     },
 
@@ -125,38 +121,24 @@ export default defineConfig({
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
-      // Smoke tests only - exclude tests that are flaky on mobile
-      // Call-related tests have timing issues with mock WebSocket on mobile
-      // Connection-dependent tests time out due to mobile viewport differences
+      // Smoke tests only - extend global ignores with mobile-specific exclusions
       testIgnore: [
+        ...GLOBAL_TEST_IGNORE,
         /visual-regression\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /av-quality\.spec\.ts/,
-        /multi-user\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
         /accessibility\.spec\.ts/,
         /app-functionality\.spec\.ts/,
-        /eventbridge-lifecycle-diagnostic\.spec\.ts/,
         /error-scenarios\.spec\.ts/,
       ],
     },
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 12'] },
-      // Smoke tests only - exclude tests that are flaky on Mobile Safari
-      // Call-related tests timeout due to mock WebSocket timing issues
-      // Connection-dependent tests time out due to mobile viewport differences
+      // Smoke tests only - extend global ignores with mobile safari-specific exclusions
       testIgnore: [
+        ...GLOBAL_TEST_IGNORE,
         /visual-regression\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /av-quality\.spec\.ts/,
-        /multi-user\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
         /accessibility\.spec\.ts/,
         /app-functionality\.spec\.ts/,
-        /eventbridge-lifecycle-diagnostic\.spec\.ts/,
         /error-scenarios\.spec\.ts/,
       ],
     },
