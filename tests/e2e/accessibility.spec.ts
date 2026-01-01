@@ -39,13 +39,15 @@ test.describe('Accessibility Tests', () => {
     expect(accessibilityScanResults.violations).toEqual([])
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should not have accessibility issues when connected', async ({
+  test('should not have accessibility issues when connected', async ({
     page,
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -57,13 +59,16 @@ test.describe('Accessibility Tests', () => {
     expect(accessibilityScanResults.violations).toEqual([])
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should not have accessibility issues during active call', async ({
+  test('should not have accessibility issues during active call', async ({
     page,
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -132,13 +137,16 @@ test.describe('Accessibility Tests', () => {
     expect(focusedElements.every((el) => el !== 'unknown' || el === 'BODY')).toBe(true)
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should allow call actions via keyboard', async ({
+  test('should allow call actions via keyboard', async ({
     page,
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -224,12 +232,15 @@ test.describe('Accessibility Tests', () => {
     expect(accessibilityScanResults.violations).toEqual([])
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should support screen reader announcements for status changes', async ({
+  test('should support screen reader announcements for status changes', async ({
     page,
     configureSip,
     waitForConnectionState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -243,13 +254,16 @@ test.describe('Accessibility Tests', () => {
     expect(liveRegions).toBeGreaterThanOrEqual(0)
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should have proper button roles and states', async ({
+  test('should have proper button roles and states', async ({
     page,
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -432,13 +446,16 @@ test.describe('Accessibility - Keyboard Navigation', () => {
     expect(focusedElement).toBeDefined()
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should allow keyboard shortcuts for common actions', async ({
+  test('should allow keyboard shortcuts for common actions', async ({
     page,
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)

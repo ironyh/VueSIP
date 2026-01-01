@@ -179,12 +179,14 @@ test.describe('Button State Management', () => {
     await page.goto(APP_URL)
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should disable connect button while connecting', async ({
+  test('should disable connect button while connecting', async ({
     page,
     configureSip,
     waitForConnectionState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
     await configureSip({
       uri: TEST_DATA.VALID_WS_URI,
       username: TEST_DATA.VALID_SIP_URI,

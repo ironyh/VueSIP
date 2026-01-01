@@ -113,12 +113,14 @@ test.describe('Connection Management', () => {
     await expect(page.locator('[data-testid="disconnect-button"]')).not.toBeVisible()
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should show disconnect button when connected', async ({
+  test('should show disconnect button when connected', async ({
     page,
     configureSip,
     waitForConnectionState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
     // Configure and connect
     await configureSip({
       uri: 'wss://sip.example.com:7443',
@@ -136,12 +138,14 @@ test.describe('Connection Management', () => {
     await expect(page.locator('[data-testid="connect-button"]')).not.toBeVisible()
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should allow disconnection', async ({
+  test('should allow disconnection', async ({
     page,
     configureSip,
     waitForConnectionState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
     // Configure SIP
     await configureSip({
       uri: 'wss://sip.example.com:7443',
@@ -406,8 +410,7 @@ test.describe('Call Functionality - Outgoing Calls', () => {
     })
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should make an outgoing call', async ({
+  test('should make an outgoing call', async ({
     page,
     browserName,
     waitForConnectionState,
@@ -447,8 +450,7 @@ test.describe('Call Functionality - Outgoing Calls', () => {
     await expect(page.locator('[data-testid="active-call"]')).toBeVisible({ timeout: 5000 })
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should show call status during outgoing call', async ({
+  test('should show call status during outgoing call', async ({
     page,
     browserName,
     waitForConnectionState,
@@ -485,8 +487,7 @@ test.describe('Call Functionality - Outgoing Calls', () => {
     await expect(page.locator('[data-testid="hangup-button"]')).toBeVisible()
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should hangup an outgoing call', async ({
+  test('should hangup an outgoing call', async ({
     page,
     browserName,
     waitForConnectionState,
@@ -550,8 +551,7 @@ test.describe('Call Functionality - Incoming Calls', () => {
     })
   })
 
-  // TODO: Fix mock SIP infrastructure - waitForConnectionState not triggering properly
-  test.skip('should display incoming call notification', async ({
+  test('should display incoming call notification', async ({
     page,
     browserName,
     waitForConnectionState,
