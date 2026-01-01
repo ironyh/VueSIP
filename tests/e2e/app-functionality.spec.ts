@@ -229,7 +229,9 @@ test.describe('Device Management', () => {
     await expect(page.locator('[data-testid="audio-output-select"]')).toBeVisible()
   })
 
-  test('should list available audio input devices', async ({ page }) => {
+  test('should list available audio input devices', async ({ page, browserName }) => {
+    // WebKit doesn't properly enumerate fake audio devices
+    test.skip(browserName === 'webkit', 'WebKit does not support fake device enumeration')
     await page.click('[data-testid="device-settings-button"]')
 
     const audioInputSelect = page.locator('[data-testid="audio-input-select"]')
@@ -240,7 +242,9 @@ test.describe('Device Management', () => {
     await expect(options).toHaveCount(2) // Based on our mock devices
   })
 
-  test('should allow changing audio input device', async ({ page }) => {
+  test('should allow changing audio input device', async ({ page, browserName }) => {
+    // WebKit doesn't properly enumerate fake audio devices
+    test.skip(browserName === 'webkit', 'WebKit does not support fake device enumeration')
     await page.click('[data-testid="device-settings-button"]')
 
     // Select a different device

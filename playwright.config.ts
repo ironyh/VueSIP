@@ -21,8 +21,6 @@ const GLOBAL_TEST_IGNORE = [
   /network-conditions\.spec\.ts/, // Requires network simulation
   /eventbridge-lifecycle-diagnostic\.spec\.ts/, // Diagnostic for EventBridge
   /performance\.spec\.ts/, // Requires real connection timing metrics
-  // Tests with CI timing/rendering issues across all browsers
-  /accessibility\.spec\.ts/, // axe-core requires stable DOM rendering in CI
 ]
 
 /**
@@ -100,58 +98,36 @@ export default defineConfig({
       // See tests/e2e/WEBKIT_KNOWN_ISSUES.md for details on test infrastructure requirements
       testIgnore: [
         ...GLOBAL_TEST_IGNORE,
-        /visual-regression\.spec\.ts/, // Requires stable DOM rendering in CI
-        /error-scenarios\.spec\.ts/, // Requires mock error injection
-        /app-functionality\.spec\.ts/, // Requires full app render with mock SIP
+        /visual-regression\.spec\.ts/, // Uses test.describe.skip() internally
       ],
     },
 
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      // Smoke tests only - extend global ignores with firefox-specific exclusions
-      testIgnore: [
-        ...GLOBAL_TEST_IGNORE,
-        /visual-regression\.spec\.ts/,
-        /error-scenarios\.spec\.ts/,
-        /app-functionality\.spec\.ts/,
-      ],
+      // Extend global ignores with visual regression only (uses internal skip)
+      testIgnore: [...GLOBAL_TEST_IGNORE, /visual-regression\.spec\.ts/],
     },
 
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      // Smoke tests only - extend global ignores with webkit-specific exclusions
-      testIgnore: [
-        ...GLOBAL_TEST_IGNORE,
-        /visual-regression\.spec\.ts/,
-        /error-scenarios\.spec\.ts/,
-        /app-functionality\.spec\.ts/,
-      ],
+      // Extend global ignores with visual regression only (uses internal skip)
+      testIgnore: [...GLOBAL_TEST_IGNORE, /visual-regression\.spec\.ts/],
     },
 
     /* Test against mobile viewports. */
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
-      // Smoke tests only - extend global ignores with mobile-specific exclusions
-      testIgnore: [
-        ...GLOBAL_TEST_IGNORE,
-        /visual-regression\.spec\.ts/,
-        /error-scenarios\.spec\.ts/,
-        /app-functionality\.spec\.ts/,
-      ],
+      // Extend global ignores with visual regression only (uses internal skip)
+      testIgnore: [...GLOBAL_TEST_IGNORE, /visual-regression\.spec\.ts/],
     },
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 12'] },
-      // Smoke tests only - extend global ignores with mobile safari-specific exclusions
-      testIgnore: [
-        ...GLOBAL_TEST_IGNORE,
-        /visual-regression\.spec\.ts/,
-        /error-scenarios\.spec\.ts/,
-        /app-functionality\.spec\.ts/,
-      ],
+      // Extend global ignores with visual regression only (uses internal skip)
+      testIgnore: [...GLOBAL_TEST_IGNORE, /visual-regression\.spec\.ts/],
     },
   ],
 

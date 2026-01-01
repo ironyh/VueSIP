@@ -314,7 +314,9 @@ test.describe('Device Management Errors', () => {
     await page.goto(APP_URL)
   })
 
-  test('should display available audio devices', async ({ page }) => {
+  test('should display available audio devices', async ({ page, browserName }) => {
+    // WebKit doesn't properly enumerate fake audio devices
+    test.skip(browserName === 'webkit', 'WebKit does not support fake device enumeration')
     await page.click(SELECTORS.DEVICES.DEVICE_SETTINGS_BUTTON)
 
     const inputSelect = page.locator(SELECTORS.DEVICES.AUDIO_INPUT_SELECT)
@@ -331,7 +333,9 @@ test.describe('Device Management Errors', () => {
     await expect(outputOptions).not.toHaveCount(0)
   })
 
-  test('should show feedback when changing devices', async ({ page }) => {
+  test('should show feedback when changing devices', async ({ page, browserName }) => {
+    // WebKit doesn't properly enumerate fake audio devices
+    test.skip(browserName === 'webkit', 'WebKit does not support fake device enumeration')
     await page.click(SELECTORS.DEVICES.DEVICE_SETTINGS_BUTTON)
 
     const inputSelect = page.locator(SELECTORS.DEVICES.AUDIO_INPUT_SELECT)
