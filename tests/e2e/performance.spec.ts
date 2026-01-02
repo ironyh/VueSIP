@@ -195,7 +195,8 @@ test.describe('Performance - Runtime Performance', () => {
     await mockSipServer()
     await mockMediaDevices()
     await page.goto(APP_URL)
-    await expect(page.locator(SELECTORS.APP.ROOT)).toBeVisible()
+    await page.waitForLoadState('domcontentloaded')
+    await expect(page.locator(SELECTORS.APP.ROOT)).toBeVisible({ timeout: 15000 })
   })
 
   test('should connect to SIP server within 2 seconds', async ({
@@ -381,7 +382,8 @@ test.describe('Performance - Rendering Performance', () => {
     await mockSipServer()
     await mockMediaDevices()
     await page.goto(APP_URL)
-    await expect(page.locator(SELECTORS.APP.ROOT)).toBeVisible()
+    await page.waitForLoadState('domcontentloaded')
+    await expect(page.locator(SELECTORS.APP.ROOT)).toBeVisible({ timeout: 15000 })
   })
 
   test('should maintain 60 FPS during animations', async ({ page }) => {
@@ -461,6 +463,10 @@ test.describe('Performance - Rendering Performance', () => {
   })
 
   test('should scroll smoothly through long lists', async ({ page }) => {
+    // Ensure container is ready before creating test elements
+    const container = page.locator(SELECTORS.APP.ROOT)
+    await expect(container).toBeVisible()
+
     // Create a long list of elements
     await page.evaluate(() => {
       const container = document.querySelector('[data-testid="sip-client"]')
