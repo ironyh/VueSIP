@@ -3,26 +3,34 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * Global test ignore patterns - shared across all projects
  * These patterns are applied to all browser configurations
+ *
+ * ACTIVE TESTS (91 tests across 7 spec files):
+ * - av-quality.spec.ts: 16 tests (audio/video quality metrics)
+ * - dtmf.spec.ts: 11 tests (DTMF tones, has internal webkit skip)
+ * - call-transfer.spec.ts: 8 tests (call transfer functionality)
+ * - incoming-call.spec.ts: 12 tests (incoming call handling)
+ * - call-hold.spec.ts: 7 tests (hold/resume functionality)
+ * - performance.spec.ts: 21 tests (page load, runtime performance)
+ * - basic-call-flow.spec.ts: 16 tests (full call flow scenarios)
  */
 const GLOBAL_TEST_IGNORE = [
+  // Debug/diagnostic tests - intentionally skipped
   /simple-debug\.spec\.ts/, // Debug test for manual troubleshooting
   /quick-test\.spec\.ts/, // Debug test for quick checks
   /quick-diag\.spec\.ts/, // Diagnostic test for connection debugging
   /diagnose-registration\.spec\.ts/, // Diagnostic test
-  /multi-line\.spec\.ts/, // Tests unimplemented multi-line UI feature
-  // Tests requiring mock SIP infrastructure fixes (mock WebSocket/EventBridge timing issues)
-  /audio-devices\.spec\.ts/, // Requires mock media device integration
-  /accessibility\.spec\.ts/, // CI timing issues with axe-core - passes locally (24 tests) but fails in CI
-  // av-quality.spec.ts: NOW ENABLED (16 tests pass) - uses proper fixtures infrastructure
-  // dtmf.spec.ts: NOW ENABLED (11 tests pass) - refactored to use proper fixtures infrastructure
-  // call-transfer.spec.ts: NOW ENABLED (8 tests pass) - refactored to use proper fixtures infrastructure
-  // incoming-call.spec.ts: NOW ENABLED (12 tests pass) - uses proper fixtures infrastructure
-  // call-hold.spec.ts: NOW ENABLED (7 tests pass) - refactored to use proper fixtures infrastructure
-  // TEMPORARILY ENABLED: /basic-call-flow\.spec\.ts/, // Requires full mock SIP flow
-  /multi-user\.spec\.ts/, // Requires multi-instance mock coordination
-  /network-conditions\.spec\.ts/, // Requires network simulation - uses proper fixtures but has internal skip
   /eventbridge-lifecycle-diagnostic\.spec\.ts/, // Diagnostic for EventBridge
-  // performance.spec.ts: NOW ENABLED (21 tests pass) - uses proper fixtures infrastructure
+
+  // Feature gaps - tests for unimplemented features
+  /multi-line\.spec\.ts/, // Tests unimplemented multi-line UI feature
+
+  // Infrastructure requirements - need additional mock capabilities
+  /audio-devices\.spec\.ts/, // Requires mock media device integration
+  /multi-user\.spec\.ts/, // Requires multi-instance mock coordination
+  /network-conditions\.spec\.ts/, // Requires network simulation
+
+  // CI-specific issues - pass locally but fail in CI
+  /accessibility\.spec\.ts/, // CI timing issues with axe-core (24 tests pass locally)
 ]
 
 /**
@@ -96,60 +104,37 @@ export default defineConfig({
         },
         permissions: ['microphone', 'camera'],
       },
-      // CI stability: Skip tests with SIP mock infrastructure issues until fixed
-      // See tests/e2e/WEBKIT_KNOWN_ISSUES.md for details on test infrastructure requirements
+      // Tests with known infrastructure issues in CI
       testIgnore: [
         ...GLOBAL_TEST_IGNORE,
         /visual-regression\.spec\.ts/, // Uses test.describe.skip() internally
         /error-scenarios\.spec\.ts/, // CI mock SIP infrastructure issues
         /app-functionality\.spec\.ts/, // CI mock SIP infrastructure issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
       ],
     },
 
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      // CI stability: Skip tests with SIP mock infrastructure issues until fixed
+      // Tests with known infrastructure issues in CI
       testIgnore: [
         ...GLOBAL_TEST_IGNORE,
         /visual-regression\.spec\.ts/,
         /error-scenarios\.spec\.ts/, // CI mock SIP infrastructure issues
         /app-functionality\.spec\.ts/, // CI mock SIP infrastructure issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
       ],
     },
 
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      // WebKit has rendering/timing issues with certain tests in CI - exclude problematic specs
+      // Tests with known infrastructure issues in CI
       // See tests/e2e/WEBKIT_KNOWN_ISSUES.md for details
       testIgnore: [
         ...GLOBAL_TEST_IGNORE,
         /visual-regression\.spec\.ts/,
         /error-scenarios\.spec\.ts/, // CI rendering timing issues
         /app-functionality\.spec\.ts/, // CI rendering timing issues
-        // Tests that pass in chromium/firefox but fail in webkit due to rendering issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
       ],
     },
 
@@ -157,39 +142,23 @@ export default defineConfig({
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
-      // Mobile browsers have rendering/timing issues with certain tests in CI
+      // Tests with known infrastructure issues in CI
       testIgnore: [
         ...GLOBAL_TEST_IGNORE,
         /visual-regression\.spec\.ts/,
         /error-scenarios\.spec\.ts/, // CI rendering timing issues
         /app-functionality\.spec\.ts/, // CI rendering timing issues
-        // Tests that pass in desktop chromium but have mobile rendering issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
       ],
     },
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 12'] },
-      // Mobile browsers have rendering/timing issues with certain tests in CI
+      // Tests with known infrastructure issues in CI
       testIgnore: [
         ...GLOBAL_TEST_IGNORE,
         /visual-regression\.spec\.ts/,
         /error-scenarios\.spec\.ts/, // CI rendering timing issues
         /app-functionality\.spec\.ts/, // CI rendering timing issues
-        // Tests that pass in desktop chromium but have mobile rendering issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
       ],
     },
   ],
