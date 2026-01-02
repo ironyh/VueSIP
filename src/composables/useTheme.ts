@@ -13,6 +13,16 @@ const isDarkMode = ref<boolean>(false)
 const isInitialized = ref<boolean>(false)
 
 /**
+ * Reset singleton state for testing purposes only
+ * @internal
+ */
+export const _resetForTesting = (): void => {
+  isDarkMode.value = false
+  isInitialized.value = false
+  document.documentElement.classList.remove('dark-mode', 'dark-theme')
+}
+
+/**
  * Apply theme to document
  */
 const applyTheme = (dark: boolean): void => {

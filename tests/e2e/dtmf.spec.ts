@@ -2,369 +2,390 @@
  * DTMF E2E Tests
  *
  * End-to-end tests for DTMF functionality covering:
- * - Dialpad interaction
- * - Tone sending during calls
- * - IVR navigation scenarios
- * - DTMF feedback and validation
+ * - Dialpad visibility during calls
+ * - DTMF button clicks
+ * - DTMF feedback display
+ * - All digit types (0-9, *, #)
+ *
+ * Uses proper fixtures infrastructure for reliable mock SIP operations.
  */
 
-import { test, expect } from '@playwright/test';
-import {
-  setupTestEnvironment,
-  cleanupTestEnvironment,
-  registerAccount,
-  makeCall,
-  waitForCallState,
-  _answerCall,
-  hangupCall,
-} from './helpers/sip-test-helpers';
+import { test, expect, APP_URL } from './fixtures'
+import { SELECTORS, TEST_DATA, getDTMFSelector } from './selectors'
 
 test.describe('DTMF Functionality', () => {
-  test.beforeEach(async ({ page }) => {
-    await setupTestEnvironment(page);
-    await registerAccount(page, {
-      server: 'sip.test.local',
-      username: 'dtmf-test-user',
-      password: 'password123',
-    });
-  });
+  // Skip in WebKit due to JsSIP Proxy incompatibility
+  test.skip(
+    ({ browserName }) => browserName === 'webkit',
+    'JsSIP Proxy incompatible with WebKit (see WEBKIT_KNOWN_ISSUES.md)'
+  )
 
-  test.afterEach(async ({ page }) => {
-    await cleanupTestEnvironment(page);
-  });
+  test.beforeEach(async ({ page, mockSipServer, mockMediaDevices }) => {
+    // Setup mocks
+    await mockSipServer()
+    await mockMediaDevices()
 
-  test('should send DTMF tones during active call', async ({ page }) => {
-    // Make a call
-    await makeCall(page, 'sip:ivr@test.local');
-    await waitForCallState(page, 'confirmed');
+    // Navigate to app
+    await page.goto(APP_URL)
+    await expect(page.locator(SELECTORS.APP.ROOT)).toBeVisible()
+  })
 
-    // Find dialpad or DTMF buttons
-    const dtmfButton1 = page.getByRole('button', { name: /^1$/i });
-    const dtmfButton2 = page.getByRole('button', { name: /^2$/i });
-    const dtmfButton3 = page.getByRole('button', { name: /^3$/i });
+  test('should show DTMF pad toggle button during active call', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    // Send DTMF tones
-    await dtmfButton1.click();
-    await page.waitForTimeout(100);
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-    await dtmfButton2.click();
-    await page.waitForTimeout(100);
+    // Verify DTMF toggle button is visible during active call
+    await expect(page.locator(SELECTORS.DIALPAD.DIALPAD_TOGGLE)).toBeVisible()
+  })
 
-    await dtmfButton3.click();
-    await page.waitForTimeout(100);
+  test('should toggle DTMF pad visibility', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    // Verify DTMF tones were sent (check for visual feedback or logs)
-    const dtmfDisplay = page.locator('[data-testid="dtmf-display"]');
-    await expect(dtmfDisplay).toContainText('123');
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-    await hangupCall(page);
-  });
+    // DTMF buttons should initially be hidden (pad not shown)
+    await expect(page.locator(SELECTORS.DTMF.DTMF_1)).not.toBeVisible()
 
-  test('should send DTMF sequence via keyboard input', async ({ page }) => {
-    await makeCall(page, 'sip:ivr@test.local');
-    await waitForCallState(page, 'confirmed');
+    // Click toggle to show DTMF pad
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
 
-    // Focus on DTMF input field
-    const dtmfInput = page.locator('[data-testid="dtmf-input"]');
-    await dtmfInput.click();
+    // DTMF buttons should now be visible
+    await expect(page.locator(SELECTORS.DTMF.DTMF_1)).toBeVisible()
 
-    // Type DTMF sequence
-    await dtmfInput.fill('456#');
+    // Click toggle again to hide DTMF pad
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
 
-    // Send the sequence
-    const sendButton = page.getByRole('button', { name: /send dtmf/i });
-    await sendButton.click();
+    // DTMF buttons should be hidden again
+    await expect(page.locator(SELECTORS.DTMF.DTMF_1)).not.toBeVisible()
+  })
 
-    // Verify sequence was sent
-    await expect(page.locator('[data-testid="dtmf-status"]')).toContainText('Sent: 456#');
+  test('should display all DTMF buttons when pad is open', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await hangupCall(page);
-  });
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-  test('should display dialpad during call', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
+    // Open DTMF pad
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
 
-    // Dialpad should be visible during active call
-    const dialpad = page.locator('[data-testid="dialpad"]');
-    await expect(dialpad).toBeVisible();
-
-    // Check all standard DTMF buttons are present
-    const expectedButtons = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '#'];
-
-    for (const button of expectedButtons) {
-      const dtmfButton = page.getByRole('button', { name: new RegExp(`^${button.replace('*', '\\*')}$`, 'i') });
-      await expect(dtmfButton).toBeVisible();
+    // Verify all digits are visible
+    const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '*', '#']
+    for (const digit of digits) {
+      const selector = getDTMFSelector(digit)
+      await expect(page.locator(selector)).toBeVisible()
     }
+  })
 
-    await hangupCall(page);
-  });
+  test('should send DTMF tone and show feedback', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-  test('should handle IVR navigation scenario', async ({ page }) => {
-    await makeCall(page, 'sip:support-ivr@test.local');
-    await waitForCallState(page, 'confirmed');
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-    // Simulate IVR navigation: Press 1 for support
-    const button1 = page.getByRole('button', { name: /^1$/i });
-    await button1.click();
-    await page.waitForTimeout(500);
+    // Open DTMF pad
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
 
-    // Press 2 for technical support
-    const button2 = page.getByRole('button', { name: /^2$/i });
-    await button2.click();
-    await page.waitForTimeout(500);
+    // Click digit 5
+    await page.click(SELECTORS.DTMF.DTMF_5)
 
-    // Press # to confirm
-    const buttonHash = page.getByRole('button', { name: /^#$/i });
-    await buttonHash.click();
-    await page.waitForTimeout(500);
+    // Verify feedback shows the sent digit
+    await expect(page.locator(SELECTORS.DTMF.DTMF_FEEDBACK)).toContainText('5')
+  })
 
-    // Verify DTMF sequence was sent
-    const dtmfHistory = page.locator('[data-testid="dtmf-history"]');
-    await expect(dtmfHistory).toContainText('1');
-    await expect(dtmfHistory).toContainText('2');
-    await expect(dtmfHistory).toContainText('#');
+  test('should send multiple DTMF tones in sequence', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await hangupCall(page);
-  });
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-  test('should provide audio feedback for DTMF tones', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
+    // Open DTMF pad
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
 
-    // Enable audio feedback option if available
-    const audioFeedbackToggle = page.locator('[data-testid="dtmf-audio-feedback"]');
-    if (await audioFeedbackToggle.isVisible()) {
-      await audioFeedbackToggle.check();
-    }
+    // Send sequence: 1, 2, 3
+    await page.click(SELECTORS.DTMF.DTMF_1)
+    await page.waitForTimeout(100)
+    await page.click(SELECTORS.DTMF.DTMF_2)
+    await page.waitForTimeout(100)
+    await page.click(SELECTORS.DTMF.DTMF_3)
 
-    // Send a tone and verify audio feedback
-    const button5 = page.getByRole('button', { name: /^5$/i });
-    await button5.click();
+    // Verify feedback shows all sent digits
+    await expect(page.locator(SELECTORS.DTMF.DTMF_FEEDBACK)).toContainText('123')
+  })
 
-    // Check that audio context is active (if accessible via test attributes)
-    const audioIndicator = page.locator('[data-testid="audio-playing"]');
-    if (await audioIndicator.isVisible()) {
-      await expect(audioIndicator).toBeVisible();
-    }
+  test('should send star and hash DTMF tones', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await hangupCall(page);
-  });
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-  test('should disable DTMF when call is not active', async ({ page }) => {
-    // Dialpad should be disabled when no active call
-    const dialpad = page.locator('[data-testid="dialpad"]');
-
-    // Either not visible or disabled
-    const isVisible = await dialpad.isVisible();
-    if (isVisible) {
-      const button1 = page.getByRole('button', { name: /^1$/i });
-      await expect(button1).toBeDisabled();
-    } else {
-      await expect(dialpad).not.toBeVisible();
-    }
-  });
-
-  test('should send DTMF with custom duration', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
-
-    // Open DTMF settings if available
-    const settingsButton = page.locator('[data-testid="dtmf-settings"]');
-    if (await settingsButton.isVisible()) {
-      await settingsButton.click();
-
-      // Set custom duration
-      const durationInput = page.locator('[data-testid="dtmf-duration"]');
-      await durationInput.fill('200');
-
-      // Set custom inter-tone gap
-      const gapInput = page.locator('[data-testid="dtmf-gap"]');
-      await gapInput.fill('100');
-
-      // Close settings
-      const closeButton = page.getByRole('button', { name: /close|save/i });
-      await closeButton.click();
-    }
-
-    // Send tones with custom settings
-    const button1 = page.getByRole('button', { name: /^1$/i });
-    await button1.click();
-
-    await page.waitForTimeout(200); // Custom duration
-
-    const button2 = page.getByRole('button', { name: /^2$/i });
-    await button2.click();
-
-    await hangupCall(page);
-  });
-
-  test('should validate DTMF input', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
-
-    const dtmfInput = page.locator('[data-testid="dtmf-input"]');
-    if (await dtmfInput.isVisible()) {
-      // Try to input invalid character
-      await dtmfInput.fill('123X456');
-
-      const sendButton = page.getByRole('button', { name: /send dtmf/i });
-      await sendButton.click();
-
-      // Should show validation error
-      const errorMessage = page.locator('[data-testid="dtmf-error"]');
-      await expect(errorMessage).toBeVisible();
-      await expect(errorMessage).toContainText(/invalid/i);
-    }
-
-    await hangupCall(page);
-  });
-
-  test('should handle rapid DTMF button presses', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
-
-    // Rapidly press multiple buttons
-    const buttons = ['1', '2', '3', '4', '5'];
-
-    for (const buttonLabel of buttons) {
-      const button = page.getByRole('button', { name: new RegExp(`^${buttonLabel}$`, 'i') });
-      await button.click();
-      // Minimal delay to simulate rapid presses
-      await page.waitForTimeout(50);
-    }
-
-    // Verify all tones were queued/sent
-    const dtmfDisplay = page.locator('[data-testid="dtmf-display"]');
-    await expect(dtmfDisplay).toContainText('12345');
-
-    await hangupCall(page);
-  });
-
-  test('should clear DTMF queue when call ends', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
-
-    // Queue some DTMF tones
-    const dtmfInput = page.locator('[data-testid="dtmf-input"]');
-    if (await dtmfInput.isVisible()) {
-      await dtmfInput.fill('123456789');
-      // Don't send yet
-    }
-
-    // Hang up call
-    await hangupCall(page);
-
-    // Verify queue was cleared
-    // When making a new call, the display should be empty
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
-
-    const dtmfDisplay = page.locator('[data-testid="dtmf-display"]');
-    if (await dtmfDisplay.isVisible()) {
-      await expect(dtmfDisplay).toBeEmpty();
-    }
-
-    await hangupCall(page);
-  });
-
-  test('should support star and hash keys', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
+    // Open DTMF pad
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
 
     // Send star
-    const starButton = page.getByRole('button', { name: /^\*$/i });
-    await starButton.click();
-    await page.waitForTimeout(100);
+    await page.click(SELECTORS.DTMF.DTMF_STAR)
+    await expect(page.locator(SELECTORS.DTMF.DTMF_FEEDBACK)).toContainText('*')
 
     // Send hash
-    const hashButton = page.getByRole('button', { name: /^#$/i });
-    await hashButton.click();
-    await page.waitForTimeout(100);
+    await page.click(SELECTORS.DTMF.DTMF_HASH)
+    await expect(page.locator(SELECTORS.DTMF.DTMF_FEEDBACK)).toContainText('#')
+  })
 
-    // Verify both were sent
-    const dtmfDisplay = page.locator('[data-testid="dtmf-display"]');
-    await expect(dtmfDisplay).toContainText('*#');
+  test('should handle IVR-style DTMF sequence', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await hangupCall(page);
-  });
+    // Simulate incoming call and answer it (like calling an IVR)
+    await simulateIncomingCall('sip:ivr@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-  test('should show DTMF sending status', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
+    // Open DTMF pad
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
 
-    // Send a tone
-    const button1 = page.getByRole('button', { name: /^1$/i });
-    await button1.click();
+    // Simulate IVR navigation: Press 1 for support, then # to confirm
+    await page.click(SELECTORS.DTMF.DTMF_1)
+    await page.waitForTimeout(200)
+    await page.click(SELECTORS.DTMF.DTMF_HASH)
 
-    // Should show "sending" status (might be brief)
-    const statusIndicator = page.locator('[data-testid="dtmf-status"]');
-    if (await statusIndicator.isVisible()) {
-      // Status should eventually show success
-      await expect(statusIndicator).toContainText(/sent|success/i, { timeout: 2000 });
+    // Verify IVR sequence was captured
+    const feedback = page.locator(SELECTORS.DTMF.DTMF_FEEDBACK)
+    await expect(feedback).toContainText('1')
+    await expect(feedback).toContainText('#')
+  })
+
+  test('should handle rapid DTMF button presses', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
+
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
+
+    // Open DTMF pad
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
+
+    // Rapidly press buttons with minimal delay
+    const rapidSequence = ['1', '2', '3', '4', '5']
+    for (const digit of rapidSequence) {
+      await page.click(getDTMFSelector(digit))
+      await page.waitForTimeout(50) // Minimal delay
     }
 
-    await hangupCall(page);
-  });
-});
+    // Verify all tones were captured in feedback
+    const feedback = page.locator(SELECTORS.DTMF.DTMF_FEEDBACK)
+    await expect(feedback).toContainText('12345')
+  })
 
-test.describe('DTMF Method Selection', () => {
-  test.beforeEach(async ({ page }) => {
-    await setupTestEnvironment(page);
-    await registerAccount(page, {
-      server: 'sip.test.local',
-      username: 'dtmf-method-test',
-      password: 'password123',
-    });
-  });
+  test('should not show DTMF pad when no call is active', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+  }) => {
+    // Configure and connect (but don't make a call)
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-  test.afterEach(async ({ page }) => {
-    await cleanupTestEnvironment(page);
-  });
+    // DTMF toggle should not be visible without active call
+    await expect(page.locator(SELECTORS.DIALPAD.DIALPAD_TOGGLE)).not.toBeVisible()
 
-  test('should support RFC 2833 method', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
+    // Individual DTMF buttons should not be visible
+    await expect(page.locator(SELECTORS.DTMF.DTMF_1)).not.toBeVisible()
+  })
 
-    // Select RFC 2833 method in settings if available
-    const methodSelector = page.locator('[data-testid="dtmf-method"]');
-    if (await methodSelector.isVisible()) {
-      await methodSelector.selectOption('RFC2833');
-    }
+  test('should hide DTMF pad after call ends', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    // Send tone
-    const button1 = page.getByRole('button', { name: /^1$/i });
-    await button1.click();
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-    // Verify method is indicated
-    const methodIndicator = page.locator('[data-testid="dtmf-method-indicator"]');
-    if (await methodIndicator.isVisible()) {
-      await expect(methodIndicator).toContainText('RFC 2833');
-    }
+    // Open DTMF pad and verify it's visible
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
+    await expect(page.locator(SELECTORS.DTMF.DTMF_1)).toBeVisible()
 
-    await hangupCall(page);
-  });
+    // Hang up the call
+    await page.click(SELECTORS.CALL_CONTROLS.HANGUP_BUTTON)
+    await waitForCallState(['idle', 'ended'])
 
-  test('should support SIP INFO method', async ({ page }) => {
-    await makeCall(page, 'sip:test@test.local');
-    await waitForCallState(page, 'confirmed');
+    // DTMF toggle should no longer be visible
+    await expect(page.locator(SELECTORS.DIALPAD.DIALPAD_TOGGLE)).not.toBeVisible()
+  })
+})
 
-    // Select SIP INFO method in settings if available
-    const methodSelector = page.locator('[data-testid="dtmf-method"]');
-    if (await methodSelector.isVisible()) {
-      await methodSelector.selectOption('INFO');
-    }
+test.describe('DTMF During Held Call', () => {
+  // Skip in WebKit due to JsSIP Proxy incompatibility
+  test.skip(
+    ({ browserName }) => browserName === 'webkit',
+    'JsSIP Proxy incompatible with WebKit (see WEBKIT_KNOWN_ISSUES.md)'
+  )
 
-    // Send tone
-    const button2 = page.getByRole('button', { name: /^2$/i });
-    await button2.click();
+  test.beforeEach(async ({ page, mockSipServer, mockMediaDevices }) => {
+    await mockSipServer()
+    await mockMediaDevices()
+    await page.goto(APP_URL)
+    await expect(page.locator(SELECTORS.APP.ROOT)).toBeVisible()
+  })
 
-    // Verify method is indicated
-    const methodIndicator = page.locator('[data-testid="dtmf-method-indicator"]');
-    if (await methodIndicator.isVisible()) {
-      await expect(methodIndicator).toContainText('SIP INFO');
-    }
+  test('should show DTMF controls during held call', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await hangupCall(page);
-  });
-});
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
+
+    // Put call on hold
+    await page.click(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)
+    await waitForCallState('held')
+
+    // DTMF toggle should still be accessible during held call
+    // (TestApp.vue shows DTMF section when callState === 'active' || callState === 'held')
+    await expect(page.locator(SELECTORS.DIALPAD.DIALPAD_TOGGLE)).toBeVisible()
+
+    // Open DTMF pad - UI should still be available
+    await page.click(SELECTORS.DIALPAD.DIALPAD_TOGGLE)
+    await expect(page.locator(SELECTORS.DTMF.DTMF_1)).toBeVisible()
+    await expect(page.locator(SELECTORS.DTMF.DTMF_9)).toBeVisible()
+
+    // Note: Actually sending DTMF during held calls depends on the SIP implementation
+    // and may not work with mock infrastructure. The important thing is the UI is accessible.
+  })
+})

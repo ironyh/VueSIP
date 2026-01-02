@@ -1,13 +1,13 @@
 /**
  * @vitest-environment jsdom
  *
- * Note: Some tests are skipped due to singleton pattern complexity in test environment.
- * The composable is fully functional in production - these are test environment limitations.
+ * Tests for useTheme composable with singleton pattern.
+ * Uses _resetForTesting() to reset singleton state between tests.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, nextTick } from 'vue'
-import { useTheme } from '../useTheme'
+import { useTheme, _resetForTesting } from '../useTheme'
 
 describe('useTheme', () => {
   // Mock localStorage
@@ -33,11 +33,19 @@ describe('useTheme', () => {
       writable: true,
     })
 
-    // Clear any existing theme classes
-    document.documentElement.classList.remove('dark-mode')
+    // Default matchMedia mock (light mode) - tests can override for dark mode
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    })
 
-    // Reset module state by re-importing (force singleton reset)
-    vi.resetModules()
+    // Reset singleton state for proper test isolation
+    _resetForTesting()
   })
 
   afterEach(() => {
@@ -77,7 +85,7 @@ describe('useTheme', () => {
       expect(document.documentElement.classList.contains('dark-mode')).toBe(false)
     })
 
-    it.skip('should initialize with dark theme when system prefers dark mode', async () => {
+    it('should initialize with dark theme when system prefers dark mode', async () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query) => ({
@@ -88,41 +96,47 @@ describe('useTheme', () => {
         })),
       })
 
+      let themeInstance: ReturnType<typeof useTheme> | null = null
+
       const TestComponent = defineComponent({
         setup() {
-          return useTheme()
+          themeInstance = useTheme()
+          return themeInstance
         },
         template: '<div>Test</div>',
       })
 
-      const wrapper = mount(TestComponent)
+      const _wrapper = mount(TestComponent)
       await nextTick()
+      await nextTick() // Double tick for watcher
 
-      const { isDarkMode, theme } = wrapper.vm as ReturnType<typeof useTheme>
-
-      expect(isDarkMode).toBe(true)
-      expect(theme()).toBe('dark')
+      expect(themeInstance).not.toBeNull()
+      expect(themeInstance!.isDarkMode.value).toBe(true)
+      expect(themeInstance!.theme()).toBe('dark')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
     })
 
-    it.skip('should initialize with stored theme preference', async () => {
+    it('should initialize with stored theme preference', async () => {
       localStorageMock.getItem.mockReturnValue('dark')
+
+      let themeInstance: ReturnType<typeof useTheme> | null = null
 
       const TestComponent = defineComponent({
         setup() {
-          return useTheme()
+          themeInstance = useTheme()
+          return themeInstance
         },
         template: '<div>Test</div>',
       })
 
-      const wrapper = mount(TestComponent)
+      const _wrapper = mount(TestComponent)
       await nextTick()
-
-      const { isDarkMode, theme } = wrapper.vm as ReturnType<typeof useTheme>
+      await nextTick() // Double tick for watcher
 
       expect(localStorageMock.getItem).toHaveBeenCalledWith('vuesip-theme')
-      expect(isDarkMode).toBe(true)
-      expect(theme()).toBe('dark')
+      expect(themeInstance).not.toBeNull()
+      expect(themeInstance!.isDarkMode.value).toBe(true)
+      expect(themeInstance!.theme()).toBe('dark')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
     })
 
@@ -186,28 +200,32 @@ describe('useTheme', () => {
       expect(localStorageMock.setItem).toHaveBeenCalledWith('vuesip-theme', 'dark')
     })
 
-    it.skip('should toggle from dark to light theme', async () => {
+    it('should toggle from dark to light theme', async () => {
       localStorageMock.getItem.mockReturnValue('dark')
+
+      let themeInstance: ReturnType<typeof useTheme> | null = null
 
       const TestComponent = defineComponent({
         setup() {
-          return useTheme()
+          themeInstance = useTheme()
+          return themeInstance
         },
         template: '<div>Test</div>',
       })
 
-      const wrapper = mount(TestComponent)
+      const _wrapper = mount(TestComponent)
       await nextTick()
+      await nextTick() // Double tick for watcher
 
-      const { isDarkMode, toggleTheme, theme } = wrapper.vm as ReturnType<typeof useTheme>
+      expect(themeInstance).not.toBeNull()
+      expect(themeInstance!.isDarkMode.value).toBe(true)
 
-      expect(isDarkMode).toBe(true)
-
-      toggleTheme()
+      themeInstance!.toggleTheme()
       await nextTick()
+      await nextTick() // Double tick for watcher
 
-      expect(isDarkMode).toBe(false)
-      expect(theme()).toBe('light')
+      expect(themeInstance!.isDarkMode.value).toBe(false)
+      expect(themeInstance!.theme()).toBe('light')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(false)
       expect(localStorageMock.setItem).toHaveBeenCalledWith('vuesip-theme', 'light')
     })
@@ -238,48 +256,58 @@ describe('useTheme', () => {
   })
 
   describe('theme setting', () => {
-    it.skip('should set theme to dark programmatically', async () => {
+    it('should set theme to dark programmatically', async () => {
+      let themeInstance: ReturnType<typeof useTheme> | null = null
+
       const TestComponent = defineComponent({
         setup() {
-          return useTheme()
+          themeInstance = useTheme()
+          return themeInstance
         },
         template: '<div>Test</div>',
       })
 
-      const wrapper = mount(TestComponent)
+      const _wrapper = mount(TestComponent)
       await nextTick()
+      await nextTick() // Double tick for watcher
 
-      const { setTheme, isDarkMode, theme } = wrapper.vm as ReturnType<typeof useTheme>
+      expect(themeInstance).not.toBeNull()
 
-      setTheme('dark')
+      themeInstance!.setTheme('dark')
       await nextTick()
+      await nextTick() // Double tick for watcher
 
-      expect(isDarkMode).toBe(true)
-      expect(theme()).toBe('dark')
+      expect(themeInstance!.isDarkMode.value).toBe(true)
+      expect(themeInstance!.theme()).toBe('dark')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
       expect(localStorageMock.setItem).toHaveBeenCalledWith('vuesip-theme', 'dark')
     })
 
-    it.skip('should set theme to light programmatically', async () => {
+    it('should set theme to light programmatically', async () => {
       localStorageMock.getItem.mockReturnValue('dark')
+
+      let themeInstance: ReturnType<typeof useTheme> | null = null
 
       const TestComponent = defineComponent({
         setup() {
-          return useTheme()
+          themeInstance = useTheme()
+          return themeInstance
         },
         template: '<div>Test</div>',
       })
 
-      const wrapper = mount(TestComponent)
+      const _wrapper = mount(TestComponent)
       await nextTick()
+      await nextTick() // Double tick for watcher
 
-      const { setTheme, isDarkMode, theme } = wrapper.vm as ReturnType<typeof useTheme>
+      expect(themeInstance).not.toBeNull()
 
-      setTheme('light')
+      themeInstance!.setTheme('light')
       await nextTick()
+      await nextTick() // Double tick for watcher
 
-      expect(isDarkMode).toBe(false)
-      expect(theme()).toBe('light')
+      expect(themeInstance!.isDarkMode.value).toBe(false)
+      expect(themeInstance!.theme()).toBe('light')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(false)
       expect(localStorageMock.setItem).toHaveBeenCalledWith('vuesip-theme', 'light')
     })
@@ -305,25 +333,29 @@ describe('useTheme', () => {
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
     })
 
-    it.skip('should remove dark-mode class when light theme is active', async () => {
+    it('should remove dark-mode class when light theme is active', async () => {
       localStorageMock.getItem.mockReturnValue('dark')
+
+      let themeInstance: ReturnType<typeof useTheme> | null = null
 
       const TestComponent = defineComponent({
         setup() {
-          return useTheme()
+          themeInstance = useTheme()
+          return themeInstance
         },
         template: '<div>Test</div>',
       })
 
-      const wrapper = mount(TestComponent)
+      const _wrapper = mount(TestComponent)
       await nextTick()
+      await nextTick() // Double tick for watcher
 
-      const { setTheme } = wrapper.vm as ReturnType<typeof useTheme>
-
+      expect(themeInstance).not.toBeNull()
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
 
-      setTheme('light')
+      themeInstance!.setTheme('light')
       await nextTick()
+      await nextTick() // Double tick for watcher
 
       expect(document.documentElement.classList.contains('dark-mode')).toBe(false)
     })

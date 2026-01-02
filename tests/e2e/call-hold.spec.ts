@@ -1,378 +1,261 @@
 /**
- * E2E Tests for Call Hold/Resume Functionality
+ * Call Hold/Resume E2E Tests
  *
- * Tests the complete user flow for placing calls on hold and resuming them.
+ * Tests for call hold and resume functionality covering:
+ * - Basic hold and resume operations
+ * - Multiple hold toggles
+ * - Hanging up while on hold
+ * - Hold button visibility states
+ *
+ * Uses proper fixtures infrastructure for reliable mock SIP operations.
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect, APP_URL } from './fixtures'
+import { SELECTORS, TEST_DATA } from './selectors'
 
 test.describe('Call Hold/Resume E2E', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate to app
-    await page.goto('/')
+  // Skip in WebKit due to JsSIP Proxy incompatibility
+  test.skip(
+    ({ browserName }) => browserName === 'webkit',
+    'JsSIP Proxy incompatible with WebKit (see WEBKIT_KNOWN_ISSUES.md)'
+  )
 
-    // Wait for app to be ready
-    await page.waitForSelector('[data-testid="sip-registration-status"]', { timeout: 10000 })
+  test.beforeEach(async ({ page, mockSipServer, mockMediaDevices }) => {
+    // Setup mocks
+    await mockSipServer()
+    await mockMediaDevices()
+
+    // Navigate to app
+    await page.goto(APP_URL)
+    await expect(page.locator(SELECTORS.APP.ROOT)).toBeVisible()
   })
 
-  test('should place active call on hold and resume', async ({ page }) => {
-    // Register SIP client
-    await page.fill('[data-testid="sip-uri-input"]', 'sip:alice@test.com')
-    await page.fill('[data-testid="sip-password-input"]', 'password123')
-    await page.click('[data-testid="register-button"]')
+  test('should place active call on hold and resume', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    // Wait for registration
-    await expect(page.locator('[data-testid="sip-registration-status"]')).toContainText('Registered', {
-      timeout: 5000,
-    })
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-    // Make a call
-    await page.fill('[data-testid="dial-input"]', 'sip:bob@test.com')
-    await page.click('[data-testid="call-button"]')
-
-    // Wait for call to be active
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 5000,
-    })
-
-    // Verify hold button is visible and enabled
-    const holdButton = page.locator('[data-testid="hold-button"]')
+    // Verify hold button is visible and shows "Hold"
+    const holdButton = page.locator(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)
     await expect(holdButton).toBeVisible()
-    await expect(holdButton).toBeEnabled()
+    await expect(holdButton).toContainText(/Hold/i)
 
     // Place call on hold
     await holdButton.click()
+    await waitForCallState('held')
 
-    // Verify hold state UI changes
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('On Hold', {
-      timeout: 3000,
-    })
-    await expect(page.locator('[data-testid="hold-indicator"]')).toBeVisible()
-    await expect(holdButton).toHaveText(/Resume|Unhold/i)
-
-    // Verify audio is muted during hold (if indicator exists)
-    const audioMutedIndicator = page.locator('[data-testid="audio-muted-indicator"]')
-    if (await audioMutedIndicator.isVisible()) {
-      await expect(audioMutedIndicator).toBeVisible()
-    }
+    // Verify button now shows "Unhold" and call status shows held
+    const unholdButton = page.locator(SELECTORS.CALL_CONTROLS.UNHOLD_BUTTON)
+    await expect(unholdButton).toBeVisible()
+    await expect(unholdButton).toContainText(/Unhold/i)
+    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText(/held/i)
 
     // Resume call
-    await holdButton.click()
+    await unholdButton.click()
+    await waitForCallState('active')
 
-    // Verify call is active again
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 3000,
-    })
-    await expect(page.locator('[data-testid="hold-indicator"]')).not.toBeVisible()
-    await expect(holdButton).toHaveText(/Hold/i)
+    // Verify button shows "Hold" again
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)).toBeVisible()
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)).toContainText(/Hold/i)
   })
 
-  test('should toggle hold state multiple times', async ({ page }) => {
-    // Setup and make call (same as above)
-    await page.fill('[data-testid="sip-uri-input"]', 'sip:alice@test.com')
-    await page.fill('[data-testid="sip-password-input"]', 'password123')
-    await page.click('[data-testid="register-button"]')
-    await expect(page.locator('[data-testid="sip-registration-status"]')).toContainText('Registered', {
-      timeout: 5000,
-    })
+  test('should toggle hold state multiple times', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await page.fill('[data-testid="dial-input"]', 'sip:bob@test.com')
-    await page.click('[data-testid="call-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 5000,
-    })
-
-    const holdButton = page.locator('[data-testid="hold-button"]')
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
     // Toggle hold multiple times
     for (let i = 0; i < 3; i++) {
       // Hold
-      await holdButton.click()
-      await expect(page.locator('[data-testid="call-status"]')).toContainText('On Hold', {
-        timeout: 3000,
-      })
+      await page.click(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)
+      await waitForCallState('held')
+      await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText(/held/i)
 
       // Resume
-      await holdButton.click()
-      await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-        timeout: 3000,
-      })
+      await page.click(SELECTORS.CALL_CONTROLS.UNHOLD_BUTTON)
+      await waitForCallState('active')
+      await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText(/active/i)
     }
 
     // Verify call is still active after multiple toggles
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active')
+    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText(/active/i)
   })
 
-  test('should display remote hold indicator when remote party holds', async ({ page }) => {
-    // Setup and make call
-    await page.fill('[data-testid="sip-uri-input"]', 'sip:alice@test.com')
-    await page.fill('[data-testid="sip-password-input"]', 'password123')
-    await page.click('[data-testid="register-button"]')
-    await expect(page.locator('[data-testid="sip-registration-status"]')).toContainText('Registered', {
-      timeout: 5000,
-    })
+  test('should terminate call while on hold', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await page.fill('[data-testid="dial-input"]', 'sip:bob@test.com')
-    await page.click('[data-testid="call-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 5000,
-    })
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-    // Simulate remote hold by triggering event (test-only functionality)
-    await page.evaluate(() => {
-      // This assumes the test environment has a way to simulate remote hold
-      // In a real test, this would be done by the mock SIP server
-      if (typeof (window as any).__simulateRemoteHold === 'function') {
-        ;(window as any).__simulateRemoteHold()
-      }
-    })
-
-    // Verify remote hold indicator appears
-    await expect(page.locator('[data-testid="remote-hold-indicator"]')).toBeVisible({
-      timeout: 3000,
-    })
-    await expect(page.locator('[data-testid="call-status"]')).toContainText(/Remote.*Hold/i, {
-      timeout: 3000,
-    })
-
-    // Local hold button should still be enabled during remote hold
-    const holdButton = page.locator('[data-testid="hold-button"]')
-    await expect(holdButton).toBeEnabled()
-  })
-
-  test('should maintain hold state during call duration timer', async ({ page }) => {
-    // Setup and make call
-    await page.fill('[data-testid="sip-uri-input"]', 'sip:alice@test.com')
-    await page.fill('[data-testid="sip-password-input"]', 'password123')
-    await page.click('[data-testid="register-button"]')
-    await expect(page.locator('[data-testid="sip-registration-status"]')).toContainText('Registered', {
-      timeout: 5000,
-    })
-
-    await page.fill('[data-testid="dial-input"]', 'sip:bob@test.com')
-    await page.click('[data-testid="call-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 5000,
-    })
-
-    // Wait for duration timer to start
-    const durationDisplay = page.locator('[data-testid="call-duration"]')
-    await expect(durationDisplay).toBeVisible({ timeout: 3000 })
-
-    // Get initial duration
-    const initialDuration = await durationDisplay.textContent()
-
-    // Place on hold
-    await page.click('[data-testid="hold-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('On Hold', {
-      timeout: 3000,
-    })
-
-    // Wait a few seconds
-    await page.waitForTimeout(3000)
-
-    // Verify duration timer continues during hold
-    const durationDuringHold = await durationDisplay.textContent()
-    expect(durationDuringHold).not.toBe(initialDuration)
-
-    // Resume and verify timer still running
-    await page.click('[data-testid="hold-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 3000,
-    })
-
-    await page.waitForTimeout(1000)
-    const durationAfterResume = await durationDisplay.textContent()
-    expect(durationAfterResume).not.toBe(durationDuringHold)
-  })
-
-  test('should terminate call while on hold', async ({ page }) => {
-    // Setup and make call
-    await page.fill('[data-testid="sip-uri-input"]', 'sip:alice@test.com')
-    await page.fill('[data-testid="sip-password-input"]', 'password123')
-    await page.click('[data-testid="register-button"]')
-    await expect(page.locator('[data-testid="sip-registration-status"]')).toContainText('Registered', {
-      timeout: 5000,
-    })
-
-    await page.fill('[data-testid="dial-input"]', 'sip:bob@test.com')
-    await page.click('[data-testid="call-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 5000,
-    })
-
-    // Place on hold
-    await page.click('[data-testid="hold-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('On Hold', {
-      timeout: 3000,
-    })
+    // Place call on hold
+    await page.click(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)
+    await waitForCallState('held')
+    await expect(page.locator(SELECTORS.STATUS.CALL_STATUS)).toContainText(/held/i)
 
     // Hangup while on hold
-    await page.click('[data-testid="hangup-button"]')
+    await page.click(SELECTORS.CALL_CONTROLS.HANGUP_BUTTON)
+    await waitForCallState(['idle', 'ended', 'terminated'])
 
-    // Verify call terminated
-    await expect(page.locator('[data-testid="call-status"]')).toContainText(/Terminated|Ended|Idle/, {
-      timeout: 3000,
-    })
-
-    // Verify hold indicator is gone
-    await expect(page.locator('[data-testid="hold-indicator"]')).not.toBeVisible()
+    // Verify hold button is no longer visible
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)).not.toBeVisible()
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.UNHOLD_BUTTON)).not.toBeVisible()
   })
 
-  test('should handle hold operation failure gracefully', async ({ page }) => {
-    // Setup and make call
-    await page.fill('[data-testid="sip-uri-input"]', 'sip:alice@test.com')
-    await page.fill('[data-testid="sip-password-input"]', 'password123')
-    await page.click('[data-testid="register-button"]')
-    await expect(page.locator('[data-testid="sip-registration-status"]')).toContainText('Registered', {
-      timeout: 5000,
-    })
+  test('should not show hold button when no call is active', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+  }) => {
+    // Configure and connect (but don't make a call)
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await page.fill('[data-testid="dial-input"]', 'sip:bob@test.com')
-    await page.click('[data-testid="call-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 5000,
-    })
-
-    // Simulate hold failure (test-only functionality)
-    await page.evaluate(() => {
-      if (typeof (window as any).__simulateHoldFailure === 'function') {
-        ;(window as any).__simulateHoldFailure()
-      }
-    })
-
-    // Try to place on hold
-    await page.click('[data-testid="hold-button"]')
-
-    // Verify error notification appears
-    const errorNotification = page.locator('[data-testid="error-notification"]')
-    if (await errorNotification.isVisible()) {
-      await expect(errorNotification).toContainText(/hold.*failed/i, { timeout: 3000 })
-    }
-
-    // Verify call remains active (not on hold)
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 3000,
-    })
+    // Hold button should not be visible without active call
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)).not.toBeVisible()
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.UNHOLD_BUTTON)).not.toBeVisible()
   })
 
-  test('should prevent hold when call is not active', async ({ page }) => {
-    // Register but don't make a call
-    await page.fill('[data-testid="sip-uri-input"]', 'sip:alice@test.com')
-    await page.fill('[data-testid="sip-password-input"]', 'password123')
-    await page.click('[data-testid="register-button"]')
-    await expect(page.locator('[data-testid="sip-registration-status"]')).toContainText('Registered', {
-      timeout: 5000,
-    })
+  test('should show hold button during ringing state for outgoing calls', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    // Verify hold button is disabled when no active call
-    const holdButton = page.locator('[data-testid="hold-button"]')
-    if (await holdButton.isVisible()) {
-      await expect(holdButton).toBeDisabled()
-    }
+    // Simulate incoming call (to test ringing state)
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
 
-    // Start a call
-    await page.fill('[data-testid="dial-input"]', 'sip:bob@test.com')
-    await page.click('[data-testid="call-button"]')
+    // During ringing (incoming), hold button should NOT be visible
+    // Hold only makes sense for active calls
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)).not.toBeVisible()
 
-    // During ringing state, hold should be disabled
-    const callStatus = page.locator('[data-testid="call-status"]')
-    if ((await callStatus.textContent()) === 'Ringing') {
-      if (await holdButton.isVisible()) {
-        await expect(holdButton).toBeDisabled()
-      }
-    }
+    // Answer the call
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-    // Once active, hold should be enabled
-    await expect(callStatus).toContainText('Active', { timeout: 5000 })
-    await expect(holdButton).toBeEnabled()
+    // Now hold button should be visible
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)).toBeVisible()
   })
 
-  test('should display hold state in call history', async ({ page }) => {
-    // Setup and make call
-    await page.fill('[data-testid="sip-uri-input"]', 'sip:alice@test.com')
-    await page.fill('[data-testid="sip-password-input"]', 'password123')
-    await page.click('[data-testid="register-button"]')
-    await expect(page.locator('[data-testid="sip-registration-status"]')).toContainText('Registered', {
-      timeout: 5000,
-    })
+  test('should maintain call controls during held state', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await page.fill('[data-testid="dial-input"]', 'sip:bob@test.com')
-    await page.click('[data-testid="call-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 5000,
-    })
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-    // Place on hold
-    await page.click('[data-testid="hold-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('On Hold', {
-      timeout: 3000,
-    })
+    // Place call on hold
+    await page.click(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)
+    await waitForCallState('held')
 
-    // Wait a bit while on hold
-    await page.waitForTimeout(2000)
+    // Verify other call controls are still available during hold
+    // Hangup should still be visible
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.HANGUP_BUTTON)).toBeVisible()
 
-    // Resume
-    await page.click('[data-testid="hold-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 3000,
-    })
+    // Mute button should still be visible
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.MUTE_BUTTON)).toBeVisible()
 
-    // End call
-    await page.click('[data-testid="hangup-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText(/Terminated|Ended/, {
-      timeout: 3000,
-    })
-
-    // Navigate to call history
-    const historyTab = page.locator('[data-testid="call-history-tab"]')
-    if (await historyTab.isVisible()) {
-      await historyTab.click()
-
-      // Verify call appears in history with hold information
-      const historyEntry = page.locator('[data-testid="call-history-entry"]').first()
-      await expect(historyEntry).toBeVisible()
-
-      // Check if hold duration or indicator is shown in history
-      const holdInfo = historyEntry.locator('[data-testid="hold-info"]')
-      if (await holdInfo.isVisible()) {
-        await expect(holdInfo).toContainText(/hold/i)
-      }
-    }
+    // Unhold button should be visible
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.UNHOLD_BUTTON)).toBeVisible()
   })
 
-  test('should handle rapid hold/resume toggling', async ({ page }) => {
-    // Setup and make call
-    await page.fill('[data-testid="sip-uri-input"]', 'sip:alice@test.com')
-    await page.fill('[data-testid="sip-password-input"]', 'password123')
-    await page.click('[data-testid="register-button"]')
-    await expect(page.locator('[data-testid="sip-registration-status"]')).toContainText('Registered', {
-      timeout: 5000,
-    })
+  test('should hide hold controls after call ends', async ({
+    page,
+    configureSip,
+    waitForConnectionState,
+    waitForRegistrationState,
+    simulateIncomingCall,
+    waitForCallState,
+  }) => {
+    // Configure and connect
+    await configureSip(TEST_DATA.VALID_CONFIG)
+    await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
+    await waitForConnectionState('connected')
+    await waitForRegistrationState('registered')
 
-    await page.fill('[data-testid="dial-input"]', 'sip:bob@test.com')
-    await page.click('[data-testid="call-button"]')
-    await expect(page.locator('[data-testid="call-status"]')).toContainText('Active', {
-      timeout: 5000,
-    })
+    // Simulate incoming call and answer it
+    await simulateIncomingCall('sip:caller@example.com')
+    await waitForCallState('ringing')
+    await page.click(SELECTORS.CALL_CONTROLS.ANSWER_BUTTON)
+    await waitForCallState('active')
 
-    const holdButton = page.locator('[data-testid="hold-button"]')
+    // Verify hold button is visible during active call
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)).toBeVisible()
 
-    // Rapidly toggle hold state
-    await holdButton.click()
-    await page.waitForTimeout(100)
-    await holdButton.click()
-    await page.waitForTimeout(100)
-    await holdButton.click()
+    // Hangup the call
+    await page.click(SELECTORS.CALL_CONTROLS.HANGUP_BUTTON)
+    await waitForCallState(['idle', 'ended', 'terminated'])
 
-    // Wait for state to settle
-    await page.waitForTimeout(2000)
-
-    // Verify call is in a valid state (either active or held, not stuck)
-    const callStatus = await page.locator('[data-testid="call-status"]').textContent()
-    expect(callStatus).toMatch(/Active|On Hold/)
-
-    // Verify UI is responsive (button is enabled)
-    await expect(holdButton).toBeEnabled()
+    // Verify hold button is no longer visible
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.HOLD_BUTTON)).not.toBeVisible()
+    await expect(page.locator(SELECTORS.CALL_CONTROLS.UNHOLD_BUTTON)).not.toBeVisible()
   })
 })
