@@ -12,7 +12,7 @@ const GLOBAL_TEST_IGNORE = [
   /multi-line\.spec\.ts/, // Tests unimplemented multi-line UI feature
   // Tests requiring mock SIP infrastructure fixes (mock WebSocket/EventBridge timing issues)
   /audio-devices\.spec\.ts/, // Requires mock media device integration
-  /accessibility\.spec\.ts/, // Axe accessibility tests have CI timing issues on all browsers
+  // accessibility.spec.ts: NOW ENABLED (24 tests pass) - uses axe-core for WCAG compliance testing
   // av-quality.spec.ts: NOW ENABLED (16 tests pass) - uses proper fixtures infrastructure
   // dtmf.spec.ts: NOW ENABLED (11 tests pass) - refactored to use proper fixtures infrastructure
   // call-transfer.spec.ts: NOW ENABLED (8 tests pass) - refactored to use proper fixtures infrastructure
@@ -96,101 +96,39 @@ export default defineConfig({
         },
         permissions: ['microphone', 'camera'],
       },
-      // CI stability: Skip tests with SIP mock infrastructure issues until fixed
-      // See tests/e2e/WEBKIT_KNOWN_ISSUES.md for details on test infrastructure requirements
+      // CI stability: Skip visual regression tests (uses internal skip)
       testIgnore: [
         ...GLOBAL_TEST_IGNORE,
         /visual-regression\.spec\.ts/, // Uses test.describe.skip() internally
-        /error-scenarios\.spec\.ts/, // CI mock SIP infrastructure issues
-        /app-functionality\.spec\.ts/, // CI mock SIP infrastructure issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
       ],
     },
 
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      // CI stability: Skip tests with SIP mock infrastructure issues until fixed
-      testIgnore: [
-        ...GLOBAL_TEST_IGNORE,
-        /visual-regression\.spec\.ts/,
-        /error-scenarios\.spec\.ts/, // CI mock SIP infrastructure issues
-        /app-functionality\.spec\.ts/, // CI mock SIP infrastructure issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
-      ],
+      // Extend global ignores with visual regression only (uses internal skip)
+      testIgnore: [...GLOBAL_TEST_IGNORE, /visual-regression\.spec\.ts/],
     },
 
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      // WebKit has rendering/timing issues with certain tests in CI - exclude problematic specs
-      // See tests/e2e/WEBKIT_KNOWN_ISSUES.md for details
-      testIgnore: [
-        ...GLOBAL_TEST_IGNORE,
-        /visual-regression\.spec\.ts/,
-        /error-scenarios\.spec\.ts/, // CI rendering timing issues
-        /app-functionality\.spec\.ts/, // CI rendering timing issues
-        // Tests that pass in chromium/firefox but fail in webkit due to rendering issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
-      ],
+      // Extend global ignores with visual regression only (uses internal skip)
+      testIgnore: [...GLOBAL_TEST_IGNORE, /visual-regression\.spec\.ts/],
     },
 
     /* Test against mobile viewports. */
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
-      // Mobile browsers have rendering/timing issues with certain tests in CI
-      testIgnore: [
-        ...GLOBAL_TEST_IGNORE,
-        /visual-regression\.spec\.ts/,
-        /error-scenarios\.spec\.ts/, // CI rendering timing issues
-        /app-functionality\.spec\.ts/, // CI rendering timing issues
-        // Tests that pass in desktop chromium but have mobile rendering issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
-      ],
+      // Extend global ignores with visual regression only (uses internal skip)
+      testIgnore: [...GLOBAL_TEST_IGNORE, /visual-regression\.spec\.ts/],
     },
     {
       name: 'Mobile Safari',
       use: { ...devices['iPhone 12'] },
-      // Mobile browsers have rendering/timing issues with certain tests in CI
-      testIgnore: [
-        ...GLOBAL_TEST_IGNORE,
-        /visual-regression\.spec\.ts/,
-        /error-scenarios\.spec\.ts/, // CI rendering timing issues
-        /app-functionality\.spec\.ts/, // CI rendering timing issues
-        // Tests that pass in desktop chromium but have mobile rendering issues
-        /av-quality\.spec\.ts/,
-        /dtmf\.spec\.ts/,
-        /call-transfer\.spec\.ts/,
-        /incoming-call\.spec\.ts/,
-        /call-hold\.spec\.ts/,
-        /performance\.spec\.ts/,
-        /basic-call-flow\.spec\.ts/,
-      ],
+      // Extend global ignores with visual regression only (uses internal skip)
+      testIgnore: [...GLOBAL_TEST_IGNORE, /visual-regression\.spec\.ts/],
     },
   ],
 
