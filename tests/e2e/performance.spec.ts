@@ -191,6 +191,9 @@ test.describe('Performance - Resource Loading', () => {
 })
 
 test.describe('Performance - Runtime Performance', () => {
+  // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+  test.skip(({ browserName }) => browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
   test.beforeEach(async ({ page, mockSipServer, mockMediaDevices }) => {
     await mockSipServer()
     await mockMediaDevices()
@@ -378,6 +381,9 @@ test.describe('Performance - Runtime Performance', () => {
 })
 
 test.describe('Performance - Rendering Performance', () => {
+  // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+  test.skip(({ browserName }) => browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
   test.beforeEach(async ({ page, mockSipServer, mockMediaDevices }) => {
     await mockSipServer()
     await mockMediaDevices()
@@ -519,6 +525,9 @@ test.describe('Performance - Rendering Performance', () => {
 })
 
 test.describe('Performance - Network Performance', () => {
+  // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+  test.skip(({ browserName }) => browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
   test.beforeEach(async ({ mockSipServer, mockMediaDevices }) => {
     await mockSipServer()
     await mockMediaDevices()
