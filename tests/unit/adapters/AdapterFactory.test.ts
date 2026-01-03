@@ -7,6 +7,53 @@ import { AdapterFactory, createSipAdapter } from '@/adapters/AdapterFactory'
 import type { ISipAdapter, AdapterConfig } from '@/adapters/types'
 import type { SipClientConfig } from '@/types/config.types'
 
+// Mock JsSIP module for JsSipAdapter tests
+vi.mock('jssip', () => {
+  class MockWebSocketInterface {
+    url: string
+    constructor(url: string) {
+      this.url = url
+    }
+    connect = vi.fn()
+    disconnect = vi.fn()
+    isConnected = vi.fn().mockReturnValue(false)
+  }
+
+  class MockUA {
+    constructor(_config: any) {}
+    start = vi.fn()
+    stop = vi.fn()
+    register = vi.fn()
+    unregister = vi.fn()
+    registrator = vi.fn().mockReturnValue({ setExtraHeaders: vi.fn() })
+    call = vi.fn()
+    sendMessage = vi.fn()
+    isRegistered = vi.fn().mockReturnValue(false)
+    isConnected = vi.fn().mockReturnValue(false)
+    on = vi.fn().mockReturnThis()
+    off = vi.fn().mockReturnThis()
+    once = vi.fn().mockReturnThis()
+  }
+
+  const mod = {
+    WebSocketInterface: MockWebSocketInterface,
+    UA: MockUA,
+    version: '3.10.0',
+    name: 'JsSIP',
+    debug: { enable: vi.fn(), disable: vi.fn() },
+  }
+
+  return {
+    ...mod,
+    default: mod,
+  }
+})
+
+// Mock sip.js as not available
+vi.mock('sip.js', () => {
+  throw new Error('Module not found')
+})
+
 // Mock custom adapter for testing
 class MockCustomAdapter {
   public adapterName = 'MockAdapter'
@@ -36,6 +83,7 @@ class MockCustomAdapter {
   public off = vi.fn()
   public once = vi.fn()
   public emit = vi.fn()
+  public removeAllListeners = vi.fn()
 }
 
 describe('AdapterFactory', () => {
@@ -51,24 +99,34 @@ describe('AdapterFactory', () => {
   })
 
   describe('createAdapter()', () => {
-    it('should throw error for jssip adapter (not implemented)', async () => {
+    it('should create jssip adapter successfully', async () => {
       const adapterConfig: AdapterConfig = {
         library: 'jssip',
       }
 
-      await expect(AdapterFactory.createAdapter(sipConfig, adapterConfig)).rejects.toThrow(
-        'JsSIP adapter is not yet implemented'
-      )
+      const adapter = await AdapterFactory.createAdapter(sipConfig, adapterConfig)
+
+      expect(adapter).toBeDefined()
+      expect(adapter.adapterName).toBe('JsSIP Adapter')
+      expect(adapter.libraryName).toBe('JsSIP')
+
+      // Cleanup
+      await adapter.destroy()
     })
 
-    it('should throw error for sipjs adapter (not implemented)', async () => {
+    it('should create sipjs adapter (stub) successfully', async () => {
       const adapterConfig: AdapterConfig = {
         library: 'sipjs',
       }
 
-      await expect(AdapterFactory.createAdapter(sipConfig, adapterConfig)).rejects.toThrow(
-        'SIP.js adapter is not yet implemented'
-      )
+      const adapter = await AdapterFactory.createAdapter(sipConfig, adapterConfig)
+
+      expect(adapter).toBeDefined()
+      expect(adapter.adapterName).toBe('SIP.js Adapter')
+      expect(adapter.libraryName).toBe('SIP.js')
+
+      // Cleanup
+      await adapter.destroy()
     })
 
     it('should create custom adapter successfully', async () => {
@@ -111,53 +169,68 @@ describe('AdapterFactory', () => {
   })
 
   describe('isLibraryAvailable()', () => {
-    it('should return false for jssip (not implemented)', async () => {
+    it('should return true for jssip (mocked)', async () => {
       const available = await AdapterFactory.isLibraryAvailable('jssip')
-      expect(available).toBe(false)
+      expect(available).toBe(true)
     })
 
-    it('should return false for sipjs (not implemented)', async () => {
+    it('should return false for sipjs (not installed)', async () => {
       const available = await AdapterFactory.isLibraryAvailable('sipjs')
       expect(available).toBe(false)
     })
   })
 
   describe('getAvailableLibraries()', () => {
-    it('should return empty array (no adapters implemented)', async () => {
+    it('should return array with jssip (mocked)', async () => {
       const libraries = await AdapterFactory.getAvailableLibraries()
-      expect(libraries).toEqual([])
+      expect(libraries).toContain('jssip')
+      // sipjs should not be included since it's not installed
+      expect(libraries).not.toContain('sipjs')
     })
   })
 
   describe('getAdapterInfo()', () => {
-    it('should return null for jssip (not implemented)', async () => {
+    it('should return adapter info for jssip', async () => {
       const info = await AdapterFactory.getAdapterInfo('jssip')
-      expect(info).toBeNull()
+      expect(info).not.toBeNull()
+      expect(info?.adapterName).toBe('JsSIP Adapter')
+      expect(info?.libraryName).toBe('JsSIP')
     })
 
-    it('should return null for sipjs (not implemented)', async () => {
+    it('should return adapter info for sipjs stub', async () => {
       const info = await AdapterFactory.getAdapterInfo('sipjs')
-      expect(info).toBeNull()
+      expect(info).not.toBeNull()
+      expect(info?.adapterName).toBe('SIP.js Adapter')
+      expect(info?.libraryName).toBe('SIP.js')
     })
   })
 
   describe('createSipAdapter()', () => {
-    it('should throw error with default jssip library', async () => {
-      await expect(createSipAdapter(sipConfig)).rejects.toThrow(
-        'JsSIP adapter is not yet implemented'
-      )
+    it('should create jssip adapter with default library', async () => {
+      const adapter = await createSipAdapter(sipConfig)
+
+      expect(adapter).toBeDefined()
+      expect(adapter.adapterName).toBe('JsSIP Adapter')
+
+      await adapter.destroy()
     })
 
-    it('should throw error with explicit jssip library', async () => {
-      await expect(createSipAdapter(sipConfig, 'jssip')).rejects.toThrow(
-        'JsSIP adapter is not yet implemented'
-      )
+    it('should create jssip adapter with explicit library', async () => {
+      const adapter = await createSipAdapter(sipConfig, 'jssip')
+
+      expect(adapter).toBeDefined()
+      expect(adapter.adapterName).toBe('JsSIP Adapter')
+
+      await adapter.destroy()
     })
 
-    it('should throw error with sipjs library', async () => {
-      await expect(createSipAdapter(sipConfig, 'sipjs')).rejects.toThrow(
-        'SIP.js adapter is not yet implemented'
-      )
+    it('should create sipjs adapter (stub)', async () => {
+      const adapter = await createSipAdapter(sipConfig, 'sipjs')
+
+      expect(adapter).toBeDefined()
+      expect(adapter.adapterName).toBe('SIP.js Adapter')
+
+      await adapter.destroy()
     })
   })
 

@@ -48,23 +48,18 @@ export class AdapterFactory {
 
     switch (adapterConfig.library) {
       case 'jssip': {
-        // TODO: Implement JsSIP adapter
-        // Dynamically import JsSIP adapter when implemented
-        // const { JsSipAdapter } = await import('./jssip/JsSipAdapter')
-        // adapter = new JsSipAdapter(adapterConfig.libraryOptions)
-        throw new Error(
-          'JsSIP adapter is not yet implemented. Use the core SipClient directly for now.'
-        )
+        // Dynamically import JsSIP adapter
+        const { JsSipAdapter } = await import('./jssip/JsSipAdapter')
+        adapter = new JsSipAdapter(adapterConfig.libraryOptions)
+        break
       }
 
       case 'sipjs': {
-        // TODO: Implement SIP.js adapter
-        // Dynamically import SIP.js adapter when implemented
-        // const { SipJsAdapter } = await import('./sipjs/SipJsAdapter')
-        // adapter = new SipJsAdapter(adapterConfig.libraryOptions)
-        throw new Error(
-          'SIP.js adapter is not yet implemented. Use the core SipClient directly for now.'
-        )
+        // Dynamically import SIP.js adapter
+        // Note: SIP.js adapter is currently a stub implementation
+        const { SipJsAdapter } = await import('./sipjs/SipJsAdapter')
+        adapter = new SipJsAdapter(adapterConfig.libraryOptions)
+        break
       }
 
       case 'custom': {
@@ -93,25 +88,25 @@ export class AdapterFactory {
    * @param library - Library name to check
    * @returns True if the library adapter is available
    */
-  static async isLibraryAvailable(_library: 'jssip' | 'sipjs'): Promise<boolean> {
-    // TODO: Re-enable when adapters are implemented
-    // try {
-    //   switch (library) {
-    //     case 'jssip': {
-    //       await import('./jssip/JsSipAdapter')
-    //       return true
-    //     }
-    //     case 'sipjs': {
-    //       await import('./sipjs/SipJsAdapter')
-    //       return true
-    //     }
-    //     default:
-    //       return false
-    //   }
-    // } catch (error) {
-    //   return false
-    // }
-    return false // Adapters not yet implemented
+  static async isLibraryAvailable(library: 'jssip' | 'sipjs'): Promise<boolean> {
+    try {
+      switch (library) {
+        case 'jssip': {
+          // Check if JsSIP module is available
+          await import('jssip')
+          return true
+        }
+        case 'sipjs': {
+          // Check if SIP.js module is available
+          const { isSipJsAvailable } = await import('./sipjs/SipJsAdapter')
+          return await isSipJsAvailable()
+        }
+        default:
+          return false
+      }
+    } catch {
+      return false
+    }
   }
 
   /**
@@ -146,29 +141,32 @@ export class AdapterFactory {
     libraryVersion: string
   } | null> {
     try {
-      // Create a temporary instance to get metadata
-      const tempConfig: SipClientConfig = {
-        uri: 'wss://example.com',
-        sipUri: 'sip:temp@example.com',
-        password: 'temp',
+      // Get adapter class without full initialization
+      switch (library) {
+        case 'jssip': {
+          const { JsSipAdapter } = await import('./jssip/JsSipAdapter')
+          const adapter = new JsSipAdapter()
+          return {
+            adapterName: adapter.adapterName,
+            adapterVersion: adapter.adapterVersion,
+            libraryName: adapter.libraryName,
+            libraryVersion: adapter.libraryVersion,
+          }
+        }
+        case 'sipjs': {
+          const { SipJsAdapter } = await import('./sipjs/SipJsAdapter')
+          const adapter = new SipJsAdapter()
+          return {
+            adapterName: adapter.adapterName,
+            adapterVersion: adapter.adapterVersion,
+            libraryName: adapter.libraryName,
+            libraryVersion: adapter.libraryVersion,
+          }
+        }
+        default:
+          return null
       }
-
-      const adapter = await AdapterFactory.createAdapter(tempConfig, {
-        library,
-      })
-
-      const info = {
-        adapterName: adapter.adapterName,
-        adapterVersion: adapter.adapterVersion,
-        libraryName: adapter.libraryName,
-        libraryVersion: adapter.libraryVersion,
-      }
-
-      // Clean up
-      await adapter.destroy()
-
-      return info
-    } catch (_error) {
+    } catch {
       return null
     }
   }

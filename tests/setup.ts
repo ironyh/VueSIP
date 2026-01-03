@@ -77,20 +77,30 @@ export const mockUA: any = {
 
 // Mock JsSIP globally with Promise support for async operations
 vi.mock('jssip', () => {
-  return {
-    default: {
-      UA: vi.fn(function (this: any, uaConfig: any) {
-        // Store config for inspection in tests
-        mockUA._config = uaConfig
-        return mockUA
-      }),
-      WebSocketInterface: vi.fn(),
-      debug: {
-        enable: vi.fn(),
-        disable: vi.fn(),
-      },
+  const mod = {
+    UA: vi.fn(function (this: any, uaConfig: any) {
+      // Store config for inspection in tests
+      mockUA._config = uaConfig
+      return mockUA
+    }),
+    WebSocketInterface: vi.fn(),
+    debug: {
+      enable: vi.fn(),
+      disable: vi.fn(),
     },
+    version: '3.10.0',
+    name: 'JsSIP',
   }
+  return {
+    ...mod,
+    default: mod,
+  }
+})
+
+// Mock sip.js as not available (will be used by SipJsAdapter tests)
+// This simulates sip.js not being installed
+vi.mock('sip.js', () => {
+  throw new Error('Module not found: sip.js')
 })
 
 // Mock WebRTC APIs
