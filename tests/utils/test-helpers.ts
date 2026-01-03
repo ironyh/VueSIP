@@ -39,10 +39,7 @@ export function createMockSipConfig(overrides?: Partial<SipClientConfig>): SipCl
 /**
  * Create a mock MediaStream for testing
  */
-export function createMockMediaStream(options?: {
-  audio?: boolean
-  video?: boolean
-}): MediaStream {
+export function createMockMediaStream(options?: { audio?: boolean; video?: boolean }): MediaStream {
   const tracks: any[] = []
 
   if (options?.audio !== false) {
@@ -536,7 +533,10 @@ export function simulateIncomingCall(mockUA: any, sessionId: string = 'session-1
 /**
  * Simulate call progress states
  */
-export function simulateCallProgress(mockSession: any, state: 'progress' | 'accepted' | 'confirmed' | 'ended') {
+export function simulateCallProgress(
+  mockSession: any,
+  state: 'progress' | 'accepted' | 'confirmed' | 'ended'
+) {
   const handlers: Record<string, Function> = {}
 
   mockSession.on.mockImplementation((event: string, handler: Function) => {
@@ -612,8 +612,8 @@ export function setupIndexedDBMock() {
       contains: vi.fn().mockReturnValue(false),
     }
 
-    transaction = vi.fn((storeNames: string[], mode: string) => ({
-      objectStore: vi.fn((name: string) => ({
+    transaction = vi.fn((_storeNames: string[], _mode: string) => ({
+      objectStore: vi.fn((_name: string) => ({
         add: vi.fn().mockReturnValue({
           onsuccess: null,
           onerror: null,
@@ -646,7 +646,7 @@ export function setupIndexedDBMock() {
       })),
     }))
 
-    createObjectStore = vi.fn((name: string, options: any) => ({
+    createObjectStore = vi.fn((_name: string, _options: any) => ({
       createIndex: vi.fn(),
     }))
 
@@ -661,7 +661,7 @@ export function setupIndexedDBMock() {
   }
 
   const mockIndexedDB = {
-    open: vi.fn((name: string, version: number) => {
+    open: vi.fn((_name: string, _version: number) => {
       const request = new MockIDBOpenDBRequest()
       setTimeout(() => {
         if (request.onsuccess) {
@@ -808,4 +808,3 @@ export function withSetup<T>(composable: () => T): { result: T; app: App; unmoun
 
 // Re-export waitFor from testUtils for convenience
 export { waitFor } from '../helpers/testUtils'
-

@@ -262,13 +262,13 @@ addEvent('INFO', 'Click dialpad keys to send DTMF tones')
           <span class="comment">// Send single digit</span>
           <span class="keyword">await</span> <span class="function">sendDTMF</span>(<span
             class="string"
-            >'5'</span
+          >'5'</span
           >)
 
           <span class="comment">// Send sequence with timing</span>
           <span class="keyword">await</span> <span class="function">sendDTMFSequence</span>(<span
             class="string"
-            >'1234#'</span
+          >'1234#'</span
           >, { interDigitDelay: <span class="number">100</span>, duration:
           <span class="number">160</span>
           })

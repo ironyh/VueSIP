@@ -33,7 +33,7 @@
         <div v-if="!isConnected" class="connection-panel">
           <Message severity="warn" :closable="false" role="alert">
             <template #icon
-              ><i class="pi pi-exclamation-triangle text-xl" aria-hidden="true"></i
+            ><i class="pi pi-exclamation-triangle text-xl" aria-hidden="true"></i
             ></template>
             Connect to AMI to manage the blacklist
           </Message>
@@ -81,7 +81,7 @@
                   class="w-full"
                 />
                 <small id="phone-help"
-                  >Use * as wildcard (e.g., 1900* blocks all 1900 numbers)</small
+                >Use * as wildcard (e.g., 1900* blocks all 1900 numbers)</small
                 >
               </div>
               <div class="form-field col-12 sm:col-6">

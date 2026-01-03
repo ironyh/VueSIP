@@ -282,7 +282,10 @@ describe('storageQuota utils', () => {
     })
 
     it('should return 0 when no data', async () => {
-      const count = await clearOldDataLRU(() => [], () => {})
+      const count = await clearOldDataLRU(
+        () => [],
+        () => {}
+      )
 
       expect(count).toBe(0)
     })
@@ -293,7 +296,7 @@ describe('storageQuota utils', () => {
         { id: '2', timestamp: 2000 },
       ]
 
-      const removeData = async (ids: string[]) => {
+      const removeData = async (_ids: string[]) => {
         await new Promise((resolve) => setTimeout(resolve, 10))
       }
 

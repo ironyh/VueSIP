@@ -354,7 +354,7 @@ addEvent('INFO', `${MAX_LINES} lines available`)
           <span class="comment">// Switch between lines</span>
           <span class="keyword">await</span> <span class="function">switchToLine</span>(<span
             class="number"
-            >2</span
+          >2</span
           >)
 
           <span class="comment">// Park a call</span>
@@ -367,7 +367,7 @@ addEvent('INFO', `${MAX_LINES} lines available`)
           <span class="comment">// Create conference</span>
           <span class="keyword">await</span> <span class="function">createConference</span>([<span
             class="number"
-            >1</span
+          >1</span
           >, <span class="number">2</span>])
         </code>
       </div>

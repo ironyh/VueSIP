@@ -94,7 +94,7 @@
             <div class="stat-label" id="avg-duration-label">Avg Duration</div>
           </div>
           <span class="sr-only"
-            >Average duration: {{ formatDuration(statistics.averageDuration) }}</span
+          >Average duration: {{ formatDuration(statistics.averageDuration) }}</span
           >
         </div>
       </div>

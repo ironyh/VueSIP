@@ -4,10 +4,10 @@
  * Comprehensive test suite for Vue multi-line composable
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi as _vi } from 'vitest'
 import { nextTick } from 'vue'
 import { useMultiLine } from '../../../src/composables/useMultiLine'
-import type { LineConfig, LineState } from '../../../src/types/multiline.types'
+import type { LineConfig, LineState as _LineState } from '../../../src/types/multiline.types'
 import type { CallSession } from '../../../src/types/session.types'
 
 describe('useMultiLine', () => {
@@ -25,7 +25,7 @@ describe('useMultiLine', () => {
     it('should initialize with custom config', () => {
       const { manager } = useMultiLine({
         maxLines: 10,
-        routingStrategy: 'round_robin'
+        routingStrategy: 'round_robin',
       })
 
       const config = manager.getConfig()
@@ -48,7 +48,7 @@ describe('useMultiLine', () => {
       uri: 'sip:user@example.com',
       password: 'secret',
       displayName: 'Test Line',
-      priority: 1
+      priority: 1,
     }
 
     it('should add a new line', async () => {
@@ -87,7 +87,7 @@ describe('useMultiLine', () => {
       await addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
-        displayName: 'Line 2'
+        displayName: 'Line 2',
       })
       await nextTick()
 
@@ -109,14 +109,14 @@ describe('useMultiLine', () => {
       await addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
-        displayName: 'Line 2'
+        displayName: 'Line 2',
       })
 
       await expect(
         addLine({
           uri: 'sip:user3@example.com',
           password: 'secret',
-          displayName: 'Line 3'
+          displayName: 'Line 3',
         })
       ).rejects.toThrow('Maximum number of lines')
     })
@@ -140,7 +140,7 @@ describe('useMultiLine', () => {
       lineId = await addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test Line'
+        displayName: 'Test Line',
       })
     })
 
@@ -188,7 +188,7 @@ describe('useMultiLine', () => {
         uri: 'sip:user@example.com',
         password: 'secret',
         displayName: 'Test Line',
-        autoRegister: false
+        autoRegister: false,
       })
     })
 
@@ -196,7 +196,7 @@ describe('useMultiLine', () => {
       const { registerLine, getLineStatus } = useMultiLine()
 
       await registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       expect(getLineStatus(lineId)).toBe('registered')
     })
@@ -210,7 +210,7 @@ describe('useMultiLine', () => {
       expect(isRegistering.value).toBe(true)
 
       await promise
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
       await nextTick()
 
       expect(isRegistering.value).toBe(false)
@@ -220,7 +220,7 @@ describe('useMultiLine', () => {
       const { registerLine, stats } = useMultiLine()
 
       await registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
       await nextTick()
 
       expect(stats.value.registeredLines).toBe(1)
@@ -233,7 +233,7 @@ describe('useMultiLine', () => {
         uri: 'sip:invalid@example.com',
         password: 'secret',
         displayName: 'Invalid Line',
-        autoRegister: false
+        autoRegister: false,
       })
 
       await expect(registerLine(invalidLineId)).rejects.toThrow('Invalid credentials')
@@ -257,16 +257,16 @@ describe('useMultiLine', () => {
         uri: 'sip:user@example.com',
         password: 'secret',
         displayName: 'Test Line',
-        autoRegister: true
+        autoRegister: true,
       })
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
     })
 
     it('should unregister a line', async () => {
       const { unregisterLine, getLineStatus } = useMultiLine()
 
       await unregisterLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       expect(getLineStatus(lineId)).toBe('unregistered')
     })
@@ -275,7 +275,7 @@ describe('useMultiLine', () => {
       const { unregisterLine, stats } = useMultiLine()
 
       await unregisterLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
       await nextTick()
 
       expect(stats.value.registeredLines).toBe(0)
@@ -297,12 +297,12 @@ describe('useMultiLine', () => {
       line1 = await addLine({
         uri: 'sip:user1@example.com',
         password: 'secret',
-        displayName: 'Line 1'
+        displayName: 'Line 1',
       })
       line2 = await addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
-        displayName: 'Line 2'
+        displayName: 'Line 2',
       })
     })
 
@@ -349,7 +349,7 @@ describe('useMultiLine', () => {
       lineId = await addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test Line'
+        displayName: 'Test Line',
       })
     })
 
@@ -446,7 +446,7 @@ describe('useMultiLine', () => {
         uri: 'sip:user@example.com',
         password: 'secret',
         displayName: 'Test Line',
-        autoRegister: false
+        autoRegister: false,
       })
     })
 
@@ -463,7 +463,7 @@ describe('useMultiLine', () => {
       expect(isLineRegistered(lineId)).toBe(false)
 
       await registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       expect(isLineRegistered(lineId)).toBe(true)
     })
@@ -475,11 +475,11 @@ describe('useMultiLine', () => {
         uri: 'sip:user2@example.com',
         password: 'secret',
         displayName: 'Line 2',
-        autoRegister: false
+        autoRegister: false,
       })
 
       await registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
 
       const registered = getRegisteredLines()
       expect(registered).toHaveLength(1)
@@ -515,7 +515,7 @@ describe('useMultiLine', () => {
       lineId = await addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test Line'
+        displayName: 'Test Line',
       })
     })
 
@@ -546,7 +546,7 @@ describe('useMultiLine', () => {
         registrationState: expect.any(String),
         calls: expect.any(Array),
         config: expect.any(Object),
-        priority: expect.any(Number)
+        priority: expect.any(Number),
       })
     })
   })
@@ -560,7 +560,7 @@ describe('useMultiLine', () => {
       await addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test Line'
+        displayName: 'Test Line',
       })
       await nextTick()
 
@@ -573,12 +573,12 @@ describe('useMultiLine', () => {
       const line1 = await addLine({
         uri: 'sip:user1@example.com',
         password: 'secret',
-        displayName: 'Line 1'
+        displayName: 'Line 1',
       })
       const line2 = await addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
-        displayName: 'Line 2'
+        displayName: 'Line 2',
       })
       await nextTick()
 
@@ -600,7 +600,7 @@ describe('useMultiLine', () => {
         uri: 'sip:user@example.com',
         password: 'secret',
         displayName: 'Test Line',
-        autoRegister: false
+        autoRegister: false,
       })
       await nextTick()
 
@@ -608,7 +608,7 @@ describe('useMultiLine', () => {
       expect(stats.value.registeredLines).toBe(0)
 
       await registerLine(lineId)
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
       await nextTick()
 
       expect(stats.value.registeredLines).toBe(1)
@@ -620,12 +620,12 @@ describe('useMultiLine', () => {
       const line1 = await addLine({
         uri: 'sip:user1@example.com',
         password: 'secret',
-        displayName: 'Line 1'
+        displayName: 'Line 1',
       })
       await addLine({
         uri: 'sip:user2@example.com',
         password: 'secret',
-        displayName: 'Line 2'
+        displayName: 'Line 2',
       })
       await nextTick()
 
@@ -656,7 +656,7 @@ describe('useMultiLine', () => {
       await manager.addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test Line'
+        displayName: 'Test Line',
       })
       await nextTick()
 
@@ -669,7 +669,7 @@ describe('useMultiLine', () => {
       await manager.addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test Line'
+        displayName: 'Test Line',
       })
       await nextTick()
 
@@ -686,18 +686,18 @@ describe('useMultiLine', () => {
         addLine({
           uri: 'sip:user1@example.com',
           password: 'secret',
-          displayName: 'Line 1'
+          displayName: 'Line 1',
         }),
         addLine({
           uri: 'sip:user2@example.com',
           password: 'secret',
-          displayName: 'Line 2'
+          displayName: 'Line 2',
         }),
         addLine({
           uri: 'sip:user3@example.com',
           password: 'secret',
-          displayName: 'Line 3'
-        })
+          displayName: 'Line 3',
+        }),
       ]
 
       await Promise.all(promises)
@@ -712,7 +712,7 @@ describe('useMultiLine', () => {
       const lineId = await addLine({
         uri: 'sip:user@example.com',
         password: 'secret',
-        displayName: 'Test Line'
+        displayName: 'Test Line',
       })
 
       const mockCall = { id: 'call-1' } as CallSession
@@ -733,7 +733,7 @@ describe('useMultiLine', () => {
         uri: 'sip:user@example.com',
         password: 'secret',
         displayName: 'Test Line',
-        autoRegister: false
+        autoRegister: false,
       })
 
       const promise = registerLine(lineId)
@@ -743,7 +743,7 @@ describe('useMultiLine', () => {
       expect(getLineStatus(lineId)).toBe('registering')
 
       await promise
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
       await nextTick()
 
       expect(isRegistering.value).toBe(false)

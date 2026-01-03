@@ -77,7 +77,7 @@
           :disabled="isConnecting"
         />
         <span id="displayName-hint" class="hint sr-only"
-          >Optional field for your display name during calls</span
+        >Optional field for your display name during calls</span
         >
       </div>
 

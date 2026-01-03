@@ -75,7 +75,7 @@ export default defineConfig({
     // Test timeout (10 seconds)
     testTimeout: 10000,
     // Suppress Vue lifecycle warnings in benchmarks (non-critical for performance testing)
-    onConsoleLog: (log, type) => {
+    onConsoleLog: (log, _type) => {
       // Suppress Vue lifecycle warnings in performance benchmarks
       // These warnings occur because benchmarks test core classes outside Vue component context
       if (

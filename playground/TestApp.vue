@@ -88,9 +88,9 @@
               placeholder="wss://sip.example.com:7443"
               aria-describedby="server-uri-hint"
             />
-            <span id="server-uri-hint" class="sr-only"
-              >Enter the WebSocket server address starting with wss://</span
-            >
+            <span id="server-uri-hint" class="sr-only">
+              Enter the WebSocket server address starting with wss://
+            </span>
           </div>
           <button class="btn btn-primary" data-testid="save-settings-button" @click="saveSettings">
             Save Settings
@@ -157,9 +157,9 @@
                   placeholder="Enter number or SIP URI"
                   aria-describedby="dialpad-hint"
                 />
-                <span id="dialpad-hint" class="sr-only"
-                  >Enter a phone number or SIP URI to call</span
-                >
+                <span id="dialpad-hint" class="sr-only">
+                  Enter a phone number or SIP URI to call
+                </span>
                 <button
                   class="btn btn-success"
                   data-testid="call-button"
@@ -304,7 +304,7 @@
                 </div>
 
                 <!-- Transfer Controls -->
-                <div class="transfer-section">
+                <div v-if="callState === 'active' || callState === 'held'" class="transfer-section">
                   <button
                     class="btn btn-secondary"
                     data-testid="transfer-button"
@@ -472,6 +472,7 @@ import {
   validateWebSocketUrl,
   type SipClientConfig,
 } from '../src'
+import { configStore } from '../src/stores/configStore'
 // Store persistence now initialized in playground/main.ts before Vue app creation
 
 // Configuration
@@ -726,6 +727,16 @@ try {
       }
     }
     console.debug('[TestApp] __forceSipConnection helper installed')
+
+    // Also expose the SipClient for E2E debugging
+    ;(window as any).__sipClient = sipClient.getClient()
+    ;(window as any).__sipClientComposable = sipClient
+    console.debug('[TestApp] __sipClient exposed for E2E debugging')
+
+    // Expose configStore and updateConfig for E2E test fixtures
+    ;(window as any).__configStore = configStore
+    ;(window as any).__updateConfig = updateConfig
+    console.debug('[TestApp] __configStore and __updateConfig exposed for E2E fixtures')
   }
 } catch (error: any) {
   initializationError.value = `Failed to initialize: ${error.message || 'Unknown error'}`

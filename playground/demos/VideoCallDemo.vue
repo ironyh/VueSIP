@@ -144,9 +144,9 @@
       <!-- Camera Count Info -->
       <div v-if="videoInputDevices.length > 0" class="camera-info">
         <span class="camera-count"
-          >{{ videoInputDevices.length }} camera{{
-            videoInputDevices.length > 1 ? 's' : ''
-          }}
+        >{{ videoInputDevices.length }} camera{{
+          videoInputDevices.length > 1 ? 's' : ''
+        }}
           available</span
         >
       </div>

@@ -2,8 +2,6 @@
  * Configuration Provider Unit Tests
  */
 
-/* eslint-disable vue/one-component-per-file */
-
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
@@ -652,7 +650,11 @@ describe('ConfigProvider', () => {
       // Suppress Vue's expected injection warning for this test
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation((message) => {
         // Only suppress the specific Vue injection warning
-        if (typeof message === 'string' && message.includes('injection') && message.includes('config-provider')) {
+        if (
+          typeof message === 'string' &&
+          message.includes('injection') &&
+          message.includes('config-provider')
+        ) {
           return
         }
         // Allow other warnings through
@@ -671,7 +673,7 @@ describe('ConfigProvider', () => {
       })
 
       mount(ComponentWithoutProvider)
-      
+
       warnSpy.mockRestore()
     })
   })

@@ -44,7 +44,10 @@ test.describe('Accessibility Tests', () => {
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -61,7 +64,11 @@ test.describe('Accessibility Tests', () => {
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -135,7 +142,11 @@ test.describe('Accessibility Tests', () => {
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -225,7 +236,11 @@ test.describe('Accessibility Tests', () => {
     page,
     configureSip,
     waitForConnectionState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -244,7 +259,11 @@ test.describe('Accessibility Tests', () => {
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)
@@ -432,7 +451,11 @@ test.describe('Accessibility - Keyboard Navigation', () => {
     configureSip,
     waitForConnectionState,
     waitForRegistrationState,
+    browserName,
   }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     // Configure and connect
     await configureSip(TEST_DATA.VALID_CONFIG)
     await page.click(SELECTORS.CONNECTION.CONNECT_BUTTON)

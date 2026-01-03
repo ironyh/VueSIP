@@ -29,7 +29,7 @@
       </template>
       <template #subtitle>
         <span class="text-600"
-          >Real-time Call Detail Record (CDR) processing and analytics via AMI.</span
+        >Real-time Call Detail Record (CDR) processing and analytics via AMI.</span
         >
       </template>
       <template #content>
@@ -58,11 +58,11 @@
           <div class="form-grid grid p-fluid align-items-end">
             <div class="col-12 md:col-4">
               <label for="ami-url-input" class="font-medium text-600 mb-2 block"
-                >WebSocket URL</label
+              >WebSocket URL</label
               >
               <div class="p-inputgroup">
                 <span class="p-inputgroup-addon"
-                  ><i class="pi pi-globe text-base" aria-hidden="true"></i
+                ><i class="pi pi-globe text-base" aria-hidden="true"></i
                 ></span>
                 <InputText
                   id="ami-url-input"
@@ -75,11 +75,11 @@
             </div>
             <div class="col-12 md:col-3">
               <label for="ami-username-input" class="font-medium text-600 mb-2 block"
-                >Username</label
+              >Username</label
               >
               <div class="p-inputgroup">
                 <span class="p-inputgroup-addon"
-                  ><i class="pi pi-user text-base" aria-hidden="true"></i
+                ><i class="pi pi-user text-base" aria-hidden="true"></i
                 ></span>
                 <InputText
                   id="ami-username-input"
@@ -94,7 +94,7 @@
               <label for="ami-secret-input" class="font-medium text-600 mb-2 block">Secret</label>
               <div class="p-inputgroup">
                 <span class="p-inputgroup-addon"
-                  ><i class="pi pi-lock text-base" aria-hidden="true"></i
+                ><i class="pi pi-lock text-base" aria-hidden="true"></i
                 ></span>
                 <Password
                   inputId="ami-secret-input"
@@ -277,7 +277,7 @@
                     <div class="flex justify-content-between mb-1">
                       <span class="font-medium text-700">{{ disposition }}</span>
                       <span class="font-bold text-primary"
-                        >{{ count }}
+                      >{{ count }}
                         <small class="text-500">({{ calculatePercentage(count) }}%)</small></span
                       >
                     </div>
@@ -329,7 +329,7 @@
                       <div class="col-6 flex align-items-center gap-2 text-600">
                         <i class="pi pi-clock text-base" aria-hidden="true"></i>
                         <span
-                          >Total:
+                        >Total:
                           <span class="text-900 font-medium">{{
                             formatDuration(agentStat.totalTalkTime)
                           }}</span></span
@@ -338,7 +338,7 @@
                       <div class="col-6 flex align-items-center gap-2 text-600 justify-content-end">
                         <i class="pi pi-stopwatch text-base" aria-hidden="true"></i>
                         <span
-                          >Avg:
+                        >Avg:
                           <span class="text-900 font-medium">{{
                             formatDuration(agentStat.averageTalkTime)
                           }}</span></span
@@ -391,7 +391,7 @@
               <div class="col-12 md:col-3">
                 <div class="p-inputgroup">
                   <span class="p-inputgroup-addon"
-                    ><i class="pi pi-arrows-alt text-base" aria-hidden="true"></i
+                  ><i class="pi pi-arrows-alt text-base" aria-hidden="true"></i
                   ></span>
                   <Dropdown
                     v-model="filterDirection"
@@ -407,7 +407,7 @@
               <div class="col-12 md:col-3">
                 <div class="p-inputgroup">
                   <span class="p-inputgroup-addon"
-                    ><i class="pi pi-flag text-base" aria-hidden="true"></i
+                  ><i class="pi pi-flag text-base" aria-hidden="true"></i
                   ></span>
                   <Dropdown
                     v-model="filterDisposition"

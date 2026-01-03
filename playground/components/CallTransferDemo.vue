@@ -117,9 +117,9 @@ addEvent('INFO', 'Active call with +1 (555) 123-4567')
       </div>
       <div class="status-item">
         <span
-          >Duration: {{ Math.floor(callState.activeCall.duration / 60) }}:{{
-            String(callState.activeCall.duration % 60).padStart(2, '0')
-          }}</span
+        >Duration: {{ Math.floor(callState.activeCall.duration / 60) }}:{{
+          String(callState.activeCall.duration % 60).padStart(2, '0')
+        }}</span
         >
       </div>
     </div>

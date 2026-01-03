@@ -247,7 +247,7 @@ enumerateDevices()
           />
           <span>Echo Cancellation (AEC)</span>
           <span style="font-size: 0.75rem; color: var(--text-muted)"
-            >Removes echo from speakers</span
+          >Removes echo from speakers</span
           >
         </label>
         <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer">
@@ -303,10 +303,10 @@ enumerateDevices()
           <span class="comment">// Change devices</span>
           <span class="keyword">await</span> <span class="function">setInputDevice</span>(<span
             class="string"
-            >'device-id'</span
+          >'device-id'</span
           >) <span class="keyword">await</span> <span class="function">setOutputDevice</span>(<span
             class="string"
-            >'device-id'</span
+          >'device-id'</span
           >)
 
           <span class="comment">// Adjust volume</span>
