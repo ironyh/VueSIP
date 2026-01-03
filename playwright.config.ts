@@ -13,9 +13,9 @@ import { defineConfig, devices } from '@playwright/test'
  * - performance.spec.ts: 21 tests (page load, runtime performance)
  * - basic-call-flow.spec.ts: 16 tests (full call flow scenarios)
  *
- * CI TESTS (~15 tests - mockSipServer-dependent tests are excluded):
- * - performance.spec.ts: Page Load, Resource Loading, Network, Metrics sections
- * - Note: mockSipServer fixture doesn't work reliably in CI environments
+ * CI TESTS (~11 tests - mockSipServer/SIP-client-dependent tests are excluded):
+ * - performance.spec.ts: Page Load (4), Resource Loading (3), Network (3), Benchmarks (1)
+ * - Note: Tests requiring SIP client visibility don't work reliably in CI
  * - All 91 tests pass locally and can be run for development verification
  */
 const GLOBAL_TEST_IGNORE = [

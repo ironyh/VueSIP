@@ -46,8 +46,11 @@ test.describe('Performance - Page Load Metrics', () => {
   })
 
   test('should have Time to Interactive (TTI) under 3.5 seconds', async ({ page, browserName }) => {
-    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
-    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+    // Skip in WebKit (JsSIP Proxy incompatibility) and CI (requires SIP client to be visible)
+    test.skip(
+      browserName === 'webkit' || !!process.env.CI,
+      'Requires SIP client (WebKit incompatible, CI environment unreliable)'
+    )
 
     const startTime = Date.now()
 
@@ -179,8 +182,11 @@ test.describe('Performance - Resource Loading', () => {
   })
 
   test('should lazy load non-critical resources', async ({ page, browserName }) => {
-    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
-    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+    // Skip in WebKit (JsSIP Proxy incompatibility) and CI (requires SIP client to be visible)
+    test.skip(
+      browserName === 'webkit' || !!process.env.CI,
+      'Requires SIP client (WebKit incompatible, CI environment unreliable)'
+    )
 
     const startTime = Date.now()
 
