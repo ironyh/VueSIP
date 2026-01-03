@@ -808,3 +808,67 @@ export function withSetup<T>(composable: () => T): { result: T; app: App; unmoun
 
 // Re-export waitFor from testUtils for convenience
 export { waitFor } from '../helpers/testUtils'
+
+/**
+ * AMI Testing Utilities
+ * Common utilities for testing AMI composables
+ */
+
+/**
+ * Factory function: Create mock AMI client with event handler tracking
+ *
+ * Provides:
+ * - Event subscription (on) with handler storage
+ * - Event unsubscription (off) with handler removal
+ * - Command sending (send) with promise resolution
+ *
+ * @param overrides - Optional method overrides
+ * @returns Mock AmiClient instance
+ */
+export function createMockAmiClient(overrides?: any): any {
+  const eventHandlers = new Map<string, Function>()
+
+  return {
+    on: vi.fn((event: string, handler: Function) => {
+      eventHandlers.set(event, handler)
+    }),
+    off: vi.fn((event: string, _handler: Function) => {
+      eventHandlers.delete(event)
+    }),
+    send: vi.fn().mockResolvedValue({}),
+    getEventHandlers: () => eventHandlers,
+    ...overrides,
+  }
+}
+
+/**
+ * Factory function: Create test item with sensible defaults
+ * Generic utility for any AMI composable test
+ *
+ * @param id - Item identifier
+ * @param overrides - Optional property overrides
+ * @returns Test item object
+ */
+export function createMockAmiItem(
+  id: string,
+  overrides?: { name?: string; value?: number; [key: string]: any }
+) {
+  return {
+    id,
+    name: overrides?.name ?? `Item ${id}`,
+    value: overrides?.value ?? parseInt(id) * 10,
+    ...overrides,
+  }
+}
+
+/**
+ * Factory function: Create collection of test items
+ * Generic utility for any AMI composable test
+ *
+ * @param count - Number of items to create
+ * @param overrides - Optional property overrides for each item
+ * @returns Array of test items
+ */
+export function createMockAmiCollection(count: number = 3, overrides?: any) {
+  return Array.from({ length: count }, (_, i) => createMockAmiItem(String(i + 1), overrides))
+}
