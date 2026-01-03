@@ -66,28 +66,40 @@ npx playwright test -g "test name" --debug
 
 ```
 tests/e2e/
-├── app-functionality.spec.ts    # UI functionality tests (30+ tests)
-├── basic-call-flow.spec.ts      # Real call flow scenarios (15+ tests)
-├── error-scenarios.spec.ts      # Error handling tests (20+ tests)
-├── incoming-call.spec.ts        # Incoming call tests (12 tests)
-├── visual-regression.spec.ts    # Visual/screenshot tests (17 tests)
+├── performance.spec.ts          # Performance metrics (21 tests)
+├── av-quality.spec.ts           # Audio/video quality (16 tests)
+├── basic-call-flow.spec.ts      # Call flow scenarios (16 tests)
+├── incoming-call.spec.ts        # Incoming call handling (12 tests)
+├── dtmf.spec.ts                 # DTMF tones (11 tests)
+├── call-transfer.spec.ts        # Call transfer (8 tests)
+├── call-hold.spec.ts            # Hold/resume (7 tests)
+├── accessibility.spec.ts        # WCAG compliance (24 tests)
+├── app-functionality.spec.ts    # UI functionality tests
+├── error-scenarios.spec.ts      # Error handling & edge cases
+├── visual-regression.spec.ts    # Visual/screenshot tests
 ├── fixtures.ts                  # Reusable test utilities and mocks
 ├── selectors.ts                 # Centralized UI selectors
 ├── README.md                    # This file
-└── VISUAL_TESTING.md           # Visual regression guide
+└── VISUAL_TESTING.md            # Visual regression guide
 ```
 
 ### Test Suites Overview
 
-| Suite | Focus | Tests | Coverage |
-|-------|-------|-------|----------|
-| **app-functionality** | UI interactions with mocked APIs | 30+ | Settings, Dialpad, Devices, History |
-| **basic-call-flow** | Real call scenarios | 15+ | Outbound calls, Media, Hold, Transfer |
-| **error-scenarios** | Error handling & edge cases | 20+ | Validation, Errors, Responsive |
-| **incoming-call** | Incoming call handling | 12 | Answer, Reject, Call waiting |
-| **visual-regression** | UI consistency | 17 | Layouts, Themes, Responsive |
+| Suite               | Focus                               | Tests | CI Status  |
+| ------------------- | ----------------------------------- | ----- | ---------- |
+| **performance**     | Page load, runtime, network metrics | 21    | ~11 in CI  |
+| **av-quality**      | Audio/video quality metrics         | 16    | Local only |
+| **basic-call-flow** | Full call flow scenarios            | 16    | Local only |
+| **incoming-call**   | Incoming call handling              | 12    | Local only |
+| **dtmf**            | DTMF tones                          | 11    | Local only |
+| **call-transfer**   | Call transfer functionality         | 8     | Local only |
+| **call-hold**       | Hold/resume functionality           | 7     | Local only |
+| **accessibility**   | WCAG 2.1 AA compliance              | 24    | Local only |
 
-**Total:** 94+ comprehensive E2E tests
+**Local Total:** 91+ tests across 7 active spec files
+**CI Total:** ~11 tests (mockSipServer-dependent tests excluded)
+
+> **Note:** Tests requiring `mockSipServer` fixture run locally but are excluded from CI due to WebSocket injection limitations. All 91 tests pass locally with `pnpm test:e2e`.
 
 ## Running Tests
 
@@ -465,6 +477,7 @@ test.use({ storageState: undefined })
 ## CI/CD Integration
 
 Tests automatically run in GitHub Actions on:
+
 - Push to `main`, `develop`, or `claude/**` branches
 - Pull requests to `main` or `develop`
 - Manual workflow dispatch
@@ -474,6 +487,7 @@ Tests automatically run in GitHub Actions on:
 See `.github/workflows/e2e-tests.yml`
 
 **Features:**
+
 - ✅ Runs on 3 desktop browsers (Chromium, Firefox, WebKit)
 - ✅ Runs on 2 mobile browsers (Mobile Chrome, Mobile Safari)
 - ✅ Uploads test results and screenshots on failure
@@ -650,13 +664,10 @@ test.afterEach(async ({ page }) => {
 test('should handle call transfer with multiple parties', async ({ page }) => {
   // Step 1: Establish first call
   // ...
-
   // Step 2: Receive second incoming call
   // ...
-
   // Step 3: Transfer first call to second caller
   // ...
-
   // Step 4: Verify all parties connected
   // ...
 })

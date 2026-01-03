@@ -4,7 +4,7 @@ import { defineConfig, devices } from '@playwright/test'
  * Global test ignore patterns - shared across all projects
  * These patterns are applied to all browser configurations
  *
- * LOCAL TESTS (91 tests across 7 spec files - run with `pnpm test:e2e`):
+ * LOCAL TESTS (91+ tests across 7 spec files - run with `pnpm test:e2e`):
  * - av-quality.spec.ts: 16 tests (audio/video quality metrics)
  * - dtmf.spec.ts: 11 tests (DTMF tones, has internal webkit skip)
  * - call-transfer.spec.ts: 8 tests (call transfer functionality)
@@ -12,11 +12,13 @@ import { defineConfig, devices } from '@playwright/test'
  * - call-hold.spec.ts: 7 tests (hold/resume functionality)
  * - performance.spec.ts: 21 tests (page load, runtime performance)
  * - basic-call-flow.spec.ts: 16 tests (full call flow scenarios)
+ * - accessibility.spec.ts: 24 tests (WCAG compliance, requires mockSipServer)
  *
- * CI TESTS (~11 tests - mockSipServer/SIP-client-dependent tests are excluded):
+ * CI TESTS (~17 tests - mockSipServer-dependent tests are excluded):
  * - performance.spec.ts: Page Load (4), Resource Loading (3), Network (3), Benchmarks (1)
- * - Note: Tests requiring SIP client visibility don't work reliably in CI
- * - All 91 tests pass locally and can be run for development verification
+ * - accessibility-ci.spec.ts: 6 tests (basic WCAG compliance without mockSipServer)
+ * - Note: Tests requiring mockSipServer/SIP client don't work reliably in CI
+ * - All 91+ tests pass locally and can be run for development verification
  */
 const GLOBAL_TEST_IGNORE = [
   // Debug/diagnostic tests - intentionally skipped
