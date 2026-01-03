@@ -125,6 +125,8 @@ export default defineConfig({
         '**/*.config.*',
         '**/examples/**',
         '**/docs/**',
+        // AMI helpers are optional utility functions - exclude from coverage
+        '**/ami-helpers.ts',
       ],
 
       // Coverage thresholds (80% minimum)
