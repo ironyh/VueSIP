@@ -1,0 +1,354 @@
+/**
+ * VueSIP Playground - Global Theme System
+ * Provides CSS custom properties for light and dark modes
+ * Based on the successful AgentStatsDemo.vue redesign patterns
+ */
+
+/* ============================================
+   LIGHT MODE (Default)
+   ============================================ */
+:root {
+  /* Background Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-hover: #f8fafc;
+
+  /* Text Colors */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --text-muted: #94a3b8;
+  --text-on-gradient: #ffffff;
+
+  /* Border Colors */
+  --border-color: #e2e8f0;
+  --border-color-hover: #cbd5e1;
+  --border-color-focus: #94a3b8;
+
+  /* Status Colors - Solid */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+  --color-neutral: #64748b;
+
+  /* Status Colors - Light Backgrounds */
+  --bg-success-light: #ecfdf5;
+  --bg-warning-light: #fffbeb;
+  --bg-danger-light: #fef2f2;
+  --bg-info-light: #eff6ff;
+  --bg-neutral-light: #f8fafc;
+
+  /* Gradient Definitions */
+  --gradient-blue: linear-gradient(135deg, #3b82f6, #2563eb);
+  --gradient-indigo: linear-gradient(135deg, #4f46e5, #4338ca);
+  --gradient-purple: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --gradient-pink: linear-gradient(135deg, #ec4899, #db2777);
+  --gradient-orange: linear-gradient(135deg, #f59e0b, #d97706);
+  --gradient-green: linear-gradient(135deg, #10b981, #059669);
+  --gradient-red: linear-gradient(135deg, #ef4444, #dc2626);
+  --gradient-teal: linear-gradient(135deg, #14b8a6, #0d9488);
+  --gradient-cyan: linear-gradient(135deg, #06b6d4, #0891b2);
+
+  /* Gradient Hover Variants (Slightly Lighter) */
+  --gradient-blue-hover: linear-gradient(135deg, #60a5fa, #3b82f6);
+  --gradient-indigo-hover: linear-gradient(135deg, #6366f1, #4f46e5);
+  --gradient-purple-hover: linear-gradient(135deg, #8b5cf6, #a78bfa);
+  --gradient-pink-hover: linear-gradient(135deg, #f472b6, #ec4899);
+  --gradient-orange-hover: linear-gradient(135deg, #fbbf24, #f59e0b);
+  --gradient-green-hover: linear-gradient(135deg, #34d399, #10b981);
+  --gradient-red-hover: linear-gradient(135deg, #f87171, #ef4444);
+  --gradient-teal-hover: linear-gradient(135deg, #2dd4bf, #14b8a6);
+  --gradient-cyan-hover: linear-gradient(135deg, #22d3ee, #06b6d4);
+
+  /* Spacing System (8px base) */
+  --spacing-xs: 0.5rem;    /* 8px */
+  --spacing-sm: 0.75rem;   /* 12px */
+  --spacing-md: 1rem;      /* 16px */
+  --spacing-lg: 1.5rem;    /* 24px */
+  --spacing-xl: 2rem;      /* 32px */
+  --spacing-2xl: 3rem;     /* 48px */
+  --spacing-3xl: 4rem;     /* 64px */
+
+  /* Border Radius */
+  --radius-sm: 8px;        /* Small components, badges */
+  --radius-md: 12px;       /* Medium components, cards */
+  --radius-lg: 16px;       /* Large sections, containers */
+  --radius-full: 9999px;   /* Pills, circular elements */
+
+  /* Shadows - Light Mode */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 20px 32px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.08);
+
+  /* Shadows - Colored (for gradient components) */
+  --shadow-blue: 0 8px 16px rgba(59, 130, 246, 0.2);
+  --shadow-purple: 0 8px 16px rgba(99, 102, 241, 0.2);
+  --shadow-pink: 0 8px 16px rgba(236, 72, 153, 0.2);
+  --shadow-green: 0 8px 16px rgba(16, 185, 129, 0.2);
+
+  /* Animation Timings */
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index Layering */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+
+  /* Font Families */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+
+  /* Font Sizes */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;     /* 18px */
+  --text-xl: 1.25rem;      /* 20px */
+  --text-2xl: 1.5rem;      /* 24px */
+  --text-3xl: 1.875rem;    /* 30px */
+  --text-4xl: 2.25rem;     /* 36px */
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+}
+
+/* ============================================
+   DARK MODE
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Background Colors - Dark Mode */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-card: #1e293b;
+    --bg-hover: #334155;
+
+    /* Text Colors - Dark Mode */
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --text-muted: #64748b;
+    --text-on-gradient: #ffffff;
+
+    /* Border Colors - Dark Mode */
+    --border-color: #334155;
+    --border-color-hover: #475569;
+    --border-color-focus: #64748b;
+
+    /* Status Colors - Dark Mode (Slightly Lighter) */
+    --color-success: #34d399;
+    --color-warning: #fbbf24;
+    --color-danger: #f87171;
+    --color-info: #60a5fa;
+    --color-neutral: #94a3b8;
+
+    /* Status Colors - Dark Backgrounds */
+    --bg-success-light: rgba(16, 185, 129, 0.1);
+    --bg-warning-light: rgba(245, 158, 11, 0.1);
+    --bg-danger-light: rgba(239, 68, 68, 0.1);
+    --bg-info-light: rgba(59, 130, 246, 0.1);
+    --bg-neutral-light: rgba(100, 116, 139, 0.1);
+
+    /* Gradient Definitions - Dark Mode (Adjusted for better visibility) */
+    --gradient-blue: linear-gradient(135deg, #60a5fa, #3b82f6);
+    --gradient-indigo: linear-gradient(135deg, #6366f1, #4f46e5);
+    --gradient-purple: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    --gradient-pink: linear-gradient(135deg, #f472b6, #ec4899);
+    --gradient-orange: linear-gradient(135deg, #fbbf24, #f59e0b);
+    --gradient-green: linear-gradient(135deg, #34d399, #10b981);
+    --gradient-red: linear-gradient(135deg, #f87171, #ef4444);
+    --gradient-teal: linear-gradient(135deg, #2dd4bf, #14b8a6);
+    --gradient-cyan: linear-gradient(135deg, #22d3ee, #06b6d4);
+
+    /* Gradient Hover Variants - Dark Mode */
+    --gradient-blue-hover: linear-gradient(135deg, #93c5fd, #60a5fa);
+    --gradient-indigo-hover: linear-gradient(135deg, #818cf8, #6366f1);
+    --gradient-purple-hover: linear-gradient(135deg, #a78bfa, #8b5cf6);
+    --gradient-pink-hover: linear-gradient(135deg, #f9a8d4, #f472b6);
+    --gradient-orange-hover: linear-gradient(135deg, #fcd34d, #fbbf24);
+    --gradient-green-hover: linear-gradient(135deg, #6ee7b7, #34d399);
+    --gradient-red-hover: linear-gradient(135deg, #fca5a5, #f87171);
+    --gradient-teal-hover: linear-gradient(135deg, #5eead4, #2dd4bf);
+    --gradient-cyan-hover: linear-gradient(135deg, #67e8f9, #22d3ee);
+
+    /* Shadows - Dark Mode (Deeper, more visible) */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 20px 32px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.5);
+
+    /* Shadows - Colored (for gradient components in dark mode) */
+    --shadow-blue: 0 8px 16px rgba(59, 130, 246, 0.3);
+    --shadow-purple: 0 8px 16px rgba(99, 102, 241, 0.3);
+    --shadow-pink: 0 8px 16px rgba(236, 72, 153, 0.3);
+    --shadow-green: 0 8px 16px rgba(16, 185, 129, 0.3);
+  }
+}
+
+/* ============================================
+   MANUAL DARK MODE TOGGLE (Optional)
+   Uncomment this section if implementing manual toggle
+   ============================================ */
+/*
+:root.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-card: #1e293b;
+  --bg-hover: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --border-color-hover: #475569;
+  --border-color-focus: #64748b;
+}
+*/
+
+/* ============================================
+   ANIMATION KEYFRAMES
+   Reusable animations for components
+   ============================================ */
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   UTILITY ANIMATION CLASSES
+   Apply these classes to elements
+   ============================================ */
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   ACCESSIBILITY HELPERS
+   ============================================ */
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible styles */
+:focus-visible {
+  outline: 2px solid var(--color-info);
+  outline-offset: 2px;
+}
