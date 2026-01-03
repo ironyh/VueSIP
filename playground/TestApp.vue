@@ -88,9 +88,9 @@
               placeholder="wss://sip.example.com:7443"
               aria-describedby="server-uri-hint"
             />
-            <span id="server-uri-hint" class="sr-only"
-              >Enter the WebSocket server address starting with wss://</span
-            >
+            <span id="server-uri-hint" class="sr-only">
+              Enter the WebSocket server address starting with wss://
+            </span>
           </div>
           <button class="btn btn-primary" data-testid="save-settings-button" @click="saveSettings">
             Save Settings
@@ -157,9 +157,9 @@
                   placeholder="Enter number or SIP URI"
                   aria-describedby="dialpad-hint"
                 />
-                <span id="dialpad-hint" class="sr-only"
-                  >Enter a phone number or SIP URI to call</span
-                >
+                <span id="dialpad-hint" class="sr-only">
+                  Enter a phone number or SIP URI to call
+                </span>
                 <button
                   class="btn btn-success"
                   data-testid="call-button"
