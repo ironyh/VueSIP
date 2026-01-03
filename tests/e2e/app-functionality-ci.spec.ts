@@ -16,8 +16,12 @@ const BASE_URL = '/'
 test.describe('App Functionality - CI Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE_URL)
+    // Wait for Vue app to mount (not just DOM content)
     await page.waitForSelector('#app', { state: 'attached' })
-    await page.waitForLoadState('domcontentloaded')
+    // Wait for Vue to actually render the app content (the sip-client div is at root level)
+    await page.waitForSelector('[data-testid="sip-client"]', { state: 'visible', timeout: 30000 })
+    // Also wait for network idle to ensure all resources are loaded
+    await page.waitForLoadState('networkidle')
   })
 
   test('should display the main app interface', async ({ page }) => {
