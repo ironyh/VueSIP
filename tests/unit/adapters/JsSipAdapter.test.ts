@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { JsSipAdapter } from '@/adapters/jssip/JsSipAdapter'
 import { ConnectionState, RegistrationState } from '@/types/sip.types'
 import type { SipClientConfig } from '@/types/config.types'
+import { AdapterNotSupportedError } from '@/adapters/types'
 
 // Mock JsSIP module
 vi.mock('jssip', () => {
@@ -25,7 +26,7 @@ vi.mock('jssip', () => {
     local_identity = { uri: { toString: () => 'sip:local@test.com' } }
     remote_identity = {
       uri: { toString: () => 'sip:remote@test.com' },
-      display_name: 'Remote User'
+      display_name: 'Remote User',
     }
     start_time: Date | null = null
     end_time: Date | null = null
@@ -107,7 +108,7 @@ vi.mock('jssip', () => {
     // Helper to trigger events in tests
     __triggerEvent(event: string, data?: any) {
       const handlers = this.eventHandlers.get(event) || []
-      handlers.forEach(handler => handler(data))
+      handlers.forEach((handler) => handler(data))
     }
   }
 
@@ -218,7 +219,7 @@ describe('JsSipAdapter', () => {
       await expect(
         Promise.race([
           connectPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Test timeout')), 100))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Test timeout')), 100)),
         ])
       ).rejects.toThrow()
     }, 5000) // Set explicit test timeout
@@ -263,9 +264,9 @@ describe('JsSipAdapter', () => {
     it('should throw if not connected', async () => {
       await adapter.initialize(sipConfig)
 
-      await expect(
-        adapter.sendMessage('sip:target@test.com', 'Hello')
-      ).rejects.toThrow('Not connected')
+      await expect(adapter.sendMessage('sip:target@test.com', 'Hello')).rejects.toThrow(
+        'Not connected'
+      )
     })
   })
 
@@ -273,35 +274,75 @@ describe('JsSipAdapter', () => {
     it('should throw for non-existent call', async () => {
       await adapter.initialize(sipConfig)
 
-      await expect(
-        adapter.sendDTMF('non-existent-call', '1')
-      ).rejects.toThrow('Call session not found')
+      await expect(adapter.sendDTMF('non-existent-call', '1')).rejects.toThrow(
+        'Call session not found'
+      )
     })
   })
 
   describe('Presence Methods', () => {
-    it('subscribe() should throw not supported error', async () => {
+    it('subscribe() should throw AdapterNotSupportedError', async () => {
       await adapter.initialize(sipConfig)
 
-      await expect(
-        adapter.subscribe('sip:target@test.com', 'presence')
-      ).rejects.toThrow('Subscribe not implemented')
+      try {
+        await adapter.subscribe('sip:target@test.com', 'presence')
+        expect.fail('Should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AdapterNotSupportedError)
+        const notSupportedError = error as AdapterNotSupportedError
+        expect(notSupportedError.operation).toBe('subscribe')
+        expect(notSupportedError.adapterName).toBe('JsSIP Adapter')
+        expect(notSupportedError.suggestion).toContain(
+          'JsSIP does not include native SUBSCRIBE support'
+        )
+      }
     })
 
-    it('unsubscribe() should throw not supported error', async () => {
+    it('subscribe() should include helpful suggestion in error', async () => {
       await adapter.initialize(sipConfig)
 
-      await expect(
-        adapter.unsubscribe('sip:target@test.com', 'presence')
-      ).rejects.toThrow('Unsubscribe not implemented')
+      await expect(adapter.subscribe('sip:target@test.com', 'presence', 600)).rejects.toThrow(
+        'Consider using a server-side presence solution'
+      )
     })
 
-    it('publish() should throw not supported error', async () => {
+    it('unsubscribe() should throw AdapterNotSupportedError', async () => {
+      await adapter.initialize(sipConfig)
+
+      try {
+        await adapter.unsubscribe('sip:target@test.com', 'presence')
+        expect.fail('Should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AdapterNotSupportedError)
+        const notSupportedError = error as AdapterNotSupportedError
+        expect(notSupportedError.operation).toBe('unsubscribe')
+        expect(notSupportedError.adapterName).toBe('JsSIP Adapter')
+      }
+    })
+
+    it('publish() should throw AdapterNotSupportedError', async () => {
+      await adapter.initialize(sipConfig)
+
+      try {
+        await adapter.publish('presence', { status: 'available' })
+        expect.fail('Should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AdapterNotSupportedError)
+        const notSupportedError = error as AdapterNotSupportedError
+        expect(notSupportedError.operation).toBe('publish')
+        expect(notSupportedError.adapterName).toBe('JsSIP Adapter')
+        expect(notSupportedError.suggestion).toContain(
+          'JsSIP does not include native PUBLISH support'
+        )
+      }
+    })
+
+    it('publish() should include helpful suggestion in error', async () => {
       await adapter.initialize(sipConfig)
 
       await expect(
-        adapter.publish('presence', { status: 'available' })
-      ).rejects.toThrow('Publish not implemented')
+        adapter.publish('presence', { status: 'away', note: 'In a meeting' })
+      ).rejects.toThrow('Consider using a server-side presence API')
     })
   })
 

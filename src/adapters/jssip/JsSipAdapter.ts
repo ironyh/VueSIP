@@ -8,12 +8,8 @@
 import JsSIP, { type UA, WebSocketInterface } from 'jssip'
 import type { UAConfiguration } from 'jssip/lib/UA'
 import { EventEmitter } from '../../utils/EventEmitter'
-import type {
-  ISipAdapter,
-  ICallSession,
-  AdapterEvents,
-  CallOptions,
-} from '../types'
+import type { ISipAdapter, ICallSession, AdapterEvents, CallOptions } from '../types'
+import { AdapterNotSupportedError } from '../types'
 import type { SipClientConfig } from '../../types/config.types'
 import { ConnectionState, RegistrationState } from '../../types/sip.types'
 import { JsSipCallSession } from './JsSipCallSession'
@@ -99,7 +95,9 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
       await this.waitForConnection()
     } catch (error) {
       this.updateConnectionState(ConnectionState.ConnectionFailed)
-      this.emit('connection:failed', { error: error instanceof Error ? error : new Error(String(error)) })
+      this.emit('connection:failed', {
+        error: error instanceof Error ? error : new Error(String(error)),
+      })
       throw error
     }
   }
@@ -143,7 +141,9 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
         reject(new Error('Registration timeout'))
       }, 30000)
 
-      const onRegistered = (data: { response?: { getHeader: (name: string) => string | undefined } }) => {
+      const onRegistered = (data: {
+        response?: { getHeader: (name: string) => string | undefined }
+      }) => {
         cleanup()
         const expires = parseInt(data.response?.getHeader('Expires') ?? '600', 10)
         this.updateRegistrationState(RegistrationState.Registered)
@@ -278,19 +278,93 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
   }
 
   // ========== Presence Methods ==========
+  // Note: JsSIP does not have native SUBSCRIBE/PUBLISH support.
+  // These methods throw AdapterNotSupportedError with helpful suggestions.
 
+  /**
+   * Subscribe to SIP event notifications.
+   *
+   * **Not supported by JsSIP.** JsSIP does not include native SUBSCRIBE
+   * functionality for presence or event packages. The library focuses on
+   * call management (INVITE/BYE) and messaging (MESSAGE).
+   *
+   * @param target - SIP URI to subscribe to
+   * @param event - Event package name (e.g., 'presence', 'dialog')
+   * @param expires - Subscription duration in seconds
+   * @throws {@link AdapterNotSupportedError} Always throws - JsSIP doesn't support SUBSCRIBE
+   *
+   * @remarks
+   * If you need presence functionality, consider:
+   * 1. Using a SIP server with built-in presence (like Ooma, Twilio)
+   * 2. Implementing presence via a separate WebSocket/REST API
+   * 3. Using a library with presence support (e.g., SIP.js with custom extensions)
+   *
+   * @see RFC 3265 - SIP-Specific Event Notification
+   * @see RFC 3856 - A Presence Event Package for SIP
+   */
   async subscribe(target: string, event: string, expires = 3600): Promise<void> {
-    // JsSIP doesn't have built-in SUBSCRIBE support
-    // This would need custom implementation using JsSIP's sendRequest
-    throw new Error(`Subscribe not implemented for event: ${event}, target: ${target}, expires: ${expires}`)
+    // Ensure all parameters are used to satisfy interface contract
+    void target
+    void event
+    void expires
+
+    throw new AdapterNotSupportedError(
+      'subscribe',
+      this.adapterName,
+      'JsSIP does not include native SUBSCRIBE support for presence/events. ' +
+        'Consider using a server-side presence solution or a custom implementation.'
+    )
   }
 
+  /**
+   * Unsubscribe from SIP event notifications.
+   *
+   * **Not supported by JsSIP.** Since JsSIP doesn't support SUBSCRIBE,
+   * unsubscribe is also not available.
+   *
+   * @param target - SIP URI to unsubscribe from
+   * @param event - Event package name
+   * @throws {@link AdapterNotSupportedError} Always throws - JsSIP doesn't support SUBSCRIBE
+   */
   async unsubscribe(target: string, event: string): Promise<void> {
-    throw new Error(`Unsubscribe not implemented for event: ${event}, target: ${target}`)
+    void target
+    void event
+
+    throw new AdapterNotSupportedError(
+      'unsubscribe',
+      this.adapterName,
+      'JsSIP does not include native SUBSCRIBE support.'
+    )
   }
 
+  /**
+   * Publish presence or event state.
+   *
+   * **Not supported by JsSIP.** JsSIP does not include native PUBLISH
+   * functionality for presence state publication.
+   *
+   * @param event - Event type (e.g., 'presence')
+   * @param state - State data to publish
+   * @throws {@link AdapterNotSupportedError} Always throws - JsSIP doesn't support PUBLISH
+   *
+   * @remarks
+   * If you need to publish presence, consider:
+   * 1. Using your SIP server's presence API (if available)
+   * 2. Implementing a custom REST/WebSocket presence service
+   * 3. Using SIP.js or another library with PUBLISH support
+   *
+   * @see RFC 3903 - SIP Extension for Event State Publication
+   */
   async publish(event: string, state: unknown): Promise<void> {
-    throw new Error(`Publish not implemented for event: ${event}, state: ${JSON.stringify(state)}`)
+    void event
+    void state
+
+    throw new AdapterNotSupportedError(
+      'publish',
+      this.adapterName,
+      'JsSIP does not include native PUBLISH support. ' +
+        'Consider using a server-side presence API or custom implementation.'
+    )
   }
 
   // ========== Session Management ==========
@@ -368,42 +442,51 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
     })
 
     // Registration events
-    this.ua.on('registered', (data: { response?: { getHeader: (name: string) => string | undefined } }) => {
-      const expires = parseInt(data.response?.getHeader('Expires') ?? '600', 10)
-      this.updateRegistrationState(RegistrationState.Registered)
-      this.emit('registration:registered', { expires })
-    })
+    this.ua.on(
+      'registered',
+      (data: { response?: { getHeader: (name: string) => string | undefined } }) => {
+        const expires = parseInt(data.response?.getHeader('Expires') ?? '600', 10)
+        this.updateRegistrationState(RegistrationState.Registered)
+        this.emit('registration:registered', { expires })
+      }
+    )
 
     this.ua.on('unregistered', () => {
       this.updateRegistrationState(RegistrationState.Unregistered)
       this.emit('registration:unregistered', undefined)
     })
 
-    this.ua.on('registrationFailed', (data: { response?: { status_code: number }; cause: string }) => {
-      this.updateRegistrationState(RegistrationState.RegistrationFailed)
-      this.emit('registration:failed', {
-        error: new Error(data.cause),
-        statusCode: data.response?.status_code,
-      })
-    })
+    this.ua.on(
+      'registrationFailed',
+      (data: { response?: { status_code: number }; cause: string }) => {
+        this.updateRegistrationState(RegistrationState.RegistrationFailed)
+        this.emit('registration:failed', {
+          error: new Error(data.cause),
+          statusCode: data.response?.status_code,
+        })
+      }
+    )
 
     // Incoming call
-    this.ua.on('newRTCSession', (data: { originator: string; session: import('jssip').RTCSession }) => {
-      if (data.originator === 'remote') {
-        const session = new JsSipCallSession(data.session)
-        this.activeSessions.set(session.id, session)
+    this.ua.on(
+      'newRTCSession',
+      (data: { originator: string; session: import('jssip').RTCSession }) => {
+        if (data.originator === 'remote') {
+          const session = new JsSipCallSession(data.session)
+          this.activeSessions.set(session.id, session)
 
-        // Clean up when session ends
-        session.on('ended', () => {
-          this.activeSessions.delete(session.id)
-        })
-        session.on('failed', () => {
-          this.activeSessions.delete(session.id)
-        })
+          // Clean up when session ends
+          session.on('ended', () => {
+            this.activeSessions.delete(session.id)
+          })
+          session.on('failed', () => {
+            this.activeSessions.delete(session.id)
+          })
 
-        this.emit('call:incoming', { session })
+          this.emit('call:incoming', { session })
+        }
       }
-    })
+    )
 
     // Incoming message - use any type for callback like SipClient.ts does
     this.ua.on('newMessage', (data: any) => {
