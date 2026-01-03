@@ -135,6 +135,7 @@ export default defineConfig({
         /visual-regression\.spec\.ts/,
         /error-scenarios\.spec\.ts/, // CI rendering timing issues
         /app-functionality\.spec\.ts/, // CI rendering timing issues
+        /performance\.spec\.ts/, // JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
       ],
     },
 
@@ -159,6 +160,7 @@ export default defineConfig({
         /visual-regression\.spec\.ts/,
         /error-scenarios\.spec\.ts/, // CI rendering timing issues
         /app-functionality\.spec\.ts/, // CI rendering timing issues
+        /performance\.spec\.ts/, // JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
       ],
     },
   ],
