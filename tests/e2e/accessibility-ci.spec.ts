@@ -27,13 +27,16 @@ test.describe('Accessibility - CI Tests', () => {
   test('should not have critical accessibility violations on initial page', async ({ page }) => {
     const accessibilityScanResults = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa']) // WCAG 2.1 Level AA
-      // Exclude ARIA rules that fail due to PrimeVue component library issues
-      .disableRules(['aria-allowed-attr', 'aria-required-children', 'aria-required-parent'])
       .analyze()
 
-    // Filter to only critical violations (not serious - those may exist in base playground)
+    // Filter to only critical violations, excluding known PrimeVue component library issues
+    // PrimeVue's Password, Select, and other components use ARIA attributes that don't fully
+    // comply with strict ARIA specs but are functional and widely used
     const criticalViolations = accessibilityScanResults.violations.filter(
-      (v) => v.impact === 'critical'
+      (v) =>
+        v.impact === 'critical' &&
+        // Exclude PrimeVue component library ARIA issues
+        !['aria-allowed-attr', 'aria-required-children', 'aria-required-parent'].includes(v.id)
     )
 
     expect(criticalViolations).toEqual([])
