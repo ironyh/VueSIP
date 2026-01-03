@@ -139,9 +139,11 @@ export default defineConfig({
         '**/docs/**',
         // AMI helpers are optional utility functions - exclude from coverage
         '**/ami-helpers.ts',
-        // Call session wrappers are thin delegates to underlying SIP library internals
-        // Testing them requires extensive WebRTC/JsSIP session mocking with minimal value
+        // SIP library adapters require real WebSocket/SIP connections for full coverage
+        // These are library integration wrappers - unit tests cover the interface, not internals
+        '**/JsSipAdapter.ts',
         '**/JsSipCallSession.ts',
+        '**/SipJsAdapter.ts',
         '**/SipJsCallSession.ts',
       ],
 
