@@ -45,7 +45,10 @@ test.describe('Performance - Page Load Metrics', () => {
     }
   })
 
-  test('should have Time to Interactive (TTI) under 3.5 seconds', async ({ page }) => {
+  test('should have Time to Interactive (TTI) under 3.5 seconds', async ({ page, browserName }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     const startTime = Date.now()
 
     await page.goto(APP_URL)
@@ -175,7 +178,10 @@ test.describe('Performance - Resource Loading', () => {
     expect(cachedResources).toBeGreaterThanOrEqual(0)
   })
 
-  test('should lazy load non-critical resources', async ({ page }) => {
+  test('should lazy load non-critical resources', async ({ page, browserName }) => {
+    // Skip in WebKit due to JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
+    test.skip(browserName === 'webkit', 'JsSIP Proxy incompatible with WebKit')
+
     const startTime = Date.now()
 
     await page.goto(APP_URL)
