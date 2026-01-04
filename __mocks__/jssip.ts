@@ -109,6 +109,8 @@ export const mockUA = {
   register: vi.fn(),
   unregister: vi.fn(),
   sendMessage: vi.fn(),
+  sendRequest: vi.fn(),
+  terminateSessions: vi.fn(),
   call: vi.fn().mockReturnValue(mockSession),
   isConnected: vi.fn().mockReturnValue(false),
   isRegistered: vi.fn().mockReturnValue(false),
