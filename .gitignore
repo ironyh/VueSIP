@@ -16,6 +16,7 @@ node_modules
 coverage
 *.lcov
 .nyc_output
+tests/performance/.benchmark-results.json
 
 # Production
 dist
