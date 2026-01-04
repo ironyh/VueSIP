@@ -2,5 +2,9 @@ name = "vuesiplay"
 compatibility_date = "2025-12-10"
 workers_dev = true
 
+# Build the playground before deployment
+[build]
+command = "pnpm run build:playground"
+
 [assets]
 directory = "dist-playground"
