@@ -4,3 +4,8 @@ workers_dev = true
 
 [assets]
 directory = "dist-playground"
+
+# Routes for playground subdomain
+routes = [
+  { pattern = "play.vuesip.com/*", zone_name = "vuesip.com" }
+]
