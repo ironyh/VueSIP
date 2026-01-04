@@ -2,8 +2,5 @@ name = "vuesiplay"
 compatibility_date = "2025-12-10"
 workers_dev = true
 
-# Deployment is handled via GitHub Actions workflow
-# See .github/workflows/deploy-playground.yml
-
 [assets]
 directory = "dist-playground"
