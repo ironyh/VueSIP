@@ -132,6 +132,9 @@ jobs:
       - name: Build package
         run: pnpm run build
 
+      - name: Build playground
+        run: pnpm run build:playground
+
       - name: Check bundle size
         run: pnpm run test:performance:metrics
 
@@ -140,3 +143,9 @@ jobs:
         with:
           name: dist
           path: dist/
+
+      - name: Upload playground artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-playground
+          path: dist-playground/
