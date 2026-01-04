@@ -1,5 +1,8 @@
 /**
  * SipClient unit tests
+ *
+ * Uses shared JsSIP mock from __mocks__/jssip.ts for consistency
+ * and reduced code duplication.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -8,135 +11,11 @@ import { createEventBus } from '@/core/EventBus'
 import type { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
 
-// Mock JsSIP - use vi.hoisted() for variables used in factory
-const {
-  mockUA,
-  mockWebSocketInterface,
-  eventHandlers,
-  onceHandlers,
-  triggerEvent,
-  triggerEventAsync,
-  setupAutoConnect,
-  setupAutoRegister,
-  clearHandlers,
-} = vi.hoisted(() => {
-  // Event handler storage
-  const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
-  const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
+// Enable automatic mocking using __mocks__/jssip.ts
+vi.mock('jssip')
 
-  // Helper to trigger events synchronously
-  const triggerEvent = (event: string, data?: any) => {
-    // Trigger 'on' handlers
-    const handlers = eventHandlers[event] || []
-    handlers.forEach((handler) => handler(data))
-
-    // Trigger and remove 'once' handlers
-    const once = onceHandlers[event] || []
-    once.forEach((handler) => handler(data))
-    onceHandlers[event] = []
-  }
-
-  // Helper to trigger events asynchronously via microtask (deterministic, no setTimeout)
-  const triggerEventAsync = (event: string, data?: any) => {
-    queueMicrotask(() => triggerEvent(event, data))
-  }
-
-  // Helper to clear all handlers
-  const clearHandlers = () => {
-    Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
-    Object.keys(onceHandlers).forEach((key) => delete onceHandlers[key])
-  }
-
-  const mockUA = {
-    start: vi.fn(),
-    stop: vi.fn(),
-    register: vi.fn(),
-    unregister: vi.fn(),
-    sendMessage: vi.fn(),
-    isConnected: vi.fn().mockReturnValue(false),
-    isRegistered: vi.fn().mockReturnValue(false),
-    on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (!eventHandlers[event]) eventHandlers[event] = []
-      eventHandlers[event].push(handler)
-    }),
-    once: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-    }),
-    off: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (eventHandlers[event]) {
-        eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler)
-      }
-      if (onceHandlers[event]) {
-        onceHandlers[event] = onceHandlers[event].filter((h) => h !== handler)
-      }
-    }),
-  }
-
-  // Setup helper: auto-trigger connected event when once('connected') is called
-  // Also triggers 'on' handlers to emit eventBus events
-  const setupAutoConnect = (data: any = {}) => {
-    mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-      if (event === 'connected') {
-        mockUA.isConnected.mockReturnValue(true)
-        queueMicrotask(() => {
-          // Trigger the once handler
-          handler(data)
-          // Also trigger any 'on' handlers for the same event
-          const onHandlers = eventHandlers[event] || []
-          onHandlers.forEach((h) => h(data))
-        })
-      }
-    })
-  }
-
-  // Setup helper: auto-trigger registered event when once('registered') is called
-  const setupAutoRegister = (data: any = { response: { getHeader: () => '600' } }) => {
-    const originalImpl = mockUA.once.getMockImplementation?.() || mockUA.once
-    mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-      if (event === 'connected') {
-        mockUA.isConnected.mockReturnValue(true)
-        queueMicrotask(() => handler({}))
-      } else if (event === 'registered') {
-        mockUA.isRegistered.mockReturnValue(true)
-        queueMicrotask(() => handler(data))
-      }
-    })
-  }
-
-  const mockWebSocketInterface = vi.fn()
-
-  return {
-    mockUA,
-    mockWebSocketInterface,
-    eventHandlers,
-    onceHandlers,
-    triggerEvent,
-    triggerEventAsync,
-    setupAutoConnect,
-    setupAutoRegister,
-    clearHandlers,
-  }
-})
-
-vi.mock('jssip', () => {
-  return {
-    default: {
-      UA: vi.fn(function () {
-        return mockUA
-      }),
-      WebSocketInterface: mockWebSocketInterface,
-      debug: {
-        enable: vi.fn(),
-        disable: vi.fn(),
-      },
-    },
-  }
-})
+// Import mock helpers from the mocked module
+import { mockUA, eventHandlers, onceHandlers, setupAutoConnect, resetMockJsSip } from 'jssip'
 
 describe('SipClient', () => {
   let eventBus: EventBus
@@ -144,25 +23,8 @@ describe('SipClient', () => {
   let config: SipClientConfig
 
   beforeEach(() => {
-    // Reset mocks
-    vi.clearAllMocks()
-
-    // Clear event handlers using helper
-    clearHandlers()
-
-    // Restore default mock implementations (vi.clearAllMocks() doesn't restore implementations)
-    mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!eventHandlers[event]) eventHandlers[event] = []
-      eventHandlers[event].push(handler)
-    })
-    mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-    })
-
-    // Reset mock return values
-    mockUA.isConnected.mockReturnValue(false)
-    mockUA.isRegistered.mockReturnValue(false)
+    // Reset all mocks and handlers using shared helper
+    resetMockJsSip()
 
     // Create event bus
     eventBus = createEventBus()

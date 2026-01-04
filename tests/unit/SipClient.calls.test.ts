@@ -9,124 +9,11 @@ import { createEventBus } from '@/core/EventBus'
 import type { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
 
-// Mock JsSIP with call session support
-const {
-  mockUA,
-  mockWebSocketInterface,
-  mockSession,
-  eventHandlers,
-  onceHandlers,
-  sessionHandlers,
-  triggerEvent,
-  triggerSessionEvent,
-} = vi.hoisted(() => {
-  const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
-  const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
-  const sessionHandlers: Record<string, Array<(...args: any[]) => void>> = {}
+// Enable automatic mocking using __mocks__/jssip.ts
+vi.mock('jssip')
 
-  const triggerEvent = (event: string, data?: any) => {
-    const handlers = eventHandlers[event] || []
-    handlers.forEach((handler) => handler(data))
-    const once = onceHandlers[event] || []
-    once.forEach((handler) => handler(data))
-    onceHandlers[event] = []
-  }
-
-  const triggerSessionEvent = (event: string, data?: any) => {
-    const handlers = sessionHandlers[event] || []
-    handlers.forEach((handler) => handler(data))
-  }
-
-  // Session ID counter for unique IDs
-  let sessionIdCounter = 0
-
-  const mockSession = {
-    get id() {
-      return `session-${++sessionIdCounter}`
-    },
-    connection: {
-      getRemoteStreams: vi.fn().mockReturnValue([]),
-      getLocalStreams: vi.fn().mockReturnValue([]),
-    },
-    remote_identity: {
-      uri: 'sip:2000@example.com',
-      display_name: 'Remote User',
-    },
-    local_identity: {
-      uri: 'sip:1000@example.com',
-    },
-    start_time: null,
-    end_time: null,
-    isEnded: vi.fn().mockReturnValue(false),
-    isEstablished: vi.fn().mockReturnValue(false),
-    isInProgress: vi.fn().mockReturnValue(false),
-    isMuted: vi.fn().mockReturnValue(false),
-    isOnHold: vi.fn().mockReturnValue(false),
-    answer: vi.fn(),
-    terminate: vi.fn(),
-    hold: vi.fn(),
-    unhold: vi.fn(),
-    mute: vi.fn(),
-    unmute: vi.fn(),
-    sendDTMF: vi.fn(),
-    renegotiate: vi.fn(),
-    refer: vi.fn(),
-    on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (!sessionHandlers[event]) sessionHandlers[event] = []
-      sessionHandlers[event].push(handler)
-    }),
-    off: vi.fn(),
-    removeAllListeners: vi.fn(),
-  }
-
-  const mockUA = {
-    start: vi.fn(),
-    stop: vi.fn(),
-    register: vi.fn(),
-    unregister: vi.fn(),
-    sendMessage: vi.fn(),
-    call: vi.fn().mockReturnValue(mockSession),
-    isConnected: vi.fn().mockReturnValue(true),
-    isRegistered: vi.fn().mockReturnValue(true),
-    on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (!eventHandlers[event]) eventHandlers[event] = []
-      eventHandlers[event].push(handler)
-    }),
-    once: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-    }),
-    off: vi.fn(),
-  }
-
-  const mockWebSocketInterface = vi.fn()
-
-  return {
-    mockUA,
-    mockWebSocketInterface,
-    mockSession,
-    eventHandlers,
-    onceHandlers,
-    sessionHandlers,
-    triggerEvent,
-    triggerSessionEvent,
-  }
-})
-
-vi.mock('jssip', () => {
-  return {
-    default: {
-      UA: vi.fn(function () {
-        return mockUA
-      }),
-      WebSocketInterface: mockWebSocketInterface,
-      debug: {
-        enable: vi.fn(),
-        disable: vi.fn(),
-      },
-    },
-  }
-})
+// Import mock helpers from the mocked module
+import { mockUA, mockSession, triggerEvent, triggerSessionEvent, resetMockJsSip } from 'jssip'
 
 describe('SipClient - Call Management', () => {
   let eventBus: EventBus
@@ -134,32 +21,8 @@ describe('SipClient - Call Management', () => {
   let config: SipClientConfig
 
   beforeEach(async () => {
-    vi.clearAllMocks()
-    Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
-    Object.keys(onceHandlers).forEach((key) => delete onceHandlers[key])
-    Object.keys(sessionHandlers).forEach((key) => delete sessionHandlers[key])
-
-    mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!eventHandlers[event]) eventHandlers[event] = []
-      eventHandlers[event].push(handler)
-    })
-    mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-    })
-    mockSession.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!sessionHandlers[event]) sessionHandlers[event] = []
-      sessionHandlers[event].push(handler)
-    })
-
-    // Restore mock return values that were cleared by vi.clearAllMocks()
-    mockUA.call.mockReturnValue(mockSession)
-    mockUA.isConnected.mockReturnValue(false)
-    mockUA.isRegistered.mockReturnValue(false)
-
-    mockSession.isEnded.mockReturnValue(false)
-    mockSession.isEstablished.mockReturnValue(false)
-    mockSession.isInProgress.mockReturnValue(false)
+    // Reset all mocks and handlers using shared helper
+    resetMockJsSip()
 
     eventBus = createEventBus()
     config = {
