@@ -183,7 +183,90 @@ tests/
     ├── basic-flow/    # Core user journeys
     ├── advanced/      # Complex scenarios
     └── regression/    # Bug prevention
+__mocks__/
+└── jssip.ts          # Shared JsSIP mock for all SipClient tests
 ```
+
+---
+
+## JsSIP Mock Pattern
+
+### Using the Shared Mock
+All SipClient tests should use the shared mock at `__mocks__/jssip.ts`:
+
+```typescript
+// 1. Enable automatic mocking
+vi.mock('jssip')
+
+// 2. Import helpers you need
+import { mockUA, resetMockJsSip, triggerEvent } from 'jssip'
+
+describe('SipClient', () => {
+  beforeEach(() => {
+    resetMockJsSip()  // Always reset between tests
+  })
+})
+```
+
+### Available Exports
+```typescript
+// Core mocks
+mockUA                  // Mock User Agent
+mockSession             // Mock RTC Session
+mockWebSocketInterface  // Mock WebSocket
+
+// Event handlers (for accessing registered callbacks)
+eventHandlers           // Regular event handlers
+onceHandlers            // One-time event handlers
+sessionHandlers         // Session event handlers
+
+// Utilities
+resetMockJsSip()        // Reset all mocks and handlers
+triggerEvent(name, data) // Trigger UA event
+triggerSessionEvent(name, data) // Trigger session event
+simulateConnect()       // Simulate successful connection
+terminateSessions()     // Clean up active sessions
+```
+
+### Common Patterns
+
+#### Simulate Connection
+```typescript
+beforeEach(() => {
+  resetMockJsSip()
+  mockUA.isConnected.mockReturnValue(true)
+})
+
+// In test
+await startClient()
+triggerEvent('connected', { socket: { url: 'wss://...' } })
+```
+
+#### Mock sendRequest (PUBLISH/SUBSCRIBE)
+```typescript
+mockUA.sendRequest.mockImplementation((method, uri, options) => {
+  setTimeout(() => {
+    options.eventHandlers.onSuccessResponse({ status_code: 200 })
+  }, 10)
+})
+```
+
+#### Simulate Incoming Call
+```typescript
+const mockIncomingSession = { /* session config */ }
+triggerEvent('newRTCSession', {
+  originator: 'remote',
+  session: mockIncomingSession
+})
+```
+
+### Migration Checklist
+When migrating tests to use the shared mock:
+- [ ] Replace `vi.mock('jssip', () => { ... })` with `vi.mock('jssip')`
+- [ ] Remove `vi.hoisted()` blocks
+- [ ] Add imports from `'jssip'` for needed helpers
+- [ ] Use `resetMockJsSip()` in `beforeEach`
+- [ ] Remove redundant mock definitions
 
 ---
 
