@@ -3,8 +3,9 @@ compatibility_date = "2025-12-10"
 workers_dev = true
 
 # Build the playground before deployment
+# Enable corepack to use pnpm as specified in package.json
 [build]
-command = "pnpm run build:playground"
+command = "corepack enable && pnpm install && pnpm run build:playground"
 
 [assets]
 directory = "dist-playground"
