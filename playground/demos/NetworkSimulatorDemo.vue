@@ -1100,7 +1100,7 @@ button.danger:hover:not(:disabled) {
 
 .event-time {
   font-weight: 600;
-  var(--surface-0)-space: nowrap;
+  white-space: nowrap;
 }
 
 .button-group {

@@ -1925,7 +1925,7 @@ const clearReturnTime = () => {
 }
 
 .status-label {
-  var(--surface-0)-space: nowrap;
+  white-space: nowrap;
 }
 
 .status-red {
@@ -2216,7 +2216,7 @@ const clearReturnTime = () => {
 }
 
 .btn-text {
-  var(--surface-0)-space: nowrap;
+  white-space: nowrap;
 }
 
 /* Hide text on mobile, show only icons */
@@ -3187,7 +3187,7 @@ const clearReturnTime = () => {
 }
 
 .presence-label {
-  var(--surface-0)-space: nowrap;
+  white-space: nowrap;
 }
 
 .dropdown-arrow {
