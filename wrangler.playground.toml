@@ -3,9 +3,9 @@ compatibility_date = "2025-12-10"
 workers_dev = true
 
 # Build the playground before deployment
-# Enable corepack to use pnpm as specified in package.json
+# Install pnpm globally then run the build
 [build]
-command = "corepack enable && pnpm install && pnpm run build:playground"
+command = "npm install -g pnpm && pnpm install --frozen-lockfile && pnpm run build:playground"
 
 [assets]
 directory = "dist-playground"
