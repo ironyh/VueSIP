@@ -922,6 +922,8 @@ watch(isDarkMode, (newValue) => {
   font-size: 0.875rem;
   font-family: inherit;
   transition: all 0.2s;
+  color: var(--text-primary);
+  background: var(--bg-card);
 }
 
 .search-input:focus {

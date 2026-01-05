@@ -217,7 +217,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { usePictureInPicture } from '../../src/composables/usePictureInPicture'
+import { usePictureInPicture } from '../../src'
 
 // Video element ref
 const videoElement = ref<HTMLVideoElement | null>(null)

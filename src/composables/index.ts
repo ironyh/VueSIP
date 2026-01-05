@@ -71,6 +71,12 @@ export { useAudioDevices } from './useAudioDevices'
 export { useMultiLine } from './useMultiLine'
 export { useDialog } from './useDialog'
 export { useFreePBXPresence } from './useFreePBXPresence'
+export {
+  usePictureInPicture,
+  type PictureInPictureOptions,
+  type PiPWindowDimensions,
+  type UsePictureInPictureReturn,
+} from './usePictureInPicture'
 
 // OAuth2 composable
 export {
