@@ -47,6 +47,7 @@ export default defineConfig({
             { text: 'Receiving Calls', link: '/guide/receiving-calls' },
             { text: 'Call Controls', link: '/guide/call-controls' },
             { text: 'Video Calling', link: '/guide/video-calling' },
+            { text: 'Picture-in-Picture', link: '/guide/picture-in-picture' },
           ],
         },
         {

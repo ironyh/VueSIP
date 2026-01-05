@@ -16,6 +16,9 @@ Complete reference for all VueSip composables providing reactive SIP functionali
   - [usePresence](#usepresence)
   - [useMessaging](#usemessaging)
   - [useConference](#useconference)
+- [Video Enhancement Composables](#video-enhancement-composables)
+  - [usePictureInPicture](#usepictureinpicture)
+  - [useVideoInset](#usevideoinset)
 - [Constants](#constants)
 
 ---
@@ -828,6 +831,338 @@ console.log(`Active participants: ${participantCount.value}`)
 
 // End conference when done
 await endConference()
+```
+
+---
+
+## Video Enhancement Composables
+
+### usePictureInPicture
+
+Provides Picture-in-Picture mode support for video elements, allowing video calls to be displayed in a floating window that stays on top of other applications.
+
+**Source:** [`src/composables/usePictureInPicture.ts`](../../src/composables/usePictureInPicture.ts)
+
+#### Signature
+
+```typescript
+function usePictureInPicture(
+  videoRef: Ref<HTMLVideoElement | null>,
+  options?: PictureInPictureOptions
+): UsePictureInPictureReturn
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `videoRef` | `Ref<HTMLVideoElement \| null>` | - | Ref to the HTMLVideoElement to use for PiP |
+| `options.persistPreference` | `boolean` | `false` | Whether to persist the user's PiP preference to localStorage |
+| `options.preferenceKey` | `string` | `'vuesip-pip-preference'` | Key to use for localStorage when persisting preference |
+
+#### Returns: `UsePictureInPictureReturn`
+
+##### Reactive State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `isPiPSupported` | `Ref<boolean>` | Whether PiP is supported by the browser |
+| `isPiPActive` | `Ref<boolean>` | Whether PiP mode is currently active |
+| `pipWindow` | `Ref<PictureInPictureWindow \| null>` | The PiP window object (null when not in PiP) |
+| `error` | `Ref<Error \| null>` | Current error state |
+
+##### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `enterPiP` | `() => Promise<void>` | Enter Picture-in-Picture mode |
+| `exitPiP` | `() => Promise<void>` | Exit Picture-in-Picture mode |
+| `togglePiP` | `() => Promise<void>` | Toggle Picture-in-Picture mode |
+
+#### Usage Example
+
+```vue
+<template>
+  <div class="video-call">
+    <video ref="videoElement" autoplay playsinline />
+
+    <div class="controls">
+      <button
+        v-if="isPiPSupported"
+        @click="togglePiP"
+        :disabled="!videoElement"
+      >
+        {{ isPiPActive ? 'Exit PiP' : 'Enter PiP' }}
+      </button>
+      <p v-if="!isPiPSupported">
+        Picture-in-Picture not supported in this browser
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { usePictureInPicture } from 'vuesip'
+
+const videoElement = ref<HTMLVideoElement | null>(null)
+
+const {
+  isPiPSupported,
+  isPiPActive,
+  togglePiP,
+  error
+} = usePictureInPicture(videoElement, {
+  persistPreference: true
+})
+
+// Handle errors
+watch(error, (e) => {
+  if (e) console.error('PiP Error:', e.message)
+})
+</script>
+```
+
+#### Browser Support
+
+Picture-in-Picture requires browser support:
+
+| Browser | Support |
+|---------|---------|
+| Chrome 70+ | ✅ Full |
+| Edge 79+ | ✅ Full |
+| Safari 13.1+ | ✅ Full |
+| Firefox | ❌ Uses different API |
+| Opera 57+ | ✅ Full |
+
+💡 **Tip**: Always check `isPiPSupported` before showing PiP controls to users.
+
+---
+
+### useVideoInset
+
+Provides a local camera overlay on a remote video stream, commonly used in video calls to show both participants in a "picture-in-picture" style layout within your application.
+
+**Source:** [`src/composables/useVideoInset.ts`](../../src/composables/useVideoInset.ts)
+
+#### Signature
+
+```typescript
+function useVideoInset(
+  options?: VideoInsetOptions
+): UseVideoInsetReturn
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `options.initialPosition` | `InsetPosition` | `'bottom-right'` | Initial position of the inset video |
+| `options.initialSize` | `InsetSize` | `'medium'` | Initial size preset |
+| `options.customWidth` | `number` | `160` | Custom width in pixels (used when size is 'custom') |
+| `options.customHeight` | `number` | `120` | Custom height in pixels (used when size is 'custom') |
+| `options.margin` | `number` | `16` | Margin from container edges in pixels |
+| `options.borderRadius` | `number` | `8` | Border radius in pixels |
+| `options.draggable` | `boolean` | `true` | Whether the inset can be dragged |
+| `options.showInitially` | `boolean` | `true` | Whether to show the inset initially |
+| `options.persistPreference` | `boolean` | `false` | Persist position/size to localStorage |
+| `options.preferenceKey` | `string` | `'vuesip-video-inset'` | Key for localStorage persistence |
+
+#### Type Definitions
+
+```typescript
+type InsetPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+type InsetSize = 'small' | 'medium' | 'large' | 'custom'
+
+interface InsetDimensions {
+  width: number
+  height: number
+}
+```
+
+#### Size Presets
+
+| Size | Dimensions |
+|------|------------|
+| `small` | 120×90 px |
+| `medium` | 160×120 px |
+| `large` | 240×180 px |
+| `custom` | User-defined |
+
+#### Returns: `UseVideoInsetReturn`
+
+##### Reactive State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `isVisible` | `Ref<boolean>` | Whether inset is currently visible |
+| `position` | `Ref<InsetPosition>` | Current position of the inset |
+| `size` | `Ref<InsetSize>` | Current size preset |
+| `dimensions` | `Ref<InsetDimensions>` | Current dimensions in pixels |
+| `isSwapped` | `Ref<boolean>` | Whether videos are swapped (local is main, remote is inset) |
+| `isDraggable` | `Ref<boolean>` | Whether dragging is enabled |
+| `isDragging` | `Ref<boolean>` | Whether currently being dragged |
+| `insetStyles` | `Ref<CSSProperties>` | Computed CSS styles for the inset container |
+
+##### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `show` | `() => void` | Show the inset |
+| `hide` | `() => void` | Hide the inset |
+| `toggle` | `() => void` | Toggle inset visibility |
+| `setPosition` | `(pos: InsetPosition) => void` | Set position |
+| `setSize` | `(size: InsetSize) => void` | Set size preset |
+| `setCustomDimensions` | `(width: number, height: number) => void` | Set custom dimensions |
+| `swapVideos` | `() => void` | Swap main and inset videos |
+| `cyclePosition` | `() => void` | Cycle through positions (clockwise) |
+| `reset` | `() => void` | Reset to initial settings |
+
+#### Usage Example
+
+```vue
+<template>
+  <div class="video-container">
+    <!-- Main video (remote stream or local if swapped) -->
+    <video
+      ref="mainVideo"
+      :srcObject="isSwapped ? localStream : remoteStream"
+      autoplay
+      playsinline
+      class="main-video"
+    />
+
+    <!-- Inset video (local camera or remote if swapped) -->
+    <div
+      v-if="isVisible"
+      :style="insetStyles"
+      class="inset-video"
+    >
+      <video
+        ref="insetVideo"
+        :srcObject="isSwapped ? remoteStream : localStream"
+        autoplay
+        muted
+        playsinline
+      />
+
+      <!-- Inset Controls -->
+      <div class="inset-controls">
+        <button @click="swapVideos" title="Swap videos">🔄</button>
+        <button @click="cyclePosition" title="Move position">📍</button>
+        <button @click="hide" title="Hide self-view">👁️</button>
+      </div>
+    </div>
+
+    <!-- Show button when hidden -->
+    <button v-if="!isVisible" @click="show" class="show-btn">
+      Show Self-View
+    </button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useVideoInset, useCallSession } from 'vuesip'
+
+// Get media streams from call session
+const { localStream, remoteStream } = useCallSession(sipClient)
+
+// Initialize video inset
+const {
+  isVisible,
+  isSwapped,
+  insetStyles,
+  show,
+  hide,
+  swapVideos,
+  cyclePosition,
+  setSize
+} = useVideoInset({
+  initialPosition: 'bottom-right',
+  initialSize: 'medium',
+  persistPreference: true
+})
+
+// Change size based on screen size
+const handleResize = () => {
+  if (window.innerWidth < 768) {
+    setSize('small')
+  } else {
+    setSize('medium')
+  }
+}
+</script>
+
+<style scoped>
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.main-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.inset-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.inset-controls {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.inset-video:hover .inset-controls {
+  opacity: 1;
+}
+</style>
+```
+
+#### Advanced Usage: Custom Dragging
+
+```typescript
+import { useVideoInset } from 'vuesip'
+
+const {
+  isDraggable,
+  isDragging,
+  setCustomDimensions
+} = useVideoInset({
+  draggable: true,
+  initialSize: 'custom',
+  customWidth: 200,
+  customHeight: 150
+})
+
+// Implement custom drag handling
+const handleDragStart = () => {
+  isDragging.value = true
+}
+
+const handleDragEnd = () => {
+  isDragging.value = false
+}
+
+// Resize on pinch gesture
+const handlePinch = (scale: number) => {
+  const currentWidth = dimensions.value.width
+  const currentHeight = dimensions.value.height
+  setCustomDimensions(
+    currentWidth * scale,
+    currentHeight * scale
+  )
+}
 ```
 
 ---
