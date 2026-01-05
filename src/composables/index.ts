@@ -77,6 +77,14 @@ export {
   type PiPWindowDimensions,
   type UsePictureInPictureReturn,
 } from './usePictureInPicture'
+export {
+  useVideoInset,
+  type VideoInsetOptions,
+  type InsetPosition,
+  type InsetSize,
+  type InsetDimensions,
+  type UseVideoInsetReturn,
+} from './useVideoInset'
 
 // OAuth2 composable
 export {
