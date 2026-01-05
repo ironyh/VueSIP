@@ -120,3 +120,9 @@ hive-mind-prompt-*.txt
 
 # Claude Flow auto-generated metrics
 .claude-flow/metrics/
+
+# Local workspace (kept locally, ignored)
+.local/
+
+# Local agent/tooling state
+.serena/
