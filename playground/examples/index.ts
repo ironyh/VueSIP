@@ -14,6 +14,7 @@ import { conferenceCallExample } from './conference-call'
 import { callMutePatternsExample } from './call-mute-patterns'
 import { networkSimulatorExample } from './network-simulator'
 import { screenSharingExample } from './screen-sharing'
+import { pictureInPictureExample } from './picture-in-picture'
 import { callWaitingExample } from './call-waiting'
 import { sipMessagingExample } from './sip-messaging'
 import { presenceExample } from './presence'
@@ -56,6 +57,7 @@ export const sipExamples = [
   callTimerExample,
   callRecordingExample,
   screenSharingExample,
+  pictureInPictureExample,
   sipMessagingExample,
   presenceExample,
   multiLineExample,
