@@ -48,7 +48,6 @@ const DEFAULT_OPTIONS: Required<
 export function useConnectionRecovery(
   options: ConnectionRecoveryOptions = {}
 ): UseConnectionRecoveryReturn {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const config = { ...DEFAULT_OPTIONS, ...options }
 
   // State
@@ -68,26 +67,91 @@ export function useConnectionRecovery(
   const isRecovering = computed(() => state.value === 'recovering')
   const isHealthy = computed(() => state.value === 'stable' && iceHealth.value.isHealthy)
 
-  // Peer connection reference - will be used in Tasks 5, 7, 9
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // Peer connection reference
   let peerConnection: RTCPeerConnection | null = null
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let stateChangeTime = Date.now()
+
+  // Event handler reference for cleanup
+  let iceStateHandler: (() => void) | null = null
+
+  /**
+   * Update ICE health status
+   */
+  function updateIceHealth(): void {
+    if (!peerConnection) return
+
+    const currentState = peerConnection.iceConnectionState
+    const isHealthyState = currentState === 'connected' || currentState === 'completed'
+
+    iceHealth.value = {
+      iceState: currentState,
+      stateAge: Date.now() - stateChangeTime,
+      recoveryAttempts: attempts.value.length,
+      isHealthy: isHealthyState,
+    }
+
+    // Update overall state based on ICE health
+    if (!isHealthyState && state.value === 'stable') {
+      if (currentState === 'disconnected' || currentState === 'failed') {
+        state.value = 'monitoring'
+      }
+    } else if (isHealthyState && state.value !== 'stable') {
+      state.value = 'stable'
+    }
+  }
+
+  /**
+   * Handle ICE state changes
+   */
+  function handleIceStateChange(): void {
+    if (!peerConnection) return
+
+    const currentState = peerConnection.iceConnectionState
+    logger.debug('ICE state changed', { state: currentState })
+
+    if (currentState === 'failed' && config.autoRecover) {
+      // Start automatic recovery
+      recover()
+    }
+  }
 
   /**
    * Monitor a peer connection for failures
    */
   function monitor(pc: RTCPeerConnection): void {
+    // Clean up existing monitoring
+    if (peerConnection && iceStateHandler) {
+      peerConnection.removeEventListener('iceconnectionstatechange', iceStateHandler)
+    }
+
     peerConnection = pc
     stateChangeTime = Date.now()
 
-    logger.info('Started monitoring peer connection')
+    // Update initial state
+    updateIceHealth()
+
+    // Setup event listener
+    iceStateHandler = () => {
+      stateChangeTime = Date.now()
+      updateIceHealth()
+      handleIceStateChange()
+    }
+
+    pc.addEventListener('iceconnectionstatechange', iceStateHandler)
+
+    logger.info('Started monitoring peer connection', {
+      iceState: pc.iceConnectionState,
+    })
   }
 
   /**
    * Stop monitoring
    */
   function stopMonitoring(): void {
+    if (peerConnection && iceStateHandler) {
+      peerConnection.removeEventListener('iceconnectionstatechange', iceStateHandler)
+      iceStateHandler = null
+    }
     peerConnection = null
     logger.info('Stopped monitoring peer connection')
   }
