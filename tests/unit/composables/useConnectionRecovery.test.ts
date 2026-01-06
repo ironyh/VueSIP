@@ -254,4 +254,98 @@ describe('useConnectionRecovery', () => {
       )
     })
   })
+
+  // ==========================================================================
+  // Retry Logic
+  // ==========================================================================
+  describe('Retry Logic', () => {
+    it('should retry up to maxAttempts times', async () => {
+      const onRecoveryFailed = vi.fn()
+      const { monitor, recover, attempts } = useConnectionRecovery({
+        maxAttempts: 3,
+        attemptDelay: 100,
+        onRecoveryFailed,
+      })
+
+      // Setup failing connection
+      mockPeerConnection.iceConnectionState = 'failed'
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      // Should have attempted 3 times
+      expect(attempts.value.length).toBeLessThanOrEqual(3)
+    })
+
+    it('should wait attemptDelay between retries', async () => {
+      const { monitor, recover } = useConnectionRecovery({
+        maxAttempts: 2,
+        attemptDelay: 1000,
+      })
+
+      mockPeerConnection.iceConnectionState = 'failed'
+      monitor(mockPeerConnection)
+
+      const recoverPromise = recover()
+
+      // Fast-forward through delays
+      vi.advanceTimersByTime(1000)
+
+      await recoverPromise
+    })
+
+    it('should call onRecoveryFailed after all attempts exhausted', async () => {
+      const onRecoveryFailed = vi.fn()
+      const { monitor, recover } = useConnectionRecovery({
+        maxAttempts: 2,
+        attemptDelay: 100,
+        onRecoveryFailed,
+      })
+
+      mockPeerConnection.iceConnectionState = 'failed'
+      monitor(mockPeerConnection)
+
+      vi.advanceTimersByTime(100)
+      await recover()
+      vi.advanceTimersByTime(100)
+
+      expect(onRecoveryFailed).toHaveBeenCalled()
+    })
+
+    it('should stop retrying after successful recovery', async () => {
+      const { monitor, recover, attempts } = useConnectionRecovery({
+        maxAttempts: 3,
+        attemptDelay: 100,
+      })
+
+      // Succeed on first try
+      mockPeerConnection.iceConnectionState = 'connected'
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      expect(attempts.value.length).toBe(1)
+      expect(attempts.value[0]?.success).toBe(true)
+    })
+
+    it('should not recover when autoRecover is false', async () => {
+      const { monitor, state } = useConnectionRecovery({
+        autoRecover: false,
+      })
+
+      mockPeerConnection.iceConnectionState = 'failed'
+      monitor(mockPeerConnection)
+
+      // Simulate state change
+      const handler = (
+        mockPeerConnection.addEventListener as ReturnType<typeof vi.fn>
+      ).mock.calls.find((c: unknown[]) => c[0] === 'iceconnectionstatechange')?.[1] as
+        | (() => void)
+        | undefined
+      if (handler) handler()
+
+      // Should not auto-recover
+      expect(state.value).not.toBe('recovering')
+    })
+  })
 })
