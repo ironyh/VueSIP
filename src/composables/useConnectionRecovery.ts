@@ -157,11 +157,138 @@ export function useConnectionRecovery(
   }
 
   /**
+   * Perform ICE restart
+   */
+  async function performIceRestart(): Promise<void> {
+    if (!peerConnection) throw new Error('No peer connection')
+
+    logger.debug('Performing ICE restart')
+
+    // Trigger ICE restart
+    peerConnection.restartIce()
+
+    // Create new offer with ICE restart flag
+    const offer = await peerConnection.createOffer({ iceRestart: true })
+
+    // Set local description to trigger renegotiation
+    await peerConnection.setLocalDescription(offer)
+
+    logger.debug('ICE restart initiated')
+  }
+
+  /**
+   * Wait for connection to stabilize
+   */
+  async function waitForConnection(): Promise<boolean> {
+    if (!peerConnection) return false
+
+    // If already connected, return immediately
+    if (
+      peerConnection.iceConnectionState === 'connected' ||
+      peerConnection.iceConnectionState === 'completed'
+    ) {
+      return true
+    }
+
+    // Wait for connection with timeout
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        cleanup()
+        resolve(false)
+      }, config.iceRestartTimeout)
+
+      const handler = () => {
+        if (
+          peerConnection?.iceConnectionState === 'connected' ||
+          peerConnection?.iceConnectionState === 'completed'
+        ) {
+          cleanup()
+          resolve(true)
+        } else if (peerConnection?.iceConnectionState === 'failed') {
+          cleanup()
+          resolve(false)
+        }
+      }
+
+      function cleanup() {
+        clearTimeout(timeout)
+        peerConnection?.removeEventListener('iceconnectionstatechange', handler)
+      }
+
+      peerConnection?.addEventListener('iceconnectionstatechange', handler)
+    })
+  }
+
+  /**
    * Manually trigger recovery
    */
   async function recover(): Promise<boolean> {
-    logger.info('Manual recovery triggered')
-    return false // TODO: Implement in Task 7
+    if (!peerConnection) {
+      logger.warn('Cannot recover: no peer connection')
+      error.value = 'No peer connection to recover'
+      return false
+    }
+
+    if (state.value === 'recovering') {
+      logger.warn('Recovery already in progress')
+      return false
+    }
+
+    const startTime = Date.now()
+    state.value = 'recovering'
+    error.value = null
+
+    // Notify recovery start
+    options.onRecoveryStart?.()
+
+    logger.info('Starting connection recovery', { strategy: config.strategy })
+
+    try {
+      if (config.strategy === 'ice-restart') {
+        await performIceRestart()
+      }
+
+      // Wait for connection to stabilize
+      const success = await waitForConnection()
+
+      const attempt: RecoveryAttempt = {
+        attempt: attempts.value.length + 1,
+        strategy: config.strategy,
+        success,
+        duration: Date.now() - startTime,
+        timestamp: Date.now(),
+      }
+
+      attempts.value = [...attempts.value, attempt]
+
+      if (success) {
+        state.value = 'stable'
+        options.onRecoverySuccess?.(attempt)
+        logger.info('Recovery successful', { attempt: attempt.attempt })
+        return true
+      } else {
+        state.value = 'failed'
+        error.value = 'Recovery failed: connection did not stabilize'
+        logger.error('Recovery failed')
+        return false
+      }
+    } catch (err) {
+      const attempt: RecoveryAttempt = {
+        attempt: attempts.value.length + 1,
+        strategy: config.strategy,
+        success: false,
+        duration: Date.now() - startTime,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        timestamp: Date.now(),
+      }
+
+      attempts.value = [...attempts.value, attempt]
+      state.value = 'failed'
+      error.value = attempt.error ?? 'Recovery failed'
+
+      logger.error('Recovery error', { error: err })
+      return false
+    }
   }
 
   /**
