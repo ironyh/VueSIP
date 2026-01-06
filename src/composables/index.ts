@@ -64,6 +64,11 @@ export { useSipSecondLine } from './useSipSecondLine'
 // useSipConnection requires sip.js library - not exported until dual-library support is added
 export { useSipDtmf } from './useSipDtmf'
 
+// Call quality composables
+export { useCallQualityScore } from './useCallQualityScore'
+export { useNetworkQualityIndicator } from './useNetworkQualityIndicator'
+export { useBandwidthAdaptation } from './useBandwidthAdaptation'
+
 // Additional composables
 export { useCallHold } from './useCallHold'
 export { useCallTransfer } from './useCallTransfer'
@@ -104,6 +109,50 @@ export {
 // Re-export types needed by demos
 export type { CallbackPriority, CallbackRequest } from '../types/callback.types'
 export type { BlockReason, BlockAction, BlockEntry } from '../types/blacklist.types'
+
+// Call quality types
+export type {
+  // Quality score types
+  QualityGrade,
+  CallQualityScore,
+  QualityScoreWeights,
+  QualityTrendDirection,
+  QualityTrend,
+  CallQualityScoreOptions,
+  QualityScoreInput,
+  UseCallQualityScoreReturn,
+  // Network quality types
+  NetworkQualityLevel,
+  SignalBars,
+  NetworkQualityIcon,
+  NetworkDetails,
+  NetworkQualityIndicatorData,
+  NetworkQualityColors,
+  NetworkQualityThresholds,
+  NetworkQualityIndicatorOptions,
+  NetworkQualityInput,
+  UseNetworkQualityIndicatorReturn,
+  // Bandwidth adaptation types
+  BandwidthAction,
+  RecommendationPriority,
+  SuggestionType,
+  AdaptationSuggestion,
+  BandwidthRecommendation,
+  VideoResolution,
+  BandwidthConstraints,
+  BandwidthAdaptationOptions,
+  BandwidthAdaptationInput,
+  UseBandwidthAdaptationReturn,
+} from '../types/call-quality.types'
+
+export {
+  // Call quality constants
+  DEFAULT_QUALITY_WEIGHTS,
+  DEFAULT_NETWORK_COLORS,
+  DEFAULT_NETWORK_THRESHOLDS,
+  DEFAULT_BANDWIDTH_CONSTRAINTS,
+  VIDEO_RESOLUTIONS,
+} from '../types/call-quality.types'
 
 // Constants
 export {

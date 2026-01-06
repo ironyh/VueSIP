@@ -846,7 +846,7 @@ watch(isDarkMode, (newValue) => {
   border-radius: 7px;
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--gray-700);
+  color: var(--text-secondary);
   cursor: pointer;
   transition:
     color 0.2s ease,
@@ -933,7 +933,7 @@ watch(isDarkMode, (newValue) => {
 }
 
 .search-input::placeholder {
-  color: var(--gray-400);
+  color: var(--text-muted);
 }
 
 .clear-search {
@@ -943,7 +943,7 @@ watch(isDarkMode, (newValue) => {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--gray-500);
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0.25rem 0.5rem;
   font-size: 1.125rem;
@@ -958,10 +958,10 @@ watch(isDarkMode, (newValue) => {
 /* Filter Stats */
 .filter-stats {
   font-size: 0.75rem;
-  color: var(--gray-500);
+  color: var(--text-secondary);
   margin-bottom: 0.75rem;
   padding: 0.5rem;
-  background: var(--gray-100);
+  background: var(--bg-secondary);
   border-radius: 4px;
   text-align: center;
 }
@@ -996,7 +996,7 @@ watch(isDarkMode, (newValue) => {
 .no-results {
   text-align: center;
   padding: 2rem 1rem;
-  color: var(--gray-500);
+  color: var(--text-secondary);
 }
 
 .no-results p {
@@ -1006,9 +1006,9 @@ watch(isDarkMode, (newValue) => {
 
 .btn-secondary {
   padding: 0.5rem 1rem;
-  background: var(--gray-100);
-  color: var(--gray-700);
-  border: 1px solid var(--gray-300);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.875rem;
   cursor: pointer;
@@ -1016,7 +1016,7 @@ watch(isDarkMode, (newValue) => {
 }
 
 .btn-secondary:hover {
-  background: var(--gray-200);
+  background: var(--border-color);
 }
 
 .example-list {
