@@ -153,4 +153,105 @@ describe('useConnectionRecovery', () => {
       )
     })
   })
+
+  // ==========================================================================
+  // Recovery Logic
+  // ==========================================================================
+  describe('Recovery Logic', () => {
+    it('should attempt ICE restart on recover()', async () => {
+      const { monitor, recover } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      expect(mockPeerConnection.restartIce).toHaveBeenCalled()
+    })
+
+    it('should create new offer after ICE restart', async () => {
+      const { monitor, recover } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      expect(mockPeerConnection.createOffer).toHaveBeenCalledWith({ iceRestart: true })
+    })
+
+    it('should set local description after creating offer', async () => {
+      const { monitor, recover } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      expect(mockPeerConnection.setLocalDescription).toHaveBeenCalled()
+    })
+
+    it('should update state to recovering during recovery', async () => {
+      const { monitor, recover, state } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      const recoveryPromise = recover()
+
+      expect(state.value).toBe('recovering')
+
+      await recoveryPromise
+    })
+
+    it('should return true on successful recovery', async () => {
+      const { monitor, recover } = useConnectionRecovery()
+
+      // Setup successful recovery
+      mockPeerConnection.iceConnectionState = 'connected'
+      monitor(mockPeerConnection)
+
+      const result = await recover()
+
+      expect(result).toBe(true)
+    })
+
+    it('should track recovery attempt in history', async () => {
+      const { monitor, recover, attempts } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      expect(attempts.value).toHaveLength(1)
+      expect(attempts.value[0]).toMatchObject({
+        attempt: 1,
+        strategy: 'ice-restart',
+        success: true,
+      })
+    })
+
+    it('should call onRecoveryStart callback', async () => {
+      const onRecoveryStart = vi.fn()
+      const { monitor, recover } = useConnectionRecovery({ onRecoveryStart })
+
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      expect(onRecoveryStart).toHaveBeenCalled()
+    })
+
+    it('should call onRecoverySuccess callback on success', async () => {
+      const onRecoverySuccess = vi.fn()
+      const { monitor, recover } = useConnectionRecovery({ onRecoverySuccess })
+
+      mockPeerConnection.iceConnectionState = 'connected'
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      expect(onRecoverySuccess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+        })
+      )
+    })
+  })
 })
