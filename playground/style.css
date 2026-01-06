@@ -52,8 +52,10 @@
   /* Semantic Colors (Light Theme) */
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
+  --bg-card: #ffffff;
   --text-primary: #111827;
   --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
   --border-color: #e5e7eb;
 }
 
@@ -83,8 +85,10 @@
   /* Semantic Colors (Dark Theme) */
   --bg-primary: #111827;
   --bg-secondary: #1f2937;
+  --bg-card: #1f2937;
   --text-primary: #f9fafb;
   --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
   --border-color: #374151;
 
   /* Darker Shadows for Dark Mode */
