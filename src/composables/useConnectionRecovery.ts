@@ -219,8 +219,18 @@ export function useConnectionRecovery(
     })
   }
 
+  // Track if recovery is in progress
+  let recoveryInProgress = false
+
   /**
-   * Manually trigger recovery
+   * Helper to delay execution
+   */
+  function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Manually trigger recovery with retry logic
    */
   async function recover(): Promise<boolean> {
     if (!peerConnection) {
@@ -229,62 +239,95 @@ export function useConnectionRecovery(
       return false
     }
 
-    if (state.value === 'recovering') {
+    if (recoveryInProgress) {
       logger.warn('Recovery already in progress')
       return false
     }
 
-    const startTime = Date.now()
+    recoveryInProgress = true
     state.value = 'recovering'
     error.value = null
 
     // Notify recovery start
     options.onRecoveryStart?.()
 
-    logger.info('Starting connection recovery', { strategy: config.strategy })
+    logger.info('Starting connection recovery', {
+      strategy: config.strategy,
+      maxAttempts: config.maxAttempts,
+    })
+
+    const allAttempts: RecoveryAttempt[] = []
 
     try {
-      if (config.strategy === 'ice-restart') {
-        await performIceRestart()
+      for (let i = 0; i < config.maxAttempts; i++) {
+        const attemptNumber = i + 1
+        const startTime = Date.now()
+
+        logger.debug(`Recovery attempt ${attemptNumber}/${config.maxAttempts}`)
+
+        try {
+          if (config.strategy === 'ice-restart') {
+            await performIceRestart()
+          }
+
+          // Wait for connection to stabilize
+          const success = await waitForConnection()
+
+          const attempt: RecoveryAttempt = {
+            attempt: attemptNumber,
+            strategy: config.strategy,
+            success,
+            duration: Date.now() - startTime,
+            timestamp: Date.now(),
+          }
+
+          allAttempts.push(attempt)
+          attempts.value = [...attempts.value, attempt]
+
+          if (success) {
+            state.value = 'stable'
+            recoveryInProgress = false
+            options.onRecoverySuccess?.(attempt)
+            logger.info('Recovery successful', { attempt: attemptNumber })
+            return true
+          }
+
+          // Wait before next attempt (except for last attempt)
+          if (i < config.maxAttempts - 1) {
+            await delay(config.attemptDelay)
+          }
+        } catch (err) {
+          const attempt: RecoveryAttempt = {
+            attempt: attemptNumber,
+            strategy: config.strategy,
+            success: false,
+            duration: Date.now() - startTime,
+            error: err instanceof Error ? err.message : 'Unknown error',
+            timestamp: Date.now(),
+          }
+
+          allAttempts.push(attempt)
+          attempts.value = [...attempts.value, attempt]
+
+          // Wait before next attempt (except for last attempt)
+          if (i < config.maxAttempts - 1) {
+            await delay(config.attemptDelay)
+          }
+        }
       }
 
-      // Wait for connection to stabilize
-      const success = await waitForConnection()
-
-      const attempt: RecoveryAttempt = {
-        attempt: attempts.value.length + 1,
-        strategy: config.strategy,
-        success,
-        duration: Date.now() - startTime,
-        timestamp: Date.now(),
-      }
-
-      attempts.value = [...attempts.value, attempt]
-
-      if (success) {
-        state.value = 'stable'
-        options.onRecoverySuccess?.(attempt)
-        logger.info('Recovery successful', { attempt: attempt.attempt })
-        return true
-      } else {
-        state.value = 'failed'
-        error.value = 'Recovery failed: connection did not stabilize'
-        logger.error('Recovery failed')
-        return false
-      }
-    } catch (err) {
-      const attempt: RecoveryAttempt = {
-        attempt: attempts.value.length + 1,
-        strategy: config.strategy,
-        success: false,
-        duration: Date.now() - startTime,
-        error: err instanceof Error ? err.message : 'Unknown error',
-        timestamp: Date.now(),
-      }
-
-      attempts.value = [...attempts.value, attempt]
+      // All attempts exhausted
       state.value = 'failed'
-      error.value = attempt.error ?? 'Recovery failed'
+      error.value = `Recovery failed after ${config.maxAttempts} attempts`
+      recoveryInProgress = false
+      options.onRecoveryFailed?.(allAttempts)
+
+      logger.error('All recovery attempts failed', { attempts: allAttempts.length })
+      return false
+    } catch (err) {
+      state.value = 'failed'
+      error.value = err instanceof Error ? err.message : 'Unknown error'
+      recoveryInProgress = false
 
       logger.error('Recovery error', { error: err })
       return false

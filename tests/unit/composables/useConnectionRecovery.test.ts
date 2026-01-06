@@ -264,6 +264,7 @@ describe('useConnectionRecovery', () => {
       const { monitor, recover, attempts } = useConnectionRecovery({
         maxAttempts: 3,
         attemptDelay: 100,
+        iceRestartTimeout: 100, // Short timeout for testing
         onRecoveryFailed,
       })
 
@@ -271,16 +272,25 @@ describe('useConnectionRecovery', () => {
       mockPeerConnection.iceConnectionState = 'failed'
       monitor(mockPeerConnection)
 
-      await recover()
+      // Start recovery and advance through all timeouts
+      const recoverPromise = recover()
+
+      // Advance through 3 attempts: 3 * (iceRestartTimeout + attemptDelay) - last delay
+      // = 3 * 100 (timeouts) + 2 * 100 (delays) = 500ms
+      await vi.advanceTimersByTimeAsync(600)
+
+      await recoverPromise
 
       // Should have attempted 3 times
-      expect(attempts.value.length).toBeLessThanOrEqual(3)
+      expect(attempts.value.length).toBe(3)
+      expect(onRecoveryFailed).toHaveBeenCalled()
     })
 
     it('should wait attemptDelay between retries', async () => {
-      const { monitor, recover } = useConnectionRecovery({
+      const { monitor, recover, attempts } = useConnectionRecovery({
         maxAttempts: 2,
         attemptDelay: 1000,
+        iceRestartTimeout: 100, // Short timeout for testing
       })
 
       mockPeerConnection.iceConnectionState = 'failed'
@@ -288,10 +298,19 @@ describe('useConnectionRecovery', () => {
 
       const recoverPromise = recover()
 
-      // Fast-forward through delays
-      vi.advanceTimersByTime(1000)
+      // First attempt timeout
+      await vi.advanceTimersByTimeAsync(100)
+
+      // Wait for attempt delay
+      await vi.advanceTimersByTimeAsync(1000)
+
+      // Second attempt timeout
+      await vi.advanceTimersByTimeAsync(100)
 
       await recoverPromise
+
+      // Should have made 2 attempts
+      expect(attempts.value.length).toBe(2)
     })
 
     it('should call onRecoveryFailed after all attempts exhausted', async () => {
@@ -299,15 +318,19 @@ describe('useConnectionRecovery', () => {
       const { monitor, recover } = useConnectionRecovery({
         maxAttempts: 2,
         attemptDelay: 100,
+        iceRestartTimeout: 100, // Short timeout for testing
         onRecoveryFailed,
       })
 
       mockPeerConnection.iceConnectionState = 'failed'
       monitor(mockPeerConnection)
 
-      vi.advanceTimersByTime(100)
-      await recover()
-      vi.advanceTimersByTime(100)
+      const recoverPromise = recover()
+
+      // Advance through all timeouts and delays
+      await vi.advanceTimersByTimeAsync(500)
+
+      await recoverPromise
 
       expect(onRecoveryFailed).toHaveBeenCalled()
     })
