@@ -43,7 +43,7 @@
             muted
             loop
             playsinline
-          />
+          ></video>
 
           <!-- Inset Video (Local Camera) -->
           <div
@@ -59,7 +59,7 @@
               muted
               loop
               playsinline
-            />
+            ></video>
             <div class="inset-controls">
               <button class="inset-btn" @click="cyclePosition" title="Move position">
                 ↗️
@@ -436,7 +436,7 @@ const {
   insetStyles,
   show: showInset,
   hide: hideInset,
-  toggle: toggleInset,
+  toggle: _toggleInset,
   setPosition,
   setSize,
   swapVideos,

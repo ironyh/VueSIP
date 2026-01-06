@@ -42,7 +42,7 @@
         <option v-for="device in devices" :key="device.deviceId" :value="device.deviceId">
           {{
             device.label ||
-            `${deviceType === 'audioinput' ? 'Microphone' : 'Speaker'} ${device.deviceId.slice(0, 8)}`
+              `${deviceType === 'audioinput' ? 'Microphone' : 'Speaker'} ${device.deviceId.slice(0, 8)}`
           }}
         </option>
       </select>

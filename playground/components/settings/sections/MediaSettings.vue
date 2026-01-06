@@ -185,7 +185,7 @@
             href="https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints"
             target="_blank"
             class="help-link"
-            >Documentation</a
+          >Documentation</a
           >
         </p>
       </div>
@@ -207,7 +207,7 @@
             href="https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints"
             target="_blank"
             class="help-link"
-            >Documentation</a
+          >Documentation</a
           >
         </p>
       </div>

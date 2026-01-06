@@ -1,4 +1,4 @@
-import { ref, computed, watch, onUnmounted, type Ref, type CSSProperties } from 'vue'
+import { ref, computed, watch, type Ref, type CSSProperties } from 'vue'
 
 /**
  * Position options for the inset video
@@ -352,7 +352,10 @@ export function useVideoInset(options: VideoInsetOptions = {}): UseVideoInsetRet
   function cyclePosition(): void {
     const currentIndex = POSITION_CYCLE.indexOf(position.value)
     const nextIndex = (currentIndex + 1) % POSITION_CYCLE.length
-    position.value = POSITION_CYCLE[nextIndex]
+    const nextPosition = POSITION_CYCLE[nextIndex]
+    if (nextPosition) {
+      position.value = nextPosition
+    }
     savePreferences()
   }
 

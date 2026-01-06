@@ -160,10 +160,10 @@
         </select>
         <p class="field-help">
           <span v-if="iceTransportPolicy === 'all'"
-            >Use all available candidates (STUN, TURN, and local)</span
+          >Use all available candidates (STUN, TURN, and local)</span
           >
           <span v-else-if="iceTransportPolicy === 'relay'"
-            >Force all traffic through TURN servers for maximum privacy</span
+          >Force all traffic through TURN servers for maximum privacy</span
           >
           <span v-else>Use only public IP addresses (no relay servers)</span>
         </p>

@@ -182,7 +182,7 @@
         <p class="note">
           <strong>Note:</strong> Requires amiws proxy (
           <a href="https://github.com/staskobzar/amiws" target="_blank" rel="noopener"
-            >github.com/staskobzar/amiws</a
+          >github.com/staskobzar/amiws</a
           >
           ) to bridge AMI over WebSocket.
         </p>
