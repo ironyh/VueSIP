@@ -371,4 +371,120 @@ describe('useConnectionRecovery', () => {
       expect(state.value).not.toBe('recovering')
     })
   })
+
+  // ==========================================================================
+  // Reset
+  // ==========================================================================
+  describe('Reset', () => {
+    it('should reset state to stable', () => {
+      const { state, reset } = useConnectionRecovery()
+
+      // We can't directly set state.value since it's a computed, test via recover flow
+      reset()
+
+      expect(state.value).toBe('stable')
+    })
+
+    it('should clear attempts history', async () => {
+      const { attempts, reset, monitor, recover } = useConnectionRecovery()
+
+      mockPeerConnection.iceConnectionState = 'connected'
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      // Should have attempts
+      expect(attempts.value.length).toBeGreaterThan(0)
+
+      reset()
+
+      expect(attempts.value).toEqual([])
+    })
+
+    it('should clear error', async () => {
+      const { error, reset, recover } = useConnectionRecovery()
+
+      // Trigger an error by not having a peer connection
+      await recover()
+
+      expect(error.value).not.toBeNull()
+
+      reset()
+
+      expect(error.value).toBeNull()
+    })
+
+    it('should reset iceHealth', () => {
+      const { iceHealth, reset, monitor } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      reset()
+
+      expect(iceHealth.value.isHealthy).toBe(true)
+      expect(iceHealth.value.recoveryAttempts).toBe(0)
+    })
+  })
+
+  // ==========================================================================
+  // Edge Cases
+  // ==========================================================================
+  describe('Edge Cases', () => {
+    it('should handle recover when no peer connection', async () => {
+      const { recover, error } = useConnectionRecovery()
+
+      const result = await recover()
+
+      expect(result).toBe(false)
+      expect(error.value).toBe('No peer connection to recover')
+    })
+
+    it('should handle concurrent recovery calls', async () => {
+      const { monitor, recover } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      // Start two recoveries simultaneously
+      const result1 = recover()
+      const result2 = recover()
+
+      await result1
+      const secondResult = await result2
+
+      // Second call should return false (already in progress)
+      expect(secondResult).toBe(false)
+    })
+
+    it('should handle peer connection errors gracefully', async () => {
+      const { monitor, recover, attempts } = useConnectionRecovery({
+        maxAttempts: 1,
+        iceRestartTimeout: 100,
+      })
+
+      mockPeerConnection.createOffer = vi.fn().mockRejectedValue(new Error('Offer failed'))
+      monitor(mockPeerConnection)
+
+      const recoverPromise = recover()
+      await vi.advanceTimersByTimeAsync(200)
+      const result = await recoverPromise
+
+      expect(result).toBe(false)
+      // Error is recorded in the attempt
+      expect(attempts.value[0]?.error).toContain('Offer failed')
+    })
+
+    it('should update attempts count after recovery', async () => {
+      const { monitor, recover, attempts } = useConnectionRecovery({
+        maxAttempts: 2,
+        attemptDelay: 10,
+      })
+
+      mockPeerConnection.iceConnectionState = 'connected'
+      monitor(mockPeerConnection)
+
+      await recover()
+
+      expect(attempts.value.length).toBe(1)
+    })
+  })
 })
