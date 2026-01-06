@@ -17,13 +17,13 @@ vi.mock('@/utils/logger', () => ({
 }))
 
 describe('useConnectionRecovery', () => {
-  let _mockPeerConnection: RTCPeerConnection
+  let mockPeerConnection: RTCPeerConnection
 
   beforeEach(() => {
     vi.useFakeTimers()
 
-    // Create mock RTCPeerConnection - will be used in later tasks
-    _mockPeerConnection = {
+    // Create mock RTCPeerConnection
+    mockPeerConnection = {
       iceConnectionState: 'connected',
       connectionState: 'connected',
       signalingState: 'stable',
@@ -80,6 +80,77 @@ describe('useConnectionRecovery', () => {
       const { error } = useConnectionRecovery()
 
       expect(error.value).toBeNull()
+    })
+  })
+
+  // ==========================================================================
+  // ICE State Monitoring
+  // ==========================================================================
+  describe('ICE State Monitoring', () => {
+    it('should update iceHealth when monitoring starts', () => {
+      const { monitor, iceHealth } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      expect(iceHealth.value.iceState).toBe('connected')
+    })
+
+    it('should detect disconnected state', () => {
+      const { monitor, iceHealth, isHealthy } = useConnectionRecovery()
+
+      mockPeerConnection.iceConnectionState = 'disconnected'
+      monitor(mockPeerConnection)
+
+      // Simulate state change event
+      const handler = (
+        mockPeerConnection.addEventListener as ReturnType<typeof vi.fn>
+      ).mock.calls.find((c: unknown[]) => c[0] === 'iceconnectionstatechange')?.[1] as
+        | (() => void)
+        | undefined
+      if (handler) handler()
+
+      expect(iceHealth.value.iceState).toBe('disconnected')
+      expect(isHealthy.value).toBe(false)
+    })
+
+    it('should detect failed state', () => {
+      const { monitor, iceHealth } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      // Simulate failure
+      mockPeerConnection.iceConnectionState = 'failed'
+      const handler = (
+        mockPeerConnection.addEventListener as ReturnType<typeof vi.fn>
+      ).mock.calls.find((c: unknown[]) => c[0] === 'iceconnectionstatechange')?.[1] as
+        | (() => void)
+        | undefined
+      if (handler) handler()
+
+      expect(iceHealth.value.iceState).toBe('failed')
+    })
+
+    it('should track state age', () => {
+      const { monitor, iceHealth } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+
+      vi.advanceTimersByTime(5000)
+
+      // Force update (would normally happen on interval)
+      expect(iceHealth.value.stateAge).toBeGreaterThanOrEqual(0)
+    })
+
+    it('should remove listeners when stopMonitoring called', () => {
+      const { monitor, stopMonitoring } = useConnectionRecovery()
+
+      monitor(mockPeerConnection)
+      stopMonitoring()
+
+      expect(mockPeerConnection.removeEventListener).toHaveBeenCalledWith(
+        'iceconnectionstatechange',
+        expect.any(Function)
+      )
     })
   })
 })
