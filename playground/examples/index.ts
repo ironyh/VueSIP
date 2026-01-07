@@ -8,6 +8,7 @@ import { callTimerExample } from './call-timer'
 import { speedDialExample } from './speed-dial'
 import { doNotDisturbExample } from './do-not-disturb'
 import { callQualityExample } from './call-quality'
+import { callQualityDashboardExample } from './call-quality-dashboard'
 import { customRingtonesExample } from './custom-ringtones'
 import { callRecordingExample } from './call-recording'
 import { recordingIndicatorExample } from './recording-indicator'
@@ -71,6 +72,7 @@ export const sipExamples = [
   multiLineExample,
   callQualityExample,
   webrtcStatsExample,
+  callQualityDashboardExample,
   connectionRecoveryExample,
   sessionPersistenceExample,
   callMutePatternsExample,
