@@ -10,7 +10,7 @@ import { JsSipAdapter } from '@/adapters/jssip/JsSipAdapter'
 import { ConnectionState, RegistrationState } from '@/types/sip.types'
 import type { SipClientConfig } from '@/types/config.types'
 import { AdapterNotSupportedError } from '@/adapters/types'
-import { createMockSipConfig, createMockUA } from '../../../utils/test-helpers'
+import { createMockSipConfig } from '../../../utils/test-helpers'
 
 // Store references to mock classes for inspection
 let mockUAInstance: MockUAType | null = null
@@ -993,7 +993,7 @@ describe('JsSipAdapter - Call Operations', () => {
       const mockSession = createMockRTCSession('outgoing')
       mockUAInstance!.call.mockReturnValue(mockSession)
 
-      const session = await adapter.call('sip:target@example.com')
+      await adapter.call('sip:target@example.com')
 
       expect(adapter.getActiveCalls()).toHaveLength(1)
 
@@ -1214,153 +1214,51 @@ describe('JsSipAdapter - Unsupported Operations', () => {
     }
   })
 
-  describe('subscribe()', () => {
-    it('should throw AdapterNotSupportedError', async () => {
+  describe.each([
+    {
+      name: 'subscribe',
+      operation: (adapter: JsSipAdapter) => adapter.subscribe('sip:target@example.com', 'presence'),
+      expectedOp: 'subscribe',
+      expectedSuggestion: 'SUBSCRIBE',
+    },
+    {
+      name: 'unsubscribe',
+      operation: (adapter: JsSipAdapter) =>
+        adapter.unsubscribe('sip:target@example.com', 'presence'),
+      expectedOp: 'unsubscribe',
+      expectedSuggestion: 'SUBSCRIBE',
+    },
+    {
+      name: 'publish',
+      operation: (adapter: JsSipAdapter) => adapter.publish('presence', { status: 'online' }),
+      expectedOp: 'publish',
+      expectedSuggestion: 'PUBLISH',
+    },
+  ])('$name() - unsupported operation', ({ operation, expectedOp, expectedSuggestion }) => {
+    beforeEach(async () => {
       await adapter.initialize(sipConfig)
+    })
 
-      try {
-        await adapter.subscribe('sip:target@example.com', 'presence')
-        expect.fail('Should have thrown AdapterNotSupportedError')
-      } catch (error) {
-        expect(error).toBeInstanceOf(AdapterNotSupportedError)
-      }
+    it('should throw AdapterNotSupportedError', async () => {
+      await expect(operation(adapter)).rejects.toThrow(AdapterNotSupportedError)
     })
 
     it('should include operation name in error', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.subscribe('sip:target@example.com', 'presence')
-        expect.fail('Should have thrown')
-      } catch (error) {
-        const notSupportedError = error as AdapterNotSupportedError
-        expect(notSupportedError.operation).toBe('subscribe')
-      }
+      await expect(operation(adapter)).rejects.toMatchObject({
+        operation: expectedOp,
+      })
     })
 
     it('should include adapter name in error', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.subscribe('sip:target@example.com', 'presence')
-        expect.fail('Should have thrown')
-      } catch (error) {
-        const notSupportedError = error as AdapterNotSupportedError
-        expect(notSupportedError.adapterName).toBe('JsSIP Adapter')
-      }
+      await expect(operation(adapter)).rejects.toMatchObject({
+        adapterName: 'JsSIP Adapter',
+      })
     })
 
     it('should include helpful suggestion in error', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.subscribe('sip:target@example.com', 'presence', 3600)
-        expect.fail('Should have thrown')
-      } catch (error) {
-        const notSupportedError = error as AdapterNotSupportedError
-        expect(notSupportedError.suggestion).toBeDefined()
-        expect(notSupportedError.suggestion).toContain('SUBSCRIBE')
-      }
-    })
-  })
-
-  describe('unsubscribe()', () => {
-    it('should throw AdapterNotSupportedError', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.unsubscribe('sip:target@example.com', 'presence')
-        expect.fail('Should have thrown AdapterNotSupportedError')
-      } catch (error) {
-        expect(error).toBeInstanceOf(AdapterNotSupportedError)
-      }
-    })
-
-    it('should include operation name in error', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.unsubscribe('sip:target@example.com', 'presence')
-        expect.fail('Should have thrown')
-      } catch (error) {
-        const notSupportedError = error as AdapterNotSupportedError
-        expect(notSupportedError.operation).toBe('unsubscribe')
-      }
-    })
-
-    it('should include adapter name in error', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.unsubscribe('sip:target@example.com', 'presence')
-        expect.fail('Should have thrown')
-      } catch (error) {
-        const notSupportedError = error as AdapterNotSupportedError
-        expect(notSupportedError.adapterName).toBe('JsSIP Adapter')
-      }
-    })
-
-    it('should include helpful suggestion in error', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.unsubscribe('sip:target@example.com', 'presence')
-        expect.fail('Should have thrown')
-      } catch (error) {
-        const notSupportedError = error as AdapterNotSupportedError
-        expect(notSupportedError.suggestion).toBeDefined()
-        expect(notSupportedError.suggestion).toContain('SUBSCRIBE')
-      }
-    })
-  })
-
-  describe('publish()', () => {
-    it('should throw AdapterNotSupportedError', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.publish('presence', { status: 'online' })
-        expect.fail('Should have thrown AdapterNotSupportedError')
-      } catch (error) {
-        expect(error).toBeInstanceOf(AdapterNotSupportedError)
-      }
-    })
-
-    it('should include operation name in error', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.publish('presence', { status: 'online' })
-        expect.fail('Should have thrown')
-      } catch (error) {
-        const notSupportedError = error as AdapterNotSupportedError
-        expect(notSupportedError.operation).toBe('publish')
-      }
-    })
-
-    it('should include adapter name in error', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.publish('presence', { status: 'online' })
-        expect.fail('Should have thrown')
-      } catch (error) {
-        const notSupportedError = error as AdapterNotSupportedError
-        expect(notSupportedError.adapterName).toBe('JsSIP Adapter')
-      }
-    })
-
-    it('should include helpful suggestion in error', async () => {
-      await adapter.initialize(sipConfig)
-
-      try {
-        await adapter.publish('presence', { status: 'online', note: 'Available' })
-        expect.fail('Should have thrown')
-      } catch (error) {
-        const notSupportedError = error as AdapterNotSupportedError
-        expect(notSupportedError.suggestion).toBeDefined()
-        expect(notSupportedError.suggestion).toContain('PUBLISH')
-      }
+      await expect(operation(adapter)).rejects.toMatchObject({
+        suggestion: expect.stringContaining(expectedSuggestion),
+      })
     })
   })
 })
