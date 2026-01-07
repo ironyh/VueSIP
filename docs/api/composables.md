@@ -19,6 +19,8 @@ Complete reference for all VueSip composables providing reactive SIP functionali
 - [Video Enhancement Composables](#video-enhancement-composables)
   - [usePictureInPicture](#usepictureinpicture)
   - [useVideoInset](#usevideoinset)
+- [Connection Recovery Composables](#connection-recovery-composables)
+  - [useConnectionRecovery](#useconnectionrecovery)
 - [Constants](#constants)
 
 ---
@@ -832,6 +834,686 @@ console.log(`Active participants: ${participantCount.value}`)
 // End conference when done
 await endConference()
 ```
+
+---
+
+## Call Quality Composables
+
+Composables for monitoring and adapting to call quality in real-time. These provide quality scoring, network indicators, and bandwidth adaptation recommendations for WebRTC calls.
+
+### useCallQualityScore
+
+Provides comprehensive call quality scoring with A-F grading, trend analysis, and weighted metric evaluation.
+
+**Source:** [`src/composables/useCallQualityScore.ts`](../../src/composables/useCallQualityScore.ts)
+
+#### Signature
+
+```typescript
+function useCallQualityScore(
+  options?: CallQualityScoreOptions
+): UseCallQualityScoreReturn
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `options.weights` | `Partial<QualityScoreWeights>` | See defaults | Custom weight configuration |
+| `options.historySize` | `number` | `10` | Number of samples for trend analysis |
+| `options.updateInterval` | `number` | `1000` | Update interval in milliseconds |
+| `options.enableTrendAnalysis` | `boolean` | `true` | Enable quality trend calculation |
+
+##### Default Weights
+
+```typescript
+{
+  packetLoss: 0.25,
+  jitter: 0.15,
+  rtt: 0.2,
+  mos: 0.25,
+  bitrateStability: 0.15
+}
+```
+
+#### Returns: `UseCallQualityScoreReturn`
+
+##### Reactive State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `score` | `Ref<CallQualityScore \| null>` | Current quality score (null if no data) |
+| `trend` | `Ref<QualityTrend \| null>` | Quality trend (null if insufficient history) |
+| `history` | `Ref<CallQualityScore[]>` | Score history for charting |
+| `weights` | `Ref<QualityScoreWeights>` | Current weight configuration |
+
+##### Score Object
+
+```typescript
+interface CallQualityScore {
+  overall: number      // 0-100
+  audio: number        // 0-100
+  video: number | null // 0-100 (null for audio-only)
+  network: number      // 0-100
+  grade: QualityGrade  // 'A' | 'B' | 'C' | 'D' | 'F'
+  description: string  // Human-readable description
+  timestamp: number
+}
+```
+
+##### Trend Object
+
+```typescript
+interface QualityTrend {
+  direction: 'improving' | 'stable' | 'degrading'
+  rate: number      // -100 to 100 (negative = degrading)
+  confidence: number // 0-1 (higher = more certain)
+}
+```
+
+##### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `updateScore` | `(input: QualityScoreInput) => void` | Update score with new WebRTC stats |
+| `reset` | `() => void` | Clear history and reset to initial state |
+
+#### Usage Example
+
+```typescript
+import { useCallQualityScore } from 'vuesip'
+
+const {
+  score,
+  trend,
+  history,
+  updateScore,
+  reset
+} = useCallQualityScore({
+  historySize: 20,
+  enableTrendAnalysis: true,
+  weights: {
+    packetLoss: 0.3, // Prioritize packet loss
+    mos: 0.3
+  }
+})
+
+// Update with WebRTC stats (typically in a stats polling interval)
+updateScore({
+  packetLoss: 0.5,
+  jitter: 15,
+  rtt: 80,
+  mos: 4.2,
+  bitrate: 1500,
+  previousBitrate: 1480,
+  audioPacketLoss: 0.3,
+  videoPacketLoss: 0.7,
+  framerate: 28,
+  targetFramerate: 30
+})
+
+// Check quality
+if (score.value) {
+  console.log(`Quality: ${score.value.grade} (${score.value.overall}/100)`)
+  console.log(score.value.description)
+}
+
+// Monitor trend
+if (trend.value?.direction === 'degrading') {
+  console.warn('Call quality is degrading!')
+}
+```
+
+#### Grade Thresholds
+
+| Grade | Score Range | Description |
+|-------|-------------|-------------|
+| A | 90-100 | Excellent quality |
+| B | 75-89 | Good quality |
+| C | 60-74 | Fair quality |
+| D | 40-59 | Poor quality |
+| F | 0-39 | Very poor quality |
+
+---
+
+### useNetworkQualityIndicator
+
+Provides visual network quality indicators with signal bars, colors, and accessibility labels for displaying connection quality in the UI.
+
+**Source:** [`src/composables/useNetworkQualityIndicator.ts`](../../src/composables/useNetworkQualityIndicator.ts)
+
+#### Signature
+
+```typescript
+function useNetworkQualityIndicator(
+  options?: NetworkQualityIndicatorOptions
+): UseNetworkQualityIndicatorReturn
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `options.updateInterval` | `number` | `1000` | Update interval in ms |
+| `options.colors` | `Partial<NetworkQualityColors>` | See defaults | Custom color scheme |
+| `options.estimateBandwidth` | `boolean` | `true` | Enable bandwidth estimation |
+| `options.thresholds` | `Partial<NetworkQualityThresholds>` | See defaults | Custom quality thresholds |
+
+##### Default Colors
+
+```typescript
+{
+  excellent: '#22c55e', // green-500
+  good: '#22c55e',      // green-500
+  fair: '#eab308',      // yellow-500
+  poor: '#f97316',      // orange-500
+  critical: '#ef4444',  // red-500
+  unknown: '#9ca3af'    // gray-400
+}
+```
+
+##### Default Thresholds
+
+```typescript
+{
+  rtt: [50, 100, 200, 400],           // ms [excellent, good, fair, poor]
+  packetLoss: [0.5, 1, 2, 5],         // % [excellent, good, fair, poor]
+  jitter: [10, 20, 40, 80]            // ms [excellent, good, fair, poor]
+}
+```
+
+#### Returns: `UseNetworkQualityIndicatorReturn`
+
+##### Reactive State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `indicator` | `Ref<NetworkQualityIndicatorData>` | Current indicator data |
+| `isAvailable` | `Ref<boolean>` | Whether network data is available |
+
+##### Indicator Object
+
+```typescript
+interface NetworkQualityIndicatorData {
+  level: NetworkQualityLevel  // 'excellent' | 'good' | 'fair' | 'poor' | 'critical' | 'unknown'
+  bars: SignalBars            // 1 | 2 | 3 | 4 | 5
+  color: string               // CSS color value
+  icon: NetworkQualityIcon    // Icon name suggestion
+  ariaLabel: string           // Accessibility label
+  details: NetworkDetails     // Detailed metrics
+}
+```
+
+##### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `update` | `(input: NetworkQualityInput) => void` | Update with new network stats |
+| `reset` | `() => void` | Reset to unknown state |
+
+#### Usage Example
+
+```vue
+<template>
+  <div class="network-indicator">
+    <!-- Signal Bars -->
+    <div
+      class="signal-bars"
+      :style="{ color: indicator.color }"
+      :aria-label="indicator.ariaLabel"
+    >
+      <div
+        v-for="bar in 5"
+        :key="bar"
+        class="bar"
+        :class="{ active: bar <= indicator.bars }"
+      />
+    </div>
+
+    <!-- Tooltip with details -->
+    <div v-if="isAvailable" class="tooltip">
+      <p>RTT: {{ indicator.details.rtt }}ms</p>
+      <p>Jitter: {{ indicator.details.jitter }}ms</p>
+      <p>Packet Loss: {{ indicator.details.packetLoss }}%</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useNetworkQualityIndicator, useSipWebRTCStats } from 'vuesip'
+
+const { stats } = useSipWebRTCStats(session)
+const { indicator, isAvailable, update } = useNetworkQualityIndicator({
+  colors: {
+    excellent: '#10b981',
+    critical: '#dc2626'
+  }
+})
+
+// Update indicator when stats change
+watch(stats, (newStats) => {
+  if (newStats) {
+    update({
+      rtt: newStats.rtt,
+      jitter: newStats.jitter,
+      packetLoss: newStats.packetLoss,
+      candidateType: newStats.candidateType
+    })
+  }
+})
+</script>
+
+<style scoped>
+.signal-bars {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.bar {
+  width: 4px;
+  background: currentColor;
+  opacity: 0.2;
+}
+
+.bar.active {
+  opacity: 1;
+}
+
+.bar:nth-child(1) { height: 4px; }
+.bar:nth-child(2) { height: 8px; }
+.bar:nth-child(3) { height: 12px; }
+.bar:nth-child(4) { height: 16px; }
+.bar:nth-child(5) { height: 20px; }
+</style>
+```
+
+#### Quality Levels
+
+| Level | Bars | Typical Conditions |
+|-------|------|-------------------|
+| excellent | 5 | RTT < 50ms, jitter < 10ms, packet loss < 0.5% |
+| good | 4 | RTT < 100ms, jitter < 20ms, packet loss < 1% |
+| fair | 3 | RTT < 200ms, jitter < 40ms, packet loss < 2% |
+| poor | 2 | RTT < 400ms, jitter < 80ms, packet loss < 5% |
+| critical | 1 | RTT ≥ 400ms or jitter ≥ 80ms or packet loss ≥ 5% |
+| unknown | 1 | No data available |
+
+---
+
+### useBandwidthAdaptation
+
+Provides intelligent bandwidth adaptation recommendations based on network conditions. Analyzes available bandwidth, packet loss, and RTT to suggest resolution, framerate, and bitrate adjustments.
+
+**Source:** [`src/composables/useBandwidthAdaptation.ts`](../../src/composables/useBandwidthAdaptation.ts)
+
+#### Signature
+
+```typescript
+function useBandwidthAdaptation(
+  options?: BandwidthAdaptationOptions
+): UseBandwidthAdaptationReturn
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `options.constraints` | `BandwidthConstraints` | See defaults | Bandwidth/quality constraints |
+| `options.sensitivity` | `number` | `0.5` | Adaptation sensitivity (0-1, higher = more reactive) |
+| `options.autoAdapt` | `boolean` | `false` | Enable automatic adaptation |
+| `options.onRecommendation` | `(rec: BandwidthRecommendation) => void` | - | Callback on recommendation change |
+| `options.historySize` | `number` | `5` | History size for smoothing |
+
+##### Default Constraints
+
+```typescript
+{
+  minVideoBitrate: 100,       // kbps
+  maxVideoBitrate: 2500,      // kbps
+  minAudioBitrate: 16,        // kbps
+  maxAudioBitrate: 128,       // kbps
+  targetFramerate: 30,
+  minFramerate: 15,
+  minResolution: { width: 426, height: 240, label: '240p' },
+  preferredResolution: { width: 1280, height: 720, label: '720p' }
+}
+```
+
+#### Returns: `UseBandwidthAdaptationReturn`
+
+##### Reactive State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `recommendation` | `Ref<BandwidthRecommendation>` | Current recommendation |
+| `isAutoAdapting` | `Ref<boolean>` | Whether auto-adaptation is enabled |
+| `constraints` | `Ref<Required<BandwidthConstraints>>` | Current constraints |
+
+##### Recommendation Object
+
+```typescript
+interface BandwidthRecommendation {
+  action: BandwidthAction           // 'upgrade' | 'maintain' | 'downgrade' | 'critical'
+  suggestions: AdaptationSuggestion[]
+  priority: RecommendationPriority  // 'low' | 'medium' | 'high' | 'critical'
+  estimatedImprovement: number      // 0-100
+  timestamp: number
+}
+```
+
+##### Suggestion Object
+
+```typescript
+interface AdaptationSuggestion {
+  type: SuggestionType  // 'video' | 'audio' | 'network' | 'codec'
+  message: string       // Human-readable suggestion
+  current: string       // Current value description
+  recommended: string   // Recommended value description
+  impact: number        // Estimated impact 0-100
+}
+```
+
+##### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `update` | `(input: BandwidthAdaptationInput) => void` | Update with new stats |
+| `setAutoAdapt` | `(enabled: boolean) => void` | Enable/disable auto-adaptation |
+| `setConstraints` | `(constraints: Partial<BandwidthConstraints>) => void` | Update constraints |
+| `reset` | `() => void` | Reset to default state |
+| `applySuggestion` | `(suggestion: AdaptationSuggestion) => void` | Apply a suggestion (placeholder) |
+
+#### Usage Example
+
+```typescript
+import { useBandwidthAdaptation } from 'vuesip'
+
+const {
+  recommendation,
+  update,
+  setConstraints,
+  setAutoAdapt
+} = useBandwidthAdaptation({
+  sensitivity: 0.6,
+  constraints: {
+    minVideoBitrate: 150,
+    preferredResolution: { width: 1280, height: 720, label: '720p' }
+  },
+  onRecommendation: (rec) => {
+    if (rec.priority === 'critical') {
+      console.warn('Critical bandwidth issues detected!')
+    }
+  }
+})
+
+// Update with WebRTC stats
+update({
+  availableBitrate: 1500,
+  currentBitrate: 1200,
+  packetLoss: 2.5,
+  rtt: 120,
+  currentResolution: { width: 1280, height: 720, label: '720p' },
+  currentFramerate: 25,
+  videoEnabled: true,
+  degradationEvents: 2
+})
+
+// React to recommendations
+if (recommendation.value.action === 'downgrade') {
+  console.log('Consider these optimizations:')
+  for (const suggestion of recommendation.value.suggestions) {
+    console.log(`- ${suggestion.message} (Impact: ${suggestion.impact}%)`)
+  }
+}
+
+// Example UI integration
+const getActionColor = (action: BandwidthAction) => {
+  switch (action) {
+    case 'upgrade': return '#22c55e'
+    case 'maintain': return '#3b82f6'
+    case 'downgrade': return '#f97316'
+    case 'critical': return '#ef4444'
+  }
+}
+```
+
+#### Action Types
+
+| Action | Description | Typical Trigger |
+|--------|-------------|-----------------|
+| `upgrade` | Can increase quality | Available bandwidth > 2x current usage |
+| `maintain` | Current quality is optimal | Stable conditions |
+| `downgrade` | Should reduce quality | Bandwidth constrained or high packet loss |
+| `critical` | Severe issues detected | Very low bandwidth or extreme conditions |
+
+#### Video Resolutions
+
+The composable supports standard video resolutions for suggestions:
+
+| Resolution | Label | Use Case |
+|------------|-------|----------|
+| 1920×1080 | 1080p | High bandwidth |
+| 1280×720 | 720p | Standard quality |
+| 854×480 | 480p | Medium bandwidth |
+| 640×360 | 360p | Low bandwidth |
+| 426×240 | 240p | Minimum quality |
+
+---
+
+## Connection Recovery Composables
+
+### useConnectionRecovery
+
+Provides connection recovery with ICE restart handling for WebRTC connections. Monitors peer connection health, detects failures, and automatically or manually triggers recovery attempts.
+
+**Source:** [`src/composables/useConnectionRecovery.ts`](../../src/composables/useConnectionRecovery.ts)
+
+#### Signature
+
+```typescript
+function useConnectionRecovery(
+  options?: ConnectionRecoveryOptions
+): UseConnectionRecoveryReturn
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `options.autoRecover` | `boolean` | `true` | Enable automatic recovery on ICE failure |
+| `options.maxAttempts` | `number` | `3` | Maximum recovery attempts before giving up |
+| `options.attemptDelay` | `number` | `2000` | Delay between attempts in milliseconds |
+| `options.iceRestartTimeout` | `number` | `10000` | Timeout for ICE restart in milliseconds |
+| `options.strategy` | `RecoveryStrategy` | `'ice-restart'` | Recovery strategy to use |
+| `options.onRecoveryStart` | `() => void` | - | Callback when recovery starts |
+| `options.onRecoverySuccess` | `(attempt: RecoveryAttempt) => void` | - | Callback on successful recovery |
+| `options.onRecoveryFailed` | `(attempts: RecoveryAttempt[]) => void` | - | Callback when all attempts fail |
+
+#### Type Definitions
+
+```typescript
+type RecoveryState = 'stable' | 'monitoring' | 'recovering' | 'failed'
+type RecoveryStrategy = 'ice-restart' | 'reconnect' | 'none'
+
+interface IceHealthStatus {
+  iceState: RTCIceConnectionState
+  stateAge: number           // Time since last state change (ms)
+  recoveryAttempts: number
+  isHealthy: boolean
+}
+
+interface RecoveryAttempt {
+  attempt: number
+  strategy: RecoveryStrategy
+  success: boolean
+  duration: number          // Duration of attempt (ms)
+  error?: string
+  timestamp: number
+}
+```
+
+#### Returns: `UseConnectionRecoveryReturn`
+
+##### Reactive State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `state` | `Ref<RecoveryState>` | Current recovery state |
+| `iceHealth` | `Ref<IceHealthStatus>` | Current ICE health status |
+| `attempts` | `Ref<RecoveryAttempt[]>` | History of recovery attempts |
+| `isRecovering` | `ComputedRef<boolean>` | Whether recovery is in progress |
+| `isHealthy` | `ComputedRef<boolean>` | Whether connection is healthy |
+| `error` | `Ref<string \| null>` | Last error message |
+
+##### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `monitor` | `(pc: RTCPeerConnection) => void` | Start monitoring a peer connection |
+| `stopMonitoring` | `() => void` | Stop monitoring the peer connection |
+| `recover` | `() => Promise<boolean>` | Manually trigger recovery |
+| `reset` | `() => void` | Reset recovery state |
+
+#### Usage Example
+
+```typescript
+import { useConnectionRecovery } from 'vuesip'
+
+const {
+  state,
+  iceHealth,
+  isRecovering,
+  isHealthy,
+  attempts,
+  monitor,
+  recover,
+  reset
+} = useConnectionRecovery({
+  maxAttempts: 3,
+  attemptDelay: 2000,
+  autoRecover: true,
+  onRecoveryStart: () => console.log('Recovery started...'),
+  onRecoverySuccess: (attempt) => console.log(`Recovered on attempt ${attempt.attempt}`),
+  onRecoveryFailed: (attempts) => console.error('Recovery failed after', attempts.length, 'attempts')
+})
+
+// Start monitoring a peer connection
+const peerConnection = new RTCPeerConnection()
+monitor(peerConnection)
+
+// Check connection health
+watch(isHealthy, (healthy) => {
+  if (!healthy) {
+    console.warn('Connection health degraded')
+  }
+})
+
+// Monitor recovery state
+watch(state, (newState) => {
+  switch (newState) {
+    case 'stable':
+      console.log('Connection is stable')
+      break
+    case 'monitoring':
+      console.log('Detected issue, monitoring...')
+      break
+    case 'recovering':
+      console.log('Attempting recovery...')
+      break
+    case 'failed':
+      console.error('Recovery failed')
+      break
+  }
+})
+
+// Manual recovery (if autoRecover is false)
+const success = await recover()
+
+// Reset state after call ends
+reset()
+```
+
+#### Integration with Call Session
+
+```vue
+<template>
+  <div class="call-status">
+    <div v-if="isRecovering" class="recovery-indicator">
+      <span class="spinner" />
+      Reconnecting...
+    </div>
+
+    <div v-if="state === 'failed'" class="error-message">
+      Connection lost.
+      <button @click="recover">Retry</button>
+    </div>
+
+    <div class="health-indicator" :class="healthClass">
+      {{ healthLabel }}
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, watch } from 'vue'
+import { useConnectionRecovery, useCallSession } from 'vuesip'
+
+const { session } = useCallSession(sipClient)
+const {
+  state,
+  isRecovering,
+  isHealthy,
+  monitor,
+  stopMonitoring,
+  recover
+} = useConnectionRecovery({
+  maxAttempts: 3,
+  onRecoveryFailed: () => {
+    // Notify user or escalate
+    console.error('Unable to recover connection')
+  }
+})
+
+// Monitor peer connection when session starts
+watch(session, (newSession) => {
+  if (newSession?.peerConnection) {
+    monitor(newSession.peerConnection)
+  } else {
+    stopMonitoring()
+  }
+})
+
+const healthClass = computed(() => ({
+  'healthy': isHealthy.value,
+  'unhealthy': !isHealthy.value && state.value !== 'recovering',
+  'recovering': state.value === 'recovering'
+}))
+
+const healthLabel = computed(() => {
+  if (isRecovering.value) return 'Reconnecting...'
+  if (!isHealthy.value) return 'Connection issues'
+  return 'Connected'
+})
+</script>
+```
+
+#### Recovery States
+
+| State | Description |
+|-------|-------------|
+| `stable` | Connection is healthy, no issues detected |
+| `monitoring` | Issue detected, actively monitoring |
+| `recovering` | Actively attempting to recover |
+| `failed` | All recovery attempts exhausted |
+
+#### Recovery Strategies
+
+| Strategy | Description |
+|----------|-------------|
+| `ice-restart` | Trigger ICE restart with offer renegotiation |
+| `reconnect` | Full reconnection (reserved for future use) |
+| `none` | No automatic recovery |
 
 ---
 

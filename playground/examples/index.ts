@@ -12,6 +12,7 @@ import { customRingtonesExample } from './custom-ringtones'
 import { callRecordingExample } from './call-recording'
 import { conferenceCallExample } from './conference-call'
 import { callMutePatternsExample } from './call-mute-patterns'
+import { connectionRecoveryExample } from './connection-recovery'
 import { networkSimulatorExample } from './network-simulator'
 import { screenSharingExample } from './screen-sharing'
 import { pictureInPictureExample } from './picture-in-picture'
@@ -63,6 +64,7 @@ export const sipExamples = [
   multiLineExample,
   callQualityExample,
   webrtcStatsExample,
+  connectionRecoveryExample,
   callMutePatternsExample,
 ]
 

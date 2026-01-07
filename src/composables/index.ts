@@ -68,6 +68,7 @@ export { useSipDtmf } from './useSipDtmf'
 export { useCallQualityScore } from './useCallQualityScore'
 export { useNetworkQualityIndicator } from './useNetworkQualityIndicator'
 export { useBandwidthAdaptation } from './useBandwidthAdaptation'
+export { useConnectionRecovery } from './useConnectionRecovery'
 
 // Additional composables
 export { useCallHold } from './useCallHold'
@@ -109,6 +110,16 @@ export {
 // Re-export types needed by demos
 export type { CallbackPriority, CallbackRequest } from '../types/callback.types'
 export type { BlockReason, BlockAction, BlockEntry } from '../types/blacklist.types'
+
+// Connection recovery types
+export type {
+  RecoveryState,
+  RecoveryStrategy,
+  IceHealthStatus,
+  RecoveryAttempt,
+  ConnectionRecoveryOptions,
+  UseConnectionRecoveryReturn,
+} from '../types/connection-recovery.types'
 
 // Call quality types
 export type {
