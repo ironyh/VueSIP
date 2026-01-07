@@ -1137,4 +1137,291 @@ describe('JsSipCallSession', () => {
       await expect(result).resolves.toBeUndefined()
     })
   })
+
+  // ==========================================================================
+  // sendDTMF() Method
+  // ==========================================================================
+
+  describe('sendDTMF()', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should call session.sendDTMF with tone', async () => {
+      await callSession.sendDTMF('5')
+
+      expect(mockSession.sendDTMF).toHaveBeenCalledWith('5', {})
+    })
+
+    it('should pass duration option', async () => {
+      await callSession.sendDTMF('1', { duration: 200 })
+
+      expect(mockSession.sendDTMF).toHaveBeenCalledWith('1', { duration: 200 })
+    })
+
+    it('should pass interToneGap option', async () => {
+      await callSession.sendDTMF('2', { interToneGap: 100 })
+
+      expect(mockSession.sendDTMF).toHaveBeenCalledWith('2', { interToneGap: 100 })
+    })
+
+    it('should map transport to transportType', async () => {
+      await callSession.sendDTMF('3', { transport: 'RFC2833' })
+
+      expect(mockSession.sendDTMF).toHaveBeenCalledWith('3', { transportType: 'RFC2833' })
+    })
+
+    it('should pass all options combined', async () => {
+      await callSession.sendDTMF('*', {
+        duration: 150,
+        interToneGap: 75,
+        transport: 'INFO',
+      })
+
+      expect(mockSession.sendDTMF).toHaveBeenCalledWith('*', {
+        duration: 150,
+        interToneGap: 75,
+        transportType: 'INFO',
+      })
+    })
+
+    it('should handle errors', async () => {
+      const error = new Error('DTMF send failed')
+      mockSession.sendDTMF.mockImplementation(() => {
+        throw error
+      })
+
+      await expect(callSession.sendDTMF('5')).rejects.toThrow('DTMF send failed')
+    })
+
+    it('should handle all valid DTMF tones', async () => {
+      const validTones = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '#', 'A', 'B', 'C', 'D']
+
+      for (const tone of validTones) {
+        vi.clearAllMocks()
+        await callSession.sendDTMF(tone)
+        expect(mockSession.sendDTMF).toHaveBeenCalledWith(tone, {})
+      }
+    })
+  })
+
+  // ==========================================================================
+  // transfer() Method (Blind Transfer)
+  // ==========================================================================
+
+  describe('transfer()', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should call session.refer with target', async () => {
+      await callSession.transfer('sip:other@example.com')
+
+      expect(mockSession.refer).toHaveBeenCalledWith('sip:other@example.com')
+    })
+
+    it('should resolve successfully when refer is available', async () => {
+      await expect(callSession.transfer('sip:target@example.com')).resolves.toBeUndefined()
+    })
+
+    it('should reject if refer is not available', async () => {
+      // Remove the refer method
+      mockSession.refer = undefined as unknown as Mock
+
+      await expect(callSession.transfer('sip:target@example.com')).rejects.toThrow(
+        'Transfer not supported by this session'
+      )
+    })
+
+    it('should handle errors from refer', async () => {
+      const error = new Error('Refer failed')
+      mockSession.refer.mockImplementation(() => {
+        throw error
+      })
+
+      await expect(callSession.transfer('sip:target@example.com')).rejects.toThrow('Refer failed')
+    })
+
+    it('should work with different target formats', async () => {
+      const targets = [
+        'sip:user@domain.com',
+        'sip:+15551234567@gateway.com',
+        'sips:secure@domain.com',
+        '1234',
+      ]
+
+      for (const target of targets) {
+        vi.clearAllMocks()
+        await callSession.transfer(target)
+        expect(mockSession.refer).toHaveBeenCalledWith(target)
+      }
+    })
+  })
+
+  // ==========================================================================
+  // attendedTransfer() Method
+  // ==========================================================================
+
+  describe('attendedTransfer()', () => {
+    let targetSession: JsSipCallSession
+    let targetMockSession: MockRTCSessionType
+
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing', {
+        id: 'session-1',
+        remoteUri: 'sip:alice@example.com',
+      })
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+
+      targetMockSession = createMockRTCSession('outgoing', {
+        id: 'session-2',
+        remoteUri: 'sip:bob@example.com',
+      })
+      targetSession = new JsSipCallSession(targetMockSession as unknown as RTCSession)
+    })
+
+    it('should call session.refer with target URI and Replaces header', async () => {
+      await callSession.attendedTransfer(targetSession)
+
+      expect(mockSession.refer).toHaveBeenCalledWith('sip:bob@example.com', {
+        extraHeaders: ['Replaces: session-2'],
+      })
+    })
+
+    it('should resolve successfully when refer is available', async () => {
+      await expect(callSession.attendedTransfer(targetSession)).resolves.toBeUndefined()
+    })
+
+    it('should reject if refer is not available', async () => {
+      // Remove the refer method
+      mockSession.refer = undefined as unknown as Mock
+
+      await expect(callSession.attendedTransfer(targetSession)).rejects.toThrow(
+        'Attended transfer not supported by this session'
+      )
+    })
+
+    it('should handle errors from refer', async () => {
+      const error = new Error('Attended transfer failed')
+      mockSession.refer.mockImplementation(() => {
+        throw error
+      })
+
+      await expect(callSession.attendedTransfer(targetSession)).rejects.toThrow(
+        'Attended transfer failed'
+      )
+    })
+
+    it('should use correct target session properties', async () => {
+      // Create a target with specific properties
+      const customTargetMock = createMockRTCSession('incoming', {
+        id: 'custom-session-id-xyz',
+        remoteUri: 'sip:charlie@otherdomain.com',
+      })
+      const customTargetSession = new JsSipCallSession(customTargetMock as unknown as RTCSession)
+
+      await callSession.attendedTransfer(customTargetSession)
+
+      expect(mockSession.refer).toHaveBeenCalledWith('sip:charlie@otherdomain.com', {
+        extraHeaders: ['Replaces: custom-session-id-xyz'],
+      })
+    })
+  })
+
+  // ==========================================================================
+  // renegotiate() Method
+  // ==========================================================================
+
+  describe('renegotiate()', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should call session.renegotiate with callback', async () => {
+      await callSession.renegotiate()
+
+      expect(mockSession.renegotiate).toHaveBeenCalledWith({}, expect.any(Function))
+    })
+
+    it('should pass mediaConstraints as rtcOfferConstraints', async () => {
+      const mediaConstraints = { audio: true, video: { width: 1280 } }
+
+      await callSession.renegotiate({ mediaConstraints })
+
+      expect(mockSession.renegotiate).toHaveBeenCalledWith(
+        { rtcOfferConstraints: mediaConstraints },
+        expect.any(Function)
+      )
+    })
+
+    it('should pass useUpdate option', async () => {
+      await callSession.renegotiate({ useUpdate: true })
+
+      expect(mockSession.renegotiate).toHaveBeenCalledWith(
+        { useUpdate: true },
+        expect.any(Function)
+      )
+    })
+
+    it('should pass all options combined', async () => {
+      const options = {
+        mediaConstraints: { audio: false, video: true },
+        useUpdate: true,
+      }
+
+      await callSession.renegotiate(options)
+
+      expect(mockSession.renegotiate).toHaveBeenCalledWith(
+        {
+          rtcOfferConstraints: options.mediaConstraints,
+          useUpdate: true,
+        },
+        expect.any(Function)
+      )
+    })
+
+    it('should reject when renegotiate returns false', async () => {
+      mockSession.renegotiate.mockImplementation(() => false)
+
+      await expect(callSession.renegotiate()).rejects.toThrow('Renegotiation failed')
+    })
+
+    it('should resolve after callback is invoked', async () => {
+      let callbackInvoked = false
+      mockSession.renegotiate.mockImplementation(
+        (_opts: unknown, callback: () => void) => {
+          // Simulate async callback
+          setTimeout(() => {
+            callbackInvoked = true
+            callback()
+          }, 10)
+          return true
+        }
+      )
+
+      await callSession.renegotiate()
+
+      expect(callbackInvoked).toBe(true)
+    })
+
+    it('should resolve immediately when callback is called synchronously', async () => {
+      mockSession.renegotiate.mockImplementation(
+        (_opts: unknown, callback: () => void) => {
+          callback()
+          return true
+        }
+      )
+
+      await expect(callSession.renegotiate()).resolves.toBeUndefined()
+    })
+
+    it('should work with empty options', async () => {
+      await callSession.renegotiate({})
+
+      expect(mockSession.renegotiate).toHaveBeenCalledWith({}, expect.any(Function))
+    })
+  })
 })
