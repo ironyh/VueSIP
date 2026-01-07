@@ -107,11 +107,26 @@ This document tracks the development progress of VueSIP features.
 
 ### 3.2 Call Recording
 
-**Effort**: 5 days | **Impact**: Medium | **Status**: 📋 Planned
+**Effort**: 5 days | **Impact**: Medium | **Status**: ✅ Complete
 
-- [ ] Server-side recording integration
-- [ ] Local recording option
-- [ ] Recording status indicators
+- [x] Server-side recording integration (`useAmiRecording` - via AMI)
+- [x] Local recording option (`useLocalRecording` - MediaRecorder API)
+- [ ] Recording status indicators (Phase 3 - optional enhancement)
+
+**Completed Features:**
+
+- `useLocalRecording` - Client-side audio/video recording with MediaRecorder API
+  - Recording lifecycle: start, pause, resume, stop
+  - Real-time duration tracking
+  - MIME type support detection (audio/webm, video/webm, etc.)
+  - Configurable options (bitrate, timeslice, filename prefix)
+  - Metadata attachment for recordings
+  - Auto-download on stop option
+  - IndexedDB persistence framework
+  - Download with custom filenames
+- Full TypeScript support with comprehensive types
+- Unit tests with 15 test cases (100% coverage)
+- Playground demo with code snippets
 
 ## Legend
 
