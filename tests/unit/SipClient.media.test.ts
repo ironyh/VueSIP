@@ -9,54 +9,11 @@ import type { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
 import { ConnectionState } from '@/types/sip.types'
 
-// Mock JsSIP
-const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers } = vi.hoisted(() => {
-  const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
-  const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
+// Enable automatic mocking using __mocks__/jssip.ts
+vi.mock('jssip')
 
-  const triggerEvent = (event: string, data?: any) => {
-    const handlers = eventHandlers[event] || []
-    handlers.forEach((handler) => handler(data))
-    const once = onceHandlers[event] || []
-    once.forEach((handler) => handler(data))
-    onceHandlers[event] = []
-  }
-
-  const mockUA = {
-    start: vi.fn(),
-    stop: vi.fn(),
-    isConnected: vi.fn().mockReturnValue(true),
-    isRegistered: vi.fn().mockReturnValue(true),
-    on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (!eventHandlers[event]) eventHandlers[event] = []
-      eventHandlers[event].push(handler)
-    }),
-    once: vi.fn((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-    }),
-    off: vi.fn(),
-  }
-
-  const mockWebSocketInterface = vi.fn()
-
-  return { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent }
-})
-
-vi.mock('jssip', () => {
-  return {
-    default: {
-      UA: vi.fn(function () {
-        return mockUA
-      }),
-      WebSocketInterface: mockWebSocketInterface,
-      debug: {
-        enable: vi.fn(),
-        disable: vi.fn(),
-      },
-    },
-  }
-})
+// Import mock helpers from the mocked module
+import { mockUA, resetMockJsSip } from 'jssip'
 
 describe('SipClient - Media Control Features', () => {
   let eventBus: EventBus
@@ -64,21 +21,8 @@ describe('SipClient - Media Control Features', () => {
   let config: SipClientConfig
 
   beforeEach(() => {
-    vi.clearAllMocks()
-
-    // Clear event handlers
-    Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
-    Object.keys(onceHandlers).forEach((key) => delete onceHandlers[key])
-
-    // Restore default mock implementations
-    mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!eventHandlers[event]) eventHandlers[event] = []
-      eventHandlers[event].push(handler)
-    })
-    mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-    })
+    // Reset all mocks and handlers using shared helper
+    resetMockJsSip()
 
     mockUA.isConnected.mockReturnValue(true)
     mockUA.isRegistered.mockReturnValue(true)

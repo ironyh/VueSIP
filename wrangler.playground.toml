@@ -1,6 +1,0 @@
-name = "vuesiplay"
-compatibility_date = "2025-12-10"
-workers_dev = true
-
-[assets]
-directory = "dist-playground"

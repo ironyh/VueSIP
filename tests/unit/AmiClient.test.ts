@@ -274,20 +274,26 @@ describe('AmiClient', () => {
     })
 
     it('should timeout if no response', async () => {
-      // Use a very short real timeout (50ms) instead of fake timers
-      const actionPromise = client.sendAction({ Action: 'SlowAction' }, 50)
+      // Enable fake timers AFTER connection is established (in beforeEach)
+      vi.useFakeTimers()
 
-      // Don't send a response - let it timeout naturally
-      await expect(actionPromise).rejects.toThrow('AMI action timeout: SlowAction')
+      // Start an action with a reasonable timeout
+      const actionPromise = client.sendAction({ Action: 'SlowAction' }, 5000)
 
-      // Test error type
-      try {
-        await client.sendAction({ Action: 'SlowAction2' }, 50)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AmiError)
-        expect((error as AmiError).code).toBe(AmiErrorCode.ACTION_TIMEOUT)
-      }
-    }, 10000)
+      // Attach catch handler BEFORE advancing timers to prevent unhandled rejection
+      const errorPromise = actionPromise.catch((error) => error)
+
+      // Advance timers to trigger timeout
+      await vi.advanceTimersByTimeAsync(5000)
+
+      // Verify the error
+      const error = await errorPromise
+      expect(error).toBeInstanceOf(AmiError)
+      expect((error as AmiError).code).toBe(AmiErrorCode.ACTION_TIMEOUT)
+      expect(error.message).toContain('AMI action timeout: SlowAction')
+
+      vi.useRealTimers()
+    })
 
     it('should use provided ActionID', async () => {
       // Start the action but catch rejection when disconnect happens in afterEach
@@ -1019,11 +1025,24 @@ describe('AmiClient', () => {
     })
 
     it('should handle timeout for queue status', async () => {
-      const statusPromise = client.getQueueStatus('support', 100)
+      // Enable fake timers AFTER connection is established (in beforeEach)
+      vi.useFakeTimers()
 
-      // Don't send completion event - let it timeout
-      await expect(statusPromise).rejects.toThrow('QueueStatus timeout')
-    }, 10000)
+      // Start the operation with a reasonable timeout
+      const statusPromise = client.getQueueStatus('support', 5000)
+
+      // Attach catch handler BEFORE advancing timers to prevent unhandled rejection
+      const errorPromise = statusPromise.catch((error) => error)
+
+      // Don't send completion event - advance timers to trigger timeout
+      await vi.advanceTimersByTimeAsync(5000)
+
+      // Verify the error
+      const error = await errorPromise
+      expect(error.message).toContain('QueueStatus timeout')
+
+      vi.useRealTimers()
+    })
   })
 
   describe('getQueueSummary', () => {
@@ -1102,10 +1121,24 @@ describe('AmiClient', () => {
     })
 
     it('should handle timeout for queue summary', async () => {
-      const summaryPromise = client.getQueueSummary(undefined, 100)
+      // Enable fake timers AFTER connection is established (in beforeEach)
+      vi.useFakeTimers()
 
-      await expect(summaryPromise).rejects.toThrow('QueueSummary timeout')
-    }, 10000)
+      // Start the operation with a reasonable timeout
+      const summaryPromise = client.getQueueSummary(undefined, 5000)
+
+      // Attach catch handler BEFORE advancing timers to prevent unhandled rejection
+      const errorPromise = summaryPromise.catch((error) => error)
+
+      // Don't send completion event - advance timers to trigger timeout
+      await vi.advanceTimersByTimeAsync(5000)
+
+      // Verify the error
+      const error = await errorPromise
+      expect(error.message).toContain('QueueSummary timeout')
+
+      vi.useRealTimers()
+    })
   })
 
   describe('queuePenalty', () => {
@@ -1227,10 +1260,24 @@ describe('AmiClient', () => {
     })
 
     it('should handle timeout for get channels', async () => {
-      const channelsPromise = client.getChannels(100)
+      // Enable fake timers AFTER connection is established (in beforeEach)
+      vi.useFakeTimers()
 
-      await expect(channelsPromise).rejects.toThrow('CoreShowChannels timeout')
-    }, 10000)
+      // Start the operation with a reasonable timeout
+      const channelsPromise = client.getChannels(5000)
+
+      // Attach catch handler BEFORE advancing timers to prevent unhandled rejection
+      const errorPromise = channelsPromise.catch((error) => error)
+
+      // Don't send completion event - advance timers to trigger timeout
+      await vi.advanceTimersByTimeAsync(5000)
+
+      // Verify the error
+      const error = await errorPromise
+      expect(error.message).toContain('CoreShowChannels timeout')
+
+      vi.useRealTimers()
+    })
   })
 
   describe('redirectChannel', () => {
@@ -1349,10 +1396,24 @@ describe('AmiClient', () => {
     })
 
     it('should handle timeout for SIP peers', async () => {
-      const peersPromise = client.getSipPeers(100)
+      // Enable fake timers AFTER connection is established (in beforeEach)
+      vi.useFakeTimers()
 
-      await expect(peersPromise).rejects.toThrow('SIPpeers timeout')
-    }, 10000)
+      // Start the operation with a reasonable timeout
+      const peersPromise = client.getSipPeers(5000)
+
+      // Attach catch handler BEFORE advancing timers to prevent unhandled rejection
+      const errorPromise = peersPromise.catch((error) => error)
+
+      // Don't send completion event - advance timers to trigger timeout
+      await vi.advanceTimersByTimeAsync(5000)
+
+      // Verify the error
+      const error = await errorPromise
+      expect(error.message).toContain('SIPpeers timeout')
+
+      vi.useRealTimers()
+    })
   })
 
   describe('getPjsipEndpoints', () => {
@@ -1403,10 +1464,24 @@ describe('AmiClient', () => {
     })
 
     it('should handle timeout for PJSIP endpoints', async () => {
-      const peersPromise = client.getPjsipEndpoints(100)
+      // Enable fake timers AFTER connection is established (in beforeEach)
+      vi.useFakeTimers()
 
-      await expect(peersPromise).rejects.toThrow('PJSIPShowEndpoints timeout')
-    }, 10000)
+      // Start the operation with a reasonable timeout
+      const peersPromise = client.getPjsipEndpoints(5000)
+
+      // Attach catch handler BEFORE advancing timers to prevent unhandled rejection
+      const errorPromise = peersPromise.catch((error) => error)
+
+      // Don't send completion event - advance timers to trigger timeout
+      await vi.advanceTimersByTimeAsync(5000)
+
+      // Verify the error
+      const error = await errorPromise
+      expect(error.message).toContain('PJSIPShowEndpoints timeout')
+
+      vi.useRealTimers()
+    })
   })
 
   describe('getAllPeers', () => {

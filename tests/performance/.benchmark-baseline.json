@@ -1,0 +1,1431 @@
+{
+  "files": [
+    {
+      "filepath": "/home/irony/code/VueSIP/tests/performance/benchmarks/callSession.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > Session Creation",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_0_0",
+              "name": "create incoming call session",
+              "rank": 2,
+              "rme": 6.350556884302868,
+              "samples": [],
+              "totalTime": 1000.0002259998844,
+              "min": 0.0012529999999060237,
+              "max": 23.240409999999883,
+              "hz": 262883.94058825984,
+              "period": 0.0038039600203887813,
+              "mean": 0.0038039600203887813,
+              "variance": 0.003993443279267753,
+              "sd": 0.06319369651529932,
+              "sem": 0.00012325134946475946,
+              "df": 262883,
+              "critical": 1.96,
+              "moe": 0.00024157264495092853,
+              "p75": 0.0030749999998533895,
+              "p99": 0.012029999999867869,
+              "p995": 0.025654000000031374,
+              "p999": 0.12205700000004072,
+              "sampleCount": 262884,
+              "median": 0.002385999999660271
+            },
+            {
+              "id": "1065096799_0_0_1",
+              "name": "create outgoing call session",
+              "rank": 1,
+              "rme": 10.932743887146696,
+              "samples": [],
+              "totalTime": 1027.4545690000805,
+              "min": 0.0012419999998201092,
+              "max": 46.0984440000002,
+              "hz": 331534.8534889559,
+              "period": 0.0030162741246549272,
+              "mean": 0.0030162741246549272,
+              "variance": 0.009642277857823116,
+              "sd": 0.09819510098687773,
+              "sem": 0.00016824567601163217,
+              "df": 340636,
+              "critical": 1.96,
+              "moe": 0.00032976152498279907,
+              "p75": 0.0023969999997461855,
+              "p99": 0.009061000000201602,
+              "p995": 0.01834099999996397,
+              "p999": 0.08884299999999712,
+              "sampleCount": 340637,
+              "median": 0.0017370000000482833
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > Answer Operations",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_1_0",
+              "name": "answer incoming call (fast path)",
+              "rank": 1,
+              "rme": 3.419123103769376,
+              "samples": [],
+              "totalTime": 500.0060310001518,
+              "min": 0.0015389999998660642,
+              "max": 2.427972999999838,
+              "hz": 287114.5368243697,
+              "period": 0.0034829305790661106,
+              "mean": 0.0034829305790661106,
+              "variance": 0.0005299530471169509,
+              "sd": 0.02302070909240093,
+              "sem": 0.00006075800210056016,
+              "df": 143558,
+              "critical": 1.96,
+              "moe": 0.00011908568411709791,
+              "p75": 0.003022999999757303,
+              "p99": 0.010885999999118212,
+              "p995": 0.022575000000415457,
+              "p999": 0.13097500000003492,
+              "sampleCount": 143559,
+              "median": 0.0022209999997357954
+            },
+            {
+              "id": "1065096799_0_1_1",
+              "name": "answer with custom media constraints (slow path)",
+              "rank": 2,
+              "rme": 20.120593887304434,
+              "samples": [],
+              "totalTime": 500.00116700015406,
+              "min": 0.0015059999996083206,
+              "max": 38.564189999999144,
+              "hz": 177557.58558054056,
+              "period": 0.005631975658659751,
+              "mean": 0.005631975658659751,
+              "variance": 0.02967571797909656,
+              "sd": 0.17226641570281934,
+              "sem": 0.0005781566071993711,
+              "df": 88778,
+              "critical": 1.96,
+              "moe": 0.0011331869501107674,
+              "p75": 0.0031890000000203145,
+              "p99": 0.023200999999971827,
+              "p995": 0.0744219999996858,
+              "p999": 0.3692140000002837,
+              "sampleCount": 88779,
+              "median": 0.00222100000064529
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > Call Termination",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_2_0",
+              "name": "hangup active call",
+              "rank": 2,
+              "rme": 23.823256662939563,
+              "samples": [],
+              "totalTime": 500.0012040000556,
+              "min": 0.00128599999970902,
+              "max": 60.1561899999997,
+              "hz": 303893.2682249763,
+              "period": 0.0032906289956370024,
+              "mean": 0.0032906289956370024,
+              "variance": 0.024307488390307122,
+              "sd": 0.15590858985414216,
+              "sem": 0.000399966832375364,
+              "df": 151946,
+              "critical": 1.96,
+              "moe": 0.0007839349914557133,
+              "p75": 0.00248600000031729,
+              "p99": 0.009171000000606,
+              "p995": 0.01831899999979214,
+              "p999": 0.08916800000042713,
+              "sampleCount": 151947,
+              "median": 0.0018360000003667665
+            },
+            {
+              "id": "1065096799_0_2_1",
+              "name": "reject incoming call",
+              "rank": 1,
+              "rme": 3.7315785223688684,
+              "samples": [],
+              "totalTime": 500.00209899997753,
+              "min": 0.00128599999970902,
+              "max": 3.93181899999945,
+              "hz": 361200.48368038575,
+              "period": 0.0027685455728372354,
+              "mean": 0.0027685455728372354,
+              "variance": 0.0005017605712628987,
+              "sd": 0.02240001275140036,
+              "sem": 0.00005270941427448389,
+              "df": 180600,
+              "critical": 1.96,
+              "moe": 0.00010331045197798843,
+              "p75": 0.0023860000001150183,
+              "p99": 0.00871999999981199,
+              "p995": 0.013954000000012456,
+              "p999": 0.08716699999968114,
+              "sampleCount": 180601,
+              "median": 0.0017149999994217069
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > Hold/Resume Operations",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_3_0",
+              "name": "hold active call",
+              "rank": 2,
+              "rme": 36.827703645242586,
+              "samples": [],
+              "totalTime": 500.02701699984027,
+              "min": 0.0016169999998965068,
+              "max": 93.36947599999985,
+              "hz": 212656.50931824345,
+              "period": 0.004702418953484683,
+              "mean": 0.004702418953484683,
+              "variance": 0.08301411192762137,
+              "sd": 0.28812169638474183,
+              "sem": 0.0008835678144627841,
+              "df": 106333,
+              "critical": 1.96,
+              "moe": 0.0017317929163470568,
+              "p75": 0.003089999999247084,
+              "p99": 0.013184999999793945,
+              "p995": 0.025005999999848427,
+              "p999": 0.11355200000070909,
+              "sampleCount": 106334,
+              "median": 0.0022880000005898182
+            },
+            {
+              "id": "1065096799_0_3_1",
+              "name": "resume held call",
+              "rank": 1,
+              "rme": 4.214311832186134,
+              "samples": [],
+              "totalTime": 500.0023320000291,
+              "min": 0.0015829999993002275,
+              "max": 1.7940560000006371,
+              "hz": 272192.7304930891,
+              "period": 0.003673867403396321,
+              "mean": 0.003673867403396321,
+              "variance": 0.0008492522377620125,
+              "sd": 0.029141932636014594,
+              "sem": 0.00007899399422457175,
+              "df": 136096,
+              "critical": 1.96,
+              "moe": 0.00015482822868016064,
+              "p75": 0.003034999999727006,
+              "p99": 0.01224999999976717,
+              "p995": 0.023554000000331143,
+              "p999": 0.11119299999973009,
+              "sampleCount": 136097,
+              "median": 0.0022650000000794535
+            },
+            {
+              "id": "1065096799_0_3_2",
+              "name": "hold/resume cycle",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > Mute/Unmute Operations",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_4_0",
+              "name": "mute call",
+              "rank": 1,
+              "rme": 3.7696297251538105,
+              "samples": [],
+              "totalTime": 500.1995989998095,
+              "min": 0.0014179999998304993,
+              "max": 1.7178569999996398,
+              "hz": 322831.1264601024,
+              "period": 0.003097594742381778,
+              "mean": 0.003097594742381778,
+              "variance": 0.0005731300527187859,
+              "sd": 0.023940134768183446,
+              "sem": 0.00005957543478246179,
+              "df": 161479,
+              "critical": 1.96,
+              "moe": 0.0001167678521736251,
+              "p75": 0.002650999999787018,
+              "p99": 0.009345999998913612,
+              "p995": 0.016889999999875727,
+              "p999": 0.09103799999957118,
+              "sampleCount": 161480,
+              "median": 0.0019019999999727588
+            },
+            {
+              "id": "1065096799_0_4_1",
+              "name": "unmute call",
+              "rank": 2,
+              "rme": 3.9400722223959788,
+              "samples": [],
+              "totalTime": 500.1799789995748,
+              "min": 0.0014289999999164138,
+              "max": 1.852312000000893,
+              "hz": 318505.35145097325,
+              "period": 0.0031396646726481376,
+              "mean": 0.0031396646726481376,
+              "variance": 0.0006346083656630399,
+              "sd": 0.02519143437089361,
+              "sem": 0.00006311482430785148,
+              "df": 159309,
+              "critical": 1.96,
+              "moe": 0.0001237050556433889,
+              "p75": 0.002628000000186148,
+              "p99": 0.00942399999985355,
+              "p995": 0.018385000001217122,
+              "p999": 0.09999900000002526,
+              "sampleCount": 159310,
+              "median": 0.0019130000000586733
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > DTMF Operations",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_5_0",
+              "name": "send single DTMF tone",
+              "rank": 1,
+              "rme": 3.869790903395482,
+              "samples": [],
+              "totalTime": 500.0037880002019,
+              "min": 0.0015399999992951052,
+              "max": 1.7869190000001254,
+              "hz": 291927.78835495753,
+              "period": 0.0034255046620779083,
+              "mean": 0.0034255046620779083,
+              "variance": 0.0006676682331963872,
+              "sd": 0.02583927694801825,
+              "sem": 0.00006763258561657095,
+              "df": 145964,
+              "critical": 1.96,
+              "moe": 0.00013255986780847905,
+              "p75": 0.0029030000005150214,
+              "p99": 0.010897000000113621,
+              "p995": 0.019947000000684056,
+              "p999": 0.10738800000035553,
+              "sampleCount": 145965,
+              "median": 0.0021219999998720596
+            },
+            {
+              "id": "1065096799_0_5_1",
+              "name": "send DTMF with custom duration",
+              "rank": 2,
+              "rme": 6.616999040520194,
+              "samples": [],
+              "totalTime": 500.00009900021905,
+              "min": 0.0015640000001440058,
+              "max": 8.650405999998839,
+              "hz": 248115.95087293306,
+              "period": 0.00403037368811539,
+              "mean": 0.00403037368811539,
+              "variance": 0.0022968117744179496,
+              "sd": 0.04792506415663885,
+              "sem": 0.00013606621850610905,
+              "df": 124057,
+              "critical": 1.96,
+              "moe": 0.0002666897882719737,
+              "p75": 0.0030970000007073395,
+              "p99": 0.011451000000306522,
+              "p995": 0.023033999999825028,
+              "p999": 0.13590999999905762,
+              "sampleCount": 124058,
+              "median": 0.002281000000948552
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > State Transitions",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_6_0",
+              "name": "call flow: ringing -> active",
+              "rank": 1,
+              "rme": 6.919135527165795,
+              "samples": [],
+              "totalTime": 500.1266100000521,
+              "min": 0.0023370000017166603,
+              "max": 2.971136000000115,
+              "hz": 154822.79577163857,
+              "period": 0.0064589971716761,
+              "mean": 0.0064589971716761,
+              "variance": 0.004025655332235882,
+              "sd": 0.0634480522335862,
+              "sem": 0.0002280136571449362,
+              "df": 77430,
+              "critical": 1.96,
+              "moe": 0.00044690676800407495,
+              "p75": 0.004474000001209788,
+              "p99": 0.038881999998920946,
+              "p995": 0.05112599999847589,
+              "p999": 1.2227210000000923,
+              "sampleCount": 77431,
+              "median": 0.0032840000003488967
+            },
+            {
+              "id": "1065096799_0_6_1",
+              "name": "call flow: active -> terminated",
+              "rank": 2,
+              "rme": 28.18494824563062,
+              "samples": [],
+              "totalTime": 551.7403289999947,
+              "min": 0.0029209999993327074,
+              "max": 64.01234399999885,
+              "hz": 2528.363301860454,
+              "period": 0.39551278064515755,
+              "mean": 0.39551278064515755,
+              "variance": 4.51250391886784,
+              "sd": 2.1242655010303775,
+              "sem": 0.056875037004945006,
+              "df": 1394,
+              "critical": 1.96,
+              "moe": 0.11147507252969222,
+              "p75": 0.01036000000021886,
+              "p99": 5.132315999999264,
+              "p995": 5.248014000000694,
+              "p999": 9.66511999999966,
+              "sampleCount": 1395,
+              "median": 0.006315000000540749
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > Event Propagation",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_7_0",
+              "name": "event propagation speed",
+              "rank": 1,
+              "rme": 6.045963537503322,
+              "samples": [],
+              "totalTime": 501.2954100001807,
+              "min": 0.0021820000001753215,
+              "max": 3.1283930000008695,
+              "hz": 181631.42566968084,
+              "period": 0.005505655182262476,
+              "mean": 0.005505655182262476,
+              "variance": 0.0026261627740366577,
+              "sd": 0.05124610008612029,
+              "sem": 0.00016983158409196501,
+              "df": 91050,
+              "critical": 1.96,
+              "moe": 0.0003328699048202514,
+              "p75": 0.004076999999597319,
+              "p99": 0.01751200000035169,
+              "p995": 0.040402000000540284,
+              "p999": 0.34133900000051653,
+              "sampleCount": 91051,
+              "median": 0.002953999999590451
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > toInterface Serialization",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_8_0",
+              "name": "serialize call session to interface",
+              "rank": 1,
+              "rme": 4.667718909158877,
+              "samples": [],
+              "totalTime": 500.00134199981403,
+              "min": 0.0012669999996433035,
+              "max": 2.0301429999999527,
+              "hz": 327291.1215507515,
+              "period": 0.0030553838285067403,
+              "mean": 0.0030553838285067403,
+              "variance": 0.0008664314193167031,
+              "sd": 0.029435207139014718,
+              "sem": 0.00007276363709724059,
+              "df": 163645,
+              "critical": 1.96,
+              "moe": 0.00014261672871059155,
+              "p75": 0.002447000000756816,
+              "p99": 0.009245999999620835,
+              "p995": 0.017655999999988126,
+              "p999": 0.0894349999998667,
+              "sampleCount": 163646,
+              "median": 0.001752999998643645
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/callSession.bench.ts > CallSession Performance Benchmarks > Memory Management",
+          "benchmarks": [
+            {
+              "id": "1065096799_0_9_0",
+              "name": "cleanup on destroy",
+              "rank": 1,
+              "rme": 4.449178277436239,
+              "samples": [],
+              "totalTime": 500.3071870001859,
+              "min": 0.0012459999998100102,
+              "max": 1.4767069999998057,
+              "hz": 364132.2865904229,
+              "period": 0.002746254690468585,
+              "mean": 0.002746254690468585,
+              "variance": 0.0007079865821188482,
+              "sd": 0.026608017252678716,
+              "sem": 0.00006233967710785821,
+              "df": 182177,
+              "critical": 1.96,
+              "moe": 0.0001221857671314021,
+              "p75": 0.0022040000003471505,
+              "p99": 0.007779999999911524,
+              "p995": 0.012520000000222353,
+              "p999": 0.07345900000109395,
+              "sampleCount": 182178,
+              "median": 0.001642000001083943
+            },
+            {
+              "id": "1065096799_0_9_1",
+              "name": "concurrent session creation and cleanup",
+              "rank": 2,
+              "rme": 162.798537496273,
+              "samples": [],
+              "totalTime": 511.07161799995447,
+              "min": 0.006115999998655752,
+              "max": 424.47013799999877,
+              "hz": 11851.567934262668,
+              "period": 0.0843770212976646,
+              "mean": 0.0843770212976646,
+              "variance": 29.75053695653752,
+              "sd": 5.454405279820846,
+              "sem": 0.07008395747730448,
+              "df": 6056,
+              "critical": 1.96,
+              "moe": 0.13736455665551678,
+              "p75": 0.010833000000275206,
+              "p99": 0.06882500000028813,
+              "p995": 0.10989999999947031,
+              "p999": 1.4707280000002356,
+              "sampleCount": 6057,
+              "median": 0.007604000000355882
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "filepath": "/home/irony/code/VueSIP/tests/performance/benchmarks/conference.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Conference Creation",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_0_0",
+              "name": "create conference",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_0_1",
+              "name": "create conference with options",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_0_2",
+              "name": "join existing conference",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Participant Management",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_1_0",
+              "name": "add single participant",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_1_1",
+              "name": "add multiple participants sequentially",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_1_2",
+              "name": "add multiple participants concurrently",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_1_3",
+              "name": "remove participant",
+              "rank": 4,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_1_4",
+              "name": "add and remove cycle",
+              "rank": 5,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Participant Controls",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_2_0",
+              "name": "mute participant",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_2_1",
+              "name": "unmute participant",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_2_2",
+              "name": "mute all participants",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_2_3",
+              "name": "unmute all participants",
+              "rank": 4,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Conference Controls",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_3_0",
+              "name": "lock conference",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_3_1",
+              "name": "unlock conference",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_3_2",
+              "name": "start recording",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_3_3",
+              "name": "stop recording",
+              "rank": 4,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_3_4",
+              "name": "end conference",
+              "rank": 5,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > State Management",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_4_0",
+              "name": "get conference state",
+              "rank": 1,
+              "rme": 3.2101228922473224,
+              "samples": [],
+              "totalTime": 500.0574970000032,
+              "min": 0.049438999999892985,
+              "max": 5.042789000000084,
+              "hz": 6763.222270018239,
+              "period": 0.14785851478415232,
+              "mean": 0.14785851478415232,
+              "variance": 0.019833413063443876,
+              "sd": 0.1408311508986697,
+              "sem": 0.002421653077154574,
+              "df": 3381,
+              "critical": 1.96,
+              "moe": 0.004746440031222965,
+              "p75": 0.14699599999994462,
+              "p99": 0.6469149999998081,
+              "p995": 1.0628339999998389,
+              "p999": 1.3749820000000454,
+              "sampleCount": 3382,
+              "median": 0.1251199999999244
+            },
+            {
+              "id": "-54524541_0_4_1",
+              "name": "state updates with event emission",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Event Handling",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_5_0",
+              "name": "emit participant joined event",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_5_1",
+              "name": "emit participant left event",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_5_2",
+              "name": "handle multiple concurrent events",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Performance Budget Compliance",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_6_0",
+              "name": "conference creation latency check",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_6_1",
+              "name": "participant addition latency check",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Large Conference Scenarios",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_7_0",
+              "name": "manage 10-participant conference",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_7_1",
+              "name": "manage 20-participant conference",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_7_2",
+              "name": "participant churn (add/remove)",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Memory Management",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_8_0",
+              "name": "cleanup on end conference",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_8_1",
+              "name": "multiple conference creation and cleanup",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Audio Level Monitoring",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_9_0",
+              "name": "update participant audio levels",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/conference.bench.ts > Conference Performance Benchmarks > Concurrent Operations",
+          "benchmarks": [
+            {
+              "id": "-54524541_0_10_0",
+              "name": "concurrent add and mute operations",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-54524541_0_10_1",
+              "name": "concurrent control operations",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "filepath": "/home/irony/code/VueSIP/tests/performance/benchmarks/eventbus.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/performance/benchmarks/eventbus.bench.ts > EventBus Performance",
+          "benchmarks": [
+            {
+              "id": "1215456569_0_0",
+              "name": "emit event with no listeners",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_1",
+              "name": "emit event with 1 listener",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_2",
+              "name": "emit event with 10 listeners",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_3",
+              "name": "emit event with 100 listeners",
+              "rank": 4,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_4",
+              "name": "register listener with on()",
+              "rank": 5,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_5",
+              "name": "register listener with once()",
+              "rank": 6,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_6",
+              "name": "register and unregister listener",
+              "rank": 7,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_7",
+              "name": "listenerCount with no listeners",
+              "rank": 8,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_8",
+              "name": "listenerCount with 10 listeners",
+              "rank": 9,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_9",
+              "name": "emit wildcard event with no listeners",
+              "rank": 10,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_10",
+              "name": "emit specific event with wildcard listener",
+              "rank": 11,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_11",
+              "name": "emit event with small payload (1 KB)",
+              "rank": 12,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_12",
+              "name": "emit event with large payload (100 KB)",
+              "rank": 13,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1215456569_0_13",
+              "name": "add and remove 100 listeners",
+              "rank": 14,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "filepath": "/home/irony/code/VueSIP/tests/performance/benchmarks/mediaDevices.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Device Enumeration",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_0_0",
+              "name": "enumerate devices (fast path)",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_0_1",
+              "name": "enumerate devices with filtering",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_0_2",
+              "name": "repeated device enumeration",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Get User Media",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_1_0",
+              "name": "get audio stream (fast path)",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_1_1",
+              "name": "get audio stream with constraints",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_1_2",
+              "name": "get audio+video stream",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_1_3",
+              "name": "get stream with specific device",
+              "rank": 4,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Device Switching",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_2_0",
+              "name": "switch audio input device",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_2_1",
+              "name": "switch audio output device",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_2_2",
+              "name": "switch video input device",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_2_3",
+              "name": "multiple device switches",
+              "rank": 4,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Mute/Unmute Operations",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_3_0",
+              "name": "mute audio track",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_3_1",
+              "name": "unmute audio track",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_3_2",
+              "name": "mute/unmute cycle",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_3_3",
+              "name": "mute video track",
+              "rank": 4,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Track Management",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_4_0",
+              "name": "add track to stream",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_4_1",
+              "name": "remove track from stream",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_4_2",
+              "name": "replace track in stream",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Device Change Detection",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_5_0",
+              "name": "handle device change event",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Permission Management",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_6_0",
+              "name": "request audio permission",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_6_1",
+              "name": "request audio+video permission",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Stream Cleanup",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_7_0",
+              "name": "stop single stream",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_7_1",
+              "name": "stop multiple streams",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_7_2",
+              "name": "cleanup on destroy",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Performance Budget Compliance",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_8_0",
+              "name": "device enumeration latency check",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_8_1",
+              "name": "getUserMedia latency check",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Concurrent Operations",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_9_0",
+              "name": "concurrent device enumeration and stream acquisition",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "1123583462_0_9_1",
+              "name": "concurrent multiple getUserMedia calls",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/mediaDevices.bench.ts > MediaDevices Performance Benchmarks > Memory Management",
+          "benchmarks": [
+            {
+              "id": "1123583462_0_10_0",
+              "name": "create and cleanup multiple media managers",
+              "rank": 1,
+              "rme": 1.6405031407549946,
+              "samples": [],
+              "totalTime": 500.00021300004914,
+              "min": 0.00029599999993479287,
+              "max": 0.7459739999999329,
+              "hz": 1433325.389403243,
+              "period": 0.0006976782853308308,
+              "mean": 0.0006976782853308308,
+              "variance": 0.000024438097047540958,
+              "sd": 0.004943490370936405,
+              "sem": 0.000005839507236335649,
+              "df": 716662,
+              "critical": 1.96,
+              "moe": 0.000011445434183217872,
+              "p75": 0.0006499999999505235,
+              "p99": 0.002115999999887208,
+              "p995": 0.002668000000085158,
+              "p999": 0.023320000000012442,
+              "sampleCount": 716663,
+              "median": 0.0004960000001119624
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "filepath": "/home/irony/code/VueSIP/tests/performance/benchmarks/sipClient.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > Client Creation",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_0_0",
+              "name": "create SIP client instance",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-960623342_0_0_1",
+              "name": "create and configure client with all options",
+              "rank": 2,
+              "rme": 5.123402903220496,
+              "samples": [],
+              "totalTime": 500.00149199999873,
+              "min": 0.0014329999999063148,
+              "max": 7.9686340000000655,
+              "hz": 290231.133950297,
+              "period": 0.003445529727941776,
+              "mean": 0.003445529727941776,
+              "variance": 0.0011771510083601025,
+              "sd": 0.03430963433731264,
+              "sem": 0.00009006549495545623,
+              "df": 145115,
+              "critical": 1.96,
+              "moe": 0.00017652837011269422,
+              "p75": 0.0030639999999948486,
+              "p99": 0.011031999999886466,
+              "p995": 0.021897999999964668,
+              "p999": 0.0951270000000477,
+              "sampleCount": 145116,
+              "median": 0.0024899999998524436
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > Registration Operations",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_1_0",
+              "name": "register (fast path)",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-960623342_0_1_1",
+              "name": "unregister",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-960623342_0_1_2",
+              "name": "register -> unregister cycle",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > Call Operations",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_2_0",
+              "name": "make outgoing call",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-960623342_0_2_1",
+              "name": "make call with custom options",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-960623342_0_2_2",
+              "name": "handle incoming call event",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > Connection Management",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_3_0",
+              "name": "connect to server",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-960623342_0_3_1",
+              "name": "disconnect from server",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-960623342_0_3_2",
+              "name": "handle connection state changes",
+              "rank": 3,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > State Management",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_4_0",
+              "name": "check connection state",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-960623342_0_4_1",
+              "name": "state transitions with event emission",
+              "rank": 2,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > Event Handling",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_5_0",
+              "name": "process multiple concurrent events",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > Configuration Updates",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_6_0",
+              "name": "update client configuration",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > Memory Management",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_7_0",
+              "name": "cleanup on destroy",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            },
+            {
+              "id": "-960623342_0_7_1",
+              "name": "multiple client creation and cleanup",
+              "rank": 2,
+              "rme": 9.036353004892522,
+              "samples": [],
+              "totalTime": 501.1418780000897,
+              "min": 0.003056999999898835,
+              "max": 11.464680000000044,
+              "hz": 131507.66857282718,
+              "period": 0.007604119294733092,
+              "mean": 0.007604119294733092,
+              "variance": 0.008099978227895592,
+              "sd": 0.08999987904378312,
+              "sem": 0.00035057911346184995,
+              "df": 65903,
+              "critical": 1.96,
+              "moe": 0.0006871350623852259,
+              "p75": 0.005872000000181288,
+              "p99": 0.027358000000049287,
+              "p995": 0.05177000000003318,
+              "p999": 0.33549200000015844,
+              "sampleCount": 65904,
+              "median": 0.004431000000295171
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > Performance Budget Compliance",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_8_0",
+              "name": "state update latency check",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        },
+        {
+          "fullName": "tests/performance/benchmarks/sipClient.bench.ts > SipClient Performance Benchmarks > Concurrent Operations",
+          "benchmarks": [
+            {
+              "id": "-960623342_0_9_0",
+              "name": "handle concurrent registration and call",
+              "rank": 1,
+              "rme": 0,
+              "samples": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

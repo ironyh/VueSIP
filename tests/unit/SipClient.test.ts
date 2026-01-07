@@ -1,5 +1,8 @@
 /**
  * SipClient unit tests
+ *
+ * Uses shared JsSIP mock from __mocks__/jssip.ts for consistency
+ * and reduced code duplication.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -8,71 +11,11 @@ import { createEventBus } from '@/core/EventBus'
 import type { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
 
-// Mock JsSIP - use vi.hoisted() for variables used in factory
-const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent } = vi.hoisted(
-  () => {
-    // Event handler storage
-    const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
-    const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
+// Enable automatic mocking using __mocks__/jssip.ts
+vi.mock('jssip')
 
-    // Helper to trigger events
-    const triggerEvent = (event: string, data?: any) => {
-      // Trigger 'on' handlers
-      const handlers = eventHandlers[event] || []
-      handlers.forEach((handler) => handler(data))
-
-      // Trigger and remove 'once' handlers
-      const once = onceHandlers[event] || []
-      once.forEach((handler) => handler(data))
-      onceHandlers[event] = []
-    }
-
-    const mockUA = {
-      start: vi.fn(),
-      stop: vi.fn(),
-      register: vi.fn(),
-      unregister: vi.fn(),
-      sendMessage: vi.fn(),
-      isConnected: vi.fn().mockReturnValue(false),
-      isRegistered: vi.fn().mockReturnValue(false),
-      on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-        if (!eventHandlers[event]) eventHandlers[event] = []
-        eventHandlers[event].push(handler)
-      }),
-      once: vi.fn((event: string, handler: (...args: any[]) => void) => {
-        if (!onceHandlers[event]) onceHandlers[event] = []
-        onceHandlers[event].push(handler)
-      }),
-      off: vi.fn((event: string, handler: (...args: any[]) => void) => {
-        if (eventHandlers[event]) {
-          eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler)
-        }
-        if (onceHandlers[event]) {
-          onceHandlers[event] = onceHandlers[event].filter((h) => h !== handler)
-        }
-      }),
-    }
-
-    const mockWebSocketInterface = vi.fn()
-
-    return { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent }
-  }
-)
-
-vi.mock('jssip', () => {
-  return {
-    default: {
-      UA: vi.fn(function () {
-        return mockUA
-      }),
-      WebSocketInterface: mockWebSocketInterface,
-      debug: {
-        enable: vi.fn(),
-        disable: vi.fn(),
-      },
-    },
-  }
-})
+// Import mock helpers from the mocked module
+import { mockUA, eventHandlers, onceHandlers, setupAutoConnect, resetMockJsSip } from 'jssip'
 
 describe('SipClient', () => {
   let eventBus: EventBus
@@ -80,26 +23,8 @@ describe('SipClient', () => {
   let config: SipClientConfig
 
   beforeEach(() => {
-    // Reset mocks
-    vi.clearAllMocks()
-
-    // Clear event handlers
-    Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
-    Object.keys(onceHandlers).forEach((key) => delete onceHandlers[key])
-
-    // Restore default mock implementations (vi.clearAllMocks() doesn't restore implementations)
-    mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!eventHandlers[event]) eventHandlers[event] = []
-      eventHandlers[event].push(handler)
-    })
-    mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-    })
-
-    // Reset mock return values
-    mockUA.isConnected.mockReturnValue(false)
-    mockUA.isRegistered.mockReturnValue(false)
+    // Reset all mocks and handlers using shared helper
+    resetMockJsSip()
 
     // Create event bus
     eventBus = createEventBus()
@@ -196,30 +121,21 @@ describe('SipClient', () => {
 
   describe('start()', () => {
     it('should start the SIP client', async () => {
-      // Simulate connection after start is called
-      setTimeout(() => {
-        mockUA.isConnected.mockReturnValue(true)
-        triggerEvent('connected', {})
-      }, 10)
+      // Use setupAutoConnect for deterministic async triggering (no setTimeout)
+      setupAutoConnect({})
 
       await sipClient.start()
 
-      expect(mockUA.start).toHaveBeenCalled()
-      expect(sipClient.connectionState).toBe('connected')
+      // Allow microtasks to flush before checking state
+      await vi.waitFor(() => {
+        expect(mockUA.start).toHaveBeenCalled()
+        expect(sipClient.connectionState).toBe('connected')
+      })
     })
 
     it('should not start if already started', async () => {
-      mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.isConnected.mockReturnValue(true)
+      // Setup auto-connect via microtask (deterministic)
+      setupAutoConnect({})
 
       await sipClient.start()
       const startCalls = mockUA.start.mock.calls.length
@@ -233,24 +149,15 @@ describe('SipClient', () => {
       const connectHandler = vi.fn()
       eventBus.on('sip:connected', connectHandler)
 
-      mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({ socket: { url: 'wss://test.com' } }), 10)
-        }
-      })
-      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({ socket: { url: 'wss://test.com' } }), 10)
-        }
-      })
-      mockUA.isConnected.mockReturnValue(true)
+      // Setup auto-connect with socket data via microtask
+      setupAutoConnect({ socket: { url: 'wss://test.com' } })
 
       await sipClient.start()
 
-      // Wait for async events
-      await new Promise((resolve) => setTimeout(resolve, 50))
-
-      expect(connectHandler).toHaveBeenCalled()
+      // Use vi.waitFor for robust async event assertion
+      await vi.waitFor(() => {
+        expect(connectHandler).toHaveBeenCalled()
+      })
     })
 
     it('should handle connection failure', async () => {
@@ -259,9 +166,9 @@ describe('SipClient', () => {
         if (!onceHandlers[event]) onceHandlers[event] = []
         onceHandlers[event].push(handler)
 
-        // Fire disconnected event immediately to simulate connection failure
+        // Fire disconnected event via microtask (deterministic, no setTimeout)
         if (event === 'disconnected') {
-          setTimeout(() => handler({}), 10)
+          queueMicrotask(() => handler({}))
         }
       })
 
@@ -281,18 +188,8 @@ describe('SipClient', () => {
 
   describe('stop()', () => {
     it('should stop the SIP client', async () => {
-      // Start first
-      mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.isConnected.mockReturnValue(true)
+      // Start first using deterministic setup
+      setupAutoConnect({})
       mockUA.isRegistered.mockReturnValue(false)
 
       await sipClient.start()
@@ -310,25 +207,21 @@ describe('SipClient', () => {
     })
 
     it('should unregister before stopping if registered', async () => {
-      // Start and register
-      mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
+      // Setup auto-connect and auto-register via microtask
       mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
         if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-        if (event === 'registered') {
-          setTimeout(() => handler({}), 10)
-        }
-        if (event === 'unregistered') {
-          setTimeout(() => handler({}), 10)
+          mockUA.isConnected.mockReturnValue(true)
+          queueMicrotask(() => handler({}))
+        } else if (event === 'registered') {
+          mockUA.isRegistered.mockReturnValue(true)
+          queueMicrotask(() => handler({}))
+        } else if (event === 'unregistered') {
+          mockUA.isRegistered.mockReturnValue(false)
+          queueMicrotask(() => handler({}))
         }
       })
-      mockUA.isConnected.mockReturnValue(true)
-      mockUA.isRegistered.mockReturnValue(true)
 
       await sipClient.start()
       await sipClient.register()
@@ -343,20 +236,21 @@ describe('SipClient', () => {
 
   describe('register()', () => {
     beforeEach(async () => {
-      // Start client before registering
-      setTimeout(() => {
-        mockUA.isConnected.mockReturnValue(true)
-        triggerEvent('connected', {})
-      }, 10)
+      // Start client before registering using deterministic setup
+      setupAutoConnect({})
       await sipClient.start()
     })
 
     it('should register with SIP server', async () => {
-      // Simulate successful registration
-      setTimeout(() => {
-        mockUA.isRegistered.mockReturnValue(true)
-        triggerEvent('registered', {})
-      }, 10)
+      // Setup auto-register via microtask
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        if (event === 'registered') {
+          mockUA.isRegistered.mockReturnValue(true)
+          queueMicrotask(() => handler({}))
+        }
+      })
 
       await sipClient.register()
 
@@ -368,22 +262,39 @@ describe('SipClient', () => {
       const registeredHandler = vi.fn()
       eventBus.on('sip:registered', registeredHandler)
 
-      // Simulate successful registration after a short delay
-      setTimeout(() => {
-        mockUA.isRegistered.mockReturnValue(true)
-        triggerEvent('registered', { response: { getHeader: () => '600' } })
-      }, 10)
+      // Setup auto-register via microtask - also trigger 'on' handlers for eventBus
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        if (event === 'registered') {
+          const data = { response: { getHeader: () => '600' } }
+          mockUA.isRegistered.mockReturnValue(true)
+          queueMicrotask(() => {
+            handler(data)
+            // Also trigger 'on' handlers to emit to eventBus
+            const onHandlers = eventHandlers[event] || []
+            onHandlers.forEach((h) => h(data))
+          })
+        }
+      })
 
       await sipClient.register()
 
-      expect(registeredHandler).toHaveBeenCalled()
+      // Use vi.waitFor for robust async event assertion
+      await vi.waitFor(() => {
+        expect(registeredHandler).toHaveBeenCalled()
+      })
     })
 
     it('should handle registration failure', async () => {
-      // Simulate registration failure after a short delay
-      setTimeout(() => {
-        triggerEvent('registrationFailed', { cause: 'Authentication failed' })
-      }, 10)
+      // Setup registration failure via microtask
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        if (event === 'registrationFailed') {
+          queueMicrotask(() => handler({ cause: 'Authentication failed' }))
+        }
+      })
 
       await expect(sipClient.register()).rejects.toThrow('Registration failed')
       expect(sipClient.registrationState).toBe('registration_failed')
@@ -396,11 +307,15 @@ describe('SipClient', () => {
     })
 
     it('should not register if already registered', async () => {
-      // First, complete a successful registration
-      setTimeout(() => {
-        mockUA.isRegistered.mockReturnValue(true)
-        triggerEvent('registered', {})
-      }, 10)
+      // Setup auto-register via microtask
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        if (event === 'registered') {
+          mockUA.isRegistered.mockReturnValue(true)
+          queueMicrotask(() => handler({}))
+        }
+      })
 
       await sipClient.register()
       const registerCalls = mockUA.register.mock.calls.length
@@ -410,53 +325,82 @@ describe('SipClient', () => {
 
       expect(mockUA.register).toHaveBeenCalledTimes(registerCalls)
     })
+  })
+
+  // Isolated describe block for timeout scenarios - uses fake timers
+  describe('timeout scenarios', () => {
+    beforeEach(async () => {
+      // Start client before testing timeout - using real timers initially
+      setupAutoConnect({})
+      await sipClient.start()
+
+      // Now enable fake timers for timeout tests
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      // Always restore real timers
+      vi.useRealTimers()
+    })
 
     it('should handle registration timeout', async () => {
-      // Use fake timers to speed up timeout test
-      vi.useFakeTimers()
+      // Mock that never calls the registered event - simulates timeout
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        // Don't call the handler - let it timeout
+      })
 
-      try {
-        // Mock that never calls the registered event
-        mockUA.once.mockImplementation(() => {
-          // Don't call the handler - let it timeout
-        })
+      // Start the registration - it will timeout after 30 seconds
+      const registerPromise = sipClient.register()
 
-        const registerPromise = sipClient.register()
+      // Attach the rejection handler BEFORE advancing time to prevent unhandled rejection
+      let error: Error | null = null
+      registerPromise.catch((e) => {
+        error = e as Error
+      })
 
-        // Fast-forward time to trigger timeout (30 seconds)
-        vi.advanceTimersByTime(30000)
+      // Fast-forward time to trigger timeout (30 seconds)
+      await vi.advanceTimersByTimeAsync(30000)
 
-        // Should reject with timeout error
-        await expect(registerPromise).rejects.toThrow('Registration timeout')
-      } finally {
-        vi.useRealTimers()
-      }
+      // Wait for the promise to settle
+      await vi.waitFor(() => {
+        expect(error).not.toBeNull()
+      })
+
+      expect(error?.message).toContain('Registration timeout')
     })
   })
 
   describe('unregister()', () => {
     beforeEach(async () => {
-      // Start and register
-      mockUA.isConnected.mockReturnValue(true)
-      mockUA.isRegistered.mockReturnValue(false)
+      // Start and register using deterministic setup
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        if (event === 'connected') {
+          mockUA.isConnected.mockReturnValue(true)
+          queueMicrotask(() => handler({}))
+        } else if (event === 'registered') {
+          mockUA.isRegistered.mockReturnValue(true)
+          queueMicrotask(() => handler({}))
+        }
+      })
 
-      setTimeout(() => {
-        triggerEvent('connected', {})
-      }, 10)
       await sipClient.start()
-
-      setTimeout(() => {
-        mockUA.isRegistered.mockReturnValue(true)
-        triggerEvent('registered', {})
-      }, 10)
       await sipClient.register()
     })
 
     it('should unregister from SIP server', async () => {
-      // Simulate successful unregistration
-      setTimeout(() => {
-        triggerEvent('unregistered', {})
-      }, 10)
+      // Setup auto-unregister via microtask
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        if (event === 'unregistered') {
+          mockUA.isRegistered.mockReturnValue(false)
+          queueMicrotask(() => handler({}))
+        }
+      })
 
       await sipClient.unregister()
 
@@ -468,23 +412,40 @@ describe('SipClient', () => {
       const unregisteredHandler = vi.fn()
       eventBus.on('sip:unregistered', unregisteredHandler)
 
-      // Simulate successful unregistration after a short delay
-      setTimeout(() => {
-        mockUA.isRegistered.mockReturnValue(false)
-        triggerEvent('unregistered', { cause: 'user' })
-      }, 10)
+      // Setup auto-unregister via microtask - also trigger 'on' handlers for eventBus
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        if (event === 'unregistered') {
+          const data = { cause: 'user' }
+          mockUA.isRegistered.mockReturnValue(false)
+          queueMicrotask(() => {
+            handler(data)
+            // Also trigger 'on' handlers to emit to eventBus
+            const onHandlers = eventHandlers[event] || []
+            onHandlers.forEach((h) => h(data))
+          })
+        }
+      })
 
       await sipClient.unregister()
 
-      expect(unregisteredHandler).toHaveBeenCalled()
+      // Use vi.waitFor for robust async event assertion
+      await vi.waitFor(() => {
+        expect(unregisteredHandler).toHaveBeenCalled()
+      })
     })
 
     it('should not unregister if not registered', async () => {
       // First, complete unregistration properly
-      setTimeout(() => {
-        mockUA.isRegistered.mockReturnValue(false)
-        triggerEvent('unregistered', {})
-      }, 10)
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
+        if (event === 'unregistered') {
+          mockUA.isRegistered.mockReturnValue(false)
+          queueMicrotask(() => handler({}))
+        }
+      })
 
       await sipClient.unregister()
 
@@ -495,18 +456,8 @@ describe('SipClient', () => {
 
   describe('sendMessage()', () => {
     beforeEach(async () => {
-      // Start client
-      mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.isConnected.mockReturnValue(true)
+      // Start client using deterministic setup
+      setupAutoConnect({})
       await sipClient.start()
     })
 
@@ -598,17 +549,8 @@ describe('SipClient', () => {
     })
 
     it('should return UA instance when started', async () => {
-      mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.isConnected.mockReturnValue(true)
+      // Use deterministic setup via microtask
+      setupAutoConnect({})
 
       await sipClient.start()
 
@@ -618,17 +560,8 @@ describe('SipClient', () => {
 
   describe('destroy()', () => {
     it('should clean up resources', async () => {
-      mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
-      })
-      mockUA.isConnected.mockReturnValue(true)
+      // Use deterministic setup via microtask
+      setupAutoConnect({})
 
       await sipClient.start()
 
@@ -651,16 +584,21 @@ describe('SipClient', () => {
       let sessionEventHandler: ((...args: any[]) => void) | null = null
 
       mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!eventHandlers[event]) eventHandlers[event] = []
+        eventHandlers[event].push(handler)
         if (event === 'newRTCSession') {
           sessionEventHandler = handler
         }
       })
+      // Setup auto-connect via microtask
       mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
         if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
+          mockUA.isConnected.mockReturnValue(true)
+          queueMicrotask(() => handler({}))
         }
       })
-      mockUA.isConnected.mockReturnValue(true)
 
       await sipClient.start()
 
@@ -689,8 +627,8 @@ describe('SipClient', () => {
         })
       }
 
-      // Wait for async events
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      // Allow microtasks to process (no arbitrary delay needed)
+      await Promise.resolve()
 
       expect(sessionHandler).toHaveBeenCalled()
     })
@@ -702,19 +640,21 @@ describe('SipClient', () => {
       let messageEventHandler: ((...args: any[]) => void) | null = null
 
       mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-        if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
-        }
+        if (!eventHandlers[event]) eventHandlers[event] = []
+        eventHandlers[event].push(handler)
         if (event === 'newMessage') {
           messageEventHandler = handler
         }
       })
+      // Setup auto-connect via microtask
       mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (!onceHandlers[event]) onceHandlers[event] = []
+        onceHandlers[event].push(handler)
         if (event === 'connected') {
-          setTimeout(() => handler({}), 10)
+          mockUA.isConnected.mockReturnValue(true)
+          queueMicrotask(() => handler({}))
         }
       })
-      mockUA.isConnected.mockReturnValue(true)
 
       await sipClient.start()
 
@@ -736,8 +676,8 @@ describe('SipClient', () => {
         })
       }
 
-      // Wait for async events
-      await new Promise((resolve) => setTimeout(resolve, 50))
+      // Allow microtasks to process (no arbitrary delay needed)
+      await Promise.resolve()
 
       expect(messageHandler).toHaveBeenCalled()
     })

@@ -9,85 +9,11 @@ import { createEventBus } from '@/core/EventBus'
 import type { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
 
-// Mock JsSIP with presence support
-const { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent } = vi.hoisted(
-  () => {
-    // Event handler storage
-    const eventHandlers: Record<string, Array<(...args: any[]) => void>> = {}
-    const onceHandlers: Record<string, Array<(...args: any[]) => void>> = {}
+// Enable automatic mocking using __mocks__/jssip.ts
+vi.mock('jssip')
 
-    // Helper to trigger events
-    const triggerEvent = (event: string, data?: any) => {
-      // Trigger 'on' handlers
-      const handlers = eventHandlers[event] || []
-      handlers.forEach((handler) => handler(data))
-
-      // Trigger and remove 'once' handlers
-      const once = onceHandlers[event] || []
-      once.forEach((handler) => handler(data))
-      onceHandlers[event] = []
-    }
-
-    const mockUA = {
-      start: vi.fn(),
-      stop: vi.fn(),
-      register: vi.fn(),
-      unregister: vi.fn(),
-      sendMessage: vi.fn(),
-      sendRequest: vi.fn((method: string, target: string, options: any) => {
-        // Immediately call success handler to simulate successful PUBLISH
-        if (options.eventHandlers?.onSuccessResponse) {
-          setTimeout(() => {
-            options.eventHandlers.onSuccessResponse({
-              status_code: 200,
-              getHeader: (name: string) => {
-                if (name === 'SIP-ETag') return 'test-etag-123'
-                return null
-              },
-            })
-          }, 0)
-        }
-      }),
-      isConnected: vi.fn().mockReturnValue(true),
-      isRegistered: vi.fn().mockReturnValue(true),
-      on: vi.fn((event: string, handler: (...args: any[]) => void) => {
-        if (!eventHandlers[event]) eventHandlers[event] = []
-        eventHandlers[event].push(handler)
-      }),
-      once: vi.fn((event: string, handler: (...args: any[]) => void) => {
-        if (!onceHandlers[event]) onceHandlers[event] = []
-        onceHandlers[event].push(handler)
-      }),
-      off: vi.fn((event: string, handler: (...args: any[]) => void) => {
-        if (eventHandlers[event]) {
-          eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler)
-        }
-        if (onceHandlers[event]) {
-          onceHandlers[event] = onceHandlers[event].filter((h) => h !== handler)
-        }
-      }),
-    }
-
-    const mockWebSocketInterface = vi.fn()
-
-    return { mockUA, mockWebSocketInterface, eventHandlers, onceHandlers, triggerEvent }
-  }
-)
-
-vi.mock('jssip', () => {
-  return {
-    default: {
-      UA: vi.fn(function () {
-        return mockUA
-      }),
-      WebSocketInterface: mockWebSocketInterface,
-      debug: {
-        enable: vi.fn(),
-        disable: vi.fn(),
-      },
-    },
-  }
-})
+// Import mock helpers from the mocked module
+import { mockUA, eventHandlers, triggerEvent, resetMockJsSip } from 'jssip'
 
 describe('SipClient - Comprehensive Presence', () => {
   let eventBus: EventBus
@@ -108,27 +34,14 @@ describe('SipClient - Comprehensive Presence', () => {
   }
 
   beforeEach(() => {
-    vi.clearAllMocks()
-
-    // Clear event handlers
-    Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
-    Object.keys(onceHandlers).forEach((key) => delete onceHandlers[key])
+    // Reset all mocks and handlers using shared helper
+    resetMockJsSip()
 
     // Clean up window globals to prevent E2E mode detection
     delete (window as any).__emitSipEvent
     delete (window as any).__sipEventBridge
 
-    // Restore default mock implementations
-    mockUA.on.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!eventHandlers[event]) eventHandlers[event] = []
-      eventHandlers[event].push(handler)
-    })
-    mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
-      if (!onceHandlers[event]) onceHandlers[event] = []
-      onceHandlers[event].push(handler)
-    })
-
-    // Restore sendRequest mock implementation (critical for presence tests)
+    // Setup sendRequest to auto-succeed for presence tests
     mockUA.sendRequest.mockImplementation((method: string, target: string, options: any) => {
       if (options.eventHandlers?.onSuccessResponse) {
         setTimeout(() => {

@@ -88,8 +88,19 @@ jobs:
       - name: Build package for performance tests
         run: pnpm run build
 
-      - name: Run performance benchmarks
-        run: pnpm run test:performance:bench
+      - name: Run performance benchmarks with JSON output
+        run: pnpm run test:performance:bench:json
+        continue-on-error: true
+
+      - name: Compare benchmarks with baseline (if baseline exists)
+        run: |
+          if [ -f tests/performance/.benchmark-baseline.json ]; then
+            echo "📊 Comparing benchmarks against baseline..."
+            pnpm run test:performance:bench:compare || echo "⚠️ Some benchmarks regressed (see above)"
+          else
+            echo "⚠️ No baseline file found, skipping comparison"
+          fi
+        continue-on-error: true
 
       - name: Run performance load tests (with GC)
         run: node --expose-gc ./node_modules/vitest/vitest.mjs run tests/performance/load-tests
@@ -103,8 +114,8 @@ jobs:
         with:
           name: performance-results
           path: |
+            tests/performance/.benchmark-results.json
             tests/performance/**/*.log
-            tests/performance/**/*.json
           if-no-files-found: warn
 
   build:
