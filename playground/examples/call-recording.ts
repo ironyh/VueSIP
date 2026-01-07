@@ -12,8 +12,55 @@ export const callRecordingExample: ExampleDefinition = {
   setupGuide: '<p>Record call audio using the MediaRecorder API. Save recordings to disk or play them back later. Recordings are stored temporarily in memory.</p>',
   codeSnippets: [
     {
-      title: 'Recording Setup',
-      description: 'Start recording call audio',
+      title: 'Using useLocalRecording Composable',
+      description: 'Record call audio with the useLocalRecording composable',
+      code: `import { useLocalRecording, useCallSession } from 'vuesip'
+
+// Initialize the recording composable
+const {
+  state,           // Recording state: 'inactive' | 'recording' | 'paused' | 'stopped'
+  isRecording,     // Computed: true when recording
+  isPaused,        // Computed: true when paused
+  duration,        // Current recording duration in ms
+  recordingData,   // Recorded data after stop (blob, mimeType, etc.)
+  error,           // Error if any
+  start,           // Start recording
+  pause,           // Pause recording
+  resume,          // Resume recording
+  stop,            // Stop and get data
+  download,        // Download recording
+  clear,           // Clear recording data
+  isSupported,     // Check MIME type support
+} = useLocalRecording({
+  mimeType: 'audio/webm',
+  autoDownload: false,
+  filenamePrefix: 'call-recording',
+})
+
+const { session } = useCallSession(sipClient)
+
+// Start recording the call
+const startCallRecording = () => {
+  if (!session.value?.remoteStream) return
+
+  // Pass metadata about the call
+  start(session.value.remoteStream, {
+    callId: session.value.callId,
+    remoteUri: session.value.remoteUri,
+  })
+}
+
+// Stop and download
+const stopAndDownload = async () => {
+  const data = await stop()
+  if (data) {
+    download(\`call-\${data.metadata?.callId}.webm\`)
+  }
+}`,
+    },
+    {
+      title: 'Recording Setup (Manual)',
+      description: 'Start recording call audio manually',
       code: `import { ref } from 'vue'
 import { useCallSession } from 'vuesip'
 
