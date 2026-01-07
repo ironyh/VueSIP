@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import type {
   PersistedSessionState,
   SessionPersistenceOptions,
@@ -225,15 +225,12 @@ export function useSessionPersistence(
         const store = transaction.objectStore(STORE_NAME)
         const request = store.get(storageKey)
 
-        request.onsuccess = async () => {
+        request.onsuccess = () => {
           const result = request.result as (PersistedSessionState & { key: string }) | undefined
 
           if (!result) {
             logger.debug('No saved session found')
             currentSessionInfo.value = null
-            if (config.onRestoreError) {
-              config.onRestoreError(new Error('No saved session found'))
-            }
             resolve(null)
             return
           }
@@ -245,8 +242,10 @@ export function useSessionPersistence(
 
           if (age > (config.maxAge || DEFAULT_OPTIONS.maxAge)) {
             logger.info('Session expired', { age, maxAge: config.maxAge })
-            // Clear expired session
-            await clearSessionInternal()
+            // Clear expired session (fire and forget)
+            clearSessionInternal().catch((err) => {
+              logger.error('Failed to clear expired session', { error: err })
+            })
             if (config.onRestoreError) {
               config.onRestoreError(new Error(`Session expired (age: ${age}ms)`))
             }
@@ -352,6 +351,16 @@ export function useSessionPersistence(
       isLoading.value = false
     }
   }
+
+  /**
+   * Cleanup database connection on unmount
+   */
+  onBeforeUnmount(() => {
+    if (db) {
+      db.close()
+      db = null
+    }
+  })
 
   return {
     saveSession,

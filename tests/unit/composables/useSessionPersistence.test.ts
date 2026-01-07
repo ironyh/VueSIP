@@ -373,7 +373,7 @@ describe('useSessionPersistence', () => {
       )
     })
 
-    it('should call onRestoreError callback when no session exists', async () => {
+    it('should not call onRestoreError callback when no session exists', async () => {
       const onRestoreError = vi.fn()
       const { loadSession } = useSessionPersistence({
         onRestoreError,
@@ -381,9 +381,10 @@ describe('useSessionPersistence', () => {
 
       const loadPromise = loadSession()
       await vi.runAllTimersAsync()
-      await loadPromise
+      const result = await loadPromise
 
-      expect(onRestoreError).toHaveBeenCalledWith(expect.any(Error))
+      expect(result).toBeNull()
+      expect(onRestoreError).not.toHaveBeenCalled()
     })
   })
 
