@@ -64,7 +64,7 @@ importers:
         specifier: ^12.8.2
         version: 12.8.2
       lint-staged:
-        specifier: ^15.0.0
+        specifier: ^15.5.2
         version: 15.5.2
       playwright-lighthouse:
         specifier: ^4.0.0

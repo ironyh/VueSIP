@@ -140,12 +140,19 @@ export interface UseCallSessionReturn {
   pipError: Ref<Error | null>
   /** Set video element for PiP */
   setVideoRef: (element: HTMLVideoElement | null) => void
-  /** Enter PiP mode */
-  enterPiP: () => Promise<void>
+  /**
+   * Enter PiP mode
+   * @param videoElement - Optional video element to use (if not provided, uses element from setVideoRef)
+   * @returns The PictureInPictureWindow if successful, null otherwise
+   */
+  enterPiP: (videoElement?: HTMLVideoElement) => Promise<PictureInPictureWindow | null>
   /** Exit PiP mode */
   exitPiP: () => Promise<void>
-  /** Toggle PiP mode */
-  togglePiP: () => Promise<void>
+  /**
+   * Toggle PiP mode
+   * @param videoElement - Optional video element to use (if not provided, uses element from setVideoRef)
+   */
+  togglePiP: (videoElement?: HTMLVideoElement) => Promise<void>
 }
 
 /**
@@ -214,6 +221,41 @@ export function useCallSession(
   const setVideoRef = (element: HTMLVideoElement | null): void => {
     pipVideoRef.value = element
     log.debug('PiP video ref updated', { hasElement: !!element })
+  }
+
+  /**
+   * Enter Picture-in-Picture mode
+   * Supports both patterns:
+   * 1. Call with videoElement parameter directly
+   * 2. Use element set via setVideoRef() if no parameter provided
+   *
+   * @param videoElement - Optional video element to use for PiP
+   * @returns The PictureInPictureWindow if successful, null otherwise
+   */
+  const enterPiP = async (videoElement?: HTMLVideoElement): Promise<PictureInPictureWindow | null> => {
+    // If videoElement provided, set it first
+    if (videoElement) {
+      setVideoRef(videoElement)
+    }
+    await pip.enterPiP()
+    // Explicitly return null if pipWindow is undefined/null for spec compliance
+    return pip.pipWindow.value ?? null
+  }
+
+  /**
+   * Toggle Picture-in-Picture mode
+   * Supports both patterns:
+   * 1. Call with videoElement parameter directly
+   * 2. Use element set via setVideoRef() if no parameter provided
+   *
+   * @param videoElement - Optional video element to use for PiP
+   */
+  const togglePiP = async (videoElement?: HTMLVideoElement): Promise<void> => {
+    // If videoElement provided and not currently in PiP, set it first
+    if (videoElement && !pip.isPiPActive.value) {
+      setVideoRef(videoElement)
+    }
+    return pip.togglePiP()
   }
 
   // Duration tracking (updated every second when in call)
@@ -1379,8 +1421,8 @@ export function useCallSession(
     pipWindow: pip.pipWindow,
     pipError: pip.error,
     setVideoRef,
-    enterPiP: pip.enterPiP,
+    enterPiP,
     exitPiP: pip.exitPiP,
-    togglePiP: pip.togglePiP,
+    togglePiP,
   }
 }

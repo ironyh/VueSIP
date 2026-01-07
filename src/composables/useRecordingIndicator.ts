@@ -20,7 +20,6 @@ const DEFAULT_COLORS: RecordingIndicatorColors = {
  */
 const DEFAULT_OPTIONS: Required<Omit<RecordingIndicatorOptions, 'colors'>> = {
   blinkInterval: 500,
-  showDuration: true,
   initialState: 'inactive',
 }
 

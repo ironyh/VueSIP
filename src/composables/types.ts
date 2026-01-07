@@ -10,6 +10,38 @@
 import type { CallSession, CallOptions } from '../types/call.types'
 
 /**
+ * PiP integration options for CallSession
+ *
+ * Configuration options for Picture-in-Picture behavior within a call session.
+ * These options control automatic PiP entry/exit and preference persistence.
+ */
+export interface CallSessionPiPOptions {
+  /**
+   * Auto-enter PiP when call is answered
+   * When true, PiP mode will automatically activate when an incoming call
+   * is answered or an outgoing call is connected.
+   * @default false
+   */
+  autoEnterOnAnswer?: boolean
+
+  /**
+   * Auto-exit PiP when call ends
+   * When true, PiP mode will automatically deactivate when the call
+   * terminates or fails.
+   * @default true
+   */
+  autoExitOnEnd?: boolean
+
+  /**
+   * Persist PiP preference to localStorage
+   * When true, the user's PiP preference will be saved and restored
+   * across sessions.
+   * @default false
+   */
+  persistPreference?: boolean
+}
+
+/**
  * Extended CallSession interface with transfer capabilities
  *
  * Note: These methods may not be implemented yet in the actual CallSession class.

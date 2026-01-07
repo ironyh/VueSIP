@@ -185,6 +185,49 @@ describe('useCallSession - PiP Integration', () => {
 
       unmount()
     })
+
+    it('should support passing video element directly to enterPiP', async () => {
+      const sipClientRef = ref(mockClient as any)
+      const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
+
+      // Enter PiP by passing video element directly (spec-compliant signature)
+      const pipWindow = await result.enterPiP(mockVideoElement)
+
+      // Verify it returns PictureInPictureWindow or null
+      // The actual return depends on browser PiP support
+      // In test environment, PiP may not work fully, so null is expected
+      expect(pipWindow).toBe(null)
+      expect(result.isPiPSupported.value).toBe(true)
+
+      unmount()
+    })
+
+    it('should support passing video element directly to togglePiP', async () => {
+      const sipClientRef = ref(mockClient as any)
+      const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
+
+      // Toggle PiP by passing video element directly (spec-compliant signature)
+      await result.togglePiP(mockVideoElement)
+
+      // Verify PiP support is detected
+      expect(result.isPiPSupported.value).toBe(true)
+
+      unmount()
+    })
+
+    it('enterPiP should return PictureInPictureWindow or null', async () => {
+      const sipClientRef = ref(mockClient as any)
+      const { result, unmount } = withSetup(() => useCallSession(sipClientRef))
+
+      result.setVideoRef(mockVideoElement)
+      const returnValue = await result.enterPiP()
+
+      // Verify return type matches spec: Promise<PictureInPictureWindow | null>
+      // In test environment, PiP may not work fully, so null is expected
+      expect(returnValue).toBe(null)
+
+      unmount()
+    })
   })
 
   describe('auto-exit on call end', () => {

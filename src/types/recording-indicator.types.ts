@@ -25,8 +25,6 @@ export interface RecordingIndicatorOptions {
   blinkInterval?: number
   /** Custom colors for different states */
   colors?: Partial<RecordingIndicatorColors>
-  /** Whether to show duration (default: true) */
-  showDuration?: boolean
   /** Initial state (default: 'inactive') */
   initialState?: RecordingIndicatorState
 }
