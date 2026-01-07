@@ -18,7 +18,7 @@ vi.mock('@/utils/logger', () => ({
 }))
 
 // Store original navigator properties
-const originalNavigator = { ...navigator }
+const _originalNavigator = { ...navigator }
 const originalConnection = (navigator as any).connection
 
 // Mock navigator.connection (Network Information API)
