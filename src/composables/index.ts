@@ -110,6 +110,14 @@ export {
   type UseOAuth2ComposableReturn,
 } from './useOAuth2'
 
+// Local recording composable
+export { useLocalRecording } from './useLocalRecording'
+export type {
+  LocalRecordingOptions,
+  LocalRecordingData,
+  UseLocalRecordingReturn,
+} from '../types/local-recording.types'
+
 // Re-export types needed by demos
 export type { CallbackPriority, CallbackRequest } from '../types/callback.types'
 export type { BlockReason, BlockAction, BlockEntry } from '../types/blacklist.types'
