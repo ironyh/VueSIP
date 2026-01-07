@@ -76,7 +76,7 @@ function setCustomState(state: RecordingIndicatorState) {
             :style="indicator.indicatorStyle.value"
             class="w-8 h-8 rounded-full"
             aria-label="Recording indicator"
-          />
+          ></div>
           <span class="text-sm text-gray-600 dark:text-gray-400">Indicator</span>
         </div>
 
@@ -159,7 +159,7 @@ function setCustomState(state: RecordingIndicatorState) {
             :style="customIndicator.indicatorStyle.value"
             class="w-8 h-8 rounded-full"
             aria-label="Custom recording indicator"
-          />
+          ></div>
           <span class="text-sm text-gray-600 dark:text-gray-400">Indicator</span>
         </div>
         <div class="flex flex-col items-center gap-2">
