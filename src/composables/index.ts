@@ -18,6 +18,7 @@ export {
   type UseCallSessionReturn,
   type CallSessionOptions,
 } from './useCallSession'
+export type { CallSessionPiPOptions } from './types'
 export {
   useMediaDevices,
   type UseMediaDevicesReturn,
@@ -72,6 +73,7 @@ export { useCallQualityScore } from './useCallQualityScore'
 export { useNetworkQualityIndicator } from './useNetworkQualityIndicator'
 export { useBandwidthAdaptation } from './useBandwidthAdaptation'
 export { useConnectionRecovery } from './useConnectionRecovery'
+export { useSessionPersistence } from './useSessionPersistence'
 
 // Additional composables
 export { useCallHold } from './useCallHold'
@@ -118,6 +120,15 @@ export type {
   UseLocalRecordingReturn,
 } from '../types/local-recording.types'
 
+// Recording indicator composable
+export { useRecordingIndicator } from './useRecordingIndicator'
+export type {
+  RecordingIndicatorState,
+  RecordingIndicatorColors,
+  RecordingIndicatorOptions,
+  UseRecordingIndicatorReturn,
+} from '../types/recording-indicator.types'
+
 // Re-export types needed by demos
 export type { CallbackPriority, CallbackRequest } from '../types/callback.types'
 export type { BlockReason, BlockAction, BlockEntry } from '../types/blacklist.types'
@@ -153,6 +164,14 @@ export type {
   ConnectionRecoveryOptions,
   UseConnectionRecoveryReturn,
 } from '../types/connection-recovery.types'
+
+// Session persistence types
+export type {
+  PersistedSessionState,
+  SessionPersistenceOptions,
+  SavedSessionInfo,
+  UseSessionPersistenceReturn,
+} from '../types/session-persistence.types'
 
 // Call quality types
 export type {

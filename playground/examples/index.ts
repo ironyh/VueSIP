@@ -10,10 +10,12 @@ import { doNotDisturbExample } from './do-not-disturb'
 import { callQualityExample } from './call-quality'
 import { customRingtonesExample } from './custom-ringtones'
 import { callRecordingExample } from './call-recording'
+import { recordingIndicatorExample } from './recording-indicator'
 import { conferenceCallExample } from './conference-call'
 import { conferenceGalleryExample } from './conference-gallery'
 import { callMutePatternsExample } from './call-mute-patterns'
 import { connectionRecoveryExample } from './connection-recovery'
+import { sessionPersistenceExample } from './session-persistence'
 import { networkSimulatorExample } from './network-simulator'
 import { screenSharingExample } from './screen-sharing'
 import { pictureInPictureExample } from './picture-in-picture'
@@ -60,6 +62,7 @@ export const sipExamples = [
   conferenceGalleryExample,
   callTimerExample,
   callRecordingExample,
+  recordingIndicatorExample,
   screenSharingExample,
   pictureInPictureExample,
   callSessionPiPExample,
@@ -69,6 +72,7 @@ export const sipExamples = [
   callQualityExample,
   webrtcStatsExample,
   connectionRecoveryExample,
+  sessionPersistenceExample,
   callMutePatternsExample,
 ]
 
