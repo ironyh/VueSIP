@@ -14,6 +14,60 @@ import type { RTCSession } from 'jssip'
 // Mock Setup
 // ============================================================================
 
+/**
+ * Factory function to create a mock RTCPeerConnection for media stream tests
+ */
+function createMockPeerConnection(options?: {
+  senders?: Array<{ track: MediaStreamTrack | null }>
+  iceConnectionState?: RTCIceConnectionState
+  iceGatheringState?: RTCIceGatheringState
+  signalingState?: RTCSignalingState
+}): {
+  ontrack: ((event: RTCTrackEvent) => void) | null
+  oniceconnectionstatechange: (() => void) | null
+  onicegatheringstatechange: (() => void) | null
+  onsignalingstatechange: (() => void) | null
+  getSenders: Mock
+  iceConnectionState: RTCIceConnectionState
+  iceGatheringState: RTCIceGatheringState
+  signalingState: RTCSignalingState
+} {
+  return {
+    ontrack: null,
+    oniceconnectionstatechange: null,
+    onicegatheringstatechange: null,
+    onsignalingstatechange: null,
+    getSenders: vi.fn().mockReturnValue(options?.senders ?? []),
+    iceConnectionState: options?.iceConnectionState ?? 'new',
+    iceGatheringState: options?.iceGatheringState ?? 'new',
+    signalingState: options?.signalingState ?? 'stable',
+  }
+}
+
+/**
+ * Helper to run a test with a mocked MediaStream class
+ * Automatically saves and restores global.MediaStream
+ */
+function withMockMediaStream<T>(testFn: (MockMediaStream: Mock) => T): T {
+  const originalMediaStream = global.MediaStream
+  const MockMediaStreamClass = vi.fn(function (this: unknown, tracks?: MediaStreamTrack[]) {
+    Object.assign(this as object, {
+      id: `mock-stream-${Date.now()}`,
+      getTracks: () => tracks ?? [],
+      getAudioTracks: () => tracks?.filter((t) => t.kind === 'audio') ?? [],
+      getVideoTracks: () => tracks?.filter((t) => t.kind === 'video') ?? [],
+    })
+    return this
+  })
+  global.MediaStream = MockMediaStreamClass as unknown as typeof MediaStream
+
+  try {
+    return testFn(MockMediaStreamClass)
+  } finally {
+    global.MediaStream = originalMediaStream
+  }
+}
+
 interface MockRTCSessionType {
   id: string
   direction: 'incoming' | 'outgoing'
@@ -1196,7 +1250,24 @@ describe('JsSipCallSession', () => {
     })
 
     it('should handle all valid DTMF tones', async () => {
-      const validTones = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '#', 'A', 'B', 'C', 'D']
+      const validTones = [
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+        '*',
+        '#',
+        'A',
+        'B',
+        'C',
+        'D',
+      ]
 
       for (const tone of validTones) {
         vi.clearAllMocks()
@@ -1391,16 +1462,14 @@ describe('JsSipCallSession', () => {
 
     it('should resolve after callback is invoked', async () => {
       let callbackInvoked = false
-      mockSession.renegotiate.mockImplementation(
-        (_opts: unknown, callback: () => void) => {
-          // Simulate async callback
-          setTimeout(() => {
-            callbackInvoked = true
-            callback()
-          }, 10)
-          return true
-        }
-      )
+      mockSession.renegotiate.mockImplementation((_opts: unknown, callback: () => void) => {
+        // Simulate async callback
+        setTimeout(() => {
+          callbackInvoked = true
+          callback()
+        }, 10)
+        return true
+      })
 
       await callSession.renegotiate()
 
@@ -1408,12 +1477,10 @@ describe('JsSipCallSession', () => {
     })
 
     it('should resolve immediately when callback is called synchronously', async () => {
-      mockSession.renegotiate.mockImplementation(
-        (_opts: unknown, callback: () => void) => {
-          callback()
-          return true
-        }
-      )
+      mockSession.renegotiate.mockImplementation((_opts: unknown, callback: () => void) => {
+        callback()
+        return true
+      })
 
       await expect(callSession.renegotiate()).resolves.toBeUndefined()
     })
@@ -1422,6 +1489,595 @@ describe('JsSipCallSession', () => {
       await callSession.renegotiate({})
 
       expect(mockSession.renegotiate).toHaveBeenCalledWith({}, expect.any(Function))
+    })
+  })
+
+  // ==========================================================================
+  // getStats() Method
+  // ==========================================================================
+
+  describe('getStats()', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should return empty object when no peer connection', async () => {
+      // connection is null by default in mock
+      const stats = await callSession.getStats()
+
+      expect(stats).toEqual({})
+    })
+
+    it('should return audio stats from inbound-rtp', async () => {
+      const mockStats = new Map([
+        [
+          'inbound-rtp-audio',
+          {
+            type: 'inbound-rtp',
+            kind: 'audio',
+            bytesReceived: 10000,
+            packetsReceived: 100,
+            packetsLost: 2,
+            jitter: 0.015, // 15ms in seconds
+          },
+        ],
+      ])
+
+      const mockPeerConnection = {
+        getStats: vi.fn().mockResolvedValue(mockStats),
+      }
+      mockSession.connection = mockPeerConnection as unknown as RTCPeerConnection
+
+      const stats = await callSession.getStats()
+
+      expect(stats.audio).toBeDefined()
+      expect(stats.audio?.bytesReceived).toBe(10000)
+      expect(stats.audio?.packetsReceived).toBe(100)
+      expect(stats.audio?.packetsLost).toBe(2)
+      expect(stats.audio?.jitter).toBe(15) // Converted to ms
+    })
+
+    it('should return audio stats from outbound-rtp', async () => {
+      const mockStats = new Map([
+        [
+          'inbound-rtp-audio',
+          {
+            type: 'inbound-rtp',
+            kind: 'audio',
+            bytesReceived: 10000,
+            packetsReceived: 100,
+            packetsLost: 2,
+            jitter: 0.015,
+          },
+        ],
+        [
+          'outbound-rtp-audio',
+          {
+            type: 'outbound-rtp',
+            kind: 'audio',
+            bytesSent: 8000,
+            packetsSent: 80,
+          },
+        ],
+      ])
+
+      const mockPeerConnection = {
+        getStats: vi.fn().mockResolvedValue(mockStats),
+      }
+      mockSession.connection = mockPeerConnection as unknown as RTCPeerConnection
+
+      const stats = await callSession.getStats()
+
+      expect(stats.audio).toBeDefined()
+      expect(stats.audio?.bytesSent).toBe(8000)
+      expect(stats.audio?.packetsSent).toBe(80)
+    })
+
+    it('should return video stats from inbound-rtp', async () => {
+      const mockStats = new Map([
+        [
+          'inbound-rtp-video',
+          {
+            type: 'inbound-rtp',
+            kind: 'video',
+            bytesReceived: 50000,
+            packetsReceived: 500,
+            packetsLost: 5,
+            framesPerSecond: 30,
+            frameWidth: 1280,
+            frameHeight: 720,
+          },
+        ],
+      ])
+
+      const mockPeerConnection = {
+        getStats: vi.fn().mockResolvedValue(mockStats),
+      }
+      mockSession.connection = mockPeerConnection as unknown as RTCPeerConnection
+
+      const stats = await callSession.getStats()
+
+      expect(stats.video).toBeDefined()
+      expect(stats.video?.bytesReceived).toBe(50000)
+      expect(stats.video?.packetsReceived).toBe(500)
+      expect(stats.video?.packetsLost).toBe(5)
+      expect(stats.video?.frameRate).toBe(30)
+      expect(stats.video?.resolution).toEqual({ width: 1280, height: 720 })
+    })
+
+    it('should return connection stats from candidate-pair', async () => {
+      const mockStats = new Map([
+        [
+          'candidate-pair',
+          {
+            type: 'candidate-pair',
+            state: 'succeeded',
+            localCandidateType: 'host',
+            remoteCandidateType: 'srflx',
+            availableOutgoingBitrate: 2500000,
+            availableIncomingBitrate: 2000000,
+          },
+        ],
+      ])
+
+      const mockPeerConnection = {
+        getStats: vi.fn().mockResolvedValue(mockStats),
+      }
+      mockSession.connection = mockPeerConnection as unknown as RTCPeerConnection
+
+      const stats = await callSession.getStats()
+
+      expect(stats.connection).toBeDefined()
+      expect(stats.connection?.localCandidateType).toBe('host')
+      expect(stats.connection?.remoteCandidateType).toBe('srflx')
+      expect(stats.connection?.availableOutgoingBitrate).toBe(2500000)
+      expect(stats.connection?.availableIncomingBitrate).toBe(2000000)
+    })
+
+    it('should handle errors gracefully and return empty object', async () => {
+      const mockPeerConnection = {
+        getStats: vi.fn().mockRejectedValue(new Error('Stats failed')),
+      }
+      mockSession.connection = mockPeerConnection as unknown as RTCPeerConnection
+
+      const stats = await callSession.getStats()
+
+      expect(stats).toEqual({})
+    })
+
+    it('should combine all stats types correctly', async () => {
+      const mockStats = new Map([
+        [
+          'inbound-rtp-audio',
+          {
+            type: 'inbound-rtp',
+            kind: 'audio',
+            bytesReceived: 10000,
+            packetsReceived: 100,
+            packetsLost: 2,
+            jitter: 0.01,
+          },
+        ],
+        [
+          'outbound-rtp-audio',
+          {
+            type: 'outbound-rtp',
+            kind: 'audio',
+            bytesSent: 8000,
+            packetsSent: 80,
+          },
+        ],
+        [
+          'inbound-rtp-video',
+          {
+            type: 'inbound-rtp',
+            kind: 'video',
+            bytesReceived: 50000,
+            packetsReceived: 500,
+            packetsLost: 5,
+            framesPerSecond: 30,
+            frameWidth: 1920,
+            frameHeight: 1080,
+          },
+        ],
+        [
+          'candidate-pair',
+          {
+            type: 'candidate-pair',
+            state: 'succeeded',
+            localCandidateType: 'relay',
+            remoteCandidateType: 'host',
+            availableOutgoingBitrate: 1500000,
+            availableIncomingBitrate: 1200000,
+          },
+        ],
+      ])
+
+      const mockPeerConnection = {
+        getStats: vi.fn().mockResolvedValue(mockStats),
+      }
+      mockSession.connection = mockPeerConnection as unknown as RTCPeerConnection
+
+      const stats = await callSession.getStats()
+
+      expect(stats.audio).toBeDefined()
+      expect(stats.video).toBeDefined()
+      expect(stats.connection).toBeDefined()
+
+      // Verify audio was combined
+      expect(stats.audio?.bytesReceived).toBe(10000)
+      expect(stats.audio?.bytesSent).toBe(8000)
+
+      // Verify video
+      expect(stats.video?.frameRate).toBe(30)
+
+      // Verify connection
+      expect(stats.connection?.localCandidateType).toBe('relay')
+    })
+
+    it('should handle missing stats values with defaults', async () => {
+      const mockStats = new Map([
+        [
+          'inbound-rtp-audio',
+          {
+            type: 'inbound-rtp',
+            kind: 'audio',
+            // All values missing - should default to 0
+          },
+        ],
+        [
+          'inbound-rtp-video',
+          {
+            type: 'inbound-rtp',
+            kind: 'video',
+            // frameWidth and frameHeight missing
+          },
+        ],
+        [
+          'candidate-pair',
+          {
+            type: 'candidate-pair',
+            state: 'succeeded',
+            // localCandidateType and remoteCandidateType missing
+          },
+        ],
+      ])
+
+      const mockPeerConnection = {
+        getStats: vi.fn().mockResolvedValue(mockStats),
+      }
+      mockSession.connection = mockPeerConnection as unknown as RTCPeerConnection
+
+      const stats = await callSession.getStats()
+
+      expect(stats.audio?.bytesReceived).toBe(0)
+      expect(stats.audio?.packetsReceived).toBe(0)
+      expect(stats.audio?.packetsLost).toBe(0)
+      expect(stats.audio?.jitter).toBe(0)
+
+      expect(stats.video?.resolution).toEqual({ width: 0, height: 0 })
+      expect(stats.video?.frameRate).toBe(0)
+
+      expect(stats.connection?.localCandidateType).toBe('unknown')
+      expect(stats.connection?.remoteCandidateType).toBe('unknown')
+    })
+
+    it('should not include connection stats for non-succeeded candidate-pair', async () => {
+      const mockStats = new Map([
+        [
+          'candidate-pair',
+          {
+            type: 'candidate-pair',
+            state: 'failed',
+            localCandidateType: 'host',
+            remoteCandidateType: 'host',
+          },
+        ],
+      ])
+
+      const mockPeerConnection = {
+        getStats: vi.fn().mockResolvedValue(mockStats),
+      }
+      mockSession.connection = mockPeerConnection as unknown as RTCPeerConnection
+
+      const stats = await callSession.getStats()
+
+      expect(stats.connection).toBeUndefined()
+    })
+  })
+
+  // ==========================================================================
+  // Media Streams via 'peerconnection' Event
+  // ==========================================================================
+
+  describe('media streams via peerconnection event', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should set remoteStream from ontrack event', () => {
+      const mockStream = { id: 'remote-stream-1' } as unknown as MediaStream
+      const mockPeerConnection = createMockPeerConnection()
+
+      mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+      const trackEvent = { streams: [mockStream] } as unknown as RTCTrackEvent
+      mockPeerConnection.ontrack?.(trackEvent)
+
+      expect(callSession.remoteStream).toBe(mockStream)
+    })
+
+    it('should emit remoteStream event with stream', () => {
+      const remoteStreamHandler = vi.fn()
+      callSession.on('remoteStream', remoteStreamHandler)
+
+      const mockStream = { id: 'remote-stream-2' } as unknown as MediaStream
+      const mockPeerConnection = createMockPeerConnection()
+
+      mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+      const trackEvent = { streams: [mockStream] } as unknown as RTCTrackEvent
+      mockPeerConnection.ontrack?.(trackEvent)
+
+      expect(remoteStreamHandler).toHaveBeenCalledWith({ stream: mockStream })
+    })
+
+    it('should create localStream from RTCRtpSender tracks', () => {
+      const mockAudioTrack = { kind: 'audio', id: 'audio-track-1' } as unknown as MediaStreamTrack
+      const mockVideoTrack = { kind: 'video', id: 'video-track-1' } as unknown as MediaStreamTrack
+
+      withMockMediaStream((MockMediaStreamClass) => {
+        const mockPeerConnection = createMockPeerConnection({
+          senders: [{ track: mockAudioTrack }, { track: mockVideoTrack }],
+        })
+
+        mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+        expect(MockMediaStreamClass).toHaveBeenCalledWith([mockAudioTrack, mockVideoTrack])
+        expect(callSession.localStream).toBeDefined()
+      })
+    })
+
+    it('should emit localStream event with stream', () => {
+      const localStreamHandler = vi.fn()
+      callSession.on('localStream', localStreamHandler)
+
+      const mockAudioTrack = { kind: 'audio', id: 'audio-track' } as unknown as MediaStreamTrack
+
+      withMockMediaStream(() => {
+        const mockPeerConnection = createMockPeerConnection({
+          senders: [{ track: mockAudioTrack }],
+        })
+
+        mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+        expect(localStreamHandler).toHaveBeenCalled()
+        expect(localStreamHandler.mock.calls[0][0].stream).toBeDefined()
+      })
+    })
+
+    it('should handle audio-only senders', () => {
+      const mockAudioTrack = { kind: 'audio', id: 'audio-only' } as unknown as MediaStreamTrack
+
+      withMockMediaStream((MockMediaStreamClass) => {
+        const mockPeerConnection = createMockPeerConnection({
+          senders: [{ track: mockAudioTrack }, { track: null }],
+        })
+
+        mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+        expect(MockMediaStreamClass).toHaveBeenCalledWith([mockAudioTrack])
+      })
+    })
+
+    it('should handle video-only senders', () => {
+      const mockVideoTrack = { kind: 'video', id: 'video-only' } as unknown as MediaStreamTrack
+
+      withMockMediaStream((MockMediaStreamClass) => {
+        const mockPeerConnection = createMockPeerConnection({
+          senders: [{ track: null }, { track: mockVideoTrack }],
+        })
+
+        mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+        expect(MockMediaStreamClass).toHaveBeenCalledWith([mockVideoTrack])
+      })
+    })
+
+    it('should handle audio+video senders', () => {
+      const mockAudioTrack = { kind: 'audio', id: 'audio-track' } as unknown as MediaStreamTrack
+      const mockVideoTrack = { kind: 'video', id: 'video-track' } as unknown as MediaStreamTrack
+
+      withMockMediaStream((MockMediaStreamClass) => {
+        const mockPeerConnection = createMockPeerConnection({
+          senders: [{ track: mockAudioTrack }, { track: mockVideoTrack }],
+        })
+
+        mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+        expect(MockMediaStreamClass).toHaveBeenCalledWith([mockAudioTrack, mockVideoTrack])
+      })
+    })
+
+    it('should not create localStream when no tracks from senders', () => {
+      const localStreamHandler = vi.fn()
+      callSession.on('localStream', localStreamHandler)
+
+      const mockPeerConnection = createMockPeerConnection({
+        senders: [{ track: null }, { track: null }],
+      })
+
+      mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+      expect(localStreamHandler).not.toHaveBeenCalled()
+    })
+
+    it('should not set remoteStream when ontrack has no streams', () => {
+      const remoteStreamHandler = vi.fn()
+      callSession.on('remoteStream', remoteStreamHandler)
+
+      const mockPeerConnection = createMockPeerConnection()
+
+      mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+      const trackEvent = { streams: [] } as unknown as RTCTrackEvent
+      mockPeerConnection.ontrack?.(trackEvent)
+
+      expect(remoteStreamHandler).not.toHaveBeenCalled()
+      expect(callSession.remoteStream).toBeNull()
+    })
+  })
+
+  // ==========================================================================
+  // ICE State Change Events
+  // ==========================================================================
+
+  describe('ICE state change events', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should emit iceConnectionStateChange event', () => {
+      const iceConnectionHandler = vi.fn()
+      callSession.on('iceConnectionStateChange', iceConnectionHandler)
+
+      const mockPeerConnection = createMockPeerConnection({
+        iceConnectionState: 'checking',
+        iceGatheringState: 'gathering',
+      })
+
+      mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+      mockPeerConnection.oniceconnectionstatechange?.()
+
+      expect(iceConnectionHandler).toHaveBeenCalledWith({ state: 'checking' })
+    })
+
+    it('should emit iceGatheringStateChange event', () => {
+      const iceGatheringHandler = vi.fn()
+      callSession.on('iceGatheringStateChange', iceGatheringHandler)
+
+      const mockPeerConnection = createMockPeerConnection({
+        iceGatheringState: 'complete',
+      })
+
+      mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+      mockPeerConnection.onicegatheringstatechange?.()
+
+      expect(iceGatheringHandler).toHaveBeenCalledWith({ state: 'complete' })
+    })
+
+    it('should emit signalingStateChange event', () => {
+      const signalingHandler = vi.fn()
+      callSession.on('signalingStateChange', signalingHandler)
+
+      const mockPeerConnection = createMockPeerConnection({
+        signalingState: 'have-local-offer',
+      })
+
+      mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+      mockPeerConnection.onsignalingstatechange?.()
+
+      expect(signalingHandler).toHaveBeenCalledWith({ state: 'have-local-offer' })
+    })
+
+    it('should emit multiple state changes as they occur', () => {
+      const iceConnectionHandler = vi.fn()
+      callSession.on('iceConnectionStateChange', iceConnectionHandler)
+
+      const mockPeerConnection = createMockPeerConnection()
+
+      mockSession.__triggerEvent('peerconnection', { peerconnection: mockPeerConnection })
+
+      // Simulate connection state progression
+      mockPeerConnection.iceConnectionState = 'checking'
+      mockPeerConnection.oniceconnectionstatechange?.()
+      expect(iceConnectionHandler).toHaveBeenCalledWith({ state: 'checking' })
+
+      mockPeerConnection.iceConnectionState = 'connected'
+      mockPeerConnection.oniceconnectionstatechange?.()
+      expect(iceConnectionHandler).toHaveBeenCalledWith({ state: 'connected' })
+
+      mockPeerConnection.iceConnectionState = 'completed'
+      mockPeerConnection.oniceconnectionstatechange?.()
+      expect(iceConnectionHandler).toHaveBeenCalledWith({ state: 'completed' })
+
+      expect(iceConnectionHandler).toHaveBeenCalledTimes(3)
+    })
+  })
+
+  // ==========================================================================
+  // refer Event (Incoming Transfer)
+  // ==========================================================================
+
+  describe('refer event', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should emit referred event with target from Refer-To header', () => {
+      const referredHandler = vi.fn()
+      callSession.on('referred', referredHandler)
+
+      const referToTarget = 'sip:transfer-target@example.com'
+
+      mockSession.__triggerEvent('refer', {
+        request: {
+          getHeader: vi.fn().mockImplementation((name: string) => {
+            if (name === 'Refer-To') {
+              return referToTarget
+            }
+            return undefined
+          }),
+        },
+      })
+
+      expect(referredHandler).toHaveBeenCalledWith({ target: referToTarget })
+    })
+
+    it('should not emit referred event when Refer-To header is missing', () => {
+      const referredHandler = vi.fn()
+      callSession.on('referred', referredHandler)
+
+      mockSession.__triggerEvent('refer', {
+        request: {
+          getHeader: vi.fn().mockReturnValue(undefined),
+        },
+      })
+
+      expect(referredHandler).not.toHaveBeenCalled()
+    })
+
+    it('should handle various Refer-To target formats', () => {
+      const referredHandler = vi.fn()
+      callSession.on('referred', referredHandler)
+
+      const targets = [
+        'sip:user@domain.com',
+        'sip:+15551234567@gateway.com',
+        'sips:secure@domain.com',
+        'tel:+1-555-123-4567',
+      ]
+
+      for (const target of targets) {
+        vi.clearAllMocks()
+
+        mockSession.__triggerEvent('refer', {
+          request: {
+            getHeader: vi.fn().mockImplementation((name: string) => {
+              if (name === 'Refer-To') {
+                return target
+              }
+              return undefined
+            }),
+          },
+        })
+
+        expect(referredHandler).toHaveBeenCalledWith({ target })
+      }
     })
   })
 })
