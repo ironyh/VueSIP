@@ -11,6 +11,7 @@ import { callQualityExample } from './call-quality'
 import { customRingtonesExample } from './custom-ringtones'
 import { callRecordingExample } from './call-recording'
 import { conferenceCallExample } from './conference-call'
+import { conferenceGalleryExample } from './conference-gallery'
 import { callMutePatternsExample } from './call-mute-patterns'
 import { connectionRecoveryExample } from './connection-recovery'
 import { networkSimulatorExample } from './network-simulator'
@@ -55,6 +56,7 @@ export const sipExamples = [
   callTransferExample,
   callWaitingExample,
   conferenceCallExample,
+  conferenceGalleryExample,
   callTimerExample,
   callRecordingExample,
   screenSharingExample,

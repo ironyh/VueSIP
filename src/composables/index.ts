@@ -36,6 +36,9 @@ export { useCallControls, type UseCallControlsReturn, type ActiveTransfer } from
 export { usePresence, type UsePresenceReturn } from './usePresence'
 export { useMessaging, type UseMessagingReturn, type Conversation } from './useMessaging'
 export { useConference, type UseConferenceReturn } from './useConference'
+export { useParticipantControls } from './useParticipantControls'
+export { useActiveSpeaker } from './useActiveSpeaker'
+export { useGalleryLayout } from './useGalleryLayout'
 export { useAmiVoicemail, type UseAmiVoicemailReturn } from './useAmiVoicemail'
 export { useAmiParking, type UseAmiParkingReturn } from './useAmiParking'
 export { useAmiCallback } from './useAmiCallback'
@@ -110,6 +113,28 @@ export {
 // Re-export types needed by demos
 export type { CallbackPriority, CallbackRequest } from '../types/callback.types'
 export type { BlockReason, BlockAction, BlockEntry } from '../types/blacklist.types'
+
+// Active speaker types
+export type {
+  ActiveSpeakerOptions,
+  SpeakerHistoryEntry,
+  UseActiveSpeakerReturn,
+} from '../types/active-speaker.types'
+
+// Gallery layout types
+export type {
+  GalleryLayoutMode,
+  ContainerSize,
+  TileDimensions,
+  GalleryLayoutOptions,
+  UseGalleryLayoutReturn,
+} from '../types/gallery-layout.types'
+
+// Participant controls types
+export type {
+  ParticipantControlsOptions,
+  UseParticipantControlsReturn,
+} from '../types/participant-controls.types'
 
 // Connection recovery types
 export type {

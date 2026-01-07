@@ -21,6 +21,10 @@ Complete reference for all VueSip composables providing reactive SIP functionali
   - [useVideoInset](#usevideoinset)
 - [Connection Recovery Composables](#connection-recovery-composables)
   - [useConnectionRecovery](#useconnectionrecovery)
+- [Conference Enhancement Composables](#conference-enhancement-composables)
+  - [useActiveSpeaker](#useactivespeaker)
+  - [useGalleryLayout](#usegallerylayout)
+  - [useParticipantControls](#useparticipantcontrols)
 - [Constants](#constants)
 
 ---
@@ -1846,6 +1850,623 @@ const handlePinch = (scale: number) => {
   )
 }
 ```
+
+---
+
+## Conference Enhancement Composables
+
+Composables for enhancing conference call experiences with active speaker detection, gallery layouts, and participant controls.
+
+### useActiveSpeaker
+
+Provides reactive active speaker detection based on participant audio levels. Detects the dominant speaker (highest audio level above threshold) and tracks speaker history for conference UI components.
+
+**Source:** [`src/composables/useActiveSpeaker.ts`](../../src/composables/useActiveSpeaker.ts)
+
+#### Signature
+
+```typescript
+function useActiveSpeaker(
+  participants: Ref<Participant[]>,
+  options?: ActiveSpeakerOptions
+): UseActiveSpeakerReturn
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `participants` | `Ref<Participant[]>` | - | Reactive reference to conference participants array |
+| `options.threshold` | `number` | `0.15` | Audio level threshold to consider someone speaking (0-1) |
+| `options.debounceMs` | `number` | `300` | Debounce time in ms to prevent rapid speaker switching |
+| `options.historySize` | `number` | `10` | Number of recent speakers to track in history |
+| `options.excludeMuted` | `boolean` | `true` | Exclude muted participants from detection |
+| `options.onSpeakerChange` | `(speaker, previous) => void` | - | Callback when active speaker changes |
+
+#### Returns: `UseActiveSpeakerReturn`
+
+##### Reactive State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `activeSpeaker` | `ComputedRef<Participant \| null>` | Current dominant speaker (highest audio level above threshold) |
+| `activeSpeakers` | `ComputedRef<Participant[]>` | All participants currently speaking (above threshold), sorted by level |
+| `isSomeoneSpeaking` | `ComputedRef<boolean>` | Is anyone currently speaking |
+| `speakerHistory` | `Ref<SpeakerHistoryEntry[]>` | Recent speaker history |
+
+##### Speaker History Entry
+
+```typescript
+interface SpeakerHistoryEntry {
+  participantId: string   // Participant ID
+  displayName: string     // Display name at time of speaking
+  startedAt: number       // When they started speaking (timestamp)
+  endedAt: number | null  // When they stopped (null if still speaking)
+  peakLevel: number       // Peak audio level during this speaking period
+}
+```
+
+##### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `clearHistory` | `() => void` | Clear speaker history |
+| `setThreshold` | `(threshold: number) => void` | Update threshold dynamically (clamped to 0-1) |
+
+#### Usage Example
+
+```typescript
+import { ref, watch } from 'vue'
+import { useActiveSpeaker } from 'vuesip'
+import type { Participant } from 'vuesip'
+
+// Get participants from conference composable
+const participants = ref<Participant[]>([])
+
+const {
+  activeSpeaker,
+  activeSpeakers,
+  isSomeoneSpeaking,
+  speakerHistory,
+  clearHistory,
+  setThreshold
+} = useActiveSpeaker(participants, {
+  threshold: 0.2,
+  debounceMs: 500,
+  historySize: 20,
+  excludeMuted: true,
+  onSpeakerChange: (current, previous) => {
+    console.log(`Speaker changed from ${previous?.displayName} to ${current?.displayName}`)
+  }
+})
+
+// Watch for active speaker changes
+watch(activeSpeaker, (speaker) => {
+  if (speaker) {
+    console.log(`${speaker.displayName} is speaking at level ${speaker.audioLevel}`)
+  }
+})
+
+// Check if anyone is speaking
+if (isSomeoneSpeaking.value) {
+  console.log(`${activeSpeakers.value.length} people are speaking`)
+}
+
+// Adjust sensitivity dynamically
+setThreshold(0.1) // More sensitive
+
+// Clear history
+clearHistory()
+```
+
+#### Integration with Conference
+
+```vue
+<template>
+  <div class="conference">
+    <div
+      v-for="participant in participants"
+      :key="participant.id"
+      :class="{ 'is-speaking': participant.id === activeSpeaker?.id }"
+    >
+      <span>{{ participant.displayName }}</span>
+      <span v-if="participant.id === activeSpeaker?.id" class="speaker-indicator">
+        Speaking
+      </span>
+    </div>
+
+    <div class="speaker-history">
+      <h4>Recent Speakers</h4>
+      <ul>
+        <li v-for="entry in speakerHistory" :key="entry.startedAt">
+          {{ entry.displayName }} (peak: {{ (entry.peakLevel * 100).toFixed(0) }}%)
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useConference, useActiveSpeaker } from 'vuesip'
+
+const { participants } = useConference(sipClient)
+const { activeSpeaker, speakerHistory } = useActiveSpeaker(participants)
+</script>
+```
+
+---
+
+### useGalleryLayout
+
+Provides reactive gallery layout calculations for displaying conference participants. Calculates optimal grid dimensions based on participant count and supports multiple layout modes.
+
+**Source:** [`src/composables/useGalleryLayout.ts`](../../src/composables/useGalleryLayout.ts)
+
+#### Signature
+
+```typescript
+function useGalleryLayout(
+  participantCount: Ref<number>,
+  options?: GalleryLayoutOptions
+): UseGalleryLayoutReturn
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `participantCount` | `Ref<number>` | - | Reactive reference to number of participants |
+| `options.containerSize` | `Ref<ContainerSize>` | - | Container size for dimension calculations |
+| `options.gap` | `number` | `8` | Gap between tiles in pixels |
+| `options.activeSpeakerId` | `Ref<string \| null>` | - | Active speaker ID for speaker-focused layouts |
+| `options.maxCols` | `number` | `4` | Maximum columns |
+| `options.maxRows` | `number` | `4` | Maximum rows |
+| `options.aspectRatio` | `number` | `16/9` | Aspect ratio for tiles (width/height) |
+
+#### Type Definitions
+
+```typescript
+type GalleryLayoutMode = 'grid' | 'speaker' | 'sidebar' | 'spotlight'
+
+interface ContainerSize {
+  width: number   // Container width in pixels
+  height: number  // Container height in pixels
+}
+
+interface TileDimensions {
+  width: number   // Tile width in pixels
+  height: number  // Tile height in pixels
+}
+```
+
+#### Grid Sizing Rules
+
+| Participants | Grid Layout |
+|--------------|-------------|
+| 1 | 1×1 |
+| 2 | 2×1 |
+| 3-4 | 2×2 |
+| 5-6 | 3×2 |
+| 7-9 | 3×3 |
+| 10-12 | 4×3 |
+| 13+ | 4×4 or sqrt-based |
+
+#### Returns: `UseGalleryLayoutReturn`
+
+##### Reactive State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `layout` | `Ref<GalleryLayoutMode>` | Current layout mode |
+| `gridCols` | `ComputedRef<number>` | Number of grid columns |
+| `gridRows` | `ComputedRef<number>` | Number of grid rows |
+| `tileDimensions` | `ComputedRef<TileDimensions>` | Calculated tile dimensions |
+| `gridStyle` | `ComputedRef<string>` | CSS grid style string |
+| `focusedParticipantId` | `ComputedRef<string \| null>` | Currently focused participant ID |
+| `pinnedParticipantId` | `Ref<string \| null>` | Pinned participant ID |
+
+##### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `setLayout` | `(mode: GalleryLayoutMode) => void` | Set layout mode |
+| `pinParticipant` | `(id: string) => void` | Pin a participant to focus |
+| `unpinParticipant` | `() => void` | Unpin the focused participant |
+
+#### Usage Example
+
+```typescript
+import { ref, computed } from 'vue'
+import { useGalleryLayout } from 'vuesip'
+
+// Participant count from conference
+const participantCount = ref(6)
+
+// Container size from ResizeObserver
+const containerSize = ref({ width: 1920, height: 1080 })
+
+const {
+  gridCols,
+  gridRows,
+  tileDimensions,
+  gridStyle,
+  focusedParticipantId,
+  pinnedParticipantId,
+  setLayout,
+  pinParticipant,
+  unpinParticipant
+} = useGalleryLayout(participantCount, {
+  containerSize,
+  gap: 16,
+  maxCols: 4,
+  maxRows: 4,
+  aspectRatio: 16 / 9
+})
+
+// gridCols.value = 3, gridRows.value = 2
+// tileDimensions.value = { width: 624, height: 351 }
+
+// Pin a specific participant
+pinParticipant('participant-123')
+
+// Switch to speaker layout
+setLayout('speaker')
+```
+
+#### Vue Component Integration
+
+```vue
+<template>
+  <div
+    ref="containerRef"
+    class="gallery-container"
+    :style="gridStyle"
+  >
+    <div
+      v-for="participant in participants"
+      :key="participant.id"
+      class="participant-tile"
+      :style="tileStyle"
+      :class="{
+        'is-focused': participant.id === focusedParticipantId,
+        'is-pinned': participant.id === pinnedParticipantId
+      }"
+      @click="pinParticipant(participant.id)"
+    >
+      <video :srcObject="participant.videoStream" autoplay playsinline />
+      <span class="name">{{ participant.displayName }}</span>
+    </div>
+  </div>
+
+  <div class="layout-controls">
+    <button @click="setLayout('grid')">Grid</button>
+    <button @click="setLayout('speaker')">Speaker</button>
+    <button @click="setLayout('spotlight')">Spotlight</button>
+    <button @click="unpinParticipant" :disabled="!pinnedParticipantId">Unpin</button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useConference, useGalleryLayout, useActiveSpeaker } from 'vuesip'
+
+const containerRef = ref<HTMLElement | null>(null)
+const containerSize = ref({ width: 0, height: 0 })
+
+const { participants, participantCount } = useConference(sipClient)
+const { activeSpeaker } = useActiveSpeaker(participants)
+
+const activeSpeakerId = computed(() => activeSpeaker.value?.id ?? null)
+
+const {
+  gridCols,
+  gridRows,
+  tileDimensions,
+  gridStyle,
+  focusedParticipantId,
+  pinnedParticipantId,
+  setLayout,
+  pinParticipant,
+  unpinParticipant
+} = useGalleryLayout(participantCount, {
+  containerSize,
+  activeSpeakerId,
+  gap: 8
+})
+
+const tileStyle = computed(() => ({
+  width: `${tileDimensions.value.width}px`,
+  height: `${tileDimensions.value.height}px`
+}))
+
+// Track container size
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  if (containerRef.value) {
+    resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        containerSize.value = {
+          width: entry.contentRect.width,
+          height: entry.contentRect.height
+        }
+      }
+    })
+    resizeObserver.observe(containerRef.value)
+  }
+})
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+})
+</script>
+
+<style scoped>
+.gallery-container {
+  width: 100%;
+  height: 100%;
+}
+
+.participant-tile {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.participant-tile.is-focused {
+  outline: 2px solid #3b82f6;
+}
+
+.participant-tile.is-pinned {
+  outline: 2px solid #22c55e;
+}
+</style>
+```
+
+#### Layout Modes
+
+| Mode | Description |
+|------|-------------|
+| `grid` | Standard grid layout with equal-sized tiles |
+| `speaker` | Focus on dominant speaker with smaller tiles for others |
+| `sidebar` | Main content with sidebar of participant tiles |
+| `spotlight` | Single participant in focus |
+
+---
+
+### useParticipantControls
+
+Provides controls for individual conference participants including mute/unmute, kick, pin, and volume control with permission-based access.
+
+**Source:** [`src/composables/useParticipantControls.ts`](../../src/composables/useParticipantControls.ts)
+
+#### Signature
+
+```typescript
+function useParticipantControls(
+  participant: Ref<Participant | null>,
+  options?: ParticipantControlsOptions
+): UseParticipantControlsReturn
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `participant` | `Ref<Participant \| null>` | - | Reactive reference to the participant to control |
+| `options.isModerator` | `Ref<boolean>` | `ref(false)` | Whether the current user is a moderator |
+| `options.isPinned` | `Ref<boolean>` | `ref(false)` | Whether this participant is currently pinned |
+| `options.initialVolume` | `number` | `1` | Initial volume level (0-1) |
+| `options.onMute` | `(participant) => void` | - | Callback when participant is muted |
+| `options.onUnmute` | `(participant) => void` | - | Callback when participant is unmuted |
+| `options.onKick` | `(participant) => void` | - | Callback when participant is kicked |
+| `options.onPin` | `(participant) => void` | - | Callback when participant is pinned |
+| `options.onUnpin` | `(participant) => void` | - | Callback when participant is unpinned |
+| `options.onVolumeChange` | `(participant, volume) => void` | - | Callback when volume changes |
+
+#### Returns: `UseParticipantControlsReturn`
+
+##### Reactive State
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `canMute` | `ComputedRef<boolean>` | Can mute/unmute this participant (is moderator) |
+| `canKick` | `ComputedRef<boolean>` | Can kick this participant (is moderator, not self) |
+| `canPin` | `ComputedRef<boolean>` | Can pin this participant (has participant) |
+| `volume` | `Ref<number>` | Current volume level (0-1) |
+
+##### Methods
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `toggleMute` | `() => void` | Toggle mute state (requires moderator permission) |
+| `kickParticipant` | `() => void` | Kick participant from conference (requires moderator, cannot kick self) |
+| `togglePin` | `() => void` | Toggle pin state |
+| `setVolume` | `(level: number) => void` | Set volume level (clamped to 0-1) |
+
+#### Usage Example
+
+```typescript
+import { ref } from 'vue'
+import { useParticipantControls } from 'vuesip'
+import type { Participant } from 'vuesip'
+
+const participant = ref<Participant | null>({
+  id: 'participant-1',
+  displayName: 'John Doe',
+  isMuted: false,
+  isLocal: false,
+  audioLevel: 0.5
+})
+
+const isModerator = ref(true)
+const isPinned = ref(false)
+
+const {
+  canMute,
+  canKick,
+  canPin,
+  volume,
+  toggleMute,
+  kickParticipant,
+  togglePin,
+  setVolume
+} = useParticipantControls(participant, {
+  isModerator,
+  isPinned,
+  initialVolume: 1,
+  onMute: (p) => console.log(`Muted ${p.displayName}`),
+  onUnmute: (p) => console.log(`Unmuted ${p.displayName}`),
+  onKick: (p) => console.log(`Kicked ${p.displayName}`),
+  onPin: (p) => console.log(`Pinned ${p.displayName}`),
+  onUnpin: (p) => console.log(`Unpinned ${p.displayName}`),
+  onVolumeChange: (p, v) => console.log(`${p.displayName} volume: ${v}`)
+})
+
+// Check permissions before showing controls
+if (canMute.value) {
+  toggleMute()
+}
+
+if (canKick.value) {
+  kickParticipant()
+}
+
+// Adjust volume
+setVolume(0.5) // 50% volume
+```
+
+#### Vue Component Integration
+
+```vue
+<template>
+  <div class="participant-controls" v-if="participant">
+    <span class="name">{{ participant.displayName }}</span>
+
+    <!-- Mute Button -->
+    <button
+      v-if="canMute"
+      @click="toggleMute"
+      :title="participant.isMuted ? 'Unmute' : 'Mute'"
+    >
+      {{ participant.isMuted ? '🔇' : '🔊' }}
+    </button>
+
+    <!-- Volume Slider -->
+    <input
+      type="range"
+      min="0"
+      max="1"
+      step="0.1"
+      :value="volume"
+      @input="setVolume(parseFloat(($event.target as HTMLInputElement).value))"
+      title="Volume"
+    />
+
+    <!-- Pin Button -->
+    <button
+      v-if="canPin"
+      @click="togglePin"
+      :class="{ active: isPinned }"
+      title="Pin participant"
+    >
+      📌
+    </button>
+
+    <!-- Kick Button -->
+    <button
+      v-if="canKick"
+      @click="kickParticipant"
+      class="kick-btn"
+      title="Remove from conference"
+    >
+      🚫
+    </button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useParticipantControls } from 'vuesip'
+import type { Participant } from 'vuesip'
+
+const props = defineProps<{
+  participant: Participant | null
+  isModerator: boolean
+  isPinnedParticipant: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'pin', id: string): void
+  (e: 'unpin'): void
+  (e: 'kick', id: string): void
+}>()
+
+const participantRef = computed(() => props.participant)
+const isModeratorRef = computed(() => props.isModerator)
+const isPinnedRef = computed(() => props.isPinnedParticipant)
+
+const {
+  canMute,
+  canKick,
+  canPin,
+  volume,
+  toggleMute,
+  kickParticipant,
+  togglePin,
+  setVolume
+} = useParticipantControls(participantRef, {
+  isModerator: isModeratorRef,
+  isPinned: isPinnedRef,
+  onKick: (p) => emit('kick', p.id),
+  onPin: (p) => emit('pin', p.id),
+  onUnpin: () => emit('unpin')
+})
+</script>
+
+<style scoped>
+.participant-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+}
+
+button {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button.active {
+  background: #3b82f6;
+  color: white;
+}
+
+.kick-btn {
+  background: #ef4444;
+  color: white;
+}
+
+input[type="range"] {
+  width: 80px;
+}
+</style>
+```
+
+#### Permission Matrix
+
+| Action | Requires |
+|--------|----------|
+| Mute/Unmute | Moderator status |
+| Kick | Moderator status AND not self (isLocal = false) |
+| Pin | Participant exists |
+| Volume | Always available |
 
 ---
 

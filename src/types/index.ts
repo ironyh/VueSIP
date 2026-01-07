@@ -31,6 +31,9 @@ export * from './messaging.types'
 // Conference types
 export * from './conference.types'
 
+// Participant controls types
+export * from './participant-controls.types'
+
 // History types
 export * from './history.types'
 

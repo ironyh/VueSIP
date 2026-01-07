@@ -75,12 +75,35 @@ This document tracks the development progress of VueSIP features.
 
 ### 3.1 Conference Calling
 
-**Effort**: 10 days | **Impact**: High | **Status**: 🔄 In Progress
+**Effort**: 10 days | **Impact**: High | **Status**: ✅ Complete
 
 - [x] Basic conference support (`useConference`)
-- [ ] Participant management UI components
-- [ ] Active speaker detection
-- [ ] Gallery view layout
+- [x] Participant management UI components (`useParticipantControls`)
+- [x] Active speaker detection (`useActiveSpeaker`)
+- [x] Gallery view layout (`useGalleryLayout`)
+
+**Completed Features:**
+
+- `useActiveSpeaker` - Real-time active speaker detection with audio level monitoring
+  - Dominant speaker detection (highest audio level above threshold)
+  - Multiple active speakers tracking
+  - Configurable threshold, debounce, and history size
+  - Speaker history with peak levels
+  - Muted participant filtering
+- `useGalleryLayout` - Responsive gallery layout calculations for video tiles
+  - Four layout modes: grid, speaker, sidebar, spotlight
+  - Automatic grid sizing (1x1 → 5x4 based on participant count)
+  - Aspect ratio support (16:9, 4:3, 1:1)
+  - Gap and padding configuration
+  - CSS Grid style generation
+- `useParticipantControls` - Permission-based participant management
+  - Mute/unmute controls with moderator permissions
+  - Kick participant functionality
+  - Pin/unpin for spotlight
+  - Volume control per participant
+- Full TypeScript support with comprehensive types
+- Unit tests with 100% coverage
+- API documentation and demo component
 
 ### 3.2 Call Recording
 
