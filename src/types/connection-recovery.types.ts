@@ -4,6 +4,22 @@
  */
 
 /**
+ * Network information from Network Information API
+ */
+export interface NetworkInfo {
+  /** Connection type (wifi, cellular, ethernet, etc.) */
+  type: string
+  /** Effective connection type (4g, 3g, 2g, slow-2g) */
+  effectiveType: string
+  /** Downlink speed in Mbps */
+  downlink: number
+  /** Round-trip time in ms */
+  rtt: number
+  /** Whether browser is online */
+  isOnline: boolean
+}
+
+/**
  * Connection recovery state
  */
 export type RecoveryState =
@@ -66,12 +82,18 @@ export interface ConnectionRecoveryOptions {
   iceRestartTimeout?: number
   /** Strategy to use (default: 'ice-restart') */
   strategy?: RecoveryStrategy
+  /** Enable automatic reconnection on network changes (default: false) */
+  autoReconnectOnNetworkChange?: boolean
+  /** Delay before triggering recovery after network change in ms (default: 500) */
+  networkChangeDelay?: number
   /** Callback when recovery starts */
   onRecoveryStart?: () => void
   /** Callback when recovery succeeds */
   onRecoverySuccess?: (attempt: RecoveryAttempt) => void
   /** Callback when recovery fails */
   onRecoveryFailed?: (attempts: RecoveryAttempt[]) => void
+  /** Callback when network changes (type change or online/offline) */
+  onNetworkChange?: (info: NetworkInfo) => void
 }
 
 /**
@@ -90,6 +112,8 @@ export interface UseConnectionRecoveryReturn {
   isHealthy: import('vue').ComputedRef<boolean>
   /** Last error message */
   error: import('vue').Ref<string | null>
+  /** Current network information */
+  networkInfo: import('vue').Ref<NetworkInfo>
   /** Manually trigger recovery */
   recover: () => Promise<boolean>
   /** Reset recovery state */

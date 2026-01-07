@@ -26,6 +26,7 @@ import { createLogger } from '../utils/logger'
 import { validateSipUri } from '@/utils/validators'
 import { throwIfAborted, isAbortError } from '../utils/abortController'
 import { ErrorSeverity, logErrorWithContext, createOperationTimer } from '../utils/errorContext'
+import { usePictureInPicture } from './usePictureInPicture'
 
 const log = createLogger('useCallSession')
 
@@ -124,6 +125,34 @@ export interface UseCallSessionReturn {
   clearSession: () => void
   /** Transfer call (blind or attended) */
   transferCall: (target: string, options: TransferOptions) => Promise<TransferResult>
+
+  // ============================================================================
+  // Picture-in-Picture Integration
+  // ============================================================================
+
+  /** Whether PiP is supported by the browser */
+  isPiPSupported: Ref<boolean>
+  /** Whether PiP mode is currently active */
+  isPiPActive: Ref<boolean>
+  /** Current PiP window reference (dimensions accessible) */
+  pipWindow: Ref<PictureInPictureWindow | null>
+  /** Current PiP error state */
+  pipError: Ref<Error | null>
+  /** Set video element for PiP */
+  setVideoRef: (element: HTMLVideoElement | null) => void
+  /**
+   * Enter PiP mode
+   * @param videoElement - Optional video element to use (if not provided, uses element from setVideoRef)
+   * @returns The PictureInPictureWindow if successful, null otherwise
+   */
+  enterPiP: (videoElement?: HTMLVideoElement) => Promise<PictureInPictureWindow | null>
+  /** Exit PiP mode */
+  exitPiP: () => Promise<void>
+  /**
+   * Toggle PiP mode
+   * @param videoElement - Optional video element to use (if not provided, uses element from setVideoRef)
+   */
+  togglePiP: (videoElement?: HTMLVideoElement) => Promise<void>
 }
 
 /**
@@ -174,6 +203,60 @@ export function useCallSession(
   // ============================================================================
 
   const session = ref<CallSession | null>(null)
+
+  // ============================================================================
+  // Picture-in-Picture Integration
+  // ============================================================================
+
+  // Video element ref for PiP - set by setVideoRef()
+  const pipVideoRef = ref<HTMLVideoElement | null>(null)
+
+  // Initialize PiP composable with persistence enabled
+  const pip = usePictureInPicture(pipVideoRef, { persistPreference: true })
+
+  /**
+   * Set the video element reference for Picture-in-Picture
+   * @param element - HTMLVideoElement to use for PiP, or null to clear
+   */
+  const setVideoRef = (element: HTMLVideoElement | null): void => {
+    pipVideoRef.value = element
+    log.debug('PiP video ref updated', { hasElement: !!element })
+  }
+
+  /**
+   * Enter Picture-in-Picture mode
+   * Supports both patterns:
+   * 1. Call with videoElement parameter directly
+   * 2. Use element set via setVideoRef() if no parameter provided
+   *
+   * @param videoElement - Optional video element to use for PiP
+   * @returns The PictureInPictureWindow if successful, null otherwise
+   */
+  const enterPiP = async (videoElement?: HTMLVideoElement): Promise<PictureInPictureWindow | null> => {
+    // If videoElement provided, set it first
+    if (videoElement) {
+      setVideoRef(videoElement)
+    }
+    await pip.enterPiP()
+    // Explicitly return null if pipWindow is undefined/null for spec compliance
+    return pip.pipWindow.value ?? null
+  }
+
+  /**
+   * Toggle Picture-in-Picture mode
+   * Supports both patterns:
+   * 1. Call with videoElement parameter directly
+   * 2. Use element set via setVideoRef() if no parameter provided
+   *
+   * @param videoElement - Optional video element to use for PiP
+   */
+  const togglePiP = async (videoElement?: HTMLVideoElement): Promise<void> => {
+    // If videoElement provided and not currently in PiP, set it first
+    if (videoElement && !pip.isPiPActive.value) {
+      setVideoRef(videoElement)
+    }
+    return pip.togglePiP()
+  }
 
   // Duration tracking (updated every second when in call)
   const durationSeconds = ref(0)
@@ -349,7 +432,7 @@ export function useCallSession(
     durationSeconds.value = 0
   }
 
-  // Watch state to start/stop duration tracking
+  // Watch state to start/stop duration tracking and auto-exit PiP
   watch(
     state,
     (newState, oldState) => {
@@ -360,6 +443,13 @@ export function useCallSession(
           // Stop timer on terminated OR failed state to prevent leaks
           if (oldState !== newState) {
             stopDurationTracking()
+          }
+          // Auto-exit PiP when call ends
+          if (pip.isPiPActive.value) {
+            log.debug('Auto-exiting PiP due to call end')
+            pip.exitPiP().catch((error) => {
+              log.warn('Failed to auto-exit PiP:', error)
+            })
           }
         } else if (oldState === 'active' && newState !== 'active') {
           // Catch-all: Stop timer when leaving 'active' state for ANY reason
@@ -1324,5 +1414,15 @@ export function useCallSession(
     getStats,
     clearSession,
     transferCall,
+
+    // Picture-in-Picture
+    isPiPSupported: pip.isPiPSupported,
+    isPiPActive: pip.isPiPActive,
+    pipWindow: pip.pipWindow,
+    pipError: pip.error,
+    setVideoRef,
+    enterPiP,
+    exitPiP: pip.exitPiP,
+    togglePiP,
   }
 }

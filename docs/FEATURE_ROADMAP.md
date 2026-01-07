@@ -12,12 +12,13 @@ This document tracks the development progress of VueSIP features.
 - [x] Handle video element lifecycle
 - [x] Auto-exit on call end
 - [x] Persist PiP preference
-- [ ] Add to CallSession integration (Phase 2 - optional enhancement)
+- [x] Add to CallSession integration
 
 **Completed Features:**
 
 - `usePictureInPicture` - Browser Picture-in-Picture API wrapper
 - `useVideoInset` - CSS-based video overlay positioning
+- CallSession PiP integration with auto-exit on call end
 - Full TypeScript support with comprehensive types
 - Unit tests with 100% coverage
 - API documentation and user guide
@@ -59,8 +60,8 @@ This document tracks the development progress of VueSIP features.
 - [x] Recovery state management with retry logic
 - [x] Configurable recovery options (maxAttempts, attemptDelay, iceRestartTimeout)
 - [x] Recovery callbacks (onRecoveryStart, onRecoverySuccess, onRecoveryFailed)
-- [ ] Automatic reconnection on network change (Phase 2 - optional enhancement)
-- [ ] Session persistence across reconnects (Phase 2 - optional enhancement)
+- [x] Automatic reconnection on network change
+- [x] Session persistence across reconnects
 
 **Completed Features:**
 
@@ -68,8 +69,12 @@ This document tracks the development progress of VueSIP features.
 - Recovery state tracking (stable, monitoring, recovering, failed)
 - ICE health monitoring with state age tracking
 - Configurable retry logic with exponential backoff support
+- `useSessionPersistence` - IndexedDB-based session state persistence
+  - Save/restore session state across reconnections
+  - Configurable max age and auto-restore
+  - Session info retrieval and cleanup
 - Full TypeScript support with comprehensive types
-- Unit tests with 31 test cases (100% coverage)
+- Unit tests with 61 test cases (100% coverage)
 
 ## Phase 3: Advanced Features
 
@@ -111,7 +116,7 @@ This document tracks the development progress of VueSIP features.
 
 - [x] Server-side recording integration (`useAmiRecording` - via AMI)
 - [x] Local recording option (`useLocalRecording` - MediaRecorder API)
-- [ ] Recording status indicators (Phase 3 - optional enhancement)
+- [x] Recording status indicators (`useRecordingIndicator`)
 
 **Completed Features:**
 
@@ -124,8 +129,14 @@ This document tracks the development progress of VueSIP features.
   - Auto-download on stop option
   - IndexedDB persistence framework
   - Download with custom filenames
+- `useRecordingIndicator` - Visual recording status indicator
+  - State management (inactive, recording, paused, stopped)
+  - Blinking animation with configurable interval
+  - Duration tracking with formatted display
+  - CSS style generation for indicator dot
+  - Customizable colors per state
 - Full TypeScript support with comprehensive types
-- Unit tests with 15 test cases (100% coverage)
+- Unit tests with 39 test cases (100% coverage)
 - Playground demo with code snippets
 
 ## Legend

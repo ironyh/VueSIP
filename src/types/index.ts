@@ -51,3 +51,6 @@ export * from './oauth.types'
 
 // Local recording types
 export * from './local-recording.types'
+
+// Session persistence types
+export * from './session-persistence.types'

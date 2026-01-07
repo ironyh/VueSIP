@@ -43,6 +43,35 @@
 
     <!-- Recovery Dashboard -->
     <div v-else class="recovery-dashboard">
+      <!-- Network Info Card -->
+      <div class="network-info-card" :class="networkStatusClass">
+        <div class="network-header">
+          <div class="network-icon">{{ networkIcon }}</div>
+          <div class="network-info">
+            <div class="network-status">{{ networkInfo.isOnline ? 'Online' : 'Offline' }}</div>
+            <div class="network-label">Network Status</div>
+          </div>
+        </div>
+        <div class="network-details">
+          <div class="detail-row">
+            <span class="detail-label">Connection Type:</span>
+            <span class="detail-value">{{ networkInfo.type }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Effective Type:</span>
+            <span class="detail-value">{{ networkInfo.effectiveType }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Downlink Speed:</span>
+            <span class="detail-value">{{ networkInfo.downlink }} Mbps</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Round-Trip Time:</span>
+            <span class="detail-value">{{ networkInfo.rtt }} ms</span>
+          </div>
+        </div>
+      </div>
+
       <!-- ICE Health Status -->
       <div class="health-card" :class="healthStatusClass">
         <div class="health-header">
@@ -181,7 +210,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useSipClient, useCallSession, useConnectionRecovery } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
-import type { RecoveryAttempt } from '../../src/types/connection-recovery.types'
+import type { RecoveryAttempt, NetworkInfo } from '../../src/types/connection-recovery.types'
 
 // Simulation system
 const simulation = useSimulation()
@@ -212,6 +241,13 @@ const simulatedIceState = ref<RTCIceConnectionState>('connected')
 const simulatedAttempts = ref<RecoveryAttempt[]>([])
 const simulatedError = ref<string | null>(null)
 const simulatedStateAge = ref(0)
+const simulatedNetworkInfo = ref<NetworkInfo>({
+  type: 'wifi',
+  effectiveType: '4g',
+  downlink: 10,
+  rtt: 50,
+  isOnline: true,
+})
 let stateAgeInterval: number | null = null
 
 // Connection Recovery composable (for real connections)
@@ -222,18 +258,22 @@ const {
   isHealthy: realIsHealthy,
   attempts: realAttempts,
   error: realError,
+  networkInfo: realNetworkInfo,
   recover: realRecover,
   reset: realReset,
   monitor: _monitor,
   stopMonitoring,
 } = useConnectionRecovery({
   autoRecover: true,
+  autoReconnectOnNetworkChange: true,
   maxAttempts: 3,
   attemptDelay: 2000,
   iceRestartTimeout: 10000,
+  networkChangeDelay: 500,
   onRecoveryStart: () => console.log('[Recovery] Started'),
   onRecoverySuccess: (attempt) => console.log('[Recovery] Success', attempt),
   onRecoveryFailed: (attempts) => console.log('[Recovery] Failed', attempts),
+  onNetworkChange: (info) => console.log('[Network] Changed', info),
 })
 
 // Effective values - use simulation or real data based on mode
@@ -305,7 +345,27 @@ const recoveryAttempts = computed(() =>
   isSimulationMode.value ? simulatedAttempts.value.length : realIceHealth.value.recoveryAttempts
 )
 
+// Network info
+const networkInfo = computed(() =>
+  isSimulationMode.value ? simulatedNetworkInfo.value : realNetworkInfo.value
+)
+
 // Computed classes
+const networkStatusClass = computed(() => {
+  if (!networkInfo.value.isOnline) return 'offline'
+  if (networkInfo.value.effectiveType === '4g') return 'excellent'
+  if (networkInfo.value.effectiveType === '3g') return 'good'
+  return 'fair'
+})
+
+const networkIcon = computed(() => {
+  if (!networkInfo.value.isOnline) return '📴'
+  if (networkInfo.value.type === 'wifi') return '📶'
+  if (networkInfo.value.type === 'cellular') return '📱'
+  if (networkInfo.value.type === 'ethernet') return '🔌'
+  return '🌐'
+})
+
 const healthStatusClass = computed(() => {
   const ice = iceHealthState.value
   if (ice === 'connected' || ice === 'completed') return 'healthy'
@@ -503,6 +563,69 @@ onUnmounted(() => {
 
 .recovery-dashboard {
   padding: var(--spacing-lg);
+}
+
+/* Network Info Card */
+.network-info-card {
+  background: var(--surface-card);
+  border-radius: var(--radius-xl);
+  border: 3px solid var(--surface-border);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+}
+
+.network-info-card.excellent {
+  border-color: var(--success);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.network-info-card.good {
+  border-color: var(--info);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.network-info-card.fair {
+  border-color: var(--warning);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.network-info-card.offline {
+  border-color: var(--danger);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.network-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.network-icon {
+  font-size: 3rem;
+}
+
+.network-info {
+  flex: 1;
+}
+
+.network-status {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.network-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.network-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
 /* Health Card */

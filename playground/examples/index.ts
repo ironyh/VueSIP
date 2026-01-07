@@ -8,15 +8,19 @@ import { callTimerExample } from './call-timer'
 import { speedDialExample } from './speed-dial'
 import { doNotDisturbExample } from './do-not-disturb'
 import { callQualityExample } from './call-quality'
+import { callQualityDashboardExample } from './call-quality-dashboard'
 import { customRingtonesExample } from './custom-ringtones'
 import { callRecordingExample } from './call-recording'
+import { recordingIndicatorExample } from './recording-indicator'
 import { conferenceCallExample } from './conference-call'
 import { conferenceGalleryExample } from './conference-gallery'
 import { callMutePatternsExample } from './call-mute-patterns'
 import { connectionRecoveryExample } from './connection-recovery'
+import { sessionPersistenceExample } from './session-persistence'
 import { networkSimulatorExample } from './network-simulator'
 import { screenSharingExample } from './screen-sharing'
 import { pictureInPictureExample } from './picture-in-picture'
+import { callSessionPiPExample } from './call-session-pip'
 import { callWaitingExample } from './call-waiting'
 import { sipMessagingExample } from './sip-messaging'
 import { presenceExample } from './presence'
@@ -59,14 +63,18 @@ export const sipExamples = [
   conferenceGalleryExample,
   callTimerExample,
   callRecordingExample,
+  recordingIndicatorExample,
   screenSharingExample,
   pictureInPictureExample,
+  callSessionPiPExample,
   sipMessagingExample,
   presenceExample,
   multiLineExample,
   callQualityExample,
   webrtcStatsExample,
+  callQualityDashboardExample,
   connectionRecoveryExample,
+  sessionPersistenceExample,
   callMutePatternsExample,
 ]
 
@@ -107,14 +115,13 @@ export const utilityExamples = [
 ]
 
 // All examples (flat list for backward compatibility)
-export const allExamples = [
-  ...sipExamples,
-  ...amiExamples,
-  ...utilityExamples,
-]
+export const allExamples = [...sipExamples, ...amiExamples, ...utilityExamples]
 
 // Category metadata
-export const categoryInfo: Record<ExampleCategory, { label: string; icon: string; description: string; tooltip: string }> = {
+export const categoryInfo: Record<
+  ExampleCategory,
+  { label: string; icon: string; description: string; tooltip: string }
+> = {
   sip: {
     label: 'SIP Features',
     icon: '📞',
@@ -125,7 +132,8 @@ export const categoryInfo: Record<ExampleCategory, { label: string; icon: string
     label: 'AMI Features',
     icon: '🏢',
     description: 'Asterisk Manager Interface and PBX features',
-    tooltip: 'Requires AMI WebSocket connection to Asterisk/FreePBX for queue management, voicemail, parking, user provisioning and more',
+    tooltip:
+      'Requires AMI WebSocket connection to Asterisk/FreePBX for queue management, voicemail, parking, user provisioning and more',
   },
   utility: {
     label: 'Utilities',
