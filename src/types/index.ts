@@ -48,3 +48,6 @@ export * from './plugin.types'
 
 // OAuth2 types
 export * from './oauth.types'
+
+// Local recording types
+export * from './local-recording.types'
