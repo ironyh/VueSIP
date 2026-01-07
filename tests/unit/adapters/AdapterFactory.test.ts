@@ -166,6 +166,48 @@ describe('AdapterFactory', () => {
 
       expect(mockAdapter.initialize).toHaveBeenCalledWith(sipConfig)
     })
+
+    it('should call initialize after adapter construction', async () => {
+      const callOrder: string[] = []
+      const mockAdapter = new MockCustomAdapter() as unknown as ISipAdapter
+
+      // Track when initialize is called
+      mockAdapter.initialize = vi.fn().mockImplementation(async () => {
+        callOrder.push('initialize')
+      })
+
+      const adapterConfig: AdapterConfig = {
+        library: 'custom',
+        customAdapter: mockAdapter,
+      }
+
+      // The factory receives an already-constructed adapter for 'custom'
+      // and then calls initialize on it
+      await AdapterFactory.createAdapter(sipConfig, adapterConfig)
+
+      expect(callOrder).toContain('initialize')
+      expect(mockAdapter.initialize).toHaveBeenCalledTimes(1)
+      expect(mockAdapter.initialize).toHaveBeenCalledWith(sipConfig)
+    })
+
+    it('should create multiple adapters concurrently', async () => {
+      // Test concurrent adapter creation
+      const adapterPromises = [
+        AdapterFactory.createAdapter(sipConfig, { library: 'jssip' }),
+        AdapterFactory.createAdapter(sipConfig, { library: 'sipjs' }),
+        AdapterFactory.createAdapter(sipConfig, { library: 'jssip' }),
+      ]
+
+      const adapters = await Promise.all(adapterPromises)
+
+      expect(adapters).toHaveLength(3)
+      expect(adapters[0].adapterName).toBe('JsSIP Adapter')
+      expect(adapters[1].adapterName).toBe('SIP.js Adapter')
+      expect(adapters[2].adapterName).toBe('JsSIP Adapter')
+
+      // Cleanup
+      await Promise.all(adapters.map((a) => a.destroy()))
+    })
   })
 
   describe('isLibraryAvailable()', () => {
@@ -202,6 +244,12 @@ describe('AdapterFactory', () => {
       expect(info).not.toBeNull()
       expect(info?.adapterName).toBe('SIP.js Adapter')
       expect(info?.libraryName).toBe('SIP.js')
+    })
+
+    it('should return null for invalid library type', async () => {
+      // Test the default case in getAdapterInfo switch statement
+      const info = await AdapterFactory.getAdapterInfo('invalid' as any)
+      expect(info).toBeNull()
     })
   })
 
