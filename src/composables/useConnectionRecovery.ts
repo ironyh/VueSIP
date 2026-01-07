@@ -8,6 +8,7 @@ import type {
   RecoveryState,
   RecoveryAttempt,
   IceHealthStatus,
+  NetworkInfo,
   ConnectionRecoveryOptions,
   UseConnectionRecoveryReturn,
 } from '@/types/connection-recovery.types'
@@ -19,13 +20,49 @@ const logger = createLogger('useConnectionRecovery')
  * Default options
  */
 const DEFAULT_OPTIONS: Required<
-  Omit<ConnectionRecoveryOptions, 'onRecoveryStart' | 'onRecoverySuccess' | 'onRecoveryFailed'>
+  Omit<ConnectionRecoveryOptions, 'onRecoveryStart' | 'onRecoverySuccess' | 'onRecoveryFailed' | 'onNetworkChange'>
 > = {
   autoRecover: true,
   maxAttempts: 3,
   attemptDelay: 2000,
   iceRestartTimeout: 10000,
   strategy: 'ice-restart',
+  autoReconnectOnNetworkChange: false,
+  networkChangeDelay: 500,
+}
+
+/**
+ * Get initial network information from browser APIs
+ */
+function getInitialNetworkInfo(): NetworkInfo {
+  if (typeof navigator === 'undefined') {
+    return {
+      type: 'unknown',
+      effectiveType: 'unknown',
+      downlink: 0,
+      rtt: 0,
+      isOnline: true,
+    }
+  }
+
+  const connection = (navigator as any).connection
+  if (connection) {
+    return {
+      type: connection.type || 'unknown',
+      effectiveType: connection.effectiveType || 'unknown',
+      downlink: connection.downlink || 0,
+      rtt: connection.rtt || 0,
+      isOnline: navigator.onLine,
+    }
+  }
+
+  return {
+    type: 'unknown',
+    effectiveType: 'unknown',
+    downlink: 0,
+    rtt: 0,
+    isOnline: navigator.onLine,
+  }
 }
 
 /**
@@ -63,6 +100,9 @@ export function useConnectionRecovery(
     isHealthy: true,
   })
 
+  // Network info state
+  const networkInfo = ref<NetworkInfo>(getInitialNetworkInfo())
+
   // Computed
   const isRecovering = computed(() => state.value === 'recovering')
   const isHealthy = computed(() => state.value === 'stable' && iceHealth.value.isHealthy)
@@ -71,8 +111,158 @@ export function useConnectionRecovery(
   let peerConnection: RTCPeerConnection | null = null
   let stateChangeTime = Date.now()
 
+  // Track if recovery is in progress
+  let recoveryInProgress = false
+
   // Event handler reference for cleanup
   let iceStateHandler: (() => void) | null = null
+
+  // Network change handler references for cleanup
+  let networkChangeHandler: (() => void) | null = null
+  let onlineHandler: (() => void) | null = null
+  let offlineHandler: (() => void) | null = null
+  let networkChangeTimeout: ReturnType<typeof setTimeout> | null = null
+
+  /**
+   * Update network info from browser APIs
+   */
+  function updateNetworkInfo(): void {
+    const connection = (navigator as any).connection
+    if (connection) {
+      networkInfo.value = {
+        type: connection.type || 'unknown',
+        effectiveType: connection.effectiveType || 'unknown',
+        downlink: connection.downlink || 0,
+        rtt: connection.rtt || 0,
+        isOnline: navigator.onLine,
+      }
+    } else {
+      networkInfo.value = {
+        ...networkInfo.value,
+        isOnline: navigator.onLine,
+      }
+    }
+  }
+
+  /**
+   * Handle network change with delay
+   */
+  function handleNetworkChangeWithDelay(): void {
+    // Clear any pending timeout
+    if (networkChangeTimeout) {
+      clearTimeout(networkChangeTimeout)
+      networkChangeTimeout = null
+    }
+
+    // Update network info immediately
+    const previousType = networkInfo.value.type
+    updateNetworkInfo()
+
+    // Notify callback
+    options.onNetworkChange?.(networkInfo.value)
+
+    // Only trigger recovery if:
+    // 1. We're monitoring a peer connection
+    // 2. Network type actually changed OR we came back online
+    // 3. autoReconnectOnNetworkChange is enabled
+    const networkTypeChanged = previousType !== networkInfo.value.type
+    const shouldTriggerRecovery =
+      peerConnection &&
+      config.autoReconnectOnNetworkChange &&
+      (networkTypeChanged || networkInfo.value.isOnline)
+
+    if (shouldTriggerRecovery) {
+      logger.info('Network change detected, scheduling ICE restart', {
+        previousType,
+        newType: networkInfo.value.type,
+        delay: config.networkChangeDelay,
+      })
+
+      networkChangeTimeout = setTimeout(() => {
+        networkChangeTimeout = null
+        if (peerConnection && !recoveryInProgress) {
+          logger.info('Triggering ICE restart due to network change')
+          peerConnection.restartIce()
+        }
+      }, config.networkChangeDelay)
+    }
+  }
+
+  /**
+   * Handle online event
+   */
+  function handleOnline(): void {
+    logger.info('Browser came online')
+    handleNetworkChangeWithDelay()
+  }
+
+  /**
+   * Handle offline event
+   */
+  function handleOffline(): void {
+    logger.info('Browser went offline')
+    networkInfo.value = {
+      ...networkInfo.value,
+      isOnline: false,
+    }
+    options.onNetworkChange?.(networkInfo.value)
+  }
+
+  /**
+   * Setup network change listeners
+   */
+  function setupNetworkListeners(): void {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+      return
+    }
+
+    // Setup Network Information API listener
+    const connection = (navigator as any).connection
+    if (connection && config.autoReconnectOnNetworkChange) {
+      networkChangeHandler = handleNetworkChangeWithDelay
+      connection.addEventListener('change', networkChangeHandler)
+    }
+
+    // Setup online/offline listeners (always available)
+    if (config.autoReconnectOnNetworkChange) {
+      onlineHandler = handleOnline
+      offlineHandler = handleOffline
+      window.addEventListener('online', onlineHandler)
+      window.addEventListener('offline', offlineHandler)
+    }
+  }
+
+  /**
+   * Remove network change listeners
+   */
+  function removeNetworkListeners(): void {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') {
+      return
+    }
+
+    // Clear any pending timeout
+    if (networkChangeTimeout) {
+      clearTimeout(networkChangeTimeout)
+      networkChangeTimeout = null
+    }
+
+    // Remove Network Information API listener
+    const connection = (navigator as any).connection
+    if (connection && networkChangeHandler) {
+      connection.removeEventListener('change', networkChangeHandler)
+      networkChangeHandler = null
+    }
+
+    // Remove online/offline listeners
+    if (onlineHandler) {
+      window.removeEventListener('online', onlineHandler)
+      onlineHandler = null
+    }
+    if (offlineHandler) {
+      window.removeEventListener('offline', offlineHandler)
+      offlineHandler = null
+    }
+  }
 
   /**
    * Update ICE health status
@@ -123,6 +313,7 @@ export function useConnectionRecovery(
     if (peerConnection && iceStateHandler) {
       peerConnection.removeEventListener('iceconnectionstatechange', iceStateHandler)
     }
+    removeNetworkListeners()
 
     peerConnection = pc
     stateChangeTime = Date.now()
@@ -130,7 +321,7 @@ export function useConnectionRecovery(
     // Update initial state
     updateIceHealth()
 
-    // Setup event listener
+    // Setup ICE state event listener
     iceStateHandler = () => {
       stateChangeTime = Date.now()
       updateIceHealth()
@@ -139,8 +330,12 @@ export function useConnectionRecovery(
 
     pc.addEventListener('iceconnectionstatechange', iceStateHandler)
 
+    // Setup network change listeners
+    setupNetworkListeners()
+
     logger.info('Started monitoring peer connection', {
       iceState: pc.iceConnectionState,
+      autoReconnectOnNetworkChange: config.autoReconnectOnNetworkChange,
     })
   }
 
@@ -152,6 +347,7 @@ export function useConnectionRecovery(
       peerConnection.removeEventListener('iceconnectionstatechange', iceStateHandler)
       iceStateHandler = null
     }
+    removeNetworkListeners()
     peerConnection = null
     logger.info('Stopped monitoring peer connection')
   }
@@ -218,9 +414,6 @@ export function useConnectionRecovery(
       peerConnection?.addEventListener('iceconnectionstatechange', handler)
     })
   }
-
-  // Track if recovery is in progress
-  let recoveryInProgress = false
 
   /**
    * Helper to delay execution
@@ -357,6 +550,7 @@ export function useConnectionRecovery(
     isRecovering,
     isHealthy,
     error: computed(() => error.value),
+    networkInfo: computed(() => networkInfo.value),
     recover,
     reset,
     monitor,
