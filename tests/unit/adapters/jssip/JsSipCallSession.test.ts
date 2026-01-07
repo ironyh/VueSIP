@@ -971,4 +971,170 @@ describe('JsSipCallSession', () => {
       expect(callSession.isMuted).toBe(false)
     })
   })
+
+  // ==========================================================================
+  // hold() Method
+  // ==========================================================================
+
+  describe('hold()', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should call session.hold with callback', async () => {
+      await callSession.hold()
+
+      expect(mockSession.hold).toHaveBeenCalledWith({}, expect.any(Function))
+    })
+
+    it('should set isOnHold to true on success', async () => {
+      expect(callSession.isOnHold).toBe(false)
+
+      await callSession.hold()
+
+      expect(callSession.isOnHold).toBe(true)
+    })
+
+    it('should reject when hold returns false', async () => {
+      mockSession.hold.mockImplementation(() => false)
+
+      await expect(callSession.hold()).rejects.toThrow('Hold operation failed')
+    })
+
+    it('should resolve after callback is invoked', async () => {
+      let callbackInvoked = false
+      mockSession.hold.mockImplementation((_opts: unknown, callback: () => void) => {
+        // Simulate async callback
+        setTimeout(() => {
+          callbackInvoked = true
+          callback()
+        }, 10)
+        return true
+      })
+
+      await callSession.hold()
+
+      expect(callbackInvoked).toBe(true)
+    })
+  })
+
+  // ==========================================================================
+  // unhold() Method
+  // ==========================================================================
+
+  describe('unhold()', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing', {
+        isOnHold: { local: true, remote: false },
+      })
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should call session.unhold with callback', async () => {
+      await callSession.unhold()
+
+      expect(mockSession.unhold).toHaveBeenCalledWith({}, expect.any(Function))
+    })
+
+    it('should set isOnHold to false on success', async () => {
+      // Call hold first to set isOnHold to true via the method
+      await callSession.hold()
+      expect(callSession.isOnHold).toBe(true)
+
+      await callSession.unhold()
+
+      expect(callSession.isOnHold).toBe(false)
+    })
+
+    it('should reject when unhold returns false', async () => {
+      mockSession.unhold.mockImplementation(() => false)
+
+      await expect(callSession.unhold()).rejects.toThrow('Unhold operation failed')
+    })
+
+    it('should resolve after callback is invoked', async () => {
+      let callbackInvoked = false
+      mockSession.unhold.mockImplementation((_opts: unknown, callback: () => void) => {
+        // Simulate async callback
+        setTimeout(() => {
+          callbackInvoked = true
+          callback()
+        }, 10)
+        return true
+      })
+
+      await callSession.unhold()
+
+      expect(callbackInvoked).toBe(true)
+    })
+  })
+
+  // ==========================================================================
+  // mute() Method
+  // ==========================================================================
+
+  describe('mute()', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should call session.mute with audio: true', async () => {
+      await callSession.mute()
+
+      expect(mockSession.mute).toHaveBeenCalledWith({ audio: true })
+    })
+
+    it('should set isMuted to true', async () => {
+      expect(callSession.isMuted).toBe(false)
+
+      await callSession.mute()
+
+      expect(callSession.isMuted).toBe(true)
+    })
+
+    it('should resolve immediately', async () => {
+      const result = callSession.mute()
+
+      expect(result).toBeInstanceOf(Promise)
+      await expect(result).resolves.toBeUndefined()
+    })
+  })
+
+  // ==========================================================================
+  // unmute() Method
+  // ==========================================================================
+
+  describe('unmute()', () => {
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing', {
+        isMuted: { audio: true, video: false },
+      })
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession)
+    })
+
+    it('should call session.unmute with audio: true', async () => {
+      await callSession.unmute()
+
+      expect(mockSession.unmute).toHaveBeenCalledWith({ audio: true })
+    })
+
+    it('should set isMuted to false', async () => {
+      // Call mute first to set isMuted to true via the method
+      await callSession.mute()
+      expect(callSession.isMuted).toBe(true)
+
+      await callSession.unmute()
+
+      expect(callSession.isMuted).toBe(false)
+    })
+
+    it('should resolve immediately', async () => {
+      const result = callSession.unmute()
+
+      expect(result).toBeInstanceOf(Promise)
+      await expect(result).resolves.toBeUndefined()
+    })
+  })
 })
