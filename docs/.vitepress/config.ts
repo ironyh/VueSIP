@@ -37,6 +37,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/guide/' },
             { text: 'Getting Started', link: '/guide/getting-started' },
+            { text: 'Starter Templates', link: '/guide/templates' },
             { text: 'Migration Guide', link: '/guide/migration' },
           ],
         },

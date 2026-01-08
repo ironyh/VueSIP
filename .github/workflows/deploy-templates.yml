@@ -1,0 +1,193 @@
+name: Deploy Starter Templates
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'templates/**'
+      - 'src/**'
+      - 'package.json'
+  workflow_dispatch:
+    inputs:
+      template:
+        description: 'Template to deploy (or "all")'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - minimal
+          - basic-softphone
+          - call-center
+
+jobs:
+  build-library:
+    name: Build VueSip Library
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build library
+        run: pnpm run build
+
+      - name: Upload library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vuesip-dist
+          path: dist/
+          retention-days: 1
+
+  deploy-minimal:
+    name: Deploy Minimal Template
+    runs-on: ubuntu-latest
+    needs: build-library
+    if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'minimal' || github.event.inputs.template == '')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Download library artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vuesip-dist
+          path: dist/
+
+      - name: Install template dependencies
+        working-directory: templates/minimal
+        run: |
+          # Replace workspace link with local path for deployment
+          sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
+          pnpm install
+
+      - name: Build template
+        working-directory: templates/minimal
+        run: pnpm run build
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: templates/minimal
+          command: deploy
+
+  deploy-softphone:
+    name: Deploy Basic Softphone Template
+    runs-on: ubuntu-latest
+    needs: build-library
+    if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'basic-softphone' || github.event.inputs.template == '')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Download library artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vuesip-dist
+          path: dist/
+
+      - name: Install template dependencies
+        working-directory: templates/basic-softphone
+        run: |
+          # Replace workspace link with local path for deployment
+          sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
+          pnpm install
+
+      - name: Build template
+        working-directory: templates/basic-softphone
+        run: pnpm run build
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: templates/basic-softphone
+          command: deploy
+
+  deploy-callcenter:
+    name: Deploy Call Center Template
+    runs-on: ubuntu-latest
+    needs: build-library
+    if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'call-center' || github.event.inputs.template == '')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Download library artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vuesip-dist
+          path: dist/
+
+      - name: Install template dependencies
+        working-directory: templates/call-center
+        run: |
+          # Replace workspace link with local path for deployment
+          sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
+          pnpm install
+
+      - name: Build template
+        working-directory: templates/call-center
+        run: pnpm run build
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: templates/call-center
+          command: deploy
