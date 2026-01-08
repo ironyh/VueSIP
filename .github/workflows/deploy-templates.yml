@@ -47,6 +47,27 @@ jobs:
       - name: Build library
         run: pnpm run build
 
+      - name: Create dist package.json
+        run: |
+          # Create a package.json in dist with correct exports for file: dependency
+          cat > dist/package.json << 'EOF'
+          {
+            "name": "vuesip",
+            "version": "1.0.0",
+            "type": "module",
+            "main": "./vuesip.cjs",
+            "module": "./vuesip.js",
+            "types": "./index.d.ts",
+            "exports": {
+              ".": {
+                "types": "./index.d.ts",
+                "import": "./vuesip.js",
+                "require": "./vuesip.cjs"
+              }
+            }
+          }
+          EOF
+
       - name: Upload library artifact
         uses: actions/upload-artifact@v4
         with:
