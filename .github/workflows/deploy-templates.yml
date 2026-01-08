@@ -113,13 +113,12 @@ jobs:
         working-directory: templates/minimal
         run: pnpm run build
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: templates/minimal
-          command: deploy
+          command: pages deploy templates/minimal/dist --project-name=vuesip-minimal
 
   deploy-softphone:
     name: Deploy Basic Softphone Template
@@ -159,13 +158,12 @@ jobs:
         working-directory: templates/basic-softphone
         run: pnpm run build
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: templates/basic-softphone
-          command: deploy
+          command: pages deploy templates/basic-softphone/dist --project-name=vuesip-softphone
 
   deploy-callcenter:
     name: Deploy Call Center Template
@@ -205,10 +203,9 @@ jobs:
         working-directory: templates/call-center
         run: pnpm run build
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: templates/call-center
-          command: deploy
+          command: pages deploy templates/call-center/dist --project-name=vuesip-callcenter
