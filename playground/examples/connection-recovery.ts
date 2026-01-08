@@ -24,6 +24,7 @@ const {
   isHealthy,    // Connection is healthy
   attempts,     // Recovery attempt history
   error,        // Current error message
+  networkInfo,  // Current network connection info
   recover,      // Manually trigger recovery
   reset,        // Reset recovery state
   monitor,      // Start monitoring peer connection
@@ -225,6 +226,7 @@ const clearHistory = () => {
       code: `import type {
   RecoveryState,
   RecoveryStrategy,
+  NetworkInfo,
   IceHealthStatus,
   RecoveryAttempt,
   ConnectionRecoveryOptions,
@@ -237,18 +239,33 @@ type RecoveryState = 'stable' | 'monitoring' | 'recovering' | 'failed'
 // Recovery strategy
 type RecoveryStrategy = 'ice-restart' | 'reconnect' | 'none'
 
+// Network information
+interface NetworkInfo {
+  type: string          // Connection type (wifi, cellular, ethernet, etc.)
+  effectiveType: string // Effective type (4g, 3g, 2g, slow-2g)
+  downlink: number      // Downlink speed in Mbps
+  rtt: number           // Round-trip time in ms
+  isOnline: boolean     // Whether browser is online
+}
+
 // Full options interface
 interface ConnectionRecoveryOptions {
-  autoRecover?: boolean       // Default: true
-  maxAttempts?: number        // Default: 3
-  attemptDelay?: number       // Default: 2000ms
-  iceRestartTimeout?: number  // Default: 10000ms
-  strategy?: RecoveryStrategy // Default: 'ice-restart'
+  autoRecover?: boolean                    // Default: true
+  maxAttempts?: number                     // Default: 3
+  attemptDelay?: number                    // Default: 2000ms
+  iceRestartTimeout?: number               // Default: 10000ms
+  strategy?: RecoveryStrategy              // Default: 'ice-restart'
+  exponentialBackoff?: boolean             // Default: false
+  maxBackoffDelay?: number                 // Default: 30000ms
+  autoReconnectOnNetworkChange?: boolean   // Default: false
+  networkChangeDelay?: number              // Default: 500ms
 
   // Callbacks
+  onReconnect?: () => Promise<boolean>
   onRecoveryStart?: () => void
   onRecoverySuccess?: (attempt: RecoveryAttempt) => void
   onRecoveryFailed?: (attempts: RecoveryAttempt[]) => void
+  onNetworkChange?: (info: NetworkInfo) => void
 }
 
 // Return type from composable
@@ -259,11 +276,104 @@ interface UseConnectionRecoveryReturn {
   isRecovering: ComputedRef<boolean>
   isHealthy: ComputedRef<boolean>
   error: ComputedRef<string | null>
+  networkInfo: ComputedRef<NetworkInfo>
   recover: () => Promise<boolean>
   reset: () => void
   monitor: (pc: RTCPeerConnection) => void
   stopMonitoring: () => void
 }`,
+    },
+    {
+      title: 'Exponential Backoff',
+      description: 'Progressive retry delays for better reliability',
+      code: `import { useConnectionRecovery } from 'vuesip'
+
+const { recover, attempts } = useConnectionRecovery({
+  maxAttempts: 5,
+  attemptDelay: 1000,        // Base delay: 1 second
+  exponentialBackoff: true,  // Enable exponential backoff
+  maxBackoffDelay: 30000,    // Cap at 30 seconds
+
+  onRecoveryStart: () => {
+    console.log('Starting recovery with exponential backoff')
+  },
+  onRecoverySuccess: (attempt) => {
+    console.log(\`Recovered on attempt \${attempt.attempt}\`)
+  }
+})
+
+// Retry delays will be:
+// Attempt 1: 1000ms  (1s)
+// Attempt 2: 2000ms  (2s)  - 1000 * 2^1
+// Attempt 3: 4000ms  (4s)  - 1000 * 2^2
+// Attempt 4: 8000ms  (8s)  - 1000 * 2^3
+// Attempt 5: 16000ms (16s) - 1000 * 2^4`,
+    },
+    {
+      title: 'Custom Reconnect Strategy',
+      description: 'Full reconnection control with custom handler',
+      code: `import { useConnectionRecovery } from 'vuesip'
+
+const { monitor, state } = useConnectionRecovery({
+  strategy: 'reconnect',
+  maxAttempts: 3,
+
+  // Custom reconnect handler - must return Promise<boolean>
+  onReconnect: async () => {
+    try {
+      // Your custom reconnection logic
+      console.log('Performing custom reconnection...')
+      await sipClient.disconnect()
+      await sipClient.connect()
+      return true // Return true on success
+    } catch (error) {
+      console.error('Reconnect failed:', error)
+      return false // Return false on failure
+    }
+  },
+
+  onRecoveryStart: () => {
+    showNotification('Reconnecting...')
+  },
+  onRecoverySuccess: () => {
+    showNotification('Connection restored!')
+  },
+  onRecoveryFailed: () => {
+    showNotification('Unable to reconnect. Please try again.')
+  }
+})`,
+    },
+    {
+      title: 'Network Change Detection',
+      description: 'Monitor and respond to network changes',
+      code: `import { watch } from 'vue'
+import { useConnectionRecovery } from 'vuesip'
+
+const { networkInfo, monitor } = useConnectionRecovery({
+  autoReconnectOnNetworkChange: true,  // Auto-restart ICE on network change
+  networkChangeDelay: 500,             // Wait 500ms before triggering
+
+  onNetworkChange: (info) => {
+    console.log('Network changed:', {
+      type: info.type,              // 'wifi', 'cellular', 'ethernet'
+      effectiveType: info.effectiveType, // '4g', '3g', '2g', 'slow-2g'
+      downlink: info.downlink,      // Mbps
+      rtt: info.rtt,                // Round-trip time in ms
+      isOnline: info.isOnline
+    })
+  }
+})
+
+// React to network info changes
+watch(networkInfo, (info) => {
+  if (!info.isOnline) {
+    showNotification('You are offline')
+  } else if (info.effectiveType === 'slow-2g' || info.effectiveType === '2g') {
+    showNotification('Poor network connection - call quality may be affected')
+  } else if (info.type === 'cellular') {
+    showNotification('Switched to mobile data')
+  }
+})`,
     },
   ],
 }

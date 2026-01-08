@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope } from 'vue'
 import type {
   RecoveryState,
   RecoveryAttempt,
@@ -35,7 +35,7 @@ interface NetworkInformationAPI {
 const DEFAULT_OPTIONS: Required<
   Omit<
     ConnectionRecoveryOptions,
-    'onRecoveryStart' | 'onRecoverySuccess' | 'onRecoveryFailed' | 'onNetworkChange'
+    'onRecoveryStart' | 'onRecoverySuccess' | 'onRecoveryFailed' | 'onNetworkChange' | 'onReconnect'
   >
 > = {
   autoRecover: true,
@@ -45,6 +45,8 @@ const DEFAULT_OPTIONS: Required<
   strategy: 'ice-restart',
   autoReconnectOnNetworkChange: false,
   networkChangeDelay: 500,
+  exponentialBackoff: false,
+  maxBackoffDelay: 30000,
 }
 
 /**
@@ -432,10 +434,33 @@ export function useConnectionRecovery(
   }
 
   /**
+   * Calculate delay with optional exponential backoff
+   */
+  function calculateDelay(attemptNumber: number): number {
+    if (!config.exponentialBackoff) {
+      return config.attemptDelay
+    }
+    // Exponential backoff: baseDelay * 2^(attempt-1)
+    const exponentialDelay = config.attemptDelay * Math.pow(2, attemptNumber - 1)
+    return Math.min(exponentialDelay, config.maxBackoffDelay)
+  }
+
+  /**
    * Helper to delay execution
    */
   function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Perform full reconnection using provided callback
+   */
+  async function performReconnect(): Promise<boolean> {
+    if (!options.onReconnect) {
+      throw new Error('No onReconnect handler provided for reconnect strategy')
+    }
+    logger.debug('Performing full reconnection')
+    return options.onReconnect()
   }
 
   /**
@@ -475,12 +500,20 @@ export function useConnectionRecovery(
         logger.debug(`Recovery attempt ${attemptNumber}/${config.maxAttempts}`)
 
         try {
+          let success = false
+
           if (config.strategy === 'ice-restart') {
             await performIceRestart()
+            // Wait for connection to stabilize
+            success = await waitForConnection()
+          } else if (config.strategy === 'reconnect') {
+            // Use custom reconnect handler
+            success = await performReconnect()
+          } else if (config.strategy === 'none') {
+            // No automatic recovery - just mark as failed
+            logger.debug('Strategy is none, skipping recovery attempt')
+            success = false
           }
-
-          // Wait for connection to stabilize
-          const success = await waitForConnection()
 
           const attempt: RecoveryAttempt = {
             attempt: attemptNumber,
@@ -503,7 +536,7 @@ export function useConnectionRecovery(
 
           // Wait before next attempt (except for last attempt)
           if (i < config.maxAttempts - 1) {
-            await delay(config.attemptDelay)
+            await delay(calculateDelay(attemptNumber))
           }
         } catch (err) {
           const attempt: RecoveryAttempt = {
@@ -520,7 +553,7 @@ export function useConnectionRecovery(
 
           // Wait before next attempt (except for last attempt)
           if (i < config.maxAttempts - 1) {
-            await delay(config.attemptDelay)
+            await delay(calculateDelay(attemptNumber))
           }
         }
       }
@@ -557,6 +590,15 @@ export function useConnectionRecovery(
       isHealthy: true,
     }
     logger.debug('Recovery state reset')
+  }
+
+  // Automatic cleanup when the composable's scope is disposed (e.g., component unmount)
+  // Only register cleanup if there's an active scope (avoids warnings when used outside Vue components)
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopMonitoring()
+      logger.debug('Connection recovery composable disposed')
+    })
   }
 
   return {

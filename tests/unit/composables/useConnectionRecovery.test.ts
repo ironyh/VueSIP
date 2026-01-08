@@ -487,4 +487,581 @@ describe('useConnectionRecovery', () => {
       expect(attempts.value.length).toBe(1)
     })
   })
+
+  // ==========================================================================
+  // Network Information
+  // ==========================================================================
+  describe('Network Information', () => {
+    let mockConnection: {
+      type: string
+      effectiveType: string
+      downlink: number
+      rtt: number
+      addEventListener: ReturnType<typeof vi.fn>
+      removeEventListener: ReturnType<typeof vi.fn>
+    }
+
+    beforeEach(() => {
+      // Mock Network Information API
+      mockConnection = {
+        type: 'wifi',
+        effectiveType: '4g',
+        downlink: 10,
+        rtt: 50,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }
+
+      // Mock navigator.connection
+      Object.defineProperty(navigator, 'connection', {
+        value: mockConnection,
+        configurable: true,
+        writable: true,
+      })
+
+      // Mock navigator.onLine
+      Object.defineProperty(navigator, 'onLine', {
+        value: true,
+        configurable: true,
+        writable: true,
+      })
+    })
+
+    afterEach(() => {
+      // Clean up mocks
+      Object.defineProperty(navigator, 'connection', {
+        value: undefined,
+        configurable: true,
+      })
+    })
+
+    it('should initialize networkInfo with current network state', () => {
+      const { networkInfo } = useConnectionRecovery()
+
+      expect(networkInfo.value).toMatchObject({
+        type: 'wifi',
+        effectiveType: '4g',
+        downlink: 10,
+        rtt: 50,
+        isOnline: true,
+      })
+    })
+
+    it('should expose networkInfo ref', () => {
+      const { networkInfo } = useConnectionRecovery()
+
+      expect(networkInfo).toBeDefined()
+      expect(networkInfo.value.isOnline).toBe(true)
+    })
+
+    it('should setup network change listeners when autoReconnectOnNetworkChange is true', () => {
+      const { monitor, stopMonitoring } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: true,
+      })
+
+      monitor(mockPeerConnection)
+
+      // Should have added event listener for network change
+      expect(mockConnection.addEventListener).toHaveBeenCalledWith('change', expect.any(Function))
+
+      stopMonitoring()
+    })
+
+    it('should not setup network change listeners when autoReconnectOnNetworkChange is false', () => {
+      const { monitor, stopMonitoring } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: false,
+      })
+
+      monitor(mockPeerConnection)
+
+      // Should NOT have added event listener for network change
+      expect(mockConnection.addEventListener).not.toHaveBeenCalled()
+
+      stopMonitoring()
+    })
+
+    it('should call onNetworkChange callback when network changes', () => {
+      const onNetworkChange = vi.fn()
+      const { monitor } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: true,
+        onNetworkChange,
+      })
+
+      monitor(mockPeerConnection)
+
+      // Get the network change handler
+      const networkHandler = mockConnection.addEventListener.mock.calls.find(
+        (c: unknown[]) => c[0] === 'change'
+      )?.[1] as (() => void) | undefined
+
+      // Simulate network change
+      if (networkHandler) {
+        mockConnection.type = 'cellular'
+        networkHandler()
+      }
+
+      expect(onNetworkChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'cellular',
+        })
+      )
+    })
+
+    it('should trigger ICE restart after networkChangeDelay when network changes', async () => {
+      const { monitor } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: true,
+        networkChangeDelay: 500,
+      })
+
+      monitor(mockPeerConnection)
+
+      // Get the network change handler
+      const networkHandler = mockConnection.addEventListener.mock.calls.find(
+        (c: unknown[]) => c[0] === 'change'
+      )?.[1] as (() => void) | undefined
+
+      // Simulate network change
+      if (networkHandler) {
+        mockConnection.type = 'cellular'
+        networkHandler()
+      }
+
+      // ICE restart should not be called immediately
+      expect(mockPeerConnection.restartIce).not.toHaveBeenCalled()
+
+      // Advance timer past the networkChangeDelay
+      await vi.advanceTimersByTimeAsync(600)
+
+      // Now ICE restart should have been called
+      expect(mockPeerConnection.restartIce).toHaveBeenCalled()
+    })
+
+    it('should debounce rapid network changes', async () => {
+      const { monitor } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: true,
+        networkChangeDelay: 500,
+      })
+
+      monitor(mockPeerConnection)
+
+      // Get the network change handler
+      const networkHandler = mockConnection.addEventListener.mock.calls.find(
+        (c: unknown[]) => c[0] === 'change'
+      )?.[1] as (() => void) | undefined
+
+      if (networkHandler) {
+        // Simulate rapid network changes
+        mockConnection.type = 'cellular'
+        networkHandler()
+
+        await vi.advanceTimersByTimeAsync(200)
+
+        mockConnection.type = 'wifi'
+        networkHandler()
+
+        await vi.advanceTimersByTimeAsync(200)
+
+        mockConnection.type = 'cellular'
+        networkHandler()
+      }
+
+      // ICE restart should not be called yet (debouncing)
+      expect(mockPeerConnection.restartIce).not.toHaveBeenCalled()
+
+      // Advance past the final delay
+      await vi.advanceTimersByTimeAsync(500)
+
+      // Should only have been called once (debounced)
+      expect(mockPeerConnection.restartIce).toHaveBeenCalledTimes(1)
+    })
+
+    it('should remove network listeners when stopMonitoring is called', () => {
+      const { monitor, stopMonitoring } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: true,
+      })
+
+      monitor(mockPeerConnection)
+      stopMonitoring()
+
+      expect(mockConnection.removeEventListener).toHaveBeenCalledWith(
+        'change',
+        expect.any(Function)
+      )
+    })
+  })
+
+  // ==========================================================================
+  // Online/Offline Events
+  // ==========================================================================
+  describe('Online/Offline Events', () => {
+    let windowAddEventListener: ReturnType<typeof vi.fn>
+    let windowRemoveEventListener: ReturnType<typeof vi.fn>
+    let onlineHandler: (() => void) | null = null
+    let offlineHandler: (() => void) | null = null
+
+    beforeEach(() => {
+      // Store original methods
+      windowAddEventListener = vi.fn((event: string, handler: () => void) => {
+        if (event === 'online') onlineHandler = handler
+        if (event === 'offline') offlineHandler = handler
+      })
+      windowRemoveEventListener = vi.fn()
+
+      // Mock window event listeners
+      vi.spyOn(window, 'addEventListener').mockImplementation(windowAddEventListener)
+      vi.spyOn(window, 'removeEventListener').mockImplementation(windowRemoveEventListener)
+
+      // Mock navigator.onLine
+      Object.defineProperty(navigator, 'onLine', {
+        value: true,
+        configurable: true,
+        writable: true,
+      })
+    })
+
+    afterEach(() => {
+      onlineHandler = null
+      offlineHandler = null
+      vi.restoreAllMocks()
+    })
+
+    it('should setup online/offline listeners when autoReconnectOnNetworkChange is true', () => {
+      const { monitor, stopMonitoring } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: true,
+      })
+
+      monitor(mockPeerConnection)
+
+      expect(windowAddEventListener).toHaveBeenCalledWith('online', expect.any(Function))
+      expect(windowAddEventListener).toHaveBeenCalledWith('offline', expect.any(Function))
+
+      stopMonitoring()
+    })
+
+    it('should update networkInfo.isOnline when going offline', () => {
+      const onNetworkChange = vi.fn()
+      const { monitor, networkInfo } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: true,
+        onNetworkChange,
+      })
+
+      monitor(mockPeerConnection)
+
+      // Simulate going offline
+      Object.defineProperty(navigator, 'onLine', {
+        value: false,
+        configurable: true,
+      })
+
+      if (offlineHandler) {
+        offlineHandler()
+      }
+
+      expect(networkInfo.value.isOnline).toBe(false)
+      expect(onNetworkChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isOnline: false,
+        })
+      )
+    })
+
+    it('should trigger recovery when coming back online', async () => {
+      const { monitor } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: true,
+        networkChangeDelay: 100,
+      })
+
+      monitor(mockPeerConnection)
+
+      // Simulate coming back online
+      Object.defineProperty(navigator, 'onLine', {
+        value: true,
+        configurable: true,
+      })
+
+      if (onlineHandler) {
+        onlineHandler()
+      }
+
+      await vi.advanceTimersByTimeAsync(200)
+
+      expect(mockPeerConnection.restartIce).toHaveBeenCalled()
+    })
+
+    it('should remove online/offline listeners when stopMonitoring is called', () => {
+      const { monitor, stopMonitoring } = useConnectionRecovery({
+        autoReconnectOnNetworkChange: true,
+      })
+
+      monitor(mockPeerConnection)
+      stopMonitoring()
+
+      expect(windowRemoveEventListener).toHaveBeenCalledWith('online', expect.any(Function))
+      expect(windowRemoveEventListener).toHaveBeenCalledWith('offline', expect.any(Function))
+    })
+  })
+
+  // ==========================================================================
+  // Reconnect Strategy
+  // ==========================================================================
+  describe('Reconnect Strategy', () => {
+    it('should use onReconnect handler when strategy is reconnect', async () => {
+      const onReconnect = vi.fn().mockResolvedValue(true)
+      const onRecoverySuccess = vi.fn()
+
+      const { monitor, recover } = useConnectionRecovery({
+        strategy: 'reconnect',
+        maxAttempts: 1,
+        onReconnect,
+        onRecoverySuccess,
+      })
+
+      monitor(mockPeerConnection)
+
+      const result = await recover()
+
+      expect(result).toBe(true)
+      expect(onReconnect).toHaveBeenCalledTimes(1)
+      expect(onRecoverySuccess).toHaveBeenCalled()
+    })
+
+    it('should fail when reconnect strategy has no onReconnect handler', async () => {
+      const { monitor, recover, attempts } = useConnectionRecovery({
+        strategy: 'reconnect',
+        maxAttempts: 1,
+      })
+
+      monitor(mockPeerConnection)
+
+      const result = await recover()
+
+      expect(result).toBe(false)
+      expect(attempts.value[0]?.error).toContain('No onReconnect handler')
+    })
+
+    it('should retry reconnect on failure', async () => {
+      const onReconnect = vi
+        .fn()
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true)
+      const onRecoverySuccess = vi.fn()
+
+      const { monitor, recover, attempts } = useConnectionRecovery({
+        strategy: 'reconnect',
+        maxAttempts: 3,
+        attemptDelay: 10,
+        onReconnect,
+        onRecoverySuccess,
+      })
+
+      monitor(mockPeerConnection)
+
+      const recoverPromise = recover()
+
+      // Advance through delays
+      await vi.advanceTimersByTimeAsync(50)
+
+      const result = await recoverPromise
+
+      expect(result).toBe(true)
+      expect(onReconnect).toHaveBeenCalledTimes(3)
+      expect(attempts.value.length).toBe(3)
+      expect(attempts.value[2].success).toBe(true)
+    })
+
+    it('should fail after max reconnect attempts', async () => {
+      const onReconnect = vi.fn().mockResolvedValue(false)
+      const onRecoveryFailed = vi.fn()
+
+      const { monitor, recover, state } = useConnectionRecovery({
+        strategy: 'reconnect',
+        maxAttempts: 2,
+        attemptDelay: 10,
+        onReconnect,
+        onRecoveryFailed,
+      })
+
+      monitor(mockPeerConnection)
+
+      const recoverPromise = recover()
+      await vi.advanceTimersByTimeAsync(50)
+      const result = await recoverPromise
+
+      expect(result).toBe(false)
+      expect(state.value).toBe('failed')
+      expect(onRecoveryFailed).toHaveBeenCalled()
+    })
+  })
+
+  // ==========================================================================
+  // None Strategy
+  // ==========================================================================
+  describe('None Strategy', () => {
+    it('should skip recovery attempts when strategy is none', async () => {
+      const onRecoveryFailed = vi.fn()
+
+      const { monitor, recover, state, attempts } = useConnectionRecovery({
+        strategy: 'none',
+        maxAttempts: 3,
+        attemptDelay: 10,
+        onRecoveryFailed,
+      })
+
+      monitor(mockPeerConnection)
+
+      const recoverPromise = recover()
+      await vi.advanceTimersByTimeAsync(100)
+      const result = await recoverPromise
+
+      expect(result).toBe(false)
+      expect(state.value).toBe('failed')
+      // All attempts should be recorded as failed
+      expect(attempts.value.length).toBe(3)
+      expect(attempts.value.every((a) => !a.success)).toBe(true)
+    })
+  })
+
+  // ==========================================================================
+  // Exponential Backoff
+  // ==========================================================================
+  describe('Exponential Backoff', () => {
+    it('should use fixed delay when exponentialBackoff is false', async () => {
+      const onReconnect = vi.fn().mockResolvedValue(false)
+
+      const { monitor, recover } = useConnectionRecovery({
+        strategy: 'reconnect',
+        maxAttempts: 3,
+        attemptDelay: 1000,
+        exponentialBackoff: false,
+        onReconnect,
+      })
+
+      monitor(mockPeerConnection)
+
+      const recoverPromise = recover()
+
+      // First attempt immediately
+      await vi.advanceTimersByTimeAsync(0)
+      expect(onReconnect).toHaveBeenCalledTimes(1)
+
+      // Second attempt after fixed delay
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(onReconnect).toHaveBeenCalledTimes(2)
+
+      // Third attempt after another fixed delay
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(onReconnect).toHaveBeenCalledTimes(3)
+
+      await recoverPromise
+    })
+
+    it('should use exponential delays when exponentialBackoff is true', async () => {
+      const onReconnect = vi.fn().mockResolvedValue(false)
+
+      const { monitor, recover } = useConnectionRecovery({
+        strategy: 'reconnect',
+        maxAttempts: 4,
+        attemptDelay: 1000, // Base delay
+        exponentialBackoff: true,
+        maxBackoffDelay: 30000,
+        onReconnect,
+      })
+
+      monitor(mockPeerConnection)
+
+      const recoverPromise = recover()
+
+      // First attempt immediately
+      await vi.advanceTimersByTimeAsync(0)
+      expect(onReconnect).toHaveBeenCalledTimes(1)
+
+      // Second attempt after 1000ms (1000 * 2^0)
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(onReconnect).toHaveBeenCalledTimes(2)
+
+      // Third attempt after 2000ms (1000 * 2^1)
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(onReconnect).toHaveBeenCalledTimes(3)
+
+      // Fourth attempt after 4000ms (1000 * 2^2)
+      await vi.advanceTimersByTimeAsync(4000)
+      expect(onReconnect).toHaveBeenCalledTimes(4)
+
+      await recoverPromise
+    })
+
+    it('should cap delay at maxBackoffDelay', async () => {
+      const onReconnect = vi.fn().mockResolvedValue(false)
+
+      const { monitor, recover } = useConnectionRecovery({
+        strategy: 'reconnect',
+        maxAttempts: 5,
+        attemptDelay: 1000,
+        exponentialBackoff: true,
+        maxBackoffDelay: 3000, // Cap at 3 seconds
+        onReconnect,
+      })
+
+      monitor(mockPeerConnection)
+
+      const recoverPromise = recover()
+
+      // First attempt immediately
+      await vi.advanceTimersByTimeAsync(0)
+      expect(onReconnect).toHaveBeenCalledTimes(1)
+
+      // Second: 1000ms
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(onReconnect).toHaveBeenCalledTimes(2)
+
+      // Third: 2000ms
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(onReconnect).toHaveBeenCalledTimes(3)
+
+      // Fourth: would be 4000ms but capped at 3000ms
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(onReconnect).toHaveBeenCalledTimes(4)
+
+      // Fifth: still capped at 3000ms
+      await vi.advanceTimersByTimeAsync(3000)
+      expect(onReconnect).toHaveBeenCalledTimes(5)
+
+      await recoverPromise
+    })
+
+    it('should apply exponential backoff on error paths too', async () => {
+      const onReconnect = vi.fn().mockRejectedValue(new Error('Connection error'))
+
+      const { monitor, recover, attempts } = useConnectionRecovery({
+        strategy: 'reconnect',
+        maxAttempts: 3,
+        attemptDelay: 1000,
+        exponentialBackoff: true,
+        maxBackoffDelay: 30000,
+        onReconnect,
+      })
+
+      monitor(mockPeerConnection)
+
+      const recoverPromise = recover()
+
+      // First attempt
+      await vi.advanceTimersByTimeAsync(0)
+      expect(onReconnect).toHaveBeenCalledTimes(1)
+
+      // Second attempt after 1000ms
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(onReconnect).toHaveBeenCalledTimes(2)
+
+      // Third attempt after 2000ms
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(onReconnect).toHaveBeenCalledTimes(3)
+
+      await recoverPromise
+
+      // All attempts should have errors
+      expect(attempts.value.every((a) => a.error)).toBe(true)
+    })
+  })
 })

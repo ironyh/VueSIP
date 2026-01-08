@@ -86,6 +86,12 @@ export interface ConnectionRecoveryOptions {
   autoReconnectOnNetworkChange?: boolean
   /** Delay before triggering recovery after network change in ms (default: 500) */
   networkChangeDelay?: number
+  /** Use exponential backoff for retry delays (default: false) */
+  exponentialBackoff?: boolean
+  /** Maximum backoff delay in ms when using exponential backoff (default: 30000) */
+  maxBackoffDelay?: number
+  /** Custom reconnect handler for 'reconnect' strategy - must return Promise<boolean> */
+  onReconnect?: () => Promise<boolean>
   /** Callback when recovery starts */
   onRecoveryStart?: () => void
   /** Callback when recovery succeeds */
