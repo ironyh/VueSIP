@@ -106,20 +106,20 @@ export interface ConnectionRecoveryOptions {
  * Connection recovery return type
  */
 export interface UseConnectionRecoveryReturn {
-  /** Current recovery state */
-  state: import('vue').Ref<RecoveryState>
-  /** Current ICE health status */
-  iceHealth: import('vue').Ref<IceHealthStatus>
-  /** History of recovery attempts */
-  attempts: import('vue').Ref<RecoveryAttempt[]>
+  /** Current recovery state (readonly) */
+  state: import('vue').ComputedRef<RecoveryState>
+  /** Current ICE health status (readonly) */
+  iceHealth: import('vue').ComputedRef<IceHealthStatus>
+  /** History of recovery attempts (readonly) */
+  attempts: import('vue').ComputedRef<RecoveryAttempt[]>
   /** Whether recovery is in progress */
   isRecovering: import('vue').ComputedRef<boolean>
   /** Whether connection is healthy */
   isHealthy: import('vue').ComputedRef<boolean>
-  /** Last error message */
-  error: import('vue').Ref<string | null>
-  /** Current network information */
-  networkInfo: import('vue').Ref<NetworkInfo>
+  /** Last error message (readonly) */
+  error: import('vue').ComputedRef<string | null>
+  /** Current network information (readonly) */
+  networkInfo: import('vue').ComputedRef<NetworkInfo>
   /** Manually trigger recovery */
   recover: () => Promise<boolean>
   /** Reset recovery state */

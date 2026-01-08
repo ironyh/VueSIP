@@ -1319,15 +1319,15 @@ interface RecoveryAttempt {
 
 ##### Reactive State
 
-| Property       | Type                     | Description                     |
-| -------------- | ------------------------ | ------------------------------- |
-| `state`        | `Ref<RecoveryState>`     | Current recovery state          |
-| `iceHealth`    | `Ref<IceHealthStatus>`   | Current ICE health status       |
-| `attempts`     | `Ref<RecoveryAttempt[]>` | History of recovery attempts    |
-| `isRecovering` | `ComputedRef<boolean>`   | Whether recovery is in progress |
-| `isHealthy`    | `ComputedRef<boolean>`   | Whether connection is healthy   |
-| `error`        | `Ref<string \| null>`    | Last error message              |
-| `networkInfo`  | `Ref<NetworkInfo>`       | Current network connection info |
+| Property       | Type                             | Description                     |
+| -------------- | -------------------------------- | ------------------------------- |
+| `state`        | `ComputedRef<RecoveryState>`     | Current recovery state          |
+| `iceHealth`    | `ComputedRef<IceHealthStatus>`   | Current ICE health status       |
+| `attempts`     | `ComputedRef<RecoveryAttempt[]>` | History of recovery attempts    |
+| `isRecovering` | `ComputedRef<boolean>`           | Whether recovery is in progress |
+| `isHealthy`    | `ComputedRef<boolean>`           | Whether connection is healthy   |
+| `error`        | `ComputedRef<string \| null>`    | Last error message              |
+| `networkInfo`  | `ComputedRef<NetworkInfo>`       | Current network connection info |
 
 ##### Methods
 
