@@ -9,7 +9,7 @@
 
 import { LocalStorageAdapter } from '../storage/LocalStorageAdapter'
 import { IndexedDBAdapter } from '../storage/IndexedDBAdapter'
-import { createPersistence, type PersistenceManager } from '../storage/persistence'
+import { createPersistence } from '../storage/persistence'
 import { STORAGE_KEYS, type StorageConfig } from '../types/storage.types'
 import { configStore } from './configStore'
 import { deviceStore } from './deviceStore'
@@ -36,12 +36,22 @@ export interface PersistenceConfig {
 }
 
 /**
+ * Base persistence manager interface for storing in collections
+ */
+interface BasePersistenceManager {
+  load(): Promise<void>
+  save(): Promise<void>
+  clear(): Promise<void>
+  destroy(): void
+}
+
+/**
  * Store persistence manager
  */
 class StorePersistenceManager {
   private localStorage: LocalStorageAdapter | null = null
   private indexedDB: IndexedDBAdapter | null = null
-  private managers: Map<string, PersistenceManager<any>> = new Map()
+  private managers: Map<string, BasePersistenceManager> = new Map()
   private config: PersistenceConfig = {}
 
   /**
@@ -128,7 +138,7 @@ class StorePersistenceManager {
       setState: (config) => {
         if (config) {
           // Cast away readonly wrapper from Vue reactivity system
-          configStore.setSipConfig(config as any, false) // Don't validate on load
+          configStore.setSipConfig(config as Parameters<typeof configStore.setSipConfig>[0], false) // Don't validate on load
         }
       },
       watchSource: () => configStore.sipConfig,
@@ -248,7 +258,7 @@ class StorePersistenceManager {
       getState: () => callStore.callHistory,
       setState: (history) => {
         // Restore call history
-        history.forEach((entry: any) => {
+        history.forEach((entry: Parameters<typeof callStore.addToHistory>[0]) => {
           callStore.addToHistory(entry)
         })
       },
@@ -430,13 +440,13 @@ class StorePersistenceManager {
 
     return clearOldDataLRU(
       () =>
-        callStore.callHistory.map((entry: any) => ({
+        callStore.callHistory.map((entry) => ({
           id: entry.id,
           timestamp: entry.startTime,
         })),
       (ids) => {
         ids.forEach((id) => {
-          const entry = callStore.callHistory.find((e: any) => e.id === id)
+          const entry = callStore.callHistory.find((e) => e.id === id)
           if (entry) {
             callStore.deleteHistoryEntry(id)
           }

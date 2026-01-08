@@ -268,7 +268,7 @@ export function extractErrorInfo(error: unknown): {
       message: error.message,
       code: error.code,
       // DOMException may have stack in some environments
-      stack: (error as any).stack,
+      stack: (error as unknown as { stack?: string }).stack,
     }
   }
 

@@ -680,7 +680,7 @@ export class HookManager {
    * // C: Normal priority
    * ```
    */
-  register<TData = any, TReturn = any>(
+  register<TData = unknown, TReturn = unknown>(
     name: HookName,
     handler: HookHandler<TData, TReturn>,
     options: HookOptions = {},
@@ -1270,7 +1270,10 @@ export class HookManager {
    * console.log('Schema validation:', schemaResult)
    * ```
    */
-  async execute<TData = any, TReturn = any>(name: HookName, data?: TData): Promise<TReturn[]> {
+  async execute<TData = unknown, TReturn = unknown>(
+    name: HookName,
+    data?: TData
+  ): Promise<TReturn[]> {
     const hooks = this.hooks.get(name)
     if (!hooks || hooks.length === 0) {
       return []

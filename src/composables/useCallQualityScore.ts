@@ -264,8 +264,13 @@ function calculateTrend(history: CallQualityScore[]): QualityTrend | null {
   if (history.length < MIN_TREND_ENTRIES) {
     // Not enough data, return low confidence trend if we have at least 2 entries
     if (history.length >= 2) {
-      const first = history[0]!.overall
-      const last = history[history.length - 1]!.overall
+      const firstEntry = history[0]
+      const lastEntry = history[history.length - 1]
+      if (!firstEntry || !lastEntry) {
+        return null
+      }
+      const first = firstEntry.overall
+      const last = lastEntry.overall
       const rate = (last - first) / (history.length - 1)
 
       let direction: QualityTrendDirection
@@ -294,7 +299,8 @@ function calculateTrend(history: CallQualityScore[]): QualityTrend | null {
   let sumX2 = 0
 
   for (let i = 0; i < n; i++) {
-    const entry = history[i]!
+    const entry = history[i]
+    if (!entry) continue
     sumX += i
     sumY += entry.overall
     sumXY += i * entry.overall
@@ -308,7 +314,8 @@ function calculateTrend(history: CallQualityScore[]): QualityTrend | null {
   let ssRes = 0
   let ssTot = 0
   for (let i = 0; i < n; i++) {
-    const entry = history[i]!
+    const entry = history[i]
+    if (!entry) continue
     const predicted = sumY / n + slope * (i - (n - 1) / 2)
     ssRes += Math.pow(entry.overall - predicted, 2)
     ssTot += Math.pow(entry.overall - meanY, 2)

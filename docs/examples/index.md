@@ -9,12 +9,14 @@ Learn VueSip by exploring working code examples. Each example demonstrates speci
 A complete, production-ready example of a simple one-to-one audio calling application.
 
 **Perfect for:**
+
 - Getting started with VueSip
 - Understanding core concepts
 - Building simple softphones
 - Click-to-call features
 
 **Features:**
+
 - SIP client connection and registration
 - Make and receive audio calls
 - Call controls (mute, hold, hangup)
@@ -23,6 +25,7 @@ A complete, production-ready example of a simple one-to-one audio calling applic
 - Error handling and user feedback
 
 **Technologies:**
+
 - Vue 3 with Composition API
 - TypeScript
 - Vite
@@ -36,12 +39,14 @@ A complete, production-ready example of a simple one-to-one audio calling applic
 One-to-one video calling with camera selection, preview, and comprehensive call controls.
 
 **Perfect for:**
+
 - Video conferencing applications
 - Remote collaboration tools
 - Telemedicine platforms
 - Video chat features
 
 **Features:**
+
 - Bidirectional video and audio calls
 - Local video preview (picture-in-picture)
 - Camera enumeration and selection
@@ -52,6 +57,7 @@ One-to-one video calling with camera selection, preview, and comprehensive call 
 - Clean UI with responsive design
 
 **Technologies:**
+
 - Vue 3 with Composition API
 - TypeScript
 - WebRTC video APIs
@@ -66,12 +72,14 @@ One-to-one video calling with camera selection, preview, and comprehensive call 
 Advanced multi-line phone system supporting up to 5 concurrent calls with professional call management features.
 
 **Perfect for:**
+
 - Business phone systems
 - Call centers
 - Customer support applications
 - Enterprise communications
 
 **Features:**
+
 - Up to 5 concurrent calls
 - Visual call line management
 - Call switching between lines
@@ -83,6 +91,7 @@ Advanced multi-line phone system supporting up to 5 concurrent calls with profes
 - Call duration tracking per line
 
 **Technologies:**
+
 - Vue 3 with Composition API
 - TypeScript
 - Advanced state management
@@ -97,12 +106,14 @@ Advanced multi-line phone system supporting up to 5 concurrent calls with profes
 Multi-party conference calling with participant management and moderation features.
 
 **Perfect for:**
+
 - Team meetings
 - Conference bridges
 - Group calling features
 - Webinar platforms
 
 **Features:**
+
 - Multi-party audio/video conferences
 - Participant management
 - Mute individual participants
@@ -111,6 +122,7 @@ Multi-party conference calling with participant management and moderation featur
 - Join/leave notifications
 
 **Technologies:**
+
 - Vue 3 with Composition API
 - TypeScript
 - WebRTC conferencing
@@ -125,12 +137,14 @@ Multi-party conference calling with participant management and moderation featur
 Professional call center application with queue management and agent features.
 
 **Perfect for:**
+
 - Customer service centers
 - Support desk applications
 - Sales teams
 - Help desk systems
 
 **Features:**
+
 - Call queue management
 - Agent status management
 - Call routing
@@ -139,6 +153,7 @@ Professional call center application with queue management and agent features.
 - Call disposition
 
 **Technologies:**
+
 - Vue 3 with Composition API
 - TypeScript
 - Advanced call management
@@ -148,15 +163,63 @@ Professional call center application with queue management and agent features.
 
 ---
 
+### 📊 Call Quality Dashboard
+
+Real-time call quality monitoring dashboard with WebRTC statistics, quality scoring, and network indicators.
+
+**Perfect for:**
+
+- Quality assurance monitoring
+- Technical support dashboards
+- Network diagnostics
+- Performance optimization
+- User experience analysis
+
+**Features:**
+
+- Real-time WebRTC statistics (jitter, latency, packet loss)
+- Composite quality scoring (A-F grades, 0-100 scale)
+- Network quality indicators with signal strength visualization
+- Quality trend analysis with confidence scoring
+- Actionable recommendations based on metrics
+- Historical quality data tracking
+- Audio/video codec information
+- ICE connection state monitoring
+
+**Technologies:**
+
+- Vue 3 with Composition API
+- TypeScript
+- WebRTC Stats API
+- Reactive composables: `useCallQualityScore`, `useNetworkQualityIndicator`
+- Vite
+
+**Key Composables:**
+
+```typescript
+import { useCallQualityScore, useNetworkQualityIndicator, useSipWebRTCStats } from 'vuesip'
+
+// Quality scoring with trend analysis
+const { score, grade, factors, trend, recommendations } = useCallQualityScore()
+
+// Network quality indicator
+const { indicator, signalBars, description } = useNetworkQualityIndicator()
+```
+
+[View Call Quality Dashboard Guide →](/guide/call-quality-dashboard)
+
+---
+
 ## Quick Comparison
 
-| Example | Difficulty | Lines of Code | Key Composables | Use Case |
-|---------|-----------|---------------|-----------------|----------|
-| Basic Audio Call | Beginner | ~500 | useSipClient, useCallSession, useMediaDevices | Simple softphone |
-| Video Call | Intermediate | ~800 | + video device management | Video conferencing |
-| Multi-Line Phone | Advanced | ~1500 | + multi-session management | Business phone |
-| Conference Call | Advanced | ~1200 | + useConference | Team meetings |
-| Call Center | Advanced | ~1800 | + queue management | Customer service |
+| Example                | Difficulty   | Lines of Code | Key Composables                                 | Use Case           |
+| ---------------------- | ------------ | ------------- | ----------------------------------------------- | ------------------ |
+| Basic Audio Call       | Beginner     | ~500          | useSipClient, useCallSession, useMediaDevices   | Simple softphone   |
+| Video Call             | Intermediate | ~800          | + video device management                       | Video conferencing |
+| Multi-Line Phone       | Advanced     | ~1500         | + multi-session management                      | Business phone     |
+| Conference Call        | Advanced     | ~1200         | + useConference                                 | Team meetings      |
+| Call Center            | Advanced     | ~1800         | + queue management                              | Customer service   |
+| Call Quality Dashboard | Intermediate | ~600          | useCallQualityScore, useNetworkQualityIndicator | Quality monitoring |
 
 ---
 
@@ -165,6 +228,7 @@ Professional call center application with queue management and agent features.
 ### Prerequisites
 
 All examples require:
+
 - **Node.js** 20.0.0 or higher
 - **pnpm** 8.0.0 or higher (or npm/yarn)
 - **SIP Server** with WebSocket support
@@ -278,26 +342,16 @@ All examples follow this initialization pattern:
 import { useSipClient, useCallSession } from 'vuesip'
 
 // Initialize SIP client
-const {
-  connect,
-  disconnect,
-  isConnected,
-  isRegistered
-} = useSipClient()
+const { connect, disconnect, isConnected, isRegistered } = useSipClient()
 
 // Initialize call session
-const {
-  makeCall,
-  answer,
-  hangup,
-  currentCall
-} = useCallSession()
+const { makeCall, answer, hangup, currentCall } = useCallSession()
 
 // Connect to SIP server
 await connect({
   uri: 'sip:user@example.com',
   password: 'password',
-  server: 'wss://sip.example.com:7443'
+  server: 'wss://sip.example.com:7443',
 })
 </script>
 ```
@@ -312,8 +366,8 @@ await makeCall('sip:1234@example.com')
 await makeCall('sip:1234@example.com', {
   mediaConstraints: {
     audio: true,
-    video: true
-  }
+    video: true,
+  },
 })
 ```
 
@@ -343,12 +397,8 @@ watch(currentCall, (call) => {
 ### Pattern 4: Device Management
 
 ```typescript
-const {
-  audioInputDevices,
-  audioOutputDevices,
-  selectAudioInput,
-  selectAudioOutput
-} = useMediaDevices()
+const { audioInputDevices, audioOutputDevices, selectAudioInput, selectAudioOutput } =
+  useMediaDevices()
 
 // Request permissions
 await requestPermissions(true, false) // audio: true, video: false
@@ -380,10 +430,7 @@ const phoneNumber = ref('')
 
 <template>
   <div>
-    <InputText
-      v-model="phoneNumber"
-      placeholder="Enter number"
-    />
+    <InputText v-model="phoneNumber" placeholder="Enter number" />
     <Button
       @click="makeCall(phoneNumber)"
       label="Call"
@@ -405,25 +452,9 @@ const { makeCall, hangup, currentCall } = useCallSession()
 
 <template>
   <v-container>
-    <v-text-field
-      v-model="phoneNumber"
-      label="Phone Number"
-      prepend-icon="mdi-phone"
-    />
-    <v-btn
-      v-if="!currentCall"
-      @click="makeCall(phoneNumber)"
-      color="primary"
-    >
-      Call
-    </v-btn>
-    <v-btn
-      v-else
-      @click="hangup()"
-      color="error"
-    >
-      Hang Up
-    </v-btn>
+    <v-text-field v-model="phoneNumber" label="Phone Number" prepend-icon="mdi-phone" />
+    <v-btn v-if="!currentCall" @click="makeCall(phoneNumber)" color="primary"> Call </v-btn>
+    <v-btn v-else @click="hangup()" color="error"> Hang Up </v-btn>
   </v-container>
 </template>
 ```
@@ -435,6 +466,7 @@ const { makeCall, hangup, currentCall } = useCallSession()
 ### Browser Testing
 
 Test examples in multiple browsers:
+
 - Chrome/Edge (Chromium) 74+
 - Firefox 66+
 - Safari 14.1+
@@ -466,6 +498,7 @@ If your SIP server has an echo test extension:
 **Problem:** Cannot connect to SIP server
 
 **Solutions:**
+
 - Verify WebSocket URL format (`wss://` or `ws://`)
 - Check SIP credentials
 - Ensure SIP server is running
@@ -477,6 +510,7 @@ If your SIP server has an echo test extension:
 **Problem:** No audio during calls
 
 **Solutions:**
+
 - Check browser microphone permissions
 - Verify audio devices are selected
 - Ensure remote party's audio is working
@@ -488,6 +522,7 @@ If your SIP server has an echo test extension:
 **Problem:** Video not displaying
 
 **Solutions:**
+
 - Check camera permissions
 - Verify camera is not in use by another app
 - Ensure SIP server supports video codecs (VP8, H.264)
@@ -532,6 +567,7 @@ All examples are available in the VueSip repository:
 [View Examples on GitHub →](https://github.com/ironyh/VueSip/tree/main/examples)
 
 Each example includes:
+
 - Complete source code
 - Detailed README
 - Setup instructions

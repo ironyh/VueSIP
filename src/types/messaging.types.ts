@@ -74,7 +74,7 @@ export interface Message {
   /** Is message read */
   isRead: boolean
   /** Custom metadata */
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 /**

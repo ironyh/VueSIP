@@ -15,6 +15,24 @@ import { ConnectionState, RegistrationState } from '../../types/sip.types'
 import { JsSipCallSession } from './JsSipCallSession'
 
 /**
+ * JsSIP incoming message event data structure
+ */
+interface JsSipMessageEventData {
+  originator?: 'local' | 'remote'
+  request?: {
+    from?: {
+      uri?: {
+        toString(): string
+      }
+    }
+  }
+  message?: {
+    body?: string
+    content_type?: string
+  }
+}
+
+/**
  * JsSIP Adapter
  *
  * Wraps JsSIP's User Agent to provide a standardized SIP adapter interface.
@@ -135,6 +153,9 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
     this.updateRegistrationState(RegistrationState.Registering)
     this.emit('registration:registering', undefined)
 
+    // Capture ua reference before entering Promise to satisfy TypeScript
+    const ua = this.ua
+
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         cleanup()
@@ -163,13 +184,13 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
 
       const cleanup = () => {
         clearTimeout(timeout)
-        this.ua?.off('registered', onRegistered)
-        this.ua?.off('registrationFailed', onFailed)
+        ua.off('registered', onRegistered)
+        ua.off('registrationFailed', onFailed)
       }
 
-      this.ua!.once('registered', onRegistered)
-      this.ua!.once('registrationFailed', onFailed)
-      this.ua!.register()
+      ua.once('registered', onRegistered)
+      ua.once('registrationFailed', onFailed)
+      ua.register()
     })
   }
 
@@ -177,6 +198,9 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
     if (!this.ua || !this.isRegistered) {
       return
     }
+
+    // Capture ua reference before entering Promise to satisfy TypeScript
+    const ua = this.ua
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -196,13 +220,13 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
 
       const cleanup = () => {
         clearTimeout(timeout)
-        this.ua?.off('unregistered', onUnregistered)
+        ua.off('unregistered', onUnregistered)
       }
 
-      this.ua!.once('unregistered', onUnregistered)
+      ua.once('unregistered', onUnregistered)
 
       try {
-        this.ua!.unregister()
+        ua.unregister()
       } catch (error) {
         cleanup()
         reject(error)
@@ -254,8 +278,11 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
       throw new Error('Not connected')
     }
 
+    // Capture ua reference before entering Promise to satisfy TypeScript
+    const ua = this.ua
+
     return new Promise((resolve, reject) => {
-      const message = this.ua!.sendMessage(target, content, {
+      const message = ua.sendMessage(target, content, {
         contentType,
         eventHandlers: {
           succeeded: () => resolve(),
@@ -488,8 +515,12 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
       }
     )
 
-    // Incoming message - use any type for callback like SipClient.ts does
-    this.ua.on('newMessage', (data: any) => {
+    // Incoming message handler - use type assertion for JsSIP event not in type definitions
+    ;(
+      this.ua as unknown as {
+        on: (event: string, handler: (data: JsSipMessageEventData) => void) => void
+      }
+    ).on('newMessage', (data: JsSipMessageEventData) => {
       if (data?.originator === 'remote') {
         this.emit('message:received', {
           from: data.request?.from?.uri?.toString() ?? 'unknown',

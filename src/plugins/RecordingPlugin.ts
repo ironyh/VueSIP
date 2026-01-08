@@ -764,9 +764,11 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
 
     // Auto-start recording on call start
     if (this.config.autoStart) {
-      const onCallStarted = async (data: any) => {
-        const callId = data.callId || data.call?.id
-        const stream = data.stream || data.call?.localStream
+      const onCallStarted = async (event: unknown) => {
+        const data = event as Record<string, unknown>
+        const call = data.call as Record<string, unknown> | undefined
+        const callId = (data.callId || call?.id) as string | undefined
+        const stream = (data.stream || call?.localStream) as MediaStream | undefined
 
         if (callId && stream) {
           try {
@@ -777,13 +779,24 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
         }
       }
 
-      eventBus.on('callStarted', onCallStarted)
-      this.cleanupFunctions.push(() => eventBus.off('callStarted', onCallStarted))
+      // Use type assertion for custom event names not in EventMap
+      ;(eventBus as { on: (event: string, handler: (data: unknown) => void) => string }).on(
+        'callStarted',
+        onCallStarted
+      )
+      this.cleanupFunctions.push(() =>
+        (eventBus as { off: (event: string, handler: (data: unknown) => void) => void }).off(
+          'callStarted',
+          onCallStarted
+        )
+      )
     }
 
     // Stop recording on call end
-    const onCallEnded = async (data: any) => {
-      const callId = data.callId || data.call?.id
+    const onCallEnded = async (event: unknown) => {
+      const data = event as Record<string, unknown>
+      const call = data.call as Record<string, unknown> | undefined
+      const callId = (data.callId || call?.id) as string | undefined
 
       if (callId && this.activeRecordings.has(callId)) {
         try {
@@ -794,8 +807,17 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
       }
     }
 
-    eventBus.on('callEnded', onCallEnded)
-    this.cleanupFunctions.push(() => eventBus.off('callEnded', onCallEnded))
+    // Use type assertion for custom event names not in EventMap
+    ;(eventBus as { on: (event: string, handler: (data: unknown) => void) => string }).on(
+      'callEnded',
+      onCallEnded
+    )
+    this.cleanupFunctions.push(() =>
+      (eventBus as { off: (event: string, handler: (data: unknown) => void) => void }).off(
+        'callEnded',
+        onCallEnded
+      )
+    )
 
     logger.debug('Event listeners registered')
   }
@@ -1039,8 +1061,8 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
     }
 
     // Handle recording error
-    recorder.onerror = (event: any) => {
-      const error = event.error || new Error('Recording error')
+    recorder.onerror = (event: Event) => {
+      const error = (event as unknown as { error?: Error }).error || new Error('Recording error')
       recordingData.state = 'failed' as RecordingState
       logger.error(`Recording error: ${recordingId}`, error)
       this.config.onRecordingError(error)
@@ -2353,12 +2375,13 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
    * - Not synchronized across devices or browser profiles
    */
   private async saveRecording(recording: RecordingData): Promise<void> {
-    if (!this.db) {
+    const db = this.db
+    if (!db) {
       return
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['recordings'], 'readwrite')
+      const transaction = db.transaction(['recordings'], 'readwrite')
       const store = transaction.objectStore('recordings')
 
       // Handle transaction abort
@@ -2535,8 +2558,11 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
 
     this.isDeleting = true
 
+    // Capture db reference before entering Promise to satisfy TypeScript
+    const db = this.db
+
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['recordings'], 'readwrite')
+      const transaction = db.transaction(['recordings'], 'readwrite')
       const store = transaction.objectStore('recordings')
       const index = store.index('startTime')
 

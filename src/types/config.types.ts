@@ -25,9 +25,9 @@ export interface TurnServerConfig {
  */
 export interface MediaConfiguration {
   /** Audio constraints */
-  audio?: boolean | MediaTrackConstraints | { readonly [key: string]: any }
+  audio?: boolean | MediaTrackConstraints | { readonly [key: string]: unknown }
   /** Video constraints */
-  video?: boolean | MediaTrackConstraints | { readonly [key: string]: any }
+  video?: boolean | MediaTrackConstraints | { readonly [key: string]: unknown }
   /** Enable echo cancellation (default: true) */
   echoCancellation?: boolean
   /** Enable noise suppression (default: true) */
@@ -156,10 +156,10 @@ export interface SipClientConfig {
 
   /** Logger instance (if custom logging is needed) */
   logger?: {
-    debug: (...args: any[]) => void
-    info: (...args: any[]) => void
-    warn: (...args: any[]) => void
-    error: (...args: any[]) => void
+    debug: (...args: unknown[]) => void
+    info: (...args: unknown[]) => void
+    warn: (...args: unknown[]) => void
+    error: (...args: unknown[]) => void
   }
 }
 

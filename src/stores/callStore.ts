@@ -474,15 +474,18 @@ export const callStore = {
     }
 
     if (filter.dateFrom !== undefined) {
-      filtered = filtered.filter((entry) => entry.startTime >= filter.dateFrom!)
+      const dateFrom = filter.dateFrom
+      filtered = filtered.filter((entry) => entry.startTime >= dateFrom)
     }
 
     if (filter.dateTo !== undefined) {
-      filtered = filtered.filter((entry) => entry.startTime <= filter.dateTo!)
+      const dateTo = filter.dateTo
+      filtered = filtered.filter((entry) => entry.startTime <= dateTo)
     }
 
     if (filter.tags && filter.tags.length > 0) {
-      filtered = filtered.filter((entry) => entry.tags?.some((tag) => filter.tags!.includes(tag)))
+      const filterTags = filter.tags
+      filtered = filtered.filter((entry) => entry.tags?.some((tag) => filterTags.includes(tag)))
     }
 
     if (filter.searchQuery) {
@@ -496,10 +499,11 @@ export const callStore = {
 
     // Apply sorting
     if (filter.sortBy) {
+      const sortKey = filter.sortBy
       const sortOrder = filter.sortOrder === 'asc' ? 1 : -1
       filtered.sort((a, b) => {
-        const aVal = a[filter.sortBy!]
-        const bVal = b[filter.sortBy!]
+        const aVal = a[sortKey]
+        const bVal = b[sortKey]
 
         if (aVal instanceof Date && bVal instanceof Date) {
           return (aVal.getTime() - bVal.getTime()) * sortOrder

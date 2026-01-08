@@ -3,6 +3,11 @@
  * @packageDocumentation
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// JsSIP is an external library with complex internal types.
+// Using 'any' is necessary for compatibility with JsSIP's dynamic event system
+// and callback patterns. Stricter typing would break implementation code.
+
 declare module 'jssip' {
   import { EventEmitter } from 'events'
 

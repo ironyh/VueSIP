@@ -319,16 +319,17 @@ export class MediaManager {
 
       // Set remote stream (take first stream)
       if (event.streams.length > 0) {
-        // Safe: We just verified streams.length > 0
-        const remoteStream = event.streams[0]!
-        this.remoteStream = remoteStream
-        this.eventBus.emitSync(EventNames.MEDIA_STREAM_ADDED, {
-          type: 'addtrack',
-          timestamp: new Date(),
-          stream: remoteStream,
-          track: event.track,
-          direction: 'remote',
-        })
+        const remoteStream = event.streams[0]
+        if (remoteStream) {
+          this.remoteStream = remoteStream
+          this.eventBus.emitSync(EventNames.MEDIA_STREAM_ADDED, {
+            type: 'addtrack',
+            timestamp: new Date(),
+            stream: remoteStream,
+            track: event.track,
+            direction: 'remote',
+          })
+        }
       }
 
       this.eventBus.emitSync(EventNames.MEDIA_TRACK_ADDED, {
@@ -783,11 +784,11 @@ export class MediaManager {
     const cacheValid =
       this.deviceCache && now - this.deviceCache.timestamp < MEDIA_CONSTANTS.DEVICE_CACHE_TTL_MS
 
-    if (!forceRefresh && cacheValid) {
+    if (!forceRefresh && cacheValid && this.deviceCache) {
       logger.debug('Returning cached devices', {
-        cacheAge: now - this.deviceCache!.timestamp,
+        cacheAge: now - this.deviceCache.timestamp,
       })
-      return this.deviceCache!.devices
+      return this.deviceCache.devices
     }
 
     logger.info('Enumerating media devices from native API')

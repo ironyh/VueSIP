@@ -273,6 +273,12 @@ import type { SipClient } from '../core/SipClient'
 import type { CallSession } from '../core/CallSession'
 import type { MediaManager } from '../core/MediaManager'
 import type { SipClientConfig } from '../types/config.types'
+import type {
+  PluginInstalledEvent,
+  PluginErrorEvent,
+  PluginUnregisteredEvent,
+  PluginConfigUpdatedEvent,
+} from '../types/events.types'
 import {
   PluginState,
   type Plugin,
@@ -693,7 +699,7 @@ export class PluginManager implements IPluginManager {
       config: this.config,
       activeCalls: this.activeCalls,
       hooks: {
-        register: <TData = any, TReturn = any>(
+        register: <TData = unknown, TReturn = unknown>(
           name: HookName,
           handler: HookHandler<TData, TReturn>,
           options?: HookOptions
@@ -707,14 +713,14 @@ export class PluginManager implements IPluginManager {
           return hookId
         },
         unregister: (hookId: string) => this.hookManager.unregister(hookId),
-        execute: <TData = any, TReturn = any>(name: HookName, data?: TData) =>
+        execute: <TData = unknown, TReturn = unknown>(name: HookName, data?: TData) =>
           this.hookManager.execute<TData, TReturn>(name, data),
       },
       logger: {
-        debug: (message: string, ...args: any[]) => logger.debug(message, ...args),
-        info: (message: string, ...args: any[]) => logger.info(message, ...args),
-        warn: (message: string, ...args: any[]) => logger.warn(message, ...args),
-        error: (message: string, ...args: any[]) => logger.error(message, ...args),
+        debug: (message: string, ...args: unknown[]) => logger.debug(message, ...args),
+        info: (message: string, ...args: unknown[]) => logger.info(message, ...args),
+        warn: (message: string, ...args: unknown[]) => logger.warn(message, ...args),
+        error: (message: string, ...args: unknown[]) => logger.error(message, ...args),
       },
       version: this.version,
     }
@@ -1001,7 +1007,13 @@ export class PluginManager implements IPluginManager {
       logger.info(`Plugin installed: ${pluginName}`)
 
       // Emit event
-      this.eventBus.emit('plugin:installed', { pluginName, metadata: entry.plugin.metadata } as any)
+      const installedEvent: PluginInstalledEvent = {
+        type: 'plugin:installed',
+        pluginName,
+        metadata: entry.plugin.metadata,
+        timestamp: new Date(),
+      }
+      this.eventBus.emit('plugin:installed', installedEvent)
     } catch (error) {
       entry.state = PluginState.Failed
       entry.error = error instanceof Error ? error : new Error(String(error))
@@ -1009,7 +1021,13 @@ export class PluginManager implements IPluginManager {
       logger.error(`Plugin installation failed: ${pluginName}`, error)
 
       // Emit error event
-      this.eventBus.emit('plugin:error', { pluginName, error } as any)
+      const errorEvent: PluginErrorEvent = {
+        type: 'plugin:error',
+        pluginName,
+        error,
+        timestamp: new Date(),
+      }
+      this.eventBus.emit('plugin:error', errorEvent)
 
       throw error
     }
@@ -1165,7 +1183,12 @@ export class PluginManager implements IPluginManager {
       logger.info(`Plugin unregistered: ${pluginName}`)
 
       // Emit event
-      this.eventBus.emit('plugin:unregistered', { pluginName } as any)
+      const unregisteredEvent: PluginUnregisteredEvent = {
+        type: 'plugin:unregistered',
+        pluginName,
+        timestamp: new Date(),
+      }
+      this.eventBus.emit('plugin:unregistered', unregisteredEvent)
     }
 
     // Throw error after cleanup if uninstall failed
@@ -1508,7 +1531,13 @@ export class PluginManager implements IPluginManager {
     logger.info(`Plugin config updated: ${pluginName}`)
 
     // Emit event
-    this.eventBus.emit('plugin:configUpdated', { pluginName, config: entry.config } as any)
+    const configUpdatedEvent: PluginConfigUpdatedEvent = {
+      type: 'plugin:configUpdated',
+      pluginName,
+      config: entry.config as Record<string, unknown>,
+      timestamp: new Date(),
+    }
+    this.eventBus.emit('plugin:configUpdated', configUpdatedEvent)
   }
 
   /**
@@ -1591,7 +1620,10 @@ export class PluginManager implements IPluginManager {
    * }
    * ```
    */
-  async executeHook<TData = any, TReturn = any>(name: HookName, data?: TData): Promise<TReturn[]> {
+  async executeHook<TData = unknown, TReturn = unknown>(
+    name: HookName,
+    data?: TData
+  ): Promise<TReturn[]> {
     return this.hookManager.execute<TData, TReturn>(name, data)
   }
 

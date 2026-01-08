@@ -9,7 +9,12 @@
 
 import { computed, watch, onMounted, onUnmounted, type ComputedRef, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useSettingsStore, type SettingsSchema, type SipAccount } from '@/stores/settingsStore'
+import {
+  useSettingsStore,
+  type SettingsSchema,
+  type SipAccount,
+  type SettingsValidationError,
+} from '@/stores/settingsStore'
 import { useSettingsPersistence } from './useSettingsPersistence'
 import type {
   MediaConfiguration,
@@ -32,7 +37,7 @@ export interface UseSettingsReturn {
   isDirty: Ref<boolean>
   isValid: ComputedRef<boolean>
   lastSaved: Ref<Date | null>
-  validationErrors: Ref<any[]>
+  validationErrors: Ref<SettingsValidationError[]>
 
   // Computed settings
   activeAccount: ComputedRef<SipAccount | null>
@@ -46,7 +51,7 @@ export interface UseSettingsReturn {
   save: () => Promise<boolean>
   load: () => Promise<boolean>
   reset: () => Promise<boolean>
-  validate: () => any[]
+  validate: () => SettingsValidationError[]
 
   // Account management
   addAccount: (account: Omit<SipAccount, 'id'>) => SipAccount
@@ -142,7 +147,7 @@ export function useSettings(): UseSettingsReturn {
 
     // Validate before saving
     const errors = store.validateSettings()
-    if (errors.some((e: any) => e.severity === 'error')) {
+    if (errors.some((e: SettingsValidationError) => e.severity === 'error')) {
       log.error('Cannot save invalid settings', errors)
       return false
     }
@@ -184,7 +189,11 @@ export function useSettings(): UseSettingsReturn {
         const currentVersion = settings.value.version
         if (loaded.version !== currentVersion) {
           log.info(`Migrating settings from v${loaded.version} to v${currentVersion}`)
-          const migrationResult = persistence.migrate(loaded, loaded.version, currentVersion)
+          const migrationResult = persistence.migrate(
+            loaded as unknown as Record<string, unknown>,
+            loaded.version,
+            currentVersion
+          )
 
           if (!migrationResult.success) {
             log.error('Migration failed:', migrationResult.errors)
@@ -238,7 +247,7 @@ export function useSettings(): UseSettingsReturn {
   /**
    * Validate current settings
    */
-  function validate(): any[] {
+  function validate(): SettingsValidationError[] {
     return store.validateSettings()
   }
 
@@ -305,7 +314,7 @@ export function useSettings(): UseSettingsReturn {
         Object.assign(settings.value, imported)
         const errors = store.validateSettings()
 
-        if (errors.some((e: any) => e.severity === 'error')) {
+        if (errors.some((e: SettingsValidationError) => e.severity === 'error')) {
           log.error('Imported settings are invalid', errors)
           return false
         }

@@ -274,12 +274,12 @@ function clearStorage(): void {
  * Migrate settings from old version to new version
  */
 function migrateSettings(
-  oldSettings: any,
+  oldSettings: Record<string, unknown>,
   fromVersion: number,
   toVersion: number
 ): MigrationResult {
   const errors: string[] = []
-  let migratedSettings = { ...oldSettings }
+  const migratedSettings: Record<string, unknown> = { ...oldSettings }
 
   log.info(`Migrating settings from v${fromVersion} to v${toVersion}`)
 
@@ -425,7 +425,11 @@ export interface UseSettingsPersistenceReturn {
   save: (settings: SettingsSchema) => Promise<boolean>
   load: () => Promise<SettingsSchema | null>
   clear: () => void
-  migrate: (settings: any, fromVersion: number, toVersion: number) => MigrationResult
+  migrate: (
+    settings: Record<string, unknown>,
+    fromVersion: number,
+    toVersion: number
+  ) => MigrationResult
   migrateLegacy: () => SettingsSchema | null
   exportToFile: (settings: SettingsSchema) => void
   importFromFile: (file: File) => Promise<SettingsSchema | null>

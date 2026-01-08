@@ -18,8 +18,26 @@ import type { PresencePublishOptions, PresenceSubscriptionOptions } from '@/type
 import { CallSession as CallSessionClass, createCallSession } from '@/core/CallSession'
 import type { CallSession, CallOptions } from '@/types/call.types'
 import { CallState, CallDirection } from '@/types/call.types'
-// Note: JsSIP types are defined in jssip.types.ts for documentation purposes,
-// but we use 'any' for JsSIP event handlers since the library doesn't export proper types
+// JsSIP types for properly typing event handlers and session operations
+import type {
+  JsSIPConnectedEvent,
+  JsSIPDisconnectedEvent,
+  JsSIPRegisteredEvent,
+  JsSIPUnregisteredEvent,
+  JsSIPRegistrationFailedEvent,
+  JsSIPNewRTCSessionEvent,
+  JsSIPNewMessageEvent,
+  JsSIPSipEvent,
+  JsSIPSession,
+  JsSIPSessionFailedEvent,
+  JsSIPSessionEndedEvent,
+  JsSIPProgressEvent,
+  JsSIPSendMessageOptions,
+  JsSIPCallOptions,
+  JsSIPResponse,
+  PresenceSubscriptionState,
+  E2EEmitFunction,
+} from '@/types/jssip.types'
 import {
   RegistrationState,
   ConnectionState,
@@ -35,6 +53,10 @@ import type {
   SipNewSessionEvent,
   SipNewMessageEvent,
   SipGenericEvent,
+  SipSession,
+  SipMessage,
+  SipEventObject,
+  SipRequest,
   ConferenceCreatedEvent,
   ConferenceJoinedEvent,
   ConferenceEndedEvent,
@@ -132,7 +154,7 @@ export class SipClient {
   private activeCalls = new Map<string, CallSessionClass>() // Maps call ID to CallSession
   private messageHandlers: Array<(from: string, content: string, contentType?: string) => void> = []
   private composingHandlers: Array<(from: string, isComposing: boolean) => void> = []
-  private presenceSubscriptions = new Map<string, any>()
+  private presenceSubscriptions = new Map<string, PresenceSubscriptionState>()
   private presencePublications = new Map<string, { etag: string; expires: number }>()
   private isMuted = false
   private isVideoDisabled = false
@@ -286,21 +308,24 @@ export class SipClient {
 
         // Emit to EventBridge
         console.log('[SipClient] [E2E TEST] Emitting connection:connected to EventBridge')
-        ;(
-          (window as unknown as Record<string, unknown>).__emitSipEvent as (
-            event: string,
-            data?: any
-          ) => void
-        )('connection:connected')
+        ;((window as unknown as Record<string, unknown>).__emitSipEvent as E2EEmitFunction)(
+          'connection:connected',
+          {}
+        )
 
         logger.info('SIP client started successfully (E2E test mode)')
 
         // Set up E2E incoming call listener
         // Listen on EventBridge for simulated incoming calls
-        const eventBridge = (window as unknown as Record<string, unknown>).__sipEventBridge as any
+        const eventBridge = (window as unknown as Record<string, unknown>).__sipEventBridge as
+          | {
+              on?: (event: string, handler: (data: unknown) => void) => void
+            }
+          | undefined
         if (eventBridge && typeof eventBridge.on === 'function') {
           console.log('[SipClient] [E2E TEST] Setting up incoming call listener on EventBridge')
-          eventBridge.on('sip:newRTCSession', (event: any) => {
+          eventBridge.on('sip:newRTCSession', (e: unknown) => {
+            const event = e as { originator?: string; direction?: string }
             console.log('[SipClient] [E2E TEST] Received sip:newRTCSession event:', event)
             if (event.originator === 'remote' && event.direction === 'incoming') {
               this.handleE2EIncomingCall(event)
@@ -523,12 +548,10 @@ export class SipClient {
 
       // Directly emit to EventBridge for E2E tests
       console.log('[SipClient] [E2E TEST] Emitting registration:registered to EventBridge')
-      ;(
-        (window as unknown as Record<string, unknown>).__emitSipEvent as (
-          event: string,
-          data?: any
-        ) => void
-      )('registration:registered')
+      ;((window as unknown as Record<string, unknown>).__emitSipEvent as E2EEmitFunction)(
+        'registration:registered',
+        {}
+      )
 
       return Promise.resolve()
     } else {
@@ -536,6 +559,12 @@ export class SipClient {
     }
 
     return new Promise((resolve, reject) => {
+      if (!this.ua) {
+        reject(new Error('UA not initialized'))
+        return
+      }
+      const ua = this.ua
+
       const timeout = setTimeout(() => {
         cleanupListeners()
         reject(new Error('Registration timeout'))
@@ -566,12 +595,12 @@ export class SipClient {
       }
 
       // Listen for registration events
-      this.ua!.once('registered', onSuccess)
-      this.ua!.once('registrationFailed', onFailure)
+      ua.once('registered', onSuccess)
+      ua.once('registrationFailed', onFailure)
 
       // Register using JsSIP
       try {
-        this.ua!.register()
+        ua.register()
       } catch (error) {
         cleanupListeners()
         reject(error instanceof Error ? error : new Error(String(error)))
@@ -595,6 +624,9 @@ export class SipClient {
     logger.info('Unregistering from SIP server')
     this.updateRegistrationState(RegistrationState.Unregistering)
 
+    // this.ua is checked at function start
+    const ua = this.ua
+
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Unregistration timeout'))
@@ -617,10 +649,10 @@ export class SipClient {
       }
 
       // Unregister using JsSIP
-      this.ua!.unregister()
+      ua.unregister()
 
       // Listen for unregistration events
-      this.ua!.once('unregistered', onSuccess)
+      ua.once('unregistered', onSuccess)
       // Note: JsSIP doesn't emit 'unregistrationFailed', but handle it anyway
       setTimeout(() => {
         if (this.state.registrationState === 'unregistering') {
@@ -700,23 +732,26 @@ export class SipClient {
     if (!this.ua) return
 
     // Connection events
-    this.ua.on('connected', (e: any) => {
+    this.ua.on('connected', (e: unknown) => {
+      const event = e as JsSIPConnectedEvent
       logger.debug('UA connected')
-      this.emitConnectedEvent(e.socket?.url)
+      this.emitConnectedEvent(event.socket?.url)
     })
 
-    this.ua.on('disconnected', (e: any) => {
-      logger.debug('UA disconnected:', e)
-      this.emitDisconnectedEvent(e.error)
+    this.ua.on('disconnected', (e: unknown) => {
+      const event = e as JsSIPDisconnectedEvent
+      logger.debug('UA disconnected:', event)
+      this.emitDisconnectedEvent(event.error)
     })
 
-    this.ua.on('connecting', (_e: any) => {
+    this.ua.on('connecting', (_e: unknown) => {
       logger.debug('UA connecting')
       this.updateConnectionState(ConnectionState.Connecting)
     })
 
     // Registration events
-    this.ua.on('registered', (e: any) => {
+    this.ua.on('registered', (e: unknown) => {
+      const event = e as JsSIPRegisteredEvent
       logger.info('UA registered')
       this.updateRegistrationState(RegistrationState.Registered)
       this.state.registeredUri = this.config.sipUri
@@ -725,29 +760,31 @@ export class SipClient {
         type: 'sip:registered',
         timestamp: new Date(),
         uri: this.config.sipUri,
-        expires: e.response?.getHeader('Expires'),
+        expires: event.response?.getHeader?.('Expires'),
       } satisfies SipRegisteredEvent)
     })
 
-    this.ua.on('unregistered', (e: any) => {
+    this.ua.on('unregistered', (e: unknown) => {
+      const event = e as JsSIPUnregisteredEvent
       logger.info('UA unregistered')
       this.updateRegistrationState(RegistrationState.Unregistered)
       this.state.registeredUri = undefined
       this.eventBus.emitSync('sip:unregistered', {
         type: 'sip:unregistered',
         timestamp: new Date(),
-        cause: e?.cause,
+        cause: event?.cause,
       } satisfies SipUnregisteredEvent)
     })
 
-    this.ua.on('registrationFailed', (e: any) => {
-      logger.error('UA registration failed:', e)
+    this.ua.on('registrationFailed', (e: unknown) => {
+      const event = e as JsSIPRegistrationFailedEvent
+      logger.error('UA registration failed:', event)
       this.updateRegistrationState(RegistrationState.RegistrationFailed)
       this.eventBus.emitSync('sip:registration_failed', {
         type: 'sip:registration_failed',
         timestamp: new Date(),
-        cause: e.cause,
-        response: e.response,
+        cause: event.cause,
+        response: event.response,
       } satisfies SipRegistrationFailedEvent)
     })
 
@@ -760,20 +797,21 @@ export class SipClient {
     })
 
     // Call events (will be handled by CallSession)
-    this.ua.on('newRTCSession', (e: any) => {
-      logger.debug('New RTC session:', e)
+    this.ua.on('newRTCSession', (e: unknown) => {
+      const event = e as JsSIPNewRTCSessionEvent
+      logger.debug('New RTC session:', event)
 
       // Guard against null/undefined event or missing session
-      if (!e || !e.session) {
+      if (!event || !event.session) {
         logger.warn('Received newRTCSession event with missing data')
         return
       }
 
-      const rtcSession = e.session
+      const rtcSession = event.session as JsSIPSession
       const callId = rtcSession.id || this.generateCallId()
 
       // Track incoming calls
-      if (e.originator === 'remote') {
+      if (event.originator === 'remote') {
         logger.info('Incoming call', { callId })
 
         // Create CallSession instance for incoming call
@@ -792,30 +830,36 @@ export class SipClient {
       this.eventBus.emitSync('sip:new_session', {
         type: 'sip:new_session',
         timestamp: new Date(),
-        session: e.session,
-        originator: e.originator,
-        request: e.request,
+        session: (event.session ?? {}) as SipSession,
+        originator: event.originator ?? 'remote',
+        request: event.request as SipRequest | undefined,
         callId,
       } satisfies SipNewSessionEvent)
     })
 
     // Message events
-    this.ua.on('newMessage', (e: any) => {
-      logger.debug('New message:', e)
+    this.ua.on('newMessage', (e: unknown) => {
+      const event = e as JsSIPNewMessageEvent
+      logger.debug('New message:', event)
 
       // Guard against null/undefined event
-      if (!e || !e.originator) {
+      if (!event || !event.originator) {
         logger.warn('Received newMessage event with missing data')
         return
       }
 
       // Extract message details
-      const from = e.originator === 'remote' ? e.request?.from?.uri?.toString() : ''
+      const from =
+        event.originator === 'remote' ? (event.request?.from?.uri?.toString?.() ?? '') : ''
       const contentType =
-        e.request && typeof e.request.getHeader === 'function'
-          ? e.request.getHeader('Content-Type')
+        event.request &&
+        typeof (event.request as { getHeader?: (name: string) => string | undefined }).getHeader ===
+          'function'
+          ? (event.request as { getHeader: (name: string) => string | undefined }).getHeader(
+              'Content-Type'
+            )
           : null
-      const content = e.request?.body || ''
+      const content = event.request?.body || ''
 
       // Check for composing indicator
       if (contentType === 'application/im-iscomposing+xml') {
@@ -838,7 +882,7 @@ export class SipClient {
         // Call message handlers
         this.messageHandlers.forEach((handler) => {
           try {
-            handler(from, content, contentType)
+            handler(from, content, contentType ?? undefined)
           } catch (error) {
             logger.error('Error in message handler:', error)
           }
@@ -848,23 +892,28 @@ export class SipClient {
       this.eventBus.emitSync('sip:new_message', {
         type: 'sip:new_message',
         timestamp: new Date(),
-        message: e.message,
-        originator: e.originator,
-        request: e.request,
+        message: {
+          direction: event.originator === 'remote' ? 'incoming' : 'outgoing',
+          body: content,
+          contentType: contentType ?? undefined,
+        } as SipMessage,
+        originator: event.originator,
+        request: event.request as SipRequest | undefined,
         from,
         content,
-        contentType,
+        contentType: contentType ?? undefined,
       } satisfies SipNewMessageEvent)
     })
 
     // SIP events
-    this.ua.on('sipEvent', (e: any) => {
-      logger.debug('SIP event:', e)
+    this.ua.on('sipEvent', (e: unknown) => {
+      const event = e as JsSIPSipEvent
+      logger.debug('SIP event:', event)
       this.eventBus.emitSync('sip:event', {
         type: 'sip:event',
         timestamp: new Date(),
-        event: e.event,
-        request: e.request,
+        event: (event.event ?? { event: 'unknown' }) as SipEventObject,
+        request: (event.request ?? {}) as SipRequest,
       } satisfies SipGenericEvent)
     })
   }
@@ -1002,7 +1051,7 @@ export class SipClient {
   /**
    * Send custom SIP message (MESSAGE method)
    */
-  sendMessage(target: string, content: string, options?: any): void {
+  sendMessage(target: string, content: string, options?: JsSIPSendMessageOptions): void {
     if (!this.ua) {
       throw new Error('SIP client is not started')
     }
@@ -1044,7 +1093,7 @@ export class SipClient {
    */
   private extractUsername(sipUri: string): string {
     const match = sipUri.match(/sips?:([^@]+)@/)
-    return match ? match[1]! : ''
+    return match && match[1] ? match[1] : ''
   }
 
   /**
@@ -1183,12 +1232,13 @@ export class SipClient {
           } satisfies ConferenceJoinedEvent)
         })
 
-        session.once('failed', (e: any) => {
+        session.once('failed', (e: unknown) => {
+          const event = e as JsSIPSessionFailedEvent
           conference.state = ConferenceState.Failed
           localParticipant.state = ParticipantState.Disconnected
           this.conferences.delete(conferenceId)
 
-          logger.error('Failed to join conference', { conferenceId, cause: e.cause })
+          logger.error('Failed to join conference', { conferenceId, cause: event.cause })
         })
       }
     } catch (error) {
@@ -1249,13 +1299,14 @@ export class SipClient {
           } satisfies ConferenceParticipantJoinedEvent)
         })
 
-        session.once('failed', (e: any) => {
+        session.once('failed', (e: unknown) => {
+          const event = e as JsSIPSessionFailedEvent
           participant.state = ParticipantState.Disconnected
           conference.participants.delete(callId)
           logger.error('Participant failed to join conference', {
             conferenceId,
             participantUri,
-            cause: e.cause,
+            cause: event.cause,
           })
         })
 
@@ -1540,7 +1591,8 @@ export class SipClient {
   private extractConferenceId(conferenceUri: string): string {
     // Extract conference ID from SIP URI (e.g., sip:conf123@server.com -> conf123)
     const match = conferenceUri.match(/sips?:([^@]+)@/)
-    return match ? match[1]! : conferenceUri
+    const conferenceId = match?.[1]
+    return conferenceId ?? conferenceUri
   }
 
   /**
@@ -1871,11 +1923,12 @@ export class SipClient {
         contentType: 'application/pidf+xml',
         extraHeaders,
         eventHandlers: {
-          onSuccessResponse: (response: any) => {
+          onSuccessResponse: (res: unknown) => {
+            const response = res as JsSIPResponse
             logger.info('PUBLISH successful', { status: response.status_code })
 
             // Extract SIP-ETag for future refreshes
-            const etag = response.getHeader('SIP-ETag')
+            const etag = response.getHeader?.('SIP-ETag')
             if (etag) {
               this.presencePublications.set(this.config.sipUri, {
                 etag,
@@ -1895,7 +1948,8 @@ export class SipClient {
 
             resolve()
           },
-          onErrorResponse: (response: any) => {
+          onErrorResponse: (res: unknown) => {
+            const response = res as JsSIPResponse
             logger.error('PUBLISH failed', {
               status: response.status_code,
               reason: response.reason_phrase,
@@ -1959,11 +2013,12 @@ export class SipClient {
       ua.sendRequest('SUBSCRIBE', uri, {
         extraHeaders,
         eventHandlers: {
-          onSuccessResponse: (response: any) => {
+          onSuccessResponse: (res: unknown) => {
+            const response = res as JsSIPResponse
             logger.info('SUBSCRIBE successful', { uri, status: response.status_code })
 
             // Store subscription
-            const subscription = {
+            const subscription: PresenceSubscriptionState = {
               uri,
               options,
               active: true,
@@ -1981,7 +2036,8 @@ export class SipClient {
 
             resolve()
           },
-          onErrorResponse: (response: any) => {
+          onErrorResponse: (res: unknown) => {
+            const response = res as JsSIPResponse
             logger.error('SUBSCRIBE failed', {
               uri,
               status: response.status_code,
@@ -2034,7 +2090,8 @@ export class SipClient {
       ua.sendRequest('SUBSCRIBE', uri, {
         extraHeaders,
         eventHandlers: {
-          onSuccessResponse: (response: any) => {
+          onSuccessResponse: (res: unknown) => {
+            const response = res as JsSIPResponse
             logger.info('UNSUBSCRIBE successful', { uri, status: response.status_code })
 
             // Remove subscription
@@ -2049,7 +2106,8 @@ export class SipClient {
 
             resolve()
           },
-          onErrorResponse: (response: any) => {
+          onErrorResponse: (res: unknown) => {
+            const response = res as JsSIPResponse
             logger.error('UNSUBSCRIBE failed', {
               uri,
               status: response.status_code,
@@ -2217,7 +2275,7 @@ export class SipClient {
               ;(
                 (window as unknown as Record<string, unknown>).__emitSipEvent as (
                   event: string,
-                  data?: any
+                  data?: Record<string, unknown>
                 ) => void
               )('call:ended', {
                 callId,
@@ -2258,7 +2316,7 @@ export class SipClient {
               ;(
                 (window as unknown as Record<string, unknown>).__emitSipEvent as (
                   event: string,
-                  data?: any
+                  data?: Record<string, unknown>
                 ) => void
               )('call:held', { callId })
             }
@@ -2276,7 +2334,7 @@ export class SipClient {
               ;(
                 (window as unknown as Record<string, unknown>).__emitSipEvent as (
                   event: string,
-                  data?: any
+                  data?: Record<string, unknown>
                 ) => void
               )('call:unheld', { callId })
             }
@@ -2292,10 +2350,11 @@ export class SipClient {
           if (!mockEventListeners.has(event)) {
             mockEventListeners.set(event, new Set())
           }
-          mockEventListeners.get(event)!.add(listener)
-          console.log(
-            `[MockRTCSession] Total listeners for '${event}': ${mockEventListeners.get(event)!.size}`
-          )
+          const listeners = mockEventListeners.get(event)
+          if (listeners) {
+            listeners.add(listener)
+            console.log(`[MockRTCSession] Total listeners for '${event}': ${listeners.size}`)
+          }
         },
         off: (event: string, listener: (...args: unknown[]) => void) => {
           mockEventListeners.get(event)?.delete(listener)
@@ -2304,6 +2363,7 @@ export class SipClient {
         removeAllListeners: () => {
           mockEventListeners.clear()
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock object for E2E testing requires any cast to satisfy JsSIP RTCSession interface
       } as any
 
       // Create CallSession instance with mock session
@@ -2324,7 +2384,7 @@ export class SipClient {
       ;(
         (window as unknown as Record<string, unknown>).__emitSipEvent as (
           event: string,
-          data?: any
+          data?: Record<string, unknown>
         ) => void
       )('call:initiating', {
         callId,
@@ -2338,7 +2398,7 @@ export class SipClient {
         ;(
           (window as unknown as Record<string, unknown>).__emitSipEvent as (
             event: string,
-            data?: any
+            data?: Record<string, unknown>
           ) => void
         )('call:ringing', {
           callId,
@@ -2366,7 +2426,7 @@ export class SipClient {
               ;(
                 (window as unknown as Record<string, unknown>).__emitSipEvent as (
                   event: string,
-                  data?: any
+                  data?: Record<string, unknown>
                 ) => void
               )('call:answered', {
                 callId,
@@ -2389,17 +2449,18 @@ export class SipClient {
     try {
       // Access sipUri to trigger any proxy errors early
       void this.config.sipUri
-    } catch (e: any) {
+    } catch (e: unknown) {
       // If there's a proxy error, convert config to plain object
+      const error = e as { message?: string }
       logger.warn(
         'Config is a Vue proxy, converting to plain object for JsSIP compatibility',
-        e.message
+        error.message
       )
       this.config = JSON.parse(JSON.stringify(this.config)) as SipClientConfig
     }
 
     // Build call options
-    const callOptions: any = {
+    const callOptions: JsSIPCallOptions = {
       mediaConstraints: options?.mediaConstraints || {
         audio: options?.audio !== false,
         video: options?.video === true,
@@ -2428,7 +2489,8 @@ export class SipClient {
 
       // Initiate call using JsSIP
       // Note: this.ua is verified not null in the earlier check at the start of this method
-      const rtcSession = this.ua!.call(target, callOptions)
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- UA is verified non-null at method start
+      const rtcSession = this.ua!.call(target, callOptions as JsSIP.CallOptions)
       const callId = rtcSession.id || this.generateCallId()
 
       // Create CallSession instance
@@ -2479,6 +2541,7 @@ export class SipClient {
           unhold: () => {},
           renegotiate: () => {},
           connection: null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock object for E2E testing requires any cast
         } as any
 
         // Create CallSession instance with mock session
@@ -2512,7 +2575,7 @@ export class SipClient {
           ;(
             (window as unknown as Record<string, unknown>).__emitSipEvent as (
               event: string,
-              data?: any
+              data?: Record<string, unknown>
             ) => void
           )('call:initiating', {
             callId,
@@ -2526,7 +2589,7 @@ export class SipClient {
             ;(
               (window as unknown as Record<string, unknown>).__emitSipEvent as (
                 event: string,
-                data?: any
+                data?: Record<string, unknown>
               ) => void
             )('call:ringing', {
               callId,
@@ -2539,7 +2602,7 @@ export class SipClient {
               ;(
                 (window as unknown as Record<string, unknown>).__emitSipEvent as (
                   event: string,
-                  data?: any
+                  data?: Record<string, unknown>
                 ) => void
               )('call:answered', {
                 callId,
@@ -2569,83 +2632,117 @@ export class SipClient {
 
   /**
    * Setup event handlers for a call session
+   * @deprecated Not currently used - CallSession handles its own events
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deprecated method kept for reference
   private setupSessionHandlers(session: any, callId: string): void {
     // Session progress
-    session.on('progress', (e: any) => {
+    session.on('progress', (e: unknown) => {
+      const event = e as JsSIPProgressEvent
       logger.debug('Call progress', { callId })
-      this.eventBus.emitSync('sip:call:progress', {
-        timestamp: new Date(),
-        callId,
-        session,
-        response: e.response,
-      } as any)
+      this.eventBus.emitSync(
+        'sip:call:progress' as keyof import('@/types/events.types').EventMap,
+        {
+          type: 'sip:call:progress',
+          timestamp: new Date(),
+          callId,
+          session,
+          response: event.response,
+        } as import('@/types/events.types').BaseEvent
+      )
     })
 
     // Session accepted
-    session.on('accepted', (e: any) => {
+    session.on('accepted', (e: unknown) => {
+      const event = e as JsSIPProgressEvent
       logger.info('Call accepted', { callId })
-      this.eventBus.emitSync('sip:call:accepted', {
-        timestamp: new Date(),
-        callId,
-        session,
-        response: e.response,
-      } as any)
+      this.eventBus.emitSync(
+        'sip:call:accepted' as keyof import('@/types/events.types').EventMap,
+        {
+          type: 'sip:call:accepted',
+          timestamp: new Date(),
+          callId,
+          session,
+          response: event.response,
+        } as import('@/types/events.types').BaseEvent
+      )
     })
 
     // Session confirmed
     session.on('confirmed', () => {
       logger.info('Call confirmed', { callId })
-      this.eventBus.emitSync('sip:call:confirmed', {
-        timestamp: new Date(),
-        callId,
-        session,
-      } as any)
+      this.eventBus.emitSync(
+        'sip:call:confirmed' as keyof import('@/types/events.types').EventMap,
+        {
+          type: 'sip:call:confirmed',
+          timestamp: new Date(),
+          callId,
+          session,
+        } as import('@/types/events.types').BaseEvent
+      )
     })
 
     // Session ended
-    session.on('ended', (e: any) => {
-      logger.info('Call ended', { callId, cause: e.cause })
+    session.on('ended', (e: unknown) => {
+      const event = e as JsSIPSessionEndedEvent
+      logger.info('Call ended', { callId, cause: event.cause })
       this.activeCalls.delete(callId)
-      this.eventBus.emitSync('sip:call:ended', {
-        timestamp: new Date(),
-        callId,
-        session,
-        cause: e.cause,
-        originator: e.originator,
-      } as any)
+      this.eventBus.emitSync(
+        'sip:call:ended' as keyof import('@/types/events.types').EventMap,
+        {
+          type: 'sip:call:ended',
+          timestamp: new Date(),
+          callId,
+          session,
+          cause: event.cause,
+          originator: event.originator,
+        } as import('@/types/events.types').BaseEvent
+      )
     })
 
     // Session failed
-    session.on('failed', (e: any) => {
-      logger.error('Call failed', { callId, cause: e.cause })
+    session.on('failed', (e: unknown) => {
+      const event = e as JsSIPSessionFailedEvent
+      logger.error('Call failed', { callId, cause: event.cause })
       this.activeCalls.delete(callId)
-      this.eventBus.emitSync('sip:call:failed', {
-        timestamp: new Date(),
-        callId,
-        session,
-        cause: e.cause,
-        message: e.message,
-      } as any)
+      this.eventBus.emitSync(
+        'sip:call:failed' as keyof import('@/types/events.types').EventMap,
+        {
+          type: 'sip:call:failed',
+          timestamp: new Date(),
+          callId,
+          session,
+          cause: event.cause,
+          message: event.message,
+        } as import('@/types/events.types').BaseEvent
+      )
     })
 
     // Hold events
     session.on('hold', () => {
       logger.debug('Call on hold', { callId })
-      this.eventBus.emitSync('sip:call:hold', {
-        timestamp: new Date(),
-        callId,
-        session,
-      } as any)
+      this.eventBus.emitSync(
+        'sip:call:hold' as keyof import('@/types/events.types').EventMap,
+        {
+          type: 'sip:call:hold',
+          timestamp: new Date(),
+          callId,
+          session,
+        } as import('@/types/events.types').BaseEvent
+      )
     })
 
     session.on('unhold', () => {
       logger.debug('Call resumed', { callId })
-      this.eventBus.emitSync('sip:call:unhold', {
-        timestamp: new Date(),
-        callId,
-        session,
-      } as any)
+      this.eventBus.emitSync(
+        'sip:call:unhold' as keyof import('@/types/events.types').EventMap,
+        {
+          type: 'sip:call:unhold',
+          timestamp: new Date(),
+          callId,
+          session,
+        } as import('@/types/events.types').BaseEvent
+      )
     })
   }
 
@@ -2654,7 +2751,7 @@ export class SipClient {
    * @deprecated Not currently used, kept for potential future use
    */
   // @ts-expect-error - Kept for potential future use
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deprecated method kept for reference
   private _sessionToCallSession(session: any): CallSession {
     const startTime = session.start_time ? new Date(session.start_time) : undefined
     const endTime = session.end_time ? new Date(session.end_time) : undefined
@@ -2685,7 +2782,7 @@ export class SipClient {
   /**
    * Map JsSIP session state to CallState
    */
-  private mapSessionState(session: any): CallState {
+  private mapSessionState(session: JsSIPSession): CallState {
     switch (session.status) {
       case 0:
         return CallState.Idle // NULL
@@ -2712,29 +2809,38 @@ export class SipClient {
 
   /**
    * Check if session has remote video
+   * Note: getRemoteStreams is deprecated but some JsSIP versions still use it
    */
-  private hasRemoteVideo(session: any): boolean {
-    const remoteStream = session.connection?.getRemoteStreams()?.[0]
-    return remoteStream?.getVideoTracks()?.length > 0 || false
+  private hasRemoteVideo(session: JsSIPSession): boolean {
+    const connection = session.connection as RTCPeerConnection & {
+      getRemoteStreams?: () => MediaStream[]
+    }
+    const remoteStream = connection?.getRemoteStreams?.()?.[0]
+    return (remoteStream?.getVideoTracks()?.length ?? 0) > 0
   }
 
   /**
    * Check if session has local video
+   * Note: getLocalStreams is deprecated but some JsSIP versions still use it
    */
-  private hasLocalVideo(session: any): boolean {
-    const localStream = session.connection?.getLocalStreams()?.[0]
-    return localStream?.getVideoTracks()?.length > 0 || false
+  private hasLocalVideo(session: JsSIPSession): boolean {
+    const connection = session.connection as RTCPeerConnection & {
+      getLocalStreams?: () => MediaStream[]
+    }
+    const localStream = connection?.getLocalStreams?.()?.[0]
+    return (localStream?.getVideoTracks()?.length ?? 0) > 0
   }
 
   /**
    * Handle E2E test incoming call simulation
    * Creates a mock RTCSession for testing incoming calls without JsSIP
    */
-  private handleE2EIncomingCall(event: any): void {
+  private handleE2EIncomingCall(event: Record<string, unknown>): void {
     console.log('[SipClient] [E2E TEST] Handling incoming call:', event)
 
-    const callId = event.callId || this.generateCallId()
-    const remoteUri = event.remoteUri || 'sip:unknown@test.com'
+    const callId = (typeof event.callId === 'string' ? event.callId : null) || this.generateCallId()
+    const remoteUri =
+      (typeof event.remoteUri === 'string' ? event.remoteUri : null) || 'sip:unknown@test.com'
 
     // Create a mock RTCSession for incoming call
     const mockEventListeners: Map<string, Set<(...args: unknown[]) => void>> = new Map()
@@ -2767,7 +2873,7 @@ export class SipClient {
       isMuted: () => ({ audio: false, video: false }),
 
       // Answer the incoming call
-      answer: (options?: any) => {
+      answer: (options?: Record<string, unknown>) => {
         console.log('[MockRTCSession:Incoming] answer() called', options)
         setTimeout(() => {
           emitMockEvent('accepted', { originator: 'local' })
@@ -2777,7 +2883,7 @@ export class SipClient {
             ;(
               (window as unknown as Record<string, unknown>).__emitSipEvent as (
                 event: string,
-                data?: any
+                data?: Record<string, unknown>
               ) => void
             )('call:confirmed', { callId })
           }
@@ -2785,7 +2891,7 @@ export class SipClient {
       },
 
       // Reject the incoming call
-      terminate: (options?: any) => {
+      terminate: (options?: { cause?: string }) => {
         console.log('[MockRTCSession:Incoming] terminate() called', options)
         mockIsEnded = true
         setTimeout(() => {
@@ -2814,7 +2920,10 @@ export class SipClient {
         if (!mockEventListeners.has(eventName)) {
           mockEventListeners.set(eventName, new Set())
         }
-        mockEventListeners.get(eventName)!.add(listener)
+        const listeners = mockEventListeners.get(eventName)
+        if (listeners) {
+          listeners.add(listener)
+        }
         console.log(`[MockRTCSession:Incoming] Registered listener for: ${eventName}`)
       },
       off: (eventName: string, listener: (...args: unknown[]) => void) => {
@@ -2828,7 +2937,10 @@ export class SipClient {
         if (!mockEventListeners.has(eventName)) {
           mockEventListeners.set(eventName, new Set())
         }
-        mockEventListeners.get(eventName)!.add(wrapper)
+        const listeners = mockEventListeners.get(eventName)
+        if (listeners) {
+          listeners.add(wrapper)
+        }
       },
       removeAllListeners: () => mockEventListeners.clear(),
 
@@ -2853,18 +2965,18 @@ export class SipClient {
     this.eventBus.emitSync('sip:new_session', {
       type: 'sip:new_session',
       timestamp: new Date(),
-      session: mockRTCSession,
+      session: mockRTCSession as unknown as import('@/types/events.types').SipSession,
       originator: 'remote',
-      request: null,
+      request: undefined,
       callId,
-    } as any)
+    } as import('@/types/events.types').SipNewSessionEvent)
 
     // Also emit to EventBridge for tests
     if (typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function') {
       ;(
         (window as unknown as Record<string, unknown>).__emitSipEvent as (
           event: string,
-          data?: any
+          data?: Record<string, unknown>
         ) => void
       )('call:incoming', {
         callId,

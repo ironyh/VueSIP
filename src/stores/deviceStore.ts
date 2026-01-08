@@ -7,7 +7,7 @@
  * @module stores/deviceStore
  */
 
-import { reactive, computed, readonly, nextTick } from 'vue'
+import { reactive, computed, readonly, nextTick, type ComputedRef } from 'vue'
 import type { MediaDevice } from '../types/media.types'
 import { MediaDeviceKind, PermissionStatus } from '../types/media.types'
 import { createLogger } from '../utils/logger'
@@ -41,6 +41,32 @@ interface DeviceStoreState {
 }
 
 /**
+ * Extended Window interface for E2E testing
+ */
+interface TestWindow extends Window {
+  __deviceStoreState?: DeviceStoreState
+  deviceStore?: typeof deviceStore
+}
+
+/**
+ * Computed values interface
+ */
+interface DeviceStoreComputedValues {
+  totalDevices: ComputedRef<number>
+  hasAudioInputDevices: ComputedRef<boolean>
+  hasAudioOutputDevices: ComputedRef<boolean>
+  hasVideoInputDevices: ComputedRef<boolean>
+  selectedAudioInputDevice: ComputedRef<MediaDevice | undefined>
+  selectedAudioOutputDevice: ComputedRef<MediaDevice | undefined>
+  selectedVideoInputDevice: ComputedRef<MediaDevice | undefined>
+  hasAudioPermission: ComputedRef<boolean>
+  hasVideoPermission: ComputedRef<boolean>
+  hasAnyPermission: ComputedRef<boolean>
+  isAudioPermissionDenied: ComputedRef<boolean>
+  isVideoPermissionDenied: ComputedRef<boolean>
+}
+
+/**
  * Internal reactive state
  */
 const state = reactive<DeviceStoreState>({
@@ -58,13 +84,13 @@ const state = reactive<DeviceStoreState>({
 
 // Expose state directly for E2E testing to ensure reactivity works
 if (typeof window !== 'undefined' && window.location?.search?.includes('test=true')) {
-  ;(window as any).__deviceStoreState = state
+  ;(window as TestWindow).__deviceStoreState = state
 }
 
 /**
  * Computed values
  */
-const computed_values: Record<string, any> = {
+const computed_values: DeviceStoreComputedValues = {
   /** Total number of available devices */
   totalDevices: computed(
     () =>
@@ -671,15 +697,15 @@ if (typeof window !== 'undefined') {
   // Expose immediately - don't wait for next tick
   // The state should be available immediately
   if (window.location?.search?.includes('test=true')) {
-    ;(window as any).deviceStore = deviceStore
-    ;(window as any).__deviceStoreState = state
+    ;(window as TestWindow).deviceStore = deviceStore
+    ;(window as TestWindow).__deviceStoreState = state
     console.log('deviceStore and state exposed on window for E2E testing')
   } else {
     // Also set up a listener in case the URL changes (for dynamic test mode)
     const checkAndExpose = () => {
       if (window.location?.search?.includes('test=true')) {
-        ;(window as any).deviceStore = deviceStore
-        ;(window as any).__deviceStoreState = state
+        ;(window as TestWindow).deviceStore = deviceStore
+        ;(window as TestWindow).__deviceStoreState = state
       }
     }
     // Check on next tick as well in case location isn't ready yet

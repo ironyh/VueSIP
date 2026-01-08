@@ -69,7 +69,8 @@ export class EventBus {
 
     // BUFFERING: Replay buffered events for this listener if any exist
     if (this.bufferEnabled && this.eventBuffer.has(eventName)) {
-      const bufferedEvents = this.eventBuffer.get(eventName)!
+      const bufferedEvents = this.eventBuffer.get(eventName)
+      if (!bufferedEvents) return id
       const now = Date.now()
 
       logger.debug(`Found ${bufferedEvents.length} buffered events for ${eventName}, replaying...`)
@@ -80,7 +81,7 @@ export class EventBus {
       for (const bufferedEvent of validEvents) {
         try {
           logger.debug(`Replaying buffered event for ${eventName}`)
-          const result = handler(bufferedEvent.data as any)
+          const result = handler(bufferedEvent.data as EventMap[K])
           if (result instanceof Promise) {
             result.catch((error) => {
               logger.error(`Error in replayed event handler for ${eventName}:`, error)

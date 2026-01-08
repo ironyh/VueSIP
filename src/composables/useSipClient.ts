@@ -368,7 +368,7 @@ export function useSipClient(
           ;(
             (window as unknown as Record<string, unknown>).__emitSipEvent as (
               event: string,
-              data?: any
+              data?: unknown
             ) => void
           )('registration:registered')
         } else {

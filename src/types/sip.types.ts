@@ -193,7 +193,7 @@ export interface SipEvent {
   /** Timestamp when the event occurred */
   timestamp: Date
   /** Additional event data */
-  data?: any
+  data?: unknown
 }
 
 /**
@@ -234,8 +234,8 @@ export interface SipMessageOptions {
   extraHeaders?: string[]
   /** Event handlers */
   eventHandlers?: {
-    succeeded?: (response: any) => void
-    failed?: (response: any) => void
+    succeeded?: (response: unknown) => void
+    failed?: (response: unknown) => void
   }
 }
 

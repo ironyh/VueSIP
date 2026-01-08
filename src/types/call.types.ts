@@ -237,7 +237,7 @@ export interface CallSession {
   /** Termination cause (if terminated) */
   terminationCause?: TerminationCause
   /** Custom data */
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   /** Hold the call (SIP re-INVITE with sendonly) */
   hold?: () => void
   /** Resume the call (SIP re-INVITE with sendrecv) */
@@ -253,7 +253,7 @@ export interface CallEvent {
   /** Call session */
   session: CallSession
   /** Original event data */
-  originalEvent?: any
+  originalEvent?: unknown
   /** Timestamp */
   timestamp: Date
   /** Event originator (local, remote, or system) - present in hold/unhold/ended events */

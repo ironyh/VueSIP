@@ -20,7 +20,10 @@ const logger = createLogger('utils:encryption')
 function isTestEnvironment(): boolean {
   // Check for Vitest - import.meta.vitest is always available in Vitest
   try {
-    const meta = import.meta as any
+    const meta = import.meta as {
+      vitest?: unknown
+      env?: { MODE?: string; TEST?: boolean; VITEST?: boolean }
+    }
     if (meta.vitest !== undefined) {
       return true
     }
