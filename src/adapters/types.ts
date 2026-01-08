@@ -88,7 +88,7 @@ export interface AdapterConfig {
   /**
    * Library-specific configuration options
    */
-  libraryOptions?: Record<string, any>
+  libraryOptions?: Record<string, unknown>
 }
 
 /**
@@ -764,6 +764,9 @@ export interface AdapterEvents {
 
   // Error events
   error: { error: Error; context: string }
+
+  // Index signature for EventEmitter compatibility
+  [key: string]: unknown
 }
 
 /**
@@ -788,4 +791,6 @@ export interface CallSessionEvents {
   iceConnectionStateChange: { state: RTCIceConnectionState }
   iceGatheringStateChange: { state: RTCIceGatheringState }
   signalingStateChange: { state: RTCSignalingState }
+  // Index signature for EventEmitter compatibility
+  [key: string]: unknown
 }

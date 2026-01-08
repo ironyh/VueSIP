@@ -271,6 +271,235 @@ export interface JsSIPEvent {
   [key: string]: unknown
 }
 
+// ============================================================================
+// Session Event Types (for SipClient.ts)
+// ============================================================================
+
+/**
+ * JsSIP Session interface (extended from RTCSession)
+ */
+export interface JsSIPSession {
+  /** Session unique identifier */
+  id: string
+  /** RTCPeerConnection instance */
+  connection?: RTCPeerConnection
+  /** Remote identity information */
+  remote_identity?: JsSIPRemoteIdentity
+  /** Session direction */
+  direction?: 'incoming' | 'outgoing'
+  /** Session status */
+  status?: number
+  /** Start time */
+  start_time?: Date
+  /** End time */
+  end_time?: Date
+  /** Answer the session */
+  answer: (options?: JsSIPAnswerOptions) => void
+  /** Terminate the session */
+  terminate: (options?: JsSIPTerminateOptions) => void
+  /** Put session on hold */
+  hold: (options?: JsSIPHoldOptions) => void
+  /** Resume from hold */
+  unhold: (options?: JsSIPHoldOptions) => void
+  /** Mute audio/video */
+  mute: (options?: JsSIPMuteOptions) => void
+  /** Unmute audio/video */
+  unmute: (options?: JsSIPMuteOptions) => void
+  /** Send DTMF tone */
+  sendDTMF: (tone: string, options?: JsSIPDTMFOptions) => void
+  /** Refer (transfer) the session */
+  refer: (target: string, options?: JsSIPReferOptions) => void
+  /** Add event listener */
+  on: (event: string, handler: (data: unknown) => void) => void
+  /** Remove event listener */
+  off: (event: string, handler: (data: unknown) => void) => void
+  /** Remove all event listeners */
+  removeAllListeners: () => void
+  /** Check if session is on hold */
+  isOnHold: () => { local: boolean; remote: boolean }
+  /** Check if session is muted */
+  isMuted: () => { audio: boolean; video: boolean }
+  /** Session data */
+  data?: Record<string, unknown>
+  [key: string]: unknown
+}
+
+/**
+ * JsSIP session progress event
+ */
+export interface JsSIPSessionProgressEvent {
+  originator: 'local' | 'remote'
+  response?: JsSIPResponse
+  [key: string]: unknown
+}
+
+/**
+ * JsSIP session ended event
+ */
+export interface JsSIPSessionEndedEvent {
+  originator: 'local' | 'remote'
+  cause?: string
+  message?: {
+    status_code?: number
+    reason_phrase?: string
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
+/**
+ * JsSIP session failed event
+ */
+export interface JsSIPSessionFailedEvent {
+  originator: 'local' | 'remote'
+  cause?: string
+  message?: {
+    status_code?: number
+    reason_phrase?: string
+    [key: string]: unknown
+  }
+  response?: JsSIPResponse
+  [key: string]: unknown
+}
+
+/**
+ * JsSIP session confirmed event
+ */
+export interface JsSIPSessionConfirmedEvent {
+  originator: 'local' | 'remote'
+  ack?: unknown
+  response?: JsSIPResponse
+  [key: string]: unknown
+}
+
+/**
+ * JsSIP session accepted event
+ */
+export interface JsSIPAcceptedEvent {
+  originator: 'local' | 'remote'
+  response?: JsSIPResponse
+  [key: string]: unknown
+}
+
+/**
+ * JsSIP new message event
+ */
+export interface JsSIPNewMessageEvent {
+  originator: 'local' | 'remote'
+  message?: unknown
+  request?: {
+    body?: string
+    from?: {
+      uri?: JsSIPUri
+      display_name?: string
+      [key: string]: unknown
+    }
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
+/**
+ * JsSIP SIP event (for sipEvent handler)
+ */
+export interface JsSIPSipEvent {
+  event?: unknown
+  request?: {
+    method?: string
+    body?: string
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
+/**
+ * JsSIP presence subscription
+ */
+export interface JsSIPPresenceSubscription {
+  subscribe: () => void
+  unsubscribe: () => void
+  close: () => void
+  on: (event: string, handler: (data: unknown) => void) => void
+  [key: string]: unknown
+}
+
+/**
+ * Stored presence subscription state
+ */
+export interface PresenceSubscriptionState {
+  uri: string
+  options?: {
+    expires?: number
+    extraHeaders?: string[]
+  }
+  active: boolean
+  expires: number
+}
+
+/**
+ * JsSIP call options
+ */
+export interface JsSIPCallOptions {
+  mediaConstraints?: MediaStreamConstraints
+  rtcConfiguration?: RTCConfiguration
+  pcConfig?: RTCConfiguration
+  mediaStream?: MediaStream
+  eventHandlers?: Record<string, (data: unknown) => void>
+  extraHeaders?: string[]
+  anonymous?: boolean
+  fromUserName?: string
+  fromDisplayName?: string
+  [key: string]: unknown
+}
+
+/**
+ * JsSIP send message options
+ */
+export interface JsSIPSendMessageOptions {
+  contentType?: string
+  extraHeaders?: string[]
+  eventHandlers?: {
+    onSuccessResponse?: (response: unknown) => void
+    onErrorResponse?: (response: unknown) => void
+    onTransportError?: () => void
+    onRequestTimeout?: () => void
+    onDialogError?: () => void
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
+/**
+ * Mock RTC Session for E2E testing
+ */
+export interface MockRTCSession {
+  id: string
+  connection?: RTCPeerConnection | null
+  remote_identity?: JsSIPRemoteIdentity
+  direction?: 'incoming' | 'outgoing'
+  status?: number
+  answer?: (options?: JsSIPAnswerOptions) => void
+  terminate?: (options?: JsSIPTerminateOptions) => void
+  hold?: (options?: JsSIPHoldOptions) => void
+  unhold?: (options?: JsSIPHoldOptions) => void
+  mute?: (options?: JsSIPMuteOptions) => void
+  unmute?: (options?: JsSIPMuteOptions) => void
+  sendDTMF?: (tone: string, options?: JsSIPDTMFOptions) => void
+  refer?: (target: string, options?: JsSIPReferOptions) => void
+  on?: (event: string, handler: (data: unknown) => void) => void
+  off?: (event: string, handler: (data: unknown) => void) => void
+  removeAllListeners?: () => void
+  isOnHold?: () => { local: boolean; remote: boolean }
+  isMuted?: () => { audio: boolean; video: boolean }
+  data?: Record<string, unknown>
+  [key: string]: unknown
+}
+
+/**
+ * E2E emit function type for window.__emitSipEvent
+ */
+export type E2EEmitFunction = (eventType: string, eventData: Record<string, unknown>) => void
+
 /**
  * Union type for all JsSIP events
  */
@@ -281,4 +510,6 @@ export type AnyJsSIPEvent =
   | JsSIPUnregisteredEvent
   | JsSIPRegistrationFailedEvent
   | JsSIPNewRTCSessionEvent
+  | JsSIPNewMessageEvent
+  | JsSIPSipEvent
   | JsSIPEvent

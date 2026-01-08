@@ -20,7 +20,9 @@ export function isDebugMode(): boolean {
   }
 
   try {
-    const meta = import.meta as any
+    const meta = import.meta as {
+      env?: { VITE_DEBUG?: string | boolean; MODE?: string; TEST?: boolean }
+    }
     // Check for Vite environment variable (prefixed with VITE_)
     if (meta.env?.VITE_DEBUG === 'true' || meta.env?.VITE_DEBUG === true) {
       return true
@@ -34,10 +36,9 @@ export function isDebugMode(): boolean {
   }
 
   // Fallback: check for Playwright test marker (for E2E tests)
-  if ((window as any).__PLAYWRIGHT_TEST__) {
+  if ((window as { __PLAYWRIGHT_TEST__?: boolean }).__PLAYWRIGHT_TEST__) {
     return true
   }
 
   return false
 }
-

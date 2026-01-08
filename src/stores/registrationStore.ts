@@ -7,12 +7,25 @@
  * @module stores/registrationStore
  */
 
-import { reactive, computed } from 'vue'
+import { reactive, computed, type ComputedRef } from 'vue'
 import { RegistrationState } from '../types/sip.types'
 import { createLogger } from '../utils/logger'
 import { DEFAULT_REGISTER_EXPIRES } from '../utils/constants'
 
 const log = createLogger('RegistrationStore')
+
+/**
+ * Computed values interface for type safety
+ */
+interface RegistrationComputedValues {
+  isRegistered: ComputedRef<boolean>
+  isRegistering: ComputedRef<boolean>
+  isUnregistering: ComputedRef<boolean>
+  hasRegistrationFailed: ComputedRef<boolean>
+  secondsUntilExpiry: ComputedRef<number>
+  isExpiringSoon: ComputedRef<boolean>
+  hasExpired: ComputedRef<boolean>
+}
 
 /**
  * Registration store state interface
@@ -54,9 +67,21 @@ const state = reactive<RegistrationStoreState>({
 })
 
 /**
+ * Helper function to calculate seconds until expiry
+ */
+function getSecondsUntilExpiry(): number {
+  // Access _timeTrigger to make this computed reactive to time changes
+  state._timeTrigger
+  if (!state.expiryTime) return 0
+  const now = new Date().getTime()
+  const expiry = state.expiryTime.getTime()
+  return Math.max(0, Math.floor((expiry - now) / 1000))
+}
+
+/**
  * Computed values
  */
-const computed_values: Record<string, any> = {
+const computed_values: RegistrationComputedValues = {
   /** Whether currently registered */
   isRegistered: computed(() => state.state === RegistrationState.Registered),
 
@@ -70,20 +95,13 @@ const computed_values: Record<string, any> = {
   hasRegistrationFailed: computed(() => state.state === RegistrationState.RegistrationFailed),
 
   /** Seconds remaining until registration expires */
-  secondsUntilExpiry: computed(() => {
-    // Access _timeTrigger to make this computed reactive to time changes
-    state._timeTrigger
-    if (!state.expiryTime) return 0
-    const now = new Date().getTime()
-    const expiry = state.expiryTime.getTime()
-    return Math.max(0, Math.floor((expiry - now) / 1000))
-  }),
+  secondsUntilExpiry: computed(() => getSecondsUntilExpiry()),
 
   /** Whether registration is about to expire (less than 30 seconds) */
-  isExpiringSoon: computed(() => computed_values.secondsUntilExpiry.value < 30),
+  isExpiringSoon: computed(() => getSecondsUntilExpiry() < 30),
 
   /** Whether registration has expired */
-  hasExpired: computed(() => computed_values.secondsUntilExpiry.value === 0),
+  hasExpired: computed(() => getSecondsUntilExpiry() === 0),
 }
 
 /**

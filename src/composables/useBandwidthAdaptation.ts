@@ -446,7 +446,10 @@ export function useBandwidthAdaptation(
     }
 
     // Use most recent values, but average some metrics
-    const recent = history.value[history.value.length - 1]!
+    const recent = history.value[history.value.length - 1]
+    if (!recent) {
+      return {}
+    }
 
     // Average packet loss and RTT over history for smoothing
     let avgPacketLoss = 0

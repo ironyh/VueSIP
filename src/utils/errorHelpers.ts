@@ -41,7 +41,7 @@ export function formatError(error: unknown): FormattedError {
       name: error.name,
       stack: error.stack,
       // DOMException and other error types may have a code property
-      code: (error as any).code,
+      code: (error as unknown as { code?: string | number }).code,
     }
   }
 

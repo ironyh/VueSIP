@@ -103,11 +103,14 @@ export class AmiClient {
   private state: AmiConnectionState = AmiConnectionState.Disconnected
   private reconnectAttempts = 0
   private reconnectTimer: number | null = null
-  private pendingActions = new Map<string, {
-    resolve: (response: AmiMessage<AmiResponseData>) => void
-    reject: (error: Error) => void
-    timeout: number
-  }>()
+  private pendingActions = new Map<
+    string,
+    {
+      resolve: (response: AmiMessage<AmiResponseData>) => void
+      reject: (error: Error) => void
+      timeout: number
+    }
+  >()
   private eventListeners = new Map<keyof AmiClientEvents, Set<Function>>()
   private actionIdCounter = 0
 
@@ -173,11 +176,13 @@ export class AmiClient {
             this.ws.close()
             this.ws = null
           }
-          handleReject(new AmiError(
-            `Connection timeout after ${this.config.connectionTimeout}ms`,
-            AmiErrorCode.CONNECTION_TIMEOUT,
-            { url: this.config.url, timeout: this.config.connectionTimeout }
-          ))
+          handleReject(
+            new AmiError(
+              `Connection timeout after ${this.config.connectionTimeout}ms`,
+              AmiErrorCode.CONNECTION_TIMEOUT,
+              { url: this.config.url, timeout: this.config.connectionTimeout }
+            )
+          )
         }, this.config.connectionTimeout)
 
         this.ws = new WebSocket(this.config.url)
@@ -193,11 +198,13 @@ export class AmiClient {
         this.ws.onclose = (event) => {
           logger.info('AMI WebSocket closed', { code: event.code, reason: event.reason })
           if (!isResolved) {
-            handleReject(new AmiError(
-              `WebSocket closed during connection: ${event.reason || 'No reason'}`,
-              AmiErrorCode.CONNECTION_FAILED,
-              { code: event.code, reason: event.reason }
-            ))
+            handleReject(
+              new AmiError(
+                `WebSocket closed during connection: ${event.reason || 'No reason'}`,
+                AmiErrorCode.CONNECTION_FAILED,
+                { code: event.code, reason: event.reason }
+              )
+            )
           } else {
             this.handleDisconnect(event.reason)
           }
@@ -246,11 +253,11 @@ export class AmiClient {
     // Clear pending actions
     this.pendingActions.forEach(({ reject, timeout }) => {
       clearTimeout(timeout)
-      reject(new AmiError(
-        'Disconnected from AMI',
-        AmiErrorCode.DISCONNECTED,
-        { reason: 'Manual disconnect' }
-      ))
+      reject(
+        new AmiError('Disconnected from AMI', AmiErrorCode.DISCONNECTED, {
+          reason: 'Manual disconnect',
+        })
+      )
     })
     this.pendingActions.clear()
 
@@ -291,11 +298,9 @@ export class AmiClient {
     timeout = 10000
   ): Promise<AmiMessage<T>> {
     if (!this.isConnected) {
-      throw new AmiError(
-        'Not connected to AMI',
-        AmiErrorCode.NOT_CONNECTED,
-        { action: action.Action }
-      )
+      throw new AmiError('Not connected to AMI', AmiErrorCode.NOT_CONNECTED, {
+        action: action.Action,
+      })
     }
 
     // Generate action ID if not provided
@@ -306,11 +311,13 @@ export class AmiClient {
       // Set timeout
       const timeoutId = window.setTimeout(() => {
         this.pendingActions.delete(actionId)
-        reject(new AmiError(
-          `AMI action timeout: ${action.Action}`,
-          AmiErrorCode.ACTION_TIMEOUT,
-          { action: action.Action, actionId, timeout }
-        ))
+        reject(
+          new AmiError(`AMI action timeout: ${action.Action}`, AmiErrorCode.ACTION_TIMEOUT, {
+            action: action.Action,
+            actionId,
+            timeout,
+          })
+        )
       }, timeout)
 
       // Store pending action
@@ -323,7 +330,9 @@ export class AmiClient {
       // Send action
       const message = JSON.stringify(actionWithId)
       logger.debug('Sending AMI action', actionWithId)
-      this.ws!.send(message)
+      if (this.ws) {
+        this.ws.send(message)
+      }
     })
   }
 
@@ -624,12 +633,7 @@ export class AmiClient {
   /**
    * Pause/unpause a queue member
    */
-  async queuePause(
-    queue: string,
-    iface: string,
-    paused: boolean,
-    reason?: string
-  ): Promise<void> {
+  async queuePause(queue: string, iface: string, paused: boolean, reason?: string): Promise<void> {
     const response = await this.sendAction({
       Action: 'QueuePause',
       Queue: queue,
@@ -998,7 +1002,10 @@ export class AmiClient {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set())
     }
-    this.eventListeners.get(event)!.add(listener)
+    const listeners = this.eventListeners.get(event)
+    if (listeners) {
+      listeners.add(listener)
+    }
   }
 
   /**
@@ -1017,7 +1024,7 @@ export class AmiClient {
   ): void {
     this.eventListeners.get(event)?.forEach((listener) => {
       try {
-        (listener as Function)(...args)
+        ;(listener as Function)(...args)
       } catch (error) {
         logger.error(`Error in ${event} listener`, error)
       }
@@ -1066,10 +1073,12 @@ export class AmiClient {
   private handleResponse(message: AmiMessage<AmiResponseData>): void {
     const actionId = message.data.ActionID
     if (actionId && this.pendingActions.has(actionId)) {
-      const pending = this.pendingActions.get(actionId)!
-      this.pendingActions.delete(actionId)
-      clearTimeout(pending.timeout)
-      pending.resolve(message)
+      const pending = this.pendingActions.get(actionId)
+      if (pending) {
+        this.pendingActions.delete(actionId)
+        clearTimeout(pending.timeout)
+        pending.resolve(message)
+      }
     }
 
     this.emit('response', message)
@@ -1182,7 +1191,9 @@ export class AmiClient {
       loginTime: parseInt(data.LoginTime || '0', 10),
       inCall: data.InCall === '1',
       status: parseInt(data.Status || '0', 10) as QueueMemberStatus,
-      statusLabel: DEFAULT_QUEUE_MEMBER_STATUS_LABELS[parseInt(data.Status || '0', 10) as QueueMemberStatus] || 'Unknown',
+      statusLabel:
+        DEFAULT_QUEUE_MEMBER_STATUS_LABELS[parseInt(data.Status || '0', 10) as QueueMemberStatus] ||
+        'Unknown',
       paused: data.Paused === '1',
       pausedReason: data.PausedReason || '',
       wrapupTime: parseInt(data.WrapupTime || '0', 10),
@@ -1244,7 +1255,11 @@ export class AmiClient {
   /**
    * Parse peer from AMI PeerEntry event
    */
-  private parsePeer(data: AmiPeerEntryEvent, channelType: 'SIP' | 'PJSIP', serverId?: number): PeerInfo {
+  private parsePeer(
+    data: AmiPeerEntryEvent,
+    channelType: 'SIP' | 'PJSIP',
+    serverId?: number
+  ): PeerInfo {
     // Map status string to PeerStatus type
     const rawStatus = data.Status || 'UNKNOWN'
     let status: PeerStatus = 'UNKNOWN'

@@ -80,8 +80,9 @@ describe('useTheme', () => {
       await nextTick() // Double tick for watcher
 
       expect(themeInstance).not.toBeNull()
-      expect(themeInstance!.isDarkMode.value).toBe(false)
-      expect(themeInstance!.theme()).toBe('light')
+      if (!themeInstance) throw new Error('themeInstance should not be null')
+      expect(themeInstance.isDarkMode.value).toBe(false)
+      expect(themeInstance.theme()).toBe('light')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(false)
     })
 
@@ -111,8 +112,9 @@ describe('useTheme', () => {
       await nextTick() // Double tick for watcher
 
       expect(themeInstance).not.toBeNull()
-      expect(themeInstance!.isDarkMode.value).toBe(true)
-      expect(themeInstance!.theme()).toBe('dark')
+      if (!themeInstance) throw new Error('themeInstance should not be null')
+      expect(themeInstance.isDarkMode.value).toBe(true)
+      expect(themeInstance.theme()).toBe('dark')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
     })
 
@@ -135,8 +137,9 @@ describe('useTheme', () => {
 
       expect(localStorageMock.getItem).toHaveBeenCalledWith('vuesip-theme')
       expect(themeInstance).not.toBeNull()
-      expect(themeInstance!.isDarkMode.value).toBe(true)
-      expect(themeInstance!.theme()).toBe('dark')
+      if (!themeInstance) throw new Error('themeInstance should not be null')
+      expect(themeInstance.isDarkMode.value).toBe(true)
+      expect(themeInstance.theme()).toBe('dark')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
     })
 
@@ -187,15 +190,16 @@ describe('useTheme', () => {
       await nextTick() // Double tick for watcher
 
       expect(themeInstance).not.toBeNull()
-      expect(themeInstance!.isDarkMode.value).toBe(false)
-      expect(themeInstance!.theme()).toBe('light')
+      if (!themeInstance) throw new Error('themeInstance should not be null')
+      expect(themeInstance.isDarkMode.value).toBe(false)
+      expect(themeInstance.theme()).toBe('light')
 
-      themeInstance!.toggleTheme()
+      themeInstance.toggleTheme()
       await nextTick()
       await nextTick() // Double tick for watcher
 
-      expect(themeInstance!.isDarkMode.value).toBe(true)
-      expect(themeInstance!.theme()).toBe('dark')
+      expect(themeInstance.isDarkMode.value).toBe(true)
+      expect(themeInstance.theme()).toBe('dark')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
       expect(localStorageMock.setItem).toHaveBeenCalledWith('vuesip-theme', 'dark')
     })
@@ -218,14 +222,15 @@ describe('useTheme', () => {
       await nextTick() // Double tick for watcher
 
       expect(themeInstance).not.toBeNull()
-      expect(themeInstance!.isDarkMode.value).toBe(true)
+      if (!themeInstance) throw new Error('themeInstance should not be null')
+      expect(themeInstance.isDarkMode.value).toBe(true)
 
-      themeInstance!.toggleTheme()
+      themeInstance.toggleTheme()
       await nextTick()
       await nextTick() // Double tick for watcher
 
-      expect(themeInstance!.isDarkMode.value).toBe(false)
-      expect(themeInstance!.theme()).toBe('light')
+      expect(themeInstance.isDarkMode.value).toBe(false)
+      expect(themeInstance.theme()).toBe('light')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(false)
       expect(localStorageMock.setItem).toHaveBeenCalledWith('vuesip-theme', 'light')
     })
@@ -272,13 +277,14 @@ describe('useTheme', () => {
       await nextTick() // Double tick for watcher
 
       expect(themeInstance).not.toBeNull()
+      if (!themeInstance) throw new Error('themeInstance should not be null')
 
-      themeInstance!.setTheme('dark')
+      themeInstance.setTheme('dark')
       await nextTick()
       await nextTick() // Double tick for watcher
 
-      expect(themeInstance!.isDarkMode.value).toBe(true)
-      expect(themeInstance!.theme()).toBe('dark')
+      expect(themeInstance.isDarkMode.value).toBe(true)
+      expect(themeInstance.theme()).toBe('dark')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
       expect(localStorageMock.setItem).toHaveBeenCalledWith('vuesip-theme', 'dark')
     })
@@ -301,13 +307,14 @@ describe('useTheme', () => {
       await nextTick() // Double tick for watcher
 
       expect(themeInstance).not.toBeNull()
+      if (!themeInstance) throw new Error('themeInstance should not be null')
 
-      themeInstance!.setTheme('light')
+      themeInstance.setTheme('light')
       await nextTick()
       await nextTick() // Double tick for watcher
 
-      expect(themeInstance!.isDarkMode.value).toBe(false)
-      expect(themeInstance!.theme()).toBe('light')
+      expect(themeInstance.isDarkMode.value).toBe(false)
+      expect(themeInstance.theme()).toBe('light')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(false)
       expect(localStorageMock.setItem).toHaveBeenCalledWith('vuesip-theme', 'light')
     })
@@ -351,9 +358,10 @@ describe('useTheme', () => {
       await nextTick() // Double tick for watcher
 
       expect(themeInstance).not.toBeNull()
+      if (!themeInstance) throw new Error('themeInstance should not be null')
       expect(document.documentElement.classList.contains('dark-mode')).toBe(true)
 
-      themeInstance!.setTheme('light')
+      themeInstance.setTheme('light')
       await nextTick()
       await nextTick() // Double tick for watcher
 

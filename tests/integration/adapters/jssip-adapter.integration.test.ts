@@ -180,7 +180,7 @@ function triggerUAEvent(event: string, data?: unknown) {
 }
 
 // Helper function to trigger session events (kept for potential future use)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function _triggerSessionEvent(sessionId: string, event: string, data?: unknown) {
   const handlers = sessionEventHandlers.get(sessionId)?.get(event) || []
   handlers.forEach((handler) => handler(data))

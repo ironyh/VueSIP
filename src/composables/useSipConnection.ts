@@ -6,7 +6,15 @@ import { ref, computed, type Ref } from 'vue'
 import { UserAgent, Registerer, RegistererState } from 'sip.js'
 
 // Type aliases for sip.js compatibility (future support)
-type SipConfig = any // Will be properly typed when sip.js support is added
+// Will be properly typed when sip.js support is added
+type SipConfig = Record<string, unknown> & {
+  username?: string
+  server?: string
+  password?: string
+  displayName?: string
+  autoRegister?: boolean
+  sessionDescriptionHandlerFactoryOptions?: unknown
+}
 type SipError = Error & { code?: number; reason?: string; cause?: Error }
 
 export interface UseSipConnectionReturn {

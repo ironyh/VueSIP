@@ -17,10 +17,26 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('useConnectionRecovery')
 
 /**
+ * Network Information API interface
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation
+ */
+interface NetworkInformationAPI {
+  type?: string
+  effectiveType?: string
+  downlink?: number
+  rtt?: number
+  addEventListener?: (type: string, listener: () => void) => void
+  removeEventListener?: (type: string, listener: () => void) => void
+}
+
+/**
  * Default options
  */
 const DEFAULT_OPTIONS: Required<
-  Omit<ConnectionRecoveryOptions, 'onRecoveryStart' | 'onRecoverySuccess' | 'onRecoveryFailed' | 'onNetworkChange'>
+  Omit<
+    ConnectionRecoveryOptions,
+    'onRecoveryStart' | 'onRecoverySuccess' | 'onRecoveryFailed' | 'onNetworkChange'
+  >
 > = {
   autoRecover: true,
   maxAttempts: 3,
@@ -45,7 +61,7 @@ function getInitialNetworkInfo(): NetworkInfo {
     }
   }
 
-  const connection = (navigator as any).connection
+  const connection = (navigator as unknown as { connection?: NetworkInformationAPI }).connection
   if (connection) {
     return {
       type: connection.type || 'unknown',
@@ -127,7 +143,7 @@ export function useConnectionRecovery(
    * Update network info from browser APIs
    */
   function updateNetworkInfo(): void {
-    const connection = (navigator as any).connection
+    const connection = (navigator as unknown as { connection?: NetworkInformationAPI }).connection
     if (connection) {
       networkInfo.value = {
         type: connection.type || 'unknown',
@@ -217,8 +233,8 @@ export function useConnectionRecovery(
     }
 
     // Setup Network Information API listener
-    const connection = (navigator as any).connection
-    if (connection && config.autoReconnectOnNetworkChange) {
+    const connection = (navigator as unknown as { connection?: NetworkInformationAPI }).connection
+    if (connection?.addEventListener && config.autoReconnectOnNetworkChange) {
       networkChangeHandler = handleNetworkChangeWithDelay
       connection.addEventListener('change', networkChangeHandler)
     }
@@ -247,8 +263,8 @@ export function useConnectionRecovery(
     }
 
     // Remove Network Information API listener
-    const connection = (navigator as any).connection
-    if (connection && networkChangeHandler) {
+    const connection = (navigator as unknown as { connection?: NetworkInformationAPI }).connection
+    if (connection?.removeEventListener && networkChangeHandler) {
       connection.removeEventListener('change', networkChangeHandler)
       networkChangeHandler = null
     }

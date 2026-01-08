@@ -371,12 +371,14 @@ export function useMessaging(sipClient: Ref<SipClient | null>): UseMessagingRetu
       }
 
       // Emit error event
-      emitMessagingEvent({
-        type: 'failed',
-        message: message!,
-        timestamp: new Date(),
-        error: errorMessage,
-      })
+      if (message) {
+        emitMessagingEvent({
+          type: 'failed',
+          message,
+          timestamp: new Date(),
+          error: errorMessage,
+        })
+      }
 
       throw error
     }
@@ -524,11 +526,13 @@ export function useMessaging(sipClient: Ref<SipClient | null>): UseMessagingRetu
     }
 
     if (filter.dateFrom) {
-      filtered = filtered.filter((m) => m.timestamp >= filter.dateFrom!)
+      const dateFrom = filter.dateFrom
+      filtered = filtered.filter((m) => m.timestamp >= dateFrom)
     }
 
     if (filter.dateTo) {
-      filtered = filtered.filter((m) => m.timestamp <= filter.dateTo!)
+      const dateTo = filter.dateTo
+      filtered = filtered.filter((m) => m.timestamp <= dateTo)
     }
 
     if (filter.searchQuery) {

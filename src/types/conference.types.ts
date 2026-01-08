@@ -66,7 +66,7 @@ export interface Participant {
   /** Join time */
   joinedAt: Date
   /** Custom metadata */
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -94,7 +94,7 @@ export interface ConferenceStateInterface {
   /** Is recording */
   isRecording: boolean
   /** Custom metadata */
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -112,7 +112,7 @@ export interface ConferenceOptions {
   /** Moderator PIN */
   moderatorPin?: string
   /** Custom metadata */
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -130,7 +130,7 @@ export interface ConferenceEvent {
   /** Timestamp */
   timestamp: Date
   /** Additional data */
-  data?: any
+  data?: unknown
 }
 
 /**

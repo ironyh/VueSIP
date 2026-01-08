@@ -253,6 +253,7 @@ import type {
   AnalyticsPluginConfig,
   AnalyticsEvent,
 } from '../types/plugin.types'
+import type { BaseEvent } from '../types/events.types'
 
 const logger = createLogger('AnalyticsPlugin')
 
@@ -1094,8 +1095,10 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
     // Connection events
     const onConnected = () => this.trackEvent('sip:connected')
     const onDisconnected = () => this.trackEvent('sip:disconnected')
-    const onConnectionFailed = (error: any) =>
-      this.trackEvent('sip:connectionFailed', { error: error.message })
+    const onConnectionFailed = (error: unknown) =>
+      this.trackEvent('sip:connectionFailed', {
+        error: error instanceof Error ? error.message : String(error),
+      })
 
     eventBus.on('connected', onConnected)
     eventBus.on('disconnected', onDisconnected)
@@ -1110,8 +1113,10 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
     // Registration events
     const onRegistered = () => this.trackEvent('sip:registered')
     const onUnregistered = () => this.trackEvent('sip:unregistered')
-    const onRegistrationFailed = (error: any) =>
-      this.trackEvent('sip:registrationFailed', { error: error.message })
+    const onRegistrationFailed = (error: unknown) =>
+      this.trackEvent('sip:registrationFailed', {
+        error: error instanceof Error ? error.message : String(error),
+      })
 
     eventBus.on('registered', onRegistered)
     eventBus.on('unregistered', onUnregistered)
@@ -1124,29 +1129,37 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
     )
 
     // Call events
-    const onCallStarted = (data: any) =>
+    const onCallStarted = (event: BaseEvent<unknown>) => {
+      const payload = event.payload as Record<string, unknown> | undefined
       this.trackEvent('call:started', {
-        callId: data.callId,
-        direction: data.direction,
+        callId: payload?.callId,
+        direction: payload?.direction,
       })
+    }
 
-    const onCallAnswered = (data: any) =>
+    const onCallAnswered = (event: BaseEvent<unknown>) => {
+      const payload = event.payload as Record<string, unknown> | undefined
       this.trackEvent('call:answered', {
-        callId: data.callId,
+        callId: payload?.callId,
       })
+    }
 
-    const onCallEnded = (data: any) =>
+    const onCallEnded = (event: BaseEvent<unknown>) => {
+      const payload = event.payload as Record<string, unknown> | undefined
       this.trackEvent('call:ended', {
-        callId: data.callId,
-        duration: data.duration,
-        cause: data.cause,
+        callId: payload?.callId,
+        duration: payload?.duration,
+        cause: payload?.cause,
       })
+    }
 
-    const onCallFailed = (data: any) =>
+    const onCallFailed = (event: BaseEvent<unknown>) => {
+      const payload = event.payload as Record<string, unknown> | undefined
       this.trackEvent('call:failed', {
-        callId: data.callId,
-        error: data.error,
+        callId: payload?.callId,
+        error: payload?.error,
       })
+    }
 
     eventBus.on('callStarted', onCallStarted)
     eventBus.on('callAnswered', onCallAnswered)
@@ -1163,7 +1176,10 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
     // Media events
     const onMediaAcquired = () => this.trackEvent('media:acquired')
     const onMediaReleased = () => this.trackEvent('media:released')
-    const onMediaError = (error: any) => this.trackEvent('media:error', { error: error.message })
+    const onMediaError = (error: unknown) =>
+      this.trackEvent('media:error', {
+        error: error instanceof Error ? error.message : String(error),
+      })
 
     eventBus.on('mediaAcquired', onMediaAcquired)
     eventBus.on('mediaReleased', onMediaReleased)
@@ -1323,7 +1339,7 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
    * // Event sent immediately as part of batch
    * ```
    */
-  private trackEvent(type: string, data?: Record<string, any>): void {
+  private trackEvent(type: string, data?: Record<string, unknown>): void {
     // Check if event should be tracked
     if (!this.shouldTrackEvent(type)) {
       return
@@ -1371,9 +1387,10 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
     // Add to queue or send immediately
     if (this.config.batchEvents) {
       // Check queue size limit before adding
-      if (this.eventQueue.length >= this.config.maxQueueSize!) {
+      const maxQueueSize = this.config.maxQueueSize ?? 1000
+      if (this.eventQueue.length >= maxQueueSize) {
         // Drop oldest events to make room (FIFO)
-        const dropCount = Math.floor(this.config.maxQueueSize! * 0.1) // Drop 10%
+        const dropCount = Math.floor(maxQueueSize * 0.1) // Drop 10%
         this.eventQueue.splice(0, dropCount)
         logger.warn(`Event queue overflow, dropped ${dropCount} old events`)
       }
@@ -1402,7 +1419,7 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
    * @param data - Event data
    * @returns True if data is valid
    */
-  private isValidEventData(data?: Record<string, any>): boolean {
+  private isValidEventData(data?: Record<string, unknown>): boolean {
     // Undefined is okay (no data)
     if (data === undefined) {
       return true
@@ -1440,9 +1457,10 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
     try {
       const serialized = JSON.stringify(event)
       const sizeInBytes = new Blob([serialized]).size
+      const maxPayloadSize = this.config.maxPayloadSize ?? 100 * 1024 // Default 100KB
 
-      if (sizeInBytes > this.config.maxPayloadSize!) {
-        logger.warn(`Payload size ${sizeInBytes} exceeds limit ${this.config.maxPayloadSize}`)
+      if (sizeInBytes > maxPayloadSize) {
+        logger.warn(`Payload size ${sizeInBytes} exceeds limit ${maxPayloadSize}`)
         return false
       }
 
@@ -2091,7 +2109,8 @@ export class AnalyticsPlugin implements Plugin<AnalyticsPluginConfig> {
       }
 
       // Re-queue events on failure, but respect max queue size
-      const remainingCapacity = this.config.maxQueueSize! - this.eventQueue.length
+      const maxQueueSize = this.config.maxQueueSize ?? 1000
+      const remainingCapacity = maxQueueSize - this.eventQueue.length
       if (remainingCapacity > 0) {
         const eventsToRequeue = events.slice(0, remainingCapacity)
         this.eventQueue.unshift(...eventsToRequeue)

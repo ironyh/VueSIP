@@ -37,6 +37,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/guide/' },
             { text: 'Getting Started', link: '/guide/getting-started' },
+            { text: 'Migration Guide', link: '/guide/migration' },
           ],
         },
         {
@@ -62,7 +63,23 @@ export default defineConfig({
             { text: 'Device Management', link: '/guide/device-management' },
             { text: 'Presence & Messaging', link: '/guide/presence-messaging' },
             { text: 'Call History', link: '/guide/call-history' },
+            { text: 'Multi-Line Support', link: '/guide/multi-line' },
+            { text: 'Call Parking', link: '/guide/call-parking' },
+            { text: 'Voicemail', link: '/guide/voicemail' },
           ],
+        },
+        {
+          text: 'Call Quality',
+          collapsed: false,
+          items: [
+            { text: 'Call Quality Monitoring', link: '/guide/call-quality' },
+            { text: 'Quality Dashboard', link: '/guide/call-quality-dashboard' },
+          ],
+        },
+        {
+          text: 'Integrations',
+          collapsed: false,
+          items: [{ text: 'AMI & CDR Integration', link: '/guide/ami-cdr' }],
         },
         {
           text: 'Quality & Reliability',

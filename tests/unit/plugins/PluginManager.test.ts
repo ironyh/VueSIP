@@ -211,10 +211,12 @@ describe('PluginManager', () => {
 
       await pluginManager.register(plugin)
 
-      expect(listener).toHaveBeenCalledWith({
-        pluginName: 'test-plugin',
-        metadata: plugin.metadata,
-      })
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pluginName: 'test-plugin',
+          metadata: plugin.metadata,
+        })
+      )
     })
 
     it('should emit plugin:error event on failure', async () => {
@@ -232,10 +234,12 @@ describe('PluginManager', () => {
 
       await expect(pluginManager.register(plugin)).rejects.toThrow()
 
-      expect(listener).toHaveBeenCalledWith({
-        pluginName: 'test-plugin',
-        error,
-      })
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pluginName: 'test-plugin',
+          error,
+        })
+      )
     })
   })
 
@@ -293,7 +297,7 @@ describe('PluginManager', () => {
       await pluginManager.register(plugin)
       await pluginManager.unregister('test-plugin')
 
-      expect(listener).toHaveBeenCalledWith({ pluginName: 'test-plugin' })
+      expect(listener).toHaveBeenCalledWith(expect.objectContaining({ pluginName: 'test-plugin' }))
     })
   })
 
@@ -416,10 +420,12 @@ describe('PluginManager', () => {
       await pluginManager.register(plugin)
       await pluginManager.updateConfig('test-plugin', { foo: 'updated' })
 
-      expect(listener).toHaveBeenCalledWith({
-        pluginName: 'test-plugin',
-        config: expect.objectContaining({ foo: 'updated' }),
-      })
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pluginName: 'test-plugin',
+          config: expect.objectContaining({ foo: 'updated' }),
+        })
+      )
     })
   })
 

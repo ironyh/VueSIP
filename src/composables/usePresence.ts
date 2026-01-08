@@ -241,9 +241,10 @@ export function usePresence(sipClient: Ref<SipClient | null>): UsePresenceReturn
     }
 
     // Check if already subscribed
-    if (subscriptions.value.has(uri)) {
+    const existingSubscription = subscriptions.value.get(uri)
+    if (existingSubscription) {
       log.warn(`Already subscribed to ${uri}`)
-      return subscriptions.value.get(uri)!.id
+      return existingSubscription.id
     }
 
     try {
@@ -335,8 +336,14 @@ export function usePresence(sipClient: Ref<SipClient | null>): UsePresenceReturn
           return
         }
 
+        // Check if SIP client still exists
+        if (!sipClient.value) {
+          log.debug(`SIP client no longer exists, skipping refresh for ${uri}`)
+          return
+        }
+
         // Unsubscribe at SIP level
-        await sipClient.value!.unsubscribePresence(uri)
+        await sipClient.value.unsubscribePresence(uri)
 
         // Remove subscription from map so re-subscribe can proceed
         subscriptions.value.delete(uri)

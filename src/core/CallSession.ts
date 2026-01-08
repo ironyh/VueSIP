@@ -29,26 +29,28 @@ const logger = createLogger('CallSession')
  * Call session event types
  */
 export interface CallSessionEvents {
-  progress: any
+  progress: unknown
   accepted: void
   confirmed: void
-  ended: any
-  failed: any
+  ended: unknown
+  failed: unknown
   hold: void
   unhold: void
   muted: void
   unmuted: void
-  sdp: any
-  icecandidate: any
-  getusermediafailed: any
-  peerconnection: any
+  sdp: unknown
+  icecandidate: unknown
+  getusermediafailed: unknown
+  peerconnection: unknown
   connecting: void
   sending: void
-  newDTMF: any
-  newInfo: any
-  refer: any
-  replaces: any
-  update: any
+  newDTMF: unknown
+  newInfo: unknown
+  refer: unknown
+  replaces: unknown
+  update: unknown
+  // Index signature for EventEmitter compatibility
+  [key: string]: unknown
 }
 
 /**
@@ -633,7 +635,8 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
     try {
       while (this.dtmfQueue.length > 0) {
-        const tone = this.dtmfQueue.shift()!
+        const tone = this.dtmfQueue.shift()
+        if (!tone) break
 
         logger.debug(`Sending DTMF tone from queue: ${tone}`)
 
@@ -1031,22 +1034,23 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
       // Listen for local stream
       peerConnection.getSenders().forEach((sender: RTCRtpSender) => {
-        if (sender.track) {
+        const senderTrack = sender.track
+        if (senderTrack) {
           if (!this._localStream) {
             this._localStream = new MediaStream()
           }
 
           // Check if track already exists to avoid duplication
-          const existingTrack = this._localStream.getTracks().find((t) => t.id === sender.track!.id)
+          const existingTrack = this._localStream.getTracks().find((t) => t.id === senderTrack.id)
           if (!existingTrack) {
-            this._localStream.addTrack(sender.track)
-            logger.debug(`Added local track: ${sender.track.id}`)
+            this._localStream.addTrack(senderTrack)
+            logger.debug(`Added local track: ${senderTrack.id}`)
           } else {
-            logger.debug(`Track ${sender.track.id} already exists, skipping`)
+            logger.debug(`Track ${senderTrack.id} already exists, skipping`)
           }
 
           // Check for video tracks
-          if (sender.track.kind === 'video') {
+          if (senderTrack.kind === 'video') {
             this._hasLocalVideo = true
           }
         }

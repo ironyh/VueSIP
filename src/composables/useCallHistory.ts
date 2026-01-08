@@ -140,7 +140,8 @@ export function useCallHistory(): UseCallHistoryReturn {
 
     // Filter by remote URI
     if (filter.remoteUri) {
-      filtered = filtered.filter((entry) => entry.remoteUri.includes(filter.remoteUri!))
+      const remoteUriFilter = filter.remoteUri
+      filtered = filtered.filter((entry) => entry.remoteUri.includes(remoteUriFilter))
     }
 
     // Filter by answered
@@ -160,15 +161,18 @@ export function useCallHistory(): UseCallHistoryReturn {
 
     // Filter by date range
     if (filter.dateFrom) {
-      filtered = filtered.filter((entry) => entry.startTime >= filter.dateFrom!)
+      const dateFrom = filter.dateFrom
+      filtered = filtered.filter((entry) => entry.startTime >= dateFrom)
     }
     if (filter.dateTo) {
-      filtered = filtered.filter((entry) => entry.startTime <= filter.dateTo!)
+      const dateTo = filter.dateTo
+      filtered = filtered.filter((entry) => entry.startTime <= dateTo)
     }
 
     // Filter by tags
     if (filter.tags && filter.tags.length > 0) {
-      filtered = filtered.filter((entry) => filter.tags!.some((tag) => entry.tags?.includes(tag)))
+      const filterTags = filter.tags
+      filtered = filtered.filter((entry) => filterTags.some((tag) => entry.tags?.includes(tag)))
     }
 
     // Search query

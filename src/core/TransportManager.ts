@@ -44,9 +44,18 @@ export interface TransportConfig {
 }
 
 /**
+ * Transport event data types
+ */
+interface TransportEventData {
+  state?: ConnectionState
+  attempt?: number
+  data?: string | ArrayBuffer | Blob
+}
+
+/**
  * Transport event handler type
  */
-type TransportEventHandler = (event: any) => void
+type TransportEventHandler = (event: TransportEventData | string) => void
 
 /**
  * TransportManager manages WebSocket connections for SIP communication
@@ -109,7 +118,10 @@ export class TransportManager {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set())
     }
-    this.eventListeners.get(event)!.add(handler)
+    const handlers = this.eventListeners.get(event)
+    if (handlers) {
+      handlers.add(handler)
+    }
   }
 
   /**
@@ -136,9 +148,9 @@ export class TransportManager {
   /**
    * Emit an event to all registered handlers
    */
-  private emit(event: TransportEvent, data?: any): void {
+  private emit(event: TransportEvent, data?: TransportEventData | string): void {
     const handlers = this.eventListeners.get(event)
-    if (handlers) {
+    if (handlers && data !== undefined) {
       handlers.forEach((handler) => {
         try {
           handler(data)

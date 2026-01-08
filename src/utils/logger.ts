@@ -103,13 +103,14 @@ const namespaceColors = new Map<string, string>()
  * Gets a consistent color for a namespace
  */
 function getNamespaceColor(namespace: string): string {
+  const defaultColor = NAMESPACE_COLORS[0] ?? '#e91e63'
   if (!namespaceColors.has(namespace)) {
     const colorIndex = namespaceColors.size % NAMESPACE_COLORS.length
-    const assignedColor = NAMESPACE_COLORS[colorIndex] || NAMESPACE_COLORS[0]!
+    const assignedColor = NAMESPACE_COLORS[colorIndex] ?? defaultColor
     namespaceColors.set(namespace, assignedColor)
   }
   const color = namespaceColors.get(namespace)
-  return color || NAMESPACE_COLORS[0]!
+  return color ?? defaultColor
 }
 
 /**

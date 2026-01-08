@@ -89,6 +89,7 @@ export type HookName = (typeof HOOK_NAMES)[keyof typeof HOOK_NAMES] | string
  * Receives context and optional data, can return a value or Promise.
  * Returning false stops hook propagation.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type params need 'any' for flexibility
 export type HookHandler<TData = any, TReturn = any> = (
   context: PluginContext,
   data?: TData
@@ -103,12 +104,13 @@ export interface HookOptions {
   /** If true, removes handler after first execution */
   once?: boolean
   /** Optional condition function to determine if hook should run */
-  condition?: (context: PluginContext, data?: any) => boolean
+  condition?: (context: PluginContext, data?: unknown) => boolean
 }
 
 /**
  * Hook registration details
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type params need 'any' for flexibility
 export interface HookRegistration<TData = any, TReturn = any> {
   /** The hook name */
   name: HookName
@@ -146,6 +148,7 @@ export interface PluginContext {
   /** Hook system for registering lifecycle hooks */
   hooks: {
     /** Register a hook handler */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type params need 'any' for flexibility
     register: <TData = any, TReturn = any>(
       name: HookName,
       handler: HookHandler<TData, TReturn>,
@@ -154,15 +157,16 @@ export interface PluginContext {
     /** Unregister a hook handler by ID */
     unregister: (hookId: string) => boolean
     /** Execute all handlers for a hook */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic type params need 'any' for flexibility
     execute: <TData = any, TReturn = any>(name: HookName, data?: TData) => Promise<TReturn[]>
   }
 
   /** Logger instance */
   logger: {
-    debug: (message: string, ...args: any[]) => void
-    info: (message: string, ...args: any[]) => void
-    warn: (message: string, ...args: any[]) => void
-    error: (message: string, ...args: any[]) => void
+    debug: (message: string, ...args: unknown[]) => void
+    info: (message: string, ...args: unknown[]) => void
+    warn: (message: string, ...args: unknown[]) => void
+    error: (message: string, ...args: unknown[]) => void
   }
 
   /** Application version */
@@ -198,7 +202,7 @@ export interface PluginConfig {
   /** Enable/disable the plugin */
   enabled?: boolean
   /** Plugin-specific configuration */
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**
@@ -323,7 +327,7 @@ export interface AnalyticsEvent {
   /** Event timestamp */
   timestamp: Date
   /** Event data */
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   /** User session ID */
   sessionId?: string
   /** User ID */

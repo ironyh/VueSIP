@@ -305,7 +305,10 @@ export function useCallHold(session: Ref<CallSession | null>): UseCallHoldReturn
       startHoldTimeout('hold')
 
       // Execute hold via session
-      await session.value!.hold()
+      if (!session.value) {
+        throw new Error('No active session')
+      }
+      await session.value.hold()
 
       // State will be updated via event listener
       log.info(`Call placed on hold successfully (${timer.elapsed()}ms)`)
@@ -373,7 +376,10 @@ export function useCallHold(session: Ref<CallSession | null>): UseCallHoldReturn
       startHoldTimeout('unhold')
 
       // Execute unhold via session
-      await session.value!.unhold()
+      if (!session.value) {
+        throw new Error('No active session')
+      }
+      await session.value.unhold()
 
       // State will be updated via event listener
       log.info(`Call resumed from hold successfully (${timer.elapsed()}ms)`)

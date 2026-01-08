@@ -10,9 +10,60 @@ import type { ConferenceStateInterface, Participant } from './conference.types'
 import type { PresencePublishOptions, PresenceSubscriptionOptions } from './presence.types'
 
 /**
+ * SIP Response helper interface
+ */
+export interface SipResponse {
+  status_code?: number
+  reason_phrase?: string
+  headers?: Record<string, unknown>
+  body?: string
+  [key: string]: unknown
+}
+
+/**
+ * SIP Request helper interface
+ */
+export interface SipRequest {
+  method?: string
+  ruri?: string
+  headers?: Record<string, unknown>
+  body?: string
+  [key: string]: unknown
+}
+
+/**
+ * SIP Session helper interface (for event types)
+ */
+export interface SipSession {
+  id?: string
+  direction?: 'incoming' | 'outgoing'
+  status?: string
+  connection?: RTCPeerConnection
+  [key: string]: unknown
+}
+
+/**
+ * SIP Message helper interface
+ */
+export interface SipMessage {
+  direction: 'incoming' | 'outgoing'
+  body?: string
+  contentType?: string
+  [key: string]: unknown
+}
+
+/**
+ * SIP Event Object helper interface
+ */
+export interface SipEventObject {
+  event: string
+  [key: string]: unknown
+}
+
+/**
  * Base event interface
  */
-export interface BaseEvent<T = any> {
+export interface BaseEvent<T = unknown> {
   /** Event type */
   type: string
   /** Event payload */
@@ -20,7 +71,7 @@ export interface BaseEvent<T = any> {
   /** Timestamp when the event occurred */
   timestamp: Date
   /** Event metadata */
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -31,12 +82,12 @@ export type EventPayload<T extends BaseEvent> = T extends BaseEvent<infer P> ? P
 /**
  * Event handler type
  */
-export type EventHandler<T = any> = (event: T) => void | Promise<void>
+export type EventHandler<T = unknown> = (event: T) => void | Promise<void>
 
 /**
  * Event handler with error boundary
  */
-export type SafeEventHandler<T = any> = (event: T) => void
+export type SafeEventHandler<T = unknown> = (event: T) => void
 
 /**
  * Event listener options
@@ -215,6 +266,12 @@ export interface EventMap {
   'sip:presence:subscribe': PresenceSubscribeEvent
   'sip:presence:unsubscribe': PresenceUnsubscribeEvent
 
+  // Plugin events
+  'plugin:installed': PluginInstalledEvent
+  'plugin:error': PluginErrorEvent
+  'plugin:unregistered': PluginUnregisteredEvent
+  'plugin:configUpdated': PluginConfigUpdatedEvent
+
   // Generic event fallback
   [key: string]: BaseEvent
 }
@@ -247,6 +304,7 @@ export interface SipConnectedEvent extends BaseEvent {
 export interface SipDisconnectedEvent extends BaseEvent {
   type: 'sip:disconnected'
   /** Error if applicable */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Implementation passes unknown, needs flexibility
   error?: any
 }
 
@@ -278,7 +336,7 @@ export interface SipRegistrationFailedEvent extends BaseEvent {
   /** Failure cause */
   cause?: string
   /** Response object */
-  response?: any
+  response?: SipResponse
 }
 
 /**
@@ -294,11 +352,11 @@ export interface SipRegistrationExpiringEvent extends BaseEvent {
 export interface SipNewSessionEvent extends BaseEvent {
   type: 'sip:new_session'
   /** Session object */
-  session: any
+  session: SipSession
   /** Session originator */
   originator: 'local' | 'remote'
   /** SIP request object */
-  request?: any
+  request?: SipRequest
   /** Call ID */
   callId: string
 }
@@ -309,11 +367,11 @@ export interface SipNewSessionEvent extends BaseEvent {
 export interface SipNewMessageEvent extends BaseEvent {
   type: 'sip:new_message'
   /** Message object */
-  message: any
+  message: SipMessage
   /** Message originator */
   originator: 'local' | 'remote'
   /** SIP request object */
-  request?: any
+  request?: SipRequest
   /** Sender URI */
   from: string
   /** Message content */
@@ -328,9 +386,9 @@ export interface SipNewMessageEvent extends BaseEvent {
 export interface SipGenericEvent extends BaseEvent {
   type: 'sip:event'
   /** Event object */
-  event: any
+  event: SipEventObject
   /** Request object */
-  request: any
+  request: SipRequest
 }
 
 /**
@@ -509,6 +567,57 @@ export interface PresenceUnsubscribeEvent extends BaseEvent {
   type: 'sip:presence:unsubscribe'
   /** Target URI */
   uri: string
+}
+
+/**
+ * Plugin Installed event
+ */
+export interface PluginInstalledEvent extends BaseEvent {
+  type: 'plugin:installed'
+  /** Plugin name */
+  pluginName: string
+  /** Plugin metadata */
+  metadata: {
+    name: string
+    version: string
+    description?: string
+    author?: string
+    license?: string
+    minVersion?: string
+    maxVersion?: string
+    dependencies?: string[]
+  }
+}
+
+/**
+ * Plugin Error event
+ */
+export interface PluginErrorEvent extends BaseEvent {
+  type: 'plugin:error'
+  /** Plugin name */
+  pluginName: string
+  /** Error that occurred */
+  error: unknown
+}
+
+/**
+ * Plugin Unregistered event
+ */
+export interface PluginUnregisteredEvent extends BaseEvent {
+  type: 'plugin:unregistered'
+  /** Plugin name */
+  pluginName: string
+}
+
+/**
+ * Plugin Config Updated event
+ */
+export interface PluginConfigUpdatedEvent extends BaseEvent {
+  type: 'plugin:configUpdated'
+  /** Plugin name */
+  pluginName: string
+  /** Updated configuration */
+  config: Record<string, unknown>
 }
 
 /**

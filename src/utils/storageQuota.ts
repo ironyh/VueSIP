@@ -113,8 +113,11 @@ export function isStorageAvailable(storageType: StorageType): boolean {
 
     // Test write capability
     const testKey = '__vuesip_test__'
-    storage!.setItem(testKey, testKey)
-    storage!.removeItem(testKey)
+    if (!storage) {
+      return false
+    }
+    storage.setItem(testKey, testKey)
+    storage.removeItem(testKey)
     return true
   } catch {
     return false

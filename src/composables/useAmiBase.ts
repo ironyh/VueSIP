@@ -9,13 +9,14 @@
 
 import { ref, computed, watch, onUnmounted, type Ref } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
+import type { AmiClientEvents } from '@/types/ami.types'
 import type { BaseAmiOptions, BaseAmiReturn, EventCleanup } from '@/types/common'
 import { createErrorMessage } from '@/utils/ami-helpers'
 
 /**
  * Event handler function type
  */
-export type AmiEventHandler = (...args: any[]) => void
+export type AmiEventHandler = (...args: unknown[]) => void
 
 /**
  * Options for base AMI composable
@@ -29,7 +30,7 @@ export interface UseAmiBaseOptions<T> extends BaseAmiOptions {
   /**
    * Function to parse event data
    */
-  parseEvent?: (event: any) => T | null
+  parseEvent?: (event: Record<string, unknown>) => T | null
 
   /**
    * Event names to listen for
@@ -139,7 +140,7 @@ export function useAmiBase<T>(
     fetchData,
     parseEvent,
     eventNames = [],
-    getItemId = (item: T) => String((item as any).id),
+    getItemId = (item: T) => String((item as Record<string, unknown>).id),
     errorContext = 'AMI Operation',
   } = options
 
@@ -174,7 +175,7 @@ export function useAmiBase<T>(
   // Debug Logging
   // ============================================================================
 
-  function log(...args: any[]): void {
+  function log(...args: unknown[]): void {
     if (debug) {
       console.log(`[useAmiBase:${errorContext}]`, ...args)
     }
@@ -194,10 +195,10 @@ export function useAmiBase<T>(
       return () => {}
     }
 
-    currentClient.on(event as any, handler)
+    currentClient.on(event as keyof AmiClientEvents, handler)
 
     const cleanup = () => {
-      currentClient.off(event as any, handler)
+      currentClient.off(event as keyof AmiClientEvents, handler)
       // Note: No need to splice - cleanupEvents() clears the entire array (line 280)
     }
 
@@ -214,7 +215,7 @@ export function useAmiBase<T>(
     const currentClient = clientRef.value
     if (!currentClient) return
 
-    currentClient.off(event as any, handler)
+    currentClient.off(event as keyof AmiClientEvents, handler)
     log(`Removed event listener for: ${event}`)
   }
 
@@ -236,7 +237,9 @@ export function useAmiBase<T>(
     log('Setting up event listeners', eventNames)
 
     // Generic event handler that uses parseEvent
-    const handleEvent = (event: any) => {
+    const handleEvent = (...args: unknown[]) => {
+      const event = args[0] as Record<string, unknown> | undefined
+      if (!event || typeof event !== 'object') return
       const item = parseEvent(event)
       if (item) {
         const id = getItemId(item)

@@ -343,15 +343,18 @@ export function useCallTransfer(session: Ref<CallSession | null>): UseCallTransf
       transferTarget.value = target
 
       // Execute transfer based on type
+      if (!session.value) {
+        throw new Error('No active session')
+      }
       if (options.type === TransferType.Blind) {
         // Blind transfer
-        await session.value!.transfer(target, options.extraHeaders)
+        await session.value.transfer(target, options.extraHeaders)
       } else if (options.type === TransferType.Attended) {
         // Attended transfer requires consultation call ID
         if (!options.consultationCallId) {
           throw new Error('Consultation call ID required for attended transfer')
         }
-        await session.value!.attendedTransfer(target, options.consultationCallId)
+        await session.value.attendedTransfer(target, options.consultationCallId)
       } else {
         throw new Error(`Unsupported transfer type: ${options.type}`)
       }
