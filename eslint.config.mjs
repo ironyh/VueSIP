@@ -152,6 +152,8 @@ export default [
       '.vitepress/cache/**',
       '.vitepress/dist/**',
       '.vitepress/.temp/**',
+      // Templates are standalone projects with their own ESLint configs
+      'templates/**',
     ],
   },
 

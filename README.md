@@ -211,6 +211,33 @@ Visit `http://localhost:5173` to access the interactive playground with:
 
 See the [playground README](playground/README.md) for more details.
 
+## Starter Templates
+
+VueSip includes production-ready templates to jumpstart your project:
+
+### Minimal Template
+A bare-bones template demonstrating core SIP functionality with no UI dependencies.
+```bash
+cp -r templates/minimal my-sip-app && cd my-sip-app && pnpm install && pnpm dev
+```
+Features: SIP connection, basic call controls, DTMF support
+
+### Basic Softphone Template
+A complete softphone with PrimeVue UI including dialpad, call history, and device settings.
+```bash
+cp -r templates/basic-softphone my-softphone && cd my-softphone && pnpm install && pnpm dev
+```
+Features: Dialpad, call controls (hold/mute/transfer), call history, audio device selection
+
+### Call Center Template
+A full call center agent interface with queue management and supervisor controls.
+```bash
+cp -r templates/call-center my-callcenter && cd my-callcenter && pnpm install && pnpm dev
+```
+Features: Agent dashboard, queue statistics, disposition forms, supervisor spy/whisper/barge
+
+See the [templates directory](templates/) for detailed documentation.
+
 ## Building the Library
 
 ```bash

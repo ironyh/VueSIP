@@ -225,6 +225,84 @@ importers:
         specifier: ^2.0.0
         version: 2.2.12(typescript@5.4.5)
 
+  templates/basic-softphone:
+    dependencies:
+      primeicons:
+        specifier: ^7.0.0
+        version: 7.0.0
+      primevue:
+        specifier: ^3.50.0
+        version: 3.53.1(vue@3.5.24(typescript@5.4.5))
+      vue:
+        specifier: ^3.4.0
+        version: 3.5.24(typescript@5.4.5)
+      vuesip:
+        specifier: workspace:*
+        version: link:../..
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.0
+        version: 6.0.1(vite@7.2.2(@types/node@22.19.0)(terser@5.44.1)(yaml@2.8.1))(vue@3.5.24(typescript@5.4.5))
+      typescript:
+        specifier: ~5.4.0
+        version: 5.4.5
+      vite:
+        specifier: ^7.0.0
+        version: 7.2.2(@types/node@22.19.0)(terser@5.44.1)(yaml@2.8.1)
+      vue-tsc:
+        specifier: ^2.0.0
+        version: 2.2.12(typescript@5.4.5)
+
+  templates/call-center:
+    dependencies:
+      primeicons:
+        specifier: ^7.0.0
+        version: 7.0.0
+      primevue:
+        specifier: ^3.50.0
+        version: 3.53.1(vue@3.5.24(typescript@5.4.5))
+      vue:
+        specifier: ^3.4.0
+        version: 3.5.24(typescript@5.4.5)
+      vuesip:
+        specifier: workspace:*
+        version: link:../..
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.0
+        version: 6.0.1(vite@7.2.2(@types/node@22.19.0)(terser@5.44.1)(yaml@2.8.1))(vue@3.5.24(typescript@5.4.5))
+      typescript:
+        specifier: ~5.4.0
+        version: 5.4.5
+      vite:
+        specifier: ^7.0.0
+        version: 7.2.2(@types/node@22.19.0)(terser@5.44.1)(yaml@2.8.1)
+      vue-tsc:
+        specifier: ^2.0.0
+        version: 2.2.12(typescript@5.4.5)
+
+  templates/minimal:
+    dependencies:
+      vue:
+        specifier: ^3.4.0
+        version: 3.5.24(typescript@5.4.5)
+      vuesip:
+        specifier: workspace:*
+        version: link:../..
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.0
+        version: 6.0.1(vite@7.2.2(@types/node@22.19.0)(terser@5.44.1)(yaml@2.8.1))(vue@3.5.24(typescript@5.4.5))
+      typescript:
+        specifier: ~5.4.0
+        version: 5.4.5
+      vite:
+        specifier: ^7.0.0
+        version: 7.2.2(@types/node@22.19.0)(terser@5.44.1)(yaml@2.8.1)
+      vue-tsc:
+        specifier: ^2.0.0
+        version: 2.2.12(typescript@5.4.5)
+
 packages:
 
   '@acemir/cssom@0.9.23':
