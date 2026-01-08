@@ -2,9 +2,9 @@
   <div class="connection-recovery-demo">
     <div class="info-section">
       <p>
-        Monitor and recover WebRTC connections with automatic ICE restart handling. This
-        composable provides real-time connection health monitoring, configurable recovery
-        strategies, and detailed attempt history tracking.
+        Monitor and recover WebRTC connections with automatic ICE restart handling. This composable
+        provides real-time connection health monitoring, configurable recovery strategies, and
+        detailed attempt history tracking.
       </p>
       <p class="note">
         <strong>Note:</strong> Connection recovery is most effective during active calls when ICE
@@ -143,9 +143,7 @@
               <span class="attempt-strategy">Strategy: {{ attempt.strategy }}</span>
               <span class="attempt-duration">Duration: {{ attempt.duration }}ms</span>
             </div>
-            <div v-if="attempt.error" class="attempt-error">
-              Error: {{ attempt.error }}
-            </div>
+            <div v-if="attempt.error" class="attempt-error">Error: {{ attempt.error }}</div>
           </div>
         </div>
       </div>
@@ -160,7 +158,7 @@
     <!-- Code Example -->
     <div class="code-example">
       <h4>Code Example</h4>
-      <pre><code>import { ref, computed } from 'vue'
+      <pre><code>import { watch } from 'vue'
 import { useConnectionRecovery, useCallSession } from 'vuesip'
 
 const { session } = useCallSession(sipClient)
@@ -173,33 +171,30 @@ const {
   isHealthy,      // Connection is healthy
   attempts,       // Recovery attempt history
   error,          // Current error message
+  networkInfo,    // Current network info (type, speed, rtt, online)
   recover,        // Manually trigger recovery
   reset,          // Reset recovery state
   monitor,        // Start monitoring a peer connection
   stopMonitoring  // Stop monitoring
 } = useConnectionRecovery({
-  autoRecover: true,       // Auto-recover on failure
-  maxAttempts: 3,          // Max recovery attempts
-  attemptDelay: 2000,      // Delay between attempts
-  iceRestartTimeout: 10000,// Timeout for ICE restart
-  onRecoveryStart: () => {
-    console.log('Recovery started')
-  },
-  onRecoverySuccess: (attempt) => {
-    console.log('Recovery successful', attempt)
-  },
-  onRecoveryFailed: (attempts) => {
-    console.log('Recovery failed', attempts)
-  }
+  autoRecover: true,                   // Auto-recover on failure
+  maxAttempts: 3,                      // Max recovery attempts
+  attemptDelay: 2000,                  // Base delay between attempts
+  iceRestartTimeout: 10000,            // Timeout for ICE restart
+  exponentialBackoff: true,            // Progressive retry delays
+  maxBackoffDelay: 30000,              // Max 30s between retries
+  autoReconnectOnNetworkChange: true,  // Restart on network change
+  networkChangeDelay: 500,             // Wait before restart
+  onRecoveryStart: () => console.log('Recovery started'),
+  onRecoverySuccess: (attempt) => console.log('Recovered!', attempt),
+  onRecoveryFailed: (attempts) => console.log('Failed', attempts),
+  onNetworkChange: (info) => console.log('Network:', info.type)
 })
 
 // Start monitoring when call becomes active
 watch(() => session.value?.connection, (pc) => {
-  if (pc) {
-    monitor(pc)
-  } else {
-    stopMonitoring()
-  }
+  if (pc) monitor(pc)
+  else stopMonitoring()
 })</code></pre>
     </div>
   </div>
@@ -313,9 +308,7 @@ const iceHealthState = computed(() =>
 )
 
 const isRecovering = computed(() =>
-  isSimulationMode.value
-    ? simulatedRecoveryState.value === 'recovering'
-    : realIsRecovering.value
+  isSimulationMode.value ? simulatedRecoveryState.value === 'recovering' : realIsRecovering.value
 )
 
 const isHealthy = computed(() =>
@@ -329,9 +322,7 @@ const hasError = computed(() =>
   isSimulationMode.value ? !!simulatedError.value : !!realError.value
 )
 
-const error = computed(() =>
-  isSimulationMode.value ? simulatedError.value : realError.value
-)
+const error = computed(() => (isSimulationMode.value ? simulatedError.value : realError.value))
 
 const attempts = computed(() =>
   isSimulationMode.value ? simulatedAttempts.value : realAttempts.value
@@ -384,11 +375,16 @@ const healthIcon = computed(() => {
 
 const recoveryStateClass = computed(() => {
   switch (recoveryState.value) {
-    case 'stable': return 'stable'
-    case 'monitoring': return 'monitoring'
-    case 'recovering': return 'recovering'
-    case 'failed': return 'failed'
-    default: return ''
+    case 'stable':
+      return 'stable'
+    case 'monitoring':
+      return 'monitoring'
+    case 'recovering':
+      return 'recovering'
+    case 'failed':
+      return 'failed'
+    default:
+      return ''
   }
 })
 
@@ -466,7 +462,7 @@ const triggerRecovery = async () => {
     simulatedRecoveryState.value = 'recovering'
     simulatedIceState.value = 'checking'
 
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     // Random success/failure for demo
     const success = Math.random() > 0.3
@@ -702,10 +698,18 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 
-.detail-value.stable { color: var(--success); }
-.detail-value.monitoring { color: var(--warning); }
-.detail-value.recovering { color: var(--info); }
-.detail-value.failed { color: var(--danger); }
+.detail-value.stable {
+  color: var(--success);
+}
+.detail-value.monitoring {
+  color: var(--warning);
+}
+.detail-value.recovering {
+  color: var(--info);
+}
+.detail-value.failed {
+  color: var(--danger);
+}
 
 /* Status Indicators */
 .status-indicators {
