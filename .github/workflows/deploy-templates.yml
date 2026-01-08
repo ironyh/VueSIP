@@ -86,7 +86,7 @@ jobs:
         run: |
           # Replace workspace link with local path for deployment
           sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
-          pnpm install
+          pnpm install --no-frozen-lockfile
 
       - name: Build template
         working-directory: templates/minimal
@@ -132,7 +132,7 @@ jobs:
         run: |
           # Replace workspace link with local path for deployment
           sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
-          pnpm install
+          pnpm install --no-frozen-lockfile
 
       - name: Build template
         working-directory: templates/basic-softphone
@@ -178,7 +178,7 @@ jobs:
         run: |
           # Replace workspace link with local path for deployment
           sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
-          pnpm install
+          pnpm install --no-frozen-lockfile
 
       - name: Build template
         working-directory: templates/call-center
