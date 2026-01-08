@@ -54,3 +54,6 @@ export * from './local-recording.types'
 
 // Session persistence types
 export * from './session-persistence.types'
+
+// Connection recovery types
+export * from './connection-recovery.types'

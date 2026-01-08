@@ -590,8 +590,8 @@ export class SipClient {
       }
 
       const cleanupListeners = () => {
-        this.ua?.off('registered', onSuccess)
-        this.ua?.off('registrationFailed', onFailure)
+        ua.off('registered', onSuccess)
+        ua.off('registrationFailed', onFailure)
       }
 
       // Listen for registration events

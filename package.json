@@ -112,7 +112,7 @@
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:api": "typedoc",
+    "docs:api": "typedoc && node scripts/fix-typedoc-vue-blocks.js",
     "docs:api:watch": "typedoc --watch",
     "docs:all": "pnpm run docs:api && pnpm run docs:build",
     "typecheck": "tsc --noEmit",

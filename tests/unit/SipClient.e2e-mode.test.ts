@@ -120,7 +120,7 @@ describe('SipClient - E2E Test Mode', () => {
       const sipClient = new SipClient(config, eventBus)
       await sipClient.start()
 
-      expect(emitSpy).toHaveBeenCalledWith('connection:connected')
+      expect(emitSpy).toHaveBeenCalledWith('connection:connected', expect.any(Object))
 
       await sipClient.stop()
     })

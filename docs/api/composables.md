@@ -1267,22 +1267,36 @@ function useConnectionRecovery(options?: ConnectionRecoveryOptions): UseConnecti
 
 #### Parameters
 
-| Parameter                   | Type                                    | Default         | Description                                |
-| --------------------------- | --------------------------------------- | --------------- | ------------------------------------------ |
-| `options.autoRecover`       | `boolean`                               | `true`          | Enable automatic recovery on ICE failure   |
-| `options.maxAttempts`       | `number`                                | `3`             | Maximum recovery attempts before giving up |
-| `options.attemptDelay`      | `number`                                | `2000`          | Delay between attempts in milliseconds     |
-| `options.iceRestartTimeout` | `number`                                | `10000`         | Timeout for ICE restart in milliseconds    |
-| `options.strategy`          | `RecoveryStrategy`                      | `'ice-restart'` | Recovery strategy to use                   |
-| `options.onRecoveryStart`   | `() => void`                            | -               | Callback when recovery starts              |
-| `options.onRecoverySuccess` | `(attempt: RecoveryAttempt) => void`    | -               | Callback on successful recovery            |
-| `options.onRecoveryFailed`  | `(attempts: RecoveryAttempt[]) => void` | -               | Callback when all attempts fail            |
+| Parameter                              | Type                                    | Default         | Description                                           |
+| -------------------------------------- | --------------------------------------- | --------------- | ----------------------------------------------------- |
+| `options.autoRecover`                  | `boolean`                               | `true`          | Enable automatic recovery on ICE failure              |
+| `options.maxAttempts`                  | `number`                                | `3`             | Maximum recovery attempts before giving up            |
+| `options.attemptDelay`                 | `number`                                | `2000`          | Base delay between attempts in milliseconds           |
+| `options.iceRestartTimeout`            | `number`                                | `10000`         | Timeout for ICE restart in milliseconds               |
+| `options.strategy`                     | `RecoveryStrategy`                      | `'ice-restart'` | Recovery strategy to use                              |
+| `options.exponentialBackoff`           | `boolean`                               | `false`         | Use exponential backoff for retry delays              |
+| `options.maxBackoffDelay`              | `number`                                | `30000`         | Maximum delay when using exponential backoff (ms)     |
+| `options.autoReconnectOnNetworkChange` | `boolean`                               | `false`         | Trigger ICE restart on network changes                |
+| `options.networkChangeDelay`           | `number`                                | `500`           | Delay before triggering recovery after network change |
+| `options.onReconnect`                  | `() => Promise<boolean>`                | -               | Custom reconnect handler for 'reconnect' strategy     |
+| `options.onRecoveryStart`              | `() => void`                            | -               | Callback when recovery starts                         |
+| `options.onRecoverySuccess`            | `(attempt: RecoveryAttempt) => void`    | -               | Callback on successful recovery                       |
+| `options.onRecoveryFailed`             | `(attempts: RecoveryAttempt[]) => void` | -               | Callback when all attempts fail                       |
+| `options.onNetworkChange`              | `(info: NetworkInfo) => void`           | -               | Callback when network conditions change               |
 
 #### Type Definitions
 
 ```typescript
 type RecoveryState = 'stable' | 'monitoring' | 'recovering' | 'failed'
 type RecoveryStrategy = 'ice-restart' | 'reconnect' | 'none'
+
+interface NetworkInfo {
+  type: string // Connection type (wifi, cellular, ethernet, etc.)
+  effectiveType: string // Effective connection type (4g, 3g, 2g, slow-2g)
+  downlink: number // Downlink speed in Mbps
+  rtt: number // Round-trip time in ms
+  isOnline: boolean // Whether browser is online
+}
 
 interface IceHealthStatus {
   iceState: RTCIceConnectionState
@@ -1305,14 +1319,15 @@ interface RecoveryAttempt {
 
 ##### Reactive State
 
-| Property       | Type                     | Description                     |
-| -------------- | ------------------------ | ------------------------------- |
-| `state`        | `Ref<RecoveryState>`     | Current recovery state          |
-| `iceHealth`    | `Ref<IceHealthStatus>`   | Current ICE health status       |
-| `attempts`     | `Ref<RecoveryAttempt[]>` | History of recovery attempts    |
-| `isRecovering` | `ComputedRef<boolean>`   | Whether recovery is in progress |
-| `isHealthy`    | `ComputedRef<boolean>`   | Whether connection is healthy   |
-| `error`        | `Ref<string \| null>`    | Last error message              |
+| Property       | Type                             | Description                     |
+| -------------- | -------------------------------- | ------------------------------- |
+| `state`        | `ComputedRef<RecoveryState>`     | Current recovery state          |
+| `iceHealth`    | `ComputedRef<IceHealthStatus>`   | Current ICE health status       |
+| `attempts`     | `ComputedRef<RecoveryAttempt[]>` | History of recovery attempts    |
+| `isRecovering` | `ComputedRef<boolean>`           | Whether recovery is in progress |
+| `isHealthy`    | `ComputedRef<boolean>`           | Whether connection is healthy   |
+| `error`        | `ComputedRef<string \| null>`    | Last error message              |
+| `networkInfo`  | `ComputedRef<NetworkInfo>`       | Current network connection info |
 
 ##### Methods
 
@@ -1443,11 +1458,89 @@ const healthLabel = computed(() => {
 
 #### Recovery Strategies
 
-| Strategy      | Description                                  |
-| ------------- | -------------------------------------------- |
-| `ice-restart` | Trigger ICE restart with offer renegotiation |
-| `reconnect`   | Full reconnection (reserved for future use)  |
-| `none`        | No automatic recovery                        |
+| Strategy      | Description                                                                     |
+| ------------- | ------------------------------------------------------------------------------- |
+| `ice-restart` | Trigger ICE restart with offer renegotiation (default)                          |
+| `reconnect`   | Custom reconnection via `onReconnect` callback (must return `Promise<boolean>`) |
+| `none`        | No automatic recovery, manual `recover()` calls only                            |
+
+#### Exponential Backoff
+
+Enable exponential backoff to progressively increase delay between retry attempts:
+
+```typescript
+const { recover, attempts } = useConnectionRecovery({
+  maxAttempts: 5,
+  attemptDelay: 1000, // Base delay: 1 second
+  exponentialBackoff: true,
+  maxBackoffDelay: 30000, // Cap at 30 seconds
+})
+
+// Retry delays will be:
+// Attempt 1: 1000ms (1s)
+// Attempt 2: 2000ms (2s)
+// Attempt 3: 4000ms (4s)
+// Attempt 4: 8000ms (8s)
+// Attempt 5: 16000ms (16s) - capped at maxBackoffDelay if exceeded
+```
+
+#### Custom Reconnect Strategy
+
+Use the `reconnect` strategy with a custom handler for full control over reconnection logic:
+
+```typescript
+const { monitor, state } = useConnectionRecovery({
+  strategy: 'reconnect',
+  maxAttempts: 3,
+
+  // Custom reconnect handler - must return Promise<boolean>
+  onReconnect: async () => {
+    try {
+      // Your custom reconnection logic
+      await sipClient.disconnect()
+      await sipClient.connect()
+      return true // Return true on success
+    } catch (error) {
+      console.error('Reconnect failed:', error)
+      return false // Return false on failure
+    }
+  },
+
+  onRecoverySuccess: () => {
+    console.log('Custom reconnection successful')
+  },
+})
+```
+
+#### Network Change Detection
+
+Monitor network changes and automatically trigger ICE restart when the connection type changes:
+
+```typescript
+const { networkInfo, monitor } = useConnectionRecovery({
+  autoReconnectOnNetworkChange: true,
+  networkChangeDelay: 500, // Wait 500ms before triggering recovery
+
+  onNetworkChange: (info) => {
+    console.log('Network changed:', {
+      type: info.type, // 'wifi', 'cellular', 'ethernet', etc.
+      effectiveType: info.effectiveType, // '4g', '3g', '2g', 'slow-2g'
+      downlink: info.downlink, // Mbps
+      rtt: info.rtt, // Round-trip time in ms
+      isOnline: info.isOnline,
+    })
+  },
+})
+
+// Access current network info reactively
+watch(networkInfo, (info) => {
+  if (!info.isOnline) {
+    showNotification('You are offline')
+  } else if (info.effectiveType === 'slow-2g') {
+    showNotification('Poor network connection')
+  }
+})
+```
 
 ---
 
