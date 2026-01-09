@@ -35,6 +35,7 @@
       "require": "./dist/vuesip.cjs"
     }
   },
+  "sideEffects": false,
   "files": [
     "dist",
     "README.md",
