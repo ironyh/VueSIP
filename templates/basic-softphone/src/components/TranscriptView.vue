@@ -225,7 +225,7 @@ function formatTime(timestamp: number): string {
         on-label=""
         off-label=""
         class="toggle-btn"
-        @change="isTranscribing ? stop() : start()"
+        @change="isTranscribing ? start() : stop()"
       />
       <Button
         icon="pi pi-trash"

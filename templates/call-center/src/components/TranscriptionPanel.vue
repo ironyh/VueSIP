@@ -124,7 +124,7 @@ const agentAssistTriggers = ref<AssistTrigger[]>([])
 
 // UI state
 const transcriptRef = ref<HTMLElement | null>(null)
-const showExportOptions = ref(false)
+const selectedExportFormat = ref<string | null>(null)
 const exportFormats = [
   { label: 'JSON', value: 'json' },
   { label: 'Text', value: 'txt' },
@@ -184,7 +184,7 @@ function handleExport(format: string) {
   a.click()
   URL.revokeObjectURL(url)
 
-  showExportOptions.value = false
+  selectedExportFormat.value = null // Reset dropdown to show placeholder
 }
 
 function dismissAssist(index: number) {
@@ -405,7 +405,7 @@ function formatTime(timestamp: number): string {
       />
       <div class="export-section">
         <Dropdown
-          v-model="showExportOptions"
+          v-model="selectedExportFormat"
           :options="exportFormats"
           option-label="label"
           option-value="value"
