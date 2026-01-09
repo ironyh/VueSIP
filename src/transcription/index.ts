@@ -4,7 +4,13 @@
  */
 
 // Re-export providers
-export { ProviderRegistry, providerRegistry, WebSpeechProvider } from './providers'
+export {
+  ProviderRegistry,
+  providerRegistry,
+  WebSpeechProvider,
+  WhisperProvider,
+  type WhisperProviderOptions,
+} from './providers'
 
 // Re-export features
 export { KeywordDetector, PIIRedactor, TranscriptExporter } from './features'

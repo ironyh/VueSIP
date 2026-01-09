@@ -45,67 +45,73 @@ const { transcript, start } = useTranscription({
 
 ## Popular Provider Examples
 
-### OpenAI Whisper (via whisper.cpp or faster-whisper API)
+### OpenAI Whisper (Built-in Provider)
 
-For high-accuracy local or self-hosted transcription:
+VueSip includes a built-in `WhisperProvider` that connects to Whisper WebSocket servers like [faster-whisper-server](https://github.com/fedirz/faster-whisper-server) or [whisper.cpp](https://github.com/ggerganov/whisper.cpp):
 
 ```typescript
-import { providerRegistry } from 'vuesip'
+import { providerRegistry, WhisperProvider, useTranscription } from 'vuesip'
 
-// Example Whisper provider (connect to your whisper server)
-class WhisperProvider implements TranscriptionProvider {
-  readonly name = 'whisper'
-  readonly capabilities = {
-    streaming: true,
-    interimResults: false,
-    languageDetection: true,
-    multiChannel: false,
-    punctuation: true,
-    speakerDiarization: false,
-    wordTimestamps: true,
-    supportedLanguages: ['en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'zh', 'ja', 'ko'],
-  }
-
-  private ws: WebSocket | null = null
-  private onFinalCallback: ((result: TranscriptResult, sourceId: string) => void) | null = null
-
-  async initialize(options: ProviderOptions) {
-    // Connect to your whisper server (e.g., faster-whisper-server, whisper.cpp server)
-    this.ws = new WebSocket(options.serverUrl || 'ws://localhost:8765/transcribe')
-    this.ws.onmessage = (event) => {
-      const result = JSON.parse(event.data)
-      this.onFinalCallback?.({ text: result.text, confidence: result.confidence }, 'local')
-    }
-  }
-
-  startStream(audioSource: AudioSource) {
-    // Send audio chunks to whisper server
-    audioSource.onData((chunk) => this.ws?.send(chunk))
-  }
-
-  stopStream() {
-    this.ws?.send(JSON.stringify({ type: 'stop' }))
-  }
-  onFinal(callback) {
-    this.onFinalCallback = callback
-  }
-  onInterim() {} // Whisper typically doesn't do interim results
-  onError(callback) {
-    this.ws?.addEventListener('error', (e) => callback(new Error('Whisper error')))
-  }
-  dispose() {
-    this.ws?.close()
-  }
-}
-
-// Register and use
+// Register the built-in Whisper provider
 providerRegistry.register('whisper', () => new WhisperProvider())
 
-const { start } = useTranscription({
+// Use with your Whisper server
+const { transcript, start, stop } = useTranscription({
   provider: 'whisper',
-  providerOptions: { serverUrl: 'ws://localhost:8765/transcribe' },
+  providerOptions: {
+    serverUrl: 'ws://localhost:8765/transcribe',
+    model: 'base', // tiny, base, small, medium, large, large-v2, large-v3
+    language: 'en', // ISO language code
+    sampleRate: 16000, // Audio sample rate (default: 16000)
+    chunkDuration: 1000, // Send audio every N ms (default: 1000)
+    autoReconnect: true, // Auto-reconnect on disconnect (default: true)
+  },
 })
+
+await start()
 ```
+
+#### Setting Up a Whisper Server
+
+**Option 1: faster-whisper-server (Recommended)**
+
+```bash
+# Install faster-whisper-server
+pip install faster-whisper-server
+
+# Run with default settings (port 8765)
+faster-whisper-server --model base --language en
+
+# Or with GPU acceleration
+faster-whisper-server --model large-v3 --device cuda
+```
+
+**Option 2: whisper.cpp WebSocket Server**
+
+```bash
+# Clone and build whisper.cpp
+git clone https://github.com/ggerganov/whisper.cpp
+cd whisper.cpp && make
+
+# Download a model
+./models/download-ggml-model.sh base.en
+
+# Run the server (requires building with WebSocket support)
+./examples/server/server -m models/ggml-base.en.bin --port 8765
+```
+
+#### WhisperProvider Features
+
+| Feature            | Support                             |
+| ------------------ | ----------------------------------- |
+| Streaming          | ✅ Real-time transcription          |
+| Interim Results    | ✅ Partial transcripts as you speak |
+| Language Detection | ✅ Auto-detect language             |
+| Punctuation        | ✅ Automatic punctuation            |
+| Word Timestamps    | ✅ Per-word timing info             |
+| 99+ Languages      | ✅ Full Whisper language support    |
+| Auto-Reconnect     | ✅ Exponential backoff retry        |
+| Audio Format       | PCM16 16kHz (auto-converted)        |
 
 ### Deepgram (Cloud, Real-time)
 
