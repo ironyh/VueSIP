@@ -70,9 +70,7 @@ describe('ProviderRegistry', () => {
     })
 
     it('should throw if provider not found', async () => {
-      await expect(registry.get('nonexistent')).rejects.toThrow(
-        'Provider "nonexistent" not found'
-      )
+      await expect(registry.get('nonexistent')).rejects.toThrow('Provider "nonexistent" not found')
     })
 
     it('should cache provider instances by name', async () => {

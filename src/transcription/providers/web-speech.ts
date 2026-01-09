@@ -34,7 +34,7 @@ interface SpeechRecognitionAPI {
  * SpeechRecognition constructor type
  */
 interface SpeechRecognitionConstructor {
-  new(): SpeechRecognitionAPI
+  new (): SpeechRecognitionAPI
 }
 
 /**
@@ -72,17 +72,26 @@ export class WebSpeechProvider implements TranscriptionProvider {
     speakerDiarization: false,
     wordTimestamps: false,
     supportedLanguages: [
-      'en-US', 'en-GB', 'en-AU', 'en-IN',
-      'es-ES', 'es-MX', 'es-AR',
-      'fr-FR', 'fr-CA',
-      'de-DE', 'de-AT',
+      'en-US',
+      'en-GB',
+      'en-AU',
+      'en-IN',
+      'es-ES',
+      'es-MX',
+      'es-AR',
+      'fr-FR',
+      'fr-CA',
+      'de-DE',
+      'de-AT',
       'it-IT',
-      'pt-BR', 'pt-PT',
+      'pt-BR',
+      'pt-PT',
       'nl-NL',
       'ru-RU',
       'ja-JP',
       'ko-KR',
-      'zh-CN', 'zh-TW',
+      'zh-CN',
+      'zh-TW',
       'ar-SA',
       'hi-IN',
     ],
@@ -103,8 +112,10 @@ export class WebSpeechProvider implements TranscriptionProvider {
   async initialize(options: ProviderOptions): Promise<void> {
     // Check for browser support
     const SpeechRecognitionClass =
-      (window as unknown as { SpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition
+      (window as unknown as { SpeechRecognition?: SpeechRecognitionConstructor })
+        .SpeechRecognition ||
+      (window as unknown as { webkitSpeechRecognition?: SpeechRecognitionConstructor })
+        .webkitSpeechRecognition
 
     if (!SpeechRecognitionClass) {
       throw new Error('Web Speech API is not supported in this browser')
@@ -141,16 +152,16 @@ export class WebSpeechProvider implements TranscriptionProvider {
           confidence: transcript.confidence,
           language: this.language,
         }
-        this.finalCallbacks.forEach(cb => cb(finalResult, this.currentSourceId))
+        this.finalCallbacks.forEach((cb) => cb(finalResult, this.currentSourceId))
         logger.debug('Final result', { text: transcript.transcript })
       } else {
-        this.interimCallbacks.forEach(cb => cb(transcript.transcript, this.currentSourceId))
+        this.interimCallbacks.forEach((cb) => cb(transcript.transcript, this.currentSourceId))
       }
     }
 
     this.recognition.onerror = (event: { error: string }) => {
       const error = new Error(`Speech recognition error: ${event.error}`)
-      this.errorCallbacks.forEach(cb => cb(error))
+      this.errorCallbacks.forEach((cb) => cb(error))
       logger.error('Speech recognition error', { error: event.error })
     }
 

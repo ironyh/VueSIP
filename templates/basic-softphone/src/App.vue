@@ -5,23 +5,36 @@ import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
 import Dialog from 'primevue/dialog'
 import Dialpad from './components/Dialpad.vue'
 import CallControls from './components/CallControls.vue'
 import CallHistory from './components/CallHistory.vue'
 import DeviceSettings from './components/DeviceSettings.vue'
+import Elks46ApiLogin from './components/Elks46ApiLogin.vue'
+import TelnyxApiLogin from './components/TelnyxApiLogin.vue'
 import TranscriptView from './components/TranscriptView.vue'
 import { usePhone } from './composables/usePhone'
+import { useProviderSelector } from 'vuesip'
+import type { ProviderConfig } from 'vuesip'
 
 // Phone composable
 const phone = usePhone()
 
-// Configuration form
-const configForm = ref({
-  uri: import.meta.env.VITE_SIP_URI || '',
-  sipUri: import.meta.env.VITE_SIP_USER || '',
-  password: import.meta.env.VITE_SIP_PASSWORD || '',
-  displayName: import.meta.env.VITE_SIP_DISPLAY_NAME || 'VueSip User',
+// Provider selector composable
+const {
+  providers,
+  selectedProvider,
+  credentials,
+  isConfigured,
+  selectProvider,
+  updateCredential,
+  saveCredentials,
+  clearCredentials,
+  getSipConfig,
+} = useProviderSelector({
+  storage: 'local',
+  defaultProvider: 'own-pbx',
 })
 
 // UI state
@@ -30,10 +43,52 @@ const transferTarget = ref('')
 const activeTab = ref(0)
 const statusMessage = ref('')
 
-// Computed
-const isConfigValid = computed(
-  () => configForm.value.uri && configForm.value.sipUri && configForm.value.password
-)
+// API login state
+const use46ElksApiLogin = ref(true) // Show API login by default for 46 elks
+const useTelnyxApiLogin = ref(true) // Show API login by default for Telnyx
+
+// Check if current provider is 46 elks or Telnyx
+const is46ElksProvider = computed(() => selectedProvider.value?.id === '46elks')
+const isTelnyxProvider = computed(() => selectedProvider.value?.id === 'telnyx')
+
+// Handle provider change from dropdown
+function handleProviderChange(provider: ProviderConfig) {
+  selectProvider(provider.id)
+  // Reset API login preferences when switching providers
+  use46ElksApiLogin.value = true
+  useTelnyxApiLogin.value = true
+}
+
+// Handle credentials from 46 elks API login
+function handle46ElksCredentials(creds: { phoneNumber: string; secret: string }) {
+  // Auto-fill the credentials from API
+  updateCredential('phoneNumber', creds.phoneNumber)
+  updateCredential('secret', creds.secret)
+  // Switch to showing the filled form (ready to connect)
+  use46ElksApiLogin.value = false
+}
+
+// Handle credentials from Telnyx API login
+function handleTelnyxCredentials(creds: { username: string; password: string }) {
+  // Auto-fill the credentials from API
+  updateCredential('username', creds.username)
+  updateCredential('password', creds.password)
+  // Switch to showing the filled form (ready to connect)
+  useTelnyxApiLogin.value = false
+}
+
+// Switch to manual entry for 46 elks
+function handleUseManual46Elks() {
+  use46ElksApiLogin.value = false
+}
+
+// Switch to manual entry for Telnyx
+function handleUseManualTelnyx() {
+  useTelnyxApiLogin.value = false
+}
+
+// Check if all required fields are filled
+const isFormValid = computed(() => isConfigured.value)
 
 const hasActiveCall = computed(
   () =>
@@ -47,7 +102,15 @@ const hasActiveCall = computed(
 async function handleConnect() {
   try {
     statusMessage.value = ''
-    await phone.configure(configForm.value)
+    // Save credentials to storage before connecting
+    saveCredentials()
+    // Get SIP config from provider selector
+    const sipConfig = getSipConfig()
+    if (!sipConfig) {
+      statusMessage.value = 'Invalid configuration'
+      return
+    }
+    await phone.configure(sipConfig)
     await phone.connectPhone()
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Connection failed'
@@ -57,6 +120,8 @@ async function handleConnect() {
 async function handleDisconnect() {
   try {
     await phone.disconnectPhone()
+    // Clear stored credentials on disconnect
+    clearCredentials()
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Disconnect failed'
   }
@@ -128,55 +193,105 @@ onUnmounted(async () => {
       </template>
 
       <template #content>
-        <!-- Configuration Panel -->
+        <!-- Configuration Panel with Provider Selector -->
         <div v-if="!phone.isConnected.value" class="config-panel">
           <h2>Connect to SIP Server</h2>
           <form @submit.prevent="handleConnect">
+            <!-- Provider Selector Dropdown -->
             <div class="form-field">
-              <label for="uri">WebSocket URI</label>
-              <InputText
-                id="uri"
-                v-model="configForm.uri"
-                placeholder="wss://sip.example.com:8089/ws"
+              <label for="provider">Provider</label>
+              <Dropdown
+                id="provider"
+                :model-value="selectedProvider"
+                :options="providers"
+                option-label="name"
+                placeholder="Select a provider"
                 class="w-full"
+                @update:model-value="handleProviderChange"
               />
             </div>
-            <div class="form-field">
-              <label for="sipUri">SIP URI</label>
-              <InputText
-                id="sipUri"
-                v-model="configForm.sipUri"
-                placeholder="sip:1000@example.com"
+
+            <!-- 46 elks API Login (when selected) -->
+            <template v-if="is46ElksProvider && use46ElksApiLogin">
+              <Elks46ApiLogin
+                @credentials-ready="handle46ElksCredentials"
+                @use-manual="handleUseManual46Elks"
+              />
+            </template>
+
+            <!-- Telnyx API Login (when selected) -->
+            <template v-else-if="isTelnyxProvider && useTelnyxApiLogin">
+              <TelnyxApiLogin
+                @credentials-ready="handleTelnyxCredentials"
+                @use-manual="handleUseManualTelnyx"
+              />
+            </template>
+
+            <!-- Dynamic Provider Login Form (for other providers or manual entry) -->
+            <template v-else-if="selectedProvider">
+              <div v-for="field in selectedProvider.fields" :key="field.name" class="form-field">
+                <label :for="field.name">{{ field.label }}</label>
+                <Dropdown
+                  v-if="field.type === 'select' && field.options"
+                  :id="field.name"
+                  :model-value="credentials[field.name]"
+                  :options="field.options"
+                  option-label="label"
+                  option-value="value"
+                  :placeholder="field.placeholder"
+                  class="w-full"
+                  @update:model-value="
+                    (val: string | undefined) => updateCredential(field.name, val ?? '')
+                  "
+                />
+                <InputText
+                  v-else
+                  :id="field.name"
+                  :model-value="credentials[field.name]"
+                  :type="field.type === 'password' ? 'password' : 'text'"
+                  :placeholder="field.placeholder"
+                  class="w-full"
+                  @update:model-value="
+                    (val: string | undefined) => updateCredential(field.name, val ?? '')
+                  "
+                />
+                <small v-if="field.helpText" class="help-text">
+                  {{ field.helpText }}
+                  <a v-if="field.helpUrl" :href="field.helpUrl" target="_blank" rel="noopener">
+                    Learn more
+                  </a>
+                </small>
+              </div>
+
+              <!-- Show "Use API" link for 46 elks when in manual mode -->
+              <div v-if="is46ElksProvider && !use46ElksApiLogin" class="api-login-link">
+                <Button
+                  label="Login with API credentials instead"
+                  link
+                  class="p-button-sm"
+                  @click="use46ElksApiLogin = true"
+                />
+              </div>
+
+              <!-- Show "Use API" link for Telnyx when in manual mode -->
+              <div v-if="isTelnyxProvider && !useTelnyxApiLogin" class="api-login-link">
+                <Button
+                  label="Login with API key instead"
+                  link
+                  class="p-button-sm"
+                  @click="useTelnyxApiLogin = true"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                label="Connect"
+                icon="pi pi-sign-in"
+                :loading="phone.isConnecting.value"
+                :disabled="!isFormValid"
                 class="w-full"
               />
-            </div>
-            <div class="form-field">
-              <label for="password">Password</label>
-              <InputText
-                id="password"
-                v-model="configForm.password"
-                type="password"
-                placeholder="Your SIP password"
-                class="w-full"
-              />
-            </div>
-            <div class="form-field">
-              <label for="displayName">Display Name</label>
-              <InputText
-                id="displayName"
-                v-model="configForm.displayName"
-                placeholder="Your Name"
-                class="w-full"
-              />
-            </div>
-            <Button
-              type="submit"
-              label="Connect"
-              icon="pi pi-sign-in"
-              :loading="phone.isConnecting.value"
-              :disabled="!isConfigValid"
-              class="w-full"
-            />
+            </template>
           </form>
           <p v-if="statusMessage" class="error-message">{{ statusMessage }}</p>
         </div>
@@ -362,6 +477,23 @@ onUnmounted(async () => {
   font-weight: 500;
 }
 
+.help-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+}
+
+.help-text a {
+  color: var(--primary-500);
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.help-text a:hover {
+  text-decoration: underline;
+}
+
 .w-full {
   width: 100%;
 }
@@ -403,5 +535,10 @@ onUnmounted(async () => {
 .transfer-form label {
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.api-login-link {
+  text-align: center;
+  margin: 8px 0;
 }
 </style>

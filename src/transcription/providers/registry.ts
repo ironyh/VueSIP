@@ -3,10 +3,7 @@
  * @packageDocumentation
  */
 
-import type {
-  TranscriptionProvider,
-  ProviderOptions,
-} from '@/types/transcription.types'
+import type { TranscriptionProvider, ProviderOptions } from '@/types/transcription.types'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('ProviderRegistry')

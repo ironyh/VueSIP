@@ -57,6 +57,7 @@
 ## Task 1: Create Transcription Types
 
 **Files:**
+
 - Create: `src/types/transcription.types.ts`
 
 **Why:** Types define the contract for the entire system. Creating them first ensures all subsequent code is type-safe and self-documenting. Following VueSip's pattern of separate type files.
@@ -483,6 +484,7 @@ Includes types for:
 ## Task 2: Create Provider Registry
 
 **Files:**
+
 - Create: `src/transcription/providers/registry.ts`
 - Create: `src/transcription/providers/types.ts`
 - Test: `tests/unit/transcription/providers/registry.test.ts`
@@ -564,9 +566,7 @@ describe('ProviderRegistry', () => {
     })
 
     it('should throw if provider not found', async () => {
-      await expect(registry.get('nonexistent')).rejects.toThrow(
-        'Provider "nonexistent" not found'
-      )
+      await expect(registry.get('nonexistent')).rejects.toThrow('Provider "nonexistent" not found')
     })
 
     it('should cache provider instances by name', async () => {
@@ -624,16 +624,13 @@ mkdir -p tests/unit/transcription/providers
 
 **Step 4: Write the implementation**
 
-```typescript
+````typescript
 /**
  * Transcription provider registry
  * @packageDocumentation
  */
 
-import type {
-  TranscriptionProvider,
-  ProviderOptions,
-} from '@/types/transcription.types'
+import type { TranscriptionProvider, ProviderOptions } from '@/types/transcription.types'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('ProviderRegistry')
@@ -747,7 +744,7 @@ export class ProviderRegistry {
  * Global provider registry singleton
  */
 export const providerRegistry = new ProviderRegistry()
-```
+````
 
 **Step 5: Run tests to verify they pass**
 
@@ -771,6 +768,7 @@ git commit -m "feat(transcription): add provider registry
 ## Task 3: Implement Web Speech API Provider
 
 **Files:**
+
 - Create: `src/transcription/providers/web-speech.ts`
 - Test: `tests/unit/transcription/providers/web-speech.test.ts`
 
@@ -960,7 +958,7 @@ Expected: FAIL - module not found
 
 **Step 3: Write the implementation**
 
-```typescript
+````typescript
 /**
  * Web Speech API transcription provider
  * @packageDocumentation
@@ -1012,17 +1010,26 @@ export class WebSpeechProvider implements TranscriptionProvider {
     speakerDiarization: false,
     wordTimestamps: false,
     supportedLanguages: [
-      'en-US', 'en-GB', 'en-AU', 'en-IN',
-      'es-ES', 'es-MX', 'es-AR',
-      'fr-FR', 'fr-CA',
-      'de-DE', 'de-AT',
+      'en-US',
+      'en-GB',
+      'en-AU',
+      'en-IN',
+      'es-ES',
+      'es-MX',
+      'es-AR',
+      'fr-FR',
+      'fr-CA',
+      'de-DE',
+      'de-AT',
       'it-IT',
-      'pt-BR', 'pt-PT',
+      'pt-BR',
+      'pt-PT',
       'nl-NL',
       'ru-RU',
       'ja-JP',
       'ko-KR',
-      'zh-CN', 'zh-TW',
+      'zh-CN',
+      'zh-TW',
       'ar-SA',
       'hi-IN',
     ],
@@ -1044,7 +1051,8 @@ export class WebSpeechProvider implements TranscriptionProvider {
     // Check for browser support
     const SpeechRecognitionAPI =
       (window as unknown as { SpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
+      (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition })
+        .webkitSpeechRecognition
 
     if (!SpeechRecognitionAPI) {
       throw new Error('Web Speech API is not supported in this browser')
@@ -1078,16 +1086,16 @@ export class WebSpeechProvider implements TranscriptionProvider {
           confidence: transcript.confidence,
           language: this.language,
         }
-        this.finalCallbacks.forEach(cb => cb(finalResult, this.currentSourceId))
+        this.finalCallbacks.forEach((cb) => cb(finalResult, this.currentSourceId))
         logger.debug('Final result', { text: transcript.transcript })
       } else {
-        this.interimCallbacks.forEach(cb => cb(transcript.transcript, this.currentSourceId))
+        this.interimCallbacks.forEach((cb) => cb(transcript.transcript, this.currentSourceId))
       }
     }
 
     this.recognition.onerror = (event: { error: string }) => {
       const error = new Error(`Speech recognition error: ${event.error}`)
-      this.errorCallbacks.forEach(cb => cb(error))
+      this.errorCallbacks.forEach((cb) => cb(error))
       logger.error('Speech recognition error', { error: event.error })
     }
 
@@ -1171,7 +1179,7 @@ export class WebSpeechProvider implements TranscriptionProvider {
     logger.debug('Provider disposed')
   }
 }
-```
+````
 
 **Step 4: Run tests to verify they pass**
 
@@ -1215,6 +1223,7 @@ git commit -m "feat(transcription): add Web Speech API provider
 ## Task 4: Implement Keyword Detection Module
 
 **Files:**
+
 - Create: `src/transcription/features/keyword-detector.ts`
 - Test: `tests/unit/transcription/features/keyword-detector.test.ts`
 
@@ -1351,9 +1360,11 @@ describe('KeywordDetector', () => {
 
       detector.detect(createEntry('this is a test'))
 
-      expect(callback).toHaveBeenCalledWith(expect.objectContaining({
-        matchedText: 'test',
-      }))
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          matchedText: 'test',
+        })
+      )
     })
   })
 })
@@ -1371,7 +1382,7 @@ mkdir -p src/transcription/features
 mkdir -p tests/unit/transcription/features
 ```
 
-```typescript
+````typescript
 /**
  * Keyword detection module for transcripts
  * @packageDocumentation
@@ -1429,7 +1440,7 @@ export class KeywordDetector {
    * @param id - Rule ID to remove
    */
   removeRule(id: string): void {
-    const index = this.rules.findIndex(r => r.id === id)
+    const index = this.rules.findIndex((r) => r.id === id)
     if (index !== -1) {
       this.rules.splice(index, 1)
       logger.debug('Rule removed', { id })
@@ -1468,7 +1479,7 @@ export class KeywordDetector {
       const match = this.matchRule(rule, entry)
       if (match) {
         matches.push(match)
-        this.matchCallbacks.forEach(cb => cb(match))
+        this.matchCallbacks.forEach((cb) => cb(match))
       }
     }
 
@@ -1476,7 +1487,7 @@ export class KeywordDetector {
       logger.debug('Keywords detected', {
         entryId: entry.id,
         matchCount: matches.length,
-        actions: matches.map(m => m.rule.action),
+        actions: matches.map((m) => m.rule.action),
       })
     }
 
@@ -1497,7 +1508,10 @@ export class KeywordDetector {
       // Regex matching
       const regex = rule.caseSensitive
         ? rule.phrase
-        : new RegExp(rule.phrase.source, rule.phrase.flags + (rule.phrase.flags.includes('i') ? '' : 'i'))
+        : new RegExp(
+            rule.phrase.source,
+            rule.phrase.flags + (rule.phrase.flags.includes('i') ? '' : 'i')
+          )
 
       const match = searchText.match(regex)
       if (match && match.index !== undefined) {
@@ -1550,7 +1564,7 @@ export class KeywordDetector {
     this.matchCallbacks = []
   }
 }
-```
+````
 
 **Step 4: Run tests to verify they pass**
 
@@ -1576,6 +1590,7 @@ git commit -m "feat(transcription): add keyword detection module
 ## Task 5: Implement PII Redaction Module
 
 **Files:**
+
 - Create: `src/transcription/features/pii-redactor.ts`
 - Test: `tests/unit/transcription/features/pii-redactor.test.ts`
 
@@ -1674,13 +1689,9 @@ describe('PIIRedactor', () => {
 
   describe('multiple PII in single text', () => {
     it('should redact multiple PII instances', () => {
-      const result = redactor.redact(
-        'Card 4111111111111111, SSN 123-45-6789, email test@test.com'
-      )
+      const result = redactor.redact('Card 4111111111111111, SSN 123-45-6789, email test@test.com')
 
-      expect(result.redacted).toBe(
-        'Card [REDACTED], SSN [REDACTED], email [REDACTED]'
-      )
+      expect(result.redacted).toBe('Card [REDACTED], SSN [REDACTED], email [REDACTED]')
       expect(result.detections).toHaveLength(3)
     })
   })
@@ -1754,7 +1765,7 @@ Expected: FAIL - module not found
 
 **Step 3: Write the implementation**
 
-```typescript
+````typescript
 /**
  * PII redaction module for transcripts
  * @packageDocumentation
@@ -1775,11 +1786,12 @@ const logger = createLogger('PIIRedactor')
  */
 const PII_PATTERNS: Record<Exclude<PIIType, 'custom'>, RegExp> = {
   'credit-card': /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
-  'ssn': /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
+  ssn: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
   'phone-number': /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-  'email': /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
-  'address': /\b\d{1,5}\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)\b/gi,
-  'name': /\b(?:Mr|Mrs|Ms|Dr|Prof)\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g,
+  email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+  address:
+    /\b\d{1,5}\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)\b/gi,
+  name: /\b(?:Mr|Mrs|Ms|Dr|Prof)\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g,
   'date-of-birth': /\b(?:0?[1-9]|1[0-2])[-/](?:0?[1-9]|[12]\d|3[01])[-/](?:19|20)?\d{2}\b/g,
 }
 
@@ -1834,7 +1846,7 @@ export class PIIRedactor {
         // Add built-in pattern
         this.activePatterns.push({
           type,
-          pattern: new RegExp(PII_PATTERNS[type].source, PII_PATTERNS[type].flags)
+          pattern: new RegExp(PII_PATTERNS[type].source, PII_PATTERNS[type].flags),
         })
       }
     }
@@ -1914,9 +1926,7 @@ export class PIIRedactor {
     // Apply redactions
     for (const match of filteredMatches) {
       redactedText =
-        redactedText.slice(0, match.start) +
-        this.config.replacement +
-        redactedText.slice(match.end)
+        redactedText.slice(0, match.start) + this.config.replacement + redactedText.slice(match.end)
 
       detections.push({
         type: match.type,
@@ -1931,7 +1941,7 @@ export class PIIRedactor {
     if (detections.length > 0) {
       logger.debug('PII redacted', {
         count: detections.length,
-        types: [...new Set(detections.map(d => d.type))],
+        types: [...new Set(detections.map((d) => d.type))],
       })
     }
 
@@ -1966,7 +1976,7 @@ export class PIIRedactor {
     this.activePatterns = []
   }
 }
-```
+````
 
 **Step 4: Run tests to verify they pass**
 
@@ -1991,6 +2001,7 @@ git commit -m "feat(transcription): add PII redaction module
 ## Task 6: Implement Export Module
 
 **Files:**
+
 - Create: `src/transcription/features/transcript-exporter.ts`
 - Test: `tests/unit/transcription/features/transcript-exporter.test.ts`
 
@@ -2146,17 +2157,13 @@ Expected: FAIL - module not found
 
 **Step 3: Write the implementation**
 
-```typescript
+````typescript
 /**
  * Transcript export module
  * @packageDocumentation
  */
 
-import type {
-  TranscriptEntry,
-  ExportFormat,
-  ExportOptions,
-} from '@/types/transcription.types'
+import type { TranscriptEntry, ExportFormat, ExportOptions } from '@/types/transcription.types'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('TranscriptExporter')
@@ -2226,11 +2233,7 @@ export class TranscriptExporter {
    * @param options - Export options
    * @returns Formatted string
    */
-  export(
-    entries: TranscriptEntry[],
-    format: ExportFormat,
-    options: ExportOptions = {}
-  ): string {
+  export(entries: TranscriptEntry[], format: ExportFormat, options: ExportOptions = {}): string {
     // Filter entries
     let filtered = this.filterEntries(entries, options)
 
@@ -2259,21 +2262,18 @@ export class TranscriptExporter {
   /**
    * Filter entries based on options
    */
-  private filterEntries(
-    entries: TranscriptEntry[],
-    options: ExportOptions
-  ): TranscriptEntry[] {
+  private filterEntries(entries: TranscriptEntry[], options: ExportOptions): TranscriptEntry[] {
     let filtered = entries
 
     // Filter by speaker
     if (options.speakerFilter) {
-      filtered = filtered.filter(e => e.speaker === options.speakerFilter)
+      filtered = filtered.filter((e) => e.speaker === options.speakerFilter)
     }
 
     // Filter by time range
     if (options.timeRange) {
       const { start, end } = options.timeRange
-      filtered = filtered.filter(e => e.timestamp >= start && e.timestamp <= end)
+      filtered = filtered.filter((e) => e.timestamp >= start && e.timestamp <= end)
     }
 
     return filtered
@@ -2283,7 +2283,7 @@ export class TranscriptExporter {
    * Export as JSON
    */
   private exportJSON(entries: TranscriptEntry[], options: ExportOptions): string {
-    const data = entries.map(entry => {
+    const data = entries.map((entry) => {
       const item: Record<string, unknown> = {
         timestamp: entry.timestamp,
         speaker: entry.participantName || entry.speaker,
@@ -2304,51 +2304,57 @@ export class TranscriptExporter {
    * Export as plain text
    */
   private exportTXT(entries: TranscriptEntry[], options: ExportOptions): string {
-    return entries.map(entry => {
-      let line = ''
+    return entries
+      .map((entry) => {
+        let line = ''
 
-      if (options.includeTimestamps) {
-        line += formatTimeSimple(entry.timestamp) + ' '
-      }
+        if (options.includeTimestamps) {
+          line += formatTimeSimple(entry.timestamp) + ' '
+        }
 
-      if (options.includeSpeakers) {
-        const speaker = entry.participantName || entry.speaker
-        line += `${speaker}: `
-      }
+        if (options.includeSpeakers) {
+          const speaker = entry.participantName || entry.speaker
+          line += `${speaker}: `
+        }
 
-      line += entry.text
+        line += entry.text
 
-      return line
-    }).join('\n')
+        return line
+      })
+      .join('\n')
   }
 
   /**
    * Export as SRT subtitles
    */
   private exportSRT(entries: TranscriptEntry[]): string {
-    return entries.map((entry, index) => {
-      const startTime = formatTimeSRT(entry.timestamp)
-      // Estimate end time based on next entry or add 4 seconds
-      const nextEntry = entries[index + 1]
-      const endMs = nextEntry ? nextEntry.timestamp : entry.timestamp + 4000
-      const endTime = formatTimeSRT(endMs)
+    return entries
+      .map((entry, index) => {
+        const startTime = formatTimeSRT(entry.timestamp)
+        // Estimate end time based on next entry or add 4 seconds
+        const nextEntry = entries[index + 1]
+        const endMs = nextEntry ? nextEntry.timestamp : entry.timestamp + 4000
+        const endTime = formatTimeSRT(endMs)
 
-      return `${index + 1}\n${startTime} --> ${endTime}\n${entry.text}\n`
-    }).join('\n')
+        return `${index + 1}\n${startTime} --> ${endTime}\n${entry.text}\n`
+      })
+      .join('\n')
   }
 
   /**
    * Export as WebVTT
    */
   private exportVTT(entries: TranscriptEntry[]): string {
-    const cues = entries.map((entry, index) => {
-      const startTime = formatTimeVTT(entry.timestamp)
-      const nextEntry = entries[index + 1]
-      const endMs = nextEntry ? nextEntry.timestamp : entry.timestamp + 4000
-      const endTime = formatTimeVTT(endMs)
+    const cues = entries
+      .map((entry, index) => {
+        const startTime = formatTimeVTT(entry.timestamp)
+        const nextEntry = entries[index + 1]
+        const endMs = nextEntry ? nextEntry.timestamp : entry.timestamp + 4000
+        const endTime = formatTimeVTT(endMs)
 
-      return `${startTime} --> ${endTime}\n${entry.text}`
-    }).join('\n\n')
+        return `${startTime} --> ${endTime}\n${entry.text}`
+      })
+      .join('\n\n')
 
     return `WEBVTT\n\n${cues}`
   }
@@ -2362,7 +2368,7 @@ export class TranscriptExporter {
       headers.push('confidence')
     }
 
-    const rows = entries.map(entry => {
+    const rows = entries.map((entry) => {
       const row = [
         entry.timestamp.toString(),
         escapeCSV(entry.participantName || entry.speaker),
@@ -2377,7 +2383,7 @@ export class TranscriptExporter {
     return [headers.join(','), ...rows].join('\n')
   }
 }
-```
+````
 
 **Step 4: Run tests to verify they pass**
 
@@ -2415,6 +2421,7 @@ git commit -m "feat(transcription): add transcript export module
 ## Task 7: Implement Main useTranscription Composable
 
 **Files:**
+
 - Create: `src/composables/useTranscription.ts`
 - Test: `tests/unit/composables/useTranscription.test.ts`
 
@@ -2460,13 +2467,13 @@ function createMockProvider(): TranscriptionProvider {
     onError: vi.fn((cb) => errorCallbacks.push(cb)),
     // Test helpers
     _emitInterim: (text: string, sourceId: string) => {
-      interimCallbacks.forEach(cb => cb(text, sourceId))
+      interimCallbacks.forEach((cb) => cb(text, sourceId))
     },
     _emitFinal: (result: any, sourceId: string) => {
-      finalCallbacks.forEach(cb => cb(result, sourceId))
+      finalCallbacks.forEach((cb) => cb(result, sourceId))
     },
     _emitError: (error: Error) => {
-      errorCallbacks.forEach(cb => cb(error))
+      errorCallbacks.forEach((cb) => cb(error))
     },
   } as TranscriptionProvider & {
     _emitInterim: (text: string, sourceId: string) => void
@@ -2513,11 +2520,13 @@ describe('useTranscription', () => {
     })
 
     it('should respect initial options', () => {
-      const { result, unmount } = withSetup(() => useTranscription({
-        localEnabled: false,
-        remoteEnabled: true,
-        language: 'es-ES',
-      }))
+      const { result, unmount } = withSetup(() =>
+        useTranscription({
+          localEnabled: false,
+          remoteEnabled: true,
+          language: 'es-ES',
+        })
+      )
 
       expect(result.localEnabled.value).toBe(false)
       expect(result.remoteEnabled.value).toBe(true)
@@ -2558,12 +2567,14 @@ describe('useTranscription', () => {
     it('should add entries on final results', async () => {
       const { result, unmount } = withSetup(() => useTranscription())
       await result.start()
-
-      ;(mockProvider as any)._emitFinal({
-        text: 'Hello world',
-        isFinal: true,
-        confidence: 0.95,
-      }, 'local')
+      ;(mockProvider as any)._emitFinal(
+        {
+          text: 'Hello world',
+          isFinal: true,
+          confidence: 0.95,
+        },
+        'local'
+      )
 
       await nextTick()
 
@@ -2577,7 +2588,6 @@ describe('useTranscription', () => {
     it('should update currentUtterance on interim results', async () => {
       const { result, unmount } = withSetup(() => useTranscription())
       await result.start()
-
       ;(mockProvider as any)._emitInterim('Hello', 'local')
 
       await nextTick()
@@ -2590,7 +2600,6 @@ describe('useTranscription', () => {
     it('should clear transcript', async () => {
       const { result, unmount } = withSetup(() => useTranscription())
       await result.start()
-
       ;(mockProvider as any)._emitFinal({ text: 'Test', isFinal: true }, 'local')
       await nextTick()
 
@@ -2620,7 +2629,6 @@ describe('useTranscription', () => {
     it('should export transcript', async () => {
       const { result, unmount } = withSetup(() => useTranscription())
       await result.start()
-
       ;(mockProvider as any)._emitFinal({ text: 'Hello', isFinal: true }, 'local')
       await nextTick()
 
@@ -2636,7 +2644,6 @@ describe('useTranscription', () => {
     it('should search transcript', async () => {
       const { result, unmount } = withSetup(() => useTranscription())
       await result.start()
-
       ;(mockProvider as any)._emitFinal({ text: 'Hello world', isFinal: true }, 'local')
       ;(mockProvider as any)._emitFinal({ text: 'Goodbye world', isFinal: true }, 'remote')
       await nextTick()
@@ -2651,7 +2658,6 @@ describe('useTranscription', () => {
     it('should filter search by speaker', async () => {
       const { result, unmount } = withSetup(() => useTranscription())
       await result.start()
-
       ;(mockProvider as any)._emitFinal({ text: 'Hello', isFinal: true }, 'local')
       ;(mockProvider as any)._emitFinal({ text: 'Hello', isFinal: true }, 'remote')
       await nextTick()
@@ -2668,12 +2674,13 @@ describe('useTranscription', () => {
   describe('keywords', () => {
     it('should detect keywords and emit callback', async () => {
       const onKeywordDetected = vi.fn()
-      const { result, unmount } = withSetup(() => useTranscription({
-        keywords: [{ phrase: 'help', action: 'assist' }],
-        onKeywordDetected,
-      }))
+      const { result, unmount } = withSetup(() =>
+        useTranscription({
+          keywords: [{ phrase: 'help', action: 'assist' }],
+          onKeywordDetected,
+        })
+      )
       await result.start()
-
       ;(mockProvider as any)._emitFinal({ text: 'I need help please', isFinal: true }, 'local')
       await nextTick()
 
@@ -2704,7 +2711,6 @@ describe('useTranscription', () => {
     it('should set error state on provider error', async () => {
       const { result, unmount } = withSetup(() => useTranscription())
       await result.start()
-
       ;(mockProvider as any)._emitError(new Error('Test error'))
       await nextTick()
 
@@ -2724,7 +2730,7 @@ Expected: FAIL - module not found
 
 **Step 3: Write the implementation**
 
-```typescript
+````typescript
 /**
  * useTranscription - Real-time voice transcription composable
  * @packageDocumentation
@@ -2789,9 +2795,7 @@ function generateEntryId(): string {
  * const srt = exportTranscript('srt')
  * ```
  */
-export function useTranscription(
-  options: TranscriptionOptions = {}
-): UseTranscriptionReturn {
+export function useTranscription(options: TranscriptionOptions = {}): UseTranscriptionReturn {
   // Configuration
   const config = {
     provider: options.provider ?? 'web-speech',
@@ -2836,7 +2840,7 @@ export function useTranscription(
 
   // Setup keyword callback
   keywordDetector.onMatch((match) => {
-    keywordCallbacks.forEach(cb => cb(match))
+    keywordCallbacks.forEach((cb) => cb(match))
     options.onKeywordDetected?.(match)
   })
 
@@ -2902,7 +2906,7 @@ export function useTranscription(
         keywordDetector.detect(entry)
 
         // Notify callbacks
-        transcriptCallbacks.forEach(cb => cb(entry))
+        transcriptCallbacks.forEach((cb) => cb(entry))
         options.onTranscript?.(entry)
 
         logger.debug('Transcript entry added', { id: entry.id, speaker: entry.speaker })
@@ -3085,7 +3089,7 @@ export function useTranscription(
     searchOptions?: { speaker?: SpeakerType }
   ): TranscriptEntry[] {
     const lowerQuery = query.toLowerCase()
-    return transcript.value.filter(entry => {
+    return transcript.value.filter((entry) => {
       if (searchOptions?.speaker && entry.speaker !== searchOptions.speaker) {
         return false
       }
@@ -3175,7 +3179,7 @@ export function useTranscription(
     onKeywordDetected,
   }
 }
-```
+````
 
 **Step 4: Run tests to verify they pass**
 
@@ -3185,6 +3189,7 @@ Expected: All tests PASS
 **Step 5: Export from composables index**
 
 Add to `src/composables/index.ts`:
+
 ```typescript
 export { useTranscription } from './useTranscription'
 ```
@@ -3210,6 +3215,7 @@ git commit -m "feat(transcription): add useTranscription composable
 ## Task 8: Add Main Export and Documentation
 
 **Files:**
+
 - Create: `src/transcription/index.ts`
 - Modify: `src/index.ts`
 - Create: `docs/guide/transcription.md`
@@ -3251,6 +3257,7 @@ export type {
 **Step 2: Update main index**
 
 Add to `src/index.ts`:
+
 ```typescript
 // Transcription
 export { useTranscription } from './composables/useTranscription'
@@ -3260,14 +3267,16 @@ export * from './transcription'
 **Step 3: Update types index**
 
 Add to `src/types/index.ts`:
+
 ```typescript
 export * from './transcription.types'
 ```
 
 **Step 4: Create documentation**
 
-```markdown
+````markdown
 <!-- docs/guide/transcription.md -->
+
 # Real-Time Transcription
 
 VueSip provides a comprehensive real-time transcription system with support for multiple providers, keyword detection, PII redaction, and export formats.
@@ -3278,16 +3287,10 @@ VueSip provides a comprehensive real-time transcription system with support for 
 <script setup>
 import { useTranscription } from 'vuesip'
 
-const {
-  isTranscribing,
-  transcript,
-  currentUtterance,
-  start,
-  stop,
-  exportTranscript,
-} = useTranscription({
-  language: 'en-US',
-})
+const { isTranscribing, transcript, currentUtterance, start, stop, exportTranscript } =
+  useTranscription({
+    language: 'en-US',
+  })
 
 async function toggleTranscription() {
   if (isTranscribing.value) {
@@ -3303,25 +3306,24 @@ async function toggleTranscription() {
     {{ isTranscribing ? 'Stop' : 'Start' }} Transcription
   </button>
 
-  <p v-if="currentUtterance" class="interim">
-    {{ currentUtterance }}...
-  </p>
+  <p v-if="currentUtterance" class="interim">{{ currentUtterance }}...</p>
 
   <div v-for="entry in transcript" :key="entry.id">
     <strong>{{ entry.speaker }}:</strong> {{ entry.text }}
   </div>
 </template>
 ```
+````
 
 ## Providers
 
 VueSip supports multiple transcription providers:
 
-| Provider | Cost | Accuracy | Setup |
-|----------|------|----------|-------|
-| `web-speech` (default) | Free | Medium | None |
-| `deepgram` | Paid | High | API key |
-| `whisper-api` | Paid | High | API key |
+| Provider               | Cost | Accuracy | Setup   |
+| ---------------------- | ---- | -------- | ------- |
+| `web-speech` (default) | Free | Medium   | None    |
+| `deepgram`             | Paid | High     | API key |
+| `whisper-api`          | Paid | High     | API key |
 
 ### Using Web Speech API (Default)
 
@@ -3423,8 +3425,8 @@ Export transcripts in various formats:
 const { exportTranscript, transcript } = useTranscription()
 
 // After recording...
-const srt = exportTranscript('srt')  // Subtitles
-const vtt = exportTranscript('vtt')  // WebVTT
+const srt = exportTranscript('srt') // Subtitles
+const vtt = exportTranscript('vtt') // WebVTT
 const json = exportTranscript('json', { includeConfidence: true })
 const csv = exportTranscript('csv')
 const txt = exportTranscript('txt', {
@@ -3450,14 +3452,15 @@ const customerQuestions = searchTranscript('question', { speaker: 'remote' })
 ## API Reference
 
 See the [useTranscription API documentation](/api/composables#usetranscription) for complete details.
-```
+
+````
 
 **Step 5: Update docs navigation**
 
 Add to `docs/.vitepress/config.ts` sidebar under Advanced Topics:
 ```typescript
 { text: 'Real-Time Transcription', link: '/guide/transcription' },
-```
+````
 
 **Step 6: Commit**
 
@@ -3476,6 +3479,7 @@ git commit -m "docs(transcription): add guide and finalize exports
 ## Task 9: Integration Testing
 
 **Files:**
+
 - Create: `tests/integration/transcription.test.ts`
 
 **Why:** Integration tests verify that all the modules work together correctly.
@@ -3531,17 +3535,19 @@ describe('Transcription System Integration', () => {
     const onTranscript = vi.fn()
     const onKeywordDetected = vi.fn()
 
-    const { result, unmount } = withSetup(() => useTranscription({
-      provider: 'web-speech',
-      language: 'en-US',
-      keywords: [{ phrase: 'help', action: 'assist' }],
-      redaction: {
-        enabled: true,
-        patterns: ['email'],
-      },
-      onTranscript,
-      onKeywordDetected,
-    }))
+    const { result, unmount } = withSetup(() =>
+      useTranscription({
+        provider: 'web-speech',
+        language: 'en-US',
+        keywords: [{ phrase: 'help', action: 'assist' }],
+        redaction: {
+          enabled: true,
+          patterns: ['email'],
+        },
+        onTranscript,
+        onKeywordDetected,
+      })
+    )
 
     // Start transcription
     await result.start()
@@ -3588,9 +3594,11 @@ describe('Transcription System Integration', () => {
   })
 
   it('should handle provider switching', async () => {
-    const { result, unmount } = withSetup(() => useTranscription({
-      provider: 'web-speech',
-    }))
+    const { result, unmount } = withSetup(() =>
+      useTranscription({
+        provider: 'web-speech',
+      })
+    )
 
     expect(result.provider.value).toBe('web-speech')
 
@@ -3628,6 +3636,7 @@ git commit -m "test(transcription): add integration tests
 ```bash
 pnpm test
 ```
+
 Expected: All tests PASS
 
 **Step 2: Run linting**
@@ -3635,6 +3644,7 @@ Expected: All tests PASS
 ```bash
 pnpm lint
 ```
+
 Expected: No errors (fix any that appear)
 
 **Step 3: Run type checking**
@@ -3642,6 +3652,7 @@ Expected: No errors (fix any that appear)
 ```bash
 pnpm exec vue-tsc --noEmit
 ```
+
 Expected: No type errors
 
 **Step 4: Build**
@@ -3649,6 +3660,7 @@ Expected: No type errors
 ```bash
 pnpm build
 ```
+
 Expected: Build succeeds
 
 **Step 5: Final commit**

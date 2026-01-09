@@ -3,11 +3,7 @@
  * @packageDocumentation
  */
 
-import type {
-  TranscriptEntry,
-  KeywordRule,
-  KeywordMatch,
-} from '@/types/transcription.types'
+import type { TranscriptEntry, KeywordRule, KeywordMatch } from '@/types/transcription.types'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('KeywordDetector')
@@ -54,7 +50,7 @@ export class KeywordDetector {
    * @param id - Rule ID to remove
    */
   removeRule(id: string): void {
-    const index = this.rules.findIndex(r => r.id === id)
+    const index = this.rules.findIndex((r) => r.id === id)
     if (index !== -1) {
       this.rules.splice(index, 1)
       logger.debug('Rule removed', { id })
@@ -93,7 +89,7 @@ export class KeywordDetector {
       const match = this.matchRule(rule, entry)
       if (match) {
         matches.push(match)
-        this.matchCallbacks.forEach(cb => cb(match))
+        this.matchCallbacks.forEach((cb) => cb(match))
       }
     }
 
@@ -101,7 +97,7 @@ export class KeywordDetector {
       logger.debug('Keywords detected', {
         entryId: entry.id,
         matchCount: matches.length,
-        actions: matches.map(m => m.rule.action),
+        actions: matches.map((m) => m.rule.action),
       })
     }
 
@@ -122,7 +118,10 @@ export class KeywordDetector {
       // Regex matching
       const regex = rule.caseSensitive
         ? rule.phrase
-        : new RegExp(rule.phrase.source, rule.phrase.flags + (rule.phrase.flags.includes('i') ? '' : 'i'))
+        : new RegExp(
+            rule.phrase.source,
+            rule.phrase.flags + (rule.phrase.flags.includes('i') ? '' : 'i')
+          )
 
       const match = searchText.match(regex)
       if (match && match.index !== undefined) {

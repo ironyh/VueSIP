@@ -18,11 +18,12 @@ const logger = createLogger('PIIRedactor')
  */
 const PII_PATTERNS: Record<Exclude<PIIType, 'custom'>, RegExp> = {
   'credit-card': /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
-  'ssn': /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
+  ssn: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
   'phone-number': /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-  'email': /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
-  'address': /\b\d{1,5}\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)\b/gi,
-  'name': /\b(?:Mr|Mrs|Ms|Dr|Prof)\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g,
+  email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+  address:
+    /\b\d{1,5}\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|place|pl)\b/gi,
+  name: /\b(?:Mr|Mrs|Ms|Dr|Prof)\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g,
   'date-of-birth': /\b(?:0?[1-9]|1[0-2])[-/](?:0?[1-9]|[12]\d|3[01])[-/](?:19|20)?\d{2}\b/g,
 }
 
@@ -77,7 +78,7 @@ export class PIIRedactor {
         // Add built-in pattern
         this.activePatterns.push({
           type,
-          pattern: new RegExp(PII_PATTERNS[type].source, PII_PATTERNS[type].flags)
+          pattern: new RegExp(PII_PATTERNS[type].source, PII_PATTERNS[type].flags),
         })
       }
     }
@@ -158,9 +159,7 @@ export class PIIRedactor {
     // Apply redactions
     for (const match of filteredMatches) {
       redactedText =
-        redactedText.slice(0, match.start) +
-        this.config.replacement +
-        redactedText.slice(match.end)
+        redactedText.slice(0, match.start) + this.config.replacement + redactedText.slice(match.end)
 
       detections.push({
         type: match.type,
@@ -175,7 +174,7 @@ export class PIIRedactor {
     if (detections.length > 0) {
       logger.debug('PII redacted', {
         count: detections.length,
-        types: [...new Set(detections.map(d => d.type))],
+        types: [...new Set(detections.map((d) => d.type))],
       })
     }
 

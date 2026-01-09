@@ -3,11 +3,7 @@
  * @packageDocumentation
  */
 
-import type {
-  TranscriptEntry,
-  ExportFormat,
-  ExportOptions,
-} from '@/types/transcription.types'
+import type { TranscriptEntry, ExportFormat, ExportOptions } from '@/types/transcription.types'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('TranscriptExporter')
@@ -77,11 +73,7 @@ export class TranscriptExporter {
    * @param options - Export options
    * @returns Formatted string
    */
-  export(
-    entries: TranscriptEntry[],
-    format: ExportFormat,
-    options: ExportOptions = {}
-  ): string {
+  export(entries: TranscriptEntry[], format: ExportFormat, options: ExportOptions = {}): string {
     // Filter entries
     let filtered = this.filterEntries(entries, options)
 
@@ -110,21 +102,18 @@ export class TranscriptExporter {
   /**
    * Filter entries based on options
    */
-  private filterEntries(
-    entries: TranscriptEntry[],
-    options: ExportOptions
-  ): TranscriptEntry[] {
+  private filterEntries(entries: TranscriptEntry[], options: ExportOptions): TranscriptEntry[] {
     let filtered = entries
 
     // Filter by speaker
     if (options.speakerFilter) {
-      filtered = filtered.filter(e => e.speaker === options.speakerFilter)
+      filtered = filtered.filter((e) => e.speaker === options.speakerFilter)
     }
 
     // Filter by time range
     if (options.timeRange) {
       const { start, end } = options.timeRange
-      filtered = filtered.filter(e => e.timestamp >= start && e.timestamp <= end)
+      filtered = filtered.filter((e) => e.timestamp >= start && e.timestamp <= end)
     }
 
     return filtered
@@ -134,7 +123,7 @@ export class TranscriptExporter {
    * Export as JSON
    */
   private exportJSON(entries: TranscriptEntry[], options: ExportOptions): string {
-    const data = entries.map(entry => {
+    const data = entries.map((entry) => {
       const item: Record<string, unknown> = {
         timestamp: entry.timestamp,
         speaker: entry.participantName || entry.speaker,
@@ -155,51 +144,57 @@ export class TranscriptExporter {
    * Export as plain text
    */
   private exportTXT(entries: TranscriptEntry[], options: ExportOptions): string {
-    return entries.map(entry => {
-      let line = ''
+    return entries
+      .map((entry) => {
+        let line = ''
 
-      if (options.includeTimestamps) {
-        line += formatTimeSimple(entry.timestamp) + ' '
-      }
+        if (options.includeTimestamps) {
+          line += formatTimeSimple(entry.timestamp) + ' '
+        }
 
-      if (options.includeSpeakers) {
-        const speaker = entry.participantName || entry.speaker
-        line += `${speaker}: `
-      }
+        if (options.includeSpeakers) {
+          const speaker = entry.participantName || entry.speaker
+          line += `${speaker}: `
+        }
 
-      line += entry.text
+        line += entry.text
 
-      return line
-    }).join('\n')
+        return line
+      })
+      .join('\n')
   }
 
   /**
    * Export as SRT subtitles
    */
   private exportSRT(entries: TranscriptEntry[]): string {
-    return entries.map((entry, index) => {
-      const startTime = formatTimeSRT(entry.timestamp)
-      // Estimate end time based on next entry or add 4 seconds
-      const nextEntry = entries[index + 1]
-      const endMs = nextEntry ? nextEntry.timestamp : entry.timestamp + 4000
-      const endTime = formatTimeSRT(endMs)
+    return entries
+      .map((entry, index) => {
+        const startTime = formatTimeSRT(entry.timestamp)
+        // Estimate end time based on next entry or add 4 seconds
+        const nextEntry = entries[index + 1]
+        const endMs = nextEntry ? nextEntry.timestamp : entry.timestamp + 4000
+        const endTime = formatTimeSRT(endMs)
 
-      return `${index + 1}\n${startTime} --> ${endTime}\n${entry.text}\n`
-    }).join('\n')
+        return `${index + 1}\n${startTime} --> ${endTime}\n${entry.text}\n`
+      })
+      .join('\n')
   }
 
   /**
    * Export as WebVTT
    */
   private exportVTT(entries: TranscriptEntry[]): string {
-    const cues = entries.map((entry, index) => {
-      const startTime = formatTimeVTT(entry.timestamp)
-      const nextEntry = entries[index + 1]
-      const endMs = nextEntry ? nextEntry.timestamp : entry.timestamp + 4000
-      const endTime = formatTimeVTT(endMs)
+    const cues = entries
+      .map((entry, index) => {
+        const startTime = formatTimeVTT(entry.timestamp)
+        const nextEntry = entries[index + 1]
+        const endMs = nextEntry ? nextEntry.timestamp : entry.timestamp + 4000
+        const endTime = formatTimeVTT(endMs)
 
-      return `${startTime} --> ${endTime}\n${entry.text}`
-    }).join('\n\n')
+        return `${startTime} --> ${endTime}\n${entry.text}`
+      })
+      .join('\n\n')
 
     return `WEBVTT\n\n${cues}`
   }
@@ -213,7 +208,7 @@ export class TranscriptExporter {
       headers.push('confidence')
     }
 
-    const rows = entries.map(entry => {
+    const rows = entries.map((entry) => {
       const row = [
         entry.timestamp.toString(),
         escapeCSV(entry.participantName || entry.speaker),
