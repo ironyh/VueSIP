@@ -302,6 +302,10 @@ export interface TranscriptionOptions {
   localEnabled?: boolean
   /** Enable remote audio transcription */
   remoteEnabled?: boolean
+  /** Display name for local participant */
+  localName?: string
+  /** Display name for remote participant */
+  remoteName?: string
   /** Keyword detection rules */
   keywords?: KeywordRule[]
   /** PII redaction configuration */
@@ -341,6 +345,8 @@ export interface UseTranscriptionReturn {
   disableParticipant: (id: string) => void
   /** Set language for a participant */
   setParticipantLanguage: (id: string, language: string) => void
+  /** Set display name for a participant */
+  setParticipantName: (id: string, name: string) => void
 
   // Controls
   /** Start transcription */

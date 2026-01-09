@@ -34,6 +34,13 @@ await start()
 // ... after the call ...
 stop()
 const subtitles = exportTranscript('srt') // Ready for video
+
+// Custom participant names (Agent/Customer instead of local/remote)
+const { transcript, start } = useTranscription({
+  localName: 'Agent',
+  remoteName: 'Customer',
+})
+// Transcript shows: "Agent: How can I help?" instead of "local: How can I help?"
 ```
 
 ## Popular Provider Examples
@@ -254,6 +261,7 @@ const {
   enableParticipant,
   disableParticipant,
   setParticipantLanguage,
+  setParticipantName,
   localEnabled,
   remoteEnabled,
 } = useTranscription()
@@ -266,6 +274,11 @@ remoteEnabled.value = true
 enableParticipant('user-123')
 disableParticipant('user-456')
 setParticipantLanguage('user-123', 'es-ES')
+
+// Set display names for participants
+setParticipantName('local', 'Agent Sarah')
+setParticipantName('remote', 'John Smith')
+setParticipantName('user-123', 'Supervisor Mike')
 ```
 
 ### Export Formats
@@ -327,6 +340,8 @@ interface TranscriptionOptions {
   // Participant toggles
   localEnabled?: boolean // Transcribe local audio (default: true)
   remoteEnabled?: boolean // Transcribe remote audio (default: true)
+  localName?: string // Display name for local participant
+  remoteName?: string // Display name for remote participant
 
   // Keyword detection
   keywords?: Omit<KeywordRule, 'id'>[]
@@ -366,6 +381,7 @@ interface UseTranscriptionReturn {
   enableParticipant: (id: string) => void
   disableParticipant: (id: string) => void
   setParticipantLanguage: (id: string, language: string) => void
+  setParticipantName: (id: string, name: string) => void
 
   // Language
   detectedLanguage: Ref<string | null>

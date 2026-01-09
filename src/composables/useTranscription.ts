@@ -62,9 +62,7 @@ function generateEntryId(): string {
  * const srt = exportTranscript('srt')
  * ```
  */
-export function useTranscription(
-  options: TranscriptionOptions = {}
-): UseTranscriptionReturn {
+export function useTranscription(options: TranscriptionOptions = {}): UseTranscriptionReturn {
   // Configuration
   const config = {
     provider: options.provider ?? 'web-speech',
@@ -72,6 +70,8 @@ export function useTranscription(
     autoDetectLanguage: options.autoDetectLanguage ?? false,
     localEnabled: options.localEnabled ?? true,
     remoteEnabled: options.remoteEnabled ?? true,
+    localName: options.localName,
+    remoteName: options.remoteName,
   }
 
   // State
@@ -83,6 +83,14 @@ export function useTranscription(
   const remoteEnabled = ref(config.remoteEnabled)
   const detectedLanguage = ref<string | null>(null)
   const participants = ref<Map<string, ParticipantConfig>>(new Map())
+
+  // Initialize participant names from config
+  if (config.localName) {
+    participants.value.set('local', { id: 'local', enabled: true, name: config.localName })
+  }
+  if (config.remoteName) {
+    participants.value.set('remote', { id: 'remote', enabled: true, name: config.remoteName })
+  }
 
   // Computed
   const isTranscribing = computed(() => state.value === 'active')
@@ -284,6 +292,18 @@ export function useTranscription(
   }
 
   /**
+   * Set display name for a participant
+   */
+  function setParticipantName(id: string, name: string): void {
+    const existing = participants.value.get(id)
+    if (existing) {
+      existing.name = name
+    } else {
+      participants.value.set(id, { id, enabled: true, name })
+    }
+  }
+
+  /**
    * Lock detected language
    */
   function lockLanguage(language: string): void {
@@ -415,6 +435,7 @@ export function useTranscription(
     enableParticipant,
     disableParticipant,
     setParticipantLanguage,
+    setParticipantName,
 
     // Controls
     start,
