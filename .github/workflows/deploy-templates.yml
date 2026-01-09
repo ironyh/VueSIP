@@ -118,7 +118,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy templates/minimal/dist --project-name=vuesip-minimal
+          command: pages deploy templates/minimal/dist --project-name=vuesip-minimal --branch=main --commit-dirty=true
 
   deploy-softphone:
     name: Deploy Basic Softphone Template
@@ -163,7 +163,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy templates/basic-softphone/dist --project-name=vuesip-softphone
+          command: pages deploy templates/basic-softphone/dist --project-name=vuesip-softphone --branch=main --commit-dirty=true
 
   deploy-callcenter:
     name: Deploy Call Center Template
@@ -208,4 +208,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy templates/call-center/dist --project-name=vuesip-callcenter
+          command: pages deploy templates/call-center/dist --project-name=vuesip-callcenter --branch=main --commit-dirty=true
