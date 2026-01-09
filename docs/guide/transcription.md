@@ -2,22 +2,145 @@
 
 VueSip provides a comprehensive real-time transcription system with support for multiple providers, keyword detection, PII redaction, and export formats.
 
+## Zero Config - One-Liners
+
+Start transcribing immediately with sensible defaults:
+
+```typescript
+// Minimal setup - just start transcribing
+const { transcript, start, stop } = useTranscription()
+await start() // Uses Web Speech API with browser default language
+
+// With auto-detected language
+const { transcript, start } = useTranscription({ autoDetectLanguage: true })
+
+// Full redaction for compliance (credit cards, SSN, phone, email)
+const { transcript, start } = useTranscription({
+  redaction: { enabled: true, patterns: ['credit-card', 'ssn', 'phone-number', 'email'] },
+})
+
+// Agent assist with keyword detection
+const { start } = useTranscription({
+  keywords: [
+    { phrase: 'help', action: 'assist' },
+    { phrase: 'cancel', action: 'retention' },
+  ],
+  onKeywordDetected: (match) => showAgentCard(match.rule.action),
+})
+
+// Export-ready transcription (great for meeting notes)
+const { exportTranscript, start, stop } = useTranscription()
+await start()
+// ... after the call ...
+stop()
+const subtitles = exportTranscript('srt') // Ready for video
+```
+
+## Popular Provider Examples
+
+### OpenAI Whisper (via whisper.cpp or faster-whisper API)
+
+For high-accuracy local or self-hosted transcription:
+
+```typescript
+import { providerRegistry } from 'vuesip'
+
+// Example Whisper provider (connect to your whisper server)
+class WhisperProvider implements TranscriptionProvider {
+  readonly name = 'whisper'
+  readonly capabilities = {
+    streaming: true,
+    interimResults: false,
+    languageDetection: true,
+    multiChannel: false,
+    punctuation: true,
+    speakerDiarization: false,
+    wordTimestamps: true,
+    supportedLanguages: ['en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'zh', 'ja', 'ko'],
+  }
+
+  private ws: WebSocket | null = null
+  private onFinalCallback: ((result: TranscriptResult, sourceId: string) => void) | null = null
+
+  async initialize(options: ProviderOptions) {
+    // Connect to your whisper server (e.g., faster-whisper-server, whisper.cpp server)
+    this.ws = new WebSocket(options.serverUrl || 'ws://localhost:8765/transcribe')
+    this.ws.onmessage = (event) => {
+      const result = JSON.parse(event.data)
+      this.onFinalCallback?.({ text: result.text, confidence: result.confidence }, 'local')
+    }
+  }
+
+  startStream(audioSource: AudioSource) {
+    // Send audio chunks to whisper server
+    audioSource.onData((chunk) => this.ws?.send(chunk))
+  }
+
+  stopStream() {
+    this.ws?.send(JSON.stringify({ type: 'stop' }))
+  }
+  onFinal(callback) {
+    this.onFinalCallback = callback
+  }
+  onInterim() {} // Whisper typically doesn't do interim results
+  onError(callback) {
+    this.ws?.addEventListener('error', (e) => callback(new Error('Whisper error')))
+  }
+  dispose() {
+    this.ws?.close()
+  }
+}
+
+// Register and use
+providerRegistry.register('whisper', () => new WhisperProvider())
+
+const { start } = useTranscription({
+  provider: 'whisper',
+  providerOptions: { serverUrl: 'ws://localhost:8765/transcribe' },
+})
+```
+
+### Deepgram (Cloud, Real-time)
+
+```typescript
+class DeepgramProvider implements TranscriptionProvider {
+  readonly name = 'deepgram'
+  readonly capabilities = {
+    streaming: true,
+    interimResults: true,
+    languageDetection: true,
+    multiChannel: true,
+    punctuation: true,
+    speakerDiarization: true,
+    wordTimestamps: true,
+    supportedLanguages: ['en-US', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'ja', 'ko', 'zh'],
+  }
+
+  async initialize(options: ProviderOptions) {
+    const params = new URLSearchParams({
+      model: options.model || 'nova-2',
+      language: options.language || 'en-US',
+      punctuate: 'true',
+      interim_results: 'true',
+    })
+    this.ws = new WebSocket(`wss://api.deepgram.com/v1/listen?${params}`, ['token', options.apiKey])
+  }
+  // ... implement other methods
+}
+
+providerRegistry.register('deepgram', () => new DeepgramProvider())
+```
+
 ## Quick Start
 
 ```vue
 <script setup>
 import { useTranscription } from 'vuesip'
 
-const {
-  isTranscribing,
-  transcript,
-  currentUtterance,
-  start,
-  stop,
-  exportTranscript,
-} = useTranscription({
-  language: 'en-US',
-})
+const { isTranscribing, transcript, currentUtterance, start, stop, exportTranscript } =
+  useTranscription({
+    language: 'en-US',
+  })
 
 async function toggleTranscription() {
   if (isTranscribing.value) {
@@ -111,6 +234,7 @@ const { transcript } = useTranscription({
 ```
 
 Supported PII types:
+
 - `credit-card` - Credit card numbers
 - `ssn` - Social Security Numbers
 - `phone-number` - Phone numbers
@@ -195,14 +319,14 @@ const localResults = searchTranscript('help', { speaker: 'local' })
 ```typescript
 interface TranscriptionOptions {
   // Provider configuration
-  provider?: string              // Provider name (default: 'web-speech')
-  language?: string              // Language code (default: 'en-US')
-  autoDetectLanguage?: boolean   // Auto-detect language
+  provider?: string // Provider name (default: 'web-speech')
+  language?: string // Language code (default: 'en-US')
+  autoDetectLanguage?: boolean // Auto-detect language
   providerOptions?: ProviderOptions
 
   // Participant toggles
-  localEnabled?: boolean         // Transcribe local audio (default: true)
-  remoteEnabled?: boolean        // Transcribe remote audio (default: true)
+  localEnabled?: boolean // Transcribe local audio (default: true)
+  remoteEnabled?: boolean // Transcribe remote audio (default: true)
 
   // Keyword detection
   keywords?: Omit<KeywordRule, 'id'>[]
@@ -335,11 +459,11 @@ const { start } = useTranscription({ provider: 'my-provider' })
 
 The default `web-speech` provider uses the Web Speech API which has the following support:
 
-| Browser | Support | Notes |
-|---------|---------|-------|
+| Browser | Support | Notes                              |
+| ------- | ------- | ---------------------------------- |
 | Chrome  | Full    | Best accuracy and language support |
-| Edge    | Full    | Chromium-based |
-| Safari  | Partial | Some limitations |
-| Firefox | No      | Use a custom provider |
+| Edge    | Full    | Chromium-based                     |
+| Safari  | Partial | Some limitations                   |
+| Firefox | No      | Use a custom provider              |
 
 For production use with Firefox or better accuracy, consider integrating a cloud-based provider like Deepgram or AssemblyAI.
