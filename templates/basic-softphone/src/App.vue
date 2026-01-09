@@ -5,22 +5,33 @@ import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
 import Dialog from 'primevue/dialog'
 import Dialpad from './components/Dialpad.vue'
 import CallControls from './components/CallControls.vue'
 import CallHistory from './components/CallHistory.vue'
 import DeviceSettings from './components/DeviceSettings.vue'
 import { usePhone } from './composables/usePhone'
+import { useProviderSelector } from 'vuesip'
+import type { ProviderConfig } from 'vuesip'
 
 // Phone composable
 const phone = usePhone()
 
-// Configuration form
-const configForm = ref({
-  uri: import.meta.env.VITE_SIP_URI || '',
-  sipUri: import.meta.env.VITE_SIP_USER || '',
-  password: import.meta.env.VITE_SIP_PASSWORD || '',
-  displayName: import.meta.env.VITE_SIP_DISPLAY_NAME || 'VueSip User',
+// Provider selector composable
+const {
+  providers,
+  selectedProvider,
+  credentials,
+  isConfigured,
+  selectProvider,
+  updateCredential,
+  saveCredentials,
+  clearCredentials,
+  getSipConfig,
+} = useProviderSelector({
+  storage: 'local',
+  defaultProvider: 'own-pbx',
 })
 
 // UI state
@@ -29,23 +40,35 @@ const transferTarget = ref('')
 const activeTab = ref(0)
 const statusMessage = ref('')
 
-// Computed
-const isConfigValid = computed(() =>
-  configForm.value.uri && configForm.value.sipUri && configForm.value.password
-)
+// Handle provider change from dropdown
+function handleProviderChange(provider: ProviderConfig) {
+  selectProvider(provider.id)
+}
 
-const hasActiveCall = computed(() =>
-  phone.callState.value === 'active' ||
-  phone.callState.value === 'held' ||
-  phone.callState.value === 'ringing' ||
-  phone.callState.value === 'calling'
+// Check if all required fields are filled
+const isFormValid = computed(() => isConfigured.value)
+
+const hasActiveCall = computed(
+  () =>
+    phone.callState.value === 'active' ||
+    phone.callState.value === 'held' ||
+    phone.callState.value === 'ringing' ||
+    phone.callState.value === 'calling'
 )
 
 // Methods
 async function handleConnect() {
   try {
     statusMessage.value = ''
-    await phone.configure(configForm.value)
+    // Save credentials to storage before connecting
+    saveCredentials()
+    // Get SIP config from provider selector
+    const sipConfig = getSipConfig()
+    if (!sipConfig) {
+      statusMessage.value = 'Invalid configuration'
+      return
+    }
+    await phone.configure(sipConfig)
     await phone.connectPhone()
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Connection failed'
@@ -55,6 +78,8 @@ async function handleConnect() {
 async function handleDisconnect() {
   try {
     await phone.disconnectPhone()
+    // Clear stored credentials on disconnect
+    clearCredentials()
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Disconnect failed'
   }
@@ -113,60 +138,80 @@ onUnmounted(async () => {
           >
             <i class="pi pi-circle-fill" />
             <span>
-              {{ phone.isRegistered.value ? 'Ready' : phone.isConnecting.value ? 'Connecting...' : 'Disconnected' }}
+              {{
+                phone.isRegistered.value
+                  ? 'Ready'
+                  : phone.isConnecting.value
+                    ? 'Connecting...'
+                    : 'Disconnected'
+              }}
             </span>
           </div>
         </div>
       </template>
 
       <template #content>
-        <!-- Configuration Panel -->
+        <!-- Configuration Panel with Provider Selector -->
         <div v-if="!phone.isConnected.value" class="config-panel">
           <h2>Connect to SIP Server</h2>
           <form @submit.prevent="handleConnect">
+            <!-- Provider Selector Dropdown -->
             <div class="form-field">
-              <label for="uri">WebSocket URI</label>
-              <InputText
-                id="uri"
-                v-model="configForm.uri"
-                placeholder="wss://sip.example.com:8089/ws"
+              <label for="provider">Provider</label>
+              <Dropdown
+                id="provider"
+                :model-value="selectedProvider"
+                :options="providers"
+                option-label="name"
+                placeholder="Select a provider"
                 class="w-full"
+                @update:model-value="handleProviderChange"
               />
             </div>
-            <div class="form-field">
-              <label for="sipUri">SIP URI</label>
-              <InputText
-                id="sipUri"
-                v-model="configForm.sipUri"
-                placeholder="sip:1000@example.com"
-                class="w-full"
-              />
-            </div>
-            <div class="form-field">
-              <label for="password">Password</label>
-              <InputText
-                id="password"
-                v-model="configForm.password"
-                type="password"
-                placeholder="Your SIP password"
-                class="w-full"
-              />
-            </div>
-            <div class="form-field">
-              <label for="displayName">Display Name</label>
-              <InputText
-                id="displayName"
-                v-model="configForm.displayName"
-                placeholder="Your Name"
-                class="w-full"
-              />
-            </div>
+
+            <!-- Dynamic Provider Login Form -->
+            <template v-if="selectedProvider">
+              <div v-for="field in selectedProvider.fields" :key="field.name" class="form-field">
+                <label :for="field.name">{{ field.label }}</label>
+                <Dropdown
+                  v-if="field.type === 'select' && field.options"
+                  :id="field.name"
+                  :model-value="credentials[field.name]"
+                  :options="field.options"
+                  option-label="label"
+                  option-value="value"
+                  :placeholder="field.placeholder"
+                  class="w-full"
+                  @update:model-value="
+                    (val: string | undefined) => updateCredential(field.name, val ?? '')
+                  "
+                />
+                <InputText
+                  v-else
+                  :id="field.name"
+                  :model-value="credentials[field.name]"
+                  :type="field.type === 'password' ? 'password' : 'text'"
+                  :placeholder="field.placeholder"
+                  class="w-full"
+                  @update:model-value="
+                    (val: string | undefined) => updateCredential(field.name, val ?? '')
+                  "
+                />
+                <small v-if="field.helpText" class="help-text">
+                  {{ field.helpText }}
+                  <a v-if="field.helpUrl" :href="field.helpUrl" target="_blank" rel="noopener">
+                    Learn more
+                  </a>
+                </small>
+              </div>
+            </template>
+
             <Button
               type="submit"
               label="Connect"
               icon="pi pi-sign-in"
               :loading="phone.isConnecting.value"
-              :disabled="!isConfigValid"
+              :disabled="!isFormValid"
               class="w-full"
             />
           </form>
@@ -253,11 +298,7 @@ onUnmounted(async () => {
         />
       </div>
       <template #footer>
-        <Button
-          label="Cancel"
-          class="p-button-text"
-          @click="showTransferDialog = false"
-        />
+        <Button label="Cancel" class="p-button-text" @click="showTransferDialog = false" />
         <Button
           label="Transfer"
           icon="pi pi-share-alt"
@@ -321,8 +362,13 @@ onUnmounted(async () => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .config-panel {
@@ -344,6 +390,23 @@ onUnmounted(async () => {
   margin-bottom: 6px;
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.help-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+}
+
+.help-text a {
+  color: var(--primary-500);
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.help-text a:hover {
+  text-decoration: underline;
 }
 
 .w-full {
