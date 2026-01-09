@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
-import { useSipClient, useCallSession } from 'vuesip'
+import { ref, computed, watch, onUnmounted } from 'vue'
+import { useSipClient, useCallSession, useTranscription } from 'vuesip'
 
 // SIP Configuration (can be overridden via form)
 const sipConfig = ref({
@@ -38,15 +38,32 @@ const {
   sendDTMF,
 } = useCallSession(sipClientRef)
 
+// Transcription - auto-starts with call
+const {
+  isTranscribing,
+  transcript,
+  currentUtterance,
+  start: startTranscription,
+  stop: stopTranscription,
+  clear: clearTranscription,
+  exportTranscript,
+} = useTranscription({
+  provider: 'web-speech',
+  language: 'en-US',
+  localName: 'Me',
+  remoteName: 'Caller',
+})
+
 // UI State
 const targetNumber = ref('')
 const showConfig = ref(true)
 const statusMessage = ref('')
 const sendingDtmf = ref(false)
+const showTranscript = ref(true)
 
 // Computed
-const isConfigured = computed(() =>
-  sipConfig.value.uri && sipConfig.value.sipUri && sipConfig.value.password
+const isConfigured = computed(
+  () => sipConfig.value.uri && sipConfig.value.sipUri && sipConfig.value.password
 )
 
 const formattedDuration = computed(() => {
@@ -66,7 +83,30 @@ const statusText = computed(() => {
 // DTMF Keypad
 const dtmfKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 
+// Auto-start/stop transcription with call
+watch(isActive, async (active) => {
+  if (active && !isTranscribing.value) {
+    try {
+      await startTranscription()
+    } catch (err) {
+      console.error('Transcription failed:', err)
+    }
+  } else if (!active && isTranscribing.value) {
+    stopTranscription()
+  }
+})
+
 // Methods
+function handleExportTranscript() {
+  const content = exportTranscript('txt')
+  const blob = new Blob([content], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `transcript-${Date.now()}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 async function handleConnect() {
   try {
     statusMessage.value = 'Connecting...'
@@ -125,7 +165,9 @@ async function handleDTMF(digit: string) {
   try {
     sendingDtmf.value = true
     await sendDTMF(digit)
-    setTimeout(() => { sendingDtmf.value = false }, 200)
+    setTimeout(() => {
+      sendingDtmf.value = false
+    }, 200)
   } catch (err) {
     sendingDtmf.value = false
     console.error('DTMF error:', err)
@@ -229,13 +271,7 @@ onUnmounted(async () => {
           class="dial-input"
           @keyup.enter="handleCall"
         />
-        <button
-          class="call-btn"
-          :disabled="!targetNumber"
-          @click="handleCall"
-        >
-          Call
-        </button>
+        <button class="call-btn" :disabled="!targetNumber" @click="handleCall">Call</button>
       </div>
 
       <!-- DTMF Keypad (shown during active call) -->
@@ -251,22 +287,67 @@ onUnmounted(async () => {
         </button>
       </div>
 
-      <!-- Hangup Button -->
+      <!-- Transcript (shown during active call) -->
+      <div v-if="isActive && showTranscript" class="transcript-section">
+        <div class="transcript-header">
+          <span class="transcript-title">
+            Transcript
+            <span v-if="isTranscribing" class="live-indicator">LIVE</span>
+          </span>
+          <div class="transcript-actions">
+            <button
+              type="button"
+              class="transcript-btn"
+              :disabled="transcript.length === 0"
+              @click="handleExportTranscript"
+            >
+              Export
+            </button>
+            <button
+              type="button"
+              class="transcript-btn"
+              :disabled="transcript.length === 0"
+              @click="clearTranscription"
+            >
+              Clear
+            </button>
+            <button type="button" class="transcript-btn" @click="showTranscript = false">
+              Hide
+            </button>
+          </div>
+        </div>
+        <div class="transcript-entries">
+          <div
+            v-for="entry in transcript"
+            :key="entry.id"
+            :class="['transcript-entry', `speaker-${entry.speaker}`]"
+          >
+            <span class="entry-speaker">{{ entry.participantName || entry.speaker }}</span>
+            <span class="entry-text">{{ entry.text }}</span>
+          </div>
+          <div v-if="currentUtterance" class="transcript-entry interim">
+            <span class="entry-speaker">...</span>
+            <span class="entry-text">{{ currentUtterance }}</span>
+          </div>
+          <div v-if="transcript.length === 0 && !currentUtterance" class="transcript-empty">
+            Transcript will appear here...
+          </div>
+        </div>
+      </div>
       <button
-        v-if="isActive"
-        class="hangup-btn"
-        @click="handleHangup"
+        v-if="isActive && !showTranscript"
+        type="button"
+        class="show-transcript-btn"
+        @click="showTranscript = true"
       >
-        Hang Up
+        Show Transcript
       </button>
 
+      <!-- Hangup Button -->
+      <button v-if="isActive" class="hangup-btn" @click="handleHangup">Hang Up</button>
+
       <!-- Disconnect Button -->
-      <button
-        class="disconnect-btn"
-        @click="handleDisconnect"
-      >
-        Disconnect
-      </button>
+      <button class="disconnect-btn" @click="handleDisconnect">Disconnect</button>
 
       <p v-if="statusMessage" class="error">{{ statusMessage }}</p>
     </section>
@@ -281,7 +362,10 @@ onUnmounted(async () => {
   max-width: 400px;
   margin: 0 auto;
   padding: 20px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 header {
@@ -360,13 +444,13 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button[type="submit"],
+button[type='submit'],
 .call-btn {
   background: #007bff;
   color: white;
 }
 
-button[type="submit"]:hover:not(:disabled),
+button[type='submit']:hover:not(:disabled),
 .call-btn:hover:not(:disabled) {
   background: #0056b3;
 }
@@ -481,5 +565,123 @@ button[type="submit"]:hover:not(:disabled),
 .dtmf-key.playing {
   background: #007bff;
   color: white;
+}
+
+/* Transcript Styles */
+.transcript-section {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.transcript-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.transcript-title {
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-indicator {
+  padding: 2px 6px;
+  background: #28a745;
+  color: white;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.transcript-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.transcript-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  width: auto;
+}
+
+.transcript-btn:hover:not(:disabled) {
+  background: #e9ecef;
+}
+
+.transcript-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.transcript-entries {
+  max-height: 150px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transcript-entry {
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.speaker-local {
+  background: #e3f2fd;
+  margin-left: 20px;
+}
+
+.speaker-remote {
+  background: #f5f5f5;
+  margin-right: 20px;
+}
+
+.interim {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.entry-speaker {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10px;
+  display: block;
+  margin-bottom: 2px;
+  color: #666;
+}
+
+.entry-text {
+  display: block;
+}
+
+.transcript-empty {
+  text-align: center;
+  color: #999;
+  font-size: 13px;
+  padding: 16px;
+}
+
+.show-transcript-btn {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.show-transcript-btn:hover {
+  background: #e9ecef;
 }
 </style>

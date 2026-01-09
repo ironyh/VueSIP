@@ -10,6 +10,7 @@ import Dialpad from './components/Dialpad.vue'
 import CallControls from './components/CallControls.vue'
 import CallHistory from './components/CallHistory.vue'
 import DeviceSettings from './components/DeviceSettings.vue'
+import TranscriptView from './components/TranscriptView.vue'
 import { usePhone } from './composables/usePhone'
 
 // Phone composable
@@ -30,15 +31,16 @@ const activeTab = ref(0)
 const statusMessage = ref('')
 
 // Computed
-const isConfigValid = computed(() =>
-  configForm.value.uri && configForm.value.sipUri && configForm.value.password
+const isConfigValid = computed(
+  () => configForm.value.uri && configForm.value.sipUri && configForm.value.password
 )
 
-const hasActiveCall = computed(() =>
-  phone.callState.value === 'active' ||
-  phone.callState.value === 'held' ||
-  phone.callState.value === 'ringing' ||
-  phone.callState.value === 'calling'
+const hasActiveCall = computed(
+  () =>
+    phone.callState.value === 'active' ||
+    phone.callState.value === 'held' ||
+    phone.callState.value === 'ringing' ||
+    phone.callState.value === 'calling'
 )
 
 // Methods
@@ -113,7 +115,13 @@ onUnmounted(async () => {
           >
             <i class="pi pi-circle-fill" />
             <span>
-              {{ phone.isRegistered.value ? 'Ready' : phone.isConnecting.value ? 'Connecting...' : 'Disconnected' }}
+              {{
+                phone.isRegistered.value
+                  ? 'Ready'
+                  : phone.isConnecting.value
+                    ? 'Connecting...'
+                    : 'Disconnected'
+              }}
             </span>
           </div>
         </div>
@@ -192,6 +200,13 @@ onUnmounted(async () => {
               @transfer="handleTransferClick"
             />
 
+            <!-- Transcript during active call -->
+            <TranscriptView
+              v-if="phone.isActive.value"
+              :is-call-active="phone.isActive.value"
+              :remote-display-name="phone.remoteDisplayName.value"
+            />
+
             <!-- DTMF during active call -->
             <div v-if="phone.isActive.value" class="dtmf-section">
               <Dialpad @digit="handleDTMF" @call="() => {}" />
@@ -253,11 +268,7 @@ onUnmounted(async () => {
         />
       </div>
       <template #footer>
-        <Button
-          label="Cancel"
-          class="p-button-text"
-          @click="showTransferDialog = false"
-        />
+        <Button label="Cancel" class="p-button-text" @click="showTransferDialog = false" />
         <Button
           label="Transfer"
           icon="pi pi-share-alt"
@@ -321,8 +332,13 @@ onUnmounted(async () => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .config-panel {
