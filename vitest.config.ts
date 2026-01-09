@@ -145,6 +145,9 @@ export default defineConfig({
         '**/JsSipCallSession.ts',
         '**/SipJsAdapter.ts',
         '**/SipJsCallSession.ts',
+        // Whisper provider requires WebSocket connection to external Whisper server
+        // Unit tests cover the provider interface via registry tests
+        '**/whisper.ts',
       ],
 
       // Coverage thresholds (80% minimum)

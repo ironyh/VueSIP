@@ -57,3 +57,6 @@ export * from './session-persistence.types'
 
 // Connection recovery types
 export * from './connection-recovery.types'
+
+// Transcription types
+export * from './transcription.types'

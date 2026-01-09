@@ -11,6 +11,7 @@
 # Scripts
 *.sh text eol=lf
 *.bash text eol=lf
+.husky/* text eol=lf
 
 # Documentation
 *.txt text eol=lf
