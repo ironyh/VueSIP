@@ -1,13 +1,33 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, nextTick, computed, onMounted } from 'vue'
 import Button from 'primevue/button'
 import ToggleButton from 'primevue/togglebutton'
-import { useTranscription } from 'vuesip'
+import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
+import { useTranscription, providerRegistry, WhisperProvider } from 'vuesip'
 
 const props = defineProps<{
   isCallActive: boolean
   remoteDisplayName?: string
 }>()
+
+// Provider configuration
+const showSettings = ref(false)
+const selectedProvider = ref<'web-speech' | 'whisper'>('web-speech')
+const whisperUrl = ref('ws://localhost:8765/transcribe')
+const providerError = ref<string | null>(null)
+
+const providerOptions = [
+  { label: 'Browser (Web Speech)', value: 'web-speech' },
+  { label: 'Whisper Server', value: 'whisper' },
+]
+
+// Register Whisper provider
+onMounted(() => {
+  if (!providerRegistry.has('whisper')) {
+    providerRegistry.register('whisper', () => new WhisperProvider())
+  }
+})
 
 // Transcription composable - simple setup for personal use
 const {
@@ -19,12 +39,35 @@ const {
   clear,
   exportTranscript,
   setParticipantName,
+  switchProvider,
+  provider: currentProvider,
 } = useTranscription({
   provider: 'web-speech',
   language: 'en-US',
   localName: 'Me',
   remoteName: props.remoteDisplayName || 'Caller',
 })
+
+// Apply provider settings
+async function applySettings() {
+  providerError.value = null
+  try {
+    if (selectedProvider.value === 'whisper') {
+      await switchProvider('whisper', {
+        serverUrl: whisperUrl.value,
+        model: 'base',
+        language: 'en',
+      })
+    } else {
+      await switchProvider('web-speech', { language: 'en-US' })
+    }
+    showSettings.value = false
+  } catch (err) {
+    providerError.value = err instanceof Error ? err.message : 'Connection failed'
+  }
+}
+
+const isWhisper = computed(() => currentProvider.value === 'whisper')
 
 // UI state
 const transcriptRef = ref<HTMLElement | null>(null)
@@ -103,13 +146,50 @@ function formatTime(timestamp: number): string {
         <i class="pi pi-comments" />
         <span>Transcript</span>
         <span v-if="isTranscribing" class="live-badge">LIVE</span>
+        <span v-if="isWhisper" class="whisper-badge">Whisper</span>
       </div>
       <div class="header-right">
+        <Button
+          icon="pi pi-cog"
+          class="p-button-text p-button-sm"
+          :disabled="isTranscribing"
+          @click="showSettings = !showSettings"
+          v-tooltip.left="'Provider Settings'"
+        />
         <Button
           :icon="isExpanded ? 'pi pi-chevron-down' : 'pi pi-chevron-up'"
           class="p-button-text p-button-sm"
           @click="isExpanded = !isExpanded"
         />
+      </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div v-if="showSettings" class="settings-panel">
+      <div class="settings-row">
+        <label>Provider</label>
+        <Dropdown
+          v-model="selectedProvider"
+          :options="providerOptions"
+          option-label="label"
+          option-value="value"
+          class="provider-select"
+        />
+      </div>
+      <div v-if="selectedProvider === 'whisper'" class="settings-row">
+        <label>Server URL</label>
+        <InputText
+          v-model="whisperUrl"
+          placeholder="ws://localhost:8765/transcribe"
+          class="url-input"
+        />
+      </div>
+      <div v-if="providerError" class="error-msg">
+        <i class="pi pi-exclamation-triangle" /> {{ providerError }}
+      </div>
+      <div class="settings-actions">
+        <Button label="Cancel" class="p-button-text p-button-sm" @click="showSettings = false" />
+        <Button label="Apply" class="p-button-sm" @click="applySettings" />
       </div>
     </div>
 
@@ -206,6 +286,56 @@ function formatTime(timestamp: number): string {
   border-radius: 4px;
   font-size: 0.625rem;
   animation: pulse 2s infinite;
+}
+
+.whisper-badge {
+  padding: 2px 6px;
+  background: var(--blue-500);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.625rem;
+}
+
+.settings-panel {
+  padding: 12px;
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--surface-300);
+}
+
+.settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.settings-row label {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+}
+
+.provider-select,
+.url-input {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+.error-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--red-50);
+  color: var(--red-700);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-bottom: 8px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 @keyframes pulse {

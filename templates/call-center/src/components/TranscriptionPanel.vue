@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed, onMounted } from 'vue'
 import Button from 'primevue/button'
 import ToggleButton from 'primevue/togglebutton'
 import Dropdown from 'primevue/dropdown'
+import InputText from 'primevue/inputtext'
 import Badge from 'primevue/badge'
-import { useTranscription } from 'vuesip'
-import type { TranscriptEntry, KeywordMatch } from 'vuesip'
+import { useTranscription, providerRegistry, WhisperProvider } from 'vuesip'
+import type { KeywordMatch } from 'vuesip'
 
 const props = defineProps<{
   isCallActive: boolean
@@ -16,6 +17,33 @@ const emit = defineEmits<{
   keywordDetected: [match: KeywordMatch]
   transcriptExported: [format: string, content: string]
 }>()
+
+// Provider configuration
+const selectedProvider = ref<'web-speech' | 'whisper'>('web-speech')
+const whisperServerUrl = ref('ws://localhost:8765/transcribe')
+const whisperModel = ref<'tiny' | 'base' | 'small' | 'medium' | 'large'>('base')
+const showProviderSettings = ref(false)
+const providerError = ref<string | null>(null)
+
+const providerOptions = [
+  { label: 'Web Speech (Browser)', value: 'web-speech' },
+  { label: 'Whisper (Self-hosted)', value: 'whisper' },
+]
+
+const whisperModelOptions = [
+  { label: 'Tiny (fastest)', value: 'tiny' },
+  { label: 'Base (balanced)', value: 'base' },
+  { label: 'Small', value: 'small' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'Large (most accurate)', value: 'large' },
+]
+
+// Register Whisper provider on mount
+onMounted(() => {
+  if (!providerRegistry.has('whisper')) {
+    providerRegistry.register('whisper', () => new WhisperProvider())
+  }
+})
 
 // Transcription composable with agent-assist keywords
 const {
@@ -29,6 +57,8 @@ const {
   remoteEnabled,
   exportTranscript,
   setParticipantName,
+  switchProvider,
+  provider: currentProvider,
 } = useTranscription({
   provider: 'web-speech',
   language: 'en-US',
@@ -48,15 +78,41 @@ const {
     patterns: ['credit-card', 'ssn', 'phone-number', 'email'],
     replacement: '[REDACTED]',
   },
-  onKeywordDetected: (match) => {
+  onKeywordDetected: (match: KeywordMatch) => {
     agentAssistTriggers.value.push({
-      action: match.rule.action,
+      action: match.rule.action as string,
       text: match.matchedText,
       timestamp: Date.now(),
     })
     emit('keywordDetected', match)
   },
 })
+
+// Handle provider change
+async function applyProviderSettings() {
+  providerError.value = null
+
+  try {
+    if (selectedProvider.value === 'whisper') {
+      await switchProvider('whisper', {
+        serverUrl: whisperServerUrl.value,
+        model: whisperModel.value,
+        language: 'en',
+        autoReconnect: true,
+      })
+    } else {
+      await switchProvider('web-speech', {
+        language: 'en-US',
+      })
+    }
+    showProviderSettings.value = false
+  } catch (err) {
+    providerError.value = err instanceof Error ? err.message : 'Failed to switch provider'
+    console.error('Provider switch failed:', err)
+  }
+}
+
+const isWhisperActive = computed(() => currentProvider.value === 'whisper')
 
 // Agent assist triggers
 interface AssistTrigger {
@@ -180,8 +236,16 @@ function formatTime(timestamp: number): string {
         <i class="pi pi-comments" />
         <span>Live Transcription</span>
         <Badge v-if="isTranscribing" value="LIVE" severity="success" />
+        <Badge v-if="isWhisperActive" value="Whisper" severity="info" class="ml-2" />
       </div>
       <div class="header-controls">
+        <Button
+          icon="pi pi-cog"
+          class="p-button-text p-button-sm"
+          :disabled="isTranscribing"
+          @click="showProviderSettings = !showProviderSettings"
+          v-tooltip.left="'Provider Settings'"
+        />
         <ToggleButton
           v-model="localEnabled"
           on-label="Agent"
@@ -198,6 +262,73 @@ function formatTime(timestamp: number): string {
           off-icon="pi pi-volume-off"
           class="toggle-small"
         />
+      </div>
+    </div>
+
+    <!-- Provider Settings Panel -->
+    <div v-if="showProviderSettings" class="provider-settings">
+      <div class="settings-header">
+        <i class="pi pi-sliders-h" />
+        <span>Transcription Provider</span>
+      </div>
+
+      <div class="settings-form">
+        <div class="field">
+          <label for="provider">Provider</label>
+          <Dropdown
+            id="provider"
+            v-model="selectedProvider"
+            :options="providerOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+        </div>
+
+        <!-- Whisper-specific settings -->
+        <template v-if="selectedProvider === 'whisper'">
+          <div class="field">
+            <label for="whisperUrl">Whisper Server URL</label>
+            <InputText
+              id="whisperUrl"
+              v-model="whisperServerUrl"
+              placeholder="ws://localhost:8765/transcribe"
+              class="w-full"
+            />
+            <small class="field-help">WebSocket URL of your Whisper server</small>
+          </div>
+
+          <div class="field">
+            <label for="whisperModel">Model</label>
+            <Dropdown
+              id="whisperModel"
+              v-model="whisperModel"
+              :options="whisperModelOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+            />
+          </div>
+        </template>
+
+        <div v-if="providerError" class="error-message">
+          <i class="pi pi-exclamation-triangle" />
+          {{ providerError }}
+        </div>
+
+        <div class="settings-actions">
+          <Button
+            label="Cancel"
+            class="p-button-text p-button-sm"
+            @click="showProviderSettings = false"
+          />
+          <Button
+            label="Apply"
+            class="p-button-sm"
+            icon="pi pi-check"
+            @click="applyProviderSettings"
+          />
+        </div>
       </div>
     </div>
 
@@ -281,7 +412,7 @@ function formatTime(timestamp: number): string {
           placeholder="Export"
           class="export-dropdown"
           :disabled="transcript.length === 0"
-          @change="(e: { value: string }) => handleExport(e.value)"
+          @change="(e) => handleExport(e.value)"
         />
       </div>
     </div>
@@ -321,10 +452,76 @@ function formatTime(timestamp: number): string {
 .header-controls {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .toggle-small {
   font-size: 0.75rem;
+}
+
+.ml-2 {
+  margin-left: 8px;
+}
+
+/* Provider Settings */
+.provider-settings {
+  border-bottom: 1px solid var(--surface-border);
+  background: var(--surface-ground);
+  padding: 16px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--primary-600);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-color-secondary);
+}
+
+.field-help {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+}
+
+.w-full {
+  width: 100%;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--red-50);
+  border-radius: 6px;
+  color: var(--red-700);
+  font-size: 0.875rem;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .assist-alerts {
