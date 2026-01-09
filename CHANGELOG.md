@@ -8,15 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Comprehensive changelog with full version history
 - Developer documentation structure
 - **SIP Adapter Architecture** - Foundation for multi-library support (JsSIP, SIP.js, custom)
-  * `ISipAdapter` interface - Adapter contract for SIP libraries
-  * `ICallSession` interface - Standardized call session interface
-  * `AdapterFactory` - Factory pattern for runtime library selection
-  * Comprehensive adapter documentation (`/src/adapters/README.md`)
-  * Implementation roadmap (`/ADAPTER_ROADMAP.md`)
-  * Support for custom adapter implementations
+  - `ISipAdapter` interface - Adapter contract for SIP libraries
+  - `ICallSession` interface - Standardized call session interface
+  - `AdapterFactory` - Factory pattern for runtime library selection
+  - Comprehensive adapter documentation (`/src/adapters/README.md`)
+  - Implementation roadmap (`/ADAPTER_ROADMAP.md`)
+  - Support for custom adapter implementations
+- **Provider Abstraction System** - Multi-provider login with unified interface
+  - Pre-configured provider settings for 46elks, Telnyx, VoIP.ms, Own PBX
+  - `useProviderSelector` composable for reactive state management
+  - Provider Registry for centralized provider lookup and registration
+  - Credential Storage with localStorage/sessionStorage support
+  - Provider Adapters for complex providers (Twilio) requiring custom logic
+  - Full TypeScript type definitions with strongly-typed configurations
+  - Comprehensive documentation (`/docs/guide/provider-selector.md`)
+- **Telnyx API Service** - Integration with Telnyx REST API for advanced features
+  - TelnyxApiLogin component for API-based authentication
+  - Support for both SIP credentials and API-based workflows
+- **Template Integration** - Provider system integrated in basic-softphone template
+  - ProviderSelector and ProviderLoginForm components
+  - Seamless provider switching in softphone UI
 
 ## [1.0.0] - 2025-11-08
 
@@ -25,6 +40,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 ### Added
 
 #### Core Infrastructure (Phases 1-4)
+
 - **Project Foundation**: Complete TypeScript setup with Vite 5 build system
 - **Type System**: Comprehensive TypeScript type definitions for SIP, calls, media, events, presence, messaging, and conferencing
 - **Utility Layer**: Validators, formatters, logger, and constants
@@ -35,6 +51,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 - **Media Manager**: WebRTC media management with device enumeration, ICE handling, and SDP negotiation
 
 #### Composables (Phases 5-6)
+
 - `useSipClient`: SIP connection and registration management
 - `useSipRegistration`: SIP registration lifecycle control
 - `useCallSession`: Call session management (make, answer, hold, mute, transfer)
@@ -47,6 +64,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 - `useConference`: Multi-party conference calling with participant management
 
 #### State Management (Phase 5)
+
 - `callStore`: Centralized call state management
 - `deviceStore`: Media device state management
 - `connectionStore`: SIP connection state management
@@ -55,17 +73,20 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 - Automatic state restoration on reload
 
 #### Provider Components (Phase 6)
+
 - `SipClientProvider`: Root-level SIP client management
 - `ConfigProvider`: Configuration management with validation
 - `MediaProvider`: Media device and permission management
 
 #### Plugin System (Phase 7)
+
 - `PluginManager`: Plugin lifecycle and registration
 - `HookManager`: Hook system with priorities
 - `AnalyticsPlugin`: Call analytics and event tracking
 - `RecordingPlugin`: Call recording with MediaRecorder API and IndexedDB storage
 
 #### Testing Infrastructure (Phases 8-10)
+
 - 19 comprehensive unit test suites covering all utilities, core classes, composables, stores, plugins, and providers
 - 584+ total unit tests with >80% code coverage
 - 4 integration test suites with MockSipServer helper
@@ -74,6 +95,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 - CI/CD-ready test infrastructure
 
 #### Documentation (Phase 11.1-11.8)
+
 - **Phase 11.1**: JSDoc/TSDoc documentation for `useConference` composable
 - **Phase 11.4**: Complete plugin system documentation (PluginManager, HookManager, AnalyticsPlugin, RecordingPlugin)
 - **Phase 11.5**: 11 comprehensive user guides covering:
@@ -99,6 +121,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 - **Phase 11.8**: Developer documentation including comprehensive CHANGELOG
 
 #### Features Highlights
+
 - **Call Management**: Outgoing, incoming, hold, mute, transfer (blind and attended), DTMF
 - **Media Handling**: Audio/video device enumeration, selection, permissions, stream management
 - **Conference Calling**: Multi-party conferences with participant management, muting, audio levels
@@ -110,6 +133,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 - **Quality Management**: Automatic quality adjustment based on network conditions
 
 ### Changed
+
 - **Breaking**: Renamed composables for consistency:
   - `useSipConnection` → `useSipClient`
   - `useSipCall` → `useCallSession`
@@ -127,6 +151,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 - Improved call state transitions with proper event emission
 
 ### Fixed
+
 - **Critical**: CallSession data exposure bug (toInterface() returned direct reference)
 - **Critical**: CallSession duration calculation (added validation for negative durations)
 - **Critical**: Media track duplication causing memory leaks
@@ -142,6 +167,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 - Fixed E2E test infrastructure for CI/CD compatibility
 
 ### Security
+
 - Digest authentication (MD5) with 401/407 challenge handling
 - Authorization username override support
 - HA1 hash support for enhanced security
@@ -153,6 +179,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 ## [0.1.0] - 2025-11-05
 
 ### Added
+
 - Initial prototype release of VueSip
 - Basic SIP connection composable (`useSipConnection`)
 - Basic call management (`useSipCall`)
@@ -163,6 +190,7 @@ VueSip 1.0.0 is a complete, production-ready headless Vue.js component library f
 - MIT License
 
 ### Notes
+
 - This version was a minimal prototype and is superseded by 1.0.0
 - Breaking API changes were made between 0.1.0 and 1.0.0
 
