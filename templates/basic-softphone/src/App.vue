@@ -13,6 +13,7 @@ import CallHistory from './components/CallHistory.vue'
 import DeviceSettings from './components/DeviceSettings.vue'
 import Elks46ApiLogin from './components/Elks46ApiLogin.vue'
 import TelnyxApiLogin from './components/TelnyxApiLogin.vue'
+import TranscriptView from './components/TranscriptView.vue'
 import { usePhone } from './composables/usePhone'
 import { useProviderSelector } from 'vuesip'
 import type { ProviderConfig } from 'vuesip'
@@ -303,7 +304,7 @@ onUnmounted(async () => {
               :call-state="phone.callState.value"
               :is-on-hold="phone.isOnHold.value"
               :is-muted="phone.isMuted.value"
-              :remote-display-name="phone.remoteDisplayName.value"
+              :remote-display-name="phone.remoteDisplayName.value ?? undefined"
               :remote-uri="phone.remoteUri.value"
               :duration="phone.duration.value"
               @answer="phone.answerCall"
@@ -312,6 +313,13 @@ onUnmounted(async () => {
               @toggle-hold="phone.toggleHold"
               @toggle-mute="phone.toggleMute"
               @transfer="handleTransferClick"
+            />
+
+            <!-- Transcript during active call -->
+            <TranscriptView
+              v-if="phone.isActive.value"
+              :is-call-active="phone.isActive.value"
+              :remote-display-name="phone.remoteDisplayName.value ?? undefined"
             />
 
             <!-- DTMF during active call -->

@@ -10,8 +10,10 @@ import AgentDashboard from './components/AgentDashboard.vue'
 import QueueStats from './components/QueueStats.vue'
 import CallPanel from './components/CallPanel.vue'
 import SupervisorPanel from './components/SupervisorPanel.vue'
+import TranscriptionPanel from './components/TranscriptionPanel.vue'
 import { useAgent } from './composables/useAgent'
 import { useQueues } from './composables/useQueues'
+import type { KeywordMatch } from 'vuesip'
 
 // Agent composable
 const agent = useAgent()
@@ -36,13 +38,14 @@ const statusMessage = ref('')
 const activeTab = ref(0)
 
 // Computed
-const isConfigValid = computed(() =>
-  configForm.value.wsUri &&
-  configForm.value.sipUri &&
-  configForm.value.password &&
-  configForm.value.amiWsUrl &&
-  configForm.value.agentId &&
-  configForm.value.queues
+const isConfigValid = computed(
+  () =>
+    configForm.value.wsUri &&
+    configForm.value.sipUri &&
+    configForm.value.password &&
+    configForm.value.amiWsUrl &&
+    configForm.value.agentId &&
+    configForm.value.queues
 )
 
 // Methods
@@ -196,6 +199,17 @@ function handleStopMonitor() {
   // Hangup spy channel
 }
 
+// Transcription handlers
+function handleKeywordDetected(match: KeywordMatch) {
+  console.log('Keyword detected:', match.matchedText, '- Action:', match.rule.action)
+  // In production, trigger agent assist UI, show knowledge base articles, etc.
+}
+
+function handleTranscriptExported(format: string, content: string) {
+  console.log(`Transcript exported as ${format}:`, content.length, 'characters')
+  // In production, save to CRM, send via email, etc.
+}
+
 // Cleanup
 onUnmounted(async () => {
   if (agent.isConnected.value) {
@@ -299,11 +313,7 @@ onUnmounted(async () => {
               />
             </div>
             <div class="form-field full-width checkbox-field">
-              <Checkbox
-                id="supervisor"
-                v-model="configForm.isSupervisor"
-                :binary="true"
-              />
+              <Checkbox id="supervisor" v-model="configForm.isSupervisor" :binary="true" />
               <label for="supervisor">Supervisor Mode</label>
             </div>
           </div>
@@ -365,6 +375,15 @@ onUnmounted(async () => {
               :available-agents="queues.availableAgents.value"
               :longest-wait="queues.longestWait.value"
               :average-service-level="queues.averageServiceLevel.value"
+            />
+          </TabPanel>
+
+          <TabPanel header="Transcription">
+            <TranscriptionPanel
+              :is-call-active="agent.isOnCall.value"
+              :remote-display-name="agent.remoteDisplayName.value"
+              @keyword-detected="handleKeywordDetected"
+              @transcript-exported="handleTranscriptExported"
             />
           </TabPanel>
 

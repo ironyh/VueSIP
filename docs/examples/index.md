@@ -1,613 +1,669 @@
 # Examples
 
-Learn VueSip by exploring working code examples. Each example demonstrates specific features and use cases, from simple audio calls to complex multi-line business phone systems.
+Learn VueSip by exploring the **50+ interactive demos** in the playground. Each demo showcases specific features with live code you can experiment with.
 
-## Available Examples
+## Getting Started
 
-### 🎧 Basic Audio Call
+Run the playground locally to explore all demos:
 
-A complete, production-ready example of a simple one-to-one audio calling application.
+```bash
+# Clone the repository
+git clone https://github.com/ironyh/VueSip.git
+cd VueSip
 
-**Perfect for:**
+# Install dependencies
+pnpm install
 
-- Getting started with VueSip
-- Understanding core concepts
-- Building simple softphones
-- Click-to-call features
+# Start the playground
+pnpm dev
+```
+
+Visit `http://localhost:5173` to access the interactive playground.
+
+::: tip Live Playground
+Try the demos online at [vuesip-play.pages.dev](https://vuesip-play.pages.dev/)
+:::
+
+---
+
+## Core Calling Demos
+
+### BasicCallDemo
+
+A complete example of one-to-one audio calling with connection management.
 
 **Features:**
 
 - SIP client connection and registration
 - Make and receive audio calls
-- Call controls (mute, hold, hangup)
-- Audio device selection (microphone/speaker)
 - Call state tracking and duration display
 - Error handling and user feedback
 
-**Technologies:**
+**Key Composables:** `useSipClient`, `useCallSession`
 
-- Vue 3 with Composition API
-- TypeScript
-- Vite
+```vue
+<script setup lang="ts">
+import { useSipClient, useCallSession } from 'vuesip'
 
-[View Basic Audio Call Example →](https://github.com/ironyh/VueSip/tree/main/examples/basic-audio-call)
+const { connect, isConnected, isRegistered } = useSipClient()
+const { currentCall, makeCall, answer, hangup } = useCallSession()
+
+await connect({
+  uri: 'sip:1000@example.com',
+  password: 'secret',
+  server: 'wss://sip.example.com:8089/ws',
+})
+</script>
+```
 
 ---
 
-### 🎥 Video Call
+### VideoCallDemo
 
-One-to-one video calling with camera selection, preview, and comprehensive call controls.
-
-**Perfect for:**
-
-- Video conferencing applications
-- Remote collaboration tools
-- Telemedicine platforms
-- Video chat features
+Video calling with camera selection, preview, and picture-in-picture support.
 
 **Features:**
 
 - Bidirectional video and audio calls
-- Local video preview (picture-in-picture)
+- Local video preview
 - Camera enumeration and selection
-- Remote video display with proper aspect ratio
 - Switch cameras during active calls
 - Enable/disable video during calls
-- All audio call features (mute, hold, etc.)
-- Clean UI with responsive design
 
-**Technologies:**
-
-- Vue 3 with Composition API
-- TypeScript
-- WebRTC video APIs
-- Vite
-
-[View Video Call Example →](https://github.com/ironyh/VueSip/tree/main/examples/video-call)
+**Key Composables:** `useSipClient`, `useCallSession`, `useMediaDevices`
 
 ---
 
-### 📞 Multi-Line Phone
+### MultiLineDemo
 
-Advanced multi-line phone system supporting up to 5 concurrent calls with professional call management features.
-
-**Perfect for:**
-
-- Business phone systems
-- Call centers
-- Customer support applications
-- Enterprise communications
+Multi-line phone system supporting multiple concurrent calls.
 
 **Features:**
 
 - Up to 5 concurrent calls
 - Visual call line management
 - Call switching between lines
-- Individual line controls (hold, mute, transfer)
-- Automatic audio routing to active line
-- Call history tracking
-- DTMF support per line
-- Incoming call alerts
+- Individual line controls (hold, mute)
 - Call duration tracking per line
 
-**Technologies:**
-
-- Vue 3 with Composition API
-- TypeScript
-- Advanced state management
-- Vite
-
-[View Multi-Line Phone Example →](https://github.com/ironyh/VueSip/tree/main/examples/multi-line-phone)
+**Key Composables:** `useMultiLine`
 
 ---
 
-### 🎤 Conference Call
+### ConferenceCallDemo
 
-Multi-party conference calling with participant management and moderation features.
-
-**Perfect for:**
-
-- Team meetings
-- Conference bridges
-- Group calling features
-- Webinar platforms
+Multi-party conference calling with participant management.
 
 **Features:**
 
 - Multi-party audio/video conferences
-- Participant management
+- Participant list and management
 - Mute individual participants
-- Conference controls
-- Participant list
 - Join/leave notifications
+- Conference moderation controls
 
-**Technologies:**
-
-- Vue 3 with Composition API
-- TypeScript
-- WebRTC conferencing
-- Vite
-
-[View Conference Call Example →](https://github.com/ironyh/VueSip/tree/main/examples/conference-call)
+**Key Composables:** `useConference`
 
 ---
 
-### 📞 Call Center
+### CallTransferDemo
 
-Professional call center application with queue management and agent features.
-
-**Perfect for:**
-
-- Customer service centers
-- Support desk applications
-- Sales teams
-- Help desk systems
+Blind and attended call transfers.
 
 **Features:**
 
-- Call queue management
-- Agent status management
-- Call routing
-- Call metrics and statistics
-- Wrap-up codes
-- Call disposition
+- Blind transfer to another extension
+- Attended transfer with consultation
+- Transfer status feedback
 
-**Technologies:**
-
-- Vue 3 with Composition API
-- TypeScript
-- Advanced call management
-- Vite
-
-[View Call Center Example →](https://github.com/ironyh/VueSip/tree/main/examples/call-center)
+**Key Composables:** `useCallTransfer`
 
 ---
 
-### 📊 Call Quality Dashboard
+## Call Controls Demos
 
-Real-time call quality monitoring dashboard with WebRTC statistics, quality scoring, and network indicators.
+### DtmfDemo
 
-**Perfect for:**
-
-- Quality assurance monitoring
-- Technical support dashboards
-- Network diagnostics
-- Performance optimization
-- User experience analysis
+Send DTMF tones during calls.
 
 **Features:**
 
-- Real-time WebRTC statistics (jitter, latency, packet loss)
-- Composite quality scoring (A-F grades, 0-100 scale)
-- Network quality indicators with signal strength visualization
-- Quality trend analysis with confidence scoring
-- Actionable recommendations based on metrics
-- Historical quality data tracking
-- Audio/video codec information
-- ICE connection state monitoring
+- Interactive dialpad
+- Single digit and sequence sending
+- Configurable tone duration
+- Visual feedback
 
-**Technologies:**
-
-- Vue 3 with Composition API
-- TypeScript
-- WebRTC Stats API
-- Reactive composables: `useCallQualityScore`, `useNetworkQualityIndicator`
-- Vite
-
-**Key Composables:**
+**Key Composables:** `useDTMF`
 
 ```typescript
-import { useCallQualityScore, useNetworkQualityIndicator, useSipWebRTCStats } from 'vuesip'
+import { useDTMF } from 'vuesip'
 
-// Quality scoring with trend analysis
-const { score, grade, factors, trend, recommendations } = useCallQualityScore()
+const { sendDTMF, sendDTMFSequence } = useDTMF(callSession)
 
-// Network quality indicator
-const { indicator, signalBars, description } = useNetworkQualityIndicator()
+// Send single digit
+sendDTMF('5')
+
+// Send sequence with 200ms interval
+await sendDTMFSequence('1234#', 200)
 ```
 
-[View Call Quality Dashboard Guide →](/guide/call-quality-dashboard)
+---
+
+### CallTimerDemo
+
+Real-time call duration tracking.
+
+**Features:**
+
+- Live call timer display
+- Format options (HH:MM:SS)
+- Start/stop on call state changes
+
+**Key Composables:** `useCallSession`
+
+---
+
+### AutoAnswerDemo
+
+Automatic call answering based on configurable rules.
+
+**Features:**
+
+- Enable/disable auto-answer
+- Configurable delay before answering
+- Caller ID filtering
+- Queue call handling
+
+**Key Composables:** `useSipAutoAnswer`
+
+---
+
+## Call Quality Demos
+
+### CallQualityDemo
+
+Real-time call quality monitoring with scoring.
+
+**Features:**
+
+- Quality scores (A-F grades, 0-100 scale)
+- Jitter, latency, packet loss metrics
+- Trend analysis with confidence scoring
+- Actionable recommendations
+
+**Key Composables:** `useCallQualityScore`
+
+```typescript
+import { useCallQualityScore } from 'vuesip'
+
+const {
+  score, // Ref<number> - 0-100 quality score
+  grade, // Ref<'A'|'B'|'C'|'D'|'F'>
+  factors, // Contributing quality factors
+  trend, // Quality trend (improving/declining)
+  recommendations, // Improvement suggestions
+} = useCallQualityScore()
+```
+
+---
+
+### WebRTCStatsDemo
+
+Raw WebRTC statistics for debugging and analysis.
+
+**Features:**
+
+- Inbound/outbound RTP stats
+- ICE connection state
+- Codec information
+- Bandwidth usage
+
+**Key Composables:** `useSipWebRTCStats`
+
+---
+
+### NetworkSimulatorDemo
+
+Simulate network conditions for testing.
+
+**Features:**
+
+- Adjustable latency
+- Packet loss simulation
+- Bandwidth throttling
+- Quality indicator visualization
+
+**Key Composables:** `useNetworkQualityIndicator`
+
+---
+
+### ConnectionRecoveryDemo
+
+Automatic reconnection and session recovery.
+
+**Features:**
+
+- Connection monitoring
+- Automatic reconnection attempts
+- Exponential backoff
+- Session state preservation
+
+**Key Composables:** `useConnectionRecovery`
+
+---
+
+## Call Center Demos
+
+### AgentLoginDemo
+
+Call center agent authentication and status management.
+
+**Features:**
+
+- Agent login/logout
+- Queue membership management
+- Break/pause status
+- Extension assignment
+
+**Key Composables:** `useAmiAgentLogin`
+
+---
+
+### AgentStatsDemo
+
+Real-time agent performance statistics.
+
+**Features:**
+
+- Calls handled today
+- Average handle time
+- Talk time and wrap-up time
+- Availability metrics
+
+**Key Composables:** `useAmiAgentStats`
+
+---
+
+### QueueMonitorDemo
+
+Live queue statistics and monitoring.
+
+**Features:**
+
+- Queue wait times
+- Calls waiting count
+- Service level metrics
+- Agent availability
+
+**Key Composables:** `useAmiQueues`
+
+---
+
+### SupervisorDemo
+
+Supervisor controls for call center management.
+
+**Features:**
+
+- Silent monitoring (spy)
+- Whisper mode (talk to agent only)
+- Barge-in (join call)
+- Agent performance overview
+
+**Key Composables:** `useAmiSupervisor`
+
+---
+
+### CDRDashboardDemo
+
+Call detail records and reporting.
+
+**Features:**
+
+- Call history search
+- Duration and disposition tracking
+- Export capabilities
+- Date range filtering
+
+**Key Composables:** `useAmiCDR`
+
+---
+
+## Video & Recording Demos
+
+### PictureInPictureDemo
+
+Browser Picture-in-Picture API integration.
+
+**Features:**
+
+- Enable/disable PiP mode
+- Automatic PiP on tab switch
+- Custom PiP controls
+- Video element management
+
+**Key Composables:** `usePictureInPicture`
+
+---
+
+### ScreenSharingDemo
+
+Screen sharing during calls.
+
+**Features:**
+
+- Screen/window/tab selection
+- Start/stop sharing
+- Replace video track
+- Sharing indicator
+
+**Key Composables:** `useMediaDevices`
+
+---
+
+### CallRecordingDemo
+
+Server-side call recording management.
+
+**Features:**
+
+- Start/stop recording
+- Recording status indicator
+- Recording file management
+- Permission handling
+
+**Key Composables:** `useAmiRecording`
+
+---
+
+### RecordingIndicatorDemo
+
+Visual recording status indicator.
+
+**Features:**
+
+- Recording state display
+- Duration tracking
+- Privacy indicators
+
+**Key Composables:** `useRecordingIndicator`
+
+---
+
+### ConferenceGalleryDemo
+
+Conference video gallery layout.
+
+**Features:**
+
+- Grid layout for participants
+- Active speaker highlighting
+- Responsive grid sizing
+- Participant controls
+
+**Key Composables:** `useGalleryLayout`, `useActiveSpeaker`
+
+---
+
+## Communication Demos
+
+### PresenceDemo
+
+User presence and status management.
+
+**Features:**
+
+- Online/offline/away status
+- Custom status messages
+- Presence subscriptions
+- BLF (Busy Lamp Field)
+
+**Key Composables:** `usePresence`
+
+---
+
+### SipMessagingDemo
+
+SIP MESSAGE support for instant messaging.
+
+**Features:**
+
+- Send/receive SIP messages
+- Message history
+- Delivery confirmation
+- Typing indicators
+
+**Key Composables:** `useMessaging`
+
+---
+
+### VoicemailDemo
+
+Voicemail box management.
+
+**Features:**
+
+- Message list
+- Playback controls
+- Delete/archive messages
+- New message notifications
+
+**Key Composables:** `useAmiVoicemail`
+
+---
+
+### PagingDemo
+
+Paging and intercom functionality.
+
+**Features:**
+
+- Page groups
+- Zone announcements
+- Two-way intercom
+- Page history
+
+**Key Composables:** `useAmiPaging`
+
+---
+
+### BLFDemo
+
+Busy Lamp Field presence indicators.
+
+**Features:**
+
+- Extension status monitoring
+- Quick dial from BLF
+- Visual status indicators
+- Pickup group integration
+
+**Key Composables:** `useFreePBXPresence`
+
+---
+
+## Settings & Utilities Demos
+
+### AudioDevicesDemo
+
+Complete audio device management.
+
+**Features:**
+
+- Microphone selection
+- Speaker selection
+- Volume controls
+- Device change detection
+
+**Key Composables:** `useMediaDevices`, `useAudioDevices`
+
+```typescript
+import { useMediaDevices } from 'vuesip'
+
+const {
+  audioInputDevices,
+  audioOutputDevices,
+  selectedAudioInput,
+  selectAudioInput,
+  selectAudioOutput,
+  requestPermissions,
+} = useMediaDevices()
+
+// Request microphone access
+await requestPermissions(true, false)
+```
+
+---
+
+### SettingsDemo
+
+Application settings with persistence.
+
+**Features:**
+
+- Audio preferences
+- Ringtone selection
+- Notification settings
+- Theme preferences
+
+**Key Composables:** `useSettings`, `useSettingsPersistence`
+
+---
+
+### SessionPersistenceDemo
+
+Session state preservation across page reloads.
+
+**Features:**
+
+- Reconnect after page refresh
+- Call state recovery
+- Registration persistence
+- Credential management
+
+**Key Composables:** `useSessionPersistence`
+
+---
+
+### CallHistoryDemo
+
+Call log management and search.
+
+**Features:**
+
+- Incoming/outgoing/missed calls
+- Date range filtering
+- Search by number/name
+- Call back functionality
+
+**Key Composables:** `useCallHistory`
+
+---
+
+### SpeedDialDemo
+
+Speed dial and contacts management.
+
+**Features:**
+
+- Add/edit speed dial entries
+- Drag and drop ordering
+- One-click calling
+- Favorites management
+
+**Key Composables:** `useSettings`
+
+---
+
+## Additional Demos
+
+The playground includes many more demos:
+
+| Demo                    | Description                              |
+| ----------------------- | ---------------------------------------- |
+| CallWaitingDemo         | Handle incoming calls during active call |
+| CallMutePatternsDemo    | Advanced mute patterns                   |
+| ClickToCallDemo         | Click-to-call integration                |
+| ContactsDemo            | Contact list management                  |
+| CustomRingtonesDemo     | Custom ringtone selection                |
+| DoNotDisturbDemo        | DND mode management                      |
+| E911Demo                | E911 emergency location                  |
+| FeatureCodesDemo        | Feature code dialing                     |
+| IVRMonitorDemo          | IVR flow monitoring                      |
+| ParkingDemo             | Call parking operations                  |
+| RecordingManagementDemo | Recording file management                |
+| RingGroupsDemo          | Ring group configuration                 |
+| TimeConditionsDemo      | Time-based routing                       |
+| ToolbarLayoutsDemo      | Customizable call toolbar                |
+| UserManagementDemo      | User administration                      |
 
 ---
 
 ## Quick Comparison
 
-| Example                | Difficulty   | Lines of Code | Key Composables                                 | Use Case           |
-| ---------------------- | ------------ | ------------- | ----------------------------------------------- | ------------------ |
-| Basic Audio Call       | Beginner     | ~500          | useSipClient, useCallSession, useMediaDevices   | Simple softphone   |
-| Video Call             | Intermediate | ~800          | + video device management                       | Video conferencing |
-| Multi-Line Phone       | Advanced     | ~1500         | + multi-session management                      | Business phone     |
-| Conference Call        | Advanced     | ~1200         | + useConference                                 | Team meetings      |
-| Call Center            | Advanced     | ~1800         | + queue management                              | Customer service   |
-| Call Quality Dashboard | Intermediate | ~600          | useCallQualityScore, useNetworkQualityIndicator | Quality monitoring |
+| Demo Category     | Demos | Difficulty   | Key Features                   |
+| ----------------- | ----- | ------------ | ------------------------------ |
+| Core Calling      | 5     | Beginner     | Basic SIP operations           |
+| Call Controls     | 5     | Beginner     | DTMF, timer, auto-answer       |
+| Call Quality      | 4     | Intermediate | WebRTC stats, monitoring       |
+| Call Center       | 5     | Advanced     | AMI integration, queues        |
+| Video & Recording | 5     | Intermediate | PiP, screen share, recording   |
+| Communication     | 5     | Intermediate | Presence, messaging, voicemail |
+| Settings          | 5     | Beginner     | Devices, persistence           |
 
 ---
 
-## Getting Started with Examples
+## Learning Paths
 
-### Prerequisites
+### Beginner Path
 
-All examples require:
+1. **BasicCallDemo** - Understand SIP connection and calling
+2. **AudioDevicesDemo** - Learn device management
+3. **DtmfDemo** - Add DTMF support
+4. **CallHistoryDemo** - Track call logs
 
-- **Node.js** 20.0.0 or higher
-- **pnpm** 8.0.0 or higher (or npm/yarn)
-- **SIP Server** with WebSocket support
-- **Browser** with WebRTC support
+### Intermediate Path
 
-### Installation
+1. **VideoCallDemo** - Add video calling
+2. **CallQualityDemo** - Monitor call quality
+3. **MultiLineDemo** - Handle multiple calls
+4. **ConnectionRecoveryDemo** - Handle disconnections
 
-Each example is a standalone application. To run an example:
+### Advanced Path
 
-```bash
-# Navigate to the example directory
-cd examples/basic-audio-call
-
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-```
-
-### SIP Server Configuration
-
-All examples require a SIP server with WebSocket support. Compatible servers include:
-
-- **Asterisk** (16.0+) with `chan_pjsip` and WebSocket transport
-- **FreeSWITCH** with `mod_verto` or WebSocket-enabled `mod_sofia`
-- **Kamailio** with WebSocket module
-- **OpenSIPS** with WebSocket support
-
-Example Asterisk configuration:
-
-```ini
-[transport-wss]
-type=transport
-protocol=wss
-bind=0.0.0.0:8089
-
-[webrtc-endpoint]
-type=endpoint
-context=default
-disallow=all
-allow=opus,ulaw
-webrtc=yes
-```
+1. **ConferenceCallDemo** - Multi-party calling
+2. **AgentLoginDemo** - Call center integration
+3. **SupervisorDemo** - Supervisor controls
+4. **CDRDashboardDemo** - Reporting and analytics
 
 ---
 
-## Learning Path
+## Running Individual Demos
 
-### Path 1: Beginner → Intermediate
+Each demo is a standalone Vue component. To run a specific demo:
 
-**Goal:** Build a functional video calling app
-
-1. **Basic Audio Call** (2 hours)
-   - Understand VueSip basics
-   - Learn SIP connection and registration
-   - Make your first call
-
-2. **Video Call** (3 hours)
-   - Add video capabilities
-   - Manage cameras
-   - Handle media streams
-
-**Outcome:** Working video calling application
-
----
-
-### Path 2: Beginner → Advanced
-
-**Goal:** Build a business phone system
-
-1. **Basic Audio Call** (2 hours)
-   - Core concepts and basics
-
-2. **Multi-Line Phone** (6 hours)
-   - Multiple concurrent calls
-   - Advanced state management
-   - Professional call features
-
-**Outcome:** Production-ready multi-line phone system
-
----
-
-### Path 3: Advanced Integration
-
-**Goal:** Build a complete call center
-
-1. **Multi-Line Phone** (6 hours)
-   - Master multi-session management
-
-2. **Conference Call** (4 hours)
-   - Learn conferencing features
-
-3. **Call Center** (8 hours)
-   - Integrate queue management
-   - Add agent features
-   - Implement metrics
-
-**Outcome:** Full-featured call center application
-
----
-
-## Common Patterns
-
-### Pattern 1: Basic Setup
-
-All examples follow this initialization pattern:
-
-```vue
-<script setup lang="ts">
-import { useSipClient, useCallSession } from 'vuesip'
-
-// Initialize SIP client
-const { connect, disconnect, isConnected, isRegistered } = useSipClient()
-
-// Initialize call session
-const { makeCall, answer, hangup, currentCall } = useCallSession()
-
-// Connect to SIP server
-await connect({
-  uri: 'sip:user@example.com',
-  password: 'password',
-  server: 'wss://sip.example.com:7443',
-})
-</script>
-```
-
-### Pattern 2: Making Calls
-
-```typescript
-// Simple call
-await makeCall('sip:1234@example.com')
-
-// Call with options
-await makeCall('sip:1234@example.com', {
-  mediaConstraints: {
-    audio: true,
-    video: true,
-  },
-})
-```
-
-### Pattern 3: Handling Incoming Calls
-
-```vue
-<script setup>
-const { currentCall, answer, reject } = useCallSession()
-
-// Listen for incoming calls via event or watch currentCall
-watch(currentCall, (call) => {
-  if (call?.direction === 'incoming' && call.state === 'ringing') {
-    // Show UI to answer/reject
-  }
-})
-</script>
-
-<template>
-  <div v-if="currentCall?.direction === 'incoming'">
-    <p>Incoming call from {{ currentCall.remoteUri }}</p>
-    <button @click="answer()">Answer</button>
-    <button @click="reject()">Reject</button>
-  </div>
-</template>
-```
-
-### Pattern 4: Device Management
-
-```typescript
-const { audioInputDevices, audioOutputDevices, selectAudioInput, selectAudioOutput } =
-  useMediaDevices()
-
-// Request permissions
-await requestPermissions(true, false) // audio: true, video: false
-
-// Select devices
-selectAudioInput(deviceId)
-selectAudioOutput(deviceId)
-```
-
----
-
-## Integration Examples
-
-### With UI Libraries
-
-#### PrimeVue Integration
-
-```vue
-<script setup>
-import { Button } from 'primevue/button'
-import { InputText } from 'primevue/inputtext'
-import { useSipClient, useCallSession } from 'vuesip'
-
-const { connect, isConnected } = useSipClient()
-const { makeCall } = useCallSession()
-
-const phoneNumber = ref('')
-</script>
-
-<template>
-  <div>
-    <InputText v-model="phoneNumber" placeholder="Enter number" />
-    <Button
-      @click="makeCall(phoneNumber)"
-      label="Call"
-      icon="pi pi-phone"
-      :disabled="!isConnected"
-    />
-  </div>
-</template>
-```
-
-#### Vuetify Integration
-
-```vue
-<script setup>
-import { useSipClient, useCallSession } from 'vuesip'
-
-const { makeCall, hangup, currentCall } = useCallSession()
-</script>
-
-<template>
-  <v-container>
-    <v-text-field v-model="phoneNumber" label="Phone Number" prepend-icon="mdi-phone" />
-    <v-btn v-if="!currentCall" @click="makeCall(phoneNumber)" color="primary"> Call </v-btn>
-    <v-btn v-else @click="hangup()" color="error"> Hang Up </v-btn>
-  </v-container>
-</template>
-```
-
----
-
-## Testing the Examples
-
-### Browser Testing
-
-Test examples in multiple browsers:
-
-- Chrome/Edge (Chromium) 74+
-- Firefox 66+
-- Safari 14.1+
-
-### Two-User Testing
-
-The easiest way to test calling functionality:
-
-1. Open two browser windows/tabs
-2. Register each with different SIP accounts (e.g., 1001 and 1002)
-3. Make a call from one window to the other
-4. Test all call features
-
-### Echo Test
-
-If your SIP server has an echo test extension:
-
-1. Connect to your SIP server
-2. Call the echo test number (commonly `*43` or `600` on Asterisk)
-3. Speak into your microphone
-4. Hear your voice echoed back
-
----
-
-## Troubleshooting
-
-### Connection Issues
-
-**Problem:** Cannot connect to SIP server
-
-**Solutions:**
-
-- Verify WebSocket URL format (`wss://` or `ws://`)
-- Check SIP credentials
-- Ensure SIP server is running
-- Check firewall rules
-- Test with `ws://` (non-secure) first
-
-### Audio Issues
-
-**Problem:** No audio during calls
-
-**Solutions:**
-
-- Check browser microphone permissions
-- Verify audio devices are selected
-- Ensure remote party's audio is working
-- Test with echo extension
-- Check codec support on server
-
-### Video Issues
-
-**Problem:** Video not displaying
-
-**Solutions:**
-
-- Check camera permissions
-- Verify camera is not in use by another app
-- Ensure SIP server supports video codecs (VP8, H.264)
-- Check WebRTC ICE/STUN configuration
-
----
-
-## Production Deployment
-
-Before deploying examples to production:
-
-### Security
-
-- ✅ Use WSS (WebSocket Secure) only
-- ✅ Never hardcode credentials
-- ✅ Implement proper authentication
-- ✅ Sanitize all user inputs
-- ✅ Use environment variables for config
-
-### Performance
-
-- ✅ Optimize bundle size
-- ✅ Implement code splitting
-- ✅ Monitor memory usage
-- ✅ Handle network reconnection
-- ✅ Add error logging
-
-### User Experience
-
-- ✅ Add loading states
-- ✅ Provide user-friendly error messages
-- ✅ Test on target devices
-- ✅ Ensure accessibility
-- ✅ Add keyboard shortcuts
-
----
-
-## Source Code
-
-All examples are available in the VueSip repository:
-
-[View Examples on GitHub →](https://github.com/ironyh/VueSip/tree/main/examples)
-
-Each example includes:
-
-- Complete source code
-- Detailed README
-- Setup instructions
-- Configuration examples
-- Testing guidelines
-
----
-
-## Next Steps
-
-1. **Choose an example** based on your use case
-2. **Follow the setup instructions** in each example's README
-3. **Configure your SIP server** for WebRTC support
-4. **Run the example** and test features
-5. **Customize** for your needs
-6. **Read the guides** for deeper understanding:
-   - [Getting Started Guide](/guide/getting-started)
-   - [API Reference](/api/)
-   - [FAQ](/faq)
+1. Start the playground: `pnpm dev`
+2. Navigate to the demo in the sidebar
+3. Click "View Source" to see the implementation
+4. Copy and adapt the code for your application
 
 ---
 
 ## Contributing Examples
 
-Have an example to share? We welcome contributions!
+Have an example to share? Contributions are welcome!
 
-- Fork the repository
-- Create your example in `examples/your-example-name/`
-- Include a comprehensive README
-- Submit a pull request
+1. Create a new demo in `playground/demos/`
+2. Register it in the demo configuration
+3. Add documentation
+4. Submit a pull request
 
-[Contribution Guidelines →](https://github.com/ironyh/VueSip/blob/main/CONTRIBUTING.md)
+[Contribution Guidelines](https://github.com/ironyh/VueSip/blob/main/CONTRIBUTING.md)
 
 ---
 
-## Support
+## Next Steps
 
-Need help with the examples?
-
-- **Documentation:** [Read the guides](/guide/)
-- **API Reference:** [Browse the API](/api/)
-- **Issues:** [Report bugs](https://github.com/ironyh/VueSip/issues)
-- **Discussions:** [Ask questions](https://github.com/ironyh/VueSip/discussions)
+- [Getting Started Guide](/guide/getting-started) - Set up your first VueSip project
+- [API Reference](/api/) - Complete API documentation
+- [FAQ](/faq) - Common questions and answers

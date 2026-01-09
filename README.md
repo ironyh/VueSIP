@@ -1,23 +1,24 @@
 # VueSip
 
-Headless Vue components that makes it possible to create great working SIP interfaces!
-
-VueSip provides a set of powerful, headless Vue 3 composables for building SIP (Session Initiation Protocol) interfaces with Asterisk and other VoIP systems. Built with TypeScript and designed for flexibility, VueSip gives you the business logic while letting you control the UI.
-
-## Features
-
-✨ **Headless Components** - Complete separation of logic and UI  
-📞 **Full SIP Support** - WebRTC-based calling with SIP.js  
-🎨 **UI Agnostic** - Use with any UI framework (PrimeVue, Vuetify, etc.)  
-🔌 **Composable Architecture** - Vue 3 Composition API  
-🎯 **TypeScript** - Full type safety and IntelliSense  
-📱 **DTMF Support** - Send dialpad tones during calls  
-🎤 **Audio Device Management** - Select microphones and speakers  
-⚡ **Modern Stack** - Vue 3, Vite, TypeScript  
 > A headless Vue.js component library for SIP/VoIP applications
 
 [![npm version](https://img.shields.io/npm/v/vuesip.svg)](https://www.npmjs.com/package/vuesip)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+VueSip provides **60+ composables** for building professional SIP interfaces with Asterisk, FreePBX, and other VoIP systems. Built with TypeScript and Vue 3, VueSip gives you the business logic while you control the UI.
+
+## Features
+
+- **Headless Architecture** - Complete separation of logic and UI
+- **Full SIP Support** - WebRTC calling with JsSIP or SIP.js adapters
+- **Video Calling** - One-on-one and conference video support
+- **Call Quality Monitoring** - Real-time WebRTC stats and quality scoring
+- **Call Center Features** - Queues, agents, supervisors, and statistics
+- **Multi-Line Support** - Handle multiple concurrent calls
+- **UI Agnostic** - Works with PrimeVue, Vuetify, Tailwind, or any UI
+- **TypeScript** - Full type safety and IntelliSense
+- **50+ Interactive Demos** - Working examples for every feature
+- **Modern Stack** - Vue 3, Vite, TypeScript
 
 ## Installation
 
@@ -32,262 +33,369 @@ pnpm add vuesip
 ## Quick Start
 
 ```vue
-<script setup>
-import { ref } from 'vue'
-import { useSipConnection, useSipCall } from 'vuesip'
+<script setup lang="ts">
+import { useSipClient, useCallSession, useMediaDevices } from 'vuesip'
 
-const config = {
-  server: 'sip.example.com',
-  username: '1000',
-  password: 'secret',
-  displayName: 'John Doe'
-}
+// Initialize SIP client
+const { connect, disconnect, isConnected, isRegistered } = useSipClient()
 
-const { isConnected, isRegistered, connect } = useSipConnection(config)
-const userAgent = ref(null)
-const { currentCall, makeCall, endCall } = useSipCall(userAgent)
+// Call session management
+const { currentCall, makeCall, answer, hangup } = useCallSession()
+
+// Audio device management
+const { audioInputDevices, audioOutputDevices, selectAudioInput } = useMediaDevices()
 
 // Connect to SIP server
-await connect()
+await connect({
+  uri: 'sip:1000@sip.example.com',
+  password: 'secret',
+  server: 'wss://sip.example.com:8089/ws',
+})
 
 // Make a call
-await makeCall('2000')
+await makeCall('sip:2000@sip.example.com')
 </script>
 ```
 
 ## Core Composables
 
-### useSipConnection
+### useSipClient
 
-Manages SIP server connection and registration.
+Manages SIP client connection, registration, and call operations.
 
 ```typescript
-import { useSipConnection } from 'vuesip'
+import { useSipClient } from 'vuesip'
 
 const {
-  isConnected,      // Ref<boolean> - Connection state
-  isRegistered,     // Ref<boolean> - Registration state
-  isConnecting,     // Ref<boolean> - Connecting state
-  error,            // Ref<SipError | null> - Last error
-  connect,          // () => Promise<void> - Connect to server
-  disconnect,       // () => Promise<void> - Disconnect from server
-  register,         // () => Promise<void> - Register
-  unregister        // () => Promise<void> - Unregister
-} = useSipConnection(config)
+  // State
+  isConnected, // Ref<boolean> - Connection state
+  isRegistered, // Ref<boolean> - Registration state
+  isConnecting, // Ref<boolean> - Connecting state
+  error, // Ref<Error | null> - Last error
+
+  // Connection
+  connect, // (config: SipClientConfig) => Promise<void>
+  disconnect, // () => Promise<void>
+
+  // Registration
+  register, // () => Promise<void>
+  unregister, // () => Promise<void>
+} = useSipClient()
 ```
 
-**Configuration:**
+### useCallSession
+
+Manages call state and operations for active/incoming calls.
 
 ```typescript
-interface SipConfig {
-  server: string              // SIP server domain
-  username: string            // SIP username
-  password: string            // SIP password
-  displayName?: string        // Display name for calls
-  realm?: string             // Authentication realm
-  autoRegister?: boolean     // Auto-register on connect (default: true)
-}
-```
-
-### useSipCall
-
-Manages call state and operations.
-
-```typescript
-import { useSipCall } from 'vuesip'
+import { useCallSession } from 'vuesip'
 
 const {
-  currentCall,      // Ref<CallSession | null> - Active call
-  incomingCall,     // Ref<CallSession | null> - Incoming call
-  isCalling,        // Ref<boolean> - Outgoing call in progress
-  isInCall,         // Ref<boolean> - Call established
-  makeCall,         // (target: string) => Promise<void> - Make call
-  answerCall,       // () => Promise<void> - Answer incoming call
-  endCall,          // () => Promise<void> - End active call
-  rejectCall        // () => Promise<void> - Reject incoming call
-} = useSipCall(userAgentRef)
+  // State
+  currentCall, // Ref<CallSession | null> - Active call
+  callState, // Ref<CallState> - Current call state
+  callDuration, // Ref<number> - Duration in seconds
+
+  // Call actions
+  makeCall, // (target: string, options?) => Promise<void>
+  answer, // (options?) => Promise<void>
+  hangup, // () => Promise<void>
+  reject, // () => Promise<void>
+
+  // Call controls
+  hold, // () => Promise<void>
+  unhold, // () => Promise<void>
+  mute, // () => Promise<void>
+  unmute, // () => Promise<void>
+} = useCallSession()
 ```
 
-**Call Session:**
+### useMediaDevices
+
+Manage audio/video devices with permission handling.
 
 ```typescript
-interface CallSession {
-  id: string                           // Unique call ID
-  remoteIdentity: string              // Remote party identifier
-  direction: 'incoming' | 'outgoing'  // Call direction
-  state: CallState                    // Current state
-  startTime?: Date                    // Call start time
-  answerTime?: Date                   // Call answer time
-  endTime?: Date                      // Call end time
-}
+import { useMediaDevices } from 'vuesip'
+
+const {
+  // Device lists
+  audioInputDevices, // Ref<MediaDeviceInfo[]> - Microphones
+  audioOutputDevices, // Ref<MediaDeviceInfo[]> - Speakers
+  videoInputDevices, // Ref<MediaDeviceInfo[]> - Cameras
+
+  // Selected devices
+  selectedAudioInput, // Ref<string | null>
+  selectedAudioOutput, // Ref<string | null>
+  selectedVideoInput, // Ref<string | null>
+
+  // Actions
+  selectAudioInput, // (deviceId: string) => void
+  selectAudioOutput, // (deviceId: string) => void
+  selectVideoInput, // (deviceId: string) => void
+  requestPermissions, // (audio?, video?) => Promise<boolean>
+  refreshDevices, // () => Promise<void>
+} = useMediaDevices()
 ```
 
-### useSipDtmf
+### useDTMF
 
 Send DTMF (dialpad) tones during calls.
 
 ```typescript
-import { useSipDtmf } from 'vuesip'
+import { useDTMF } from 'vuesip'
 
 const {
-  sendDtmf,         // (digit: string) => Promise<void> - Send single digit
-  sendDtmfSequence  // (digits: string, interval?: number) => Promise<void>
-} = useSipDtmf(currentSessionRef)
+  sendDTMF, // (tone: string) => void
+  sendDTMFSequence, // (sequence: string, interval?) => Promise<void>
+} = useDTMF(callSession)
 
 // Send single digit
-await sendDtmf('1')
+sendDTMF('5')
 
-// Send sequence
-await sendDtmfSequence('1234', 160)
+// Send sequence with interval
+await sendDTMFSequence('1234#', 200)
 ```
 
-### useAudioDevices
+## Interactive Playground (50+ Demos)
 
-Manage audio input/output devices.
-
-```typescript
-import { useAudioDevices } from 'vuesip'
-
-const {
-  audioInputDevices,      // Ref<AudioDevice[]> - Available microphones
-  audioOutputDevices,     // Ref<AudioDevice[]> - Available speakers
-  selectedInputDevice,    // Ref<string | null> - Selected mic ID
-  selectedOutputDevice,   // Ref<string | null> - Selected speaker ID
-  refreshDevices,         // () => Promise<void> - Refresh device list
-  setInputDevice,         // (deviceId: string) => void - Set microphone
-  setOutputDevice         // (deviceId: string) => void - Set speaker
-} = useAudioDevices()
-```
-
-## Example Components
-
-VueSip includes example components built with PrimeVue to demonstrate usage:
-
-### Dialpad Component
-
-```vue
-<template>
-  <Dialpad 
-    :is-calling="isCalling"
-    @digit="handleDtmf"
-    @call="handleMakeCall"
-  />
-</template>
-```
-
-### Call Controls Component
-
-```vue
-<template>
-  <CallControls
-    :current-call="currentCall"
-    :incoming-call="incomingCall"
-    :is-calling="isCalling"
-    @answer="handleAnswer"
-    @reject="handleReject"
-    @end="handleEnd"
-  />
-</template>
-```
-
-## Interactive Playground
-
-VueSip includes an interactive playground where you can explore and experiment with all the composables:
+VueSip includes an **interactive playground** with 50+ working demos covering every feature:
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run development server with playground
-npm run dev
+pnpm dev
 ```
 
-Visit `http://localhost:5173` to access the interactive playground with:
+Visit `http://localhost:5173` to explore demos organized by category:
 
-- 🎯 **Live Demos** - Try out features in real-time
-- 💻 **Code Examples** - View implementation snippets
-- 📚 **Setup Guides** - Learn how to integrate each feature
-- 🎮 **Multiple Examples** - Basic calls, DTMF, audio devices, and more
+### Core Calling
 
-See the [playground README](playground/README.md) for more details.
+| Demo               | Description                         | Key Composables                     |
+| ------------------ | ----------------------------------- | ----------------------------------- |
+| BasicCallDemo      | One-to-one audio calling            | `useSipClient`, `useCallSession`    |
+| VideoCallDemo      | Video calling with camera selection | `useMediaDevices`, `useCallSession` |
+| MultiLineDemo      | Handle multiple concurrent calls    | `useMultiLine`                      |
+| ConferenceCallDemo | Multi-party conferences             | `useConference`                     |
+| CallTransferDemo   | Blind and attended transfers        | `useCallTransfer`                   |
 
-## Starter Templates
+### Call Controls
 
-VueSip includes production-ready templates to jumpstart your project:
+| Demo                 | Description              | Key Composables    |
+| -------------------- | ------------------------ | ------------------ |
+| DtmfDemo             | Send DTMF tones          | `useDTMF`          |
+| CallTimerDemo        | Call duration tracking   | `useCallSession`   |
+| CallWaitingDemo      | Handle call waiting      | `useCallSession`   |
+| AutoAnswerDemo       | Automatic call answering | `useSipAutoAnswer` |
+| CallMutePatternsDemo | Advanced mute controls   | `useCallControls`  |
 
-### Minimal Template
-A bare-bones template demonstrating core SIP functionality with no UI dependencies.
+### Call Quality & Monitoring
+
+| Demo                   | Description               | Key Composables              |
+| ---------------------- | ------------------------- | ---------------------------- |
+| CallQualityDemo        | Real-time quality metrics | `useCallQualityScore`        |
+| WebRTCStatsDemo        | WebRTC statistics         | `useSipWebRTCStats`          |
+| NetworkSimulatorDemo   | Test network conditions   | `useNetworkQualityIndicator` |
+| ConnectionRecoveryDemo | Auto-reconnection         | `useConnectionRecovery`      |
+
+### Call Center Features
+
+| Demo             | Description          | Key Composables    |
+| ---------------- | -------------------- | ------------------ |
+| AgentLoginDemo   | Agent authentication | `useAmiAgentLogin` |
+| AgentStatsDemo   | Agent performance    | `useAmiAgentStats` |
+| QueueMonitorDemo | Queue statistics     | `useAmiQueues`     |
+| SupervisorDemo   | Spy/whisper/barge    | `useAmiSupervisor` |
+| CDRDashboardDemo | Call detail records  | `useAmiCDR`        |
+
+### Video & Recording
+
+| Demo                   | Description           | Key Composables         |
+| ---------------------- | --------------------- | ----------------------- |
+| PictureInPictureDemo   | PiP video display     | `usePictureInPicture`   |
+| ScreenSharingDemo      | Screen sharing        | `useMediaDevices`       |
+| CallRecordingDemo      | Server-side recording | `useAmiRecording`       |
+| RecordingIndicatorDemo | Recording status      | `useRecordingIndicator` |
+| ConferenceGalleryDemo  | Gallery video layout  | `useGalleryLayout`      |
+
+### Communication Features
+
+| Demo             | Description          | Key Composables      |
+| ---------------- | -------------------- | -------------------- |
+| PresenceDemo     | User presence status | `usePresence`        |
+| SipMessagingDemo | SIP MESSAGE support  | `useMessaging`       |
+| VoicemailDemo    | Voicemail management | `useAmiVoicemail`    |
+| PagingDemo       | Paging/intercom      | `useAmiPaging`       |
+| BLFDemo          | Busy lamp field      | `useFreePBXPresence` |
+
+### Settings & Utilities
+
+| Demo                   | Description         | Key Composables          |
+| ---------------------- | ------------------- | ------------------------ |
+| AudioDevicesDemo       | Device management   | `useMediaDevices`        |
+| SettingsDemo           | Persistent settings | `useSettingsPersistence` |
+| SessionPersistenceDemo | Session recovery    | `useSessionPersistence`  |
+| CallHistoryDemo        | Call logs           | `useCallHistory`         |
+| SpeedDialDemo          | Speed dial contacts | `useSettings`            |
+
+[View all 50+ demos in the playground →](playground/)
+
+## All Composables by Category
+
+### SIP Core
+
+- `useSipClient` - SIP connection and registration
+- `useCallSession` - Call state and operations
+- `useCallControls` - Hold, mute, transfer controls
+- `useSipRegistration` - Registration management
+
+### Call Features
+
+- `useDTMF` - DTMF tone sending
+- `useCallTransfer` - Blind/attended transfers
+- `useCallHold` - Hold/unhold operations
+- `useMultiLine` - Multi-line phone support
+- `useConference` - Conference calling
+- `useSipAutoAnswer` - Auto-answer rules
+- `useSipSecondLine` - Second line support
+
+### Media & Devices
+
+- `useMediaDevices` - Audio/video device management
+- `useAudioDevices` - Audio-specific device control
+- `usePictureInPicture` - Picture-in-picture video
+- `useVideoInset` - Video inset positioning
+- `useGalleryLayout` - Conference gallery layout
+- `useActiveSpeaker` - Active speaker detection
+- `useLocalRecording` - Client-side recording
+- `useBandwidthAdaptation` - Adaptive bitrate
+
+### Call Quality
+
+- `useCallQualityScore` - Quality scoring (A-F grades)
+- `useNetworkQualityIndicator` - Network quality indicators
+- `useSipWebRTCStats` - Raw WebRTC statistics
+- `useConnectionRecovery` - Auto-reconnection
+
+### Call Center (AMI)
+
+- `useAmi` - Base AMI connection
+- `useAmiAgentLogin` - Agent authentication
+- `useAmiAgentStats` - Agent performance stats
+- `useAmiQueues` - Queue management
+- `useAmiSupervisor` - Supervisor controls
+- `useAmiCDR` - Call detail records
+- `useAmiCalls` - Call monitoring
+- `useAmiRecording` - Recording control
+- `useAmiVoicemail` - Voicemail access
+- `useAmiParking` - Call parking
+- `useAmiPaging` - Paging/intercom
+
+### Communication
+
+- `usePresence` - User presence status
+- `useMessaging` - SIP MESSAGE support
+- `useFreePBXPresence` - FreePBX BLF/presence
+
+### Persistence & Settings
+
+- `useSessionPersistence` - Session recovery
+- `useSettingsPersistence` - Persistent settings
+- `useCallHistory` - Call log management
+- `useSettings` - Application settings
+
+### Advanced
+
+- `useOAuth2` - OAuth2 authentication
+- `useSipE911` - E911 emergency services
+- `useRecordingIndicator` - Recording status display
+- `useDialog` - SIP dialog management
+- `useParticipantControls` - Conference participant management
+
+## Development
+
 ```bash
-cp -r templates/minimal my-sip-app && cd my-sip-app && pnpm install && pnpm dev
-```
-Features: SIP connection, basic call controls, DTMF support
+# Install dependencies
+pnpm install
 
-### Basic Softphone Template
-A complete softphone with PrimeVue UI including dialpad, call history, and device settings.
-```bash
-cp -r templates/basic-softphone my-softphone && cd my-softphone && pnpm install && pnpm dev
-```
-Features: Dialpad, call controls (hold/mute/transfer), call history, audio device selection
+# Run playground with all demos
+pnpm dev
 
-### Call Center Template
-A full call center agent interface with queue management and supervisor controls.
-```bash
-cp -r templates/call-center my-callcenter && cd my-callcenter && pnpm install && pnpm dev
-```
-Features: Agent dashboard, queue statistics, disposition forms, supervisor spy/whisper/barge
-
-See the [templates directory](templates/) for detailed documentation.
-
-## Building the Library
-
-```bash
-# Build library for distribution
-npm run build
+# Build library
+pnpm build
 
 # Run tests
-npm run test
+pnpm test
 
 # Type checking
-npm run typecheck
+pnpm typecheck
+
+# Lint
+pnpm lint
 ```
 
 ## Use Cases
 
-- **Asterisk Dialpad Interfaces** - Build custom dialpad UIs
-- **Contact Center Applications** - Agent softphones
-- **WebRTC Applications** - Browser-based calling
-- **VoIP Integration** - Integrate calling into web apps
-- **Custom SIP Clients** - Full control over UI/UX
+- **Enterprise Softphones** - Full-featured desktop phone applications
+- **Call Centers** - Agent dashboards with queue management
+- **Click-to-Call** - Embed calling in web applications
+- **Video Conferencing** - Multi-party video meetings
+- **CRM Integration** - Add calling to customer management systems
+- **Telemedicine** - Healthcare video consultations
+- **Help Desk** - Support ticket calling integration
 
 ## Browser Support
 
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
+| Browser     | Version | Notes        |
+| ----------- | ------- | ------------ |
+| Chrome/Edge | 90+     | Full support |
+| Firefox     | 88+     | Full support |
+| Safari      | 14+     | Full support |
 
-Requires WebRTC support.
+Requires WebRTC and modern JavaScript support.
 
 ## Architecture
 
-VueSip follows the headless component pattern:
+VueSip follows the **headless component pattern**:
 
-1. **Composables** provide the business logic and state management
-2. **You** provide the UI components and styling
-3. **Complete flexibility** to match your design system
+```
+┌─────────────────────────────────────────────┐
+│           Your Application                  │
+├─────────────────────────────────────────────┤
+│  Your UI Components (PrimeVue, Vuetify...)  │
+├─────────────────────────────────────────────┤
+│     VueSip Composables (Business Logic)     │
+├─────────────────────────────────────────────┤
+│  Adapters (JsSIP, SIP.js, or Custom)        │
+├─────────────────────────────────────────────┤
+│           SIP Server (Asterisk, etc.)       │
+└─────────────────────────────────────────────┘
+```
 
 ## TypeScript Support
 
-Full TypeScript support with exported types:
+Full TypeScript support with comprehensive type exports:
 
 ```typescript
 import type {
-  SipConfig,
+  SipClientConfig,
   CallSession,
   CallState,
-  AudioDevice,
-  SipError
+  CallDirection,
+  MediaDeviceInfo,
+  ConferenceParticipant,
+  QualityScore,
+  // ... 100+ types
 } from 'vuesip'
 ```
+
+## Documentation
+
+- **[Guide](https://vuesip.dev/guide/)** - Getting started and tutorials
+- **[API Reference](https://vuesip.dev/api/)** - Complete API documentation
+- **[Examples](https://vuesip.dev/examples/)** - Usage examples and patterns
+- **[Playground](https://vuesip-play.pages.dev/)** - Live interactive demos
 
 ## License
 
@@ -300,7 +408,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Credits
 
 Built with:
-- [Vue 3](https://vuejs.org/)
-- [SIP.js](https://sipjs.com/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Vite](https://vitejs.dev/)
+
+- [Vue 3](https://vuejs.org/) - The Progressive JavaScript Framework
+- [JsSIP](https://jssip.net/) / [SIP.js](https://sipjs.com/) - SIP library adapters
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
+- [Vite](https://vitejs.dev/) - Next generation frontend tooling
+- [Vitest](https://vitest.dev/) - Testing framework

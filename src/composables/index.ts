@@ -112,6 +112,20 @@ export {
   type UseOAuth2ComposableReturn,
 } from './useOAuth2'
 
+// Transcription composable
+export { useTranscription } from './useTranscription'
+export type {
+  TranscriptionOptions,
+  UseTranscriptionReturn,
+  TranscriptionState,
+  TranscriptEntry,
+  KeywordRule,
+  KeywordMatch,
+  ExportFormat,
+  ExportOptions,
+  ProviderCapabilities,
+} from '../types/transcription.types'
+
 // Local recording composable
 export { useLocalRecording } from './useLocalRecording'
 export type {

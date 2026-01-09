@@ -3,9 +3,263 @@
  *
  * This replaces the timing-based mock with a proper event-driven
  * implementation that correctly simulates SIP protocol behavior.
+ *
+ * Includes network simulation capabilities for testing:
+ * - Latency simulation (configurable delay)
+ * - Packet loss simulation (random message drops)
+ * - Offline mode simulation (complete block)
+ * - Network presets (4G, 3G, 2G, EDGE, OFFLINE)
  */
 
 import { EventBridge, initializeEventBridge, type SipEventType } from './EventBridge'
+
+/**
+ * Network condition presets for common scenarios
+ */
+export const NETWORK_PRESETS = {
+  /** Fast 4G: ~50ms latency, 0% packet loss */
+  FAST_4G: { latency: 50, jitter: 10, packetLoss: 0 },
+  /** Slow 3G: ~300ms latency, 1% packet loss */
+  SLOW_3G: { latency: 300, jitter: 100, packetLoss: 0.01 },
+  /** 2G/EDGE: ~800ms latency, 3% packet loss */
+  EDGE_2G: { latency: 800, jitter: 200, packetLoss: 0.03 },
+  /** Lossy network: ~100ms latency, 10% packet loss */
+  LOSSY_NETWORK: { latency: 100, jitter: 50, packetLoss: 0.1 },
+  /** Crowded network: variable latency, 5% packet loss */
+  CROWDED: { latency: 400, jitter: 300, packetLoss: 0.05 },
+  /** Completely offline */
+  OFFLINE: { latency: 0, jitter: 0, packetLoss: 1.0, offline: true },
+} as const
+
+/**
+ * Network simulation configuration
+ */
+export interface NetworkConfig {
+  /** Base latency in milliseconds */
+  latency: number
+  /** Random jitter added to latency (0-jitter ms) */
+  jitter: number
+  /** Packet loss rate (0.0 - 1.0) */
+  packetLoss: number
+  /** If true, completely blocks all communication */
+  offline?: boolean
+}
+
+/**
+ * Simple seeded pseudo-random number generator (Mulberry32)
+ * Provides deterministic randomness for reproducible tests
+ */
+class SeededRandom {
+  private seed: number
+
+  constructor(seed: number = Date.now()) {
+    this.seed = seed
+  }
+
+  /**
+   * Set the seed for reproducible sequences
+   */
+  setSeed(seed: number): void {
+    this.seed = seed
+  }
+
+  /**
+   * Get the current seed
+   */
+  getSeed(): number {
+    return this.seed
+  }
+
+  /**
+   * Generate next random number between 0 and 1 (Mulberry32 algorithm)
+   */
+  next(): number {
+    let t = (this.seed += 0x6d2b79f5)
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/**
+ * Global network simulation state
+ * Shared across all MockSipWebSocket instances
+ *
+ * Note: This singleton is scoped per-process. Playwright workers run in separate
+ * processes, so each worker gets its own singleton. Tests within the same worker
+ * are protected by beforeEach/afterEach reset() calls.
+ */
+class NetworkSimulatorState {
+  private static instance: NetworkSimulatorState
+  private config: NetworkConfig = { latency: 0, jitter: 0, packetLoss: 0, offline: false }
+  private listeners: Set<() => void> = new Set()
+  private rng: SeededRandom = new SeededRandom(12345) // Fixed seed for deterministic tests
+
+  static getInstance(): NetworkSimulatorState {
+    if (!NetworkSimulatorState.instance) {
+      NetworkSimulatorState.instance = new NetworkSimulatorState()
+    }
+    return NetworkSimulatorState.instance
+  }
+
+  getConfig(): NetworkConfig {
+    return { ...this.config }
+  }
+
+  setConfig(config: Partial<NetworkConfig>): void {
+    this.config = { ...this.config, ...config }
+    this.notifyListeners()
+  }
+
+  setPreset(preset: keyof typeof NETWORK_PRESETS): void {
+    this.config = { ...NETWORK_PRESETS[preset] }
+    this.notifyListeners()
+  }
+
+  /**
+   * Reset to ideal network conditions
+   * Explicitly resets ALL config properties including offline
+   */
+  reset(): void {
+    this.config = { latency: 0, jitter: 0, packetLoss: 0, offline: false }
+    this.rng.setSeed(12345) // Reset RNG seed for reproducibility
+    this.notifyListeners()
+  }
+
+  isOffline(): boolean {
+    return this.config.offline === true || this.config.packetLoss >= 1.0
+  }
+
+  /**
+   * Set RNG seed for deterministic packet loss behavior
+   * Useful for tests that need reproducible network conditions
+   */
+  setRandomSeed(seed: number): void {
+    this.rng.setSeed(seed)
+  }
+
+  /**
+   * Calculate actual latency with jitter
+   * Uses seeded RNG for deterministic behavior in tests
+   */
+  getLatency(): number {
+    const jitter = this.config.jitter > 0 ? this.rng.next() * this.config.jitter : 0
+    return this.config.latency + jitter
+  }
+
+  /**
+   * Check if a packet should be dropped based on packet loss rate
+   * Uses seeded RNG for deterministic behavior in tests
+   */
+  shouldDropPacket(): boolean {
+    return this.rng.next() < this.config.packetLoss
+  }
+
+  addListener(listener: () => void): void {
+    this.listeners.add(listener)
+  }
+
+  removeListener(listener: () => void): void {
+    this.listeners.delete(listener)
+  }
+
+  private notifyListeners(): void {
+    this.listeners.forEach((l) => l())
+  }
+}
+
+/**
+ * Network Simulator - Controls network conditions for all mock WebSockets
+ *
+ * Usage in tests:
+ * ```typescript
+ * // Set specific conditions
+ * NetworkSimulator.setLatency(500)
+ * NetworkSimulator.setPacketLoss(0.1)
+ *
+ * // Or use a preset
+ * NetworkSimulator.setPreset('SLOW_3G')
+ *
+ * // Go offline
+ * NetworkSimulator.setOffline(true)
+ *
+ * // Reset to normal
+ * NetworkSimulator.reset()
+ * ```
+ */
+export const NetworkSimulator = {
+  /**
+   * Set network latency in milliseconds
+   */
+  setLatency(ms: number, jitter = 0): void {
+    NetworkSimulatorState.getInstance().setConfig({ latency: ms, jitter })
+  },
+
+  /**
+   * Set packet loss rate (0.0 - 1.0)
+   */
+  setPacketLoss(rate: number): void {
+    NetworkSimulatorState.getInstance().setConfig({ packetLoss: Math.max(0, Math.min(1, rate)) })
+  },
+
+  /**
+   * Set offline mode
+   */
+  setOffline(offline: boolean): void {
+    NetworkSimulatorState.getInstance().setConfig({ offline })
+  },
+
+  /**
+   * Apply a network preset
+   */
+  setPreset(preset: keyof typeof NETWORK_PRESETS): void {
+    NetworkSimulatorState.getInstance().setPreset(preset)
+  },
+
+  /**
+   * Set custom network configuration
+   */
+  setConfig(config: Partial<NetworkConfig>): void {
+    NetworkSimulatorState.getInstance().setConfig(config)
+  },
+
+  /**
+   * Get current network configuration
+   */
+  getConfig(): NetworkConfig {
+    return NetworkSimulatorState.getInstance().getConfig()
+  },
+
+  /**
+   * Check if currently offline
+   */
+  isOffline(): boolean {
+    return NetworkSimulatorState.getInstance().isOffline()
+  },
+
+  /**
+   * Reset to ideal network conditions
+   */
+  reset(): void {
+    NetworkSimulatorState.getInstance().reset()
+  },
+
+  /**
+   * Set random seed for deterministic packet loss behavior
+   * Useful for tests that need reproducible network conditions
+   */
+  setRandomSeed(seed: number): void {
+    NetworkSimulatorState.getInstance().setRandomSeed(seed)
+  },
+
+  /**
+   * Add listener for network config changes
+   */
+  onConfigChange(listener: () => void): () => void {
+    NetworkSimulatorState.getInstance().addListener(listener)
+    return () => NetworkSimulatorState.getInstance().removeListener(listener)
+  },
+}
 
 /**
  * SIP message types for protocol simulation
@@ -25,6 +279,7 @@ export interface SipMessage {
 
 /**
  * Mock WebSocket that simulates SIP over WebSocket behavior
+ * Includes network simulation for testing under various conditions
  */
 export class MockSipWebSocket {
   readonly url: string
@@ -42,6 +297,9 @@ export class MockSipWebSocket {
   private currentCallId: string | null = null
   private registrationCSeq = 0
   private inviteCSeq = 0
+  private networkState = NetworkSimulatorState.getInstance()
+  private networkConfigUnsubscribe: (() => void) | null = null
+  private pendingConnectionTimeout: ReturnType<typeof setTimeout> | null = null
 
   constructor(url: string | URL, _protocols?: string | string[]) {
     this.url = typeof url === 'string' ? url : url.toString()
@@ -49,13 +307,106 @@ export class MockSipWebSocket {
     // Initialize or get existing event bridge
     this.eventBridge = initializeEventBridge()
 
-    // Simulate connection with minimal delay
+    // Listen for network config changes (e.g., going offline)
+    this.networkConfigUnsubscribe = NetworkSimulator.onConfigChange(() => {
+      this.handleNetworkChange()
+    })
+
+    // Simulate connection with minimal delay (respecting network conditions)
     this.scheduleOpen()
   }
 
-  private scheduleOpen(): void {
-    // Use microtask for immediate but async execution
+  /**
+   * Handle network configuration changes (e.g., going offline or back online)
+   */
+  private handleNetworkChange(): void {
+    // If network comes back online and we have a pending offline failure, cancel it
+    if (!this.networkState.isOffline() && this.pendingConnectionTimeout) {
+      clearTimeout(this.pendingConnectionTimeout)
+      this.pendingConnectionTimeout = null
+      // If we were in CONNECTING state, retry the connection
+      if (this.readyState === WebSocket.CONNECTING) {
+        this.scheduleOpen()
+      }
+      return
+    }
+
+    // If going offline while connected, simulate connection drop
+    if (this.networkState.isOffline() && this.readyState === WebSocket.OPEN) {
+      this.simulateConnectionError('Network offline')
+    }
+  }
+
+  /**
+   * Simulate a connection error
+   */
+  private simulateConnectionError(reason: string): void {
+    if (this.readyState !== WebSocket.OPEN) return
+
+    this.readyState = WebSocket.CLOSING
+    this.eventBridge.emit('connection:disconnecting')
+
     queueMicrotask(() => {
+      this.readyState = WebSocket.CLOSED
+      this.eventBridge.emit('connection:disconnected')
+
+      if (this.onerror) {
+        this.onerror(new Event('error'))
+      }
+
+      if (this.onclose) {
+        this.onclose(
+          new CloseEvent('close', {
+            code: 1006,
+            reason: reason,
+            wasClean: false,
+          })
+        )
+      }
+    })
+  }
+
+  private scheduleOpen(): void {
+    // Check if we're offline - don't connect
+    if (this.networkState.isOffline()) {
+      queueMicrotask(() => {
+        this.eventBridge.emit('connection:connecting')
+        // Fail to connect when offline - use tracked timeout so it can be cancelled
+        this.pendingConnectionTimeout = setTimeout(() => {
+          this.pendingConnectionTimeout = null
+          // Double-check we're still offline (network may have come back)
+          if (!this.networkState.isOffline()) {
+            this.scheduleOpen() // Retry connection
+            return
+          }
+          if (this.onerror) {
+            this.onerror(new Event('error'))
+          }
+          this.readyState = WebSocket.CLOSED
+          if (this.onclose) {
+            this.onclose(
+              new CloseEvent('close', {
+                code: 1006,
+                reason: 'Connection failed - network offline',
+                wasClean: false,
+              })
+            )
+          }
+        }, 100)
+      })
+      return
+    }
+
+    // Clear any pending offline timeout if we're now online
+    if (this.pendingConnectionTimeout) {
+      clearTimeout(this.pendingConnectionTimeout)
+      this.pendingConnectionTimeout = null
+    }
+
+    // Apply latency to connection
+    const latency = this.networkState.getLatency()
+
+    const doOpen = () => {
       this.readyState = WebSocket.OPEN
       this.eventBridge.emit('connection:connecting')
 
@@ -65,15 +416,34 @@ export class MockSipWebSocket {
       }
 
       this.eventBridge.emit('connection:connected')
-    })
+    }
+
+    if (latency > 0) {
+      setTimeout(doOpen, latency)
+    } else {
+      queueMicrotask(doOpen)
+    }
   }
 
   /**
    * Send a message through the mock WebSocket
+   * Respects network simulation (packet loss, offline)
    */
   send(data: string | ArrayBuffer | Blob): void {
     if (this.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket is not open')
+    }
+
+    // Check if offline - fail silently like a real network
+    if (this.networkState.isOffline()) {
+      // Messages are silently dropped when offline
+      return
+    }
+
+    // Check for packet loss on outgoing messages
+    if (this.networkState.shouldDropPacket()) {
+      // Message dropped due to packet loss
+      return
     }
 
     const message = typeof data === 'string' ? data : data.toString()
@@ -321,14 +691,35 @@ export class MockSipWebSocket {
 
   /**
    * Deliver a message to the WebSocket handlers
+   * Respects network simulation (latency, packet loss, offline)
    */
   private deliverMessage(message: string): void {
-    if (this.onmessage && this.readyState === WebSocket.OPEN) {
-      this.onmessage(
-        new MessageEvent('message', {
-          data: message,
-        })
-      )
+    // Check if offline
+    if (this.networkState.isOffline()) {
+      return
+    }
+
+    // Check for packet loss on incoming messages
+    if (this.networkState.shouldDropPacket()) {
+      return
+    }
+
+    const doDeliver = () => {
+      if (this.onmessage && this.readyState === WebSocket.OPEN) {
+        this.onmessage(
+          new MessageEvent('message', {
+            data: message,
+          })
+        )
+      }
+    }
+
+    // Apply latency
+    const latency = this.networkState.getLatency()
+    if (latency > 0) {
+      setTimeout(doDeliver, latency)
+    } else {
+      doDeliver()
     }
   }
 
@@ -383,6 +774,18 @@ export class MockSipWebSocket {
    */
   close(code?: number, reason?: string): void {
     if (this.readyState === WebSocket.CLOSED) return
+
+    // Clean up network config listener
+    if (this.networkConfigUnsubscribe) {
+      this.networkConfigUnsubscribe()
+      this.networkConfigUnsubscribe = null
+    }
+
+    // Clean up any pending connection timeout
+    if (this.pendingConnectionTimeout) {
+      clearTimeout(this.pendingConnectionTimeout)
+      this.pendingConnectionTimeout = null
+    }
 
     this.readyState = WebSocket.CLOSING
     queueMicrotask(() => {

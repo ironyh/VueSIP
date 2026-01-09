@@ -36,7 +36,7 @@ const GLOBAL_TEST_IGNORE = [
   // Infrastructure requirements - need additional mock capabilities
   /audio-devices\.spec\.ts/, // Requires mock media device integration
   /multi-user\.spec\.ts/, // Requires multi-instance mock coordination
-  /network-conditions\.spec\.ts/, // Requires network simulation
+  // network-conditions.spec.ts - ENABLED: NetworkSimulator implemented in MockSipServer.ts
 
   // CI-specific issues - pass locally but fail in CI
   /accessibility\.spec\.ts/, // CI timing issues with axe-core (24 tests pass locally)
