@@ -312,11 +312,11 @@ export const STORAGE_KEYS = {
  * Performance targets and limits
  */
 export const PERFORMANCE = {
-  /** Maximum bundle size in bytes (minified) - includes AMI composables, OAuth2, MultiLine, FreePBX, Phase 3 enhancements, Call Quality Dashboard */
-  MAX_BUNDLE_SIZE: 575 * 1024, // 575 KB
+  /** Maximum bundle size in bytes (minified) - includes AMI composables, OAuth2, MultiLine, FreePBX, Phase 3 enhancements, Call Quality Dashboard, Transcription */
+  MAX_BUNDLE_SIZE: 600 * 1024, // 600 KB
 
-  /** Maximum bundle size in bytes (gzipped) - increased for OAuth2, MultiLine, FreePBX modules */
-  MAX_BUNDLE_SIZE_GZIPPED: 150 * 1024, // 150 KB
+  /** Maximum bundle size in bytes (gzipped) - increased for OAuth2, MultiLine, FreePBX, Transcription modules */
+  MAX_BUNDLE_SIZE_GZIPPED: 160 * 1024, // 160 KB
 
   /** Target call setup time in milliseconds */
   TARGET_CALL_SETUP_TIME: 2000, // 2 seconds
