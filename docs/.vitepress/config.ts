@@ -67,6 +67,7 @@ export default defineConfig({
             { text: 'Multi-Line Support', link: '/guide/multi-line' },
             { text: 'Call Parking', link: '/guide/call-parking' },
             { text: 'Voicemail', link: '/guide/voicemail' },
+            { text: 'Real-Time Transcription', link: '/guide/transcription' },
           ],
         },
         {

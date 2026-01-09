@@ -536,6 +536,37 @@ export const metadata = {
 }
 
 // ============================================================================
+// Transcription
+// ============================================================================
+
+/**
+ * Real-time transcription module for voice-to-text capabilities.
+ *
+ * Provides pluggable transcription providers, keyword detection, PII redaction,
+ * and export to multiple formats (JSON, TXT, SRT, VTT, CSV).
+ *
+ * @see {@link useTranscription} for the main composable
+ * @see {@link WebSpeechProvider} for browser-native transcription
+ * @see {@link KeywordDetector} for agent-assist keyword triggers
+ * @see {@link PIIRedactor} for compliance (PCI-DSS, HIPAA, GDPR)
+ *
+ * @example
+ * ```typescript
+ * import { useTranscription } from 'vuesip'
+ *
+ * const { start, stop, transcript, exportTranscript } = useTranscription({
+ *   language: 'en-US',
+ *   keywords: [{ phrase: 'help', action: 'assist' }],
+ * })
+ *
+ * await start()
+ * // ... transcription active
+ * const srt = exportTranscript('srt')
+ * ```
+ */
+export * from './transcription'
+
+// ============================================================================
 // AgentDB Vector Search (RAG/Semantic Search)
 // ============================================================================
 
