@@ -7,6 +7,7 @@ This guide covers the essential call control features in VueSip, enabling you to
 Call controls are the building blocks of any VoIP application. Whether you're building a simple softphone, a customer service application, or a complex call center solution, you need reliable ways to manage active calls.
 
 **Why Call Controls Matter:**
+
 - **User Experience**: Users expect familiar phone controls (hold, mute, transfer)
 - **Professional Features**: Business applications require advanced features like attended transfers
 - **Compliance**: Some industries require call recording indicators (mute status)
@@ -34,6 +35,7 @@ Additionally, basic call controls (hold, mute, DTMF) are available directly on `
 ### What is Call Hold?
 
 Call hold temporarily pauses the audio stream in both directions while keeping the call connected. This is useful when you need to:
+
 - Look up information without the other party hearing background noise
 - Consult with a colleague privately
 - Switch between multiple calls
@@ -121,6 +123,7 @@ watch(
 VueSip distinguishes between different hold scenarios to give you precise control over your UI.
 
 **Local Hold vs Remote Hold:**
+
 - **Local Hold**: You put the call on hold (state: `'held'`)
 - **Remote Hold**: The other party put you on hold (state: `'remote_held'`)
 - **Active**: Call is active with audio flowing (state: `'active'`)
@@ -162,6 +165,7 @@ watch(
 ⚠️ **Important**: VueSip includes automatic timeout protection for hold operations (10 seconds by default). If a hold/unhold operation doesn't complete within the timeout period, the operation lock is automatically released to prevent the call from getting stuck in an intermediate state.
 
 This protection ensures your application remains responsive even when:
+
 - Network latency is high
 - The remote SIP server is slow to respond
 - SIP messages are lost or delayed
@@ -173,10 +177,12 @@ This protection ensures your application remains responsive even when:
 ### What is Mute?
 
 Mute controls your local microphone without affecting the call connection. Unlike hold, which pauses audio in both directions:
+
 - **Mute**: You can't be heard, but you can still hear the other party
 - **Hold**: Neither party can hear each other
 
 **Use Cases for Mute:**
+
 - Coughing or sneezing during a call
 - Speaking to someone in your office without the caller hearing
 - Reducing background noise while listening
@@ -288,7 +294,7 @@ Here's a production-ready component demonstrating best practices for mute contro
   <button
     @click="toggleMute"
     :disabled="!hasActiveCall"
-    :class="{ 'muted': isMuted }"
+    :class="{ muted: isMuted }"
     :aria-label="isMuted ? 'Unmute microphone' : 'Mute microphone'"
   >
     {{ isMuted ? '🔇 Unmute' : '🔊 Mute' }}
@@ -302,14 +308,10 @@ import { useSipClient } from 'vuesip'
 const { currentCall } = useSipClient()
 
 // Only enable mute button when call is active
-const hasActiveCall = computed(() =>
-  currentCall.value?.state === 'active'
-)
+const hasActiveCall = computed(() => currentCall.value?.state === 'active')
 
 // Track current mute state
-const isMuted = computed(() =>
-  currentCall.value?.isMuted ?? false
-)
+const isMuted = computed(() => currentCall.value?.isMuted ?? false)
 
 // Toggle between muted and unmuted states
 function toggleMute() {
@@ -335,6 +337,7 @@ function toggleMute() {
 **DTMF (Dual-Tone Multi-Frequency)** is the technology behind touch-tone dialing. When you press a number on a phone keypad, it generates a specific combination of two frequencies that represent that digit.
 
 **Common Use Cases:**
+
 - **IVR Navigation**: Pressing numbers to navigate automated phone menus ("Press 1 for Sales...")
 - **Authentication**: Entering PIN codes or account numbers during calls
 - **Extension Dialing**: Dialing extensions after reaching a company's main line
@@ -343,6 +346,7 @@ function toggleMute() {
 **Real-World Example**: When calling your bank, you might press your account number using DTMF tones, then navigate through menu options to check your balance.
 
 VueSip provides two ways to send DTMF tones:
+
 1. **Direct sending via `CallSession`** - Simple, immediate tone sending for basic use cases
 2. **Advanced queue management via `useDTMF` composable** - Sophisticated queue management for complex scenarios
 
@@ -363,9 +367,9 @@ currentCall.value?.sendDTMF('1234#')
 
 // Send with custom options for different scenarios
 currentCall.value?.sendDTMF('5', {
-  duration: 100,              // Tone duration in milliseconds
-  interToneGap: 70,           // Gap between tones in milliseconds
-  transportType: 'RFC2833'    // Transport method: 'RFC2833' (in-band) or 'INFO' (out-of-band)
+  duration: 100, // Tone duration in milliseconds
+  interToneGap: 70, // Gap between tones in milliseconds
+  transportType: 'RFC2833', // Transport method: 'RFC2833' (in-band) or 'INFO' (out-of-band)
 })
 ```
 
@@ -385,18 +389,18 @@ const { currentCall } = useSipClient()
 // Initialize DTMF composable with comprehensive features
 const {
   // Methods for sending tones
-  sendTone,              // Send a single tone immediately
-  sendToneSequence,      // Send multiple tones in sequence
-  queueTone,            // Add tone to queue for later sending
-  queueToneSequence,    // Add multiple tones to queue
-  processQueue,         // Process all queued tones
-  clearQueue,           // Clear the queue without sending
+  sendTone, // Send a single tone immediately
+  sendToneSequence, // Send multiple tones in sequence
+  queueTone, // Add tone to queue for later sending
+  queueToneSequence, // Add multiple tones to queue
+  processQueue, // Process all queued tones
+  clearQueue, // Clear the queue without sending
 
   // Reactive state
-  isSending,            // Currently sending tones?
-  queuedTones,          // Array of tones waiting in queue
-  lastSentTone,         // Most recently sent tone
-  tonesSentCount        // Total count of tones sent
+  isSending, // Currently sending tones?
+  queuedTones, // Array of tones waiting in queue
+  lastSentTone, // Most recently sent tone
+  tonesSentCount, // Total count of tones sent
 } = useDTMF(currentCall)
 ```
 
@@ -417,8 +421,8 @@ try {
 
 // Send with custom duration for special requirements
 await sendTone('9', {
-  duration: 150,           // Longer duration for older IVR systems
-  transport: 'RFC2833'     // In-band signaling (most reliable)
+  duration: 150, // Longer duration for older IVR systems
+  transport: 'RFC2833', // In-band signaling (most reliable)
 })
 ```
 
@@ -429,8 +433,8 @@ Send multiple tones in sequence with callbacks for progress tracking:
 ```typescript
 // Send a sequence of tones (e.g., entering account number: 1234#)
 await sendToneSequence('1234#', {
-  duration: 100,              // Each tone plays for 100ms
-  interToneGap: 70,          // 70ms pause between tones
+  duration: 100, // Each tone plays for 100ms
+  interToneGap: 70, // 70ms pause between tones
 
   // Callback after each tone is sent (useful for UI updates)
   onToneSent: (tone) => {
@@ -449,7 +453,7 @@ await sendToneSequence('1234#', {
   onError: (error, tone) => {
     console.error(`Failed to send ${tone}:`, error)
     // Show error: "Failed to enter digit. Please try again."
-  }
+  },
 })
 ```
 
@@ -460,37 +464,38 @@ await sendToneSequence('1234#', {
 Queue management is powerful for scenarios where tones need to be collected and sent as a batch, or when you want to allow rapid input without waiting for each tone to complete.
 
 **Why Use Queues?**
+
 - **Rapid Input**: Users can type quickly without waiting for each tone to send
 - **Batch Processing**: Collect all tones then send when ready (e.g., "dial" button)
 - **Smoother UX**: No blocking while users enter information
 
 ```typescript
 // Build up a queue of tones (user typing rapidly on dialpad)
-queueTone('1')    // User presses 1
-queueTone('2')    // User presses 2
-queueTone('3')    // User presses 3
+queueTone('1') // User presses 1
+queueTone('2') // User presses 2
+queueTone('3') // User presses 3
 
 // Queue a sequence (e.g., area code)
 queueToneSequence('456#')
 
 // Check queue status before sending
-console.log('Queue size:', queueSize.value)         // 7 tones waiting
-console.log('Queued tones:', queuedTones.value)    // ['1','2','3','4','5','6','#']
+console.log('Queue size:', queueSize.value) // 7 tones waiting
+console.log('Queued tones:', queuedTones.value) // ['1','2','3','4','5','6','#']
 
 // Process the entire queue when user clicks "Send"
 await processQueue({
-  duration: 100,          // Standard tone duration
-  interToneGap: 70,      // Standard gap between tones
+  duration: 100, // Standard tone duration
+  interToneGap: 70, // Standard gap between tones
 
   onComplete: () => {
     console.log('Queue processed')
     // Show: "Number dialed successfully"
-  }
+  },
 })
 
 // Clear the queue if user cancels (e.g., clicks "Clear" button)
 clearQueue()
-console.log('Queue cleared')  // User started over
+console.log('Queue cleared') // User started over
 ```
 
 💡 **Tip**: Queue management is perfect for building dialers where users enter a full number before dialing, just like a traditional phone.
@@ -540,7 +545,7 @@ VueSip supports all standard DTMF tones used in telephony:
 - **Symbols**: `*` (star/asterisk), `#` (hash/pound)
 - **Letters**: `A`, `B`, `C`, `D` (extended DTMF, used in some military and specialized applications)
 
-⚠️ **Warning**: While VueSip supports extended DTMF tones (A, B, C, D), many IVR systems only recognize 0-9, *, and #. Test with your specific SIP server before using extended tones in production.
+⚠️ **Warning**: While VueSip supports extended DTMF tones (A, B, C, D), many IVR systems only recognize 0-9, \*, and #. Test with your specific SIP server before using extended tones in production.
 
 ### Queue Size Limits
 
@@ -586,11 +591,7 @@ import { useDTMF } from 'vuesip/composables'
 
 const { currentCall } = useSipClient()
 
-const {
-  sendTone,
-  isSending,
-  tonesSentCount
-} = useDTMF(currentCall)
+const { sendTone, isSending, tonesSentCount } = useDTMF(currentCall)
 
 // Standard phone keypad layout
 const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
@@ -599,9 +600,7 @@ const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 const display = ref('')
 
 // Only allow dialing when call is active and not currently sending
-const canDial = computed(() =>
-  currentCall.value?.state === 'active' && !isSending.value
-)
+const canDial = computed(() => currentCall.value?.state === 'active' && !isSending.value)
 
 async function dialTone(tone: string) {
   // Add to display immediately for instant feedback
@@ -610,8 +609,8 @@ async function dialTone(tone: string) {
   try {
     // Send the tone to the remote party
     await sendTone(tone, {
-      duration: 100,           // Standard duration
-      transport: 'RFC2833'     // Reliable in-band signaling
+      duration: 100, // Standard duration
+      transport: 'RFC2833', // Reliable in-band signaling
     })
   } catch (error) {
     console.error('Failed to send tone:', error)
@@ -635,6 +634,7 @@ async function dialTone(tone: string) {
 ### What is Call Transfer?
 
 Call transfer allows you to redirect an active call to another party. This is essential for:
+
 - **Reception/Routing**: Directing calls to the appropriate department
 - **Escalation**: Moving calls to supervisors or specialists
 - **Consultation**: Asking a colleague for help with a customer's question
@@ -667,21 +667,21 @@ const { sipClient } = useSipClient()
 
 const {
   // Reactive State
-  activeTransfer,        // Current transfer details (type, state, call IDs)
-  transferState,         // Current state: 'idle' | 'initiated' | 'in_progress' | 'completed' | 'failed' | 'canceled'
-  isTransferring,        // Boolean: Is a transfer currently in progress?
-  consultationCall,      // The consultation call session (for attended transfers)
+  activeTransfer, // Current transfer details (type, state, call IDs)
+  transferState, // Current state: 'idle' | 'initiated' | 'in_progress' | 'completed' | 'failed' | 'canceled'
+  isTransferring, // Boolean: Is a transfer currently in progress?
+  consultationCall, // The consultation call session (for attended transfers)
 
   // Transfer Methods
-  blindTransfer,               // Perform immediate transfer without consultation
-  initiateAttendedTransfer,    // Start attended transfer (creates consultation call)
-  completeAttendedTransfer,    // Complete attended transfer (connect the two parties)
-  cancelTransfer,              // Cancel transfer (resume original call)
-  forwardCall,                 // Forward incoming call before answering
+  blindTransfer, // Perform immediate transfer without consultation
+  initiateAttendedTransfer, // Start attended transfer (creates consultation call)
+  completeAttendedTransfer, // Complete attended transfer (connect the two parties)
+  cancelTransfer, // Cancel transfer (resume original call)
+  forwardCall, // Forward incoming call before answering
 
   // Utility Methods
-  getTransferProgress,   // Get detailed progress information
-  onTransferEvent       // Subscribe to transfer events
+  getTransferProgress, // Get detailed progress information
+  onTransferEvent, // Subscribe to transfer events
 } = useCallControls(sipClient)
 ```
 
@@ -695,8 +695,8 @@ Blind transfer immediately redirects the call to another party without consultat
 // Perform blind transfer to known extension
 try {
   await blindTransfer(
-    'call-123',                      // ID of call to transfer
-    'sip:sales@example.com'         // Target SIP URI (sales department)
+    'call-123', // ID of call to transfer
+    'sip:sales@example.com' // Target SIP URI (sales department)
   )
   console.log('Blind transfer initiated')
 
@@ -704,7 +704,6 @@ try {
   // - Original call is transferred
   // - You are disconnected from the call
   // - Caller is now ringing the target
-
 } catch (error) {
   console.error('Transfer failed:', error)
   // Transfer can fail if:
@@ -717,8 +716,10 @@ try {
 await blindTransfer(
   'call-123',
   'sip:support@example.com',
-  ['X-Transfer-Reason: Customer request',  // Custom header for logging
-   'X-Transfer-From: Reception']           // Custom header for tracking
+  [
+    'X-Transfer-Reason: Customer request', // Custom header for logging
+    'X-Transfer-From: Reception',
+  ] // Custom header for tracking
 )
 ```
 
@@ -729,6 +730,7 @@ await blindTransfer(
 Attended transfer (also called consultative transfer) allows you to speak with the transfer target before completing the transfer. This provides a better customer experience and ensures the target can help.
 
 **Real-World Scenario**: A support agent receives a technical question they can't answer. They perform an attended transfer:
+
 1. Put customer on hold
 2. Call the technical specialist
 3. Explain the situation: "I have a customer with a database question..."
@@ -740,8 +742,8 @@ Attended transfer (also called consultative transfer) allows you to speak with t
 // Start attended transfer (original call is automatically placed on hold)
 try {
   const consultationCallId = await initiateAttendedTransfer(
-    'call-123',                      // Original call ID (customer)
-    'sip:specialist@example.com'    // Target to consult with (colleague)
+    'call-123', // Original call ID (customer)
+    'sip:specialist@example.com' // Target to consult with (colleague)
   )
 
   console.log('Consultation call started:', consultationCallId)
@@ -752,7 +754,6 @@ try {
   // - You're now in a new call with the target (colleague)
   // - You can explain the situation before completing transfer
   // - Customer cannot hear your consultation
-
 } catch (error) {
   console.error('Failed to initiate transfer:', error)
   // If initiation fails:
@@ -776,7 +777,6 @@ try {
   // - Customer is connected to specialist
   // - You are disconnected from both calls
   // - Customer and specialist can now speak directly
-
 } catch (error) {
   console.error('Failed to complete transfer:', error)
   // If completion fails, both calls may still be active
@@ -793,7 +793,6 @@ try {
   // - Original call is taken off hold
   // - You're back speaking with the customer
   // - You can explain and try a different solution
-
 } catch (error) {
   console.error('Failed to cancel transfer:', error)
 }
@@ -810,8 +809,8 @@ Call forwarding allows you to redirect an incoming call to another destination b
 ```typescript
 // Forward incoming call to voicemail (before answering)
 await forwardCall(
-  'call-456',                      // Incoming call ID
-  'sip:voicemail@example.com'     // Forward destination
+  'call-456', // Incoming call ID
+  'sip:voicemail@example.com' // Forward destination
 )
 
 // At this point:
@@ -880,7 +879,7 @@ const progress = getTransferProgress()
 if (progress) {
   console.log(`Transfer: ${progress.progress}% complete`)
   console.log(`State: ${progress.state}`)
-  console.log(`Type: ${progress.type}`)  // 'blind' or 'attended'
+  console.log(`Type: ${progress.type}`) // 'blind' or 'attended'
 
   // Use progress for progress bar or detailed status display
 }
@@ -893,10 +892,10 @@ Subscribe to transfer events for real-time notifications across your application
 ```typescript
 // Subscribe to transfer events (useful for logging, analytics, or UI updates)
 const unsubscribe = onTransferEvent((event) => {
-  console.log('Transfer event:', event.type)      // Event type
-  console.log('Transfer ID:', event.transferId)   // Unique transfer ID
-  console.log('State:', event.state)              // Current state
-  console.log('Target:', event.target)            // Transfer target URI
+  console.log('Transfer event:', event.type) // Event type
+  console.log('Transfer ID:', event.transferId) // Unique transfer ID
+  console.log('State:', event.state) // Current state
+  console.log('Target:', event.target) // Transfer target URI
 
   if (event.error) {
     console.error('Transfer error:', event.error)
@@ -1005,22 +1004,21 @@ const {
   initiateAttendedTransfer,
   completeAttendedTransfer,
   cancelTransfer,
-  getTransferProgress
+  getTransferProgress,
 } = useCallControls(sipClient)
 
 // Target URI input binding
 const targetUri = ref('')
 
 // Only allow transfer when call is active
-const hasActiveCall = computed(() =>
-  currentCall.value?.state === 'active'
-)
+const hasActiveCall = computed(() => currentCall.value?.state === 'active')
 
 // Enable transfer button when all conditions are met
-const canTransfer = computed(() =>
-  hasActiveCall.value &&           // Must have active call
-  targetUri.value.length > 0 &&   // Must have target URI
-  !isTransferring.value            // No transfer already in progress
+const canTransfer = computed(
+  () =>
+    hasActiveCall.value && // Must have active call
+    targetUri.value.length > 0 && // Must have target URI
+    !isTransferring.value // No transfer already in progress
 )
 
 // Get current transfer progress for display
@@ -1097,7 +1095,7 @@ if (currentCall.value?.state === 'active') {
 }
 
 // Bad: Attempting to hold without checking state
-await currentCall.value?.hold()  // May fail if call is not active
+await currentCall.value?.hold() // May fail if call is not active
 ```
 
 **Why**: Attempting to hold a call that isn't active (e.g., already held, ended, or ringing) will fail. Checking state first prevents errors and provides better UX.
@@ -1115,7 +1113,7 @@ try {
 }
 
 // Bad: No error handling
-await currentCall.value?.hold()  // Silent failure confuses users
+await currentCall.value?.hold() // Silent failure confuses users
 ```
 
 **Why**: Hold operations can fail due to network issues or SIP negotiation problems. Users need to know when operations fail so they can retry or take alternative action.
@@ -1129,7 +1127,7 @@ if (!currentCall.value?.isOnHold) {
 }
 
 // Bad: Holding without checking current state
-await currentCall.value?.hold()  // Redundant if already held
+await currentCall.value?.hold() // Redundant if already held
 ```
 
 **Why**: Attempting to hold an already held call wastes network resources and may confuse state management. Always check `isOnHold` first.
@@ -1142,12 +1140,8 @@ await currentCall.value?.hold()  // Redundant if already held
 
 ```typescript
 // Good: Clear visual indicators for mute state
-const muteIcon = computed(() =>
-  isMuted.value ? '🔇' : '🔊'
-)
-const muteColor = computed(() =>
-  isMuted.value ? 'red' : 'green'
-)
+const muteIcon = computed(() => (isMuted.value ? '🔇' : '🔊'))
+const muteColor = computed(() => (isMuted.value ? 'red' : 'green'))
 ```
 
 **Why**: Users must always know if their microphone is muted. Unclear mute state leads to awkward situations where users speak while muted or are heard when they expect privacy.
@@ -1230,12 +1224,14 @@ await sendTone('2', { transport: 'INFO' })
 ```
 
 **Why RFC2833 is better**:
+
 - More reliable (tones are embedded in audio stream)
 - Works through NAT and firewalls more easily
 - Standard method used by most modern SIP systems
 - Real-time delivery with the audio
 
 **When to use INFO**:
+
 - Legacy SIP servers that don't support RFC2833
 - Networks with audio codec restrictions
 - Explicit requirement from your SIP provider
@@ -1268,14 +1264,14 @@ function dialNumber(number: string) {
   // Process queue with appropriate timing
   processQueue({
     duration: 100,
-    interToneGap: 70
+    interToneGap: 70,
   })
 }
 
 // Bad: Sending tones synchronously (slow, blocks UI)
 async function dialNumberSlow(number: string) {
   for (const digit of number) {
-    await sendTone(digit)  // Each tone blocks until complete
+    await sendTone(digit) // Each tone blocks until complete
   }
 }
 ```
@@ -1316,7 +1312,9 @@ try {
   console.error('Transfer failed:', error)
 
   // Notify user with actionable information
-  showNotification('Transfer failed. Call maintained. Please try again or use a different extension.')
+  showNotification(
+    'Transfer failed. Call maintained. Please try again or use a different extension.'
+  )
 
   // Original call should still be active
   // User can retry transfer or continue conversation
@@ -1337,7 +1335,7 @@ if (activeTransfer.value?.type === 'attended') {
     label: 'Original Call (On Hold)',
     caller: originalCaller,
     duration: originalCallDuration,
-    status: 'held'
+    status: 'held',
   })
 
   // Display consultation call status
@@ -1345,13 +1343,13 @@ if (activeTransfer.value?.type === 'attended') {
     label: 'Consultation Call (Active)',
     caller: transferTarget,
     duration: consultationDuration,
-    status: 'active'
+    status: 'active',
   })
 
   // Show clear action buttons
   showButtons([
     { label: 'Complete Transfer', action: completeTransfer },
-    { label: 'Cancel Transfer', action: cancelTransfer }
+    { label: 'Cancel Transfer', action: cancelTransfer },
   ])
 }
 ```
@@ -1401,7 +1399,7 @@ watch(transferState, (state) => {
       callId: activeTransfer.value?.callId,
       target: activeTransfer.value?.target,
       type: activeTransfer.value?.type,
-      timestamp: new Date()
+      timestamp: new Date(),
     })
   }
 })
@@ -1458,11 +1456,9 @@ async function holdCall() {
 
     // Show success
     showSuccess('Call placed on hold')
-
   } catch (error) {
     // Show error
     showError('Failed to hold call. Please try again.')
-
   } finally {
     // Hide loading state
     hideLoading()
@@ -1499,7 +1495,7 @@ async function performCallOperation() {
 
   // Prevent rapid double-clicks
   if (operationInProgress.value) {
-    return  // Silently ignore duplicate clicks
+    return // Silently ignore duplicate clicks
   }
 
   operationInProgress.value = true
@@ -1520,6 +1516,7 @@ async function performCallOperation() {
 ```
 
 **Why**: Real-world applications face many edge cases:
+
 - Network disconnections during operations
 - Calls ending while operations are in progress
 - Rapid button clicks causing duplicate operations
@@ -1549,6 +1546,7 @@ Handling these cases gracefully prevents errors and frustrated users.
 ```
 
 **Why**: Different SIP server implementations have subtle variations in behavior. Testing with your actual SIP infrastructure is essential:
+
 - Asterisk may handle transfers differently than FreeSWITCH
 - Some servers require specific headers
 - DTMF transport support varies
@@ -1589,6 +1587,7 @@ VueSip provides comprehensive call control features that enable you to build pro
 ### Key Benefits
 
 All features include:
+
 - **Type Safety**: Full TypeScript interfaces and type checking
 - **Reactive State**: Vue 3 composable API with reactive state management
 - **Event-Driven**: Subscribe to events for loose coupling
@@ -1603,6 +1602,6 @@ Now that you understand call controls, explore these related topics:
 - **[API Reference](/api/)** - Detailed API documentation for all methods and properties
 - **[SIP Client Guide](/guide/sip-client)** - Learn about the core SIP client setup
 - **[Conference Guide](/guide/conferences)** - Build multi-party conference calls
-- **[Examples Repository](https://github.com/yourusername/vuesip-examples)** - Complete working examples
+- **[Examples Repository](https://github.com/ironyh/VueSIP/tree/main/examples)** - Complete working examples
 
 💡 **Tip**: Start with basic controls (hold, mute) in your application, then add advanced features (transfer, DTMF queuing) as your requirements grow.
