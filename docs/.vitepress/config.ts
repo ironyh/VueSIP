@@ -81,7 +81,10 @@ export default defineConfig({
         {
           text: 'Integrations',
           collapsed: false,
-          items: [{ text: 'AMI & CDR Integration', link: '/guide/ami-cdr' }],
+          items: [
+            { text: 'AMI & CDR Integration', link: '/guide/ami-cdr' },
+            { text: 'ConfBridge Conferencing', link: '/guide/confbridge' },
+          ],
         },
         {
           text: 'Quality & Reliability',
