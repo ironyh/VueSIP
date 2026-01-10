@@ -60,3 +60,6 @@ export * from './connection-recovery.types'
 
 // Transcription types
 export * from './transcription.types'
+
+// ConfBridge types (AMI)
+export * from './confbridge.types'
