@@ -66,3 +66,6 @@ export * from './confbridge.types'
 
 // PJSIP types (AMI)
 export * from './pjsip.types'
+
+// System types (AMI)
+export * from './system.types'
