@@ -129,6 +129,88 @@ export default defineConfig({
           text: 'Examples',
           items: [{ text: 'Overview', link: '/examples/' }],
         },
+        {
+          text: 'Getting Started',
+          collapsed: false,
+          items: [
+            { text: 'Quick Start', link: '/examples/quick-start' },
+            { text: 'Learning Paths', link: '/examples/learning-paths' },
+          ],
+        },
+        {
+          text: 'Core Calling',
+          collapsed: false,
+          items: [
+            { text: 'Basic Audio Call', link: '/examples/basic-call' },
+            { text: 'Video Calling', link: '/examples/video-call' },
+            { text: 'Conference Calls', link: '/examples/conference' },
+            { text: 'Call Transfer', link: '/examples/call-transfer' },
+            { text: 'Multi-Line', link: '/examples/multi-line' },
+          ],
+        },
+        {
+          text: 'Call Controls',
+          collapsed: false,
+          items: [
+            { text: 'DTMF Tones', link: '/examples/dtmf' },
+            { text: 'Hold & Mute', link: '/examples/hold-mute' },
+            { text: 'Call Timer', link: '/examples/call-timer' },
+            { text: 'Auto Answer', link: '/examples/auto-answer' },
+          ],
+        },
+        {
+          text: 'Call Quality',
+          collapsed: false,
+          items: [
+            { text: 'Quality Monitoring', link: '/examples/call-quality' },
+            { text: 'Connection Recovery', link: '/examples/connection-recovery' },
+          ],
+        },
+        {
+          text: 'Transcription',
+          collapsed: false,
+          items: [
+            { text: 'Real-Time Transcription', link: '/examples/transcription' },
+            { text: 'Keyword Detection', link: '/examples/transcription-keywords' },
+          ],
+        },
+        {
+          text: 'Video & Recording',
+          collapsed: false,
+          items: [
+            { text: 'Picture-in-Picture', link: '/examples/picture-in-picture' },
+            { text: 'Screen Sharing', link: '/examples/screen-sharing' },
+            { text: 'Call Recording', link: '/examples/call-recording' },
+            { text: 'Conference Gallery', link: '/examples/conference-gallery' },
+          ],
+        },
+        {
+          text: 'Communication',
+          collapsed: false,
+          items: [
+            { text: 'Presence & BLF', link: '/examples/presence' },
+            { text: 'SIP Messaging', link: '/examples/sip-messaging' },
+            { text: 'Voicemail', link: '/examples/voicemail' },
+          ],
+        },
+        {
+          text: 'Call Center (AMI)',
+          collapsed: true,
+          items: [
+            { text: 'Agent Login', link: '/examples/agent-login' },
+            { text: 'Queue Monitor', link: '/examples/queue-monitor' },
+            { text: 'CDR Dashboard', link: '/examples/cdr-dashboard' },
+          ],
+        },
+        {
+          text: 'Settings & Utilities',
+          collapsed: true,
+          items: [
+            { text: 'Audio Devices', link: '/examples/audio-devices' },
+            { text: 'Call History', link: '/examples/call-history' },
+            { text: 'Settings Persistence', link: '/examples/settings' },
+          ],
+        },
       ],
 
       '/developer/': [
