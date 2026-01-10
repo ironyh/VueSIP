@@ -9,7 +9,7 @@
 
 import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
-import type { AmiAction } from '@/types/ami.types'
+import type { AmiAction, AmiMessage, AmiEventData } from '@/types/ami.types'
 import type {
   PjsipEndpoint,
   PjsipEndpointStatus,
@@ -272,12 +272,14 @@ export function useAmiPjsip(
   }
 
   function parseTransport(data: AmiPjsipTransportListEvent): PjsipTransport {
-    const [bindAddr, bindPortStr] = (data.Bind || '0.0.0.0:5060').split(':')
+    const bindParts = (data.Bind || '0.0.0.0:5060').split(':')
+    const bindAddr = bindParts[0] || '0.0.0.0'
+    const bindPortStr = bindParts[1] || '5060'
     return {
       transport: data.ObjectName,
       type: (data.Protocol?.toLowerCase() as PjsipTransport['type']) || 'udp',
       bindAddress: bindAddr,
-      bindPort: parseInt(bindPortStr || '5060', 10),
+      bindPort: parseInt(bindPortStr, 10),
       externalMediaAddress: data.ExternalMediaAddress,
       externalSignalingAddress: data.ExternalSignalingAddress,
       localNet: data.LocalNet ? data.LocalNet.split(',').map((n) => n.trim()) : undefined,
@@ -296,12 +298,13 @@ export function useAmiPjsip(
   // AMI Actions
   // ============================================================================
 
-  async function sendAction(action: AmiAction): Promise<Record<string, unknown>> {
+  async function doAction(action: AmiAction): Promise<Record<string, unknown>> {
     const client = amiClientRef.value
     if (!client) {
       throw new Error('AMI client not connected')
     }
-    return client.send(action)
+    const response = await client.sendAction(action)
+    return response.data as Record<string, unknown>
   }
 
   async function listEndpoints(): Promise<PjsipEndpoint[]> {
@@ -309,7 +312,7 @@ export function useAmiPjsip(
     error.value = null
 
     try {
-      const response = await sendAction({ Action: 'PJSIPShowEndpoints' })
+      const response = await doAction({ Action: 'PJSIPShowEndpoints' })
       const events = (response.events || []) as AmiPjsipEndpointListEvent[]
 
       endpoints.value.clear()
@@ -339,7 +342,7 @@ export function useAmiPjsip(
         action.Endpoint = endpoint
       }
 
-      const response = await sendAction(action)
+      const response = await doAction(action)
       const events = (response.events || []) as AmiPjsipContactListEvent[]
 
       if (!endpoint) {
@@ -374,7 +377,7 @@ export function useAmiPjsip(
     error.value = null
 
     try {
-      const response = await sendAction({ Action: 'PJSIPShowAors' })
+      const response = await doAction({ Action: 'PJSIPShowAors' })
       const events = (response.events || []) as AmiPjsipAorListEvent[]
 
       aors.value.clear()
@@ -399,7 +402,7 @@ export function useAmiPjsip(
     error.value = null
 
     try {
-      const response = await sendAction({ Action: 'PJSIPShowTransports' })
+      const response = await doAction({ Action: 'PJSIPShowTransports' })
       const events = (response.events || []) as AmiPjsipTransportListEvent[]
 
       transports.value.clear()
@@ -424,7 +427,7 @@ export function useAmiPjsip(
     error.value = null
 
     try {
-      const response = await sendAction({ Action: 'PJSIPShowRegistrationsOutbound' })
+      const response = await doAction({ Action: 'PJSIPShowRegistrationsOutbound' })
       const events = (response.events || []) as Array<Record<string, string>>
 
       registrations.value.clear()
@@ -458,7 +461,7 @@ export function useAmiPjsip(
 
   async function getEndpointDetail(endpointName: string): Promise<PjsipEndpoint | null> {
     try {
-      const response = await sendAction({
+      const response = await doAction({
         Action: 'PJSIPShowEndpoint',
         Endpoint: endpointName,
       })
@@ -494,7 +497,7 @@ export function useAmiPjsip(
 
   async function qualifyEndpoint(endpointName: string): Promise<boolean> {
     try {
-      await sendAction({
+      await doAction({
         Action: 'PJSIPQualify',
         Endpoint: endpointName,
       })
@@ -583,7 +586,7 @@ export function useAmiPjsip(
     const handleDeviceState = (event: AmiPjsipDeviceStateEvent) => {
       // Device state format: "PJSIP/1001"
       const match = event.Device?.match(/^PJSIP\/(.+)$/)
-      if (match) {
+      if (match && match[1]) {
         const endpointName = match[1]
         const endpoint = endpoints.value.get(endpointName)
         if (endpoint) {
@@ -601,28 +604,21 @@ export function useAmiPjsip(
       }
     }
 
-    // Subscribe to events
-    client.on(
-      'ContactStatus' as keyof import('@/types/ami.types').AmiClientEvents,
-      handleContactStatus
-    )
-    client.on(
-      'DeviceStateChange' as keyof import('@/types/ami.types').AmiClientEvents,
-      handleDeviceState
-    )
+    // Subscribe to generic event handler and filter by event type
+    const eventHandler = (event: AmiMessage<AmiEventData>) => {
+      const data = event.data
+      switch (data.Event) {
+        case 'ContactStatus':
+          handleContactStatus(data as unknown as AmiPjsipContactStatusEvent)
+          break
+        case 'DeviceStateChange':
+          handleDeviceState(data as unknown as AmiPjsipDeviceStateEvent)
+          break
+      }
+    }
 
-    eventCleanups.push(
-      () =>
-        client.off(
-          'ContactStatus' as keyof import('@/types/ami.types').AmiClientEvents,
-          handleContactStatus
-        ),
-      () =>
-        client.off(
-          'DeviceStateChange' as keyof import('@/types/ami.types').AmiClientEvents,
-          handleDeviceState
-        )
-    )
+    client.on('event', eventHandler)
+    eventCleanups.push(() => client.off('event', eventHandler))
   }
 
   function cleanupEvents(): void {

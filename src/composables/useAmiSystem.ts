@@ -176,12 +176,13 @@ export function useAmiSystem(
   })
 
   // Helper to send AMI actions
-  async function sendAction(action: AmiAction): Promise<Record<string, unknown>> {
+  async function doAction(action: AmiAction): Promise<Record<string, unknown>> {
     const client = amiClientRef.value
     if (!client) {
       throw new Error('AMI client not connected')
     }
-    return client.send(action)
+    const response = await client.sendAction(action)
+    return response.data as Record<string, unknown>
   }
 
   /**
@@ -192,7 +193,7 @@ export function useAmiSystem(
     error.value = null
 
     try {
-      const response = await sendAction({ Action: 'CoreStatus' })
+      const response = await doAction({ Action: 'CoreStatus' })
 
       const status: CoreStatus = {
         asteriskVersion: String(response.AsteriskVersion || ''),
@@ -234,7 +235,7 @@ export function useAmiSystem(
     error.value = null
 
     try {
-      const response = await sendAction({ Action: 'CoreShowChannels' })
+      const response = await doAction({ Action: 'CoreShowChannels' })
       const events = (response.events || []) as AmiCoreShowChannelEvent[]
 
       channels.value.clear()
@@ -286,7 +287,7 @@ export function useAmiSystem(
     error.value = null
 
     try {
-      const response = await sendAction({ Action: 'ModuleCheck' })
+      const response = await doAction({ Action: 'ModuleCheck' })
       const events = (response.events || []) as Record<string, string>[]
 
       modules.value.clear()
@@ -328,7 +329,7 @@ export function useAmiSystem(
     error.value = null
 
     try {
-      const response = await sendAction({ Action: 'BridgeList' })
+      const response = await doAction({ Action: 'BridgeList' })
       const events = (response.events || []) as Record<string, string>[]
 
       bridges.value.clear()
@@ -365,7 +366,7 @@ export function useAmiSystem(
    */
   async function reloadModule(module: string): Promise<boolean> {
     try {
-      const response = await sendAction({
+      const response = await doAction({
         Action: 'ModuleLoad',
         Module: module,
         LoadType: 'Reload',
@@ -384,7 +385,7 @@ export function useAmiSystem(
    */
   async function loadModule(module: string): Promise<boolean> {
     try {
-      const response = await sendAction({
+      const response = await doAction({
         Action: 'ModuleLoad',
         Module: module,
         LoadType: 'Load',
@@ -403,7 +404,7 @@ export function useAmiSystem(
    */
   async function unloadModule(module: string): Promise<boolean> {
     try {
-      const response = await sendAction({
+      const response = await doAction({
         Action: 'ModuleLoad',
         Module: module,
         LoadType: 'Unload',
@@ -423,7 +424,7 @@ export function useAmiSystem(
   async function ping(): Promise<number> {
     const start = Date.now()
     try {
-      await sendAction({ Action: 'Ping' })
+      await doAction({ Action: 'Ping' })
       const elapsed = Date.now() - start
       latency.value = elapsed
       return elapsed
@@ -467,7 +468,7 @@ export function useAmiSystem(
         action.Variable = varEntries
       }
 
-      const response = await sendAction(action)
+      const response = await doAction(action)
       const success = response.Response === 'Success'
       logger.info('Originate call', { channel: opts.channel, success })
       return success
@@ -482,7 +483,7 @@ export function useAmiSystem(
    */
   async function hangupChannel(channel: string): Promise<boolean> {
     try {
-      const response = await sendAction({
+      const response = await doAction({
         Action: 'Hangup',
         Channel: channel,
       })
@@ -546,8 +547,10 @@ export function useAmiSystem(
     if (typeof uptime === 'string') {
       // Handle "HH:MM:SS" format
       const timeMatch = uptime.match(/^(\d+):(\d+):(\d+)$/)
-      if (timeMatch) {
-        const [, hours, minutes, seconds] = timeMatch
+      if (timeMatch && timeMatch[1] && timeMatch[2] && timeMatch[3]) {
+        const hours = timeMatch[1]
+        const minutes = timeMatch[2]
+        const seconds = timeMatch[3]
         return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10)
       }
       // Try parsing as plain number
@@ -561,8 +564,10 @@ export function useAmiSystem(
     if (typeof duration === 'string') {
       // Handle "HH:MM:SS" format
       const timeMatch = duration.match(/^(\d+):(\d+):(\d+)$/)
-      if (timeMatch) {
-        const [, hours, minutes, seconds] = timeMatch
+      if (timeMatch && timeMatch[1] && timeMatch[2] && timeMatch[3]) {
+        const hours = timeMatch[1]
+        const minutes = timeMatch[2]
+        const seconds = timeMatch[3]
         return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10)
       }
       return parseInt(duration, 10) || 0

@@ -9,7 +9,7 @@
 
 import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
-import type { AmiAction } from '@/types/ami.types'
+import type { AmiAction, AmiMessage, AmiEventData } from '@/types/ami.types'
 import type { MWIStatus, AmiMWIEvent, UseAmiMWIOptions, UseAmiMWIReturn } from '@/types/mwi.types'
 
 /**
@@ -82,12 +82,13 @@ export function useAmiMWI(
   /**
    * Send AMI action
    */
-  async function sendAction(action: AmiAction): Promise<Record<string, unknown>> {
+  async function doAction(action: AmiAction): Promise<Record<string, unknown>> {
     const client = amiClientRef.value
     if (!client) {
       throw new Error('AMI client not connected')
     }
-    return client.send(action)
+    const response = await client.sendAction(action)
+    return response.data as Record<string, unknown>
   }
 
   // ============================================================================
@@ -103,7 +104,7 @@ export function useAmiMWI(
     error.value = null
 
     try {
-      const response = await sendAction({
+      const response = await doAction({
         Action: 'MailboxCount',
         Mailbox: formattedMailbox,
       })
@@ -140,7 +141,7 @@ export function useAmiMWI(
     error.value = null
 
     try {
-      await sendAction({
+      await doAction({
         Action: 'MWIUpdate',
         Mailbox: formattedMailbox,
         NewMessages: String(newMessages),
@@ -174,7 +175,7 @@ export function useAmiMWI(
     error.value = null
 
     try {
-      await sendAction({
+      await doAction({
         Action: 'MWIDelete',
         Mailbox: formattedMailbox,
       })
@@ -265,13 +266,16 @@ export function useAmiMWI(
     const client = amiClientRef.value
     if (!client || !useEvents) return
 
-    // Type-safe event handler registration
-    const handler = handleMWIEvent as unknown as (event: Record<string, unknown>) => void
-    client.on('MessageWaiting' as keyof import('@/types/ami.types').AmiClientEvents, handler)
+    // Subscribe to generic event handler and filter by event type
+    const eventHandler = (event: AmiMessage<AmiEventData>) => {
+      const data = event.data
+      if (data.Event === 'MessageWaiting') {
+        handleMWIEvent(data as unknown as AmiMWIEvent)
+      }
+    }
 
-    eventCleanups.push(() =>
-      client.off('MessageWaiting' as keyof import('@/types/ami.types').AmiClientEvents, handler)
-    )
+    client.on('event', eventHandler)
+    eventCleanups.push(() => client.off('event', eventHandler))
   }
 
   /**

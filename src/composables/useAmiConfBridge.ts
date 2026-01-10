@@ -9,7 +9,7 @@
 
 import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
-import type { AmiAction } from '@/types/ami.types'
+import type { AmiAction, AmiMessage, AmiEventData } from '@/types/ami.types'
 import type {
   ConfBridgeRoom,
   ConfBridgeUser,
@@ -180,12 +180,13 @@ export function useAmiConfBridge(
   // AMI Actions
   // ============================================================================
 
-  async function sendAction(action: AmiAction): Promise<Record<string, unknown>> {
+  async function doAction(action: AmiAction): Promise<Record<string, unknown>> {
     const client = amiClientRef.value
     if (!client) {
       throw new Error('AMI client not connected')
     }
-    return client.send(action)
+    const response = await client.sendAction(action)
+    return response.data as Record<string, unknown>
   }
 
   async function listRooms(): Promise<ConfBridgeRoom[]> {
@@ -193,7 +194,7 @@ export function useAmiConfBridge(
     error.value = null
 
     try {
-      const response = await sendAction({ Action: 'ConfbridgeListRooms' })
+      const response = await doAction({ Action: 'ConfbridgeListRooms' })
       const events = (response.events || []) as AmiConfBridgeListRoomsEvent[]
 
       rooms.value.clear()
@@ -218,7 +219,7 @@ export function useAmiConfBridge(
     error.value = null
 
     try {
-      const response = await sendAction({
+      const response = await doAction({
         Action: 'ConfbridgeList',
         Conference: conference,
       })
@@ -250,7 +251,7 @@ export function useAmiConfBridge(
 
   async function lockRoom(conference: string): Promise<ConfBridgeActionResult> {
     try {
-      await sendAction({ Action: 'ConfbridgeLock', Conference: conference })
+      await doAction({ Action: 'ConfbridgeLock', Conference: conference })
       const room = rooms.value.get(conference)
       if (room) {
         room.locked = true
@@ -267,7 +268,7 @@ export function useAmiConfBridge(
 
   async function unlockRoom(conference: string): Promise<ConfBridgeActionResult> {
     try {
-      await sendAction({ Action: 'ConfbridgeUnlock', Conference: conference })
+      await doAction({ Action: 'ConfbridgeUnlock', Conference: conference })
       const room = rooms.value.get(conference)
       if (room) {
         room.locked = false
@@ -291,7 +292,7 @@ export function useAmiConfBridge(
       if (recordFile) {
         action.RecordFile = recordFile
       }
-      await sendAction(action)
+      await doAction(action)
       const room = rooms.value.get(conference)
       if (room) {
         room.recording = true
@@ -308,7 +309,7 @@ export function useAmiConfBridge(
 
   async function stopRecording(conference: string): Promise<ConfBridgeActionResult> {
     try {
-      await sendAction({ Action: 'ConfbridgeStopRecord', Conference: conference })
+      await doAction({ Action: 'ConfbridgeStopRecord', Conference: conference })
       const room = rooms.value.get(conference)
       if (room) {
         room.recording = false
@@ -325,7 +326,7 @@ export function useAmiConfBridge(
 
   async function muteUser(conference: string, channel: string): Promise<ConfBridgeActionResult> {
     try {
-      await sendAction({ Action: 'ConfbridgeMute', Conference: conference, Channel: channel })
+      await doAction({ Action: 'ConfbridgeMute', Conference: conference, Channel: channel })
       const user = users.value.get(channel)
       if (user) {
         user.muted = true
@@ -342,7 +343,7 @@ export function useAmiConfBridge(
 
   async function unmuteUser(conference: string, channel: string): Promise<ConfBridgeActionResult> {
     try {
-      await sendAction({ Action: 'ConfbridgeUnmute', Conference: conference, Channel: channel })
+      await doAction({ Action: 'ConfbridgeUnmute', Conference: conference, Channel: channel })
       const user = users.value.get(channel)
       if (user) {
         user.muted = false
@@ -359,7 +360,7 @@ export function useAmiConfBridge(
 
   async function kickUser(conference: string, channel: string): Promise<ConfBridgeActionResult> {
     try {
-      await sendAction({ Action: 'ConfbridgeKick', Conference: conference, Channel: channel })
+      await doAction({ Action: 'ConfbridgeKick', Conference: conference, Channel: channel })
       users.value.delete(channel)
       return { success: true, conference }
     } catch (err) {
@@ -376,7 +377,7 @@ export function useAmiConfBridge(
     channel: string
   ): Promise<ConfBridgeActionResult> {
     try {
-      await sendAction({
+      await doAction({
         Action: 'ConfbridgeSetSingleVideoSrc',
         Conference: conference,
         Channel: channel,
@@ -414,8 +415,8 @@ export function useAmiConfBridge(
     const client = amiClientRef.value
     if (!client || !useEvents) return
 
-    const handleJoin = (event: AmiConfBridgeJoinEvent) => {
-      const user = parseUser(event)
+    const handleJoin = (eventData: AmiConfBridgeJoinEvent) => {
+      const user = parseUser(eventData)
       users.value.set(user.channel, user)
 
       // Update room count
@@ -428,56 +429,49 @@ export function useAmiConfBridge(
       logger.debug('User joined conference', user.conference, user.channel)
     }
 
-    const handleLeave = (event: AmiConfBridgeLeaveEvent) => {
-      const user = users.value.get(event.Channel)
+    const handleLeave = (eventData: AmiConfBridgeLeaveEvent) => {
+      const user = users.value.get(eventData.Channel)
       if (user) {
-        users.value.delete(event.Channel)
+        users.value.delete(eventData.Channel)
 
         // Update room count
-        const room = rooms.value.get(event.Conference)
+        const room = rooms.value.get(eventData.Conference)
         if (room && room.parties > 0) {
           room.parties--
         }
 
         onUserLeave?.(user)
-        logger.debug('User left conference', event.Conference, event.Channel)
+        logger.debug('User left conference', eventData.Conference, eventData.Channel)
       }
     }
 
-    const handleTalking = (event: AmiConfBridgeTalkingEvent) => {
-      const user = users.value.get(event.Channel)
+    const handleTalking = (eventData: AmiConfBridgeTalkingEvent) => {
+      const user = users.value.get(eventData.Channel)
       if (user) {
-        const talking = event.TalkingStatus === 'on'
+        const talking = eventData.TalkingStatus === 'on'
         user.talking = talking
         onTalkingChange?.(user, talking)
       }
     }
 
-    // Subscribe to events
-    client.on('ConfbridgeJoin' as keyof import('@/types/ami.types').AmiClientEvents, handleJoin)
-    client.on('ConfbridgeLeave' as keyof import('@/types/ami.types').AmiClientEvents, handleLeave)
-    client.on(
-      'ConfbridgeTalking' as keyof import('@/types/ami.types').AmiClientEvents,
-      handleTalking
-    )
+    // Subscribe to generic event handler and filter by event type
+    const eventHandler = (event: AmiMessage<AmiEventData>) => {
+      const data = event.data
+      switch (data.Event) {
+        case 'ConfbridgeJoin':
+          handleJoin(data as unknown as AmiConfBridgeJoinEvent)
+          break
+        case 'ConfbridgeLeave':
+          handleLeave(data as unknown as AmiConfBridgeLeaveEvent)
+          break
+        case 'ConfbridgeTalking':
+          handleTalking(data as unknown as AmiConfBridgeTalkingEvent)
+          break
+      }
+    }
 
-    eventCleanups.push(
-      () =>
-        client.off(
-          'ConfbridgeJoin' as keyof import('@/types/ami.types').AmiClientEvents,
-          handleJoin
-        ),
-      () =>
-        client.off(
-          'ConfbridgeLeave' as keyof import('@/types/ami.types').AmiClientEvents,
-          handleLeave
-        ),
-      () =>
-        client.off(
-          'ConfbridgeTalking' as keyof import('@/types/ami.types').AmiClientEvents,
-          handleTalking
-        )
-    )
+    client.on('event', eventHandler)
+    eventCleanups.push(() => client.off('event', eventHandler))
   }
 
   function cleanupEvents(): void {
