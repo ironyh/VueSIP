@@ -50,6 +50,9 @@ import { queueMonitorExample } from './queue-monitor'
 import { contactsExample } from './contacts'
 import { userManagementExample } from './user-management'
 import { confBridgeExample } from './confbridge'
+import { pjsipExample } from './pjsip'
+import { systemHealthExample } from './system-health'
+import { mwiExample } from './mwi'
 import type { ExampleCategory } from './types'
 
 // SIP Features - Core WebRTC/SIP functionality
@@ -98,6 +101,9 @@ export const amiExamples = [
   featureCodesExample,
   callbackExample,
   confBridgeExample,
+  pjsipExample,
+  systemHealthExample,
+  mwiExample,
 ]
 
 // Utility Features - Settings, helpers, and tools
