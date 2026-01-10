@@ -69,3 +69,6 @@ export * from './pjsip.types'
 
 // System types (AMI)
 export * from './system.types'
+
+// MWI types (AMI)
+export * from './mwi.types'

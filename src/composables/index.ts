@@ -62,6 +62,7 @@ export { useAmi, type UseAmiReturn } from './useAmi'
 export { useAmiConfBridge, type UseAmiConfBridgeReturn } from './useAmiConfBridge'
 export { useAmiPjsip, type UseAmiPjsipReturn } from './useAmiPjsip'
 export { useAmiSystem, type UseAmiSystemReturn } from './useAmiSystem'
+export { useAmiMWI, type UseAmiMWIReturn } from './useAmiMWI'
 
 // SIP composables
 export { useSipWebRTCStats } from './useSipWebRTCStats'
