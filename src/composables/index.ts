@@ -60,6 +60,7 @@ export { useAmiCalls, type UseAmiCallsReturn } from './useAmiCalls'
 export { useAmiDatabase, type UseAmiDatabaseReturn } from './useAmiDatabase'
 export { useAmi, type UseAmiReturn } from './useAmi'
 export { useAmiConfBridge, type UseAmiConfBridgeReturn } from './useAmiConfBridge'
+export { useAmiPjsip, type UseAmiPjsipReturn } from './useAmiPjsip'
 
 // SIP composables
 export { useSipWebRTCStats } from './useSipWebRTCStats'
