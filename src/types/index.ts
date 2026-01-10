@@ -63,3 +63,6 @@ export * from './transcription.types'
 
 // ConfBridge types (AMI)
 export * from './confbridge.types'
+
+// PJSIP types (AMI)
+export * from './pjsip.types'
