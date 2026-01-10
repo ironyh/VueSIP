@@ -83,6 +83,7 @@ There are two ways to use VueSip in your application. Choose based on your needs
 ✅ **Best Practice:** Use this approach for most applications. It's simple, flexible, and keeps your configuration close to where it's used.
 
 **When to use:**
+
 - Building a single-page application with one or two calling components
 - You want explicit control over SIP client lifecycle
 - Different parts of your app need different SIP configurations
@@ -96,10 +97,10 @@ import { useSipClient, useCallSession } from 'vuesip'
 
 // Connect to your SIP server with credentials
 const { connect, isConnected, isRegistered } = useSipClient({
-  uri: 'wss://sip.example.com:7443',        // WebSocket URI of your SIP server
-  sipUri: 'sip:1000@example.com',           // Your SIP username and domain
-  password: 'your-password',                 // SIP password
-  displayName: 'Your Name'                   // Name shown to other callers
+  uri: 'wss://sip.example.com:7443', // WebSocket URI of your SIP server
+  sipUri: 'sip:1000@example.com', // Your SIP username and domain
+  password: 'your-password', // SIP password
+  displayName: 'Your Name', // Name shown to other callers
 })
 
 // Your component logic here
@@ -111,6 +112,7 @@ const { connect, isConnected, isRegistered } = useSipClient({
 💡 **Tip:** Use this approach when you need to share SIP configuration across many components or want centralized debugging settings.
 
 **When to use:**
+
 - Building a full softphone application with multiple calling components
 - You need shared global state across the entire app
 - You want centralized debug logging and configuration
@@ -126,14 +128,16 @@ import App from './App.vue'
 const app = createApp(App)
 
 // Configure VueSip globally
-app.use(createVueSip({
-  debug: import.meta.env.DEV,               // Enable debug logs in development
-  logLevel: 'info',                         // Log level: 'debug' | 'info' | 'warn' | 'error'
-  sipConfig: {
-    uri: 'wss://sip.example.com:7443',      // Default WebSocket URI
-    autoRegister: true                       // Automatically register on connection
-  }
-}))
+app.use(
+  createVueSip({
+    debug: import.meta.env.DEV, // Enable debug logs in development
+    logLevel: 'info', // Log level: 'debug' | 'info' | 'warn' | 'error'
+    sipConfig: {
+      uri: 'wss://sip.example.com:7443', // Default WebSocket URI
+      autoRegister: true, // Automatically register on connection
+    },
+  })
+)
 
 app.mount('#app')
 ```
@@ -145,6 +149,7 @@ app.mount('#app')
 **What you'll build:** A complete, working SIP phone component that connects to a server, makes calls, and provides call controls like mute and hold.
 
 Let's build a simple but complete component that demonstrates core VueSip functionality. This example shows:
+
 - Connecting to a SIP server
 - Making outgoing calls
 - Controlling active calls (mute, hold, hangup)
@@ -174,9 +179,7 @@ The template provides UI for connection status, call controls, and error display
     <!-- Call Controls: Shown when connected to SIP server -->
     <div v-else class="call-controls">
       <input v-model="targetNumber" placeholder="Number to call" />
-      <button @click="handleMakeCall" :disabled="isActive">
-        Make Call
-      </button>
+      <button @click="handleMakeCall" :disabled="isActive">Make Call</button>
 
       <!-- Active Call Display: Shown during an active call -->
       <div v-if="isActive" class="active-call">
@@ -191,15 +194,11 @@ The template provides UI for connection status, call controls, and error display
           <button @click="toggleHold">
             {{ isOnHold ? 'Resume' : 'Hold' }}
           </button>
-          <button @click="handleHangup" class="danger">
-            Hang Up
-          </button>
+          <button @click="handleHangup" class="danger">Hang Up</button>
         </div>
       </div>
 
-      <button @click="handleDisconnect" class="disconnect">
-        Disconnect
-      </button>
+      <button @click="handleDisconnect" class="disconnect">Disconnect</button>
     </div>
 
     <!-- Error Display: Shows any connection or call errors -->
@@ -374,6 +373,7 @@ button.danger {
 ```
 
 ✅ **Success!** You now have a working SIP phone component. Test it by:
+
 1. Updating the SIP server URI and credentials
 2. Running your Vue app
 3. Clicking "Connect" to establish a SIP connection
@@ -394,93 +394,93 @@ interface SipClientConfig {
   // ===== Required Connection Settings =====
   // These three fields are mandatory for any SIP connection
 
-  uri: string                    // WebSocket URI: 'wss://sip.example.com:7443'
-                                 // Use 'wss://' for secure connections (recommended)
+  uri: string // WebSocket URI: 'wss://sip.example.com:7443'
+  // Use 'wss://' for secure connections (recommended)
 
-  sipUri: string                 // Your SIP identity: 'sip:user@domain.com'
-                                 // This identifies you on the SIP network
+  sipUri: string // Your SIP identity: 'sip:user@domain.com'
+  // This identifies you on the SIP network
 
-  password: string               // SIP account password for authentication
+  password: string // SIP account password for authentication
 
   // ===== Optional Identity Settings =====
   // Customize how you appear to other users
 
-  displayName?: string           // Name shown to other callers (e.g., "John Doe")
+  displayName?: string // Name shown to other callers (e.g., "John Doe")
 
   authorizationUsername?: string // Username for authentication if different from SIP URI
-                                 // Useful when auth username differs from calling identity
+  // Useful when auth username differs from calling identity
 
-  realm?: string                 // SIP realm for authentication
-                                 // Usually your domain, sometimes required by server
+  realm?: string // SIP realm for authentication
+  // Usually your domain, sometimes required by server
 
-  ha1?: string                   // HA1 hash (alternative to plain password)
-                                 // More secure than sending plain password
+  ha1?: string // HA1 hash (alternative to plain password)
+  // More secure than sending plain password
 
   // ===== WebSocket Options =====
   // Control WebSocket connection behavior
 
   wsOptions?: {
-    protocols?: string[]         // WebSocket sub-protocols (rarely needed)
+    protocols?: string[] // WebSocket sub-protocols (rarely needed)
 
-    connectionTimeout?: number   // Max time to wait for connection in ms (default: 10000)
-                                 // Increase for slow networks
+    connectionTimeout?: number // Max time to wait for connection in ms (default: 10000)
+    // Increase for slow networks
 
-    maxReconnectionAttempts?: number  // How many times to retry connection (default: 5)
-                                      // Set to 0 to disable auto-reconnect
+    maxReconnectionAttempts?: number // How many times to retry connection (default: 5)
+    // Set to 0 to disable auto-reconnect
 
-    reconnectionDelay?: number   // Wait time between reconnect attempts in ms (default: 2000)
-                                 // Exponential backoff is applied automatically
+    reconnectionDelay?: number // Wait time between reconnect attempts in ms (default: 2000)
+    // Exponential backoff is applied automatically
   }
 
   // ===== Registration Options =====
   // Control SIP registration behavior
 
   registrationOptions?: {
-    expires?: number             // Registration validity in seconds (default: 600)
-                                 // Server may override this value
+    expires?: number // Registration validity in seconds (default: 600)
+    // Server may override this value
 
-    autoRegister?: boolean       // Auto-register after connection (default: true)
-                                 // Set false if you want manual registration control
+    autoRegister?: boolean // Auto-register after connection (default: true)
+    // Set false if you want manual registration control
 
-    registrationRetryInterval?: number  // Retry interval after failed registration in ms (default: 30000)
+    registrationRetryInterval?: number // Retry interval after failed registration in ms (default: 30000)
   }
 
   // ===== Session Options =====
   // Control call session behavior
 
   sessionOptions?: {
-    sessionTimers?: boolean      // Enable SIP session timers (default: true)
-                                 // Helps detect dead sessions
+    sessionTimers?: boolean // Enable SIP session timers (default: true)
+    // Helps detect dead sessions
 
-    maxConcurrentCalls?: number  // Maximum simultaneous calls (default: 1)
-                                 // Increase for call center applications
+    maxConcurrentCalls?: number // Maximum simultaneous calls (default: 1)
+    // Increase for call center applications
 
-    callTimeout?: number         // Call setup timeout in ms (default: 60000)
-                                 // How long to wait for call answer
+    callTimeout?: number // Call setup timeout in ms (default: 60000)
+    // How long to wait for call answer
   }
 
   // ===== Media Configuration =====
   // Control audio/video quality and processing
 
   mediaConfiguration?: {
-    audio?: boolean | MediaTrackConstraints    // Enable audio or provide detailed constraints
-    video?: boolean | MediaTrackConstraints    // Enable video or provide detailed constraints
+    audio?: boolean | MediaTrackConstraints // Enable audio or provide detailed constraints
+    video?: boolean | MediaTrackConstraints // Enable video or provide detailed constraints
 
-    echoCancellation?: boolean   // Remove echo from audio (default: true)
-                                 // Highly recommended for most use cases
+    echoCancellation?: boolean // Remove echo from audio (default: true)
+    // Highly recommended for most use cases
 
-    noiseSuppression?: boolean   // Filter background noise (default: true)
-                                 // Improves call quality in noisy environments
+    noiseSuppression?: boolean // Filter background noise (default: true)
+    // Improves call quality in noisy environments
 
-    autoGainControl?: boolean    // Normalize volume automatically (default: true)
-                                 // Prevents volume fluctuations
+    autoGainControl?: boolean // Normalize volume automatically (default: true)
+    // Prevents volume fluctuations
 
-    audioCodec?: 'opus' | 'pcmu' | 'pcma' | 'g722'  // Preferred audio codec
-                                                     // opus: best quality (recommended)
-                                                     // pcmu/pcma: compatibility
-                                                     // g722: HD audio
+    audioCodec?: 'opus' | 'pcmu' | 'pcma' | 'g722' // Preferred audio codec
+    // opus: best quality (recommended)
+    // pcmu/pcma: compatibility
+    // g722: HD audio
 
-    videoCodec?: 'vp8' | 'vp9' | 'h264'  // Preferred video codec
+    videoCodec?: 'vp8' | 'vp9' | 'h264' // Preferred video codec
   }
 
   // ===== RTC Configuration =====
@@ -488,46 +488,46 @@ interface SipClientConfig {
   // Critical for calls through firewalls and NAT
 
   rtcConfiguration?: {
-    stunServers?: string[]       // STUN server URLs for NAT discovery
-                                 // Example: ['stun:stun.l.google.com:19302']
+    stunServers?: string[] // STUN server URLs for NAT discovery
+    // Example: ['stun:stun.l.google.com:19302']
 
-    turnServers?: TurnServerConfig[]  // TURN server configs for NAT traversal
-                                      // Required when direct connection fails
+    turnServers?: TurnServerConfig[] // TURN server configs for NAT traversal
+    // Required when direct connection fails
 
-    iceTransportPolicy?: RTCIceTransportPolicy  // 'all' | 'relay'
-                                                 // 'relay' forces all traffic through TURN
+    iceTransportPolicy?: RTCIceTransportPolicy // 'all' | 'relay'
+    // 'relay' forces all traffic through TURN
 
-    bundlePolicy?: RTCBundlePolicy  // How to bundle media streams
+    bundlePolicy?: RTCBundlePolicy // How to bundle media streams
   }
 
   // ===== User Preferences =====
   // Default settings for user experience
 
   userPreferences?: {
-    audioInputDeviceId?: string  // Default microphone device ID
+    audioInputDeviceId?: string // Default microphone device ID
     audioOutputDeviceId?: string // Default speaker device ID
-    videoInputDeviceId?: string  // Default camera device ID
+    videoInputDeviceId?: string // Default camera device ID
 
-    autoAnswer?: boolean         // Automatically answer incoming calls
-                                 // Useful for intercom-style applications
+    autoAnswer?: boolean // Automatically answer incoming calls
+    // Useful for intercom-style applications
 
-    autoAnswerDelay?: number     // Delay before auto-answer in ms
-                                 // Gives time to show incoming call UI
+    autoAnswerDelay?: number // Delay before auto-answer in ms
+    // Gives time to show incoming call UI
 
-    ringToneUrl?: string         // Custom ringtone audio file URL
+    ringToneUrl?: string // Custom ringtone audio file URL
 
-    enableDtmfTones?: boolean    // Play DTMF tones when sending digits
-                                 // Provides audio feedback for dialpad
+    enableDtmfTones?: boolean // Play DTMF tones when sending digits
+    // Provides audio feedback for dialpad
   }
 
   // ===== Debugging =====
   // Development and troubleshooting options
 
-  debug?: boolean                // Enable detailed console logging
-                                 // Very helpful during development
+  debug?: boolean // Enable detailed console logging
+  // Very helpful during development
 
-  userAgent?: string            // Custom User-Agent header
-                                 // Identifies your application to the server
+  userAgent?: string // Custom User-Agent header
+  // Identifies your application to the server
 }
 ```
 
@@ -542,10 +542,10 @@ Perfect for getting started or simple applications:
 ```typescript
 // Minimal setup for testing and development
 const basicConfig = {
-  uri: 'wss://sip.example.com:7443',    // Your SIP server WebSocket endpoint
-  sipUri: 'sip:1000@example.com',       // Your SIP extension
-  password: 'secret123',                 // Your SIP password
-  displayName: 'John Doe'                // Your display name
+  uri: 'wss://sip.example.com:7443', // Your SIP server WebSocket endpoint
+  sipUri: 'sip:1000@example.com', // Your SIP extension
+  password: 'secret123', // Your SIP password
+  displayName: 'John Doe', // Your display name
 }
 ```
 
@@ -565,45 +565,45 @@ const productionConfig = {
 
   // Registration settings for reliability
   registrationOptions: {
-    expires: 600,                        // Re-register every 10 minutes
-    autoRegister: true,                  // Register immediately on connection
-    registrationRetryInterval: 30000     // Retry failed registrations after 30s
+    expires: 600, // Re-register every 10 minutes
+    autoRegister: true, // Register immediately on connection
+    registrationRetryInterval: 30000, // Retry failed registrations after 30s
   },
 
   // Media settings for optimal quality
   mediaConfiguration: {
     audio: true,
     video: false,
-    echoCancellation: true,              // Essential for preventing feedback
-    noiseSuppression: true,              // Improves quality in noisy environments
-    autoGainControl: true,               // Normalizes volume levels
-    audioCodec: 'opus'                   // Best quality codec
+    echoCancellation: true, // Essential for preventing feedback
+    noiseSuppression: true, // Improves quality in noisy environments
+    autoGainControl: true, // Normalizes volume levels
+    audioCodec: 'opus', // Best quality codec
   },
 
   // STUN/TURN configuration for NAT traversal
   // This is CRITICAL for calls to work through firewalls and NAT
   rtcConfiguration: {
     stunServers: [
-      'stun:stun.l.google.com:19302'     // Google's public STUN server
+      'stun:stun.l.google.com:19302', // Google's public STUN server
     ],
     turnServers: [
       {
-        urls: 'turn:turn.example.com:3478',      // Your TURN server
-        username: 'turnuser',                     // TURN credentials
-        credential: 'turnpass'
-      }
+        urls: 'turn:turn.example.com:3478', // Your TURN server
+        username: 'turnuser', // TURN credentials
+        credential: 'turnpass',
+      },
     ],
-    iceTransportPolicy: 'all'            // Try direct connection first, fall back to TURN
+    iceTransportPolicy: 'all', // Try direct connection first, fall back to TURN
   },
 
   // User preferences
   userPreferences: {
-    autoAnswer: false,                   // Manually answer calls
-    enableDtmfTones: true                // Play tones when dialing
+    autoAnswer: false, // Manually answer calls
+    enableDtmfTones: true, // Play tones when dialing
   },
 
   // Debugging (disable in production)
-  debug: false
+  debug: false,
 }
 ```
 
@@ -623,22 +623,22 @@ const advancedConfig = {
   // Media with custom device constraints
   mediaConfiguration: {
     audio: {
-      deviceId: 'specific-device-id',    // Use specific microphone
+      deviceId: 'specific-device-id', // Use specific microphone
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true,
-      sampleRate: 48000,                 // High-quality audio sampling
-      channelCount: 1                    // Mono audio
+      sampleRate: 48000, // High-quality audio sampling
+      channelCount: 1, // Mono audio
     },
-    video: false
+    video: false,
   },
 
   // User preferences with device IDs
   userPreferences: {
     audioInputDeviceId: 'specific-mic-id',
     audioOutputDeviceId: 'specific-speaker-id',
-    enableDtmfTones: true
-  }
+    enableDtmfTones: true,
+  },
 }
 ```
 
@@ -657,8 +657,8 @@ const { makeCall, state, duration } = useCallSession(sipClient)
 
 // Initiate an audio-only call
 await makeCall('sip:2000@example.com', {
-  audio: true,      // Enable audio stream
-  video: false      // Disable video for audio-only call
+  audio: true, // Enable audio stream
+  video: false, // Disable video for audio-only call
 })
 
 // Monitor call state changes to update UI
@@ -702,8 +702,8 @@ watch(session, (newSession) => {
 
     // Option 1: Answer the call
     await answer({
-      audio: true,      // Enable microphone
-      video: false      // Audio-only call
+      audio: true, // Enable microphone
+      video: false, // Audio-only call
     })
 
     // Option 2: Reject the call
@@ -714,6 +714,7 @@ watch(session, (newSession) => {
 ```
 
 📝 **Note:** The SIP response codes matter:
+
 - `486` (Busy Here) - Indicates you're on another call
 - `603` (Decline) - Indicates you're rejecting the call
 - `480` (Temporarily Unavailable) - Indicates temporary unavailability
@@ -730,12 +731,12 @@ await sendTone('1')
 
 // Send a sequence of tones (e.g., extension number or PIN)
 await sendToneSequence('1234#', {
-  duration: 100,        // Each tone lasts 100ms (standard)
-  interToneGap: 70,     // 70ms gap between tones (standard)
+  duration: 100, // Each tone lasts 100ms (standard)
+  interToneGap: 70, // 70ms gap between tones (standard)
   onToneSent: (tone) => {
     console.log(`Sent: ${tone}`)
     // Provide visual feedback as each tone is sent
-  }
+  },
 })
 ```
 
@@ -749,13 +750,13 @@ await sendToneSequence('1234#', {
 
 ```typescript
 const {
-  audioInputDevices,        // Array of available microphones
-  audioOutputDevices,       // Array of available speakers
-  selectedAudioInputId,     // Currently selected microphone ID
-  enumerateDevices,         // Function to refresh device list
-  requestPermissions,       // Function to request browser permissions
-  selectAudioInput,         // Function to change microphone
-  testAudioInput            // Function to test microphone
+  audioInputDevices, // Array of available microphones
+  audioOutputDevices, // Array of available speakers
+  selectedAudioInputId, // Currently selected microphone ID
+  enumerateDevices, // Function to refresh device list
+  requestPermissions, // Function to request browser permissions
+  selectAudioInput, // Function to change microphone
+  testAudioInput, // Function to test microphone
 } = useMediaDevices()
 
 // Step 1: Request microphone permissions
@@ -795,32 +796,33 @@ if (success) {
 
 ```typescript
 const {
-  isOnHold,         // true when call is on hold
-  isMuted,          // true when microphone is muted
-  hold,             // Put call on hold (sends SIP re-INVITE)
-  unhold,           // Resume call from hold
-  mute,             // Mute microphone (local only, no SIP signaling)
-  unmute,           // Unmute microphone
-  toggleHold,       // Toggle hold state
-  toggleMute        // Toggle mute state
+  isOnHold, // true when call is on hold
+  isMuted, // true when microphone is muted
+  hold, // Put call on hold (sends SIP re-INVITE)
+  unhold, // Resume call from hold
+  mute, // Mute microphone (local only, no SIP signaling)
+  unmute, // Unmute microphone
+  toggleHold, // Toggle hold state
+  toggleMute, // Toggle mute state
 } = useCallSession(sipClient)
 
 // Hold/Unhold: Sends SIP signaling to remote party
 // Remote party typically hears music on hold
-await hold()        // Put call on hold
-await unhold()      // Resume call
-await toggleHold()  // Toggle current hold state
+await hold() // Put call on hold
+await unhold() // Resume call
+await toggleHold() // Toggle current hold state
 
 // Mute/Unmute: Local only, no SIP signaling
 // Remote party hears silence, but call remains active
-mute()              // Stop sending microphone audio
-unmute()            // Resume sending microphone audio
-toggleMute()        // Toggle current mute state
+mute() // Stop sending microphone audio
+unmute() // Resume sending microphone audio
+toggleMute() // Toggle current mute state
 ```
 
 💡 **Tip:** Use **mute** for temporary silencing (coughing, background noise) and **hold** when you need to step away from the call. Hold sends proper signaling so the other party knows they're on hold.
 
 📝 **Note:** The key difference:
+
 - **Mute**: Local only, instant, no network signaling, remote party hears silence
 - **Hold**: Network signaling, remote party is informed and may hear music
 
@@ -830,9 +832,9 @@ toggleMute()        // Toggle current mute state
 
 ```typescript
 const {
-  duration,         // Current call duration in seconds (auto-updating)
-  timing,           // Detailed timing information
-  getStats          // Function to get WebRTC statistics
+  duration, // Current call duration in seconds (auto-updating)
+  timing, // Detailed timing information
+  getStats, // Function to get WebRTC statistics
 } = useCallSession(sipClient)
 
 // Monitor call duration in real-time
@@ -844,9 +846,9 @@ watch(duration, (seconds) => {
 })
 
 // Get detailed timing information
-console.log('Call initiated:', timing.value.startTime)    // When call was initiated
-console.log('Call answered:', timing.value.answerTime)    // When call was answered
-console.log('Call ended:', timing.value.endTime)          // When call ended
+console.log('Call initiated:', timing.value.startTime) // When call was initiated
+console.log('Call answered:', timing.value.answerTime) // When call was answered
+console.log('Call ended:', timing.value.endTime) // When call ended
 
 // Get WebRTC statistics for quality monitoring
 // Useful for troubleshooting audio quality issues
@@ -864,17 +866,17 @@ console.log('Round trip time:', stats.audio.roundTripTime)
 
 ```typescript
 const {
-  isRegistered,         // true when registered with SIP server
-  isRegistering,        // true during registration attempt
-  expires,              // Registration expiry timestamp
-  secondsUntilExpiry,   // Countdown to registration expiry
-  register,             // Manually register
-  unregister,           // Manually unregister
-  refresh               // Refresh registration early
+  isRegistered, // true when registered with SIP server
+  isRegistering, // true during registration attempt
+  expires, // Registration expiry timestamp
+  secondsUntilExpiry, // Countdown to registration expiry
+  register, // Manually register
+  unregister, // Manually unregister
+  refresh, // Refresh registration early
 } = useSipRegistration(sipClient, {
-  expires: 600,         // Register for 10 minutes
-  maxRetries: 3,        // Retry 3 times on failure
-  autoRefresh: true     // Auto-refresh before expiry
+  expires: 600, // Register for 10 minutes
+  maxRetries: 3, // Retry 3 times on failure
+  autoRefresh: true, // Auto-refresh before expiry
 })
 
 // Manual registration (if autoRegister is false)
@@ -916,7 +918,6 @@ try {
 
   // Attempt to make call
   await makeCall('sip:2000@example.com')
-
 } catch (error) {
   console.error('Operation failed:', error)
 
@@ -945,7 +946,7 @@ try {
 import { onUnmounted } from 'vue'
 
 const { disconnect, hangup } = useSipClient(config, {
-  autoCleanup: true  // Automatically cleanup on component unmount
+  autoCleanup: true, // Automatically cleanup on component unmount
 })
 
 // Or manually handle cleanup
@@ -989,10 +990,7 @@ watch(isConnected, (connected) => {
 
 // Use computed properties for derived state
 const canMakeCall = computed(() => {
-  return isConnected.value &&
-         isRegistered.value &&
-         !isActive.value &&
-         targetNumber.value.length > 0
+  return isConnected.value && isRegistered.value && !isActive.value && targetNumber.value.length > 0
 })
 
 // Use in template
@@ -1012,7 +1010,7 @@ import type { SipClientConfig, CallSession, CallState } from 'vuesip'
 const config: SipClientConfig = {
   uri: 'wss://sip.example.com:7443',
   sipUri: 'sip:1000@example.com',
-  password: 'secret'
+  password: 'secret',
   // TypeScript will error if you misspell properties or use wrong types
 }
 
@@ -1045,14 +1043,14 @@ const { requestPermissions, hasAudioPermission } = useMediaDevices()
 
 // Request permissions early (e.g., on app load or first user interaction)
 try {
-  await requestPermissions(true, false)  // Request audio, not video
+  await requestPermissions(true, false) // Request audio, not video
 
   if (!hasAudioPermission.value) {
     // Show modal with instructions
     showPermissionInstructions({
       title: 'Microphone Access Required',
       message: 'Please enable microphone access in your browser settings to make calls.',
-      instructions: getBrowserSpecificInstructions()  // Chrome, Firefox, Safari differ
+      instructions: getBrowserSpecificInstructions(), // Chrome, Firefox, Safari differ
     })
   }
 } catch (error) {
@@ -1080,9 +1078,9 @@ const { connect, disconnect, isConnected, error } = useSipClient({
 
   // Configure automatic reconnection
   wsOptions: {
-    maxReconnectionAttempts: 5,   // Try 5 times before giving up
-    reconnectionDelay: 2000        // Wait 2 seconds between attempts
-  }
+    maxReconnectionAttempts: 5, // Try 5 times before giving up
+    reconnectionDelay: 2000, // Wait 2 seconds between attempts
+  },
 })
 
 // Monitor connection state
@@ -1135,7 +1133,7 @@ import { SipClientProvider, MediaProvider } from 'vuesip'
 const sipConfig = {
   uri: 'wss://sip.example.com:7443',
   sipUri: 'sip:1000@example.com',
-  password: 'secret'
+  password: 'secret',
 }
 </script>
 ```
@@ -1160,17 +1158,20 @@ const { audioInputDevices } = useMediaDevices()
 // Method 1: In component configuration
 const { connect } = useSipClient({
   ...config,
-  debug: true  // Enables detailed console logging
+  debug: true, // Enables detailed console logging
 })
 
 // Method 2: Global plugin configuration
-app.use(createVueSip({
-  debug: import.meta.env.DEV,  // Auto-enable in development
-  logLevel: 'debug'  // 'debug' | 'info' | 'warn' | 'error'
-}))
+app.use(
+  createVueSip({
+    debug: import.meta.env.DEV, // Auto-enable in development
+    logLevel: 'debug', // 'debug' | 'info' | 'warn' | 'error'
+  })
+)
 ```
 
 **What you'll see in debug mode:**
+
 - SIP messages (INVITE, ACK, BYE, etc.)
 - WebRTC events (ICE candidates, SDP offers/answers)
 - State transitions
@@ -1196,7 +1197,7 @@ export const useSipClient = () => ({
   },
   disconnect: async () => {
     console.log('Mock: Disconnected')
-  }
+  },
 })
 
 export const useCallSession = () => ({
@@ -1207,12 +1208,12 @@ export const useCallSession = () => ({
     console.log('Mock: Calling', uri)
     // Simulate call progression
     state.value = 'calling'
-    setTimeout(() => state.value = 'ringing', 1000)
-    setTimeout(() => state.value = 'active', 3000)
+    setTimeout(() => (state.value = 'ringing'), 1000)
+    setTimeout(() => (state.value = 'active'), 3000)
   },
   hangup: async () => {
     state.value = 'terminated'
-  }
+  },
 })
 ```
 
@@ -1251,17 +1252,20 @@ const { makeCall } = useCallSession(sipClient)
 You've learned the fundamentals of VueSip! Here are recommended next steps based on what you want to build:
 
 **For Building a Basic Softphone:**
+
 - **[Making Calls](./making-calls.md)** - Deep dive into outgoing call management, call options, and handling call failures
 - **[Receiving Calls](./receiving-calls.md)** - Handle incoming calls, auto-answer, call screening, and ringtones
 - **[Call Controls](./call-controls.md)** - Muting, holding, transferring, and managing active calls
 
 **For Advanced Features:**
+
 - **[Device Management](./device-management.md)** - Device selection, testing, volume control, and device change handling
 - **[Video Calling](./video-calling.md)** - Adding video support to your calls
 - **[Presence & Messaging](./presence-messaging.md)** - Real-time presence and SIP messaging
 - **[Call History](./call-history.md)** - Tracking and persisting call history
 
 **For Production Deployment:**
+
 - **[Error Handling](./error-handling.md)** - Robust error handling patterns and recovery strategies
 - **[Security](./security.md)** - Security best practices for production deployments
 - **[Performance](./performance.md)** - Optimization techniques and performance tuning
@@ -1275,6 +1279,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
 **Problem:** Can't connect to SIP server - stuck on "Connecting..." or immediate failure
 
 **Symptoms:**
+
 - `isConnected` remains false
 - Error message about WebSocket connection
 - Console shows connection timeout or refused errors
@@ -1282,6 +1287,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
 **Solutions:**
 
 1. **Verify WebSocket URI format**
+
    ```typescript
    // ✅ Correct - Use wss:// for secure connection
    uri: 'wss://sip.example.com:7443'
@@ -1299,6 +1305,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
    - Check that the server allows connections from your domain
 
 3. **Verify credentials**
+
    ```typescript
    // Double-check username, domain, and password
    sipUri: 'sip:1000@example.com',  // Must match your SIP server
@@ -1313,7 +1320,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
    ```typescript
    const { connect } = useSipClient({
      ...config,
-     debug: true  // See exactly what's failing
+     debug: true, // See exactly what's failing
    })
    ```
 
@@ -1322,6 +1329,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
 **Problem:** Call connects successfully but no audio is heard (one-way or both ways)
 
 **Symptoms:**
+
 - Call shows as "active" but silence
 - Can see call duration counting but no audio
 - One party can hear, the other cannot
@@ -1329,6 +1337,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
 **Solutions:**
 
 1. **Request microphone permissions before calling**
+
    ```typescript
    // Request permissions BEFORE making call
    const { requestPermissions } = useMediaDevices()
@@ -1339,6 +1348,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
    ```
 
 2. **Check audio devices are selected**
+
    ```typescript
    const { audioInputDevices, audioOutputDevices, enumerateDevices } = useMediaDevices()
 
@@ -1360,21 +1370,20 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
 
      // CRITICAL: STUN/TURN for NAT traversal
      rtcConfiguration: {
-       stunServers: [
-         'stun:stun.l.google.com:19302'
-       ],
+       stunServers: ['stun:stun.l.google.com:19302'],
        turnServers: [
          {
            urls: 'turn:turn.example.com:3478',
            username: 'turnuser',
-           credential: 'turnpass'
-         }
-       ]
-     }
+           credential: 'turnpass',
+         },
+       ],
+     },
    }
    ```
 
 4. **Test devices independently**
+
    ```typescript
    const { testAudioInput, testAudioOutput } = useMediaDevices()
 
@@ -1397,6 +1406,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
 **Problem:** Connection succeeds but registration fails - can't make or receive calls
 
 **Symptoms:**
+
 - `isConnected` is true
 - `isRegistered` remains false
 - Error about registration failure or authentication
@@ -1404,6 +1414,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
 **Solutions:**
 
 1. **Verify SIP URI format**
+
    ```typescript
    // ✅ Correct format
    sipUri: 'sip:1000@example.com'
@@ -1416,6 +1427,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
    ```
 
 2. **Check authentication credentials**
+
    ```typescript
    {
      sipUri: 'sip:1000@example.com',
@@ -1430,6 +1442,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
    ```
 
 3. **Verify registration expiry isn't too short**
+
    ```typescript
    registrationOptions: {
      expires: 600,  // 10 minutes (minimum usually 60 seconds)
@@ -1437,8 +1450,9 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
    ```
 
 4. **Enable debug mode to see registration messages**
+
    ```typescript
-   debug: true  // See exact SIP REGISTER messages and responses
+   debug: true // See exact SIP REGISTER messages and responses
    ```
 
 5. **Check server logs**
@@ -1462,6 +1476,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
    ```
 
 2. **Request permissions on user interaction**
+
    ```typescript
    // ✅ Good - Request on button click
    const handleStartCall = async () => {
@@ -1481,7 +1496,7 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
      if (error.name === 'NotAllowedError') {
        showModal({
          title: 'Microphone Access Needed',
-         message: 'Click the camera icon in your address bar and allow microphone access.'
+         message: 'Click the camera icon in your address bar and allow microphone access.',
        })
      }
    }
@@ -1492,20 +1507,24 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
 **Need more assistance?** Here's where to find help:
 
 📚 **Documentation:**
-- **[Full API Reference](https://vuesip.dev/api)** - Complete API documentation
-- **[Composables Guide](https://vuesip.dev/composables)** - Detailed composable reference
+
+- **[Full API Reference](https://vuesip.com/api)** - Complete API documentation
+- **[Composables Guide](https://vuesip.com/composables)** - Detailed composable reference
 - **[Configuration Reference](./configuration.md)** - All configuration options
 
 🐛 **Bug Reports & Feature Requests:**
-- **[GitHub Issues](https://github.com/yourusername/vuesip/issues)** - Report bugs or request features
+
+- **[GitHub Issues](https://github.com/ironyh/VueSIP/issues)** - Report bugs or request features
 - Include: VueSip version, Vue version, browser, and minimal reproduction
 
 💬 **Community:**
-- **[GitHub Discussions](https://github.com/yourusername/vuesip/discussions)** - Ask questions and share tips
+
+- **[GitHub Discussions](https://github.com/ironyh/VueSIP/discussions)** - Ask questions and share tips
 - **[Discord Server](https://discord.gg/vuesip)** - Real-time community help
 
 📖 **Examples:**
-- **[Example Repository](https://github.com/yourusername/vuesip/tree/main/examples)** - Working example applications
+
+- **[Example Repository](https://github.com/ironyh/VueSIP/tree/main/examples)** - Working example applications
 - **[CodeSandbox Demos](https://codesandbox.io/s/vuesip-examples)** - Try online without installing
 
 ## Summary

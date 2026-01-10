@@ -479,7 +479,7 @@ Disabled button states have marginal contrast ratios (3.2:1 in light mode, 3.5:1
 ## Contact & Support
 
 **QA Lead**: Quality Assurance Agent
-**Email**: qa@vuesip.dev (example)
+**Email**: qa@vuesip.com (example)
 **Issue Tracker**: GitHub Issues
 **Documentation**: `/docs/QA_VALIDATION_REPORT.md`
 

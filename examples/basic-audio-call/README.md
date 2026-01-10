@@ -27,11 +27,13 @@ Before running this example, ensure you have:
 ### SIP Server Requirements
 
 Your SIP server must support:
+
 - WebSocket transport (WSS or WS)
 - Audio codecs (e.g., G.711, Opus)
 - WebRTC media handling
 
 **Example SIP Servers:**
+
 - **Asterisk** with `chan_pjsip` and `res_http_websocket`
 - **FreeSWITCH** with `mod_verto` or `mod_sofia` WebSocket support
 - **Kamailio** with WebSocket module
@@ -62,10 +64,10 @@ Before running the application, you'll need to configure your SIP server setting
 
 ```typescript
 const form = reactive({
-  uri: 'wss://your-sip-server.com:7443',      // Your SIP WebSocket URI
-  sipUri: 'sip:1000@your-domain.com',          // Your SIP address
-  password: '',                                 // Leave empty for security
-  displayName: 'Your Name',                     // Your display name
+  uri: 'wss://your-sip-server.com:7443', // Your SIP WebSocket URI
+  sipUri: 'sip:1000@your-domain.com', // Your SIP address
+  password: '', // Leave empty for security
+  displayName: 'Your Name', // Your display name
 })
 ```
 
@@ -129,6 +131,7 @@ After connecting, you can select your preferred microphone and speaker from the 
 ### Step 4: Receive a Call
 
 When someone calls you:
+
 1. You'll see an "Incoming Call" notification with the caller's information
 2. Click **Answer** to accept the call
 3. Or click **Reject** to decline
@@ -136,6 +139,7 @@ When someone calls you:
 ### Step 5: Call Controls
 
 During an active call, you can:
+
 - **Mute/Unmute** - Toggle your microphone
 - **Hold/Unhold** - Put the call on hold
 - **Hangup** - End the call
@@ -168,6 +172,7 @@ For testing with two users:
 ### Browser Compatibility Testing
 
 Test in multiple browsers:
+
 - Chrome/Edge (Chromium)
 - Firefox
 - Safari (macOS/iOS)
@@ -197,6 +202,7 @@ examples/basic-audio-call/
 #### `src/App.vue`
 
 The main application component that:
+
 - Initializes VueSip composables (`useSipClient`, `useCallSession`, `useMediaDevices`)
 - Manages SIP connection and registration
 - Handles call lifecycle events (make, answer, reject, hangup)
@@ -213,15 +219,18 @@ const { connect, disconnect, isConnected, isRegistered, updateConfig } = useSipC
 const sipClientRef = computed(() => getClient())
 
 // Call Session - manages call state and controls (requires sipClient ref)
-const { makeCall, answer, reject, hangup, hold, unhold, mute, unmute } = useCallSession(sipClientRef)
+const { makeCall, answer, reject, hangup, hold, unhold, mute, unmute } =
+  useCallSession(sipClientRef)
 
 // Media Devices - manages audio devices
-const { audioInputDevices, audioOutputDevices, selectAudioInput, selectAudioOutput } = useMediaDevices()
+const { audioInputDevices, audioOutputDevices, selectAudioInput, selectAudioOutput } =
+  useMediaDevices()
 ```
 
 #### `src/components/ConnectionPanel.vue`
 
 Handles SIP server connection:
+
 - Connection form with WebSocket URI, SIP URI, and password
 - Connection status display (connected, registered)
 - Disconnect functionality
@@ -230,6 +239,7 @@ Handles SIP server connection:
 #### `src/components/CallControls.vue`
 
 Manages call interactions:
+
 - **Idle State:** Shows form to initiate outgoing calls
 - **Incoming State:** Shows answer/reject buttons
 - **Active State:** Shows call duration, mute, hold, and hangup controls
@@ -245,13 +255,13 @@ Manages WebSocket connection to SIP server and user registration.
 
 ```typescript
 const {
-  connect,        // Connect to SIP server (no parameters - config must be set first)
-  disconnect,     // Disconnect from SIP server
-  updateConfig,   // Update SIP configuration (call before connect)
-  isConnected,    // Connection status
-  isRegistered,   // Registration status
-  error,          // Error message
-  getClient       // Get underlying SIP client instance
+  connect, // Connect to SIP server (no parameters - config must be set first)
+  disconnect, // Disconnect from SIP server
+  updateConfig, // Update SIP configuration (call before connect)
+  isConnected, // Connection status
+  isRegistered, // Registration status
+  error, // Error message
+  getClient, // Get underlying SIP client instance
 } = useSipClient()
 
 // Usage:
@@ -271,22 +281,22 @@ const sipClientRef = computed(() => getClient())
 
 // Then pass it to useCallSession
 const {
-  session,              // Active call session
-  state,                // Call state (idle, calling, active, etc.)
-  remoteUri,            // Remote party's SIP URI
-  remoteDisplayName,    // Remote party's display name
-  isMuted,              // Mute status
-  isOnHold,             // Hold status
-  duration,             // Call duration in seconds
-  remoteStream,         // Remote audio stream
-  makeCall,             // Make outgoing call (target: string, options?: CallSessionOptions)
-  answer,               // Answer incoming call (options?: AnswerOptions)
-  reject,               // Reject incoming call (statusCode?: number)
-  hangup,               // End call
-  mute,                 // Mute microphone
-  unmute,               // Unmute microphone
-  hold,                 // Put call on hold
-  unhold                // Resume from hold
+  session, // Active call session
+  state, // Call state (idle, calling, active, etc.)
+  remoteUri, // Remote party's SIP URI
+  remoteDisplayName, // Remote party's display name
+  isMuted, // Mute status
+  isOnHold, // Hold status
+  duration, // Call duration in seconds
+  remoteStream, // Remote audio stream
+  makeCall, // Make outgoing call (target: string, options?: CallSessionOptions)
+  answer, // Answer incoming call (options?: AnswerOptions)
+  reject, // Reject incoming call (statusCode?: number)
+  hangup, // End call
+  mute, // Mute microphone
+  unmute, // Unmute microphone
+  hold, // Put call on hold
+  unhold, // Resume from hold
 } = useCallSession(sipClientRef)
 ```
 
@@ -296,14 +306,14 @@ Manages audio/video device enumeration and selection.
 
 ```typescript
 const {
-  audioInputDevices,     // Available microphones (readonly MediaDevice[])
-  audioOutputDevices,    // Available speakers (readonly MediaDevice[])
-  selectedAudioInputId,  // Selected microphone ID (ref)
+  audioInputDevices, // Available microphones (readonly MediaDevice[])
+  audioOutputDevices, // Available speakers (readonly MediaDevice[])
+  selectedAudioInputId, // Selected microphone ID (ref)
   selectedAudioOutputId, // Selected speaker ID (ref)
-  enumerateDevices,      // Refresh device list
-  selectAudioInput,      // Select microphone by device ID
-  selectAudioOutput,     // Select speaker by device ID
-  requestPermissions     // Request media permissions
+  enumerateDevices, // Refresh device list
+  selectAudioInput, // Select microphone by device ID
+  selectAudioOutput, // Select speaker by device ID
+  requestPermissions, // Request media permissions
 } = useMediaDevices()
 
 // Usage:
@@ -321,10 +331,10 @@ This example is fully typed with TypeScript. Key type interfaces:
 
 ```typescript
 import type {
-  CallState,           // 'idle' | 'calling' | 'ringing' | 'active' | 'held' | 'ended'
-  CallDirection,       // 'inbound' | 'outbound'
-  CallSession,         // Call session object
-  SipClientConfig      // SIP client configuration
+  CallState, // 'idle' | 'calling' | 'ringing' | 'active' | 'held' | 'ended'
+  CallDirection, // 'inbound' | 'outbound'
+  CallSession, // Call session object
+  SipClientConfig, // SIP client configuration
 } from 'vuesip'
 ```
 
@@ -335,6 +345,7 @@ import type {
 **Problem:** "Connection failed" error
 
 **Solutions:**
+
 - Verify WebSocket URI is correct (must start with `ws://` or `wss://`)
 - Check that SIP server is running and accessible
 - Ensure firewall allows WebSocket connections
@@ -345,6 +356,7 @@ import type {
 **Problem:** Can't hear remote audio
 
 **Solutions:**
+
 - Check browser console for errors
 - Verify audio output device is selected correctly
 - Ensure browser has microphone permissions
@@ -354,6 +366,7 @@ import type {
 **Problem:** Remote party can't hear you
 
 **Solutions:**
+
 - Check if microphone is muted
 - Verify microphone permissions in browser
 - Try different microphone in device selector
@@ -364,6 +377,7 @@ import type {
 **Problem:** Shows "Connected" but not "Registered"
 
 **Solutions:**
+
 - Verify SIP URI format is correct (`sip:user@domain`)
 - Check that password is correct
 - Ensure SIP server allows WebSocket registrations
@@ -374,6 +388,7 @@ import type {
 **Problem:** Call connects but no audio
 
 **Solutions:**
+
 - This is usually a codec negotiation issue
 - Check SIP server supports WebRTC-compatible codecs (Opus, G.711)
 - Verify NAT/firewall settings allow RTP/SRTP media
@@ -413,8 +428,8 @@ When deploying this example to production:
 
 ## Additional Resources
 
-- [VueSip Documentation](https://vuesip.dev)
-- [VueSip API Reference](https://vuesip.dev/api)
+- [VueSip Documentation](https://vuesip.com)
+- [VueSip API Reference](https://vuesip.com/api)
 - [WebRTC Documentation](https://webrtc.org/)
 - [SIP.js Documentation](https://sipjs.com/)
 - [Asterisk WebRTC Guide](https://wiki.asterisk.org/wiki/display/AST/WebRTC)
@@ -426,5 +441,6 @@ MIT
 ## Support
 
 For issues and questions:
-- GitHub Issues: [https://github.com/yourusername/vuesip/issues](https://github.com/yourusername/vuesip/issues)
-- Documentation: [https://vuesip.dev](https://vuesip.dev)
+
+- GitHub Issues: [https://github.com/ironyh/VueSIP/issues](https://github.com/ironyh/VueSIP/issues)
+- Documentation: [https://vuesip.com](https://vuesip.com)

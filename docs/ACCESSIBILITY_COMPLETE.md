@@ -385,7 +385,7 @@ This website conforms to **WCAG 2.1 Level AA** standards.
 
 We welcome accessibility feedback. If you encounter any accessibility barriers, please contact:
 
-- GitHub Issues: [VueSIP Repository](https://github.com/yourusername/VueSIP/issues)
+- GitHub Issues: [VueSIP Repository](https://github.com/ironyh/VueSIP/issues)
 - Email: accessibility@vueisp.example.com
 
 ### Known Limitations

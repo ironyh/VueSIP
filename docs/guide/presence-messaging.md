@@ -3,6 +3,7 @@
 This guide explains how to use SIP presence and instant messaging in VueSip. Learn how to track user availability, send real-time messages, and build rich communication experiences.
 
 **What you'll learn:**
+
 - 📍 **Presence Management** - Track who's online, busy, or away in real-time
 - 💬 **Instant Messaging** - Send and receive text messages between users
 - 🔔 **Status Updates** - Get notified when users change their availability
@@ -18,16 +19,17 @@ Before using presence and messaging features, it's important to verify your SIP 
 
 VueSip's presence and messaging features work with any SIP server that implements the relevant RFC standards. However, server support varies:
 
-| Server | Presence (RFC 3856) | Messaging (RFC 3428) | IMDN/Receipts | Composing Indicators | Notes |
-|--------|---------------------|----------------------|---------------|----------------------|-------|
-| **Asterisk** | ✅ Via res_pjsip | ✅ Yes | ⚠️ Limited | ⚠️ Limited | Requires PJSIP stack, not chan_sip |
-| **FreeSWITCH** | ✅ Full support | ✅ Full support | ✅ Yes | ✅ Yes | Best overall support |
-| **Kamailio** | ✅ Via presence module | ✅ Via msilo module | ✅ Yes | ✅ Yes | Requires module configuration |
-| **OpenSIPS** | ✅ Via presence module | ✅ Via msilo module | ⚠️ Limited | ⚠️ Limited | Complex setup required |
-| **Jitsi Videobridge** | ❌ No | ⚠️ Limited | ❌ No | ❌ No | Primarily for video conferencing |
-| **Twilio** | ❌ No | ✅ Via Programmable Messaging | ❌ No | ❌ No | Different API, not SIP MESSAGE |
+| Server                | Presence (RFC 3856)    | Messaging (RFC 3428)          | IMDN/Receipts | Composing Indicators | Notes                              |
+| --------------------- | ---------------------- | ----------------------------- | ------------- | -------------------- | ---------------------------------- |
+| **Asterisk**          | ✅ Via res_pjsip       | ✅ Yes                        | ⚠️ Limited    | ⚠️ Limited           | Requires PJSIP stack, not chan_sip |
+| **FreeSWITCH**        | ✅ Full support        | ✅ Full support               | ✅ Yes        | ✅ Yes               | Best overall support               |
+| **Kamailio**          | ✅ Via presence module | ✅ Via msilo module           | ✅ Yes        | ✅ Yes               | Requires module configuration      |
+| **OpenSIPS**          | ✅ Via presence module | ✅ Via msilo module           | ⚠️ Limited    | ⚠️ Limited           | Complex setup required             |
+| **Jitsi Videobridge** | ❌ No                  | ⚠️ Limited                    | ❌ No         | ❌ No                | Primarily for video conferencing   |
+| **Twilio**            | ❌ No                  | ✅ Via Programmable Messaging | ❌ No         | ❌ No                | Different API, not SIP MESSAGE     |
 
 **Legend:**
+
 - ✅ Full support - Feature works out of the box or with standard configuration
 - ⚠️ Limited - Feature available but requires significant setup or has limitations
 - ❌ No - Feature not supported
@@ -104,6 +106,7 @@ same => n,Hangup()
 ```
 
 **Known Limitations:**
+
 - Delivery receipts (IMDN) not fully supported - requires custom development
 - Composing indicators require additional modules
 - Presence limited to extension state, not full rich presence
@@ -152,6 +155,7 @@ FreeSWITCH has the best support for presence and messaging. Minimal configuratio
 ```
 
 **Features supported:**
+
 - ✅ Full presence with rich status
 - ✅ SIP MESSAGE with delivery receipts
 - ✅ Composing indicators
@@ -289,7 +293,7 @@ const testMessagingSupport = async () => {
 
   try {
     await sendMessage('sip:test@example.com', 'Receipt test', {
-      requestDeliveryNotification: true
+      requestDeliveryNotification: true,
     })
 
     deliveryReceiptsSupported = await receiptPromise
@@ -320,7 +324,7 @@ const runCompatibilityTests = async () => {
 
   return {
     ...presenceResults,
-    ...messagingResults
+    ...messagingResults,
   }
 }
 ```
@@ -396,6 +400,7 @@ Before diving in, let's understand what these features are and why they're usefu
 **Presence** lets you broadcast your availability status (available, busy, away) and subscribe to other users' status updates. This is the foundation of features like contact lists that show who's online.
 
 **How it works technically:**
+
 - **PUBLISH** - You broadcast your status to the server ("I'm available")
 - **SUBSCRIBE** - You request updates about another user's status ("Tell me when Alice's status changes")
 - **NOTIFY** - The server sends you status updates ("Alice is now busy")
@@ -405,6 +410,7 @@ Before diving in, let's understand what these features are and why they're usefu
 **Instant messaging** enables real-time text communication between users using the SIP MESSAGE method. Unlike traditional SMS, SIP messages are sent over your data connection and can include delivery receipts and typing indicators.
 
 **Why use SIP messaging?**
+
 - ✅ Real-time delivery over your existing SIP infrastructure
 - ✅ Delivery and read receipts to track message status
 - ✅ Composing indicators for better user experience
@@ -496,6 +502,7 @@ The `usePresence` composable provides complete SIP presence functionality. Think
 ### Why Presence Matters
 
 Presence is essential for modern communication apps. It helps users know:
+
 - 👤 Who's online and available to chat
 - 🔴 Who's busy and shouldn't be disturbed
 - ⏰ Who's away from their device
@@ -517,12 +524,12 @@ await setStatus(PresenceState.Available)
 
 // Status with a message - tell people why you're away
 await setStatus(PresenceState.Away, {
-  statusMessage: 'At lunch, back at 1pm'
+  statusMessage: 'At lunch, back at 1pm',
 })
 
 // Busy status - let people know you're occupied
 await setStatus(PresenceState.Busy, {
-  statusMessage: 'In a meeting'
+  statusMessage: 'In a meeting',
 })
 
 // Offline status - you're going away
@@ -530,13 +537,13 @@ await setStatus(PresenceState.Offline)
 
 // Custom status - use your own description
 await setStatus(PresenceState.Custom, {
-  statusMessage: 'Working from home'
+  statusMessage: 'Working from home',
 })
 
 // Status with custom expiry - automatically expire after set time
 await setStatus(PresenceState.Available, {
   statusMessage: 'Available for calls',
-  expires: 7200 // Status expires in 2 hours (7200 seconds)
+  expires: 7200, // Status expires in 2 hours (7200 seconds)
 })
 ```
 
@@ -546,13 +553,13 @@ await setStatus(PresenceState.Available, {
 
 Choose from these standard presence states:
 
-| State | Description | When to Use |
-|-------|-------------|-------------|
-| `Available` | User is online and available | User is actively using the app and ready to communicate |
-| `Away` | User is away from their device | User is idle or stepped away temporarily |
-| `Busy` | User is busy / do not disturb | User is in a meeting or shouldn't be interrupted |
-| `Offline` | User is offline | User is disconnecting or logging out |
-| `Custom` | Custom status with message | Any other status with a custom description |
+| State       | Description                    | When to Use                                             |
+| ----------- | ------------------------------ | ------------------------------------------------------- |
+| `Available` | User is online and available   | User is actively using the app and ready to communicate |
+| `Away`      | User is away from their device | User is idle or stepped away temporarily                |
+| `Busy`      | User is busy / do not disturb  | User is in a meeting or shouldn't be interrupted        |
+| `Offline`   | User is offline                | User is disconnecting or logging out                    |
+| `Custom`    | Custom status with message     | Any other status with a custom description              |
 
 ✅ **Best Practice:** Always set your status to `Available` when connecting and `Offline` when disconnecting for good user experience.
 
@@ -586,6 +593,7 @@ console.log(currentStatus.value)
 Subscribing to other users' presence gives you real-time updates whenever their status changes. This is how you build contact lists that show who's online.
 
 **How it works:**
+
 1. You call `subscribe()` with a user's SIP URI
 2. VueSip sends a SUBSCRIBE request to the SIP server
 3. The server sends back NOTIFY messages whenever that user's status changes
@@ -593,12 +601,12 @@ Subscribing to other users' presence gives you real-time updates whenever their 
 
 ```typescript
 const {
-  subscribe,           // Subscribe to a user's presence
-  unsubscribe,         // Stop watching a user
-  watchedUsers,        // Map of all watched users and their status
-  subscriptions,       // Details about active subscriptions
-  subscriptionCount,   // Number of users you're watching
-  getStatus           // Helper to get a specific user's status
+  subscribe, // Subscribe to a user's presence
+  unsubscribe, // Stop watching a user
+  watchedUsers, // Map of all watched users and their status
+  subscriptions, // Details about active subscriptions
+  subscriptionCount, // Number of users you're watching
+  getStatus, // Helper to get a specific user's status
 } = usePresence(sipClient)
 
 // Basic subscription - start watching Alice's status
@@ -607,13 +615,13 @@ const subscriptionId = await subscribe('sip:alice@example.com')
 // Subscription with options - customize expiry time and headers
 await subscribe('sip:bob@example.com', {
   expires: 7200, // Subscription refreshes every 2 hours
-  extraHeaders: ['X-Custom-Header: value'] // Add custom SIP headers
+  extraHeaders: ['X-Custom-Header: value'], // Add custom SIP headers
 })
 
 // Get a specific user's status
 const aliceStatus = getStatus('sip:alice@example.com')
 if (aliceStatus) {
-  console.log(`Alice: ${aliceStatus.state}`)           // e.g., "available"
+  console.log(`Alice: ${aliceStatus.state}`) // e.g., "available"
   console.log(`Message: ${aliceStatus.statusMessage}`) // e.g., "In a meeting"
   console.log(`Last updated: ${aliceStatus.lastUpdated}`) // Date object
 }
@@ -647,16 +655,17 @@ const { subscriptions } = usePresence(sipClient)
 // Each subscription has detailed information
 subscriptions.value.forEach((subscription, uri) => {
   console.log({
-    id: subscription.id,              // Unique subscription ID
+    id: subscription.id, // Unique subscription ID
     targetUri: subscription.targetUri, // The user you're watching
-    state: subscription.state,         // 'pending' | 'active' | 'terminated'
-    expires: subscription.expires,     // Expiry time in seconds
-    lastStatus: subscription.lastStatus // Most recent status received
+    state: subscription.state, // 'pending' | 'active' | 'terminated'
+    expires: subscription.expires, // Expiry time in seconds
+    lastStatus: subscription.lastStatus, // Most recent status received
   })
 })
 ```
 
 📝 **Note:** Subscription states:
+
 - **pending** - SUBSCRIBE sent, waiting for response
 - **active** - Subscription confirmed, receiving updates
 - **terminated** - Subscription ended (expired or unsubscribed)
@@ -708,12 +717,12 @@ unsubscribe()
 
 Understanding each event type helps you build responsive features:
 
-| Event Type | When It Fires | What To Do | Properties |
-|------------|---------------|------------|------------|
-| `updated` | User's status changed | Update UI, show notification | `uri`, `status`, `timestamp` |
-| `subscribed` | Successfully subscribed | Confirm in UI | `uri`, `subscription`, `timestamp` |
-| `unsubscribed` | Stopped watching user | Update contact list | `uri`, `subscription`, `timestamp` |
-| `error` | Subscription failed | Show error, retry | `uri`, `error`, `timestamp` |
+| Event Type     | When It Fires           | What To Do                   | Properties                         |
+| -------------- | ----------------------- | ---------------------------- | ---------------------------------- |
+| `updated`      | User's status changed   | Update UI, show notification | `uri`, `status`, `timestamp`       |
+| `subscribed`   | Successfully subscribed | Confirm in UI                | `uri`, `subscription`, `timestamp` |
+| `unsubscribed` | Stopped watching user   | Update contact list          | `uri`, `subscription`, `timestamp` |
+| `error`        | Subscription failed     | Show error, retry            | `uri`, `error`, `timestamp`        |
 
 ✅ **Best Practice:** Always unsubscribe from event listeners in component cleanup (e.g., `onBeforeUnmount`) to prevent memory leaks.
 
@@ -730,7 +739,7 @@ One of the most powerful features of VueSip's presence system is **automatic sub
 ```typescript
 // Subscribe with 1 hour expiry
 await subscribe('sip:alice@example.com', {
-  expires: 3600 // 1 hour (3600 seconds)
+  expires: 3600, // 1 hour (3600 seconds)
 })
 
 // VueSip automatically refreshes at 54 minutes (90% of 60 minutes)
@@ -745,6 +754,7 @@ await subscribe('sip:alice@example.com', {
 4. 🔁 The cycle repeats until you manually unsubscribe
 
 **Benefits:**
+
 - ✅ Maintains continuous presence updates
 - ✅ Uses the same subscription options (expires, headers)
 - ✅ Handles errors gracefully (retries on failure)
@@ -762,6 +772,7 @@ The `useMessaging` composable provides SIP MESSAGE functionality for real-time t
 ### Why SIP Messaging?
 
 SIP messaging offers several advantages over traditional SMS or separate chat systems:
+
 - 📱 **Integrated** - Works over your existing SIP connection
 - ⚡ **Real-time** - Messages are delivered instantly
 - ✅ **Receipts** - Track delivery and read status
@@ -787,31 +798,28 @@ const messageId = await sendMessage('sip:bob@example.com', 'Hello!')
 
 // JSON message - send structured data
 await sendMessage('sip:bob@example.com', '{"action":"call","time":"3pm"}', {
-  contentType: MessageContentType.JSON
+  contentType: MessageContentType.JSON,
 })
 
 // HTML message - send rich formatted content
 await sendMessage('sip:bob@example.com', '<p>Hello <strong>World</strong></p>', {
-  contentType: MessageContentType.HTML
+  contentType: MessageContentType.HTML,
 })
 
 // Message with custom SIP headers
 await sendMessage('sip:bob@example.com', 'Hello!', {
-  extraHeaders: [
-    'X-Custom-Header: value',
-    'X-Priority: high'
-  ]
+  extraHeaders: ['X-Custom-Header: value', 'X-Priority: high'],
 })
 
 // Request delivery notification - know when it's delivered
 await sendMessage('sip:bob@example.com', 'Important message', {
-  requestDeliveryNotification: true
+  requestDeliveryNotification: true,
   // You'll receive a 'delivered' event when Bob's client receives it
 })
 
 // Request read notification - know when it's been read
 await sendMessage('sip:bob@example.com', 'Please confirm receipt', {
-  requestReadNotification: true
+  requestReadNotification: true,
   // You'll receive a 'read' event when Bob opens the message
 })
 ```
@@ -820,12 +828,12 @@ await sendMessage('sip:bob@example.com', 'Please confirm receipt', {
 
 Choose the right content type for your use case:
 
-| Content Type | Description | Example Use Case |
-|--------------|-------------|------------------|
-| `MessageContentType.Text` | Plain text (default) | Basic chat messages |
-| `MessageContentType.HTML` | HTML content | Rich formatted messages with bold, links, etc. |
-| `MessageContentType.JSON` | JSON data | Structured data exchange, commands, metadata |
-| `MessageContentType.Custom` | Custom MIME type | Application-specific data formats |
+| Content Type                | Description          | Example Use Case                               |
+| --------------------------- | -------------------- | ---------------------------------------------- |
+| `MessageContentType.Text`   | Plain text (default) | Basic chat messages                            |
+| `MessageContentType.HTML`   | HTML content         | Rich formatted messages with bold, links, etc. |
+| `MessageContentType.JSON`   | JSON data            | Structured data exchange, commands, metadata   |
+| `MessageContentType.Custom` | Custom MIME type     | Application-specific data formats              |
 
 📝 **Note:** The receiving client must support the content type. Plain text is universally supported.
 
@@ -884,14 +892,14 @@ const unsubscribe = onMessagingEvent((event) => {
 // Access all messages (reactive array)
 messages.value.forEach((message) => {
   console.log({
-    id: message.id,              // Unique message ID
-    from: message.from,           // Sender's SIP URI
-    to: message.to,               // Recipient's SIP URI
-    content: message.content,     // Message text/content
+    id: message.id, // Unique message ID
+    from: message.from, // Sender's SIP URI
+    to: message.to, // Recipient's SIP URI
+    content: message.content, // Message text/content
     direction: message.direction, // 'incoming' or 'outgoing'
-    status: message.status,       // Current status (pending, sent, etc.)
+    status: message.status, // Current status (pending, sent, etc.)
     timestamp: message.timestamp, // When message was created
-    isRead: message.isRead       // Whether message has been read
+    isRead: message.isRead, // Whether message has been read
   })
 })
 
@@ -919,11 +927,11 @@ const bobMessages = getMessagesForUri('sip:bob@example.com')
 
 bobMessages.forEach((msg) => {
   // Track the complete lifecycle
-  console.log(`Status: ${msg.status}`)        // Current status
-  console.log(`Created: ${msg.timestamp}`)    // When user sent it
-  console.log(`Sent: ${msg.sentAt}`)         // When it left your device
+  console.log(`Status: ${msg.status}`) // Current status
+  console.log(`Created: ${msg.timestamp}`) // When user sent it
+  console.log(`Sent: ${msg.sentAt}`) // When it left your device
   console.log(`Delivered: ${msg.deliveredAt}`) // When it reached their device
-  console.log(`Read: ${msg.readAt}`)         // When they opened it
+  console.log(`Read: ${msg.readAt}`) // When they opened it
 })
 ```
 
@@ -931,16 +939,17 @@ bobMessages.forEach((msg) => {
 
 Understanding each status helps you provide accurate feedback:
 
-| Status | What It Means | Display To User | Icon Example |
-|--------|---------------|-----------------|--------------|
-| `Pending` | Message queued, not sent yet | "Sending..." | ⏳ Clock |
-| `Sending` | Currently being transmitted | "Sending..." | ⏳ Clock |
-| `Sent` | Successfully sent from your device | "Sent" | ✓ Single check |
-| `Delivered` | Arrived at recipient's device | "Delivered" | ✓✓ Double check |
-| `Read` | Recipient opened the message | "Read" | ✓✓ Blue checks |
-| `Failed` | Failed to send | "Failed - Tap to retry" | ❌ Red X |
+| Status      | What It Means                      | Display To User         | Icon Example    |
+| ----------- | ---------------------------------- | ----------------------- | --------------- |
+| `Pending`   | Message queued, not sent yet       | "Sending..."            | ⏳ Clock        |
+| `Sending`   | Currently being transmitted        | "Sending..."            | ⏳ Clock        |
+| `Sent`      | Successfully sent from your device | "Sent"                  | ✓ Single check  |
+| `Delivered` | Arrived at recipient's device      | "Delivered"             | ✓✓ Double check |
+| `Read`      | Recipient opened the message       | "Read"                  | ✓✓ Blue checks  |
+| `Failed`    | Failed to send                     | "Failed - Tap to retry" | ❌ Red X        |
 
 **Status Flow:**
+
 ```
 Pending → Sending → Sent → Delivered → Read
               ↓
@@ -948,6 +957,7 @@ Pending → Sending → Sent → Delivered → Read
 ```
 
 💡 **Tip:** Use different visual indicators for each status to mirror familiar messaging apps:
+
 - Single gray check = Sent
 - Double gray checks = Delivered
 - Double blue checks = Read
@@ -962,6 +972,7 @@ Pending → Sending → Sent → Delivered → Read
 Composing indicators (also known as "typing indicators" or "is typing") show when someone is actively typing a message. This provides immediate feedback and makes conversations feel more natural and real-time.
 
 **Why use composing indicators?**
+
 - 💬 Shows the conversation is active
 - ⏱️ Sets expectation that a response is coming
 - 🎯 Improves user experience in real-time chat
@@ -997,6 +1008,7 @@ if (bobIndicator?.isComposing) {
 5. 🛑 Send `sendComposingIndicator(uri, false)` when user stops typing
 
 **Automatic Timeout:**
+
 - ⏱️ Indicators automatically expire after 10 seconds
 - 🔄 Send periodic updates while user is still typing
 - ✅ Prevents stale "typing..." indicators if something fails
@@ -1022,12 +1034,12 @@ const { conversations } = useMessaging(sipClient)
 // Access conversations (Map of URI → Conversation)
 conversations.value.forEach((conv, uri) => {
   console.log({
-    uri: conv.uri,                    // The contact's SIP URI
-    displayName: conv.displayName,     // Friendly name (if available)
-    messages: conv.messages,           // Array of all messages with this contact
-    unreadCount: conv.unreadCount,     // Number of unread messages
+    uri: conv.uri, // The contact's SIP URI
+    displayName: conv.displayName, // Friendly name (if available)
+    messages: conv.messages, // Array of all messages with this contact
+    unreadCount: conv.unreadCount, // Number of unread messages
     lastMessageAt: conv.lastMessageAt, // Timestamp of most recent message
-    isComposing: conv.isComposing     // Is this person typing right now?
+    isComposing: conv.isComposing, // Is this person typing right now?
   })
 })
 
@@ -1038,13 +1050,14 @@ if (aliceConv) {
   console.log(`Last message: ${aliceConv.lastMessageAt}`)
 
   // Display all messages in this conversation
-  aliceConv.messages.forEach(msg => {
+  aliceConv.messages.forEach((msg) => {
     console.log(`${msg.direction}: ${msg.content}`)
   })
 }
 ```
 
 **Conversations automatically:**
+
 - 📁 **Group messages** by peer URI (all Alice messages together)
 - 🔢 **Track unread counts** per conversation
 - 📅 **Sort messages** by timestamp within each conversation
@@ -1055,22 +1068,23 @@ if (aliceConv) {
 
 ```typescript
 // Display conversation list sorted by recent activity
-const sortedConversations = Array.from(conversations.value.values())
-  .sort((a, b) => {
-    // Sort by last message time, most recent first
-    return b.lastMessageAt.getTime() - a.lastMessageAt.getTime()
-  })
+const sortedConversations = Array.from(conversations.value.values()).sort((a, b) => {
+  // Sort by last message time, most recent first
+  return b.lastMessageAt.getTime() - a.lastMessageAt.getTime()
+})
 
 // Show unread badge for each conversation
-sortedConversations.forEach(conv => {
+sortedConversations.forEach((conv) => {
   if (conv.unreadCount > 0) {
     console.log(`[${conv.unreadCount}] ${conv.displayName}`)
   }
 })
 
 // Get total unread across all conversations
-const totalUnread = Array.from(conversations.value.values())
-  .reduce((sum, conv) => sum + conv.unreadCount, 0)
+const totalUnread = Array.from(conversations.value.values()).reduce(
+  (sum, conv) => sum + conv.unreadCount,
+  0
+)
 console.log(`${totalUnread} total unread messages`)
 ```
 
@@ -1143,36 +1157,36 @@ const { getFilteredMessages, MessageDirection, MessageStatus } = useMessaging(si
 
 // Filter by direction - only incoming messages
 const incoming = getFilteredMessages({
-  direction: MessageDirection.Incoming
+  direction: MessageDirection.Incoming,
 })
 // Use case: Show only messages you received
 
 // Filter by status - find undelivered messages
 const unread = getFilteredMessages({
-  status: MessageStatus.Delivered // Messages delivered but not read
+  status: MessageStatus.Delivered, // Messages delivered but not read
 })
 // Use case: Find which messages haven't been read yet
 
 // Filter by date range - get messages from January
 const recent = getFilteredMessages({
   dateFrom: new Date('2024-01-01'),
-  dateTo: new Date('2024-01-31')
+  dateTo: new Date('2024-01-31'),
 })
 // Use case: Monthly message report or archive
 
 // Search message content - full-text search
 const searchResults = getFilteredMessages({
-  searchQuery: 'meeting'
+  searchQuery: 'meeting',
 })
 // Use case: Search bar - find all messages containing "meeting"
 
 // Combine multiple filters for precise results
 const results = getFilteredMessages({
-  uri: 'sip:alice@example.com',           // Only Alice's messages
-  direction: MessageDirection.Incoming,    // Only incoming
-  status: MessageStatus.Delivered,         // Only delivered
-  searchQuery: 'meeting',                  // Containing "meeting"
-  dateFrom: new Date('2024-01-01')        // From January onwards
+  uri: 'sip:alice@example.com', // Only Alice's messages
+  direction: MessageDirection.Incoming, // Only incoming
+  status: MessageStatus.Delivered, // Only delivered
+  searchQuery: 'meeting', // Containing "meeting"
+  dateFrom: new Date('2024-01-01'), // From January onwards
 })
 // Use case: Very specific searches like "Show me all delivered messages
 // from Alice containing 'meeting' since January"
@@ -1180,14 +1194,14 @@ const results = getFilteredMessages({
 
 **Available Filters:**
 
-| Filter | Type | Description |
-|--------|------|-------------|
-| `uri` | string | Filter messages with specific user |
-| `direction` | enum | `Incoming` or `Outgoing` |
-| `status` | enum | `Pending`, `Sent`, `Delivered`, `Read`, `Failed` |
-| `searchQuery` | string | Search message content (case-insensitive) |
-| `dateFrom` | Date | Messages after this date |
-| `dateTo` | Date | Messages before this date |
+| Filter        | Type   | Description                                      |
+| ------------- | ------ | ------------------------------------------------ |
+| `uri`         | string | Filter messages with specific user               |
+| `direction`   | enum   | `Incoming` or `Outgoing`                         |
+| `status`      | enum   | `Pending`, `Sent`, `Delivered`, `Read`, `Failed` |
+| `searchQuery` | string | Search message content (case-insensitive)        |
+| `dateFrom`    | Date   | Messages after this date                         |
+| `dateTo`      | Date   | Messages before this date                        |
 
 💡 **Tip:** Combine `uri` with `searchQuery` to implement per-conversation search, just like WhatsApp or iMessage.
 
@@ -1279,12 +1293,15 @@ const handleActivity = () => {
   setStatus(PresenceState.Available)
 
   // Set new timeout for idle detection
-  idleTimeout = window.setTimeout(() => {
-    // User has been idle for 10 minutes - mark as away
-    setStatus(PresenceState.Away, {
-      statusMessage: 'Idle for 10 minutes'
-    })
-  }, 10 * 60 * 1000) // 10 minutes
+  idleTimeout = window.setTimeout(
+    () => {
+      // User has been idle for 10 minutes - mark as away
+      setStatus(PresenceState.Away, {
+        statusMessage: 'Idle for 10 minutes',
+      })
+    },
+    10 * 60 * 1000
+  ) // 10 minutes
 }
 
 // Listen for user activity
@@ -1382,7 +1399,7 @@ For critical messages, automatically retry failed sends with exponential backoff
 
 ```typescript
 const retryMessage = async (messageId: string, maxRetries = 3) => {
-  const message = messages.value.find(m => m.id === messageId)
+  const message = messages.value.find((m) => m.id === messageId)
   if (!message || message.status !== MessageStatus.Failed) return
 
   // Retry up to maxRetries times
@@ -1396,7 +1413,7 @@ const retryMessage = async (messageId: string, maxRetries = 3) => {
       if (i === maxRetries - 1) throw error // Final attempt failed
 
       // Exponential backoff: wait 1s, then 2s, then 3s
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)))
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
     }
   }
 }
@@ -1467,7 +1484,7 @@ watch(messages, (msgs) => {
       .slice(0, msgs.length - MAX_MESSAGES)
 
     // Delete them
-    toRemove.forEach(msg => deleteMessage(msg.id))
+    toRemove.forEach((msg) => deleteMessage(msg.id))
   }
 })
 ```
@@ -1954,6 +1971,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
 **Problem:** You set your status but other users don't see the update, or you don't receive updates from users you're watching.
 
 **Symptoms:**
+
 - `setStatus()` succeeds but watchers don't get notified
 - `watchedUsers` map doesn't update when remote status changes
 - Status appears stuck on last known value
@@ -1991,7 +2009,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
    console.log(`Active subscriptions: ${subscriptionCount.value}`)
 
    subscriptions.value.forEach((sub, uri) => {
-     console.log(`${uri}: ${sub.state}`)  // Should be 'active'
+     console.log(`${uri}: ${sub.state}`) // Should be 'active'
      if (sub.state === 'terminated' || sub.state === 'pending') {
        console.warn(`Subscription issue for ${uri}`)
      }
@@ -2003,7 +2021,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
    ```typescript
    // Subscriptions may expire too quickly
    await subscribe('sip:alice@example.com', {
-     expires: 3600  // Use at least 1 hour (3600 seconds)
+     expires: 3600, // Use at least 1 hour (3600 seconds)
    })
    ```
 
@@ -2040,6 +2058,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
 **Problem:** Messages fail to send, or you don't receive incoming messages from other users.
 
 **Symptoms:**
+
 - `sendMessage()` throws error or times out
 - Message status stuck on 'pending' or 'sending'
 - No `received` events for incoming messages
@@ -2086,7 +2105,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
    ```typescript
    // Use plain text for maximum compatibility
    await sendMessage('sip:bob@example.com', 'Hello', {
-     contentType: MessageContentType.Text  // Most widely supported
+     contentType: MessageContentType.Text, // Most widely supported
    })
 
    // HTML and JSON may not be supported by all clients
@@ -2143,7 +2162,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
          }
 
          // Exponential backoff: 1s, 2s, 4s
-         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)))
+         await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)))
        }
      }
    }
@@ -2156,6 +2175,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
 **Problem:** You request delivery or read notifications but never receive them.
 
 **Symptoms:**
+
 - Message status never progresses beyond 'sent'
 - No `delivered` or `read` events fire
 - `deliveredAt` and `readAt` remain undefined
@@ -2173,7 +2193,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
    // Request notifications, but don't rely on them
    await sendMessage('sip:bob@example.com', 'Important message', {
      requestDeliveryNotification: true,
-     requestReadNotification: true
+     requestReadNotification: true,
    })
 
    // Treat delivery/read receipts as optional enhancement
@@ -2201,7 +2221,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
    ```typescript
    // ❌ Bad - Blocking on receipt
    await sendMessage(to, content, { requestDeliveryNotification: true })
-   await waitForDelivery()  // This may never resolve!
+   await waitForDelivery() // This may never resolve!
 
    // ✅ Good - Treat receipts as enhancement
    await sendMessage(to, content, { requestDeliveryNotification: true })
@@ -2215,6 +2235,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
 **Problem:** You send composing indicators but the recipient doesn't see "typing..." indicator.
 
 **Symptoms:**
+
 - `sendComposingIndicator()` succeeds but no visual update on recipient side
 - `composingIndicators` map never updates
 - No `isComposing` state changes
@@ -2278,6 +2299,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
 **Problem:** App becomes slow or unresponsive with large message history.
 
 **Symptoms:**
+
 - UI lags when scrolling through messages
 - Memory usage grows over time
 - `messages` array becomes very large
@@ -2288,13 +2310,13 @@ This section helps you diagnose and fix issues with presence status updates, mes
 1. **Implement message history limits**
 
    ```typescript
-   const MAX_MESSAGES = 500  // Keep last 500 messages per conversation
+   const MAX_MESSAGES = 500 // Keep last 500 messages per conversation
 
    watch(messages, (allMessages) => {
      // Group by conversation
      const byConversation = new Map<string, Message[]>()
 
-     allMessages.forEach(msg => {
+     allMessages.forEach((msg) => {
        const key = msg.direction === 'incoming' ? msg.from : msg.to
        if (!byConversation.has(key)) {
          byConversation.set(key, [])
@@ -2309,7 +2331,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
            .slice(0, msgs.length - MAX_MESSAGES)
 
-         toDelete.forEach(msg => deleteMessage(msg.id))
+         toDelete.forEach((msg) => deleteMessage(msg.id))
        }
      })
    })
@@ -2320,11 +2342,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
    ```vue
    <template>
      <!-- Use virtual scroller for performance -->
-     <RecycleScroller
-       :items="currentMessages"
-       :item-size="80"
-       key-field="id"
-     >
+     <RecycleScroller :items="currentMessages" :item-size="80" key-field="id">
        <template #default="{ item }">
          <MessageBubble :message="item" />
        </template>
@@ -2359,14 +2377,14 @@ This section helps you diagnose and fix issues with presence status updates, mes
      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
      const oldMessages = getFilteredMessages({
-       dateTo: thirtyDaysAgo
+       dateTo: thirtyDaysAgo,
      })
 
      // Save to IndexedDB
      await saveToIndexedDB(oldMessages)
 
      // Remove from memory
-     oldMessages.forEach(msg => deleteMessage(msg.id))
+     oldMessages.forEach((msg) => deleteMessage(msg.id))
    }
 
    // Run daily
@@ -2380,6 +2398,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
 **Problem:** Server rejects new presence subscriptions with 403 or 500 errors.
 
 **Symptoms:**
+
 - `subscribe()` fails after certain number of subscriptions
 - Error: "Too many subscriptions" or similar
 - Some subscriptions work, others fail
@@ -2392,7 +2411,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
    // Most servers limit to 50-200 concurrent subscriptions
    const { subscriptionCount, subscribe } = usePresence(sipClient)
 
-   const MAX_SUBSCRIPTIONS = 50  // Adjust based on your server
+   const MAX_SUBSCRIPTIONS = 50 // Adjust based on your server
 
    const safeSubscribe = async (uri: string) => {
      if (subscriptionCount.value >= MAX_SUBSCRIPTIONS) {
@@ -2409,7 +2428,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
    // Prioritize active contacts
    interface ContactPriority {
      uri: string
-     priority: number  // Higher = more important
+     priority: number // Higher = more important
      lastInteraction: Date
    }
 
@@ -2428,7 +2447,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
 
      // Unsubscribe from low-priority contacts
      watchedUsers.value.forEach((status, uri) => {
-       if (!toSubscribe.find(c => c.uri === uri)) {
+       if (!toSubscribe.find((c) => c.uri === uri)) {
          unsubscribe(uri)
        }
      })
@@ -2453,7 +2472,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
    }
 
    // Run periodically
-   setInterval(cleanupInactiveSubscriptions, 60 * 60 * 1000)  // Every hour
+   setInterval(cleanupInactiveSubscriptions, 60 * 60 * 1000) // Every hour
    ```
 
 ---
@@ -2463,6 +2482,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
 **Problem:** Network drops and presence/messaging state becomes inconsistent.
 
 **Symptoms:**
+
 - Subscriptions show 'terminated' after network issue
 - Messages fail to send after reconnection
 - Presence status not updating after reconnect
@@ -2506,7 +2526,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
          subscribedUris.value.push(event.uri)
        }
      } else if (event.type === 'unsubscribed') {
-       subscribedUris.value = subscribedUris.value.filter(uri => uri !== event.uri)
+       subscribedUris.value = subscribedUris.value.filter((uri) => uri !== event.uri)
      }
    })
    ```
@@ -2514,7 +2534,7 @@ This section helps you diagnose and fix issues with presence status updates, mes
 2. **Queue messages during disconnection**
 
    ```typescript
-   const messageQueue = ref<Array<{to: string, content: string}>>([])
+   const messageQueue = ref<Array<{ to: string; content: string }>>([])
 
    const safeSendMessage = async (to: string, content: string) => {
      if (!isConnected.value) {
@@ -2561,25 +2581,25 @@ Understanding SIP error codes helps diagnose issues quickly:
 
 #### Presence-Related Errors
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `403` | Forbidden | Not authorized to publish/subscribe - check permissions |
-| `404` | Not Found | User doesn't exist - verify SIP URI |
-| `405` | Method Not Allowed | Server doesn't allow PUBLISH/SUBSCRIBE - check server config |
-| `489` | Bad Event | Event package not supported - server doesn't support presence |
-| `501` | Not Implemented | PUBLISH/SUBSCRIBE not implemented on server |
-| `600` | Busy Everywhere | User has Do Not Disturb enabled |
+| Code  | Meaning            | Solution                                                      |
+| ----- | ------------------ | ------------------------------------------------------------- |
+| `403` | Forbidden          | Not authorized to publish/subscribe - check permissions       |
+| `404` | Not Found          | User doesn't exist - verify SIP URI                           |
+| `405` | Method Not Allowed | Server doesn't allow PUBLISH/SUBSCRIBE - check server config  |
+| `489` | Bad Event          | Event package not supported - server doesn't support presence |
+| `501` | Not Implemented    | PUBLISH/SUBSCRIBE not implemented on server                   |
+| `600` | Busy Everywhere    | User has Do Not Disturb enabled                               |
 
 #### Messaging-Related Errors
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `404` | Not Found | Recipient doesn't exist - verify SIP URI |
-| `405` | Method Not Allowed | MESSAGE method not allowed - check server config |
-| `413` | Request Entity Too Large | Message too large - reduce message size |
-| `415` | Unsupported Media Type | Content type not supported - use text/plain |
-| `480` | Temporarily Unavailable | Recipient offline - queue for later |
-| `606` | Not Acceptable | Message format rejected - change content type |
+| Code  | Meaning                  | Solution                                         |
+| ----- | ------------------------ | ------------------------------------------------ |
+| `404` | Not Found                | Recipient doesn't exist - verify SIP URI         |
+| `405` | Method Not Allowed       | MESSAGE method not allowed - check server config |
+| `413` | Request Entity Too Large | Message too large - reduce message size          |
+| `415` | Unsupported Media Type   | Content type not supported - use text/plain      |
+| `480` | Temporarily Unavailable  | Recipient offline - queue for later              |
+| `606` | Not Acceptable           | Message format rejected - change content type    |
 
 ## Mobile & Browser Compatibility
 
@@ -2589,15 +2609,16 @@ Presence and messaging features work across modern browsers, but there are platf
 
 ### Browser Support Matrix
 
-| Browser | Desktop Presence | Desktop Messaging | Mobile Presence | Mobile Messaging | Notes |
-|---------|------------------|-------------------|-----------------|------------------|-------|
-| **Chrome** | ✅ Full | ✅ Full | ✅ Full | ✅ Full | Best support, recommended |
-| **Firefox** | ✅ Full | ✅ Full | ✅ Full | ✅ Full | Excellent support |
-| **Safari** | ✅ Full | ✅ Full | ⚠️ Limited | ⚠️ Limited | Background limitations |
-| **Edge** | ✅ Full | ✅ Full | ✅ Full | ✅ Full | Chromium-based, same as Chrome |
-| **Samsung Internet** | ✅ Full | ✅ Full | ✅ Good | ✅ Good | Minor quirks on Android |
+| Browser              | Desktop Presence | Desktop Messaging | Mobile Presence | Mobile Messaging | Notes                          |
+| -------------------- | ---------------- | ----------------- | --------------- | ---------------- | ------------------------------ |
+| **Chrome**           | ✅ Full          | ✅ Full           | ✅ Full         | ✅ Full          | Best support, recommended      |
+| **Firefox**          | ✅ Full          | ✅ Full           | ✅ Full         | ✅ Full          | Excellent support              |
+| **Safari**           | ✅ Full          | ✅ Full           | ⚠️ Limited      | ⚠️ Limited       | Background limitations         |
+| **Edge**             | ✅ Full          | ✅ Full           | ✅ Full         | ✅ Full          | Chromium-based, same as Chrome |
+| **Samsung Internet** | ✅ Full          | ✅ Full           | ✅ Good         | ✅ Good          | Minor quirks on Android        |
 
 **Legend:**
+
 - ✅ Full - All features work without issues
 - ⚠️ Limited - Features work but with platform restrictions
 - ❌ No - Not supported or significant issues
@@ -2618,6 +2639,7 @@ ws://sip.example.com:7443   // Insecure WebSocket over HTTP
 ```
 
 **Why HTTPS is required:**
+
 - SIP over WebSocket (WSS) requires secure connection
 - Browser security policies block insecure WebSocket on HTTPS pages
 - Modern browsers require HTTPS for many features
@@ -2644,12 +2666,11 @@ document.addEventListener('visibilitychange', async () => {
 
     // Option 1: Set status to away
     await setStatus(PresenceState.Away, {
-      statusMessage: 'Away from device'
+      statusMessage: 'Away from device',
     })
 
     // Option 2: Gracefully disconnect (recommended for long background periods)
     // await disconnect()
-
   } else {
     // App came to foreground
     console.log('App foregrounded - reconnecting if needed')
@@ -2678,7 +2699,7 @@ const startKeepAlive = () => {
       // Send keep-alive (implementation depends on your SIP server)
       sipClient.sendOptions('sip:keepalive@example.com')
     }
-  }, 25000)  // Every 25 seconds, before iOS 30s timeout
+  }, 25000) // Every 25 seconds, before iOS 30s timeout
 
   return () => clearInterval(interval)
 }
@@ -2689,11 +2710,15 @@ watch(isConnected, (connected) => {
     const stopKeepAlive = startKeepAlive()
 
     // Clean up on disconnect
-    watch(isConnected, (stillConnected) => {
-      if (!stillConnected) {
-        stopKeepAlive()
-      }
-    }, { once: true })
+    watch(
+      isConnected,
+      (stillConnected) => {
+        if (!stillConnected) {
+          stopKeepAlive()
+        }
+      },
+      { once: true }
+    )
   }
 })
 ```
@@ -2714,7 +2739,7 @@ onMessagingEvent((event) => {
       showLocalNotification({
         title: `Message from ${event.message.from}`,
         body: event.message.content,
-        icon: '/icons/message.png'
+        icon: '/icons/message.png',
       })
     }
   }
@@ -2724,7 +2749,7 @@ const showLocalNotification = (options: any) => {
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification(options.title, {
       body: options.body,
-      icon: options.icon
+      icon: options.icon,
     })
   }
 }
@@ -2793,13 +2818,13 @@ const mobileOptimizedConfig = {
 
   // Reduce keepalive frequency on mobile
   wsOptions: {
-    keepAliveInterval: isMobile() ? 60000 : 25000  // 60s on mobile, 25s on desktop
+    keepAliveInterval: isMobile() ? 60000 : 25000, // 60s on mobile, 25s on desktop
   },
 
   // Adjust registration expiry
   registrationOptions: {
-    expires: isMobile() ? 300 : 600  // 5min on mobile, 10min on desktop
-  }
+    expires: isMobile() ? 300 : 600, // 5min on mobile, 10min on desktop
+  },
 }
 
 const isMobile = () => {
@@ -2827,7 +2852,7 @@ watch(messages, (msgs) => {
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
       .slice(0, msgs.length - messageLimit)
 
-    toDelete.forEach(msg => deleteMessage(msg.id))
+    toDelete.forEach((msg) => deleteMessage(msg.id))
   }
 })
 
@@ -2835,9 +2860,7 @@ watch(messages, (msgs) => {
 const MAX_SUBSCRIPTIONS_MOBILE = 25
 const MAX_SUBSCRIPTIONS_DESKTOP = 50
 
-const subscriptionLimit = isMobile()
-  ? MAX_SUBSCRIPTIONS_MOBILE
-  : MAX_SUBSCRIPTIONS_DESKTOP
+const subscriptionLimit = isMobile() ? MAX_SUBSCRIPTIONS_MOBILE : MAX_SUBSCRIPTIONS_DESKTOP
 ```
 
 #### Optimize Composing Indicators
@@ -2848,14 +2871,11 @@ Composing indicators can generate significant network traffic. Optimize for mobi
 // Debounce composing indicators more aggressively on mobile
 const { sendComposingIndicator } = useMessaging(sipClient)
 
-const debounceDelay = isMobile() ? 1000 : 500  // 1s on mobile, 500ms on desktop
+const debounceDelay = isMobile() ? 1000 : 500 // 1s on mobile, 500ms on desktop
 
-const debouncedComposing = useDebounceFn(
-  (to: string, isComposing: boolean) => {
-    sendComposingIndicator(to, isComposing)
-  },
-  debounceDelay
-)
+const debouncedComposing = useDebounceFn((to: string, isComposing: boolean) => {
+  sendComposingIndicator(to, isComposing)
+}, debounceDelay)
 
 // On mobile, only send composing indicator every few keystrokes
 let keystrokeCount = 0
@@ -2893,7 +2913,6 @@ window.addEventListener('online', async () => {
 
       // Send queued messages
       await sendQueuedMessages()
-
     } catch (error) {
       console.error('Reconnection failed:', error)
       showError('Failed to reconnect. Please try again.')
@@ -2927,13 +2946,13 @@ Optimize messaging UI for touch interfaces:
 // Increase touch target size for mobile
 const styles = computed(() => ({
   messageItem: {
-    minHeight: isMobile() ? '48px' : '32px',  // Larger touch targets
-    padding: isMobile() ? '12px' : '8px'
+    minHeight: isMobile() ? '48px' : '32px', // Larger touch targets
+    padding: isMobile() ? '12px' : '8px',
   },
   button: {
-    minHeight: isMobile() ? '44px' : '36px',  // iOS recommends 44px minimum
-    fontSize: isMobile() ? '16px' : '14px'    // Prevent zoom on input focus
-  }
+    minHeight: isMobile() ? '44px' : '36px', // iOS recommends 44px minimum
+    fontSize: isMobile() ? '16px' : '14px', // Prevent zoom on input focus
+  },
 }))
 ```
 
@@ -2973,7 +2992,7 @@ if ('serviceWorker' in navigator) {
       // Show notification
       showNotification({
         title: `Message from ${from}`,
-        body: content
+        body: content,
       })
 
       // Update UI if app is open
@@ -3003,7 +3022,7 @@ Safari has issues with some date formats in SIP headers:
 ```typescript
 // Ensure ISO 8601 format for Safari compatibility
 const formatDateForSafari = (date: Date) => {
-  return date.toISOString()  // Always use ISO format
+  return date.toISOString() // Always use ISO format
 }
 
 // Parse dates defensively
@@ -3058,23 +3077,27 @@ You've learned how to build complete presence and messaging features with VueSip
 **Key Takeaways:**
 
 📍 **Presence Management**
+
 - Set your status with `setStatus()` to broadcast availability
 - Subscribe to users with `subscribe()` to receive real-time status updates
 - Use PUBLISH to announce your status, SUBSCRIBE to watch others, NOTIFY for updates
 - Auto-refresh keeps subscriptions alive automatically
 
 💬 **Instant Messaging**
+
 - Send messages with `sendMessage()` - supports text, HTML, and JSON
 - Listen for incoming messages with `onMessagingEvent()`
 - Track message lifecycle from pending → sent → delivered → read
 - Use composing indicators for "typing..." feedback
 
 🗂️ **Conversations**
+
 - Messages are automatically grouped by contact URI
 - Each conversation tracks unread count and composing status
 - Use the reactive `conversations` map for building UI
 
 🛠️ **Best Practices**
+
 - Set status on connect, offline on disconnect
 - Handle errors gracefully with try-catch
 - Debounce composing indicators to reduce network traffic
@@ -3148,9 +3171,9 @@ You've learned how to build complete presence and messaging features with VueSip
 
 ### Example Projects:
 
-- 💻 **[Full Softphone Example](https://github.com/yourusername/vuesip/tree/main/examples/softphone)** - Complete app with calling, presence, and messaging
-- 💬 **[Messaging Widget](https://github.com/yourusername/vuesip/tree/main/examples/messaging-widget)** - Embeddable chat widget
-- 👥 **[Contact List](https://github.com/yourusername/vuesip/tree/main/examples/presence-list)** - Presence-enabled contact list
+- 💻 **[Full Softphone Example](https://github.com/ironyh/VueSIP/tree/main/examples/softphone)** - Complete app with calling, presence, and messaging
+- 💬 **[Messaging Widget](https://github.com/ironyh/VueSIP/tree/main/examples/messaging-widget)** - Embeddable chat widget
+- 👥 **[Contact List](https://github.com/ironyh/VueSIP/tree/main/examples/presence-list)** - Presence-enabled contact list
 - 🎮 **[CodeSandbox Demos](https://codesandbox.io/s/vuesip-presence)** - Interactive online examples
 
 ---
@@ -3160,37 +3183,44 @@ You've learned how to build complete presence and messaging features with VueSip
 **Need assistance?** Here's where to find help:
 
 📚 **Documentation:**
-- **[Full Documentation](https://vuesip.dev/docs)** - Complete guides and API reference
-- **[API Reference](https://vuesip.dev/api)** - Detailed API documentation
-- **[FAQ](https://vuesip.dev/faq)** - Common questions and answers
+
+- **[Full Documentation](https://vuesip.com/docs)** - Complete guides and API reference
+- **[API Reference](https://vuesip.com/api)** - Detailed API documentation
+- **[FAQ](https://vuesip.com/faq)** - Common questions and answers
 
 🐛 **Bug Reports & Feature Requests:**
-- **[GitHub Issues](https://github.com/yourusername/vuesip/issues)** - Report bugs or request features
+
+- **[GitHub Issues](https://github.com/ironyh/VueSIP/issues)** - Report bugs or request features
 - Include: VueSip version, SIP server type/version, browser, and minimal reproduction
 
 💬 **Community:**
-- **[GitHub Discussions](https://github.com/yourusername/vuesip/discussions)** - Ask questions and share tips
+
+- **[GitHub Discussions](https://github.com/ironyh/VueSIP/discussions)** - Ask questions and share tips
 - **[Discord Server](https://discord.gg/vuesip)** - Real-time community help
 
 📧 **Professional Support:**
-- **[Enterprise Support](https://vuesip.dev/support)** - Priority support for production deployments
-- **[Consulting Services](https://vuesip.dev/consulting)** - Custom development and integration help
+
+- **[Enterprise Support](https://vuesip.com/support)** - Priority support for production deployments
+- **[Consulting Services](https://vuesip.com/consulting)** - Custom development and integration help
 
 ---
 
 ## Important Reminders
 
 ⚠️ **Server Compatibility:**
+
 - Presence and messaging require your SIP server to support RFC 3856 (Presence) and RFC 3428 (MESSAGE)
 - FreeSWITCH has the best support, Asterisk requires PJSIP, Kamailio needs module configuration
 - Test your server's capabilities before deploying to production
 
 ⚠️ **Feature Support:**
+
 - Delivery receipts (IMDN) require both server and client support - they may not work in all scenarios
 - Composing indicators are a "nice to have" enhancement - don't rely on them for critical functionality
 - Always build fallbacks for unsupported features
 
 ⚠️ **Production Considerations:**
+
 - HTTPS (WSS) is required for production deployments
 - Implement error handling and retry logic for network issues
 - Handle iOS/Android platform limitations for mobile deployments
@@ -3198,6 +3228,7 @@ You've learned how to build complete presence and messaging features with VueSip
 - Implement message history limits to prevent memory issues
 
 ⚠️ **Security Best Practices:**
+
 - Sanitize message content to prevent XSS attacks
 - Validate SIP URIs before subscribing or messaging
 - Don't store sensitive information in presence status messages
@@ -3241,6 +3272,7 @@ Developing presence and messaging features can be challenging when you don't hav
 During UI development, you can mock the presence and messaging composables to test your interface without needing a SIP server.
 
 **Why mock?**
+
 - Develop UI without SIP infrastructure
 - Test edge cases (offline users, errors, etc.)
 - Fast iteration without network delays
@@ -3268,11 +3300,11 @@ export const useMockPresence = () => {
       uri: 'sip:self@example.com',
       state,
       statusMessage: options?.statusMessage || '',
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     }
 
     // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
   }
 
   // Mock subscription with automatic status changes
@@ -3287,7 +3319,7 @@ export const useMockPresence = () => {
       uri,
       state: randomState,
       statusMessage: `Mock status for ${uri}`,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     })
 
     // Simulate random status changes every 10 seconds
@@ -3298,14 +3330,14 @@ export const useMockPresence = () => {
           uri,
           state: newState,
           statusMessage: `Now ${newState}`,
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
         })
       } else {
         clearInterval(interval)
       }
     }, 10000)
 
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
 
   const unsubscribe = async (uri: string) => {
@@ -3326,7 +3358,7 @@ export const useMockPresence = () => {
     subscribe,
     unsubscribe,
     getStatus,
-    onPresenceEvent: (callback: any) => () => {}  // No-op
+    onPresenceEvent: (callback: any) => () => {}, // No-op
   }
 }
 ```
@@ -3341,8 +3373,8 @@ import type { Message, MessageStatus } from 'vuesip'
 export const useMockMessaging = () => {
   const messages = ref<Message[]>([])
   const composingIndicators = ref(new Map<string, { isComposing: boolean }>())
-  const unreadCount = computed(() =>
-    messages.value.filter(m => !m.isRead && m.direction === 'incoming').length
+  const unreadCount = computed(
+    () => messages.value.filter((m) => !m.isRead && m.direction === 'incoming').length
   )
 
   // Generate unique message ID
@@ -3361,29 +3393,29 @@ export const useMockMessaging = () => {
       direction: 'outgoing',
       status: 'pending',
       timestamp: new Date(),
-      isRead: true
+      isRead: true,
     }
 
     messages.value.push(message)
 
     // Simulate send progress
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
     message.status = 'sending'
 
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
     message.status = 'sent'
     message.sentAt = new Date()
 
     // Simulate delivery receipt if requested
     if (options?.requestDeliveryNotification) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000))
       message.status = 'delivered'
       message.deliveredAt = new Date()
     }
 
     // Simulate read receipt if requested
     if (options?.requestReadNotification) {
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
       message.status = 'read'
       message.readAt = new Date()
     }
@@ -3409,7 +3441,7 @@ export const useMockMessaging = () => {
       status: 'delivered',
       timestamp: new Date(),
       isRead: false,
-      deliveredAt: new Date()
+      deliveredAt: new Date(),
     }
 
     messages.value.push(message)
@@ -3422,7 +3454,7 @@ export const useMockMessaging = () => {
   }
 
   const markAsRead = (messageId: string) => {
-    const message = messages.value.find(m => m.id === messageId)
+    const message = messages.value.find((m) => m.id === messageId)
     if (message) {
       message.isRead = true
       message.readAt = new Date()
@@ -3430,7 +3462,7 @@ export const useMockMessaging = () => {
   }
 
   const markAllAsRead = (uri?: string) => {
-    messages.value.forEach(msg => {
+    messages.value.forEach((msg) => {
       if (!uri || msg.from === uri || msg.to === uri) {
         msg.isRead = true
         msg.readAt = new Date()
@@ -3439,7 +3471,7 @@ export const useMockMessaging = () => {
   }
 
   const deleteMessage = (messageId: string) => {
-    const index = messages.value.findIndex(m => m.id === messageId)
+    const index = messages.value.findIndex((m) => m.id === messageId)
     if (index !== -1) {
       messages.value.splice(index, 1)
     }
@@ -3447,7 +3479,7 @@ export const useMockMessaging = () => {
 
   const clearMessages = (uri?: string) => {
     if (uri) {
-      messages.value = messages.value.filter(m => m.from !== uri && m.to !== uri)
+      messages.value = messages.value.filter((m) => m.from !== uri && m.to !== uri)
     } else {
       messages.value = []
     }
@@ -3456,7 +3488,7 @@ export const useMockMessaging = () => {
   // Mock conversations computed
   const conversations = computed(() => {
     const convMap = new Map()
-    messages.value.forEach(msg => {
+    messages.value.forEach((msg) => {
       const uri = msg.direction === 'incoming' ? msg.from : msg.to
       if (!convMap.has(uri)) {
         convMap.set(uri, {
@@ -3464,7 +3496,7 @@ export const useMockMessaging = () => {
           messages: [],
           unreadCount: 0,
           lastMessageAt: new Date(0),
-          isComposing: composingIndicators.value.get(uri)?.isComposing || false
+          isComposing: composingIndicators.value.get(uri)?.isComposing || false,
         })
       }
 
@@ -3491,7 +3523,7 @@ export const useMockMessaging = () => {
     deleteMessage,
     clearMessages,
     sendComposingIndicator,
-    onMessagingEvent: (callback: any) => () => {}  // No-op
+    onMessagingEvent: (callback: any) => () => {}, // No-op
   }
 }
 ```
@@ -3538,7 +3570,7 @@ import PresenceComponent from '@/components/PresenceComponent.vue'
 
 // Mock the composable
 vi.mock('vuesip', () => ({
-  usePresence: () => useMockPresence()
+  usePresence: () => useMockPresence(),
 }))
 
 describe('PresenceComponent', () => {
@@ -3560,14 +3592,14 @@ describe('PresenceComponent', () => {
     vi.mock('vuesip', () => ({
       usePresence: () => ({
         ...useMockPresence(),
-        subscribe
-      })
+        subscribe,
+      }),
     }))
 
     const wrapper = mount(PresenceComponent, {
       props: {
-        usersToWatch: ['sip:alice@example.com', 'sip:bob@example.com']
-      }
+        usersToWatch: ['sip:alice@example.com', 'sip:bob@example.com'],
+      },
     })
 
     await wrapper.vm.$nextTick()
@@ -3617,7 +3649,7 @@ describe('Messaging Flow', () => {
       direction: 'incoming',
       status: 'delivered',
       timestamp: new Date(),
-      isRead: false
+      isRead: false,
     })
 
     expect(unreadCount.value).toBe(1)
@@ -3637,12 +3669,12 @@ describe('Messaging Flow', () => {
 ```typescript
 // Enable detailed logging for presence
 const { setStatus, subscribe } = usePresence(sipClient, {
-  debug: true  // Shows all PUBLISH/SUBSCRIBE/NOTIFY messages
+  debug: true, // Shows all PUBLISH/SUBSCRIBE/NOTIFY messages
 })
 
 // Enable detailed logging for messaging
 const { sendMessage } = useMessaging(sipClient, {
-  debug: true  // Shows all MESSAGE requests and responses
+  debug: true, // Shows all MESSAGE requests and responses
 })
 ```
 
@@ -3651,7 +3683,7 @@ const { sendMessage } = useMessaging(sipClient, {
 ```typescript
 // Intercept and log all SIP messages
 const originalSend = WebSocket.prototype.send
-WebSocket.prototype.send = function(data) {
+WebSocket.prototype.send = function (data) {
   if (typeof data === 'string' && data.includes('SIP/2.0')) {
     console.log('📤 Outgoing SIP:', data)
   }
@@ -3672,12 +3704,12 @@ window.addEventListener('message', (event) => {
 // Track all presence state changes for debugging
 const { onPresenceEvent } = usePresence(sipClient)
 
-const presenceLog = ref<Array<{timestamp: Date, event: any}>>([])
+const presenceLog = ref<Array<{ timestamp: Date; event: any }>>([])
 
 onPresenceEvent((event) => {
   presenceLog.value.push({
     timestamp: new Date(),
-    event
+    event,
   })
 
   console.group(`🔔 Presence Event: ${event.type}`)
@@ -3700,11 +3732,14 @@ const exportPresenceLog = () => {
 // Track complete message lifecycle
 const { onMessagingEvent } = useMessaging(sipClient)
 
-const messageTracker = new Map<string, Array<{
-  timestamp: Date
-  event: string
-  status?: string
-}>>()
+const messageTracker = new Map<
+  string,
+  Array<{
+    timestamp: Date
+    event: string
+    status?: string
+  }>
+>()
 
 onMessagingEvent((event) => {
   const id = event.message?.id
@@ -3717,7 +3752,7 @@ onMessagingEvent((event) => {
   messageTracker.get(id)!.push({
     timestamp: new Date(),
     event: event.type,
-    status: event.message?.status
+    status: event.message?.status,
   })
 
   console.group(`💬 Message Event: ${event.type}`)
@@ -3790,8 +3825,9 @@ const testMessageThroughput = async (messageCount: number) => {
   const promises = []
   for (let i = 0; i < messageCount; i++) {
     promises.push(
-      sendMessage('sip:test@example.com', `Message ${i}`)
-        .catch(err => console.error(`Message ${i} failed:`, err))
+      sendMessage('sip:test@example.com', `Message ${i}`).catch((err) =>
+        console.error(`Message ${i} failed:`, err)
+      )
     )
   }
 

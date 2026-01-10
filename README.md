@@ -392,10 +392,10 @@ import type {
 
 ## Documentation
 
-- **[Guide](https://vuesip.dev/guide/)** - Getting started and tutorials
-- **[API Reference](https://vuesip.dev/api/)** - Complete API documentation
-- **[Examples](https://vuesip.dev/examples/)** - Usage examples and patterns
-- **[Playground](https://vuesip-play.pages.dev/)** - Live interactive demos
+- **[Guide](https://vuesip.com/guide/)** - Getting started and tutorials
+- **[API Reference](https://vuesip.com/api/)** - Complete API documentation
+- **[Examples](https://vuesip.com/examples/)** - Usage examples and patterns
+- **[Playground](https://play.vuesip.com/)** - Live interactive demos
 
 ## License
 

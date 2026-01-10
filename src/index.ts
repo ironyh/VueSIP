@@ -530,9 +530,9 @@ export const metadata = {
   description: 'A headless Vue.js component library for SIP/VoIP applications',
   author: 'VueSip Team',
   license: 'MIT',
-  repository: 'https://github.com/yourusername/vuesip',
-  homepage: 'https://vuesip.dev',
-  bugs: 'https://github.com/yourusername/vuesip/issues',
+  repository: 'https://github.com/ironyh/VueSIP',
+  homepage: 'https://vuesip.com',
+  bugs: 'https://github.com/ironyh/VueSIP/issues',
 }
 
 // ============================================================================

@@ -21,7 +21,7 @@ pnpm dev
 Visit `http://localhost:5173` to access the interactive playground.
 
 ::: tip Live Playground
-Try the demos online at [vuesip-play.pages.dev](https://vuesip-play.pages.dev/)
+Try the demos online at [play.vuesip.com](https://play.vuesip.com/)
 :::
 
 ---
