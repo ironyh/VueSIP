@@ -36,7 +36,7 @@ describe('useAmiAgentStats', () => {
       off: vi.fn((event: string, handler: (data: unknown) => void) => {
         eventHandlers.get(event)?.delete(handler)
       }),
-      sendAction: vi.fn().mockResolvedValue({ Response: 'Success' }),
+      sendAction: vi.fn().mockResolvedValue({ data: { Response: 'Success' } }),
       isConnected: vi.fn().mockReturnValue(true),
     } as unknown as AmiClient
   })
@@ -780,7 +780,14 @@ describe('useAmiAgentStats', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
       const { startTracking, recordCall, alerts, stats } = useAmiAgentStats(clientRef, {
         agentId: '1001',
-        thresholds: [{ metric: 'serviceLevel', warningThreshold: 80, criticalThreshold: 60, higherIsBetter: true }],
+        thresholds: [
+          {
+            metric: 'serviceLevel',
+            warningThreshold: 80,
+            criticalThreshold: 60,
+            higherIsBetter: true,
+          },
+        ],
         onAlert,
       })
 
@@ -809,10 +816,18 @@ describe('useAmiAgentStats', () => {
 
     it('should acknowledge alert', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, alerts, acknowledgeAlert, alertCount, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-        thresholds: [{ metric: 'serviceLevel', warningThreshold: 80, criticalThreshold: 60, higherIsBetter: true }],
-      })
+      const { startTracking, recordCall, alerts, acknowledgeAlert, alertCount, stats } =
+        useAmiAgentStats(clientRef, {
+          agentId: '1001',
+          thresholds: [
+            {
+              metric: 'serviceLevel',
+              warningThreshold: 80,
+              criticalThreshold: 60,
+              higherIsBetter: true,
+            },
+          ],
+        })
 
       startTracking()
       stats.value!.totalLoginTime = 3600
@@ -842,10 +857,18 @@ describe('useAmiAgentStats', () => {
 
     it('should acknowledge all alerts', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, acknowledgeAllAlerts, alertCount, stats } = useAmiAgentStats(clientRef, {
-        agentId: '1001',
-        thresholds: [{ metric: 'serviceLevel', warningThreshold: 80, criticalThreshold: 60, higherIsBetter: true }],
-      })
+      const { startTracking, recordCall, acknowledgeAllAlerts, alertCount, stats } =
+        useAmiAgentStats(clientRef, {
+          agentId: '1001',
+          thresholds: [
+            {
+              metric: 'serviceLevel',
+              warningThreshold: 80,
+              criticalThreshold: 60,
+              higherIsBetter: true,
+            },
+          ],
+        })
 
       startTracking()
       stats.value!.totalLoginTime = 3600
@@ -875,7 +898,12 @@ describe('useAmiAgentStats', () => {
   describe('Team Comparison', () => {
     it('should compare agent to team average', () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, recordCall, compareToTeam, allAgentStats: _allAgentStats } = useAmiAgentStats(clientRef, {
+      const {
+        startTracking,
+        recordCall,
+        compareToTeam,
+        allAgentStats: _allAgentStats,
+      } = useAmiAgentStats(clientRef, {
         agentId: '1001',
       })
 
@@ -1377,7 +1405,11 @@ describe('useAmiAgentStats', () => {
       mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Connection failed'))
 
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { startTracking, refresh, error: _error } = useAmiAgentStats(clientRef, {
+      const {
+        startTracking,
+        refresh,
+        error: _error,
+      } = useAmiAgentStats(clientRef, {
         agentId: '1001',
         queues: ['sales'],
         onError,

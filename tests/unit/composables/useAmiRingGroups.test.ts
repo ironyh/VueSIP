@@ -35,7 +35,7 @@ describe('useAmiRingGroups', () => {
       off: vi.fn((event: string, handler: (data: unknown) => void) => {
         eventHandlers.get(event)?.delete(handler)
       }),
-      sendAction: vi.fn().mockResolvedValue({ Response: 'Success' }),
+      sendAction: vi.fn().mockResolvedValue({ data: { Response: 'Success' } }),
       isConnected: vi.fn().mockReturnValue(true),
     } as unknown as AmiClient
   })
@@ -177,10 +177,9 @@ describe('useAmiRingGroups', () => {
 
     it('should remove a member from a ring group', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { ringGroups, startMonitoring, addMember, removeMember } = useAmiRingGroups(
-        clientRef,
-        { groupIds: ['600'] }
-      )
+      const { ringGroups, startMonitoring, addMember, removeMember } = useAmiRingGroups(clientRef, {
+        groupIds: ['600'],
+      })
 
       startMonitoring()
       await addMember('600', '1001')
@@ -236,8 +235,10 @@ describe('useAmiRingGroups', () => {
 
     it('should update member priority', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { ringGroups, startMonitoring, addMember, setMemberPriority } =
-        useAmiRingGroups(clientRef, { groupIds: ['600'] })
+      const { ringGroups, startMonitoring, addMember, setMemberPriority } = useAmiRingGroups(
+        clientRef,
+        { groupIds: ['600'] }
+      )
 
       startMonitoring()
       await addMember('600', '1001', { priority: 1 })
@@ -253,10 +254,9 @@ describe('useAmiRingGroups', () => {
 
     it('should reject invalid priority values', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { startMonitoring, addMember, setMemberPriority } = useAmiRingGroups(
-        clientRef,
-        { groupIds: ['600'] }
-      )
+      const { startMonitoring, addMember, setMemberPriority } = useAmiRingGroups(clientRef, {
+        groupIds: ['600'],
+      })
 
       startMonitoring()
       await addMember('600', '1001')
@@ -483,10 +483,12 @@ describe('useAmiRingGroups', () => {
   describe('Statistics', () => {
     it('should track call statistics', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { ringGroups: _ringGroups, startMonitoring, addMember, getStats } = useAmiRingGroups(
-        clientRef,
-        { groupIds: ['600'] }
-      )
+      const {
+        ringGroups: _ringGroups,
+        startMonitoring,
+        addMember,
+        getStats,
+      } = useAmiRingGroups(clientRef, { groupIds: ['600'] })
 
       startMonitoring()
       await addMember('600', '1001')
@@ -510,10 +512,9 @@ describe('useAmiRingGroups', () => {
 
     it('should clear statistics', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { ringGroups, startMonitoring, addMember, clearStats } = useAmiRingGroups(
-        clientRef,
-        { groupIds: ['600'] }
-      )
+      const { ringGroups, startMonitoring, addMember, clearStats } = useAmiRingGroups(clientRef, {
+        groupIds: ['600'],
+      })
 
       startMonitoring()
       await addMember('600', '1001')
@@ -584,8 +585,10 @@ describe('useAmiRingGroups', () => {
 
     it('should compute availableMembers', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { availableMembers, ringGroups, startMonitoring, addMember } =
-        useAmiRingGroups(clientRef, { groupIds: ['600'] })
+      const { availableMembers, ringGroups, startMonitoring, addMember } = useAmiRingGroups(
+        clientRef,
+        { groupIds: ['600'] }
+      )
 
       startMonitoring()
       await addMember('600', '1001')
@@ -616,10 +619,9 @@ describe('useAmiRingGroups', () => {
 
     it('should compute disabledGroups', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { disabledGroups, startMonitoring, disableGroup } = useAmiRingGroups(
-        clientRef,
-        { groupIds: ['600', '601'] }
-      )
+      const { disabledGroups, startMonitoring, disableGroup } = useAmiRingGroups(clientRef, {
+        groupIds: ['600', '601'],
+      })
 
       startMonitoring()
       await disableGroup('600')
@@ -684,8 +686,10 @@ describe('useAmiRingGroups', () => {
 
     it('should get member status', async () => {
       const clientRef = ref<AmiClient | null>(mockClient)
-      const { ringGroups, startMonitoring, addMember, getMemberStatus } =
-        useAmiRingGroups(clientRef, { groupIds: ['600'] })
+      const { ringGroups, startMonitoring, addMember, getMemberStatus } = useAmiRingGroups(
+        clientRef,
+        { groupIds: ['600'] }
+      )
 
       startMonitoring()
       await addMember('600', '1001')
@@ -839,10 +843,9 @@ describe('useAmiRingGroups', () => {
         },
       })
 
-      const { ringGroups, startMonitoring, addMember, refresh } = useAmiRingGroups(
-        clientRef,
-        { groupIds: ['600'] }
-      )
+      const { ringGroups, startMonitoring, addMember, refresh } = useAmiRingGroups(clientRef, {
+        groupIds: ['600'],
+      })
 
       startMonitoring()
       await addMember('600', '1001')
