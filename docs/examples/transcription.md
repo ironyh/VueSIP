@@ -3,7 +3,7 @@
 Live speech-to-text transcription during calls with timestamps and speaker identification.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **TranscriptionDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#transcription) or run `pnpm dev` → Navigate to **TranscriptionDemo** in the playground
 :::
 
 ## Overview
