@@ -3,7 +3,7 @@
 Detect specific words and phrases during transcription.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **TranscriptionDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#transcription) or run `pnpm dev` → Navigate to **TranscriptionDemo** in the playground (Keywords tab)
 :::
 
 ## Overview
