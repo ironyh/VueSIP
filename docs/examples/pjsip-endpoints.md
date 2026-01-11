@@ -3,7 +3,7 @@
 Manage PJSIP endpoints and registrations via AMI.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **PjsipDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#pjsip) or run `pnpm dev` → Navigate to **PjsipDemo** in the playground
 :::
 
 ## Overview

@@ -3,7 +3,7 @@
 Manage Asterisk ConfBridge conferences via AMI.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **ConfBridgeDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#confbridge) or run `pnpm dev` → Navigate to **ConfBridgeDemo** in the playground
 :::
 
 ## Overview

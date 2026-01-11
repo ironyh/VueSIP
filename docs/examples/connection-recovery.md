@@ -3,7 +3,7 @@
 Automatic reconnection and session recovery for network issues.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **ConnectionRecoveryDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#connection-recovery) or run `pnpm dev` → Navigate to **ConnectionRecoveryDemo** in the playground
 :::
 
 ## Overview

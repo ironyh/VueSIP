@@ -3,7 +3,7 @@
 Handle multiple concurrent calls with line management.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **MultiLineDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#multi-line) or run `pnpm dev` → Navigate to **MultiLineDemo** in the playground
 :::
 
 ## Overview

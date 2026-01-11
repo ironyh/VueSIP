@@ -3,7 +3,7 @@
 Share your screen during calls.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **ScreenSharingDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#screen-sharing) or run `pnpm dev` → Navigate to **ScreenSharingDemo** in the playground
 :::
 
 ## Overview

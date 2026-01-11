@@ -3,7 +3,7 @@
 User presence status and Busy Lamp Field (BLF) monitoring for extension status.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **PresenceDemo** or **BLFDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#presence) or run `pnpm dev` → Navigate to **PresenceDemo** or **BLFDemo** in the playground
 :::
 
 ## Overview

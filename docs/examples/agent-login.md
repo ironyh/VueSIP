@@ -3,7 +3,7 @@
 Call center agent authentication and status management.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **AgentLoginDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#agent-login) or run `pnpm dev` → Navigate to **AgentLoginDemo** in the playground
 :::
 
 ## Overview

@@ -3,7 +3,7 @@
 A complete example of one-to-one audio calling with connection management.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **BasicCallDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#basic-call) or run `pnpm dev` → Navigate to **BasicCallDemo** in the playground
 :::
 
 ## Overview

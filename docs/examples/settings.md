@@ -3,7 +3,7 @@
 Application settings with persistent storage.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **SettingsDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#settings) or run `pnpm dev` → Navigate to **SettingsDemo** in the playground
 :::
 
 ## Overview

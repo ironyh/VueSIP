@@ -3,7 +3,7 @@
 Monitor Asterisk system health and performance via AMI.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **SystemHealthDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#system-health) or run `pnpm dev` → Navigate to **SystemHealthDemo** in the playground
 :::
 
 ## Overview

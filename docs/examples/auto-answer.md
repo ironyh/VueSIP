@@ -3,7 +3,7 @@
 Automatic call answering based on configurable rules.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **AutoAnswerDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#auto-answer) or run `pnpm dev` → Navigate to **AutoAnswerDemo** in the playground
 :::
 
 ## Overview

@@ -3,7 +3,7 @@
 Real-time call duration tracking and display.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **CallTimerDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#call-timer) or run `pnpm dev` → Navigate to **CallTimerDemo** in the playground
 :::
 
 ## Overview

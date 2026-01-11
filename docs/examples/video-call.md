@@ -3,7 +3,7 @@
 Bidirectional video calling with camera selection, preview, and advanced controls.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **VideoCallDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#video-call) or run `pnpm dev` → Navigate to **VideoCallDemo** in the playground
 :::
 
 ## Overview

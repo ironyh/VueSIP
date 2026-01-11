@@ -3,7 +3,7 @@
 Instant messaging over SIP MESSAGE.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **SipMessagingDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#sip-messaging) or run `pnpm dev` → Navigate to **SipMessagingDemo** in the playground
 :::
 
 ## Overview

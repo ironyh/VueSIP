@@ -3,7 +3,7 @@
 Control voicemail lamp status via AMI.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **MWIDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#mwi) or run `pnpm dev` → Navigate to **MWIDemo** in the playground
 :::
 
 ## Overview

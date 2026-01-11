@@ -3,7 +3,7 @@
 Call detail records and reporting.
 
 ::: tip Try It Live
-Run `pnpm dev` → Navigate to **CDRDashboardDemo** in the playground
+[**View on play.vuesip.com**](https://play.vuesip.com/#cdr-dashboard) or run `pnpm dev` → Navigate to **CDRDashboardDemo** in the playground
 :::
 
 ## Overview
