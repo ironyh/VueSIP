@@ -23,7 +23,8 @@ describe('useAmiPjsip', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     mockClient = {
-      send: vi.fn().mockResolvedValue({ Response: 'Success', events: [] }),
+      send: vi.fn(),
+      sendAction: vi.fn().mockResolvedValue({ data: { Response: 'Success', events: [] } }),
       on: vi.fn(),
       off: vi.fn(),
     } as unknown as AmiClient
@@ -94,9 +95,11 @@ describe('useAmiPjsip', () => {
         },
       ]
 
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: mockEvents,
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: mockEvents,
+        },
       })
 
       const { listEndpoints, endpointList, stats } = useAmiPjsip(clientRef, { autoRefresh: false })
@@ -123,15 +126,17 @@ describe('useAmiPjsip', () => {
       ]
 
       for (const { deviceState, expected } of testCases) {
-        mockClient.send = vi.fn().mockResolvedValue({
-          Response: 'Success',
-          events: [
-            {
-              Event: 'EndpointList',
-              ObjectName: 'test',
-              DeviceState: deviceState,
-            },
-          ],
+        mockClient.sendAction = vi.fn().mockResolvedValue({
+          data: {
+            Response: 'Success',
+            events: [
+              {
+                Event: 'EndpointList',
+                ObjectName: 'test',
+                DeviceState: deviceState,
+              },
+            ],
+          },
         })
 
         const { listEndpoints, endpointList } = useAmiPjsip(ref(mockClient), { autoRefresh: false })
@@ -142,13 +147,15 @@ describe('useAmiPjsip', () => {
     })
 
     it('should apply endpoint filter', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          { Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' },
-          { Event: 'EndpointList', ObjectName: '1002', DeviceState: 'NOT_INUSE' },
-          { Event: 'EndpointList', ObjectName: '2001', DeviceState: 'NOT_INUSE' },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            { Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' },
+            { Event: 'EndpointList', ObjectName: '1002', DeviceState: 'NOT_INUSE' },
+            { Event: 'EndpointList', ObjectName: '2001', DeviceState: 'NOT_INUSE' },
+          ],
+        },
       })
 
       const { listEndpoints, endpointList } = useAmiPjsip(ref(mockClient), {
@@ -163,9 +170,11 @@ describe('useAmiPjsip', () => {
     })
 
     it('should apply endpoint transformer', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [{ Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' }],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [{ Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' }],
+        },
       })
 
       const { listEndpoints, endpointList } = useAmiPjsip(ref(mockClient), {
@@ -184,26 +193,28 @@ describe('useAmiPjsip', () => {
 
   describe('listContacts', () => {
     it('should list all contacts', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'ContactList',
-            ObjectName: '1001/sip:1001@192.168.1.100',
-            Uri: 'sip:1001@192.168.1.100:5060',
-            EndpointName: '1001',
-            Status: 'Reachable',
-            UserAgent: 'Odie/1.0',
-            RoundtripUsec: '15000',
-          },
-          {
-            Event: 'ContactList',
-            ObjectName: '1002/sip:1002@192.168.1.101',
-            Uri: 'sip:1002@192.168.1.101:5060',
-            EndpointName: '1002',
-            Status: 'Unreachable',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'ContactList',
+              ObjectName: '1001/sip:1001@192.168.1.100',
+              Uri: 'sip:1001@192.168.1.100:5060',
+              EndpointName: '1001',
+              Status: 'Reachable',
+              UserAgent: 'Odie/1.0',
+              RoundtripUsec: '15000',
+            },
+            {
+              Event: 'ContactList',
+              ObjectName: '1002/sip:1002@192.168.1.101',
+              Uri: 'sip:1002@192.168.1.101:5060',
+              EndpointName: '1002',
+              Status: 'Unreachable',
+            },
+          ],
+        },
       })
 
       const { listContacts, contactList } = useAmiPjsip(ref(mockClient), { autoRefresh: false })
@@ -218,17 +229,19 @@ describe('useAmiPjsip', () => {
     })
 
     it('should list contacts for specific endpoint', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'ContactList',
-            ObjectName: '1001/sip:1001@192.168.1.100',
-            Uri: 'sip:1001@192.168.1.100:5060',
-            EndpointName: '1001',
-            Status: 'Reachable',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'ContactList',
+              ObjectName: '1001/sip:1001@192.168.1.100',
+              Uri: 'sip:1001@192.168.1.100:5060',
+              EndpointName: '1001',
+              Status: 'Reachable',
+            },
+          ],
+        },
       })
 
       const { listContacts, getEndpointContacts } = useAmiPjsip(ref(mockClient), {
@@ -237,7 +250,7 @@ describe('useAmiPjsip', () => {
 
       await listContacts('1001')
 
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'PJSIPShowContacts',
         Endpoint: '1001',
       })
@@ -248,22 +261,24 @@ describe('useAmiPjsip', () => {
 
   describe('listAors', () => {
     it('should list all AORs', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'AorList',
-            ObjectName: '1001',
-            EndpointName: '1001',
-            MaxContacts: '5',
-            TotalContacts: '1',
-            DefaultExpiration: '3600',
-            MinimumExpiration: '60',
-            MaximumExpiration: '7200',
-            RemoveExisting: 'yes',
-            SupportPath: 'yes',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'AorList',
+              ObjectName: '1001',
+              EndpointName: '1001',
+              MaxContacts: '5',
+              TotalContacts: '1',
+              DefaultExpiration: '3600',
+              MinimumExpiration: '60',
+              MaximumExpiration: '7200',
+              RemoveExisting: 'yes',
+              SupportPath: 'yes',
+            },
+          ],
+        },
       })
 
       const { listAors, aorList } = useAmiPjsip(ref(mockClient), { autoRefresh: false })
@@ -286,28 +301,30 @@ describe('useAmiPjsip', () => {
 
   describe('listTransports', () => {
     it('should list all transports', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'TransportDetail',
-            ObjectName: 'transport-udp',
-            Protocol: 'udp',
-            Bind: '0.0.0.0:5060',
-            VerifyServer: 'no',
-            VerifyClient: 'no',
-            Websocket: 'no',
-          },
-          {
-            Event: 'TransportDetail',
-            ObjectName: 'transport-wss',
-            Protocol: 'wss',
-            Bind: '0.0.0.0:8089',
-            VerifyServer: 'yes',
-            VerifyClient: 'no',
-            Websocket: 'yes',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'TransportDetail',
+              ObjectName: 'transport-udp',
+              Protocol: 'udp',
+              Bind: '0.0.0.0:5060',
+              VerifyServer: 'no',
+              VerifyClient: 'no',
+              Websocket: 'no',
+            },
+            {
+              Event: 'TransportDetail',
+              ObjectName: 'transport-wss',
+              Protocol: 'wss',
+              Bind: '0.0.0.0:8089',
+              VerifyServer: 'yes',
+              VerifyClient: 'no',
+              Websocket: 'yes',
+            },
+          ],
+        },
       })
 
       const { listTransports, transportList } = useAmiPjsip(ref(mockClient), {
@@ -340,21 +357,21 @@ describe('useAmiPjsip', () => {
 
   describe('qualifyEndpoint', () => {
     it('should send qualify action and return success', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
 
       const { qualifyEndpoint } = useAmiPjsip(ref(mockClient), { autoRefresh: false })
 
       const result = await qualifyEndpoint('1001')
 
       expect(result).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'PJSIPQualify',
         Endpoint: '1001',
       })
     })
 
     it('should return false on qualify failure', async () => {
-      mockClient.send = vi.fn().mockRejectedValue(new Error('Qualify failed'))
+      mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Qualify failed'))
 
       const { qualifyEndpoint } = useAmiPjsip(ref(mockClient), { autoRefresh: false })
 
@@ -366,16 +383,18 @@ describe('useAmiPjsip', () => {
 
   describe('qualifyAll', () => {
     it('should qualify all endpoints', async () => {
-      mockClient.send = vi
+      mockClient.sendAction = vi
         .fn()
         .mockResolvedValueOnce({
-          Response: 'Success',
-          events: [
-            { Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' },
-            { Event: 'EndpointList', ObjectName: '1002', DeviceState: 'NOT_INUSE' },
-          ],
+          data: {
+            Response: 'Success',
+            events: [
+              { Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' },
+              { Event: 'EndpointList', ObjectName: '1002', DeviceState: 'NOT_INUSE' },
+            ],
+          },
         })
-        .mockResolvedValue({ Response: 'Success' })
+        .mockResolvedValue({ data: { Response: 'Success' } })
 
       const { listEndpoints, qualifyAll } = useAmiPjsip(ref(mockClient), { autoRefresh: false })
 
@@ -383,12 +402,12 @@ describe('useAmiPjsip', () => {
       await qualifyAll()
 
       // First call is listEndpoints, then 2 qualify calls
-      expect(mockClient.send).toHaveBeenCalledTimes(3)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledTimes(3)
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'PJSIPQualify',
         Endpoint: '1001',
       })
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'PJSIPQualify',
         Endpoint: '1002',
       })
@@ -397,17 +416,19 @@ describe('useAmiPjsip', () => {
 
   describe('utility methods', () => {
     it('should check if endpoint is registered', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'ContactList',
-            ObjectName: '1001/sip:1001@192.168.1.100',
-            Uri: 'sip:1001@192.168.1.100:5060',
-            EndpointName: '1001',
-            Status: 'Reachable',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'ContactList',
+              ObjectName: '1001/sip:1001@192.168.1.100',
+              Uri: 'sip:1001@192.168.1.100:5060',
+              EndpointName: '1001',
+              Status: 'Reachable',
+            },
+          ],
+        },
       })
 
       const { listContacts, isEndpointRegistered } = useAmiPjsip(ref(mockClient), {
@@ -421,12 +442,14 @@ describe('useAmiPjsip', () => {
     })
 
     it('should check if endpoint is available', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          { Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' },
-          { Event: 'EndpointList', ObjectName: '1002', DeviceState: 'UNAVAILABLE' },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            { Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' },
+            { Event: 'EndpointList', ObjectName: '1002', DeviceState: 'UNAVAILABLE' },
+          ],
+        },
       })
 
       const { listEndpoints, isEndpointAvailable } = useAmiPjsip(ref(mockClient), {
@@ -448,15 +471,15 @@ describe('useAmiPjsip', () => {
       clientRef.value = mockClient
       await nextTick()
 
-      expect(mockClient.on).toHaveBeenCalledWith('ContactStatus', expect.any(Function))
-      expect(mockClient.on).toHaveBeenCalledWith('DeviceStateChange', expect.any(Function))
+      // Composable listens to generic 'event' and filters by Event property
+      expect(mockClient.on).toHaveBeenCalledWith('event', expect.any(Function))
     })
 
     it('should handle ContactStatus events', async () => {
-      let contactStatusHandler: (event: Record<string, string>) => void = () => {}
-      mockClient.on = vi.fn().mockImplementation((event, handler) => {
-        if (event === 'ContactStatus') {
-          contactStatusHandler = handler
+      let eventHandler: (event: { data: Record<string, string> }) => void = () => {}
+      mockClient.on = vi.fn().mockImplementation((eventName, handler) => {
+        if (eventName === 'event') {
+          eventHandler = handler
         }
       })
 
@@ -465,13 +488,15 @@ describe('useAmiPjsip', () => {
       await nextTick()
 
       // Simulate contact becoming reachable
-      contactStatusHandler({
-        Event: 'ContactStatus',
-        URI: 'sip:1001@192.168.1.100:5060',
-        ContactStatus: 'Reachable',
-        AOR: '1001',
-        EndpointName: '1001',
-        UserAgent: 'Test/1.0',
+      eventHandler({
+        data: {
+          Event: 'ContactStatus',
+          URI: 'sip:1001@192.168.1.100:5060',
+          ContactStatus: 'Reachable',
+          AOR: '1001',
+          EndpointName: '1001',
+          UserAgent: 'Test/1.0',
+        },
       })
 
       expect(contacts.value.get('sip:1001@192.168.1.100:5060')).toEqual(
@@ -484,28 +509,32 @@ describe('useAmiPjsip', () => {
       )
 
       // Simulate contact removal
-      contactStatusHandler({
-        Event: 'ContactStatus',
-        URI: 'sip:1001@192.168.1.100:5060',
-        ContactStatus: 'Removed',
-        AOR: '1001',
-        EndpointName: '1001',
+      eventHandler({
+        data: {
+          Event: 'ContactStatus',
+          URI: 'sip:1001@192.168.1.100:5060',
+          ContactStatus: 'Removed',
+          AOR: '1001',
+          EndpointName: '1001',
+        },
       })
 
       expect(contacts.value.has('sip:1001@192.168.1.100:5060')).toBe(false)
     })
 
     it('should handle DeviceStateChange events', async () => {
-      let deviceStateHandler: (event: Record<string, string>) => void = () => {}
-      mockClient.on = vi.fn().mockImplementation((event, handler) => {
-        if (event === 'DeviceStateChange') {
-          deviceStateHandler = handler
+      let eventHandler: (event: { data: Record<string, string> }) => void = () => {}
+      mockClient.on = vi.fn().mockImplementation((eventName, handler) => {
+        if (eventName === 'event') {
+          eventHandler = handler
         }
       })
 
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [{ Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' }],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [{ Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' }],
+        },
       })
 
       const { endpoints, listEndpoints } = useAmiPjsip(clientRef, {
@@ -519,10 +548,12 @@ describe('useAmiPjsip', () => {
       expect(endpoints.value.get('1001')?.status).toBe('Available')
 
       // Simulate device going busy
-      deviceStateHandler({
-        Event: 'DeviceStateChange',
-        Device: 'PJSIP/1001',
-        State: 'INUSE',
+      eventHandler({
+        data: {
+          Event: 'DeviceStateChange',
+          Device: 'PJSIP/1001',
+          State: 'INUSE',
+        },
       })
 
       expect(endpoints.value.get('1001')?.status).toBe('Busy')
@@ -530,16 +561,18 @@ describe('useAmiPjsip', () => {
 
     it('should call onEndpointChange callback when status changes', async () => {
       const onEndpointChange = vi.fn()
-      let deviceStateHandler: (event: Record<string, string>) => void = () => {}
-      mockClient.on = vi.fn().mockImplementation((event, handler) => {
-        if (event === 'DeviceStateChange') {
-          deviceStateHandler = handler
+      let eventHandler: (event: { data: Record<string, string> }) => void = () => {}
+      mockClient.on = vi.fn().mockImplementation((eventName, handler) => {
+        if (eventName === 'event') {
+          eventHandler = handler
         }
       })
 
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [{ Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' }],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [{ Event: 'EndpointList', ObjectName: '1001', DeviceState: 'NOT_INUSE' }],
+        },
       })
 
       const { listEndpoints } = useAmiPjsip(clientRef, {
@@ -551,10 +584,12 @@ describe('useAmiPjsip', () => {
       await nextTick()
       await listEndpoints()
 
-      deviceStateHandler({
-        Event: 'DeviceStateChange',
-        Device: 'PJSIP/1001',
-        State: 'INUSE',
+      eventHandler({
+        data: {
+          Event: 'DeviceStateChange',
+          Device: 'PJSIP/1001',
+          State: 'INUSE',
+        },
       })
 
       expect(onEndpointChange).toHaveBeenCalledWith(
@@ -587,7 +622,7 @@ describe('useAmiPjsip', () => {
     })
 
     it('should handle API errors gracefully', async () => {
-      mockClient.send = vi.fn().mockRejectedValue(new Error('Network error'))
+      mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Network error'))
 
       const { listEndpoints, error, isLoading } = useAmiPjsip(ref(mockClient), {
         autoRefresh: false,
@@ -601,7 +636,9 @@ describe('useAmiPjsip', () => {
 
   describe('refresh', () => {
     it('should refresh all data', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success', events: [] })
+      mockClient.sendAction = vi
+        .fn()
+        .mockResolvedValue({ data: { Response: 'Success', events: [] } })
 
       const { refresh } = useAmiPjsip(ref(mockClient), {
         autoRefresh: false,
@@ -612,16 +649,20 @@ describe('useAmiPjsip', () => {
       await refresh()
 
       // Should call: listEndpoints, listContacts, listAors, listTransports, listRegistrations
-      expect(mockClient.send).toHaveBeenCalledTimes(5)
-      expect(mockClient.send).toHaveBeenCalledWith({ Action: 'PJSIPShowEndpoints' })
-      expect(mockClient.send).toHaveBeenCalledWith({ Action: 'PJSIPShowContacts' })
-      expect(mockClient.send).toHaveBeenCalledWith({ Action: 'PJSIPShowAors' })
-      expect(mockClient.send).toHaveBeenCalledWith({ Action: 'PJSIPShowTransports' })
-      expect(mockClient.send).toHaveBeenCalledWith({ Action: 'PJSIPShowRegistrationsOutbound' })
+      expect(mockClient.sendAction).toHaveBeenCalledTimes(5)
+      expect(mockClient.sendAction).toHaveBeenCalledWith({ Action: 'PJSIPShowEndpoints' })
+      expect(mockClient.sendAction).toHaveBeenCalledWith({ Action: 'PJSIPShowContacts' })
+      expect(mockClient.sendAction).toHaveBeenCalledWith({ Action: 'PJSIPShowAors' })
+      expect(mockClient.sendAction).toHaveBeenCalledWith({ Action: 'PJSIPShowTransports' })
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
+        Action: 'PJSIPShowRegistrationsOutbound',
+      })
     })
 
     it('should skip transports and registrations when not included', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success', events: [] })
+      mockClient.sendAction = vi
+        .fn()
+        .mockResolvedValue({ data: { Response: 'Success', events: [] } })
 
       const { refresh } = useAmiPjsip(ref(mockClient), {
         autoRefresh: false,
@@ -632,7 +673,7 @@ describe('useAmiPjsip', () => {
       await refresh()
 
       // Should call: listEndpoints, listContacts, listAors
-      expect(mockClient.send).toHaveBeenCalledTimes(3)
+      expect(mockClient.sendAction).toHaveBeenCalledTimes(3)
     })
   })
 })

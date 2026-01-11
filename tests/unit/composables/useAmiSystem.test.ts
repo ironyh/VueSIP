@@ -25,7 +25,8 @@ describe('useAmiSystem', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     mockClient = {
-      send: vi.fn().mockResolvedValue({ Response: 'Success' }),
+      send: vi.fn(),
+      sendAction: vi.fn().mockResolvedValue({ data: { Response: 'Success' } }),
       on: vi.fn(),
       off: vi.fn(),
       isConnected: vi.fn().mockReturnValue(true),
@@ -69,17 +70,19 @@ describe('useAmiSystem', () => {
 
   describe('getCoreStatus', () => {
     it('should fetch and parse core status', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        AsteriskVersion: '18.12.0',
-        CoreUptime: '3600',
-        CoreReloadCount: '5',
-        CoreCurrentCalls: '10',
-        CoreMaxCalls: '100',
-        CoreReloadDate: '2025-01-10',
-        CoreReloadTime: '12:00:00',
-        CoreStartupDate: '2025-01-01',
-        CoreStartupTime: '00:00:00',
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          AsteriskVersion: '18.12.0',
+          CoreUptime: '3600',
+          CoreReloadCount: '5',
+          CoreCurrentCalls: '10',
+          CoreMaxCalls: '100',
+          CoreReloadDate: '2025-01-10',
+          CoreReloadTime: '12:00:00',
+          CoreStartupDate: '2025-01-01',
+          CoreStartupTime: '00:00:00',
+        },
       })
 
       const { getCoreStatus, coreStatus } = useAmiSystem(ref(mockClient), { autoRefresh: false })
@@ -94,10 +97,12 @@ describe('useAmiSystem', () => {
     })
 
     it('should parse uptime in HH:MM:SS format', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        AsteriskVersion: '18.12.0',
-        CoreUptime: '01:30:45', // 1 hour, 30 minutes, 45 seconds
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          AsteriskVersion: '18.12.0',
+          CoreUptime: '01:30:45', // 1 hour, 30 minutes, 45 seconds
+        },
       })
 
       const { getCoreStatus, coreStatus } = useAmiSystem(ref(mockClient), { autoRefresh: false })
@@ -108,10 +113,12 @@ describe('useAmiSystem', () => {
 
     it('should call onStatusUpdate callback', async () => {
       const onStatusUpdate = vi.fn()
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        AsteriskVersion: '18.12.0',
-        CoreUptime: '3600',
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          AsteriskVersion: '18.12.0',
+          CoreUptime: '3600',
+        },
       })
 
       const { getCoreStatus } = useAmiSystem(ref(mockClient), {
@@ -129,7 +136,7 @@ describe('useAmiSystem', () => {
     })
 
     it('should handle errors', async () => {
-      mockClient.send = vi.fn().mockRejectedValue(new Error('Connection failed'))
+      mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Connection failed'))
 
       const { getCoreStatus, error } = useAmiSystem(ref(mockClient), { autoRefresh: false })
 
@@ -140,34 +147,36 @@ describe('useAmiSystem', () => {
 
   describe('getChannels', () => {
     it('should fetch and parse channels', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'CoreShowChannel',
-            Channel: 'PJSIP/1001-00000001',
-            Uniqueid: '1234567890.1',
-            State: '6',
-            StateDesc: 'Up',
-            Application: 'Dial',
-            ApplicationData: 'PJSIP/1002',
-            CallerIDNum: '1001',
-            CallerIDName: 'John Doe',
-            ConnectedLineNum: '1002',
-            ConnectedLineName: 'Jane Doe',
-            Duration: '00:05:30',
-            BridgeId: 'bridge-123',
-          },
-          {
-            Event: 'CoreShowChannel',
-            Channel: 'PJSIP/1002-00000002',
-            Uniqueid: '1234567890.2',
-            State: '6',
-            StateDesc: 'Up',
-            Application: 'Dial',
-            Duration: '00:05:30',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'CoreShowChannel',
+              Channel: 'PJSIP/1001-00000001',
+              Uniqueid: '1234567890.1',
+              State: '6',
+              StateDesc: 'Up',
+              Application: 'Dial',
+              ApplicationData: 'PJSIP/1002',
+              CallerIDNum: '1001',
+              CallerIDName: 'John Doe',
+              ConnectedLineNum: '1002',
+              ConnectedLineName: 'Jane Doe',
+              Duration: '00:05:30',
+              BridgeId: 'bridge-123',
+            },
+            {
+              Event: 'CoreShowChannel',
+              Channel: 'PJSIP/1002-00000002',
+              Uniqueid: '1234567890.2',
+              State: '6',
+              StateDesc: 'Up',
+              Application: 'Dial',
+              Duration: '00:05:30',
+            },
+          ],
+        },
       })
 
       const { getChannels, channelList, totalChannels } = useAmiSystem(ref(mockClient), {
@@ -188,16 +197,18 @@ describe('useAmiSystem', () => {
 
     it('should call onChannelsUpdate callback', async () => {
       const onChannelsUpdate = vi.fn()
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'CoreShowChannel',
-            Channel: 'PJSIP/1001-00000001',
-            Uniqueid: '1234567890.1',
-            State: 'Up',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'CoreShowChannel',
+              Channel: 'PJSIP/1001-00000001',
+              Uniqueid: '1234567890.1',
+              State: 'Up',
+            },
+          ],
+        },
       })
 
       const { getChannels } = useAmiSystem(ref(mockClient), {
@@ -219,20 +230,24 @@ describe('useAmiSystem', () => {
       const { getChannels, channels } = useAmiSystem(ref(mockClient), { autoRefresh: false })
 
       // First call
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          { Event: 'CoreShowChannel', Channel: 'PJSIP/1001', Uniqueid: '1' },
-          { Event: 'CoreShowChannel', Channel: 'PJSIP/1002', Uniqueid: '2' },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            { Event: 'CoreShowChannel', Channel: 'PJSIP/1001', Uniqueid: '1' },
+            { Event: 'CoreShowChannel', Channel: 'PJSIP/1002', Uniqueid: '2' },
+          ],
+        },
       })
       await getChannels()
       expect(channels.value.size).toBe(2)
 
       // Second call - should replace
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [{ Event: 'CoreShowChannel', Channel: 'PJSIP/1003', Uniqueid: '3' }],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [{ Event: 'CoreShowChannel', Channel: 'PJSIP/1003', Uniqueid: '3' }],
+        },
       })
       await getChannels()
       expect(channels.value.size).toBe(1)
@@ -242,25 +257,27 @@ describe('useAmiSystem', () => {
 
   describe('getBridges', () => {
     it('should fetch and parse bridges', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'BridgeListItem',
-            BridgeUniqueid: 'bridge-001',
-            BridgeType: 'basic',
-            BridgeTechnology: 'simple_bridge',
-            BridgeNumChannels: '2',
-            BridgeName: 'Conference Room 1',
-          },
-          {
-            Event: 'BridgeListItem',
-            BridgeUniqueid: 'bridge-002',
-            BridgeType: 'holding',
-            BridgeTechnology: 'holding_bridge',
-            BridgeNumChannels: '1',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'BridgeListItem',
+              BridgeUniqueid: 'bridge-001',
+              BridgeType: 'basic',
+              BridgeTechnology: 'simple_bridge',
+              BridgeNumChannels: '2',
+              BridgeName: 'Conference Room 1',
+            },
+            {
+              Event: 'BridgeListItem',
+              BridgeUniqueid: 'bridge-002',
+              BridgeType: 'holding',
+              BridgeTechnology: 'holding_bridge',
+              BridgeNumChannels: '1',
+            },
+          ],
+        },
       })
 
       const { getBridges, bridgeList, totalBridges } = useAmiSystem(ref(mockClient), {
@@ -281,26 +298,28 @@ describe('useAmiSystem', () => {
 
   describe('getModules', () => {
     it('should fetch and parse modules', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'ModuleCheck',
-            Module: 'res_pjsip.so',
-            Description: 'PJSIP Support',
-            Status: 'Running',
-            UseCount: '10',
-            SupportLevel: 'core',
-          },
-          {
-            Event: 'ModuleCheck',
-            Module: 'chan_sip.so',
-            Description: 'Legacy SIP Channel',
-            Status: 'Stopped',
-            UseCount: '0',
-            SupportLevel: 'deprecated',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'ModuleCheck',
+              Module: 'res_pjsip.so',
+              Description: 'PJSIP Support',
+              Status: 'Running',
+              UseCount: '10',
+              SupportLevel: 'core',
+            },
+            {
+              Event: 'ModuleCheck',
+              Module: 'chan_sip.so',
+              Description: 'Legacy SIP Channel',
+              Status: 'Stopped',
+              UseCount: '0',
+              SupportLevel: 'deprecated',
+            },
+          ],
+        },
       })
 
       const { getModules, moduleList } = useAmiSystem(ref(mockClient), { autoRefresh: false })
@@ -322,13 +341,13 @@ describe('useAmiSystem', () => {
 
   describe('module management', () => {
     it('should reload a module', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
 
       const { reloadModule } = useAmiSystem(ref(mockClient), { autoRefresh: false })
       const result = await reloadModule('res_pjsip.so')
 
       expect(result).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'ModuleLoad',
         Module: 'res_pjsip.so',
         LoadType: 'Reload',
@@ -336,13 +355,13 @@ describe('useAmiSystem', () => {
     })
 
     it('should load a module', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
 
       const { loadModule } = useAmiSystem(ref(mockClient), { autoRefresh: false })
       const result = await loadModule('res_pjsip.so')
 
       expect(result).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'ModuleLoad',
         Module: 'res_pjsip.so',
         LoadType: 'Load',
@@ -350,13 +369,13 @@ describe('useAmiSystem', () => {
     })
 
     it('should unload a module', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
 
       const { unloadModule } = useAmiSystem(ref(mockClient), { autoRefresh: false })
       const result = await unloadModule('chan_sip.so')
 
       expect(result).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'ModuleLoad',
         Module: 'chan_sip.so',
         LoadType: 'Unload',
@@ -364,7 +383,7 @@ describe('useAmiSystem', () => {
     })
 
     it('should return false on module operation failure', async () => {
-      mockClient.send = vi.fn().mockRejectedValue(new Error('Module not found'))
+      mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Module not found'))
 
       const { reloadModule } = useAmiSystem(ref(mockClient), { autoRefresh: false })
       const result = await reloadModule('nonexistent.so')
@@ -375,9 +394,9 @@ describe('useAmiSystem', () => {
 
   describe('ping', () => {
     it('should measure latency', async () => {
-      mockClient.send = vi.fn().mockImplementation(async () => {
+      mockClient.sendAction = vi.fn().mockImplementation(async () => {
         await new Promise((resolve) => setTimeout(resolve, 50))
-        return { Response: 'Pong' }
+        return { data: { Response: 'Pong' } }
       })
 
       const { ping, latency } = useAmiSystem(ref(mockClient), { autoRefresh: false })
@@ -391,7 +410,7 @@ describe('useAmiSystem', () => {
     })
 
     it('should throw on ping failure', async () => {
-      mockClient.send = vi.fn().mockRejectedValue(new Error('Connection lost'))
+      mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Connection lost'))
 
       const { ping } = useAmiSystem(ref(mockClient), { autoRefresh: false })
 
@@ -401,7 +420,7 @@ describe('useAmiSystem', () => {
 
   describe('originate', () => {
     it('should originate a call with context/extension', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
 
       const { originate } = useAmiSystem(ref(mockClient), { autoRefresh: false })
       const result = await originate({
@@ -414,7 +433,7 @@ describe('useAmiSystem', () => {
       })
 
       expect(result).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith(
+      expect(mockClient.sendAction).toHaveBeenCalledWith(
         expect.objectContaining({
           Action: 'Originate',
           Channel: 'PJSIP/1001',
@@ -429,7 +448,7 @@ describe('useAmiSystem', () => {
     })
 
     it('should originate a call with application', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
 
       const { originate } = useAmiSystem(ref(mockClient), { autoRefresh: false })
       const result = await originate({
@@ -441,7 +460,7 @@ describe('useAmiSystem', () => {
       })
 
       expect(result).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith(
+      expect(mockClient.sendAction).toHaveBeenCalledWith(
         expect.objectContaining({
           Action: 'Originate',
           Channel: 'PJSIP/1001',
@@ -452,7 +471,7 @@ describe('useAmiSystem', () => {
     })
 
     it('should include variables in originate', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
 
       const { originate } = useAmiSystem(ref(mockClient), { autoRefresh: false })
       await originate({
@@ -465,7 +484,7 @@ describe('useAmiSystem', () => {
         },
       })
 
-      expect(mockClient.send).toHaveBeenCalledWith(
+      expect(mockClient.sendAction).toHaveBeenCalledWith(
         expect.objectContaining({
           Variable: 'CUSTOM_VAR=value1,ANOTHER_VAR=value2',
         })
@@ -475,7 +494,7 @@ describe('useAmiSystem', () => {
 
   describe('hangupChannel', () => {
     it('should hangup a channel and remove from map', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
 
       const { hangupChannel, channels } = useAmiSystem(ref(mockClient), { autoRefresh: false })
 
@@ -503,17 +522,19 @@ describe('useAmiSystem', () => {
 
   describe('utility methods', () => {
     it('should get a channel by name', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [
-          {
-            Event: 'CoreShowChannel',
-            Channel: 'PJSIP/1001-00000001',
-            Uniqueid: '1',
-            State: 'Up',
-            CallerIDNum: '1001',
-          },
-        ],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'CoreShowChannel',
+              Channel: 'PJSIP/1001-00000001',
+              Uniqueid: '1',
+              State: 'Up',
+              CallerIDNum: '1001',
+            },
+          ],
+        },
       })
 
       const { getChannels, getChannel } = useAmiSystem(ref(mockClient), { autoRefresh: false })
@@ -530,7 +551,7 @@ describe('useAmiSystem', () => {
 
   describe('computed properties', () => {
     it('should format uptime correctly', async () => {
-      mockClient.send = vi.fn()
+      mockClient.sendAction = vi.fn()
 
       const { coreStatus, formattedUptime } = useAmiSystem(ref(mockClient), { autoRefresh: false })
 
@@ -574,10 +595,12 @@ describe('useAmiSystem', () => {
         statusPollInterval: 1000,
       })
 
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        AsteriskVersion: '18.0.0',
-        CoreUptime: '3600',
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          AsteriskVersion: '18.0.0',
+          CoreUptime: '3600',
+        },
       })
 
       startPolling()
@@ -591,13 +614,13 @@ describe('useAmiSystem', () => {
       await nextTick()
 
       // Should have polled
-      expect(mockClient.send).toHaveBeenCalledWith({ Action: 'CoreStatus' })
+      expect(mockClient.sendAction).toHaveBeenCalledWith({ Action: 'CoreStatus' })
 
       stopPolling()
     })
 
     it('should stop polling on unmount', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction = vi.fn().mockResolvedValue({ data: { Response: 'Success' } })
 
       const { stopPolling } = useAmiSystem(ref(mockClient), {
         autoRefresh: false,
@@ -613,28 +636,30 @@ describe('useAmiSystem', () => {
       await nextTick()
 
       // Should not have made additional calls after stop
-      const callCount = (mockClient.send as ReturnType<typeof vi.fn>).mock.calls.length
+      const callCount = (mockClient.sendAction as ReturnType<typeof vi.fn>).mock.calls.length
       vi.advanceTimersByTime(5000)
       await nextTick()
 
-      expect((mockClient.send as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callCount)
+      expect((mockClient.sendAction as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callCount)
     })
   })
 
   describe('refresh', () => {
     it('should refresh all data', async () => {
-      mockClient.send = vi.fn().mockResolvedValue({
-        Response: 'Success',
-        events: [],
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [],
+        },
       })
 
       const { refresh } = useAmiSystem(ref(mockClient), { autoRefresh: false })
       await refresh()
 
       // Should call CoreStatus, CoreShowChannels, and BridgeList
-      expect(mockClient.send).toHaveBeenCalledWith({ Action: 'CoreStatus' })
-      expect(mockClient.send).toHaveBeenCalledWith({ Action: 'CoreShowChannels' })
-      expect(mockClient.send).toHaveBeenCalledWith({ Action: 'BridgeList' })
+      expect(mockClient.sendAction).toHaveBeenCalledWith({ Action: 'CoreStatus' })
+      expect(mockClient.sendAction).toHaveBeenCalledWith({ Action: 'CoreShowChannels' })
+      expect(mockClient.sendAction).toHaveBeenCalledWith({ Action: 'BridgeList' })
     })
   })
 
@@ -646,7 +671,7 @@ describe('useAmiSystem', () => {
     })
 
     it('should set error state on failure', async () => {
-      mockClient.send = vi.fn().mockRejectedValue(new Error('Network error'))
+      mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Network error'))
 
       const { getChannels, error } = useAmiSystem(ref(mockClient), { autoRefresh: false })
 

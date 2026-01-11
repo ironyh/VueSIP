@@ -13,6 +13,7 @@ function createMockClient() {
 
   return {
     send: vi.fn(),
+    sendAction: vi.fn().mockResolvedValue({ data: {} }),
     on: vi.fn((event: string, handler: Function) => {
       if (!handlers.has(event)) handlers.set(event, new Set())
       handlers.get(event)!.add(handler)
@@ -50,25 +51,26 @@ describe('useAmiConfBridge', () => {
       clientRef.value = mockClient
       await nextTick()
 
-      expect(mockClient.on).toHaveBeenCalledWith('ConfbridgeJoin', expect.any(Function))
-      expect(mockClient.on).toHaveBeenCalledWith('ConfbridgeLeave', expect.any(Function))
-      expect(mockClient.on).toHaveBeenCalledWith('ConfbridgeTalking', expect.any(Function))
+      // Composable listens to generic 'event' and filters by Event property
+      expect(mockClient.on).toHaveBeenCalledWith('event', expect.any(Function))
     })
   })
 
   describe('listRooms', () => {
     it('should fetch and parse conference rooms', async () => {
-      mockClient.send.mockResolvedValue({
-        events: [
-          {
-            Event: 'ConfbridgeListRooms',
-            Conference: '1000',
-            Parties: '3',
-            Locked: 'No',
-            Muted: 'No',
-            Marked: '1',
-          },
-        ],
+      mockClient.sendAction.mockResolvedValue({
+        data: {
+          events: [
+            {
+              Event: 'ConfbridgeListRooms',
+              Conference: '1000',
+              Parties: '3',
+              Locked: 'No',
+              Muted: 'No',
+              Marked: '1',
+            },
+          ],
+        },
       })
 
       clientRef.value = mockClient
@@ -95,14 +97,14 @@ describe('useAmiConfBridge', () => {
     })
 
     it('should mute a user', async () => {
-      mockClient.send.mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction.mockResolvedValue({ data: { Response: 'Success' } })
       const { muteUser } = useAmiConfBridge(clientRef, { autoRefresh: false })
       await nextTick()
 
       const result = await muteUser('1000', 'PJSIP/1001-00000001')
 
       expect(result.success).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'ConfbridgeMute',
         Conference: '1000',
         Channel: 'PJSIP/1001-00000001',
@@ -110,14 +112,14 @@ describe('useAmiConfBridge', () => {
     })
 
     it('should kick a user', async () => {
-      mockClient.send.mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction.mockResolvedValue({ data: { Response: 'Success' } })
       const { kickUser } = useAmiConfBridge(clientRef, { autoRefresh: false })
       await nextTick()
 
       const result = await kickUser('1000', 'PJSIP/1001-00000001')
 
       expect(result.success).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'ConfbridgeKick',
         Conference: '1000',
         Channel: 'PJSIP/1001-00000001',
@@ -132,28 +134,28 @@ describe('useAmiConfBridge', () => {
     })
 
     it('should lock a room', async () => {
-      mockClient.send.mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction.mockResolvedValue({ data: { Response: 'Success' } })
       const { lockRoom } = useAmiConfBridge(clientRef, { autoRefresh: false })
       await nextTick()
 
       const result = await lockRoom('1000')
 
       expect(result.success).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'ConfbridgeLock',
         Conference: '1000',
       })
     })
 
     it('should start recording', async () => {
-      mockClient.send.mockResolvedValue({ Response: 'Success' })
+      mockClient.sendAction.mockResolvedValue({ data: { Response: 'Success' } })
       const { startRecording } = useAmiConfBridge(clientRef, { autoRefresh: false })
       await nextTick()
 
       const result = await startRecording('1000', '/var/spool/asterisk/monitor/conf-1000.wav')
 
       expect(result.success).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'ConfbridgeStartRecord',
         Conference: '1000',
         RecordFile: '/var/spool/asterisk/monitor/conf-1000.wav',
@@ -168,15 +170,18 @@ describe('useAmiConfBridge', () => {
       const { users } = useAmiConfBridge(clientRef, { autoRefresh: false, onUserJoin })
       await nextTick()
 
-      mockClient.emit('ConfbridgeJoin', {
-        Event: 'ConfbridgeJoin',
-        Conference: '1000',
-        CallerIDNum: '1001',
-        CallerIDName: 'John Doe',
-        Channel: 'PJSIP/1001-00000001',
-        Admin: 'No',
-        Marked: 'No',
-        Muted: 'No',
+      // Emit 'event' with data wrapper structure matching AmiMessage
+      mockClient.emit('event', {
+        data: {
+          Event: 'ConfbridgeJoin',
+          Conference: '1000',
+          CallerIDNum: '1001',
+          CallerIDName: 'John Doe',
+          Channel: 'PJSIP/1001-00000001',
+          Admin: 'No',
+          Marked: 'No',
+          Muted: 'No',
+        },
       })
       await nextTick()
 
@@ -191,24 +196,28 @@ describe('useAmiConfBridge', () => {
       await nextTick()
 
       // First add a user
-      mockClient.emit('ConfbridgeJoin', {
-        Event: 'ConfbridgeJoin',
-        Conference: '1000',
-        Channel: 'PJSIP/1001-00000001',
-        CallerIDNum: '1001',
-        CallerIDName: 'John',
-        Admin: 'No',
-        Marked: 'No',
-        Muted: 'No',
+      mockClient.emit('event', {
+        data: {
+          Event: 'ConfbridgeJoin',
+          Conference: '1000',
+          Channel: 'PJSIP/1001-00000001',
+          CallerIDNum: '1001',
+          CallerIDName: 'John',
+          Admin: 'No',
+          Marked: 'No',
+          Muted: 'No',
+        },
       })
       await nextTick()
 
       // Then talking event
-      mockClient.emit('ConfbridgeTalking', {
-        Event: 'ConfbridgeTalking',
-        Conference: '1000',
-        Channel: 'PJSIP/1001-00000001',
-        TalkingStatus: 'on',
+      mockClient.emit('event', {
+        data: {
+          Event: 'ConfbridgeTalking',
+          Conference: '1000',
+          Channel: 'PJSIP/1001-00000001',
+          TalkingStatus: 'on',
+        },
       })
       await nextTick()
 

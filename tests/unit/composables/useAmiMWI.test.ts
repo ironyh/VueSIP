@@ -15,6 +15,7 @@ function createMockAmiClient() {
 
   return {
     send: vi.fn(),
+    sendAction: vi.fn().mockResolvedValue({ data: { Response: 'Success' } }),
     on: vi.fn((event: string, handler: Function) => {
       if (!eventHandlers.has(event)) {
         eventHandlers.set(event, new Set())
@@ -69,7 +70,7 @@ describe('useAmiMWI', () => {
     it('should set up event listeners when client is provided', () => {
       useAmiMWI(clientRef, { useEvents: true })
 
-      expect(mockClient.on).toHaveBeenCalledWith('MessageWaiting', expect.any(Function))
+      expect(mockClient.on).toHaveBeenCalledWith('event', expect.any(Function))
     })
 
     it('should not set up event listeners when useEvents is false', () => {
@@ -81,20 +82,22 @@ describe('useAmiMWI', () => {
 
   describe('getMailboxStatus', () => {
     it('should get mailbox message counts', async () => {
-      mockClient.send.mockResolvedValueOnce({
-        Response: 'Success',
-        Mailbox: '1001@default',
-        NewMessages: '3',
-        OldMessages: '5',
-        UrgentNew: '1',
-        UrgentOld: '0',
+      mockClient.sendAction.mockResolvedValueOnce({
+        data: {
+          Response: 'Success',
+          Mailbox: '1001@default',
+          NewMessages: '3',
+          OldMessages: '5',
+          UrgentNew: '1',
+          UrgentOld: '0',
+        },
       })
 
       const { getMailboxStatus, mailboxes } = useAmiMWI(clientRef)
 
       const status = await getMailboxStatus('1001')
 
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'MailboxCount',
         Mailbox: '1001@default',
       })
@@ -107,34 +110,38 @@ describe('useAmiMWI', () => {
     })
 
     it('should use custom context from options', async () => {
-      mockClient.send.mockResolvedValueOnce({
-        Response: 'Success',
-        NewMessages: '0',
-        OldMessages: '0',
+      mockClient.sendAction.mockResolvedValueOnce({
+        data: {
+          Response: 'Success',
+          NewMessages: '0',
+          OldMessages: '0',
+        },
       })
 
       const { getMailboxStatus } = useAmiMWI(clientRef, { defaultContext: 'voicemail' })
 
       await getMailboxStatus('1001')
 
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'MailboxCount',
         Mailbox: '1001@voicemail',
       })
     })
 
     it('should preserve context if already in mailbox string', async () => {
-      mockClient.send.mockResolvedValueOnce({
-        Response: 'Success',
-        NewMessages: '0',
-        OldMessages: '0',
+      mockClient.sendAction.mockResolvedValueOnce({
+        data: {
+          Response: 'Success',
+          NewMessages: '0',
+          OldMessages: '0',
+        },
       })
 
       const { getMailboxStatus } = useAmiMWI(clientRef)
 
       await getMailboxStatus('1001@custom')
 
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'MailboxCount',
         Mailbox: '1001@custom',
       })
@@ -142,7 +149,7 @@ describe('useAmiMWI', () => {
 
     it('should set isLoading during request', async () => {
       let resolvePromise: (value: unknown) => void
-      mockClient.send.mockReturnValueOnce(
+      mockClient.sendAction.mockReturnValueOnce(
         new Promise((resolve) => {
           resolvePromise = resolve
         })
@@ -155,14 +162,14 @@ describe('useAmiMWI', () => {
 
       expect(isLoading.value).toBe(true)
 
-      resolvePromise!({ NewMessages: '0', OldMessages: '0' })
+      resolvePromise!({ data: { NewMessages: '0', OldMessages: '0' } })
       await promise
 
       expect(isLoading.value).toBe(false)
     })
 
     it('should set error on failure', async () => {
-      mockClient.send.mockRejectedValueOnce(new Error('Mailbox not found'))
+      mockClient.sendAction.mockRejectedValueOnce(new Error('Mailbox not found'))
 
       const { getMailboxStatus, error } = useAmiMWI(clientRef)
 
@@ -171,10 +178,12 @@ describe('useAmiMWI', () => {
     })
 
     it('should indicate no messages when count is 0', async () => {
-      mockClient.send.mockResolvedValueOnce({
-        Response: 'Success',
-        NewMessages: '0',
-        OldMessages: '2',
+      mockClient.sendAction.mockResolvedValueOnce({
+        data: {
+          Response: 'Success',
+          NewMessages: '0',
+          OldMessages: '2',
+        },
       })
 
       const { getMailboxStatus } = useAmiMWI(clientRef)
@@ -187,14 +196,14 @@ describe('useAmiMWI', () => {
 
   describe('updateMWI', () => {
     it('should update MWI indicator', async () => {
-      mockClient.send.mockResolvedValueOnce({ Response: 'Success' })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { Response: 'Success' } })
 
       const { updateMWI, mailboxes } = useAmiMWI(clientRef)
 
       const result = await updateMWI('1001', 5, 3)
 
       expect(result).toBe(true)
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'MWIUpdate',
         Mailbox: '1001@default',
         NewMessages: '5',
@@ -206,13 +215,13 @@ describe('useAmiMWI', () => {
     })
 
     it('should default oldMessages to 0', async () => {
-      mockClient.send.mockResolvedValueOnce({ Response: 'Success' })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { Response: 'Success' } })
 
       const { updateMWI } = useAmiMWI(clientRef)
 
       await updateMWI('1001', 2)
 
-      expect(mockClient.send).toHaveBeenCalledWith({
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
         Action: 'MWIUpdate',
         Mailbox: '1001@default',
         NewMessages: '2',
@@ -221,7 +230,7 @@ describe('useAmiMWI', () => {
     })
 
     it('should call onMWIChange callback', async () => {
-      mockClient.send.mockResolvedValueOnce({ Response: 'Success' })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { Response: 'Success' } })
       const onMWIChange = vi.fn()
 
       const { updateMWI } = useAmiMWI(clientRef, { onMWIChange })
@@ -239,7 +248,7 @@ describe('useAmiMWI', () => {
     })
 
     it('should return false on failure', async () => {
-      mockClient.send.mockRejectedValueOnce(new Error('Update failed'))
+      mockClient.sendAction.mockRejectedValueOnce(new Error('Update failed'))
 
       const { updateMWI, error } = useAmiMWI(clientRef)
 
@@ -252,8 +261,8 @@ describe('useAmiMWI', () => {
 
   describe('deleteMWI', () => {
     it('should delete MWI state', async () => {
-      mockClient.send.mockResolvedValueOnce({ Response: 'Success' })
-      mockClient.send.mockResolvedValueOnce({ Response: 'Success' })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { Response: 'Success' } })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { Response: 'Success' } })
 
       const { updateMWI, deleteMWI, mailboxes } = useAmiMWI(clientRef)
 
@@ -263,7 +272,7 @@ describe('useAmiMWI', () => {
       const result = await deleteMWI('1001')
 
       expect(result).toBe(true)
-      expect(mockClient.send).toHaveBeenLastCalledWith({
+      expect(mockClient.sendAction).toHaveBeenLastCalledWith({
         Action: 'MWIDelete',
         Mailbox: '1001@default',
       })
@@ -271,7 +280,7 @@ describe('useAmiMWI', () => {
     })
 
     it('should return false on failure', async () => {
-      mockClient.send.mockRejectedValueOnce(new Error('Delete failed'))
+      mockClient.sendAction.mockRejectedValueOnce(new Error('Delete failed'))
 
       const { deleteMWI, error } = useAmiMWI(clientRef)
 
@@ -285,11 +294,11 @@ describe('useAmiMWI', () => {
   describe('refresh', () => {
     it('should refresh all tracked mailboxes', async () => {
       // Initial setup
-      mockClient.send.mockResolvedValueOnce({ NewMessages: '1', OldMessages: '0' })
-      mockClient.send.mockResolvedValueOnce({ NewMessages: '2', OldMessages: '1' })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { NewMessages: '1', OldMessages: '0' } })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { NewMessages: '2', OldMessages: '1' } })
       // Refresh calls
-      mockClient.send.mockResolvedValueOnce({ NewMessages: '5', OldMessages: '2' })
-      mockClient.send.mockResolvedValueOnce({ NewMessages: '0', OldMessages: '3' })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { NewMessages: '5', OldMessages: '2' } })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { NewMessages: '0', OldMessages: '3' } })
 
       const { getMailboxStatus, refresh, mailboxes } = useAmiMWI(clientRef)
 
@@ -298,16 +307,16 @@ describe('useAmiMWI', () => {
 
       await refresh()
 
-      expect(mockClient.send).toHaveBeenCalledTimes(4)
+      expect(mockClient.sendAction).toHaveBeenCalledTimes(4)
       expect(mailboxes.value.get('1001@default')?.newMessages).toBe(5)
       expect(mailboxes.value.get('1002@default')?.newMessages).toBe(0)
     })
 
     it('should continue refreshing even if one mailbox fails', async () => {
-      mockClient.send.mockResolvedValueOnce({ NewMessages: '1', OldMessages: '0' })
-      mockClient.send.mockResolvedValueOnce({ NewMessages: '2', OldMessages: '0' })
-      mockClient.send.mockRejectedValueOnce(new Error('Failed'))
-      mockClient.send.mockResolvedValueOnce({ NewMessages: '10', OldMessages: '0' })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { NewMessages: '1', OldMessages: '0' } })
+      mockClient.sendAction.mockResolvedValueOnce({ data: { NewMessages: '2', OldMessages: '0' } })
+      mockClient.sendAction.mockRejectedValueOnce(new Error('Failed'))
+      mockClient.sendAction.mockResolvedValueOnce({ data: { NewMessages: '10', OldMessages: '0' } })
 
       const { getMailboxStatus, refresh, mailboxes } = useAmiMWI(clientRef)
 
@@ -317,7 +326,7 @@ describe('useAmiMWI', () => {
       await refresh()
 
       // Should have called for both mailboxes during refresh
-      expect(mockClient.send).toHaveBeenCalledTimes(4)
+      expect(mockClient.sendAction).toHaveBeenCalledTimes(4)
       // 1002 should have been refreshed even though 1001 failed
       expect(mailboxes.value.get('1002@default')?.newMessages).toBe(10)
     })
@@ -326,7 +335,9 @@ describe('useAmiMWI', () => {
   describe('Utility Functions', () => {
     describe('getMailbox', () => {
       it('should return mailbox status from cache', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '3', OldMessages: '5' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '3', OldMessages: '5' },
+        })
 
         const { getMailboxStatus, getMailbox } = useAmiMWI(clientRef)
 
@@ -346,7 +357,9 @@ describe('useAmiMWI', () => {
 
     describe('hasMessages', () => {
       it('should return true when mailbox has new messages', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '3', OldMessages: '0' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '3', OldMessages: '0' },
+        })
 
         const { getMailboxStatus, hasMessages } = useAmiMWI(clientRef)
 
@@ -356,7 +369,9 @@ describe('useAmiMWI', () => {
       })
 
       it('should return true when mailbox has old messages', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '0', OldMessages: '5' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '0', OldMessages: '5' },
+        })
 
         const { getMailboxStatus, hasMessages } = useAmiMWI(clientRef)
 
@@ -366,7 +381,9 @@ describe('useAmiMWI', () => {
       })
 
       it('should return false when mailbox has no messages', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '0', OldMessages: '0' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '0', OldMessages: '0' },
+        })
 
         const { getMailboxStatus, hasMessages } = useAmiMWI(clientRef)
 
@@ -384,7 +401,9 @@ describe('useAmiMWI', () => {
 
     describe('trackMailbox', () => {
       it('should add mailbox to tracking', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '2', OldMessages: '1' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '2', OldMessages: '1' },
+        })
 
         const { trackMailbox, mailboxes } = useAmiMWI(clientRef)
 
@@ -396,7 +415,9 @@ describe('useAmiMWI', () => {
 
     describe('untrackMailbox', () => {
       it('should remove mailbox from tracking', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '2', OldMessages: '1' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '2', OldMessages: '1' },
+        })
 
         const { trackMailbox, untrackMailbox, mailboxes } = useAmiMWI(clientRef)
 
@@ -412,8 +433,12 @@ describe('useAmiMWI', () => {
   describe('Computed Properties', () => {
     describe('mailboxList', () => {
       it('should return mailboxes as array', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '1', OldMessages: '0' })
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '2', OldMessages: '0' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '1', OldMessages: '0' },
+        })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '2', OldMessages: '0' },
+        })
 
         const { getMailboxStatus, mailboxList } = useAmiMWI(clientRef)
 
@@ -428,9 +453,15 @@ describe('useAmiMWI', () => {
 
     describe('mailboxesWithMessages', () => {
       it('should filter mailboxes with messages', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '5', OldMessages: '0' })
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '0', OldMessages: '0' })
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '0', OldMessages: '3' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '5', OldMessages: '0' },
+        })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '0', OldMessages: '0' },
+        })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '0', OldMessages: '3' },
+        })
 
         const { getMailboxStatus, mailboxesWithMessages } = useAmiMWI(clientRef)
 
@@ -447,9 +478,15 @@ describe('useAmiMWI', () => {
 
     describe('totalNewMessages', () => {
       it('should sum all new messages', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '3', OldMessages: '0' })
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '5', OldMessages: '0' })
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '2', OldMessages: '0' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '3', OldMessages: '0' },
+        })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '5', OldMessages: '0' },
+        })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '2', OldMessages: '0' },
+        })
 
         const { getMailboxStatus, totalNewMessages } = useAmiMWI(clientRef)
 
@@ -463,9 +500,15 @@ describe('useAmiMWI', () => {
 
     describe('indicatorOnCount', () => {
       it('should count mailboxes with indicator on', async () => {
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '3', OldMessages: '0' })
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '0', OldMessages: '5' })
-        mockClient.send.mockResolvedValueOnce({ NewMessages: '1', OldMessages: '0' })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '3', OldMessages: '0' },
+        })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '0', OldMessages: '5' },
+        })
+        mockClient.sendAction.mockResolvedValueOnce({
+          data: { NewMessages: '1', OldMessages: '0' },
+        })
 
         const { getMailboxStatus, indicatorOnCount } = useAmiMWI(clientRef)
 
@@ -484,12 +527,14 @@ describe('useAmiMWI', () => {
       const onMWIChange = vi.fn()
       const { mailboxes } = useAmiMWI(clientRef, { onMWIChange })
 
-      mockClient.emit('MessageWaiting', {
-        Event: 'MessageWaiting',
-        Mailbox: '1001@default',
-        Waiting: 'Yes',
-        New: '5',
-        Old: '3',
+      mockClient.emit('event', {
+        data: {
+          Event: 'MessageWaiting',
+          Mailbox: '1001@default',
+          Waiting: 'Yes',
+          New: '5',
+          Old: '3',
+        },
       })
 
       await nextTick()
@@ -514,12 +559,14 @@ describe('useAmiMWI', () => {
     it('should handle Waiting=No', async () => {
       const { mailboxes } = useAmiMWI(clientRef)
 
-      mockClient.emit('MessageWaiting', {
-        Event: 'MessageWaiting',
-        Mailbox: '1001@default',
-        Waiting: 'No',
-        New: '0',
-        Old: '0',
+      mockClient.emit('event', {
+        data: {
+          Event: 'MessageWaiting',
+          Mailbox: '1001@default',
+          Waiting: 'No',
+          New: '0',
+          Old: '0',
+        },
       })
 
       await nextTick()
@@ -530,12 +577,14 @@ describe('useAmiMWI', () => {
     it('should handle numeric Waiting values', async () => {
       const { mailboxes } = useAmiMWI(clientRef)
 
-      mockClient.emit('MessageWaiting', {
-        Event: 'MessageWaiting',
-        Mailbox: '1001@default',
-        Waiting: '1',
-        New: '2',
-        Old: '0',
+      mockClient.emit('event', {
+        data: {
+          Event: 'MessageWaiting',
+          Mailbox: '1001@default',
+          Waiting: '1',
+          New: '2',
+          Old: '0',
+        },
       })
 
       await nextTick()
@@ -556,7 +605,7 @@ describe('useAmiMWI', () => {
       await nextTick()
 
       expect(mockClient.off).toHaveBeenCalled()
-      expect(newMockClient.on).toHaveBeenCalledWith('MessageWaiting', expect.any(Function))
+      expect(newMockClient.on).toHaveBeenCalledWith('event', expect.any(Function))
     })
 
     it('should throw error when client is null', async () => {

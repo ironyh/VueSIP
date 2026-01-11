@@ -7,6 +7,7 @@ const mockAmiClient = {
   connect: vi.fn().mockResolvedValue(undefined),
   disconnect: vi.fn().mockResolvedValue(undefined),
   action: vi.fn().mockResolvedValue({ Response: 'Success' }),
+  sendAction: vi.fn().mockResolvedValue({ data: { Response: 'Success' } }),
   on: vi.fn(),
   off: vi.fn(),
 }
@@ -19,6 +20,7 @@ vi.mock('@/core/AmiClient', () => {
       connect = mockAmiClient.connect
       disconnect = mockAmiClient.disconnect
       action = mockAmiClient.action
+      sendAction = mockAmiClient.sendAction
       on = mockAmiClient.on
       off = mockAmiClient.off
     },
