@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import Message from 'primevue/message'
+import Checkbox from 'primevue/checkbox'
 import { useTelnyxApi } from 'vuesip'
+
+const STORAGE_KEY = 'vuesip_telnyx_credentials'
 
 const emit = defineEmits<{
   'credentials-ready': [credentials: { username: string; password: string }]
@@ -25,15 +28,47 @@ const {
 
 // Form state
 const apiKey = ref('')
+const rememberCredentials = ref(false)
 
 // Form validation
 const isLoginFormValid = computed(() => apiKey.value.trim().length > 0)
 
+// Load saved credentials on mount
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const { key } = JSON.parse(saved)
+      apiKey.value = key || ''
+      rememberCredentials.value = true
+    }
+  } catch {
+    // Ignore parse errors
+  }
+})
+
+// Save credentials to localStorage
+function saveCredentials() {
+  if (rememberCredentials.value) {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        key: apiKey.value,
+      })
+    )
+  }
+}
+
+// Clear saved credentials
+function clearSavedCredentials() {
+  localStorage.removeItem(STORAGE_KEY)
+}
+
 // Handle API login
 async function handleLogin() {
   const success = await authenticate(apiKey.value)
-  if (!success) {
-    // Error is set by the composable
+  if (success) {
+    saveCredentials()
   }
 }
 
@@ -54,6 +89,8 @@ function handleUseCredentials() {
 function handleReset() {
   clear()
   apiKey.value = ''
+  rememberCredentials.value = false
+  clearSavedCredentials()
 }
 </script>
 
@@ -84,6 +121,11 @@ function handleReset() {
         <small class="help-text">
           Your API key starts with KEY_ and can be found in API Keys section
         </small>
+      </div>
+
+      <div class="remember-me">
+        <Checkbox v-model="rememberCredentials" :binary="true" input-id="remember-telnyx" />
+        <label for="remember-telnyx">Remember API key</label>
       </div>
 
       <Message v-if="error" severity="error" :closable="false">
@@ -221,6 +263,18 @@ function handleReset() {
 
 .w-full {
   width: 100%;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.remember-me label {
+  font-size: 0.875rem;
+  cursor: pointer;
 }
 
 .manual-entry-link {
