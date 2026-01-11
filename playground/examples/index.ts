@@ -19,6 +19,7 @@ import { connectionRecoveryExample } from './connection-recovery'
 import { sessionPersistenceExample } from './session-persistence'
 import { networkSimulatorExample } from './network-simulator'
 import { screenSharingExample } from './screen-sharing'
+import { transcriptionExample } from './transcription'
 import { pictureInPictureExample } from './picture-in-picture'
 import { callSessionPiPExample } from './call-session-pip'
 import { callWaitingExample } from './call-waiting'
@@ -80,6 +81,7 @@ export const sipExamples = [
   connectionRecoveryExample,
   sessionPersistenceExample,
   callMutePatternsExample,
+  transcriptionExample,
 ]
 
 // AMI Features - Asterisk Manager Interface / PBX functionality
