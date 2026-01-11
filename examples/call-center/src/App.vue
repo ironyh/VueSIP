@@ -44,6 +44,9 @@
       <header class="dashboard-header" role="banner">
         <div class="header-content">
           <h1>Call Center Dashboard</h1>
+          <div class="header-center">
+            <SystemStatus />
+          </div>
           <div class="header-actions">
             <AgentStatusToggle :agent-status="agentStatus" @update:status="updateAgentStatus" />
             <button class="btn btn-danger btn-sm" @click="handleDisconnect">Disconnect</button>
@@ -124,6 +127,7 @@ import CallQueue from './components/CallQueue.vue'
 import ActiveCall from './components/ActiveCall.vue'
 import CallStats from './components/CallStats.vue'
 import CallHistoryPanel from './components/CallHistoryPanel.vue'
+import SystemStatus from './components/SystemStatus.vue'
 
 // ============================================================================
 // Types
@@ -569,6 +573,13 @@ watch(isActive, (active) => {
   color: #111827;
 }
 
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0 1rem;
+}
+
 .header-actions {
   display: flex;
   gap: 1rem;
@@ -609,6 +620,10 @@ watch(isActive, (active) => {
   .sidebar,
   .history-panel {
     overflow-y: visible;
+  }
+
+  .header-center {
+    display: none;
   }
 }
 

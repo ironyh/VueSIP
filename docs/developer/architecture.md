@@ -23,6 +23,7 @@
 11. [Key Design Decisions](#key-design-decisions)
 12. [Performance Considerations](#performance-considerations)
 13. [Security Architecture](#security-architecture)
+14. [AMI Composables Architecture](#ami-composables-architecture)
 
 ---
 
@@ -99,7 +100,7 @@ export function useCallSession() {
     remoteUri,
     // Methods
     makeCall,
-    hangup
+    hangup,
   }
 }
 ```
@@ -191,6 +192,7 @@ graph TB
 The **Protocol Layer** handles low-level communication protocols and browser APIs.
 
 **Responsibilities:**
+
 - SIP protocol implementation via SIP libraries (JsSIP, SIP.js, etc.)
 - WebRTC peer connection management
 - WebSocket transport for SIP signaling
@@ -198,6 +200,7 @@ The **Protocol Layer** handles low-level communication protocols and browser API
 - Media stream acquisition and management
 
 **Key Components:**
+
 - `ISipAdapter`: Adapter interface for SIP library abstraction
 - `JsSIP UA`: User Agent for SIP communication (via JsSipAdapter)
 - `RTCPeerConnection`: WebRTC connection object
@@ -215,6 +218,7 @@ This layer is completely isolated from Vue and application logic through the ada
 The **Business Logic Layer** wraps protocol implementations in application-specific logic.
 
 **Responsibilities:**
+
 - Call lifecycle management
 - Registration and authentication
 - Media device management
@@ -262,6 +266,7 @@ Uses the Facade pattern to provide a clean interface to complex protocol impleme
 The **Composable Layer** exposes functionality to Vue applications via composables.
 
 **Responsibilities:**
+
 - Expose reactive state to components
 - Provide methods for SIP operations
 - Manage component-level lifecycle
@@ -290,6 +295,7 @@ Follows Vue 3 Composition API patterns with `use*` naming convention, returning 
 The **Integration Layer** provides extensibility and customization points.
 
 **Responsibilities:**
+
 - Plugin system for extending functionality
 - Middleware for event interception
 - Lifecycle hooks for custom behavior
@@ -459,6 +465,7 @@ graph TB
 ```
 
 **Benefits:**
+
 - Singleton instances shared across application
 - No prop drilling
 - Easy to mock for testing
@@ -652,6 +659,7 @@ graph TB
 ### State Synchronization
 
 **Component to Store:**
+
 ```typescript
 // In composable
 const callStore = useCallStore()
@@ -663,16 +671,18 @@ watch(callState, (newState) => {
 ```
 
 **Store to Persistence:**
+
 ```typescript
 // In store
 const { persist } = usePersistence({
   key: 'vuesip:calls',
   storage: localStorage,
-  paths: ['activeCalls', 'callHistory']
+  paths: ['activeCalls', 'callHistory'],
 })
 ```
 
 **Event-Driven Updates:**
+
 ```typescript
 // State updates trigger events
 eventBus.on('call:stateChanged', ({ callId, state }) => {
@@ -683,17 +693,20 @@ eventBus.on('call:stateChanged', ({ callId, state }) => {
 ### State Persistence Strategy
 
 **LocalStorage** (5-10MB limit):
+
 - User preferences (audio/video settings)
 - Device selections
 - SIP configuration (encrypted)
 - Registration state
 
 **SessionStorage** (5-10MB limit):
+
 - Temporary session data
 - Active call metadata
 - Connection state
 
 **IndexedDB** (50MB-500MB+):
+
 - Call history (large datasets)
 - Call recordings (binary data)
 - Message history
@@ -793,6 +806,7 @@ Available lifecycle hooks:
 - `onError` - On any error
 
 **Hook Execution:**
+
 ```typescript
 // Register hook
 hooks.register('beforeCall', async (context) => {
@@ -947,6 +961,7 @@ sequenceDiagram
 ### Media Constraints and Quality
 
 **Default Audio Constraints:**
+
 ```typescript
 {
   audio: {
@@ -960,6 +975,7 @@ sequenceDiagram
 ```
 
 **Default Video Constraints:**
+
 ```typescript
 {
   video: {
@@ -974,12 +990,14 @@ sequenceDiagram
 ### Codec Preference
 
 **Audio Codecs** (priority order):
+
 1. Opus (48 kHz, variable bitrate) - Preferred
 2. G.722 (16 kHz wideband)
 3. PCMU (G.711 µ-law, 8 kHz)
 4. PCMA (G.711 A-law, 8 kHz)
 
 **Video Codecs** (priority order):
+
 1. H.264 (if available) - Preferred
 2. VP9
 3. VP8 (fallback)
@@ -1010,6 +1028,7 @@ graph LR
 ```
 
 **Quality Adaptation:**
+
 - Monitor packet loss > 5%: Reduce bitrate
 - Monitor RTT > 300ms: Reduce resolution/framerate
 - Monitor available bandwidth: Adjust codec parameters
@@ -1049,6 +1068,7 @@ graph TB
 ### Event Categories
 
 **Connection Events:**
+
 - `connection:connecting`
 - `connection:connected`
 - `connection:disconnected`
@@ -1056,6 +1076,7 @@ graph TB
 - `connection:reconnecting`
 
 **Registration Events:**
+
 - `registration:registering`
 - `registration:registered`
 - `registration:unregistered`
@@ -1063,6 +1084,7 @@ graph TB
 - `registration:expiring`
 
 **Call Events:**
+
 - `call:incoming`
 - `call:outgoing`
 - `call:ringing`
@@ -1077,6 +1099,7 @@ graph TB
 - `call:failed`
 
 **Media Events:**
+
 - `media:deviceChanged`
 - `media:deviceAdded`
 - `media:deviceRemoved`
@@ -1089,10 +1112,10 @@ graph TB
 
 ```typescript
 interface EventPayload<T> {
-  type: string              // Event type (e.g., 'call:incoming')
-  timestamp: Date          // When event occurred
-  data: T                  // Event-specific data
-  metadata?: Record<string, unknown>  // Optional metadata
+  type: string // Event type (e.g., 'call:incoming')
+  timestamp: Date // When event occurred
+  data: T // Event-specific data
+  metadata?: Record<string, unknown> // Optional metadata
 }
 ```
 
@@ -1179,12 +1202,14 @@ interface StorageAdapter {
 ### LocalStorage Adapter
 
 **Use Cases:**
+
 - User preferences
 - Device selections
 - SIP configuration (encrypted)
 - UI state
 
 **Implementation:**
+
 ```typescript
 export class LocalStorageAdapter implements StorageAdapter {
   async get<T>(key: string): Promise<T | null> {
@@ -1201,12 +1226,14 @@ export class LocalStorageAdapter implements StorageAdapter {
 ### IndexedDB Adapter
 
 **Use Cases:**
+
 - Call history (large datasets)
 - Call recordings (binary data)
 - Message history
 - Offline data cache
 
 **Schema:**
+
 ```typescript
 // Database: vuesip
 // Version: 1
@@ -1244,6 +1271,7 @@ const credentials = await decrypt(encrypted, userKey)
 ```
 
 **Encryption Method:**
+
 - Web Crypto API (SubtleCrypto)
 - AES-GCM algorithm
 - PBKDF2 key derivation
@@ -1258,6 +1286,7 @@ const credentials = await decrypt(encrypted, userKey)
 **Decision:** Build as headless library with zero UI components
 
 **Rationale:**
+
 - Maximum flexibility for developers
 - Smaller bundle size (no CSS/UI overhead)
 - Easier to maintain (no UI testing)
@@ -1265,6 +1294,7 @@ const credentials = await decrypt(encrypted, userKey)
 - Better separation of concerns
 
 **Trade-offs:**
+
 - Higher barrier to entry for beginners
 - No ready-to-use UI components
 - More work for developers initially
@@ -1274,6 +1304,7 @@ const credentials = await decrypt(encrypted, userKey)
 **Decision:** Use Composition API exclusively (no Options API)
 
 **Rationale:**
+
 - Better TypeScript support
 - More flexible code organization
 - Easier code reuse
@@ -1281,6 +1312,7 @@ const credentials = await decrypt(encrypted, userKey)
 - Aligns with Vue 3 best practices
 
 **Trade-offs:**
+
 - Requires Vue 3.4+
 - Learning curve for Vue 2 developers
 - No Options API compatibility
@@ -1290,6 +1322,7 @@ const credentials = await decrypt(encrypted, userKey)
 **Decision:** Use JsSIP as primary SIP implementation with adapter pattern for library flexibility
 
 **Rationale:**
+
 - Mature and battle-tested
 - Active maintenance
 - Good WebRTC integration
@@ -1297,6 +1330,7 @@ const credentials = await decrypt(encrypted, userKey)
 - Browser-native implementation
 
 **Alternatives Considered:**
+
 - SIP.js (more complex, larger bundle) - **Supported via adapter pattern**
 - Custom implementation (too much effort)
 
@@ -1308,6 +1342,7 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 **Decision:** Centralized EventBus for all events
 
 **Rationale:**
+
 - Loose coupling between components
 - Easy to extend with plugins
 - Clear event flow
@@ -1315,6 +1350,7 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 - Better debugging
 
 **Trade-offs:**
+
 - More memory usage (event listeners)
 - Potential for memory leaks if not cleaned up
 - Less explicit than direct method calls
@@ -1324,12 +1360,14 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 **Decision:** Component state + Pinia stores + Persistence
 
 **Rationale:**
+
 - Component state for local concerns
 - Global state for shared data
 - Persistence for durability
 - Vue reactivity throughout
 
 **Alternatives Considered:**
+
 - Vue's provide/inject only (not reactive enough)
 - Vuex (deprecated in favor of Pinia)
 - External state management (breaks Vue integration)
@@ -1339,6 +1377,7 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 **Decision:** Built entirely in TypeScript with strict mode
 
 **Rationale:**
+
 - Better developer experience
 - Catch errors at compile time
 - Self-documenting code
@@ -1346,6 +1385,7 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 - Industry standard
 
 **Trade-offs:**
+
 - Larger development overhead
 - Compilation required
 - Generic complexity
@@ -1355,12 +1395,14 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 **Decision:** Extensible plugin architecture with hooks
 
 **Rationale:**
+
 - Core stays focused and small
 - Easy to add features without modifying core
 - Community can contribute plugins
 - Better testability
 
 **Alternatives Considered:**
+
 - Monolithic design (harder to maintain)
 - Inheritance-based (less flexible)
 
@@ -1371,10 +1413,12 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 ### Bundle Size Optimization
 
 **Targets:**
+
 - Minified: < 150 KB
 - Gzipped: < 50 KB
 
 **Techniques:**
+
 1. Tree-shaking (ESM exports)
 2. Code splitting (dynamic imports)
 3. Lazy loading optional features
@@ -1384,12 +1428,14 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 ### Runtime Performance
 
 **Targets:**
+
 - Call setup: < 2 seconds
 - State update: < 50ms
 - Event propagation: < 10ms
 - Memory per call: < 50 MB
 
 **Optimizations:**
+
 1. Object pooling for frequent allocations
 2. Debounce/throttle for high-frequency events
 3. Virtual scrolling for call history
@@ -1399,6 +1445,7 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 ### Memory Management
 
 **Strategies:**
+
 1. Automatic cleanup on call termination
 2. Event listener removal on unmount
 3. Stream track disposal
@@ -1406,6 +1453,7 @@ VueSip uses an adapter pattern (see [Adapter Architecture](https://github.com/ir
 5. Store cleanup for terminated calls
 
 **Memory Leak Prevention:**
+
 ```typescript
 // Always clean up in onUnmounted
 onUnmounted(() => {
@@ -1413,7 +1461,7 @@ onUnmounted(() => {
   eventBus.off('call:*', handler)
 
   // Stop media tracks
-  localStream?.getTracks().forEach(track => track.stop())
+  localStream?.getTracks().forEach((track) => track.stop())
 
   // Close peer connection
   peerConnection?.close()
@@ -1423,6 +1471,7 @@ onUnmounted(() => {
 ### Network Optimization
 
 **Techniques:**
+
 1. Connection pooling (single WebSocket)
 2. Keep-alive to prevent reconnections
 3. Compression support
@@ -1436,6 +1485,7 @@ onUnmounted(() => {
 ### Transport Security
 
 **Requirements:**
+
 - WSS (WebSocket Secure) mandatory for production
 - TLS 1.2 minimum, TLS 1.3 preferred
 - Certificate validation
@@ -1444,6 +1494,7 @@ onUnmounted(() => {
 ### Authentication
 
 **SIP Digest Authentication:**
+
 ```mermaid
 graph LR
     A[Client] --> B[REGISTER]
@@ -1457,6 +1508,7 @@ graph LR
 ```
 
 **Supported Methods:**
+
 - Digest Authentication (MD5)
 - HA1 hash support
 - Authorization username override
@@ -1465,6 +1517,7 @@ graph LR
 ### Credential Storage
 
 **Best Practices:**
+
 1. Never store passwords in plain text
 2. Use Web Crypto API for encryption
 3. PBKDF2 for key derivation
@@ -1481,6 +1534,7 @@ localStorage.setItem('vuesip:creds', encrypted)
 ### Input Validation
 
 **Validation Points:**
+
 1. SIP URI format validation
 2. Phone number validation
 3. Header injection prevention
@@ -1490,11 +1544,159 @@ localStorage.setItem('vuesip:creds', encrypted)
 ### Content Security Policy
 
 **Recommended CSP:**
+
 ```
 default-src 'self';
 connect-src 'self' wss://sip.example.com;
 media-src 'self' blob:;
 script-src 'self';
+```
+
+---
+
+## AMI Composables Architecture
+
+VueSip includes advanced AMI (Asterisk Manager Interface) composables that follow consistent architectural patterns for integrating with Asterisk PBX systems.
+
+### AMI Composable Pattern
+
+All AMI composables share a common architecture:
+
+```mermaid
+graph TB
+    subgraph "Vue Component"
+        A[Component] --> B[useAmi]
+    end
+
+    subgraph "AMI Composable Layer"
+        B --> C[AmiClient ref]
+        C --> D[useAmiConfBridge]
+        C --> E[useAmiPjsip]
+        C --> F[useAmiSystem]
+        C --> G[useAmiMWI]
+    end
+
+    subgraph "Communication"
+        D --> H[sendAction]
+        E --> H
+        F --> H
+        G --> H
+        H --> I[WebSocket/TCP]
+        I --> J[Asterisk AMI]
+    end
+
+    subgraph "Event Handling"
+        J --> K[AMI Events]
+        K --> L[client.on event]
+        L --> D
+        L --> E
+        L --> F
+        L --> G
+    end
+
+    style A fill:#e1f5ff
+    style C fill:#fff4e1
+    style H fill:#ffe1f5
+    style J fill:#e1ffe1
+```
+
+### Common Patterns
+
+#### 1. Action Pattern with `doAction` Helper
+
+All AMI composables use a consistent helper function to send actions:
+
+```typescript
+async function doAction(action: AmiAction): Promise<Record<string, unknown>> {
+  const client = amiClientRef.value
+  if (!client) {
+    throw new Error('AMI client not connected')
+  }
+  const response = await client.sendAction(action)
+  return response.data as Record<string, unknown>
+}
+```
+
+#### 2. Event-Driven State Updates
+
+Composables subscribe to AMI events for real-time state updates:
+
+```typescript
+const eventHandler = (event: AmiMessage<AmiEventData>) => {
+  const data = event.data
+  switch (data.Event) {
+    case 'ConfbridgeJoin':
+      handleJoin(data)
+      break
+    case 'ConfbridgeLeave':
+      handleLeave(data)
+      break
+  }
+}
+
+client.on('event', eventHandler)
+eventCleanups.push(() => client.off('event', eventHandler))
+```
+
+#### 3. State Management with Maps
+
+Complex state is managed using Maps for efficient lookup:
+
+```typescript
+const rooms = ref<Map<string, ConfBridgeRoom>>(new Map())
+const users = ref<Map<string, ConfBridgeUser>>(new Map())
+
+// Computed arrays for reactivity
+const roomList = computed(() => Array.from(rooms.value.values()))
+const userList = computed(() => Array.from(users.value.values()))
+```
+
+#### 4. Cleanup Pattern
+
+All event handlers are tracked and cleaned up properly:
+
+```typescript
+const eventCleanups: Array<() => void> = []
+
+function setupEvents(): void {
+  // ... setup handlers
+  eventCleanups.push(() => client.off('event', handler))
+}
+
+function cleanupEvents(): void {
+  eventCleanups.forEach((cleanup) => cleanup())
+  eventCleanups.length = 0
+}
+
+onUnmounted(() => {
+  cleanupEvents()
+  rooms.value.clear()
+  users.value.clear()
+})
+```
+
+### AMI Composables Overview
+
+| Composable         | Purpose                    | Key Features                                          |
+| ------------------ | -------------------------- | ----------------------------------------------------- |
+| `useAmiConfBridge` | Conference management      | Room listing, participant control, mute/kick/lock     |
+| `useAmiPjsip`      | PJSIP endpoint management  | Endpoint listing, AOR/contact tracking, qualification |
+| `useAmiSystem`     | System health monitoring   | Core status, module management, channels              |
+| `useAmiMWI`        | Message Waiting Indicators | Mailbox tracking, MWI control, notifications          |
+
+### Integration Example
+
+```typescript
+import { computed } from 'vue'
+import { useAmi, useAmiSystem, useAmiMWI } from 'vuesip'
+
+// Initialize AMI connection
+const ami = useAmi()
+
+// Use AMI composables with client reference
+const { coreStatus, activeCalls } = useAmiSystem(computed(() => ami.getClient()))
+
+const { mailboxes, totalNewMessages } = useAmiMWI(computed(() => ami.getClient()))
 ```
 
 ---

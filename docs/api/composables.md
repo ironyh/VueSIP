@@ -28,6 +28,11 @@ Complete reference for all VueSip composables providing reactive SIP functionali
 - [Call Quality Composables](#call-quality-composables)
   - [useCallQualityScore](#usecallqualityscore)
   - [useNetworkQualityIndicator](#usenetworkqualityindicator)
+- [AMI Integration Composables](#ami-integration-composables)
+  - [useAmiConfBridge](#useamiconfbridge)
+  - [useAmiPjsip](#useamipjsip)
+  - [useAmiSystem](#useamisystem)
+  - [useAmiMWI](#useamimwi)
 - [Constants](#constants)
 
 ---
@@ -2420,6 +2425,380 @@ input[type='range'] {
 | Kick        | Moderator status AND not self (isLocal = false) |
 | Pin         | Participant exists                              |
 | Volume      | Always available                                |
+
+---
+
+## AMI Integration Composables
+
+These composables provide integration with Asterisk Manager Interface (AMI) for enterprise PBX management including conference bridges, PJSIP endpoints, system health, and message waiting indicators.
+
+### useAmiConfBridge
+
+Provides Vue composable for Asterisk ConfBridge conference management via AMI.
+
+**Source:** [`src/composables/useAmiConfBridge.ts`](../../src/composables/useAmiConfBridge.ts)
+
+#### Signature
+
+```typescript
+function useAmiConfBridge(
+  amiClientRef: Ref<AmiClient | null>,
+  options?: UseAmiConfBridgeOptions
+): UseAmiConfBridgeReturn
+```
+
+#### Parameters
+
+| Parameter                  | Type                                               | Default  | Description                      |
+| -------------------------- | -------------------------------------------------- | -------- | -------------------------------- |
+| `amiClientRef`             | `Ref<AmiClient \| null>`                           | required | Reactive reference to AMI client |
+| `options.useEvents`        | `boolean`                                          | `true`   | Subscribe to real-time events    |
+| `options.autoRefresh`      | `boolean`                                          | `true`   | Auto-refresh on client connect   |
+| `options.conferenceFilter` | `(room: ConfBridgeRoom) => boolean`                | -        | Filter conferences               |
+| `options.transformUser`    | `(user: ConfBridgeUser) => ConfBridgeUser`         | -        | Transform user data              |
+| `options.onUserJoin`       | `(user: ConfBridgeUser) => void`                   | -        | User join callback               |
+| `options.onUserLeave`      | `(user: ConfBridgeUser) => void`                   | -        | User leave callback              |
+| `options.onTalkingChange`  | `(user: ConfBridgeUser, talking: boolean) => void` | -        | Talking state callback           |
+
+#### Returns: `UseAmiConfBridgeReturn`
+
+##### Reactive State
+
+| Property            | Type                               | Description             |
+| ------------------- | ---------------------------------- | ----------------------- |
+| `rooms`             | `Ref<Map<string, ConfBridgeRoom>>` | Conference rooms map    |
+| `users`             | `Ref<Map<string, ConfBridgeUser>>` | Users by channel map    |
+| `isLoading`         | `Ref<boolean>`                     | Loading state           |
+| `error`             | `Ref<string \| null>`              | Error message           |
+| `roomList`          | `ComputedRef<ConfBridgeRoom[]>`    | Rooms as array          |
+| `userList`          | `ComputedRef<ConfBridgeUser[]>`    | Users as array          |
+| `totalParticipants` | `ComputedRef<number>`              | Total participant count |
+
+##### Methods
+
+| Method           | Signature                                                                      | Description                  |
+| ---------------- | ------------------------------------------------------------------------------ | ---------------------------- |
+| `listRooms`      | `() => Promise<ConfBridgeRoom[]>`                                              | List active conferences      |
+| `listUsers`      | `(conference: string) => Promise<ConfBridgeUser[]>`                            | List conference participants |
+| `lockRoom`       | `(conference: string) => Promise<ConfBridgeActionResult>`                      | Lock a conference            |
+| `unlockRoom`     | `(conference: string) => Promise<ConfBridgeActionResult>`                      | Unlock a conference          |
+| `startRecording` | `(conference: string, recordFile?: string) => Promise<ConfBridgeActionResult>` | Start recording              |
+| `stopRecording`  | `(conference: string) => Promise<ConfBridgeActionResult>`                      | Stop recording               |
+| `muteUser`       | `(conference: string, channel: string) => Promise<ConfBridgeActionResult>`     | Mute participant             |
+| `unmuteUser`     | `(conference: string, channel: string) => Promise<ConfBridgeActionResult>`     | Unmute participant           |
+| `kickUser`       | `(conference: string, channel: string) => Promise<ConfBridgeActionResult>`     | Kick participant             |
+| `setVideoSource` | `(conference: string, channel: string) => Promise<ConfBridgeActionResult>`     | Set video source             |
+| `getUsersInRoom` | `(conference: string) => ConfBridgeUser[]`                                     | Get users in room            |
+| `refresh`        | `() => Promise<void>`                                                          | Refresh all data             |
+
+#### Usage Example
+
+```typescript
+import { computed } from 'vue'
+import { useAmi, useAmiConfBridge } from 'vuesip'
+
+const ami = useAmi()
+const { roomList, userList, totalParticipants, listRooms, muteUser, kickUser, lockRoom } =
+  useAmiConfBridge(computed(() => ami.getClient()))
+
+// List all conferences
+await listRooms()
+
+// Mute a participant
+await muteUser('1000', 'PJSIP/1001-00000001')
+
+// Lock the conference
+await lockRoom('1000')
+```
+
+---
+
+### useAmiPjsip
+
+Provides Vue composable for Asterisk PJSIP endpoint and transport management via AMI.
+
+**Source:** [`src/composables/useAmiPjsip.ts`](../../src/composables/useAmiPjsip.ts)
+
+#### Signature
+
+```typescript
+function useAmiPjsip(
+  amiClientRef: Ref<AmiClient | null>,
+  options?: UseAmiPjsipOptions
+): UseAmiPjsipReturn
+```
+
+#### Parameters
+
+| Parameter                      | Type                                                        | Default  | Description                          |
+| ------------------------------ | ----------------------------------------------------------- | -------- | ------------------------------------ |
+| `amiClientRef`                 | `Ref<AmiClient \| null>`                                    | required | Reactive reference to AMI client     |
+| `options.useEvents`            | `boolean`                                                   | `true`   | Subscribe to real-time events        |
+| `options.autoRefresh`          | `boolean`                                                   | `true`   | Auto-refresh on client connect       |
+| `options.endpointFilter`       | `(endpoint: PjsipEndpoint) => boolean`                      | -        | Filter endpoints                     |
+| `options.transformEndpoint`    | `(endpoint: PjsipEndpoint) => PjsipEndpoint`                | -        | Transform endpoint data              |
+| `options.onEndpointChange`     | `(endpoint: PjsipEndpoint, previousStatus: string) => void` | -        | Endpoint change callback             |
+| `options.onContactChange`      | `(contact: PjsipContact) => void`                           | -        | Contact change callback              |
+| `options.includeTransports`    | `boolean`                                                   | `false`  | Include transport data in refresh    |
+| `options.includeRegistrations` | `boolean`                                                   | `false`  | Include registration data in refresh |
+
+#### Returns: `UseAmiPjsipReturn`
+
+##### Reactive State
+
+| Property           | Type                                  | Description            |
+| ------------------ | ------------------------------------- | ---------------------- |
+| `endpoints`        | `Ref<Map<string, PjsipEndpoint>>`     | Endpoints by name      |
+| `contacts`         | `Ref<Map<string, PjsipContact>>`      | Contacts by URI        |
+| `aors`             | `Ref<Map<string, PjsipAor>>`          | AORs by name           |
+| `transports`       | `Ref<Map<string, PjsipTransport>>`    | Transports by name     |
+| `registrations`    | `Ref<Map<string, PjsipRegistration>>` | Outbound registrations |
+| `isLoading`        | `Ref<boolean>`                        | Loading state          |
+| `error`            | `Ref<string \| null>`                 | Error message          |
+| `endpointList`     | `ComputedRef<PjsipEndpoint[]>`        | Endpoints as array     |
+| `contactList`      | `ComputedRef<PjsipContact[]>`         | Contacts as array      |
+| `aorList`          | `ComputedRef<PjsipAor[]>`             | AORs as array          |
+| `transportList`    | `ComputedRef<PjsipTransport[]>`       | Transports as array    |
+| `registrationList` | `ComputedRef<PjsipRegistration[]>`    | Registrations as array |
+| `stats`            | `ComputedRef<PjsipEndpointStats>`     | Endpoint statistics    |
+| `totalOnline`      | `ComputedRef<number>`                 | Online endpoint count  |
+| `totalOffline`     | `ComputedRef<number>`                 | Offline endpoint count |
+
+##### Methods
+
+| Method                 | Signature                                              | Description                 |
+| ---------------------- | ------------------------------------------------------ | --------------------------- |
+| `listEndpoints`        | `() => Promise<PjsipEndpoint[]>`                       | List all endpoints          |
+| `listContacts`         | `(endpoint?: string) => Promise<PjsipContact[]>`       | List contacts               |
+| `listAors`             | `() => Promise<PjsipAor[]>`                            | List AORs                   |
+| `listTransports`       | `() => Promise<PjsipTransport[]>`                      | List transports             |
+| `listRegistrations`    | `() => Promise<PjsipRegistration[]>`                   | List outbound registrations |
+| `getEndpointDetail`    | `(endpoint: string) => Promise<PjsipEndpoint \| null>` | Get endpoint details        |
+| `qualifyEndpoint`      | `(endpoint: string) => Promise<boolean>`               | Qualify (ping) endpoint     |
+| `qualifyAll`           | `() => Promise<void>`                                  | Qualify all endpoints       |
+| `refresh`              | `() => Promise<void>`                                  | Refresh all data            |
+| `getEndpointContacts`  | `(endpoint: string) => PjsipContact[]`                 | Get endpoint contacts       |
+| `isEndpointRegistered` | `(endpoint: string) => boolean`                        | Check if registered         |
+| `isEndpointAvailable`  | `(endpoint: string) => boolean`                        | Check if available          |
+
+#### Usage Example
+
+```typescript
+import { computed } from 'vue'
+import { useAmi, useAmiPjsip } from 'vuesip'
+
+const ami = useAmi()
+const { endpointList, stats, totalOnline, listEndpoints, qualifyEndpoint, isEndpointAvailable } =
+  useAmiPjsip(computed(() => ami.getClient()))
+
+// List all PJSIP endpoints
+await listEndpoints()
+
+// Check endpoint status
+if (isEndpointAvailable('1001')) {
+  console.log('Extension 1001 is online')
+}
+
+// Qualify (ping) an endpoint
+const reachable = await qualifyEndpoint('1001')
+
+// View statistics
+console.log(`${totalOnline.value}/${stats.value.total} endpoints online`)
+```
+
+---
+
+### useAmiSystem
+
+Provides Vue composable for Asterisk system health monitoring via AMI.
+
+**Source:** [`src/composables/useAmiSystem.ts`](../../src/composables/useAmiSystem.ts)
+
+#### Signature
+
+```typescript
+function useAmiSystem(
+  amiClientRef: Ref<AmiClient | null>,
+  options?: UseAmiSystemOptions
+): UseAmiSystemReturn
+```
+
+#### Parameters
+
+| Parameter                    | Type                                | Default  | Description                      |
+| ---------------------------- | ----------------------------------- | -------- | -------------------------------- |
+| `amiClientRef`               | `Ref<AmiClient \| null>`            | required | Reactive reference to AMI client |
+| `options.autoRefresh`        | `boolean`                           | `true`   | Auto-refresh on client connect   |
+| `options.statusPollInterval` | `number`                            | `30000`  | Polling interval in milliseconds |
+| `options.enablePolling`      | `boolean`                           | `true`   | Enable status polling            |
+| `options.onStatusUpdate`     | `(status: CoreStatus) => void`      | -        | Status update callback           |
+| `options.onChannelsUpdate`   | `(channels: CoreChannel[]) => void` | -        | Channels update callback         |
+
+#### Returns: `UseAmiSystemReturn`
+
+##### Reactive State
+
+| Property          | Type                            | Description            |
+| ----------------- | ------------------------------- | ---------------------- |
+| `coreStatus`      | `Ref<CoreStatus \| null>`       | Current core status    |
+| `channels`        | `Ref<Map<string, CoreChannel>>` | Active channels        |
+| `modules`         | `Ref<Map<string, ModuleInfo>>`  | Loaded modules         |
+| `bridges`         | `Ref<Map<string, BridgeInfo>>`  | Active bridges         |
+| `isLoading`       | `Ref<boolean>`                  | Loading state          |
+| `error`           | `Ref<string \| null>`           | Error message          |
+| `latency`         | `Ref<number \| null>`           | Last ping latency (ms) |
+| `channelList`     | `ComputedRef<CoreChannel[]>`    | Channels as array      |
+| `moduleList`      | `ComputedRef<ModuleInfo[]>`     | Modules as array       |
+| `bridgeList`      | `ComputedRef<BridgeInfo[]>`     | Bridges as array       |
+| `formattedUptime` | `ComputedRef<string>`           | Human-readable uptime  |
+| `isHealthy`       | `ComputedRef<boolean>`          | System health status   |
+| `totalChannels`   | `ComputedRef<number>`           | Active channel count   |
+| `totalBridges`    | `ComputedRef<number>`           | Active bridge count    |
+
+##### Methods
+
+| Method          | Signature                                           | Description              |
+| --------------- | --------------------------------------------------- | ------------------------ |
+| `getCoreStatus` | `() => Promise<CoreStatus>`                         | Get core status          |
+| `getChannels`   | `() => Promise<CoreChannel[]>`                      | List active channels     |
+| `getModules`    | `() => Promise<ModuleInfo[]>`                       | List loaded modules      |
+| `getBridges`    | `() => Promise<BridgeInfo[]>`                       | List active bridges      |
+| `reloadModule`  | `(module: string) => Promise<boolean>`              | Reload module            |
+| `loadModule`    | `(module: string) => Promise<boolean>`              | Load module              |
+| `unloadModule`  | `(module: string) => Promise<boolean>`              | Unload module            |
+| `ping`          | `() => Promise<number>`                             | Ping AMI and get latency |
+| `originate`     | `(options: OriginateOptions) => Promise<boolean>`   | Originate call           |
+| `refresh`       | `() => Promise<void>`                               | Refresh all data         |
+| `startPolling`  | `() => void`                                        | Start status polling     |
+| `stopPolling`   | `() => void`                                        | Stop status polling      |
+| `getChannel`    | `(channelName: string) => CoreChannel \| undefined` | Get channel by name      |
+| `hangupChannel` | `(channel: string) => Promise<boolean>`             | Hangup channel           |
+
+#### Usage Example
+
+```typescript
+import { computed } from 'vue'
+import { useAmi, useAmiSystem } from 'vuesip'
+
+const ami = useAmi()
+const {
+  coreStatus,
+  formattedUptime,
+  isHealthy,
+  totalChannels,
+  getCoreStatus,
+  getChannels,
+  ping,
+  reloadModule,
+} = useAmiSystem(computed(() => ami.getClient()))
+
+// Get system status
+await getCoreStatus()
+console.log(`Asterisk ${coreStatus.value?.asteriskVersion}`)
+console.log(`Uptime: ${formattedUptime.value}`)
+
+// Check latency
+const latencyMs = await ping()
+console.log(`AMI latency: ${latencyMs}ms`)
+
+// List active channels
+await getChannels()
+console.log(`Active channels: ${totalChannels.value}`)
+
+// Reload a module
+await reloadModule('res_pjsip.so')
+```
+
+---
+
+### useAmiMWI
+
+Provides Vue composable for Message Waiting Indicator (MWI) control via AMI.
+
+**Source:** [`src/composables/useAmiMWI.ts`](../../src/composables/useAmiMWI.ts)
+
+#### Signature
+
+```typescript
+function useAmiMWI(amiClientRef: Ref<AmiClient | null>, options?: UseAmiMWIOptions): UseAmiMWIReturn
+```
+
+#### Parameters
+
+| Parameter                | Type                                           | Default     | Description                      |
+| ------------------------ | ---------------------------------------------- | ----------- | -------------------------------- |
+| `amiClientRef`           | `Ref<AmiClient \| null>`                       | required    | Reactive reference to AMI client |
+| `options.useEvents`      | `boolean`                                      | `true`      | Subscribe to real-time events    |
+| `options.defaultContext` | `string`                                       | `'default'` | Default mailbox context          |
+| `options.onMWIChange`    | `(mailbox: string, status: MWIStatus) => void` | -           | MWI change callback              |
+
+#### Returns: `UseAmiMWIReturn`
+
+##### Reactive State
+
+| Property                | Type                          | Description             |
+| ----------------------- | ----------------------------- | ----------------------- |
+| `mailboxes`             | `Ref<Map<string, MWIStatus>>` | Mailbox statuses        |
+| `isLoading`             | `Ref<boolean>`                | Loading state           |
+| `error`                 | `Ref<string \| null>`         | Error message           |
+| `mailboxList`           | `ComputedRef<MWIStatus[]>`    | Mailboxes as array      |
+| `mailboxesWithMessages` | `ComputedRef<MWIStatus[]>`    | Mailboxes with messages |
+| `totalNewMessages`      | `ComputedRef<number>`         | Total new messages      |
+| `indicatorOnCount`      | `ComputedRef<number>`         | Count of lit indicators |
+
+##### Methods
+
+| Method             | Signature                                                                          | Description               |
+| ------------------ | ---------------------------------------------------------------------------------- | ------------------------- |
+| `getMailboxStatus` | `(mailbox: string) => Promise<MWIStatus>`                                          | Get mailbox status        |
+| `updateMWI`        | `(mailbox: string, newMessages: number, oldMessages?: number) => Promise<boolean>` | Update MWI indicator      |
+| `deleteMWI`        | `(mailbox: string) => Promise<boolean>`                                            | Delete MWI state          |
+| `refresh`          | `() => Promise<void>`                                                              | Refresh tracked mailboxes |
+| `getMailbox`       | `(mailbox: string) => MWIStatus \| undefined`                                      | Get cached status         |
+| `hasMessages`      | `(mailbox: string) => boolean`                                                     | Check for messages        |
+| `trackMailbox`     | `(mailbox: string) => Promise<void>`                                               | Start tracking mailbox    |
+| `untrackMailbox`   | `(mailbox: string) => void`                                                        | Stop tracking mailbox     |
+
+#### Usage Example
+
+```typescript
+import { computed } from 'vue'
+import { useAmi, useAmiMWI } from 'vuesip'
+
+const ami = useAmi()
+const {
+  mailboxList,
+  totalNewMessages,
+  indicatorOnCount,
+  getMailboxStatus,
+  updateMWI,
+  trackMailbox,
+  hasMessages,
+} = useAmiMWI(
+  computed(() => ami.getClient()),
+  {
+    defaultContext: 'default',
+    onMWIChange: (mailbox, status) => {
+      console.log(`${mailbox}: ${status.newMessages} new messages`)
+    },
+  }
+)
+
+// Track a mailbox
+await trackMailbox('1001')
+
+// Check voicemail status
+const status = await getMailboxStatus('1001')
+console.log(`${status.newMessages} new, ${status.oldMessages} old messages`)
+
+// Update MWI lamp manually
+await updateMWI('1001', 3) // 3 new messages
+
+// Check if mailbox has messages
+if (hasMessages('1001')) {
+  console.log('Voicemail waiting!')
+}
+```
 
 ---
 
