@@ -81,7 +81,10 @@ export default defineConfig({
         {
           text: 'Integrations',
           collapsed: false,
-          items: [{ text: 'AMI & CDR Integration', link: '/guide/ami-cdr' }],
+          items: [
+            { text: 'AMI & CDR Integration', link: '/guide/ami-cdr' },
+            { text: 'ConfBridge Conferencing', link: '/guide/confbridge' },
+          ],
         },
         {
           text: 'Quality & Reliability',
@@ -200,6 +203,10 @@ export default defineConfig({
             { text: 'Agent Login', link: '/examples/agent-login' },
             { text: 'Queue Monitor', link: '/examples/queue-monitor' },
             { text: 'CDR Dashboard', link: '/examples/cdr-dashboard' },
+            { text: 'ConfBridge Manager', link: '/examples/confbridge' },
+            { text: 'PJSIP Endpoints', link: '/examples/pjsip-endpoints' },
+            { text: 'System Health', link: '/examples/system-health' },
+            { text: 'Message Waiting', link: '/examples/mwi' },
           ],
         },
         {

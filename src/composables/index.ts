@@ -59,6 +59,10 @@ export { useAmiPeers, type UseAmiPeersReturn } from './useAmiPeers'
 export { useAmiCalls, type UseAmiCallsReturn } from './useAmiCalls'
 export { useAmiDatabase, type UseAmiDatabaseReturn } from './useAmiDatabase'
 export { useAmi, type UseAmiReturn } from './useAmi'
+export { useAmiConfBridge, type UseAmiConfBridgeReturn } from './useAmiConfBridge'
+export { useAmiPjsip } from './useAmiPjsip'
+export { useAmiSystem } from './useAmiSystem'
+export { useAmiMWI } from './useAmiMWI'
 
 // SIP composables
 export { useSipWebRTCStats } from './useSipWebRTCStats'
@@ -245,3 +249,20 @@ export {
   TIMEOUTS,
   RETRY_CONFIG,
 } from './constants'
+
+// Call Center (provider-agnostic)
+export { useCallCenterProvider } from './useCallCenterProvider'
+export type { UseCallCenterProviderReturn } from './useCallCenterProvider'
+
+export { useAgentState } from './useAgentState'
+export type { UseAgentStateOptions, UseAgentStateReturn } from './useAgentState'
+
+export { useAgentQueue } from './useAgentQueue'
+export type { UseAgentQueueReturn } from './useAgentQueue'
+
+export { useAgentMetrics } from './useAgentMetrics'
+export type { UseAgentMetricsOptions, UseAgentMetricsReturn } from './useAgentMetrics'
+
+// Provider API composables
+export { useTelnyxApi, type UseTelnyxApiReturn } from './useTelnyxApi'
+export { use46ElksApi, type Use46ElksApiReturn } from './use46ElksApi'

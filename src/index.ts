@@ -137,6 +137,41 @@ export * from './types'
 export * from './providers'
 
 // ============================================================================
+// Call Center Provider System
+// ============================================================================
+
+/**
+ * Call center provider system for agent queue management.
+ *
+ * Provides provider-agnostic composables that work with any call center backend
+ * (Asterisk, FreeSWITCH, cloud services) through platform-specific adapters.
+ *
+ * @see {@link useCallCenterProvider} for provider configuration
+ * @see {@link useAgentState} for agent status management
+ * @see {@link useAgentQueue} for queue membership
+ * @see {@link useAgentMetrics} for performance metrics
+ *
+ * @example
+ * ```typescript
+ * import {
+ *   useCallCenterProvider,
+ *   useAgentState,
+ *   useAgentQueue,
+ *   createAsteriskAdapter,
+ * } from 'vuesip'
+ *
+ * const { provider, connect } = useCallCenterProvider({
+ *   type: 'asterisk',
+ *   connection: { host: 'pbx.example.com', port: 5038 },
+ * })
+ *
+ * const { login, status, isPaused } = useAgentState(provider)
+ * const { queues, joinQueue, leaveQueue } = useAgentQueue(provider)
+ * ```
+ */
+export * from './providers/call-center'
+
+// ============================================================================
 // Core Classes
 // ============================================================================
 

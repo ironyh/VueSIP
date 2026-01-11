@@ -60,3 +60,15 @@ export * from './connection-recovery.types'
 
 // Transcription types
 export * from './transcription.types'
+
+// ConfBridge types (AMI)
+export * from './confbridge.types'
+
+// PJSIP types (AMI)
+export * from './pjsip.types'
+
+// System types (AMI)
+export * from './system.types'
+
+// MWI types (AMI)
+export * from './mwi.types'
