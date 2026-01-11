@@ -19,7 +19,7 @@ import {
 import type {
   CallCenterProvider,
   CallCenterCapabilities,
-  ProviderConfig,
+  CallCenterProviderConfig,
 } from '@/providers/call-center/types'
 import { createAsteriskAdapter } from '@/providers/call-center/adapters/asterisk'
 import { createLogger } from '@/utils/logger'
@@ -49,7 +49,7 @@ export interface UseCallCenterProviderReturn {
 /**
  * Create provider instance based on config type
  */
-function createProvider(type: ProviderConfig['type']): CallCenterProvider {
+function createProvider(type: CallCenterProviderConfig['type']): CallCenterProvider {
   switch (type) {
     case 'asterisk':
       return createAsteriskAdapter()
@@ -85,7 +85,9 @@ function createProvider(type: ProviderConfig['type']): CallCenterProvider {
  * await connect()
  * ```
  */
-export function useCallCenterProvider(config: ProviderConfig): UseCallCenterProviderReturn {
+export function useCallCenterProvider(
+  config: CallCenterProviderConfig
+): UseCallCenterProviderReturn {
   const provider = shallowRef<CallCenterProvider | null>(null)
   const isConnected = ref(false)
   const isLoading = ref(false)

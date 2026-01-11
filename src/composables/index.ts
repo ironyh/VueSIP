@@ -249,3 +249,16 @@ export {
   TIMEOUTS,
   RETRY_CONFIG,
 } from './constants'
+
+// Call Center (provider-agnostic)
+export { useCallCenterProvider } from './useCallCenterProvider'
+export type { UseCallCenterProviderReturn } from './useCallCenterProvider'
+
+export { useAgentState } from './useAgentState'
+export type { UseAgentStateOptions, UseAgentStateReturn } from './useAgentState'
+
+export { useAgentQueue } from './useAgentQueue'
+export type { UseAgentQueueReturn } from './useAgentQueue'
+
+export { useAgentMetrics } from './useAgentMetrics'
+export type { UseAgentMetricsOptions, UseAgentMetricsReturn } from './useAgentMetrics'

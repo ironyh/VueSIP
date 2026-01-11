@@ -135,7 +135,7 @@ export interface CallCenterCapabilities {
 /**
  * Provider configuration for initialization
  */
-export interface ProviderConfig {
+export interface CallCenterProviderConfig {
   /** Provider type identifier */
   type: 'asterisk' | 'freeswitch' | 'cloud' | 'custom'
   /** Connection configuration (provider-specific) */
@@ -242,7 +242,7 @@ export interface CallCenterProvider {
 
   // Connection lifecycle
   /** Connect to the provider backend */
-  connect(config: ProviderConfig): Promise<void>
+  connect(config: CallCenterProviderConfig): Promise<void>
   /** Disconnect from the provider */
   disconnect(): Promise<void>
 

@@ -12,7 +12,7 @@ import type { AmiMessage } from '@/types/ami.types'
 import type {
   CallCenterProvider,
   CallCenterCapabilities,
-  ProviderConfig,
+  CallCenterProviderConfig,
   AgentState,
   AgentStatus,
   AgentMetrics,
@@ -72,7 +72,7 @@ function _mapAsteriskStatus(amiStatus: string, paused: boolean): AgentStatus {
  */
 export function createAsteriskAdapter(): CallCenterProvider {
   let amiClient: AmiClient | null = null
-  let config: ProviderConfig | null = null
+  let config: CallCenterProviderConfig | null = null
   let currentState: AgentState | null = null
   let sessionMetrics: AgentMetrics = createInitialMetrics()
   let sessionStartTime: Date | null = null
@@ -299,7 +299,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
     name: 'Asterisk AMI',
     capabilities: ASTERISK_CAPABILITIES,
 
-    async connect(providerConfig: ProviderConfig): Promise<void> {
+    async connect(providerConfig: CallCenterProviderConfig): Promise<void> {
       if (amiClient) {
         throw new Error('Already connected')
       }
