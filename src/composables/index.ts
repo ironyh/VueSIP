@@ -262,3 +262,7 @@ export type { UseAgentQueueReturn } from './useAgentQueue'
 
 export { useAgentMetrics } from './useAgentMetrics'
 export type { UseAgentMetricsOptions, UseAgentMetricsReturn } from './useAgentMetrics'
+
+// Provider API composables
+export { useTelnyxApi, type UseTelnyxApiReturn } from './useTelnyxApi'
+export { use46ElksApi, type Use46ElksApiReturn } from './use46ElksApi'
