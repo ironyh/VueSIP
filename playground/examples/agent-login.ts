@@ -5,43 +5,138 @@ export const agentLoginExample: ExampleDefinition = {
   id: 'agent-login',
   icon: '🎧',
   title: 'Agent Login',
-  description: 'Queue agent login, logout, and status management',
-  tags: ['Call Center', 'Queues', 'Agent'],
+  description: 'Provider-agnostic call center agent management with queue operations',
+  tags: ['Call Center', 'Queues', 'Agent', 'Provider-Agnostic'],
   component: AgentLoginDemo,
-  setupGuide: '<p>Manage call center agent sessions. Login to queues, set availability status, and handle queue membership.</p>',
+  setupGuide: `<p>Manage call center agent sessions using provider-agnostic composables.
+    Works with Asterisk AMI, FreeSWITCH (planned), and cloud providers.</p>
+    <ul>
+      <li><strong>useCallCenterProvider</strong> - Factory to create provider instances</li>
+      <li><strong>useAgentState</strong> - Login, logout, pause, and status management</li>
+      <li><strong>useAgentQueue</strong> - Queue membership and per-queue operations</li>
+      <li><strong>useAgentMetrics</strong> - Session statistics and performance metrics</li>
+    </ul>`,
   codeSnippets: [
     {
-      title: 'Agent Login/Logout',
-      description: 'Login and logout from queues',
-      code: `import { useAgentLogin } from 'vuesip'
+      title: 'Connect to Provider',
+      description: 'Create provider instance and connect',
+      code: `import { useCallCenterProvider, useAgentState, useAgentQueue, useAgentMetrics } from 'vuesip'
 
-const agent = useAgentLogin(amiClientRef, {
-  agentId: 'Agent/1001',
-  interface: 'PJSIP/1001',
-  onStatusChange: (status, session) => {
-    console.log('Agent status:', status)
+// Create provider instance (Asterisk example)
+const { provider, connect, disconnect, isConnected } = useCallCenterProvider({
+  type: 'asterisk',
+  connection: {
+    host: 'pbx.example.com',
+    port: 5038,
+    username: 'admin',
+    secret: 'secret',
   },
+  agent: {
+    id: 'agent-001',
+    extension: 'PJSIP/1001',
+    name: 'John Doe',
+  },
+  defaultQueues: ['support', 'sales'],
+  pauseReasons: ['Lunch', 'Break', 'Meeting'],
 })
 
-// Login to a queue
-await agent.login('sales-queue')
-
-// Logout from queue
-await agent.logout('sales-queue')`,
+// Connect to the provider
+await connect()`,
     },
     {
-      title: 'Manage Agent Status',
-      description: 'Set pause status and availability',
-      code: `// Pause agent (break time)
-await agent.pause('sales-queue', 'Break')
+      title: 'Agent State Management',
+      description: 'Login, logout, and manage agent status',
+      code: `// Use agent state composable
+const {
+  status,
+  isLoggedIn,
+  isOnCall,
+  isPaused,
+  pauseReason,
+  sessionDuration,
+  login,
+  logout,
+  pause,
+  unpause,
+} = useAgentState(provider)
 
-// Unpause agent
-await agent.unpause('sales-queue')
+// Login to default queues
+await login()
 
-// Check agent status
-console.log('Is logged in:', agent.isLoggedIn.value)
-console.log('Is paused:', agent.isPaused.value)
-console.log('Current queues:', agent.queues.value)`,
+// Or login to specific queues with penalties
+await login({
+  queues: ['support', 'sales'],
+  penalties: { support: 0, sales: 5 },
+})
+
+// Pause agent with reason
+await pause({ reason: 'Lunch Break' })
+
+// Resume availability
+await unpause()
+
+// Logout from all queues
+await logout()`,
+    },
+    {
+      title: 'Queue Operations',
+      description: 'Manage queue membership and per-queue pause',
+      code: `// Use queue composable
+const {
+  queues,
+  activeQueues,
+  pausedQueues,
+  totalCallsHandled,
+  joinQueue,
+  leaveQueue,
+  pauseInQueue,
+  unpauseInQueue,
+} = useAgentQueue(provider)
+
+// Join a new queue
+await joinQueue('premium-support', 0) // queue name, penalty
+
+// Leave a queue
+await leaveQueue('sales')
+
+// Pause in specific queue only
+await pauseInQueue('support', 'Training')
+
+// Resume in specific queue
+await unpauseInQueue('support')
+
+// Access queue data
+queues.value.forEach(q => {
+  console.log(\`\${q.name}: \${q.callsHandled} calls, paused: \${q.isPaused}\`)
+})`,
+    },
+    {
+      title: 'Session Metrics',
+      description: 'Track agent performance and statistics',
+      code: `// Use metrics composable with auto-refresh
+const {
+  metrics,
+  totalTalkTimeFormatted,
+  averageHandleTimeFormatted,
+  callsPerHour,
+  utilizationPercent,
+  fetchMetrics,
+  startAutoRefresh,
+  stopAutoRefresh,
+} = useAgentMetrics(provider, { autoRefreshInterval: 30000 })
+
+// Start auto-refresh on login
+startAutoRefresh()
+
+// Access metrics
+console.log('Calls handled:', metrics.value?.callsHandled)
+console.log('Total talk time:', totalTalkTimeFormatted.value)
+console.log('Avg handle time:', averageHandleTimeFormatted.value)
+console.log('Calls per hour:', callsPerHour.value.toFixed(1))
+console.log('Utilization:', utilizationPercent.value.toFixed(1) + '%')
+
+// Stop auto-refresh on logout
+stopAutoRefresh()`,
     },
   ],
 }
