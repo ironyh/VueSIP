@@ -14,6 +14,8 @@ export default defineConfig({
 
   resolve: {
     alias: {
+      // Resolve 'vuesip' imports to source (dist is gitignored)
+      vuesip: resolve(__dirname, 'src/index.ts'),
       '@': resolve(__dirname, 'src'),
       '@/composables': resolve(__dirname, 'src/composables'),
       '@/core': resolve(__dirname, 'src/core'),
@@ -38,7 +40,7 @@ export default defineConfig({
           // Vue core
           'vue-vendor': ['vue', 'pinia'],
           // PrimeVue UI library (largest chunk)
-          'primevue': [
+          primevue: [
             'primevue/config',
             'primevue/tooltip',
             'primevue/button',
@@ -56,10 +58,7 @@ export default defineConfig({
             'primevue/usetoast',
           ],
           // VueSIP library
-          'vuesip': [
-            './src/composables/index.ts',
-            './src/core/index.ts',
-          ],
+          vuesip: ['./src/composables/index.ts', './src/core/index.ts'],
         },
       },
     },
