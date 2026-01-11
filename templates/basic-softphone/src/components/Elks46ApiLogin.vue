@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import Message from 'primevue/message'
+import Checkbox from 'primevue/checkbox'
 import { use46ElksApi } from 'vuesip'
+
+const STORAGE_KEY = 'vuesip_46elks_credentials'
 
 const emit = defineEmits<{
   'credentials-ready': [credentials: { phoneNumber: string; secret: string }]
@@ -27,17 +30,51 @@ const {
 // Form state
 const apiUsername = ref('')
 const apiPassword = ref('')
+const rememberCredentials = ref(false)
 
 // Form validation
 const isLoginFormValid = computed(
   () => apiUsername.value.trim().length > 0 && apiPassword.value.trim().length > 0
 )
 
+// Load saved credentials on mount
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const { username, password } = JSON.parse(saved)
+      apiUsername.value = username || ''
+      apiPassword.value = password || ''
+      rememberCredentials.value = true
+    }
+  } catch {
+    // Ignore parse errors
+  }
+})
+
+// Save credentials to localStorage
+function saveCredentials() {
+  if (rememberCredentials.value) {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        username: apiUsername.value,
+        password: apiPassword.value,
+      })
+    )
+  }
+}
+
+// Clear saved credentials
+function clearSavedCredentials() {
+  localStorage.removeItem(STORAGE_KEY)
+}
+
 // Handle API login
 async function handleLogin() {
   const success = await authenticate(apiUsername.value, apiPassword.value)
-  if (!success) {
-    // Error is set by the composable
+  if (success) {
+    saveCredentials()
   }
 }
 
@@ -59,6 +96,8 @@ function handleReset() {
   clear()
   apiUsername.value = ''
   apiPassword.value = ''
+  rememberCredentials.value = false
+  clearSavedCredentials()
 }
 </script>
 
@@ -95,6 +134,11 @@ function handleReset() {
           class="w-full"
           :disabled="isLoading"
         />
+      </div>
+
+      <div class="remember-me">
+        <Checkbox v-model="rememberCredentials" :binary="true" input-id="remember" />
+        <label for="remember">Remember credentials</label>
       </div>
 
       <Message v-if="error" severity="error" :closable="false">
@@ -230,6 +274,18 @@ function handleReset() {
 
 .w-full {
   width: 100%;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.remember-me label {
+  font-size: 0.875rem;
+  cursor: pointer;
 }
 
 .manual-entry-link {
