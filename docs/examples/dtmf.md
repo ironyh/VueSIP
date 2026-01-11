@@ -3,7 +3,7 @@
 Send DTMF (touch) tones during active calls for IVR navigation and feature codes.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#dtmf) or run `pnpm dev` → Navigate to **DtmfDemo** in the playground
+Run `pnpm dev` → Navigate to **DtmfDemo** in the playground
 :::
 
 ## Overview

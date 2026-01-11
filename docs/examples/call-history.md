@@ -3,7 +3,7 @@
 Call log management with search, filtering, and callback functionality.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#call-history) or run `pnpm dev` → Navigate to **CallHistoryDemo** in the playground
+Run `pnpm dev` → Navigate to **CallHistoryDemo** in the playground
 :::
 
 ## Overview

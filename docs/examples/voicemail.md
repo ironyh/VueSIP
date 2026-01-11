@@ -3,7 +3,7 @@
 Voicemail box management.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#voicemail) or run `pnpm dev` → Navigate to **VoicemailDemo** in the playground
+Run `pnpm dev` → Navigate to **VoicemailDemo** in the playground
 :::
 
 ## Overview

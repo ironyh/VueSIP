@@ -3,7 +3,7 @@
 Real-time call quality metrics with scoring, trend analysis, and recommendations.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#call-quality) or run `pnpm dev` → Navigate to **CallQualityDemo** in the playground
+Run `pnpm dev` → Navigate to **CallQualityDemo** in the playground
 :::
 
 ## Overview

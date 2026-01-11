@@ -3,7 +3,7 @@
 Server-side call recording management.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#call-recording) or run `pnpm dev` → Navigate to **CallRecordingDemo** in the playground
+Run `pnpm dev` → Navigate to **CallRecordingDemo** in the playground
 :::
 
 ## Overview

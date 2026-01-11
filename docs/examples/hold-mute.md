@@ -3,7 +3,7 @@
 Basic call controls for holding and muting calls.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#call-mute-patterns) or run `pnpm dev` → Navigate to **CallControlsDemo** in the playground
+Run `pnpm dev` → Navigate to **CallControlsDemo** in the playground
 :::
 
 ## Overview

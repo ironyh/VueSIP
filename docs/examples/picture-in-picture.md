@@ -3,7 +3,7 @@
 Browser Picture-in-Picture (PiP) integration for video calls.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#picture-in-picture) or run `pnpm dev` → Navigate to **PictureInPictureDemo** in the playground
+Run `pnpm dev` → Navigate to **PictureInPictureDemo** in the playground
 :::
 
 ## Overview

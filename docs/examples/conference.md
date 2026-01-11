@@ -3,7 +3,7 @@
 Multi-party audio and video conference calling with participant management.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#conference-call) or run `pnpm dev` → Navigate to **ConferenceCallDemo** in the playground
+Run `pnpm dev` → Navigate to **ConferenceCallDemo** in the playground
 :::
 
 ## Overview

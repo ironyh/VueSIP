@@ -3,7 +3,7 @@
 Gallery layout for conference video participants.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#conference-gallery) or run `pnpm dev` → Navigate to **ConferenceGalleryDemo** in the playground
+Run `pnpm dev` → Navigate to **ConferenceGalleryDemo** in the playground
 :::
 
 ## Overview

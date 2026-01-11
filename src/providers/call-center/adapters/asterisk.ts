@@ -8,7 +8,7 @@
  */
 
 import type { AmiClient } from '@/core/AmiClient'
-import type { AmiMessage } from '@/types/ami.types'
+import type { AmiMessage, AmiEventData } from '@/types/ami.types'
 import type {
   CallCenterProvider,
   CallCenterCapabilities,
@@ -49,7 +49,7 @@ const ASTERISK_CAPABILITIES: CallCenterCapabilities = {
  * Map Asterisk queue member status to AgentStatus
  * Used when processing QueueMemberStatus events
  */
-function _mapAsteriskStatus(amiStatus: string, paused: boolean): AgentStatus {
+function mapAsteriskStatus(amiStatus: string, paused: boolean): AgentStatus {
   if (paused) return 'break'
   switch (amiStatus) {
     case '1':
@@ -66,6 +66,9 @@ function _mapAsteriskStatus(amiStatus: string, paused: boolean): AgentStatus {
       return 'offline'
   }
 }
+
+// Export for testing - suppress unused warning
+void mapAsteriskStatus
 
 /**
  * Create Asterisk AMI adapter instance
@@ -129,37 +132,38 @@ export function createAsteriskAdapter(): CallCenterProvider {
     )
   }
 
-  function handleAmiEvent(event: AmiMessage) {
+  function handleAmiEvent(event: AmiMessage<AmiEventData>) {
     if (!currentState) return
 
-    const eventType = event.Event
+    const eventData = event.data
+    const eventType = eventData.Event
     switch (eventType) {
       case 'QueueMemberAdded':
-        handleQueueMemberAdded(event)
+        handleQueueMemberAdded(eventData)
         break
       case 'QueueMemberRemoved':
-        handleQueueMemberRemoved(event)
+        handleQueueMemberRemoved(eventData)
         break
       case 'QueueMemberPause':
-        handleQueueMemberPause(event)
+        handleQueueMemberPause(eventData)
         break
       case 'AgentCalled':
-        handleAgentCalled(event)
+        handleAgentCalled(eventData)
         break
       case 'AgentConnect':
-        handleAgentConnect(event)
+        handleAgentConnect(eventData)
         break
       case 'AgentComplete':
-        handleAgentComplete(event)
+        handleAgentComplete(eventData)
         break
     }
   }
 
-  function handleQueueMemberAdded(event: AmiMessage) {
+  function handleQueueMemberAdded(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (event.Interface !== config.agent.extension) return
+    if (eventData.Interface !== config.agent.extension) return
 
-    const queueName = event.Queue as string
+    const queueName = eventData.Queue as string
     const existingQueue = currentState.queues.find((q) => q.name === queueName)
 
     if (!existingQueue) {
@@ -167,9 +171,9 @@ export function createAsteriskAdapter(): CallCenterProvider {
         name: queueName,
         displayName: queueName,
         isMember: true,
-        isPaused: event.Paused === '1',
-        penalty: parseInt(event.Penalty as string, 10) || 0,
-        callsHandled: parseInt(event.CallsTaken as string, 10) || 0,
+        isPaused: eventData.Paused === '1',
+        penalty: parseInt(eventData.Penalty as string, 10) || 0,
+        callsHandled: parseInt(eventData.CallsTaken as string, 10) || 0,
         lastCallTime: null,
       }
 
@@ -183,11 +187,11 @@ export function createAsteriskAdapter(): CallCenterProvider {
     }
   }
 
-  function handleQueueMemberRemoved(event: AmiMessage) {
+  function handleQueueMemberRemoved(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (event.Interface !== config.agent.extension) return
+    if (eventData.Interface !== config.agent.extension) return
 
-    const queueName = event.Queue as string
+    const queueName = eventData.Queue as string
     const newState: AgentState = {
       ...currentState,
       queues: currentState.queues.filter((q) => q.name !== queueName),
@@ -196,13 +200,13 @@ export function createAsteriskAdapter(): CallCenterProvider {
     emitQueueEvent('left', queueName)
   }
 
-  function handleQueueMemberPause(event: AmiMessage) {
+  function handleQueueMemberPause(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (event.Interface !== config.agent.extension) return
+    if (eventData.Interface !== config.agent.extension) return
 
-    const queueName = event.Queue as string
-    const isPaused = event.Paused === '1'
-    const reason = (event.PausedReason || event.Reason) as string | undefined
+    const queueName = eventData.Queue as string
+    const isPaused = eventData.Paused === '1'
+    const reason = (eventData.PausedReason || eventData.Reason) as string | undefined
 
     const newQueues = currentState.queues.map((q) =>
       q.name === queueName ? { ...q, isPaused } : q
@@ -220,29 +224,30 @@ export function createAsteriskAdapter(): CallCenterProvider {
     emitQueueEvent(isPaused ? 'paused' : 'unpaused', queueName, { reason })
   }
 
-  function handleAgentCalled(event: AmiMessage) {
+  function handleAgentCalled(eventData: AmiEventData) {
     if (!currentState || !config) return
     // Check if this agent is being called
-    if (!event.Interface?.includes(config.agent.extension)) return
+    if (!eventData.Interface?.includes(config.agent.extension)) return
 
-    const queueName = event.Queue as string
+    const queueName = eventData.Queue as string
     emitQueueEvent('call-received', queueName, {
-      callerId: event.CallerIDNum,
-      callerName: event.CallerIDName,
+      callerId: eventData.CallerIDNum,
+      callerName: eventData.CallerIDName,
     })
   }
 
-  function handleAgentConnect(event: AmiMessage) {
+  function handleAgentConnect(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (!event.Interface?.includes(config.agent.extension)) return
+    if (!eventData.Interface?.includes(config.agent.extension)) return
 
     const newState: AgentState = {
       ...currentState,
       status: 'busy',
       currentCall: {
-        callId: event.Uniqueid as string,
-        fromQueue: (event.Queue as string) || null,
-        callerInfo: `${event.CallerIDName || ''} <${event.CallerIDNum || ''}>`.trim() || 'Unknown',
+        callId: eventData.Uniqueid as string,
+        fromQueue: (eventData.Queue as string) || null,
+        callerInfo:
+          `${eventData.CallerIDName || ''} <${eventData.CallerIDNum || ''}>`.trim() || 'Unknown',
         startTime: new Date(),
         duration: 0,
         isOnHold: false,
@@ -251,11 +256,11 @@ export function createAsteriskAdapter(): CallCenterProvider {
     emitStateChange(newState)
   }
 
-  function handleAgentComplete(event: AmiMessage) {
+  function handleAgentComplete(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (!event.Interface?.includes(config.agent.extension)) return
+    if (!eventData.Interface?.includes(config.agent.extension)) return
 
-    const talkTime = parseInt(event.TalkTime as string, 10) || 0
+    const talkTime = parseInt(eventData.TalkTime as string, 10) || 0
 
     // Update metrics
     sessionMetrics.callsHandled++
@@ -268,7 +273,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
       sessionMetrics.totalTalkTime / sessionMetrics.callsHandled
     )
 
-    const queueName = event.Queue as string
+    const queueName = eventData.Queue as string
     const newQueues = currentState.queues.map((q) =>
       q.name === queueName
         ? { ...q, callsHandled: q.callsHandled + 1, lastCallTime: new Date() }
@@ -283,7 +288,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
     }
     emitStateChange(newState)
 
-    const holdTime = parseInt(event.HoldTime as string, 10) || 0
+    const holdTime = parseInt(eventData.HoldTime as string, 10) || 0
     emitQueueEvent('call-completed', queueName, { talkTime, holdTime })
 
     // Auto-transition from wrap-up to available after short delay
@@ -307,12 +312,13 @@ export function createAsteriskAdapter(): CallCenterProvider {
       config = providerConfig
       const { AmiClient: AmiClientClass } = await import('@/core/AmiClient')
 
-      amiClient = new AmiClientClass({
-        host: config.connection.host as string,
-        port: config.connection.port as number,
-        username: config.connection.username as string,
-        secret: config.connection.secret as string,
-      })
+      // Build WebSocket URL for amiws proxy from connection config
+      const host = config.connection.host as string
+      const port = config.connection.port as number
+      const protocol = config.connection.secure ? 'wss' : 'ws'
+      const url = (config.connection.url as string) || `${protocol}://${host}:${port}/ami`
+
+      amiClient = new AmiClientClass({ url })
 
       // Set up event listeners
       amiClient.on('event', handleAmiEvent)
@@ -346,7 +352,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
       // Add agent to each queue
       for (const queue of queues) {
         const penalty = options?.penalties?.[queue] ?? defaultPenalty
-        await amiClient.action({
+        await amiClient.sendAction({
           Action: 'QueueAdd',
           Queue: queue,
           Interface: config.agent.extension,
@@ -387,7 +393,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
       const queues = options?.queues || currentState.queues.map((q) => q.name)
 
       for (const queue of queues) {
-        await amiClient.action({
+        await amiClient.sendAction({
           Action: 'QueueRemove',
           Queue: queue,
           Interface: config.agent.extension,
@@ -436,7 +442,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
     async joinQueue(queue: string, penalty?: number): Promise<void> {
       if (!amiClient || !config) throw new Error('Not connected')
 
-      await amiClient.action({
+      await amiClient.sendAction({
         Action: 'QueueAdd',
         Queue: queue,
         Interface: config.agent.extension,
@@ -449,7 +455,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
     async leaveQueue(queue: string): Promise<void> {
       if (!amiClient || !config) throw new Error('Not connected')
 
-      await amiClient.action({
+      await amiClient.sendAction({
         Action: 'QueueRemove',
         Queue: queue,
         Interface: config.agent.extension,
@@ -462,7 +468,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
       const queues = options.queues || currentState.queues.map((q) => q.name)
 
       for (const queue of queues) {
-        await amiClient.action({
+        await amiClient.sendAction({
           Action: 'QueuePause',
           Queue: queue,
           Interface: config.agent.extension,
@@ -487,7 +493,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
       const targetQueues = queues || currentState.queues.map((q) => q.name)
 
       for (const queue of targetQueues) {
-        await amiClient.action({
+        await amiClient.sendAction({
           Action: 'QueuePause',
           Queue: queue,
           Interface: config.agent.extension,

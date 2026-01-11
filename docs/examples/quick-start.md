@@ -3,7 +3,7 @@
 Get up and running with VueSip in under 3 minutes.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#basic-call) or run `pnpm dev` → Navigate to **BasicCallDemo** in the playground
+Run `pnpm dev` → Navigate to **BasicCallDemo** in the playground
 :::
 
 ## Installation

@@ -3,7 +3,7 @@
 Complete audio device management with microphone and speaker selection.
 
 ::: tip Try It Live
-[**View on play.vuesip.com**](https://play.vuesip.com/#audio-devices) or run `pnpm dev` → Navigate to **AudioDevicesDemo** in the playground
+Run `pnpm dev` → Navigate to **AudioDevicesDemo** in the playground
 :::
 
 ## Overview
