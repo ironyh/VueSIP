@@ -1109,4 +1109,401 @@ onUnmounted(() => {
 .suggestion-leave-to {
   opacity: 0;
 }
+
+/* ============================================
+   DARK MODE STYLES
+   ============================================ */
+
+/* Dark mode - Scenario Cards */
+:global(.dark-mode) .scenario-card {
+  background: var(--surface-card);
+  border-color: var(--surface-border);
+}
+
+:global(.dark-mode) .scenario-card:hover {
+  background: var(--surface-hover);
+  border-color: var(--primary-400);
+}
+
+:global(.dark-mode) .scenario-card.active {
+  background: rgba(var(--primary-500-rgb, 99, 102, 241), 0.15);
+  border-color: var(--primary-400);
+}
+
+/* Dark mode - Transcript Container */
+:global(.dark-mode) .transcript-container {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+}
+
+/* Dark mode - Transcript Entries */
+:global(.dark-mode) .transcript-entry.local {
+  background: rgba(var(--primary-500-rgb, 99, 102, 241), 0.15);
+  border-left: 3px solid var(--primary-400);
+}
+
+:global(.dark-mode) .transcript-entry.remote {
+  background: var(--surface-hover);
+  border-left: 3px solid var(--surface-400);
+}
+
+:global(.dark-mode) .speaker-badge {
+  color: var(--primary-300);
+}
+
+/* Dark mode - Keyword Matches */
+:global(.dark-mode) .keyword-matches {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+}
+
+:global(.dark-mode) .match-item {
+  background: var(--surface-hover);
+}
+
+:global(.dark-mode) .match-item.critical {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+:global(.dark-mode) .match-item.warning {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+:global(.dark-mode) .match-item.info {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Dark mode - Keyword Highlights */
+:global(.dark-mode) :deep(.keyword-highlight.danger) {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--red-300);
+}
+
+:global(.dark-mode) :deep(.keyword-highlight.warn) {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--yellow-300);
+}
+
+:global(.dark-mode) :deep(.keyword-highlight.info) {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--blue-300);
+}
+
+/* Dark mode - AI Suggestions Panel */
+:global(.dark-mode) .ai-suggestions-panel {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+}
+
+:global(.dark-mode) .suggestion-card.tip {
+  background: rgba(59, 130, 246, 0.15);
+  border-left: 3px solid var(--blue-400);
+}
+
+:global(.dark-mode) .suggestion-card.warning {
+  background: rgba(245, 158, 11, 0.15);
+  border-left: 3px solid var(--yellow-400);
+}
+
+:global(.dark-mode) .suggestion-card.success {
+  background: rgba(34, 197, 94, 0.15);
+  border-left: 3px solid var(--green-400);
+}
+
+/* Dark mode - Sentiment Indicators */
+:global(.dark-mode) .sentiment-indicator.positive {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid var(--green-700);
+}
+
+:global(.dark-mode) .sentiment-indicator.negative {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--red-700);
+}
+
+:global(.dark-mode) .sentiment-indicator.neutral {
+  background: var(--surface-hover);
+  border: 1px solid var(--surface-border);
+}
+
+/* Dark mode - Empty State */
+:global(.dark-mode) .empty-state {
+  color: var(--text-color-secondary);
+}
+
+/* Dark mode - General UI Improvements */
+:global(.dark-mode) .transcription-demo {
+  color: var(--text-color);
+}
+
+:global(.dark-mode) .tab-header {
+  color: var(--text-color);
+}
+
+/* Improved visual hierarchy for both modes */
+.transcript-entry {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.transcript-entry:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+:global(.dark-mode) .transcript-entry {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+:global(.dark-mode) .transcript-entry:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Scenario card improvements */
+.scenario-card {
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.scenario-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+:global(.dark-mode) .scenario-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+:global(.dark-mode) .scenario-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Match item improvements */
+.match-item {
+  transition: background 0.2s ease;
+  border-radius: 4px;
+}
+
+.match-item:hover {
+  filter: brightness(0.97);
+}
+</style>
+
+<!-- Unscoped dark mode overrides - hardcoded values since CSS vars aren't updated in dark mode -->
+<style>
+/* Dark mode overrides for TranscriptionDemo - using hardcoded colors */
+/* PrimeVue Card dark mode overrides */
+.dark-mode .p-card {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .p-card-title,
+.dark-mode .p-card-header,
+.dark-mode .p-card .p-card-title {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .p-card-content {
+  color: #e2e8f0 !important;
+}
+
+/* Scenario section header */
+.dark-mode .scenario-selector,
+.dark-mode .scenarios-wrapper,
+.dark-mode .scenario-grid,
+.dark-mode [class*='scenario'] > span {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .scenario-icon {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .scenario-info {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .scenario-info strong {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .scenario-info small {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .scenario-card {
+  background: #0c1322 !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .scenario-card * {
+  color: inherit !important;
+}
+
+.dark-mode .scenario-card h4,
+.dark-mode .scenario-card strong,
+.dark-mode .scenario-card .scenario-title {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .scenario-card p,
+.dark-mode .scenario-card small,
+.dark-mode .scenario-card .scenario-description {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .scenario-card:hover {
+  background: #1e293b !important;
+  border-color: #6366f1 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .scenario-card.active {
+  background: #1e293b !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4) !important;
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .transcript-container {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .transcript-entry {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark-mode .transcript-entry.local {
+  background: rgba(99, 102, 241, 0.15) !important;
+  border-left: 3px solid #818cf8 !important;
+}
+
+.dark-mode .transcript-entry.remote {
+  background: #334155 !important;
+  border-left: 3px solid #64748b !important;
+}
+
+.dark-mode .speaker-badge {
+  color: #a5b4fc !important;
+}
+
+.dark-mode .keyword-matches {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .match-item {
+  background: #334155 !important;
+}
+
+.dark-mode .match-item.critical {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+.dark-mode .match-item.warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+
+.dark-mode .match-item.info {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+.dark-mode .keyword-highlight.danger {
+  background: rgba(239, 68, 68, 0.25) !important;
+  color: #fca5a5 !important;
+}
+
+.dark-mode .keyword-highlight.warn {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #fcd34d !important;
+}
+
+.dark-mode .keyword-highlight.info {
+  background: rgba(59, 130, 246, 0.25) !important;
+  color: #93c5fd !important;
+}
+
+.dark-mode .ai-suggestions-panel {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .suggestion-card.tip {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-left-color: #60a5fa !important;
+}
+
+.dark-mode .suggestion-card.warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-left-color: #fbbf24 !important;
+}
+
+.dark-mode .suggestion-card.success {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-left-color: #4ade80 !important;
+}
+
+.dark-mode .sentiment-indicator.positive {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: #166534 !important;
+}
+
+.dark-mode .sentiment-indicator.negative {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #991b1b !important;
+}
+
+.dark-mode .sentiment-indicator.neutral {
+  background: #334155 !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .empty-state {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .transcription-demo {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .tab-header {
+  color: #f1f5f9 !important;
+}
+
+/* Active keyword chips in dark mode */
+.dark-mode .active-keywords .p-chip,
+.dark-mode .keyword-chip {
+  background: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Section headers */
+.dark-mode .section-header,
+.dark-mode h4 {
+  color: #f1f5f9 !important;
+}
+
+/* Transcript text colors */
+.dark-mode .transcript-text {
+  color: #e2e8f0 !important;
+}
+
+.dark-mode .timestamp {
+  color: #94a3b8 !important;
+}
+
+/* Match context text */
+.dark-mode .match-context {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .match-keyword {
+  color: #a5b4fc !important;
+}
 </style>
