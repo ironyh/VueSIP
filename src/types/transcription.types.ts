@@ -281,6 +281,83 @@ export interface ExportOptions {
 }
 
 // =============================================================================
+// Feature Module Interfaces (for Dependency Injection)
+// =============================================================================
+
+/**
+ * Interface for keyword detection functionality
+ * @remarks Enables dependency injection for testing
+ */
+export interface IKeywordDetector {
+  /** Add a keyword detection rule */
+  addRule(rule: Omit<KeywordRule, 'id'>): string
+  /** Remove a keyword detection rule */
+  removeRule(id: string): void
+  /** Get all registered rules */
+  getRules(): KeywordRule[]
+  /** Detect keywords in a transcript entry */
+  detect(entry: TranscriptEntry): KeywordMatch[]
+  /** Register callback for keyword matches */
+  onMatch(callback: (match: KeywordMatch) => void): () => void
+  /** Clean up resources */
+  dispose(): void
+}
+
+/**
+ * Interface for PII redaction functionality
+ * @remarks Enables dependency injection for testing
+ */
+export interface IPIIRedactor {
+  /** Check if redaction is enabled */
+  isEnabled(): boolean
+  /** Configure redaction settings */
+  configure(config: Partial<RedactionConfig>): void
+  /** Redact PII from text */
+  redact(text: string): RedactionResult
+  /** Redact PII from a transcript entry */
+  redactEntry(entry: TranscriptEntry): TranscriptEntry
+  /** Clean up resources */
+  dispose(): void
+}
+
+/**
+ * Interface for transcript export functionality
+ * @remarks Enables dependency injection for testing
+ */
+export interface ITranscriptExporter {
+  /** Export transcript entries to specified format */
+  export(entries: TranscriptEntry[], format: ExportFormat, options?: ExportOptions): string
+}
+
+/**
+ * Interface for provider registry functionality
+ * @remarks Enables dependency injection for testing
+ */
+export interface IProviderRegistry {
+  /** Check if a provider is registered */
+  has(name: string): boolean
+  /** Get or create a provider instance */
+  get(name: string, options?: ProviderOptions): Promise<TranscriptionProvider>
+  /** Get list of registered provider names */
+  getAvailable(): string[]
+}
+
+/**
+ * Factory functions for creating feature module instances
+ * @remarks Used for dependency injection in useTranscription
+ */
+export interface TranscriptionDependencies {
+  /** Factory for creating keyword detector instances */
+  createKeywordDetector?: () => IKeywordDetector
+  /** Factory for creating PII redactor instances */
+  createPIIRedactor?: (config: Partial<RedactionConfig>) => IPIIRedactor
+  /** Factory for creating transcript exporter instances */
+  createExporter?: () => ITranscriptExporter
+  /** Provider registry instance */
+  providerRegistry?: IProviderRegistry
+}
+
+// =============================================================================
 // Composable Options & Return Types
 // =============================================================================
 
@@ -292,6 +369,11 @@ export interface TranscriptionOptions {
   provider?: string
   /** Provider-specific options */
   providerOptions?: ProviderOptions
+  /**
+   * Dependency injection for feature modules
+   * @remarks Allows injecting mock implementations for testing
+   */
+  dependencies?: TranscriptionDependencies
   /** Default language code */
   language?: string
   /** Enable auto language detection */

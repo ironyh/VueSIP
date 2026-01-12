@@ -18,12 +18,28 @@ import type {
   ProviderCapabilities,
   ProviderOptions,
   SpeakerType,
+  IKeywordDetector,
+  IPIIRedactor,
+  ITranscriptExporter,
+  IProviderRegistry,
+  RedactionConfig,
 } from '@/types/transcription.types'
-import { providerRegistry } from '@/transcription/providers'
+import { providerRegistry as defaultProviderRegistry } from '@/transcription/providers'
 import { KeywordDetector } from '@/transcription/features/keyword-detector'
 import { PIIRedactor } from '@/transcription/features/pii-redactor'
 import { TranscriptExporter } from '@/transcription/features/transcript-exporter'
 import { createLogger } from '@/utils/logger'
+
+/**
+ * Default factory functions for creating feature module instances
+ * These are used when no dependencies are injected via options
+ */
+const defaultDependencies = {
+  createKeywordDetector: (): IKeywordDetector => new KeywordDetector(),
+  createPIIRedactor: (config: Partial<RedactionConfig>): IPIIRedactor => new PIIRedactor(config),
+  createExporter: (): ITranscriptExporter => new TranscriptExporter(),
+  providerRegistry: defaultProviderRegistry as IProviderRegistry,
+}
 
 const logger = createLogger('useTranscription')
 
@@ -96,10 +112,21 @@ export function useTranscription(options: TranscriptionOptions = {}): UseTranscr
   const isTranscribing = computed(() => state.value === 'active')
   const providerName = computed(() => config.provider)
 
-  // Feature modules
-  const keywordDetector = new KeywordDetector()
-  const piiRedactor = new PIIRedactor(options.redaction ?? { enabled: false, patterns: [] })
-  const exporter = new TranscriptExporter()
+  // Resolve dependencies (use injected or defaults)
+  const deps = {
+    createKeywordDetector:
+      options.dependencies?.createKeywordDetector ?? defaultDependencies.createKeywordDetector,
+    createPIIRedactor:
+      options.dependencies?.createPIIRedactor ?? defaultDependencies.createPIIRedactor,
+    createExporter: options.dependencies?.createExporter ?? defaultDependencies.createExporter,
+    providerRegistry:
+      options.dependencies?.providerRegistry ?? defaultDependencies.providerRegistry,
+  }
+
+  // Feature modules (created via dependency injection)
+  const keywordDetector = deps.createKeywordDetector()
+  const piiRedactor = deps.createPIIRedactor(options.redaction ?? { enabled: false, patterns: [] })
+  const exporter = deps.createExporter()
 
   // Provider instance
   let provider: TranscriptionProvider | null = null
@@ -134,8 +161,8 @@ export function useTranscription(options: TranscriptionOptions = {}): UseTranscr
     error.value = null
 
     try {
-      // Get provider instance
-      provider = await providerRegistry.get(config.provider, {
+      // Get provider instance (via injected registry)
+      provider = await deps.providerRegistry.get(config.provider, {
         language: config.language,
         interimResults: true,
         ...options.providerOptions,
