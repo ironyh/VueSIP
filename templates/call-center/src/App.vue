@@ -11,6 +11,7 @@ import QueueStats from './components/QueueStats.vue'
 import CallPanel from './components/CallPanel.vue'
 import SupervisorPanel from './components/SupervisorPanel.vue'
 import TranscriptionPanel from './components/TranscriptionPanel.vue'
+import SystemStatus from './components/SystemStatus.vue'
 import { useAgent } from './composables/useAgent'
 import { useQueues } from './composables/useQueues'
 import type { KeywordMatch } from 'vuesip'
@@ -363,6 +364,8 @@ onUnmounted(async () => {
           @disposition="handleDisposition"
           @clear-wrap-up="handleClearWrapUp"
         />
+
+        <SystemStatus :ami-client="agent.amiClient" />
       </div>
 
       <div class="right-panel">
