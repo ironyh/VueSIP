@@ -16,6 +16,7 @@ const amiClientRef = computed(() => props.amiClient)
 const {
   coreStatus,
   channels,
+  channelList,
   isLoading: systemLoading,
   error: systemError,
   getCoreStatus,
@@ -26,11 +27,8 @@ const {
 const {
   mailboxes,
   totalNewMessages,
-  totalOldMessages,
   isLoading: mwiLoading,
   error: mwiError,
-  trackMailbox,
-  untrackMailbox,
 } = useAmiMWI(amiClientRef)
 
 // Local state
@@ -40,7 +38,7 @@ const lastPingError = ref<string | null>(null)
 // Computed
 const healthStatus = computed(() => {
   if (!coreStatus.value) return 'unknown'
-  const activeChannels = channels.value?.length ?? 0
+  const activeChannels = channels.value.size
   if (systemError.value) return 'error'
   if (activeChannels > 50) return 'warning'
   return 'healthy'
@@ -60,12 +58,12 @@ const healthSeverity = computed(() => {
 })
 
 const activeCalls = computed(() => {
-  return channels.value?.filter((ch) => ch.State === 'Up').length ?? 0
+  return channelList.value.filter((ch) => ch.state === 'Up').length
 })
 
 const systemUptime = computed(() => {
-  if (!coreStatus.value?.CoreUptime) return 'Unknown'
-  const seconds = parseInt(coreStatus.value.CoreUptime)
+  if (!coreStatus.value?.uptime) return 'Unknown'
+  const seconds = parseInt(coreStatus.value.uptime)
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
   if (hours > 24) {
@@ -118,7 +116,7 @@ onMounted(async () => {
             <i v-if="systemLoading" class="pi pi-spin pi-spinner" />
             <template v-else-if="coreStatus">
               <i class="pi pi-check-circle" style="color: var(--green-500)" />
-              {{ coreStatus.CoreCurrentCalls || 0 }} calls
+              {{ coreStatus.currentCalls || 0 }} calls
             </template>
             <template v-else>
               <i class="pi pi-times-circle" style="color: var(--red-500)" />
@@ -135,7 +133,7 @@ onMounted(async () => {
         <div class="status-row">
           <span class="label">Active Channels</span>
           <span class="value">
-            <Badge :value="channels?.length ?? 0" severity="info" />
+            <Badge :value="channels.size" severity="info" />
           </span>
         </div>
 
@@ -161,11 +159,7 @@ onMounted(async () => {
               :value="totalNewMessages"
               :severity="totalNewMessages > 0 ? 'danger' : 'secondary'"
             />
-            <span>New</span>
-          </div>
-          <div class="mwi-stat">
-            <Badge :value="totalOldMessages" severity="info" />
-            <span>Old</span>
+            <span>New Messages</span>
           </div>
         </div>
       </div>
