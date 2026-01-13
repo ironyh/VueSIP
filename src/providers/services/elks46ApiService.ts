@@ -8,7 +8,8 @@
  * @see https://46elks.com/docs/get-numbers
  */
 
-const API_BASE = 'https://api.46elks.com/a1'
+// Use proxy to avoid CORS - works in both development (Vite proxy) and production (Cloudflare Function)
+const API_BASE = '/api/46elks/a1'
 
 /**
  * 46 elks API credentials for authentication
@@ -24,6 +25,8 @@ export interface Elks46ApiCredentials {
  * 46 elks phone number from API
  */
 export interface Elks46Number {
+  /** Unique number ID (e.g., nb67e00a13c4b7078a4f5c597821db132) */
+  id: string
   /** E.164 format number (e.g., +46700000000) */
   number: string
   /** Number status */
@@ -81,12 +84,9 @@ export async function fetchNumbers(credentials: Elks46ApiCredentials): Promise<E
  */
 export async function fetchNumberDetails(
   credentials: Elks46ApiCredentials,
-  phoneNumber: string
+  numberId: string
 ): Promise<Elks46Number> {
-  // Remove + prefix if present for API call
-  const number = phoneNumber.replace(/^\+/, '')
-
-  const response = await fetch(`${API_BASE}/numbers/${number}`, {
+  const response = await fetch(`${API_BASE}/numbers/${numberId}`, {
     method: 'GET',
     headers: {
       Authorization: createAuthHeader(credentials),
