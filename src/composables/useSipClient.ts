@@ -273,7 +273,8 @@ export function useSipClient(
   })
 
   const isRegistered = computed(() => {
-    return sipClient.value?.isRegistered ?? false
+    // Use registrationStore for reactive updates (sipClient getter doesn't trigger reactivity)
+    return registrationStore.isRegistered
   })
 
   const registrationState = computed(() => {
