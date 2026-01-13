@@ -166,6 +166,14 @@ jobs:
         working-directory: templates/basic-softphone
         run: pnpm run build
 
+      - name: Copy Cloudflare Functions
+        working-directory: templates/basic-softphone
+        run: |
+          if [ -d "functions" ]; then
+            cp -r functions dist/
+            echo "Copied functions directory to dist/"
+          fi
+
       - name: Create Pages project (if not exists)
         uses: cloudflare/wrangler-action@v3
         with:
