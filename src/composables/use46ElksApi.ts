@@ -138,7 +138,8 @@ export function use46ElksApi(): Use46ElksApiReturn {
 
     try {
       // Fetch full number details including WebRTC secret
-      const details = await fetchNumberDetails(storedCredentials, number.number)
+      // API expects the number ID (e.g., nb67e...), not the phone number
+      const details = await fetchNumberDetails(storedCredentials, number.id)
 
       if (!details.secret) {
         error.value =
