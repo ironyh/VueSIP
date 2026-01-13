@@ -23,6 +23,7 @@ export default defineConfig({
 
     nav: [
       { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
+      { text: 'Tutorial', link: '/tutorial/', activeMatch: '/tutorial/' },
       { text: 'API Reference', link: '/api/', activeMatch: '/api/' },
       { text: 'Examples', link: '/examples/', activeMatch: '/examples/' },
       { text: 'Developer', link: '/developer/', activeMatch: '/developer/' },
@@ -30,6 +31,20 @@ export default defineConfig({
     ],
 
     sidebar: {
+      '/tutorial/': [
+        {
+          text: 'Tutorial',
+          collapsed: false,
+          items: [
+            { text: 'Overview', link: '/tutorial/' },
+            { text: 'Part 1: Hello VueSIP', link: '/tutorial/part-1-hello' },
+            { text: 'Part 2: Building a Softphone', link: '/tutorial/part-2-softphone' },
+            { text: 'Part 3: Real Server Connection', link: '/tutorial/part-3-real-server' },
+            { text: 'Part 4: Advanced Features', link: '/tutorial/part-4-advanced' },
+          ],
+        },
+      ],
+
       '/guide/': [
         {
           text: 'Introduction',
