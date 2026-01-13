@@ -235,9 +235,14 @@ describe('useCompliance', () => {
       const after = new Date()
 
       expect(result.timestamp).toBeDefined()
+<<<<<<< HEAD
       if (!result.timestamp) throw new Error('Expected timestamp to be defined')
       expect(result.timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime())
       expect(result.timestamp.getTime()).toBeLessThanOrEqual(after.getTime())
+=======
+      expect(result.timestamp!.getTime()).toBeGreaterThanOrEqual(before.getTime())
+      expect(result.timestamp!.getTime()).toBeLessThanOrEqual(after.getTime())
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
 
     it('should detect Amex 15-digit cards', () => {

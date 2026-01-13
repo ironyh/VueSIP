@@ -306,9 +306,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     await withLoading(async () => {
       await currentAdapter.connect()
+=======
+    await withLoading(async () => {
+      await adapter.value!.connect()
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
       connectionCallbacks.forEach((cb) => cb(true))
     })
   }
@@ -342,9 +347,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       return cached
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       const contact = await currentAdapter.lookupByPhone(phoneNumber)
+=======
+    return withLoading(async () => {
+      const contact = await adapter.value!.lookupByPhone(phoneNumber)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
 
       if (contact) {
         addToCache(phoneNumber, contact)
@@ -366,9 +376,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       return currentAdapter.lookupById(contactId)
+=======
+    return withLoading(async () => {
+      return adapter.value!.lookupById(contactId)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
   }
 
@@ -381,9 +396,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       const result = await currentAdapter.searchContacts(query)
+=======
+    return withLoading(async () => {
+      const result = await adapter.value!.searchContacts(query)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
       return result.contacts
     })
   }
@@ -397,9 +417,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       const created = await currentAdapter.createContact(contact)
+=======
+    return withLoading(async () => {
+      const created = await adapter.value!.createContact(contact)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
 
       // Add to cache if phone number is present
       if (created.phone) {
@@ -419,9 +444,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       const updated = await currentAdapter.updateContact(contactId, updates)
+=======
+    return withLoading(async () => {
+      const updated = await adapter.value!.updateContact(contactId, updates)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
 
       // Update cache if phone number is present
       if (updated.phone) {
@@ -458,9 +488,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       return currentAdapter.logCall(callData)
+=======
+    return withLoading(async () => {
+      return adapter.value!.logCall(callData)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
   }
 
@@ -473,9 +508,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     await withLoading(async () => {
       await currentAdapter.updateCall(callId, updates)
+=======
+    await withLoading(async () => {
+      await adapter.value!.updateCall(callId, updates)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
   }
 
@@ -488,9 +528,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       return currentAdapter.getCallHistory(contactId, limit)
+=======
+    return withLoading(async () => {
+      return adapter.value!.getCallHistory(contactId, limit)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
   }
 
@@ -507,9 +552,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       return currentAdapter.createActivity(activity)
+=======
+    return withLoading(async () => {
+      return adapter.value!.createActivity(activity)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
   }
 
@@ -522,9 +572,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       return currentAdapter.updateActivity(activityId, updates)
+=======
+    return withLoading(async () => {
+      return adapter.value!.updateActivity(activityId, updates)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
   }
 
@@ -537,9 +592,14 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+<<<<<<< HEAD
     const currentAdapter = adapter.value
     return withLoading(async () => {
       return currentAdapter.getActivities(contactId, limit)
+=======
+    return withLoading(async () => {
+      return adapter.value!.getActivities(contactId, limit)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
   }
 

@@ -583,6 +583,7 @@ export function useCompliance(config: ComplianceConfig): UseComplianceReturn {
       let entries = [...auditEntries.value]
 
       if (filters?.startDate) {
+<<<<<<< HEAD
         const startDate = filters.startDate
         entries = entries.filter((e) => e.timestamp >= startDate)
       }
@@ -590,6 +591,13 @@ export function useCompliance(config: ComplianceConfig): UseComplianceReturn {
       if (filters?.endDate) {
         const endDate = filters.endDate
         entries = entries.filter((e) => e.timestamp <= endDate)
+=======
+        entries = entries.filter((e) => e.timestamp >= filters.startDate!)
+      }
+
+      if (filters?.endDate) {
+        entries = entries.filter((e) => e.timestamp <= filters.endDate!)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
       }
 
       if (filters?.action) {

@@ -237,8 +237,12 @@ describe('useCallAnalytics', () => {
 
       const agent = analytics.getAgentReport('agent-1')
       expect(agent).not.toBeNull()
+<<<<<<< HEAD
       if (!agent) throw new Error('Expected agent to be defined')
       expect(agent.averageHandleTime).toBe(150)
+=======
+      expect(agent!.averageHandleTime).toBe(150)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
 
     it('should calculate agent talk time', () => {
@@ -250,8 +254,12 @@ describe('useCallAnalytics', () => {
 
       const agent = analytics.getAgentReport('agent-1')
       expect(agent).not.toBeNull()
+<<<<<<< HEAD
       if (!agent) throw new Error('Expected agent to be defined')
       expect(agent.averageTalkTime).toBe(150)
+=======
+      expect(agent!.averageTalkTime).toBe(150)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
 
     it('should calculate agent wrap-up time', () => {
@@ -263,8 +271,12 @@ describe('useCallAnalytics', () => {
 
       const agent = analytics.getAgentReport('agent-1')
       expect(agent).not.toBeNull()
+<<<<<<< HEAD
       if (!agent) throw new Error('Expected agent to be defined')
       expect(agent.averageWrapUpTime).toBe(40)
+=======
+      expect(agent!.averageWrapUpTime).toBe(40)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
 
     it('should calculate agent sentiment score', () => {
@@ -276,8 +288,12 @@ describe('useCallAnalytics', () => {
 
       const agent = analytics.getAgentReport('agent-1')
       expect(agent).not.toBeNull()
+<<<<<<< HEAD
       if (!agent) throw new Error('Expected agent to be defined')
       expect(agent.sentimentScore).toBeCloseTo(0.6, 2)
+=======
+      expect(agent!.sentimentScore).toBeCloseTo(0.6, 2)
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
   })
 
@@ -558,9 +574,14 @@ describe('useCallAnalytics', () => {
       const report = analytics.getAgentReport('agent-1')
 
       expect(report).not.toBeNull()
+<<<<<<< HEAD
       if (!report) throw new Error('Expected report to be defined')
       expect(report.agentId).toBe('agent-1')
       expect(report.agentName).toBe('Agent One')
+=======
+      expect(report!.agentId).toBe('agent-1')
+      expect(report!.agentName).toBe('Agent One')
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
 
     it('should return null for unknown agent', () => {
@@ -581,8 +602,12 @@ describe('useCallAnalytics', () => {
       const report = analytics.getQueueReport('support')
 
       expect(report).not.toBeNull()
+<<<<<<< HEAD
       if (!report) throw new Error('Expected report to be defined')
       expect(report.queueName).toBe('support')
+=======
+      expect(report!.queueName).toBe('support')
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
     })
 
     it('should return null for unknown queue', () => {
@@ -802,10 +827,16 @@ describe('Edge Cases', () => {
 
     const agent = analytics.getAgentReport('agent-1')
     expect(agent).not.toBeNull()
+<<<<<<< HEAD
     if (!agent) throw new Error('Expected agent to be defined')
     expect(agent.totalCalls).toBe(0)
     expect(agent.averageHandleTime).toBe(0)
     expect(agent.sentimentScore).toBeUndefined()
+=======
+    expect(agent!.totalCalls).toBe(0)
+    expect(agent!.averageHandleTime).toBe(0)
+    expect(agent!.sentimentScore).toBeUndefined()
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
   })
 
   it('should handle very large number of calls', () => {

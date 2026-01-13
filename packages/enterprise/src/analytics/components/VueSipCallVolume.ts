@@ -177,12 +177,19 @@ export const VueSipCallVolume = defineComponent({
     const peakHour = computed<{ timestamp: Date; value: number } | null>(() => {
       const points = analytics.callVolume.value
       if (points.length === 0) return null
+<<<<<<< HEAD
       const first = points[0]
       if (!first) return null
       let max = first
       for (let i = 1; i < points.length; i++) {
         const p = points[i]
         if (p && p.value > max.value) max = p
+=======
+      let max = points[0]!
+      for (let i = 1; i < points.length; i++) {
+        const p = points[i]!
+        if (p.value > max.value) max = p
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
       }
       return max
     })
@@ -190,12 +197,19 @@ export const VueSipCallVolume = defineComponent({
     const lowHour = computed<{ timestamp: Date; value: number } | null>(() => {
       const points = analytics.callVolume.value
       if (points.length === 0) return null
+<<<<<<< HEAD
       const first = points[0]
       if (!first) return null
       let min = first
       for (let i = 1; i < points.length; i++) {
         const p = points[i]
         if (p && p.value < min.value) min = p
+=======
+      let min = points[0]!
+      for (let i = 1; i < points.length; i++) {
+        const p = points[i]!
+        if (p.value < min.value) min = p
+>>>>>>> 18c2136 (feat(enterprise): add enterprise package with analytics, compliance, and CRM)
       }
       return min
     })
