@@ -166,19 +166,12 @@ jobs:
         working-directory: templates/basic-softphone
         run: pnpm run build
 
-      - name: Copy Cloudflare Functions
-        working-directory: templates/basic-softphone
-        run: |
-          if [ -d "functions" ]; then
-            cp -r functions dist/
-            echo "Copied functions directory to dist/"
-          fi
-
       - name: Create Pages project (if not exists)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: templates/basic-softphone
           command: pages project create vuesip-softphone --production-branch=main
         continue-on-error: true
 
@@ -187,7 +180,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy templates/basic-softphone/dist --project-name=vuesip-softphone --branch=main --commit-dirty=true
+          workingDirectory: templates/basic-softphone
+          command: pages deploy dist --project-name=vuesip-softphone --branch=main --commit-dirty=true
 
   deploy-callcenter:
     name: Deploy Call Center Template
