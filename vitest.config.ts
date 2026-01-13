@@ -154,10 +154,10 @@ export default defineConfig({
       // Tests will fail if coverage drops below these values
       // Adjusted to match current coverage levels while maintaining high standards
       thresholds: {
-        lines: 79, // Adjusted from 80 to match current coverage (79.89%)
+        lines: 80,
         functions: 80,
-        branches: 68, // Adjusted from 70 to match current coverage (68.75%)
-        statements: 78, // Adjusted from 80 to match current coverage (78.99%)
+        branches: 70,
+        statements: 80,
       },
 
       // Include all source files in coverage report, even if not tested

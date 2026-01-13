@@ -38,7 +38,7 @@ export const scenarios: Scenario[] = [
   {
     id: 'healthcare',
     name: 'Healthcare Advice',
-    icon: '🏥',
+    icon: 'pi pi-heart',
     description: 'Nurse providing patient guidance',
     industry: 'Healthcare',
     localRole: 'Nurse',
@@ -114,7 +114,7 @@ export const scenarios: Scenario[] = [
   {
     id: 'project-management',
     name: 'Project Status',
-    icon: '📊',
+    icon: 'pi pi-chart-bar',
     description: 'PM discussing milestones with stakeholder',
     industry: 'Business',
     localRole: 'Project Manager',
@@ -178,7 +178,7 @@ export const scenarios: Scenario[] = [
   {
     id: 'customer-retention',
     name: 'Retention Call',
-    icon: '🛡️',
+    icon: 'pi pi-shield',
     description: 'Rep handling cancellation request',
     industry: 'Customer Service',
     localRole: 'Retention Specialist',
@@ -263,7 +263,7 @@ export const scenarios: Scenario[] = [
   {
     id: 'restaurant-order',
     name: 'Restaurant Order',
-    icon: '🍕',
+    icon: 'pi pi-shopping-cart',
     description: 'Taking a delivery order',
     industry: 'Food Service',
     localRole: 'Order Taker',

@@ -137,8 +137,8 @@ export function use46ElksApi(): Use46ElksApiReturn {
     selectedNumber.value = number
 
     try {
-      // Fetch full number details including WebRTC secret
-      const details = await fetchNumberDetails(storedCredentials, number.number)
+      // Fetch full number details including WebRTC secret (use ID, not phone number)
+      const details = await fetchNumberDetails(storedCredentials, number.id)
 
       if (!details.secret) {
         error.value =

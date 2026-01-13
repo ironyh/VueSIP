@@ -3,7 +3,7 @@
     <!-- Browser Compatibility Warning -->
     <Message v-if="!isSpeechSupported" severity="warn" :closable="false" class="mb-4">
       <template #icon>
-        <span class="text-xl">⚠️</span>
+        <i class="pi pi-exclamation-triangle text-xl"></i>
       </template>
       Your browser doesn't support the Web Speech API. You can still use the demo with mock
       playback.
@@ -13,7 +13,7 @@
     <Card class="mb-4">
       <template #title>
         <div class="flex align-items-center gap-2">
-          <span>🎭</span>
+          <i class="pi pi-th-large"></i>
           <span>Select Scenario</span>
         </div>
       </template>
@@ -25,7 +25,7 @@
             :class="['scenario-card', { active: selectedScenario?.id === scenario.id }]"
             @click="selectScenario(scenario)"
           >
-            <span class="scenario-icon">{{ scenario.icon }}</span>
+            <i :class="['scenario-icon', scenario.icon]"></i>
             <div class="scenario-info">
               <strong>{{ scenario.name }}</strong>
               <small>{{ scenario.description }}</small>
@@ -41,7 +41,7 @@
       <TabPanel>
         <template #header>
           <span class="tab-header">
-            <span class="tab-icon">🎤</span>
+            <i class="pi pi-microphone tab-icon"></i>
             <span>Basic</span>
           </span>
         </template>
@@ -93,7 +93,7 @@
           <!-- Transcript Display -->
           <div class="transcript-container">
             <div v-if="transcriptEntries.length === 0" class="empty-state">
-              <span class="empty-icon">📝</span>
+              <i class="pi pi-file-edit empty-icon"></i>
               <p>Select a scenario and click "Play Demo" to see transcription in action</p>
               <p v-if="isSpeechSupported" class="text-sm text-500">
                 Or click "Use Mic" to transcribe your voice
@@ -127,7 +127,7 @@
           <!-- Progress to Next Tab -->
           <div v-if="transcriptEntries.length >= 3 && activeTab === 0" class="next-level-prompt">
             <Message severity="info" :closable="false">
-              <template #icon><span>💡</span></template>
+              <template #icon><i class="pi pi-info-circle"></i></template>
               Ready for more? Check out the <strong>Keywords</strong> tab to detect important
               phrases!
               <Button label="Go to Keywords" size="small" class="ml-3" @click="activeTab = 1" />
@@ -140,7 +140,7 @@
       <TabPanel>
         <template #header>
           <span class="tab-header">
-            <span class="tab-icon">🔑</span>
+            <i class="pi pi-key tab-icon"></i>
             <span>Keywords</span>
             <Badge
               v-if="keywordMatches.length > 0"
@@ -212,7 +212,7 @@
           <!-- Progress to AI tab -->
           <div v-if="keywordMatches.length >= 2 && activeTab === 1" class="next-level-prompt">
             <Message severity="info" :closable="false">
-              <template #icon><span>🤖</span></template>
+              <template #icon><i class="pi pi-sparkles"></i></template>
               Want AI-powered coaching suggestions? Check out the <strong>AI Assist</strong> tab!
               <Button label="Go to AI Assist" size="small" class="ml-3" @click="activeTab = 2" />
             </Message>
@@ -224,7 +224,7 @@
       <TabPanel>
         <template #header>
           <span class="tab-header">
-            <span class="tab-icon">🤖</span>
+            <i class="pi pi-sparkles tab-icon"></i>
             <span>AI Assist</span>
           </span>
         </template>
@@ -234,7 +234,7 @@
           <Card class="mb-4">
             <template #title>
               <div class="flex align-items-center gap-2">
-                <span>⚙️</span>
+                <i class="pi pi-cog"></i>
                 <span>AI Configuration</span>
               </div>
             </template>
@@ -277,7 +277,7 @@
                   :closable="false"
                 >
                   <small>
-                    ⚠️ API keys are stored in localStorage for demo convenience. For production use,
+                    API keys are stored in localStorage for demo convenience. For production use,
                     implement secure backend storage.
                   </small>
                 </Message>
@@ -289,7 +289,7 @@
           <div class="ai-suggestions-panel">
             <div class="panel-header">
               <h4>
-                <span>💡</span> Coaching Suggestions
+                <i class="pi pi-lightbulb mr-2"></i>Coaching Suggestions
                 <Tag
                   :value="aiConfig.provider === 'mock' ? 'Demo Mode' : 'Live AI'"
                   :severity="aiConfig.provider === 'mock' ? 'info' : 'success'"
@@ -304,11 +304,16 @@
                   :key="suggestion.id"
                   :class="['suggestion-card', suggestion.type]"
                 >
-                  <span class="suggestion-icon">
-                    {{
-                      suggestion.type === 'tip' ? '💡' : suggestion.type === 'warning' ? '⚠️' : '✅'
-                    }}
-                  </span>
+                  <i
+                    :class="[
+                      'suggestion-icon pi',
+                      suggestion.type === 'tip'
+                        ? 'pi-lightbulb'
+                        : suggestion.type === 'warning'
+                          ? 'pi-exclamation-triangle'
+                          : 'pi-check-circle',
+                    ]"
+                  ></i>
                   <span class="suggestion-text">{{ suggestion.message }}</span>
                 </div>
               </TransitionGroup>
@@ -322,26 +327,27 @@
           <Card class="mt-4">
             <template #title>
               <div class="flex align-items-center gap-2">
-                <span>📊</span>
+                <i class="pi pi-chart-line"></i>
                 <span>Sentiment Analysis</span>
               </div>
             </template>
             <template #content>
               <div class="sentiment-display">
                 <div class="sentiment-indicator" :class="sentiment.overall">
-                  <span class="sentiment-emoji">
-                    {{
+                  <i
+                    :class="[
+                      'sentiment-icon pi',
                       sentiment.overall === 'positive'
-                        ? '😊'
+                        ? 'pi-face-smile'
                         : sentiment.overall === 'negative'
-                          ? '😟'
-                          : '😐'
-                    }}
-                  </span>
+                          ? 'pi-face-frown'
+                          : 'pi-minus-circle',
+                    ]"
+                  ></i>
                   <span class="sentiment-label">{{ sentiment.overall }}</span>
-                  <span class="sentiment-confidence"
-                    >{{ Math.round(sentiment.confidence * 100) }}% confident</span
-                  >
+                  <span class="sentiment-confidence">
+                    {{ Math.round(sentiment.confidence * 100) }}% confident
+                  </span>
                 </div>
                 <div v-if="sentiment.indicators.length > 0" class="sentiment-indicators">
                   <Tag
