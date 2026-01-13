@@ -1,0 +1,25 @@
+{
+  "name": "vuesip-pwa-softphone",
+  "version": "1.0.0",
+  "description": "Production-ready PWA softphone template with push notifications",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vuesip": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "typescript": "~5.4.0",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^0.21.0",
+    "vue-tsc": "^2.0.0",
+    "workbox-window": "^7.0.0"
+  }
+}
