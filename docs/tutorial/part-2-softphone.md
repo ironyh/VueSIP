@@ -1,101 +1,159 @@
+---
+title: 'Part 2: Building a Softphone UI'
+description: 'Build a complete softphone interface with dial pad, call controls, and incoming call handling'
+---
+
 # Part 2: Building a Softphone UI
 
-**Time: 15 minutes** | [&larr; Previous](/tutorial/part-1-hello) | [Next: Real Server &rarr;](/tutorial/part-3-real-server)
+**Time: 15 minutes** | **Difficulty: Intermediate**
 
-Now that you can make basic calls, let's build a complete softphone with dial pad, call controls, and incoming call handling.
+In this part, you'll build a complete softphone interface. We'll create a dial pad, call controls, call status display, and handle incoming calls - all using mock mode.
 
 ## What You'll Build
 
-A fully-featured softphone with:
+A fully functional softphone with:
 
-- Dial pad for entering numbers
-- Call/Hangup button
-- Hold and Mute controls
+- Numeric dial pad with DTMF feedback
+- Caller ID input for outbound calls
+- Call controls (answer, hangup, hold, mute)
 - Call duration timer
 - Incoming call notifications
-- DTMF tone sending
+- Professional styling
 
-## Step 1: Create the Dial Pad
+## Step 1: Create the Softphone Component
 
-Create `src/components/DialPad.vue`:
+Create a new file `Softphone.vue`:
 
 ```vue
-<script setup lang="ts">
-defineEmits<{
-  digit: [digit: string]
-}>()
-
-const keys = [
-  ['1', '2', '3'],
-  ['4', '5', '6'],
-  ['7', '8', '9'],
-  ['*', '0', '#'],
-]
-</script>
-
 <template>
-  <div class="dial-pad">
-    <div v-for="(row, i) in keys" :key="i" class="row">
-      <button v-for="digit in row" :key="digit" class="key" @click="$emit('digit', digit)">
-        {{ digit }}
+  <div class="softphone">
+    <!-- Header -->
+    <div class="softphone-header">
+      <h2>VueSIP Softphone</h2>
+      <div class="connection-status">
+        <span :class="['status-dot', { active: isConnected && isRegistered }]"></span>
+        {{ connectionStatusText }}
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="display">
+      <!-- Incoming Call Alert -->
+      <div v-if="isIncomingCall" class="incoming-call">
+        <div class="caller-info">
+          <span class="caller-icon">📞</span>
+          <div>
+            <div class="caller-name">{{ activeCall?.remoteDisplayName }}</div>
+            <div class="caller-number">{{ activeCall?.remoteNumber }}</div>
+          </div>
+        </div>
+        <div class="incoming-actions">
+          <button class="answer-btn" @click="handleAnswer">Answer</button>
+          <button class="reject-btn" @click="handleHangup">Decline</button>
+        </div>
+      </div>
+
+      <!-- Active Call Display -->
+      <div v-else-if="activeCall && callState !== 'idle'" class="active-call-display">
+        <div class="call-status">
+          <span :class="['status-badge', callState]">
+            {{ callStateLabel }}
+          </span>
+        </div>
+        <div class="remote-party">
+          <div class="remote-name">{{ activeCall.remoteDisplayName }}</div>
+          <div class="remote-number">{{ activeCall.remoteNumber }}</div>
+        </div>
+        <div v-if="callState === 'active' || callState === 'held'" class="call-timer">
+          {{ formattedDuration }}
+        </div>
+      </div>
+
+      <!-- Dial Input -->
+      <div v-else class="dial-input">
+        <input
+          v-model="dialNumber"
+          type="tel"
+          placeholder="Enter number"
+          class="number-input"
+          @keyup.enter="handleCall"
+        />
+      </div>
+    </div>
+
+    <!-- Call Controls (when in call) -->
+    <div v-if="activeCall && !isIncomingCall" class="call-controls">
+      <button
+        :class="['control-btn', { active: isMuted }]"
+        @click="toggleMute"
+        :disabled="callState !== 'active' && callState !== 'held'"
+      >
+        <span class="icon">{{ isMuted ? '🔇' : '🎤' }}</span>
+        <span class="label">{{ isMuted ? 'Unmute' : 'Mute' }}</span>
       </button>
+
+      <button
+        :class="['control-btn', { active: isOnHold }]"
+        @click="toggleHold"
+        :disabled="callState !== 'active' && callState !== 'held'"
+      >
+        <span class="icon">{{ isOnHold ? '▶️' : '⏸️' }}</span>
+        <span class="label">{{ isOnHold ? 'Resume' : 'Hold' }}</span>
+      </button>
+
+      <button class="control-btn hangup-btn" @click="handleHangup">
+        <span class="icon">📵</span>
+        <span class="label">End</span>
+      </button>
+    </div>
+
+    <!-- Dial Pad -->
+    <div v-if="!activeCall || isIncomingCall" class="dialpad">
+      <button
+        v-for="key in dialpadKeys"
+        :key="key.digit"
+        class="dialpad-btn"
+        @click="handleDialpadPress(key.digit)"
+      >
+        <span class="digit">{{ key.digit }}</span>
+        <span v-if="key.letters" class="letters">{{ key.letters }}</span>
+      </button>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <template v-if="!isConnected">
+        <button class="action-btn connect" @click="handleConnect">Connect</button>
+      </template>
+
+      <template v-else-if="!activeCall">
+        <button class="action-btn call" @click="handleCall" :disabled="!dialNumber">Call</button>
+        <button class="action-btn secondary" @click="handleSimulateIncoming">
+          Simulate Incoming
+        </button>
+      </template>
+    </div>
+
+    <!-- Error Display -->
+    <div v-if="error" class="error-message">
+      {{ error }}
     </div>
   </div>
 </template>
 
-<style scoped>
-.dial-pad {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: 200px;
-  margin: 0 auto;
-}
-
-.row {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-}
-
-.key {
-  width: 60px;
-  height: 60px;
-  border: 1px solid #e5e7eb;
-  border-radius: 50%;
-  background: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.key:hover {
-  background: #f3f4f6;
-}
-
-.key:active {
-  background: #e5e7eb;
-}
-</style>
-```
-
-## Step 2: Create the Softphone Component
-
-Create `src/components/Softphone.vue`:
-
-```vue
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useSipMock } from 'vuesip'
-import DialPad from './DialPad.vue'
 
-// Initialize mock SIP with incoming call simulation
+// Initialize mock SIP client
 const {
   isConnected,
   isRegistered,
-  activeCall,
   callState,
+  activeCall,
+  error,
   connect,
+  disconnect,
   call,
   hangup,
   answer,
@@ -103,248 +161,209 @@ const {
   unhold,
   sendDTMF,
   simulateIncomingCall,
-} = useSipMock({
-  connectDelay: 500,
-  ringDelay: 2000,
-  connectCallDelay: 500,
-})
+} = useSipMock()
 
 // Local state
-const phoneNumber = ref('')
+const dialNumber = ref('')
 const isMuted = ref(false)
-const duration = ref(0)
-let durationInterval: ReturnType<typeof setInterval> | null = null
+
+// Dialpad key configuration
+const dialpadKeys = [
+  { digit: '1', letters: '' },
+  { digit: '2', letters: 'ABC' },
+  { digit: '3', letters: 'DEF' },
+  { digit: '4', letters: 'GHI' },
+  { digit: '5', letters: 'JKL' },
+  { digit: '6', letters: 'MNO' },
+  { digit: '7', letters: 'PQRS' },
+  { digit: '8', letters: 'TUV' },
+  { digit: '9', letters: 'WXYZ' },
+  { digit: '*', letters: '' },
+  { digit: '0', letters: '+' },
+  { digit: '#', letters: '' },
+]
 
 // Computed properties
-const canDial = computed(() => isRegistered.value && !activeCall.value)
-const isOnHold = computed(() => callState.value === 'held')
-const isRinging = computed(
-  () => callState.value === 'ringing' && activeCall.value?.direction === 'inbound'
-)
-
-// Duration timer
-watch(callState, (state) => {
-  if (state === 'active') {
-    duration.value = 0
-    durationInterval = setInterval(() => {
-      duration.value++
-    }, 1000)
-  } else if (state === 'idle' || state === 'ended') {
-    if (durationInterval) {
-      clearInterval(durationInterval)
-      durationInterval = null
-    }
-  }
+const connectionStatusText = computed(() => {
+  if (!isConnected.value) return 'Disconnected'
+  if (!isRegistered.value) return 'Connecting...'
+  return 'Ready'
 })
 
-// Format duration as MM:SS
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-}
+const isIncomingCall = computed(() => {
+  return activeCall.value?.direction === 'inbound' && activeCall.value?.state === 'ringing'
+})
 
-// Handle dial pad input
-function handleDigit(digit: string) {
-  if (activeCall.value && callState.value === 'active') {
-    // Send DTMF during active call
-    sendDTMF(digit)
-  } else {
-    // Add to phone number
-    phoneNumber.value += digit
+const isOnHold = computed(() => {
+  return callState.value === 'held'
+})
+
+const callStateLabel = computed(() => {
+  const labels: Record<string, string> = {
+    idle: 'Idle',
+    calling: 'Calling...',
+    ringing: 'Ringing...',
+    active: 'Connected',
+    held: 'On Hold',
+    ended: 'Call Ended',
   }
-}
+  return labels[callState.value] || callState.value
+})
 
-// Make outbound call
-async function makeCall() {
-  if (!phoneNumber.value) return
+const formattedDuration = computed(() => {
+  const duration = activeCall.value?.duration || 0
+  const minutes = Math.floor(duration / 60)
+  const seconds = duration % 60
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+})
+
+// Event handlers
+async function handleConnect() {
   try {
-    await call(phoneNumber.value)
-    phoneNumber.value = ''
-  } catch (error) {
-    console.error('Call failed:', error)
+    await connect()
+  } catch (err) {
+    console.error('Connection failed:', err)
   }
 }
 
-// Toggle mute
+function handleDialpadPress(digit: string) {
+  // If in call, send DTMF
+  if (activeCall.value && callState.value === 'active') {
+    sendDTMF(digit)
+    // Play DTMF tone (optional visual feedback)
+    console.log(`DTMF sent: ${digit}`)
+  } else {
+    // Otherwise, add to dial string
+    dialNumber.value += digit
+  }
+}
+
+async function handleCall() {
+  if (!dialNumber.value) return
+
+  try {
+    await call(dialNumber.value, 'Outbound Call')
+    // Clear dial number after initiating call
+    dialNumber.value = ''
+  } catch (err) {
+    console.error('Call failed:', err)
+  }
+}
+
+async function handleAnswer() {
+  try {
+    await answer()
+  } catch (err) {
+    console.error('Answer failed:', err)
+  }
+}
+
+async function handleHangup() {
+  try {
+    await hangup()
+  } catch (err) {
+    console.error('Hangup failed:', err)
+  }
+}
+
+async function toggleHold() {
+  try {
+    if (isOnHold.value) {
+      await unhold()
+    } else {
+      await hold()
+    }
+  } catch (err) {
+    console.error('Hold toggle failed:', err)
+  }
+}
+
 function toggleMute() {
   isMuted.value = !isMuted.value
   // In real implementation, this would mute the audio track
   console.log('Mute:', isMuted.value)
 }
 
-// Toggle hold
-async function toggleHold() {
-  if (isOnHold.value) {
-    await unhold()
-  } else {
-    await hold()
-  }
+function handleSimulateIncoming() {
+  // Simulate an incoming call for testing
+  const testNumbers = ['555-0100', '555-0200', '555-0300']
+  const testNames = ['Alice Smith', 'Bob Johnson', 'Carol Williams']
+  const index = Math.floor(Math.random() * testNumbers.length)
+
+  simulateIncomingCall(testNumbers[index], testNames[index])
 }
 
-// Simulate incoming call (for demo)
-function simulateCall() {
-  simulateIncomingCall('+1-800-555-0199', 'John Smith')
-}
-
-// Connect on mount
-onMounted(() => {
-  connect()
-})
-
-// Cleanup
-onUnmounted(() => {
-  if (durationInterval) {
-    clearInterval(durationInterval)
+// Reset mute state when call ends
+watch(callState, (newState) => {
+  if (newState === 'idle') {
+    isMuted.value = false
   }
 })
 </script>
 
-<template>
-  <div class="softphone">
-    <div class="header">
-      <h2>VueSIP Softphone</h2>
-      <div class="connection-status">
-        <span class="indicator" :class="{ connected: isRegistered }" />
-        {{ isRegistered ? 'Ready' : 'Connecting...' }}
-      </div>
-    </div>
-
-    <!-- Incoming Call Banner -->
-    <div v-if="isRinging" class="incoming-call">
-      <div class="caller-info">
-        <span class="caller-name">
-          {{ activeCall?.remoteDisplayName || 'Unknown' }}
-        </span>
-        <span class="caller-number">
-          {{ activeCall?.remoteNumber }}
-        </span>
-      </div>
-      <div class="incoming-actions">
-        <button class="answer-btn" @click="answer">Answer</button>
-        <button class="reject-btn" @click="hangup">Reject</button>
-      </div>
-    </div>
-
-    <!-- Active Call Display -->
-    <div v-else-if="activeCall" class="active-call">
-      <div class="call-info">
-        <span class="remote-party">
-          {{ activeCall.remoteDisplayName || activeCall.remoteNumber }}
-        </span>
-        <span class="call-status" :class="callState">
-          {{ callState }}
-        </span>
-        <span v-if="callState === 'active'" class="duration">
-          {{ formatDuration(duration) }}
-        </span>
-      </div>
-
-      <!-- Call Controls -->
-      <div class="call-controls">
-        <button
-          class="control-btn"
-          :class="{ active: isMuted }"
-          @click="toggleMute"
-          :disabled="callState !== 'active'"
-        >
-          {{ isMuted ? 'Unmute' : 'Mute' }}
-        </button>
-        <button
-          class="control-btn"
-          :class="{ active: isOnHold }"
-          @click="toggleHold"
-          :disabled="callState !== 'active' && !isOnHold"
-        >
-          {{ isOnHold ? 'Resume' : 'Hold' }}
-        </button>
-        <button class="hangup-btn" @click="hangup">End Call</button>
-      </div>
-
-      <!-- DTMF Pad (during call) -->
-      <div v-if="callState === 'active'" class="dtmf-section">
-        <p class="dtmf-hint">Tap keys to send DTMF</p>
-        <DialPad @digit="handleDigit" />
-      </div>
-    </div>
-
-    <!-- Dial Screen (when idle) -->
-    <div v-else class="dial-screen">
-      <input
-        v-model="phoneNumber"
-        class="phone-input"
-        placeholder="Enter number..."
-        type="tel"
-        @keyup.enter="makeCall"
-      />
-
-      <DialPad @digit="handleDigit" />
-
-      <div class="dial-actions">
-        <button class="call-btn" :disabled="!canDial || !phoneNumber" @click="makeCall">
-          Call
-        </button>
-        <button class="clear-btn" @click="phoneNumber = ''" :disabled="!phoneNumber">Clear</button>
-      </div>
-
-      <!-- Demo: Simulate incoming call -->
-      <button class="demo-btn" @click="simulateCall" :disabled="!isRegistered">
-        Simulate Incoming Call
-      </button>
-    </div>
-  </div>
-</template>
-
 <style scoped>
 .softphone {
-  max-width: 320px;
+  width: 320px;
   margin: 2rem auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  overflow: hidden;
-  font-family: system-ui, sans-serif;
-  background: white;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  background: linear-gradient(to bottom, #1e293b, #0f172a);
+  border-radius: 24px;
+  padding: 1.5rem;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: white;
 }
 
-.header {
-  background: #1f2937;
-  color: white;
-  padding: 1rem;
+/* Header */
+.softphone-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 1rem;
 }
 
-.header h2 {
-  margin: 0;
+.softphone-header h2 {
   font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  color: #94a3b8;
 }
 
 .connection-status {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.875rem;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
 }
 
-.indicator {
+.status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #fbbf24;
+  background: #64748b;
 }
 
-.indicator.connected {
+.status-dot.active {
   background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+/* Display */
+.display {
+  background: #0f172a;
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  min-height: 100px;
 }
 
 /* Incoming Call */
 .incoming-call {
-  padding: 1.5rem;
-  background: #22c55e;
-  color: white;
-  text-align: center;
   animation: pulse 2s infinite;
 }
 
@@ -354,43 +373,66 @@ onUnmounted(() => {
     opacity: 1;
   }
   50% {
-    opacity: 0.8;
+    opacity: 0.7;
   }
 }
 
 .caller-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1rem;
 }
 
+.caller-icon {
+  font-size: 2rem;
+  animation: ring 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes ring {
+  from {
+    transform: rotate(-15deg);
+  }
+  to {
+    transform: rotate(15deg);
+  }
+}
+
 .caller-name {
-  display: block;
-  font-size: 1.25rem;
-  font-weight: bold;
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
 .caller-number {
-  display: block;
-  opacity: 0.9;
+  font-size: 0.875rem;
+  color: #94a3b8;
 }
 
 .incoming-actions {
   display: flex;
-  gap: 1rem;
-  justify-content: center;
+  gap: 0.5rem;
 }
 
 .answer-btn,
 .reject-btn {
-  padding: 0.75rem 1.5rem;
+  flex: 1;
+  padding: 0.75rem;
   border: none;
-  border-radius: 25px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
+  transition:
+    transform 0.1s,
+    opacity 0.2s;
 }
 
 .answer-btn {
-  background: white;
-  color: #22c55e;
+  background: #22c55e;
+  color: white;
+}
+
+.answer-btn:hover {
+  background: #16a34a;
 }
 
 .reject-btn {
@@ -398,72 +440,108 @@ onUnmounted(() => {
   color: white;
 }
 
-/* Active Call */
-.active-call {
-  padding: 1.5rem;
+.reject-btn:hover {
+  background: #dc2626;
 }
 
-.call-info {
+/* Active Call Display */
+.active-call-display {
   text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.remote-party {
-  display: block;
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
 }
 
 .call-status {
+  margin-bottom: 0.5rem;
+}
+
+.status-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: #f3f4f6;
-  border-radius: 20px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-badge.calling,
+.status-badge.ringing {
+  background: #3b82f6;
+  animation: pulse 1.5s infinite;
+}
+
+.status-badge.active {
+  background: #22c55e;
+}
+
+.status-badge.held {
+  background: #f59e0b;
+}
+
+.remote-party {
+  margin: 1rem 0;
+}
+
+.remote-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.remote-number {
   font-size: 0.875rem;
-  text-transform: capitalize;
+  color: #94a3b8;
 }
 
-.call-status.active {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.call-status.held {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.duration {
-  display: block;
+.call-timer {
   font-size: 2rem;
-  font-weight: bold;
-  margin-top: 0.5rem;
+  font-weight: 300;
   font-variant-numeric: tabular-nums;
+  color: #94a3b8;
 }
 
+/* Dial Input */
+.dial-input {
+  text-align: center;
+}
+
+.number-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: white;
+  text-align: center;
+  outline: none;
+  letter-spacing: 0.1em;
+}
+
+.number-input::placeholder {
+  color: #475569;
+}
+
+/* Call Controls */
 .call-controls {
   display: flex;
-  gap: 0.5rem;
   justify-content: center;
+  gap: 1rem;
   margin-bottom: 1rem;
 }
 
 .control-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  color: #94a3b8;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.control-btn:hover {
-  background: #f3f4f6;
-}
-
-.control-btn.active {
-  background: #fef3c7;
-  border-color: #fbbf24;
+.control-btn:hover:not(:disabled) {
+  background: #334155;
+  color: white;
 }
 
 .control-btn:disabled {
@@ -471,216 +549,326 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-.hangup-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 8px;
-  background: #ef4444;
+.control-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
   color: white;
-  cursor: pointer;
 }
 
-.dtmf-section {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
+.control-btn .icon {
+  font-size: 1.25rem;
 }
 
-.dtmf-hint {
-  text-align: center;
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin-bottom: 0.5rem;
+.control-btn .label {
+  font-size: 0.75rem;
 }
 
-/* Dial Screen */
-.dial-screen {
-  padding: 1.5rem;
+.hangup-btn {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
 }
 
-.phone-input {
-  width: 100%;
-  padding: 1rem;
-  font-size: 1.5rem;
-  text-align: center;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+.hangup-btn:hover {
+  background: #dc2626 !important;
+}
+
+/* Dialpad */
+.dialpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
-.dial-actions {
+.dialpad-btn {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.1s;
 }
 
-.call-btn {
+.dialpad-btn:hover {
+  background: #334155;
+}
+
+.dialpad-btn:active {
+  transform: scale(0.95);
+  background: #3b82f6;
+}
+
+.dialpad-btn .digit {
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.dialpad-btn .letters {
+  font-size: 0.625rem;
+  color: #64748b;
+  letter-spacing: 0.1em;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
   flex: 1;
   padding: 1rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn.connect {
+  background: #3b82f6;
+  color: white;
+}
+
+.action-btn.connect:hover {
+  background: #2563eb;
+}
+
+.action-btn.call {
   background: #22c55e;
   color: white;
-  font-size: 1rem;
-  cursor: pointer;
 }
 
-.call-btn:disabled {
-  background: #9ca3af;
+.action-btn.call:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+.action-btn.call:disabled {
+  background: #1e293b;
+  color: #475569;
   cursor: not-allowed;
 }
 
-.clear-btn {
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: white;
-  cursor: pointer;
+.action-btn.secondary {
+  background: #334155;
+  color: #94a3b8;
+  font-size: 0.875rem;
 }
 
-.clear-btn:disabled {
-  opacity: 0.5;
+.action-btn.secondary:hover {
+  background: #475569;
+  color: white;
 }
 
-.demo-btn {
-  width: 100%;
+/* Error Message */
+.error-message {
   margin-top: 1rem;
   padding: 0.75rem;
-  border: 1px dashed #9ca3af;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid #ef4444;
   border-radius: 8px;
-  background: #f9fafb;
-  color: #6b7280;
-  cursor: pointer;
-}
-
-.demo-btn:hover:not(:disabled) {
-  background: #f3f4f6;
-}
-
-.demo-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  color: #fca5a5;
+  font-size: 0.875rem;
+  text-align: center;
 }
 </style>
 ```
 
-## Step 3: Use the Softphone
+## Step 2: Understanding the Components
 
-Update your `App.vue`:
+Let's break down the key parts of this softphone:
+
+### Display Area
+
+The display area shows different content based on state:
+
+```typescript
+// Incoming call: Show caller info and answer/decline buttons
+// Active call: Show remote party, call state badge, and timer
+// Idle: Show dial input for entering numbers
+```
+
+### Dial Pad
+
+The dial pad handles two scenarios:
+
+```typescript
+function handleDialpadPress(digit: string) {
+  if (activeCall.value && callState.value === 'active') {
+    // During call: Send DTMF tone
+    sendDTMF(digit)
+  } else {
+    // No call: Add to dial string
+    dialNumber.value += digit
+  }
+}
+```
+
+### Call Controls
+
+Three main controls during a call:
+
+| Control | Action              | Use Case                   |
+| ------- | ------------------- | -------------------------- |
+| Mute    | Stops sending audio | Quick silence without hold |
+| Hold    | Pauses the call     | Put caller on hold         |
+| End     | Terminates call     | Hang up                    |
+
+### Simulating Incoming Calls
+
+The "Simulate Incoming" button uses `simulateIncomingCall()`:
+
+```typescript
+simulateIncomingCall('555-0100', 'Alice Smith')
+```
+
+This is perfect for testing your incoming call UI!
+
+## Step 3: Testing the Softphone
+
+Try these scenarios:
+
+### Outbound Call Flow
+
+1. Connect to the server
+2. Enter a number using the dial pad
+3. Click Call
+4. Watch: calling -> ringing -> active
+5. Use hold/mute during the call
+6. Click End to hang up
+
+### Incoming Call Flow
+
+1. Connect to the server
+2. Click "Simulate Incoming"
+3. See the incoming call alert
+4. Click Answer or Decline
+5. If answered, use call controls
+6. End the call
+
+### DTMF During Call
+
+1. Make or answer a call
+2. Once active, press dial pad buttons
+3. Watch the console for DTMF logs
+4. (In real calls, these navigate IVR menus)
+
+## Key Concepts
+
+### Reactive State Management
+
+All call state is reactive:
+
+```typescript
+// These update automatically as call progresses
+const isIncomingCall = computed(() => {
+  return activeCall.value?.direction === 'inbound' && activeCall.value?.state === 'ringing'
+})
+
+const formattedDuration = computed(() => {
+  const duration = activeCall.value?.duration || 0
+  // Returns "00:00" format
+})
+```
+
+### Call Direction
+
+Calls have a direction property:
+
+```typescript
+// Outbound calls you initiate
+activeCall.value.direction === 'outbound'
+
+// Incoming calls from others
+activeCall.value.direction === 'inbound'
+```
+
+### Hold vs Mute
+
+::: info Hold vs Mute
+**Hold**: Pauses the call with SIP signaling. The other party knows they're on hold (often hears music).
+
+**Mute**: Local only - stops sending your audio. The call continues, other party hears silence.
+:::
+
+## Exercises
+
+### Exercise 1: Add Backspace
+
+Add a backspace button to the dial pad:
+
+::: details Solution
 
 ```vue
-<script setup lang="ts">
-import Softphone from './components/Softphone.vue'
+<button class="dialpad-btn backspace" @click="handleBackspace">
+  <span class="digit">⌫</span>
+</button>
+
+<script>
+function handleBackspace() {
+  dialNumber.value = dialNumber.value.slice(0, -1)
+}
 </script>
-
-<template>
-  <Softphone />
-</template>
-
-<style>
-body {
-  margin: 0;
-  background: #f3f4f6;
-  min-height: 100vh;
-}
-</style>
 ```
 
-## Step 4: Test the Features
+:::
 
-Run your dev server and try:
+### Exercise 2: Call History
 
-1. **Dialing**: Enter a number using the dial pad or keyboard
-2. **Calling**: Click "Call" to initiate an outbound call
-3. **Call Controls**: Once connected, try Hold and Mute
-4. **DTMF**: During a call, tap digits to send tones
-5. **Incoming Calls**: Click "Simulate Incoming Call" and Answer/Reject
-6. **Duration**: Watch the timer count up during active calls
+Track completed calls and display them:
 
-## Key Concepts Explained
-
-### 1. Call State Management
-
-The `callState` computed property tracks where we are in the call lifecycle:
+::: details Solution
 
 ```typescript
-const isRinging = computed(
-  () => callState.value === 'ringing' && activeCall.value?.direction === 'inbound'
-)
+const { callHistory } = useSipMock()
+
+// In template
+<div v-for="call in callHistory" :key="call.id">
+  {{ call.remoteNumber }} - {{ call.duration }}s
+</div>
 ```
 
-Different UI states show based on current call state.
+:::
 
-### 2. DTMF (Touch Tones)
+### Exercise 3: Auto-Answer
 
-During an active call, dial pad digits send DTMF tones:
+Enable auto-answer for incoming calls:
 
-```typescript
-function handleDigit(digit: string) {
-  if (activeCall.value && callState.value === 'active') {
-    sendDTMF(digit) // Sends tone to remote party
-  } else {
-    phoneNumber.value += digit // Builds phone number
-  }
-}
-```
-
-DTMF is used for IVR menus ("Press 1 for sales...").
-
-### 3. Hold and Mute
+::: details Solution
 
 ```typescript
-// Hold: Pauses media in both directions, plays hold music
-async function toggleHold() {
-  if (isOnHold.value) {
-    await unhold()
-  } else {
-    await hold()
-  }
-}
-
-// Mute: Stops sending your audio (remote can't hear you)
-function toggleMute() {
-  isMuted.value = !isMuted.value
-}
-```
-
-### 4. Incoming Call Handling
-
-```typescript
-// Answer puts you in active call state
-await answer()
-
-// Reject/Hangup ends the call immediately
-hangup()
-```
-
-## Common Mistakes
-
-::: warning Clean Up Timers
-Always clear intervals in `onUnmounted` to prevent memory leaks:
-
-```typescript
-onUnmounted(() => {
-  if (durationInterval) clearInterval(durationInterval)
+const {
+  /* ... */
+} = useSipMock({
+  autoAnswer: true,
+  // Optionally add a delay
+  // The call will auto-answer after simulateIncomingCall
 })
 ```
 
 :::
 
-::: warning DTMF Context
-Only send DTMF during active calls - sending during ringing or idle does nothing.
-:::
-
 ## What You Learned
 
-- Building a complete softphone UI with Vue
-- Handling different call states in the UI
-- Implementing dial pad with DTMF support
-- Managing hold and mute states
-- Handling incoming calls with answer/reject
-- Call duration tracking with reactive state
+- **Complete UI**: Building a production-ready softphone interface
+- **State Display**: Showing different UI based on call state
+- **Call Controls**: Implementing hold, mute, and hangup
+- **DTMF**: Sending tones during active calls
+- **Incoming Calls**: Handling and simulating incoming calls
+- **Styling**: Professional dark theme softphone design
 
 ## Next Steps
 
-Your softphone works great with mock mode, but real applications need real SIP servers. Continue to [Part 3: Real Server Connection](/tutorial/part-3-real-server) to connect to a real SIP provider.
+Your softphone works perfectly in mock mode. In Part 3, we'll learn how to connect it to a real SIP server.
+
+<div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+  <a href="/tutorial/part-1-hello">Back to Part 1</a>
+  <a href="/tutorial/part-3-real-server">Part 3: Real Server Connection</a>
+</div>

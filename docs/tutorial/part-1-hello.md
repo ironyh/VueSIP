@@ -1,250 +1,382 @@
+---
+title: 'Part 1: Hello VueSIP'
+description: 'Make your first simulated SIP call in 5 minutes using mock mode'
+---
+
 # Part 1: Hello VueSIP
 
-**Time: 5 minutes** | [Next: Building a Softphone &rarr;](/tutorial/part-2-softphone)
+**Time: 5 minutes** | **Difficulty: Beginner**
 
-In this first part, you'll make your first call using VueSIP's mock mode - no SIP server required!
+In this part, you'll go from zero to making your first simulated call. By the end, you'll understand the core VueSIP concepts and have a working component.
 
-## What You'll Build
+## What You'll Learn
 
-A minimal "click to call" button that demonstrates the core VueSIP concepts:
+- Installing VueSIP
+- Using `useSipMock` for simulated calls
+- Reactive call state management
+- Basic call operations (connect, call, hangup)
 
-- Connecting and registering
-- Making an outbound call
-- Handling call state changes
-- Hanging up
+## Step 1: Install VueSIP
 
-## Step 1: Create the Component
+First, add VueSIP to your Vue 3 project:
 
-Create a new file `src/components/HelloVueSIP.vue`:
+::: code-group
+
+```bash [npm]
+npm install vuesip
+```
+
+```bash [pnpm]
+pnpm add vuesip
+```
+
+```bash [yarn]
+yarn add vuesip
+```
+
+:::
+
+## Step 2: Create Your First Component
+
+Create a new file `HelloVueSIP.vue`:
 
 ```vue
+<template>
+  <div class="hello-vuesip">
+    <h2>Hello VueSIP!</h2>
+
+    <!-- Connection Status -->
+    <div class="status">
+      <span :class="{ connected: isConnected }">
+        {{ isConnected ? 'Connected' : 'Disconnected' }}
+      </span>
+      <span v-if="isRegistered" class="registered">Registered</span>
+    </div>
+
+    <!-- Call State -->
+    <div v-if="activeCall" class="call-info">
+      <p><strong>Call State:</strong> {{ callState }}</p>
+      <p><strong>To:</strong> {{ activeCall.remoteNumber }}</p>
+      <p v-if="activeCall.duration > 0"><strong>Duration:</strong> {{ activeCall.duration }}s</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button v-if="!isConnected" @click="handleConnect">Connect</button>
+
+      <template v-else>
+        <button v-if="callState === 'idle'" @click="handleCall">Call 555-1234</button>
+
+        <button v-if="callState !== 'idle'" @click="handleHangup" class="hangup">Hang Up</button>
+      </template>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { useSipMock } from 'vuesip'
 
-// Initialize the mock SIP client
-const { isConnected, isRegistered, activeCall, callState, connect, call, hangup } = useSipMock({
-  // Simulate realistic delays
-  connectDelay: 500, // 500ms to "connect"
-  registerDelay: 300, // 300ms to "register"
-  ringDelay: 2000, // 2s of ringing
-  connectCallDelay: 500, // 500ms to answer
-})
+// Initialize mock SIP client
+const { isConnected, isRegistered, callState, activeCall, connect, call, hangup } = useSipMock()
 
-// Connect when component mounts
-connect()
+// Connect to simulated server
+async function handleConnect() {
+  try {
+    await connect()
+    console.log('Connected to mock SIP server!')
+  } catch (error) {
+    console.error('Connection failed:', error)
+  }
+}
 
 // Make a call
-async function makeCall() {
+async function handleCall() {
   try {
-    await call('+1-555-123-4567')
+    const callId = await call('555-1234', 'Test Contact')
+    console.log('Call started:', callId)
   } catch (error) {
     console.error('Call failed:', error)
   }
 }
+
+// End the call
+async function handleHangup() {
+  await hangup()
+  console.log('Call ended')
+}
 </script>
-
-<template>
-  <div class="hello-vuesip">
-    <h1>Hello VueSIP!</h1>
-
-    <!-- Connection Status -->
-    <div class="status">
-      <span v-if="!isConnected">Connecting...</span>
-      <span v-else-if="!isRegistered">Registering...</span>
-      <span v-else class="ready">Ready to call</span>
-    </div>
-
-    <!-- Call Controls -->
-    <div v-if="isRegistered" class="controls">
-      <button v-if="!activeCall" @click="makeCall" class="call-btn">Call +1-555-123-4567</button>
-
-      <div v-else class="active-call">
-        <p>
-          Call State: <strong>{{ callState }}</strong>
-        </p>
-        <p>To: {{ activeCall.remoteNumber }}</p>
-        <button @click="hangup" class="hangup-btn">Hang Up</button>
-      </div>
-    </div>
-  </div>
-</template>
 
 <style scoped>
 .hello-vuesip {
   max-width: 400px;
   margin: 2rem auto;
-  padding: 2rem;
-  text-align: center;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   font-family: system-ui, sans-serif;
 }
 
 .status {
-  margin: 1rem 0;
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
   padding: 0.5rem;
-  background: #f5f5f5;
+  background: #f8fafc;
   border-radius: 4px;
 }
 
-.ready {
-  color: #22c55e;
-  font-weight: bold;
+.status span {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.status .connected {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status .registered {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.call-info {
+  padding: 1rem;
+  background: #f0fdf4;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.call-info p {
+  margin: 0.25rem 0;
 }
 
 .controls {
-  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
-.call-btn {
-  background: #22c55e;
-  color: white;
+button {
+  flex: 1;
+  padding: 0.75rem 1rem;
   border: none;
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.call-btn:hover {
-  background: #16a34a;
-}
-
-.active-call {
-  padding: 1rem;
-  background: #fef3c7;
-  border-radius: 8px;
-}
-
-.hangup-btn {
-  background: #ef4444;
+  border-radius: 4px;
+  background: #3b82f6;
   color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
   font-size: 1rem;
-  border-radius: 8px;
   cursor: pointer;
-  margin-top: 0.5rem;
+  transition: background 0.2s;
 }
 
-.hangup-btn:hover {
+button:hover {
+  background: #2563eb;
+}
+
+button.hangup {
+  background: #ef4444;
+}
+
+button.hangup:hover {
   background: #dc2626;
 }
 </style>
 ```
 
-## Step 2: Use the Component
+## Step 3: Add to Your App
 
-Update your `App.vue` to use the component:
+Import and use the component in your App.vue or any parent component:
 
 ```vue
-<script setup lang="ts">
-import HelloVueSIP from './components/HelloVueSIP.vue'
-</script>
-
 <template>
   <HelloVueSIP />
 </template>
+
+<script setup lang="ts">
+import HelloVueSIP from './components/HelloVueSIP.vue'
+</script>
 ```
 
-## Step 3: Try It Out
+## Step 4: Run and Test
 
-Run your dev server and click the call button:
+Start your development server and try it out:
 
 ```bash
 npm run dev
 ```
 
-You should see:
+1. Click **Connect** - Watch the status change to "Connected" then "Registered"
+2. Click **Call 555-1234** - Watch the call state progress: `calling` -> `ringing` -> `active`
+3. Click **Hang Up** - The call ends and state returns to `idle`
 
-1. **"Connecting..."** - Mock connection establishing
-2. **"Registering..."** - Mock SIP registration
-3. **"Ready to call"** - You can now make calls
-4. Click the button and watch the call state change:
-   - `calling` - Outbound call initiated
-   - `ringing` - Remote party's phone is ringing
-   - `active` - Call connected
-5. Click "Hang Up" to end the call
+::: tip Watch the Console
+Open your browser's developer console to see the log messages and understand the call lifecycle.
+:::
 
-## What Just Happened?
+## Understanding the Code
 
 Let's break down the key concepts:
 
-### 1. useSipMock
+### The useSipMock Composable
 
 ```typescript
-const { ... } = useSipMock(options)
+const {
+  isConnected, // Ref<boolean> - WebSocket connection state
+  isRegistered, // Ref<boolean> - SIP registration state
+  callState, // ComputedRef<MockCallState> - Current call state
+  activeCall, // Ref<MockCall | null> - Active call details
+  connect, // () => Promise<void> - Connect to server
+  call, // (number, displayName?) => Promise<string> - Make call
+  hangup, // () => Promise<void> - End call
+} = useSipMock()
 ```
 
-This composable provides a **mock SIP client** that simulates real SIP behavior. It's perfect for:
+### Reactive State
 
-- Learning VueSIP without infrastructure
-- Unit testing your call handling logic
-- Building demos and prototypes
+All state is reactive - your template automatically updates when:
 
-### 2. Connection Flow
+- Connection status changes
+- Call state transitions (idle -> calling -> ringing -> active)
+- Call duration increments
 
-```typescript
-await connect()
-```
+### Call States
 
-Before making calls, you must:
+The `callState` computed property returns one of:
 
-1. **Connect** - Establish WebSocket connection to SIP server
-2. **Register** - Authenticate with your credentials
-
-In mock mode, both happen automatically with configurable delays.
-
-### 3. Call Lifecycle
-
-```typescript
-await call('+1-555-123-4567')
-// ... call is active ...
-hangup()
-```
-
-A call goes through these states:
-
-```
-idle → calling → ringing → active → ended
-                    ↓
-                 (hangup)
-```
-
-### 4. Reactive State
-
-```typescript
-isConnected // Ref<boolean> - WebSocket connected?
-isRegistered // Ref<boolean> - SIP registered?
-activeCall // Ref<MockCall | null> - Current call
-callState // ComputedRef<'idle'|'calling'|...>
-```
-
-VueSIP uses Vue's reactivity system, so your UI updates automatically when state changes.
-
-## Common Mistakes
-
-::: warning Don't Forget to Connect
-Always call `connect()` before attempting to make calls. In real applications, you'd handle this in an `onMounted` hook or a store.
-:::
-
-::: warning Error Handling
-Always wrap `call()` in try-catch - network issues, busy signals, and rejected calls are common in production.
-:::
+| State     | Description                               |
+| --------- | ----------------------------------------- |
+| `idle`    | No active call                            |
+| `calling` | Outbound call initiated, waiting for ring |
+| `ringing` | Remote party's phone is ringing           |
+| `active`  | Call is connected                         |
+| `held`    | Call is on hold                           |
+| `ended`   | Call has terminated                       |
 
 ## What You Learned
 
-- How to install and import VueSIP
-- Using mock mode for development without a server
-- The connection → registration → call flow
-- Basic call state management
-- Reactive state updates in Vue
+- **Installation**: Adding VueSIP to a Vue 3 project
+- **useSipMock**: The mock mode composable for learning and testing
+- **Reactive State**: How VueSIP exposes reactive refs and computed properties
+- **Call Operations**: Basic connect, call, and hangup operations
+
+## Common Mistakes
+
+::: warning Forgetting `await`
+Always `await` the async operations. Without it, you might check state before the operation completes:
+
+```typescript
+// Wrong - state checked before connect completes
+connect()
+console.log(isConnected.value) // false!
+
+// Correct
+await connect()
+console.log(isConnected.value) // true!
+```
+
+:::
+
+::: warning Calling Before Connected
+Attempting to make a call before connecting throws an error:
+
+```typescript
+// Wrong - not connected yet
+await call('555-1234') // Error: Not connected to SIP server
+
+// Correct
+await connect()
+await call('555-1234') // Works!
+```
+
+:::
+
+::: warning Checking isConnected Before Registration
+The mock server has two states - connected and registered. You need both for calls:
+
+```typescript
+// isConnected = true means WebSocket is open
+// isRegistered = true means you can make/receive calls
+if (isConnected.value && isRegistered.value) {
+  // Safe to make calls
+}
+```
+
+:::
+
+## Try It: Exercises
+
+Before moving to Part 2, try these exercises to reinforce your learning:
+
+### Exercise 1: Display Call Progress
+
+Add a visual indicator that shows the call state transitions with different colors:
+
+- `calling` - Yellow
+- `ringing` - Blue
+- `active` - Green
+
+::: details Solution
+
+```vue
+<div :class="['call-state', callState]">
+  {{ callState }}
+</div>
+
+<style scoped>
+.call-state.calling {
+  background: #fef3c7;
+  color: #92400e;
+}
+.call-state.ringing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.call-state.active {
+  background: #dcfce7;
+  color: #166534;
+}
+</style>
+```
+
+:::
+
+### Exercise 2: Add a Disconnect Button
+
+Add a button that disconnects from the mock server:
+
+::: details Solution
+
+```vue
+<button @click="disconnect">Disconnect</button>
+
+<script setup lang="ts">
+const { disconnect /* ... */ } = useSipMock()
+</script>
+```
+
+:::
+
+### Exercise 3: Custom Ring Delay
+
+Configure the mock to have a longer ring delay (5 seconds instead of default 3):
+
+::: details Solution
+
+```typescript
+const {
+  /* ... */
+} = useSipMock({
+  ringDelay: 5000, // 5 seconds
+})
+```
+
+:::
 
 ## Next Steps
 
-You've made your first call! But a real softphone needs more:
+Congratulations! You've made your first VueSIP call. In Part 2, we'll build a complete softphone with a dial pad, call controls, and proper UI.
 
-- A dial pad for entering numbers
-- Hold, mute, and transfer buttons
-- Duration display
-- Incoming call handling
-
-Continue to [Part 2: Building a Softphone](/tutorial/part-2-softphone) to build a complete softphone UI.
+<div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+  <a href="/tutorial/">Back to Overview</a>
+  <a href="/tutorial/part-2-softphone">Part 2: Building a Softphone</a>
+</div>

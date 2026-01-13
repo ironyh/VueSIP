@@ -1,90 +1,126 @@
 # VueSIP Interactive Tutorial
 
-Welcome to the VueSIP tutorial! This hands-on guide takes you from zero to building production-ready SIP applications in under an hour.
+Welcome to the VueSIP interactive tutorial! This hands-on guide will take you from zero to building a production-ready softphone application in about 50 minutes.
 
-## Learning Path
+## What Makes This Tutorial Special
 
-| Part                                                      | Duration | What You'll Build               |
-| --------------------------------------------------------- | -------- | ------------------------------- |
-| [1. Hello VueSIP](/tutorial/part-1-hello)                 | 5 min    | Your first call using mock mode |
-| [2. Building a Softphone](/tutorial/part-2-softphone)     | 15 min   | Complete UI with call controls  |
-| [3. Real Server Connection](/tutorial/part-3-real-server) | 10 min   | Connect to a real SIP provider  |
-| [4. Advanced Features](/tutorial/part-4-advanced)         | 20 min   | Transfer, conference, recording |
-| [5. AI-Powered Insights](/tutorial/part-5-ai-insights)    | 15 min   | Sentiment, summaries, routing   |
+This tutorial uses **mock mode** - a simulated SIP environment that lets you learn and experiment without needing:
+
+- Real SIP server credentials
+- A VoIP provider account
+- Complex WebRTC configuration
+
+You'll build real, working components that you can later connect to actual SIP infrastructure.
 
 ## Prerequisites
 
-- Basic Vue.js 3 knowledge (Composition API)
-- Node.js 20+ and npm/pnpm
-- A code editor (VS Code recommended)
+Before starting, make sure you have:
 
-::: tip No Server Required!
-Parts 1 and 2 use VueSIP's **mock mode** - you don't need a SIP server or account to start learning.
+- **Vue 3** knowledge (Composition API basics)
+- **TypeScript** familiarity (basic types)
+- **Node.js 18+** installed
+- A Vue 3 project ready (or use `npm create vue@latest`)
+
+::: tip New to Vue 3?
+If you're new to Vue 3's Composition API, we recommend the [Vue 3 Tutorial](https://vuejs.org/tutorial/) first. You'll need to understand `ref()`, `computed()`, and `watch()`.
 :::
 
-## Quick Setup
+## What You'll Build
 
-Create a new Vue project and install VueSIP:
+By the end of this tutorial, you'll have built:
 
-```bash
-# Create new Vue project
-npm create vue@latest vuesip-tutorial
-cd vuesip-tutorial
+### Part 1: Your First Mock Call
 
-# Install VueSIP
-npm install vuesip
+A simple component that connects to a simulated SIP server and makes a call - all in under 20 lines of code.
 
-# Start development server
-npm run dev
+### Part 2: A Complete Softphone
+
+A fully-functional softphone with:
+
+- Dial pad with DTMF tones
+- Call controls (answer, hangup, hold, mute)
+- Call duration display
+- Incoming call handling
+
+### Part 3: Real Server Connection
+
+Learn how to switch from mock mode to connecting with real SIP providers like Telnyx, VoIP.ms, or your own Asterisk server.
+
+### Part 4: Advanced Features
+
+Add professional features:
+
+- Call transfers (blind and attended)
+- Conference calling
+- Real-time transcription
+- Call quality monitoring
+
+## Tutorial Structure
+
+| Part                                   | Topic                  | Time   | Difficulty   |
+| -------------------------------------- | ---------------------- | ------ | ------------ |
+| [Part 1](/tutorial/part-1-hello)       | Hello VueSIP           | 5 min  | Beginner     |
+| [Part 2](/tutorial/part-2-softphone)   | Building a Softphone   | 15 min | Intermediate |
+| [Part 3](/tutorial/part-3-real-server) | Real Server Connection | 10 min | Intermediate |
+| [Part 4](/tutorial/part-4-advanced)    | Advanced Features      | 20 min | Advanced     |
+
+## Quick Start
+
+If you want to jump right in, here's what mock mode looks like:
+
+```typescript
+import { useSipMock } from 'vuesip'
+
+const { isConnected, activeCall, connect, call, hangup } = useSipMock()
+
+// Connect to simulated server
+await connect()
+
+// Make a simulated call
+await call('555-1234')
+
+// End the call
+await hangup()
 ```
 
-## What You'll Learn
+That's it! No credentials, no server setup, no WebRTC configuration.
 
-### Part 1: Hello VueSIP (5 minutes)
+## How Mock Mode Works
 
-- Installing and importing VueSIP
-- Using mock mode for development
-- Making your first simulated call
-- Understanding the basic call lifecycle
+The `useSipMock` composable simulates the entire SIP lifecycle:
 
-### Part 2: Building a Softphone (15 minutes)
+1. **Connection** - Simulates WebSocket connection with configurable delays
+2. **Registration** - Simulates SIP REGISTER with realistic timing
+3. **Outgoing Calls** - Simulates call setup: calling -> ringing -> active
+4. **Incoming Calls** - Trigger simulated incoming calls for testing
+5. **Call Controls** - Hold, unhold, mute, DTMF - all reactive
 
-- Creating a dial pad component
-- Displaying call status and duration
-- Adding hold, mute, and hangup controls
-- Sending DTMF tones
-- Handling incoming calls
+Mock mode uses the same API as real mode, so your components work unchanged when you switch to production.
 
-### Part 3: Real Server Connection (10 minutes)
+::: info Why Mock Mode?
+Mock mode was designed specifically for this tutorial and for UI development. It lets you:
 
-- Choosing a SIP provider (Telnyx, 46elks, etc.)
-- Configuring real credentials
-- Understanding WebSocket connections
-- Troubleshooting registration issues
+- **Learn without barriers** - No credentials needed
+- **Test UI components** - Develop your interface independently
+- **Debug edge cases** - Simulate network issues and quality drops
+- **Write tests** - Perfect for unit and integration testing
+  :::
 
-### Part 4: Advanced Features (20 minutes)
+## Ready to Start?
 
-- Call transfer (blind and attended)
-- Conference calls with multiple participants
-- Call recording with local storage
-- Audio device management
+Let's begin with Part 1, where you'll make your first simulated call in just 5 minutes.
 
-### Part 5: AI-Powered Insights (15 minutes)
+<div style="text-align: center; margin-top: 2rem;">
 
-- Real-time sentiment analysis with alerts
-- Automatic call summarization
-- Action item extraction and management
-- Smart routing with batch operations
+[Start Part 1: Hello VueSIP](/tutorial/part-1-hello)
 
-## Philosophy
+</div>
 
-This tutorial follows a **progressive disclosure** approach:
+## Additional Resources
 
-1. **Start simple** - Mock mode lets you learn without infrastructure
-2. **Build incrementally** - Each part adds to your working application
-3. **Real-world patterns** - Code you write is production-ready
-4. **Learn by doing** - Every concept includes working examples
+As you work through the tutorial, you may want to reference:
 
-## Ready?
-
-Let's start with [Part 1: Hello VueSIP](/tutorial/part-1-hello) and make your first call in under 5 minutes!
+- [API Reference](/api/) - Complete composable documentation
+- [Getting Started](/guide/getting-started) - Full setup guide for production
+- [Examples](/examples/) - More code examples and patterns
+- [FAQ](/faq) - Common questions and answers
