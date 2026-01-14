@@ -1,7 +1,7 @@
 /**
  * Phone Composable - Wraps VueSip APIs for softphone functionality
  */
-import { ref, computed } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 import {
   useSipClient,
   useCallSession,
@@ -46,7 +46,7 @@ export function usePhone() {
   const clientRef = computed(() => getClient())
 
   // Call Session - pass mediaManager to acquire media before calls
-  const callSession = useCallSession(clientRef, mediaManager)
+  const callSession = useCallSession(clientRef, mediaManager as Ref<MediaManager | null>)
   const {
     makeCall,
     hangup,
@@ -72,13 +72,12 @@ export function usePhone() {
   } = callSession
 
   // Media Devices - share the same mediaManager for consistent media handling
-  const mediaDevices = useMediaDevices(mediaManager)
+  const mediaDevices = useMediaDevices(mediaManager as Ref<MediaManager | null>)
   const {
     audioInputDevices,
     audioOutputDevices,
     selectedAudioInputId,
     selectedAudioOutputId,
-    enumerateDevices,
     selectAudioInput,
     selectAudioOutput,
     requestPermissions,
