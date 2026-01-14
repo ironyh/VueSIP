@@ -1,0 +1,79 @@
+{
+  "name": "@vuesip/enterprise",
+  "version": "1.0.0",
+  "description": "Enterprise features for VueSIP - CRM integration, compliance, analytics",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./crm": {
+      "types": "./dist/crm/index.d.ts",
+      "import": "./dist/crm/index.mjs",
+      "require": "./dist/crm/index.js"
+    },
+    "./compliance": {
+      "types": "./dist/compliance/index.d.ts",
+      "import": "./dist/compliance/index.mjs",
+      "require": "./dist/compliance/index.js"
+    },
+    "./analytics": {
+      "types": "./dist/analytics/index.d.ts",
+      "import": "./dist/analytics/index.mjs",
+      "require": "./dist/analytics/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "peerDependencies": {
+    "vuesip": "^1.0.0",
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "vue": "^3.5.0"
+  },
+  "keywords": [
+    "vue",
+    "sip",
+    "voip",
+    "crm",
+    "enterprise",
+    "compliance",
+    "analytics",
+    "salesforce",
+    "hubspot",
+    "call-center"
+  ],
+  "author": "VueSIP Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ironyh/VueSIP.git",
+    "directory": "packages/enterprise"
+  },
+  "bugs": {
+    "url": "https://github.com/ironyh/VueSIP/issues"
+  },
+  "homepage": "https://github.com/ironyh/VueSIP/tree/main/packages/enterprise#readme"
+}
