@@ -1,84 +1,32 @@
-name: Dependency Janitor
+name: Jules Maintenance
 
 on:
   schedule:
-    - cron: '0 0 * * 1' # Every Monday at 00:00 UTC
-  workflow_dispatch:
-
-permissions:
-  contents: write
-  pull-requests: write
+    - cron: '0 2 * * 1' # Runs every Monday at 2 AM UTC
+  workflow_dispatch: # Allows manual trigger
 
 jobs:
-  janitor:
+  jules_janitor:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - uses: google-labs-code/jules-invoke@v1
         with:
-          version: 9.14.2
+          # IMPORTANT: You must add JULES_API_KEY to your Repository Secrets
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          model: "gemini-2.0-flash-exp"
+          prompt: |
+            You are a diligent maintenance agent for this Vue.js/TypeScript project.
+            The project uses `pnpm` for package management.
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Update dependencies (semver)
-        run: pnpm update -r
-
-      - name: Run Audit
-        id: audit
-        run: |
-          echo "Running pnpm audit..."
-          # Capture audit output, but don't fail the step immediately so we can report it.
-          # We force success with || true because we want the workflow to proceed to PR creation
-          # (unless build/test fails later) or at least capture the output.
-          pnpm audit > audit-report.txt 2>&1 || true
-
-          echo "AUDIT_REPORT<<EOF" >> $GITHUB_ENV
-          # Limit report size to avoid env var limits
-          head -c 60000 audit-report.txt >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Build Project
-        run: pnpm run build
-
-      - name: Run Unit Tests
-        run: pnpm run test:unit
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore: weekly dependency updates"
-          committer: GitHub <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          branch: janitor/weekly-updates
-          delete-branch: true
-          title: 'chore: Weekly Dependency Updates & Audit'
-          body: |
-            This PR updates dependencies within their defined semver ranges.
-
-            ### Verification status
-            - [x] `pnpm build` passed
-            - [x] `pnpm test:unit` passed
-
-            ### Audit Report
-            <details>
-            <summary>Click to see pnpm audit output</summary>
-
-            ```
-            ${{ env.AUDIT_REPORT }}
-            ```
-            </details>
-          labels: |
-            dependencies
-            janitor
+            Your mission is to perform a weekly cleanup:
+            1. **Check for updates**: Identify outdated dependencies in `package.json` that can be updated safely (respecting semver ranges).
+            2. **Audit**: Run `pnpm audit` to detect security vulnerabilities.
+            3. **Update**: Perform the updates and fix vulnerabilities where possible.
+            4. **Verify**:
+               - Run `pnpm install` to ensure lockfile consistency.
+               - Run `pnpm run build` to ensure the project builds.
+               - Run `pnpm run test:unit` to ensure no regressions.
+            5. **Report**: Create a Pull Request with the updates. Include a summary of what was updated and the results of the audit and tests.
