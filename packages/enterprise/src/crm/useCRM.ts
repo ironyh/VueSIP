@@ -306,8 +306,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     await withLoading(async () => {
-      await adapter.value!.connect()
+      await currentAdapter.connect()
       connectionCallbacks.forEach((cb) => cb(true))
     })
   }
@@ -341,8 +342,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       return cached
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      const contact = await adapter.value!.lookupByPhone(phoneNumber)
+      const contact = await currentAdapter.lookupByPhone(phoneNumber)
 
       if (contact) {
         addToCache(phoneNumber, contact)
@@ -364,8 +366,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      return adapter.value!.lookupById(contactId)
+      return currentAdapter.lookupById(contactId)
     })
   }
 
@@ -378,8 +381,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      const result = await adapter.value!.searchContacts(query)
+      const result = await currentAdapter.searchContacts(query)
       return result.contacts
     })
   }
@@ -393,8 +397,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      const created = await adapter.value!.createContact(contact)
+      const created = await currentAdapter.createContact(contact)
 
       // Add to cache if phone number is present
       if (created.phone) {
@@ -414,8 +419,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      const updated = await adapter.value!.updateContact(contactId, updates)
+      const updated = await currentAdapter.updateContact(contactId, updates)
 
       // Update cache if phone number is present
       if (updated.phone) {
@@ -452,8 +458,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      return adapter.value!.logCall(callData)
+      return currentAdapter.logCall(callData)
     })
   }
 
@@ -466,8 +473,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     await withLoading(async () => {
-      await adapter.value!.updateCall(callId, updates)
+      await currentAdapter.updateCall(callId, updates)
     })
   }
 
@@ -480,8 +488,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      return adapter.value!.getCallHistory(contactId, limit)
+      return currentAdapter.getCallHistory(contactId, limit)
     })
   }
 
@@ -498,8 +507,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      return adapter.value!.createActivity(activity)
+      return currentAdapter.createActivity(activity)
     })
   }
 
@@ -512,8 +522,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      return adapter.value!.updateActivity(activityId, updates)
+      return currentAdapter.updateActivity(activityId, updates)
     })
   }
 
@@ -526,8 +537,9 @@ export function useCRM(options: UseCRMOptions = {}): UseCRMReturn {
       } as CRMError
     }
 
+    const currentAdapter = adapter.value
     return withLoading(async () => {
-      return adapter.value!.getActivities(contactId, limit)
+      return currentAdapter.getActivities(contactId, limit)
     })
   }
 

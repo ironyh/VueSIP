@@ -237,7 +237,8 @@ describe('useCallAnalytics', () => {
 
       const agent = analytics.getAgentReport('agent-1')
       expect(agent).not.toBeNull()
-      expect(agent!.averageHandleTime).toBe(150)
+      if (!agent) throw new Error('Expected agent to be defined')
+      expect(agent.averageHandleTime).toBe(150)
     })
 
     it('should calculate agent talk time', () => {
@@ -249,7 +250,8 @@ describe('useCallAnalytics', () => {
 
       const agent = analytics.getAgentReport('agent-1')
       expect(agent).not.toBeNull()
-      expect(agent!.averageTalkTime).toBe(150)
+      if (!agent) throw new Error('Expected agent to be defined')
+      expect(agent.averageTalkTime).toBe(150)
     })
 
     it('should calculate agent wrap-up time', () => {
@@ -261,7 +263,8 @@ describe('useCallAnalytics', () => {
 
       const agent = analytics.getAgentReport('agent-1')
       expect(agent).not.toBeNull()
-      expect(agent!.averageWrapUpTime).toBe(40)
+      if (!agent) throw new Error('Expected agent to be defined')
+      expect(agent.averageWrapUpTime).toBe(40)
     })
 
     it('should calculate agent sentiment score', () => {
@@ -273,7 +276,8 @@ describe('useCallAnalytics', () => {
 
       const agent = analytics.getAgentReport('agent-1')
       expect(agent).not.toBeNull()
-      expect(agent!.sentimentScore).toBeCloseTo(0.6, 2)
+      if (!agent) throw new Error('Expected agent to be defined')
+      expect(agent.sentimentScore).toBeCloseTo(0.6, 2)
     })
   })
 
@@ -554,8 +558,9 @@ describe('useCallAnalytics', () => {
       const report = analytics.getAgentReport('agent-1')
 
       expect(report).not.toBeNull()
-      expect(report!.agentId).toBe('agent-1')
-      expect(report!.agentName).toBe('Agent One')
+      if (!report) throw new Error('Expected report to be defined')
+      expect(report.agentId).toBe('agent-1')
+      expect(report.agentName).toBe('Agent One')
     })
 
     it('should return null for unknown agent', () => {
@@ -576,7 +581,8 @@ describe('useCallAnalytics', () => {
       const report = analytics.getQueueReport('support')
 
       expect(report).not.toBeNull()
-      expect(report!.queueName).toBe('support')
+      if (!report) throw new Error('Expected report to be defined')
+      expect(report.queueName).toBe('support')
     })
 
     it('should return null for unknown queue', () => {
@@ -796,9 +802,10 @@ describe('Edge Cases', () => {
 
     const agent = analytics.getAgentReport('agent-1')
     expect(agent).not.toBeNull()
-    expect(agent!.totalCalls).toBe(0)
-    expect(agent!.averageHandleTime).toBe(0)
-    expect(agent!.sentimentScore).toBeUndefined()
+    if (!agent) throw new Error('Expected agent to be defined')
+    expect(agent.totalCalls).toBe(0)
+    expect(agent.averageHandleTime).toBe(0)
+    expect(agent.sentimentScore).toBeUndefined()
   })
 
   it('should handle very large number of calls', () => {
