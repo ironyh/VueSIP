@@ -567,6 +567,9 @@ const loadAndConnectCredentials = async () => {
       autoRegister: true,
       connectionTimeout: 10000,
       registerExpires: 600,
+      mediaConfiguration: defaultConnection.audioCodec
+        ? { audioCodec: defaultConnection.audioCodec }
+        : undefined,
     }
 
     // Add password if it was saved

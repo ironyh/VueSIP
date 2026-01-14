@@ -10,23 +10,7 @@
             :class="combinedStatusClass"
             :title="combinedStatusTooltip"
           >
-            <!-- Offline Icon (X in circle) -->
-            <svg v-if="!isConnected" class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="15" y1="9" x2="9" y2="15"/>
-              <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-            <!-- Connecting Icon (Exclamation in circle) -->
-            <svg v-else-if="isConnected && !isRegistered" class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <!-- Ready Icon (Checkmark in circle) -->
-            <svg v-else class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
+            <StatusIcon :status="statusIconType" />
             <span class="status-label">{{ combinedStatusLabel }}</span>
           </div>
         </div>
@@ -110,6 +94,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import StatusIcon from './StatusIcon.vue'
 
 // Define emits
 defineEmits<{
@@ -153,6 +138,12 @@ const combinedStatusClass = computed(() => {
   if (!isConnected.value) return 'status-red'
   if (!isRegistered.value) return 'status-orange'
   return 'status-green'
+})
+
+const statusIconType = computed(() => {
+  if (!isConnected.value) return 'offline'
+  if (!isRegistered.value) return 'connecting'
+  return 'ready'
 })
 
 const combinedStatusLabel = computed(() => {
@@ -236,7 +227,7 @@ const handleDisconnect = async () => {
 
 <style scoped>
 .call-toolbar {
-  background: linear-gradient(120deg, #667eea 0%, #764ba2 50%, #4f46e5 100%) !important;
+  background: linear-gradient(120deg, #667eea 0%, #764ba2 50%, #4f46e5 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 1rem 0;
