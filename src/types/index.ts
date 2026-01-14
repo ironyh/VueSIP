@@ -72,3 +72,6 @@ export * from './system.types'
 
 // MWI types (AMI)
 export * from './mwi.types'
+
+// Originate types (AMI)
+export * from './originate.types'
