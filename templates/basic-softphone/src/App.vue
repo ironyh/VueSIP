@@ -271,9 +271,7 @@ onUnmounted(async () => {
     <Card class="phone-card">
       <template #header>
         <div class="phone-header">
-          <h1>
-            VueSip Softphone <span class="version">v{{ version }}</span>
-          </h1>
+          <h1>VueSip Softphone</h1>
           <div
             class="status-indicator"
             :class="{
@@ -481,6 +479,12 @@ onUnmounted(async () => {
           </TabView>
         </div>
       </template>
+
+      <template #footer>
+        <div class="phone-footer">
+          <span class="version">VueSip v{{ version }}</span>
+        </div>
+      </template>
     </Card>
 
     <!-- Transfer Dialog -->
@@ -540,13 +544,6 @@ onUnmounted(async () => {
 .phone-header h1 {
   margin: 0 0 8px;
   font-size: 1.25rem;
-}
-
-.phone-header .version {
-  font-size: 0.75rem;
-  font-weight: normal;
-  opacity: 0.8;
-  margin-left: 4px;
 }
 
 .status-indicator {
@@ -668,5 +665,17 @@ onUnmounted(async () => {
 .api-login-link {
   text-align: center;
   margin: 8px 0;
+}
+
+.phone-footer {
+  text-align: center;
+  padding: 8px;
+  border-top: 1px solid var(--surface-200);
+}
+
+.phone-footer .version {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  opacity: 0.7;
 }
 </style>
