@@ -7,7 +7,7 @@
  *
  * @packageDocumentation
  * @module vuesip
- * @version 1.0.0
+ * @version 1.0.5
  *
  * @example
  * ```typescript
@@ -552,7 +552,7 @@ export function createVueSip(options: VueSipOptions = {}): Plugin {
  *
  * @public
  */
-export const version = '1.0.4'
+export const version = '1.0.5'
 
 /**
  * VueSip library metadata.
