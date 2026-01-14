@@ -7,6 +7,8 @@ import {
   useCallSession,
   useMediaDevices,
   useCallHistory,
+  buildSipUri,
+  extractSipDomain,
 } from 'vuesip'
 
 export interface PhoneConfig {
@@ -59,6 +61,8 @@ export function usePhone() {
     remoteDisplayName,
     duration,
     direction,
+    localStream,
+    remoteStream,
   } = callSession
 
   // Media Devices
@@ -104,7 +108,22 @@ export function usePhone() {
   }
 
   async function call(target: string) {
-    await makeCall(target)
+    // Extract domain from current config to build proper SIP URI
+    const sipUri = currentConfig.value?.sipUri
+    if (!sipUri) {
+      throw new Error('Cannot make call: Phone not configured. Call configure() first.')
+    }
+
+    const domain = extractSipDomain(sipUri)
+    if (!domain) {
+      throw new Error(
+        `Cannot make call: Invalid SIP URI configuration. Expected sip:user@domain, got: ${sipUri}`
+      )
+    }
+
+    // Build SIP URI from target (handles phone numbers, usernames, or existing SIP URIs)
+    const sipTarget = buildSipUri(target, domain)
+    await makeCall(sipTarget)
   }
 
   async function endCall() {
@@ -171,5 +190,9 @@ export function usePhone() {
     historyEntries,
     history,
     clearHistory,
+
+    // Media streams (for recording)
+    localStream,
+    remoteStream,
   }
 }

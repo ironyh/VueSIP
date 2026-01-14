@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import Dropdown from 'primevue/dropdown'
 
 interface MediaDevice {
@@ -7,7 +8,7 @@ interface MediaDevice {
   kind: string
 }
 
-defineProps<{
+const props = defineProps<{
   audioInputDevices: readonly MediaDevice[]
   audioOutputDevices: readonly MediaDevice[]
   selectedAudioInputId: string | null
@@ -18,6 +19,10 @@ const emit = defineEmits<{
   selectInput: [deviceId: string]
   selectOutput: [deviceId: string]
 }>()
+
+// Convert readonly arrays to mutable for PrimeVue Dropdown
+const inputOptions = computed(() => [...props.audioInputDevices])
+const outputOptions = computed(() => [...props.audioOutputDevices])
 
 function handleInputChange(event: { value: string }) {
   emit('selectInput', event.value)
@@ -37,7 +42,7 @@ function handleOutputChange(event: { value: string }) {
       <Dropdown
         id="audio-input"
         :model-value="selectedAudioInputId"
-        :options="[...audioInputDevices]"
+        :options="inputOptions"
         option-label="label"
         option-value="deviceId"
         placeholder="Select microphone"
@@ -51,7 +56,7 @@ function handleOutputChange(event: { value: string }) {
       <Dropdown
         id="audio-output"
         :model-value="selectedAudioOutputId"
-        :options="[...audioOutputDevices]"
+        :options="outputOptions"
         option-label="label"
         option-value="deviceId"
         placeholder="Select speaker"

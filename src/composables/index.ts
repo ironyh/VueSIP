@@ -266,3 +266,7 @@ export type { UseAgentMetricsOptions, UseAgentMetricsReturn } from './useAgentMe
 // Provider API composables
 export { useTelnyxApi, type UseTelnyxApiReturn } from './useTelnyxApi'
 export { use46ElksApi, type Use46ElksApiReturn } from './use46ElksApi'
+
+// Re-export provider service types
+export type { Elks46Number, Elks46ApiCredentials } from '../providers/services/elks46ApiService'
+export type { TelnyxCredential, TelnyxConnection } from '../providers/services/telnyxApiService'

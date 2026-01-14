@@ -5,7 +5,7 @@ import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import Message from 'primevue/message'
 import Checkbox from 'primevue/checkbox'
-import { use46ElksApi } from 'vuesip'
+import { use46ElksApi, type Elks46Number } from 'vuesip'
 
 const STORAGE_KEY = 'vuesip_46elks_credentials'
 
@@ -79,7 +79,7 @@ async function handleLogin() {
 }
 
 // Handle number selection
-async function handleNumberSelect(num: { number: string; active: string; secret?: string }) {
+async function handleNumberSelect(num: Elks46Number) {
   await selectNumber(num)
 }
 
