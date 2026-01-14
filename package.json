@@ -1,6 +1,6 @@
 {
   "name": "vuesip",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A headless Vue.js component library for SIP/VoIP applications",
   "type": "module",
   "author": "Arash Molavi",
