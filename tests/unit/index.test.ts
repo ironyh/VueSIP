@@ -19,13 +19,13 @@ import {
 describe('VueSip Entry Point', () => {
   describe('version and metadata', () => {
     it('should export version', () => {
-      expect(version).toBe('1.0.5')
+      expect(version).toBe('1.1.0')
     })
 
     it('should export metadata', () => {
       expect(metadata).toEqual({
         name: 'VueSip',
-        version: '1.0.5',
+        version: '1.1.0',
         description: 'A headless Vue.js component library for SIP/VoIP applications',
         author: 'VueSip Team',
         license: 'MIT',
@@ -82,7 +82,7 @@ describe('VueSip Entry Point', () => {
       plugin.install(app)
 
       expect(app.config.globalProperties.$vuesip).toBeDefined()
-      expect(app.config.globalProperties.$vuesip.version).toBe('1.0.5')
+      expect(app.config.globalProperties.$vuesip.version).toBe('1.1.0')
     })
 
     it('should install plugin with debug enabled', () => {
@@ -177,7 +177,7 @@ describe('VueSip Entry Point', () => {
       plugin.install(app)
 
       expect(app.config.globalProperties.$vuesip.options).toMatchObject(options)
-      expect(app.config.globalProperties.$vuesip.version).toBe('1.0.5')
+      expect(app.config.globalProperties.$vuesip.version).toBe('1.1.0')
     })
   })
 })
