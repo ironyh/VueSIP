@@ -75,6 +75,7 @@ export function usePhone() {
     enumerateDevices,
     selectAudioInput,
     selectAudioOutput,
+    requestPermissions,
   } = mediaDevices
 
   // Call History - history is automatically updated by the call store
@@ -98,7 +99,9 @@ export function usePhone() {
       throw new Error('Phone not configured. Call configure() first.')
     }
     await connect()
-    await enumerateDevices()
+    // Request microphone permission to get real device names
+    // (browsers hide device labels until permission is granted)
+    await requestPermissions(true, false)
   }
 
   async function disconnectPhone() {
