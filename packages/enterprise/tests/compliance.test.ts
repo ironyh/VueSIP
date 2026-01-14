@@ -235,8 +235,9 @@ describe('useCompliance', () => {
       const after = new Date()
 
       expect(result.timestamp).toBeDefined()
-      expect(result.timestamp!.getTime()).toBeGreaterThanOrEqual(before.getTime())
-      expect(result.timestamp!.getTime()).toBeLessThanOrEqual(after.getTime())
+      if (!result.timestamp) throw new Error('Expected timestamp to be defined')
+      expect(result.timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime())
+      expect(result.timestamp.getTime()).toBeLessThanOrEqual(after.getTime())
     })
 
     it('should detect Amex 15-digit cards', () => {

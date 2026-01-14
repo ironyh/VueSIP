@@ -583,11 +583,13 @@ export function useCompliance(config: ComplianceConfig): UseComplianceReturn {
       let entries = [...auditEntries.value]
 
       if (filters?.startDate) {
-        entries = entries.filter((e) => e.timestamp >= filters.startDate!)
+        const startDate = filters.startDate
+        entries = entries.filter((e) => e.timestamp >= startDate)
       }
 
       if (filters?.endDate) {
-        entries = entries.filter((e) => e.timestamp <= filters.endDate!)
+        const endDate = filters.endDate
+        entries = entries.filter((e) => e.timestamp <= endDate)
       }
 
       if (filters?.action) {
