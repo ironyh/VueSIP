@@ -3018,7 +3018,7 @@ const presence = usePresence(sipClientRef)
 
 ## Related Documentation
 
-- [Core API Reference](./core.md)
+- [Core API Reference](./index.md)
 - [Plugin System](./plugins.md)
-- [Testing Guide](../testing-guide.md)
-- [Getting Started](../index.md)
+- [Testing Guide](../developer/testing.md)
+- [Getting Started](../guide/getting-started.md)

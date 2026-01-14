@@ -744,8 +744,7 @@ const { records } = useAmiCDR(amiClient, {
 ## Related Documentation
 
 - [Call History Guide](./call-history.md) - Client-side call history
-- [AMI Integration](./ami-integration.md) - General AMI usage
-- [Queue Monitoring](./queue-monitoring.md) - Real-time queue stats
+- [Queue Monitoring](../examples/queue-monitor.md) - Real-time queue stats
 
 ## External Resources
 

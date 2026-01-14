@@ -2000,7 +2000,7 @@ function isValidLogLevel(level: string): level is LogLevel {
 
 ## Related Documentation
 
-- [Core API Reference](./core.md) - Main VueSip API
+- [Core API Reference](./index.md) - Main VueSip API
 - [Types Reference](./types.md) - TypeScript type definitions
 - [Plugin System](./plugins.md) - Plugin development guide
 

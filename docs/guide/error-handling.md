@@ -2349,4 +2349,4 @@ Continue learning with these related guides:
 - [Getting Started Guide](./getting-started.md) - Set up your first VueSip application
 - [Making Calls Guide](./making-calls.md) - Learn call management and features
 - [Device Management Guide](./device-management.md) - Handle microphones, speakers, and cameras
-- [API Reference](/api) - Complete API documentation
+- [API Reference](/api/) - Complete API documentation

@@ -1600,8 +1600,8 @@ All features include:
 Now that you understand call controls, explore these related topics:
 
 - **[API Reference](/api/)** - Detailed API documentation for all methods and properties
-- **[SIP Client Guide](/guide/sip-client)** - Learn about the core SIP client setup
-- **[Conference Guide](/guide/conferences)** - Build multi-party conference calls
+- **[SIP Client Guide](/guide/getting-started.md)** - Learn about the core SIP client setup
+- **[Conference Guide](/guide/video-calling.md)** - Build multi-party conference calls
 - **[Examples Repository](https://github.com/ironyh/VueSIP/tree/main/examples)** - Complete working examples
 
 💡 **Tip**: Start with basic controls (hold, mute) in your application, then add advanced features (transfer, DTMF queuing) as your requirements grow.

@@ -4279,7 +4279,7 @@ This section covered everything you need to build professional multi-party video
 - Explore [Screen Sharing](#screen-sharing) for presenting in conferences
 - Learn about [Performance Optimization](#performance) for handling many streams
 - Check [Best Practices](#best-practices) for production deployments
-- Review complete [API Reference](../api/useConference.md) for advanced features
+- Review complete [API Reference](../api/composables.md#useconference) for advanced features
 
 💡 **Pro Tip**: Start with a basic grid layout and 4-6 participants. Add advanced features like speaker detection and quality optimization as your needs grow.
 
