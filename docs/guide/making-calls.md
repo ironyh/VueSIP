@@ -53,9 +53,9 @@ import { useSipClient, useCallSession } from 'vuesip'
 
 // Step 1: Initialize and connect to the SIP server
 const { getClient, isConnected } = useSipClient({
-  uri: 'wss://sip.example.com:7443',      // WebSocket server address
-  sipUri: 'sip:alice@example.com',        // Your SIP identity
-  password: 'your-password'                // Your SIP password
+  uri: 'wss://sip.example.com:7443', // WebSocket server address
+  sipUri: 'sip:alice@example.com', // Your SIP identity
+  password: 'your-password', // Your SIP password
 })
 
 // Step 2: Get the SIP client reference for useCallSession
@@ -63,13 +63,13 @@ const sipClient = computed(() => getClient())
 
 // Step 3: Initialize the call session manager
 const {
-  makeCall,       // Function to initiate calls
-  hangup,         // Function to end calls
-  state,          // Current call state (idle, calling, active, etc.)
-  remoteUri,      // Who you're calling/talking to
-  duration,       // Call duration in seconds (updates every second)
-  localStream,    // Your audio/video stream (for display)
-  remoteStream    // Remote party's audio/video stream (for playback)
+  makeCall, // Function to initiate calls
+  hangup, // Function to end calls
+  state, // Current call state (idle, calling, active, etc.)
+  remoteUri, // Who you're calling/talking to
+  duration, // Call duration in seconds (updates every second)
+  localStream, // Your audio/video stream (for display)
+  remoteStream, // Remote party's audio/video stream (for playback)
 } = useCallSession(sipClient)
 
 // Step 4: Make a call (with proper validation)
@@ -93,6 +93,45 @@ const handleCall = async () => {
 
 📝 **Note:** The `makeCall` function is asynchronous and returns a Promise. Always use `await` or `.then()/.catch()` to handle it properly.
 
+### Using MediaManager with Multiple Composables
+
+When building a complete phone application that uses both `useCallSession` and `useMediaDevices`, you need to share a `MediaManager` instance between them. This ensures:
+
+1. **Media is acquired before the call** - Prevents "User Denied Media Access" errors
+2. **Device selection is synchronized** - Selected devices are used for calls
+3. **Events are coordinated** - Both composables receive the same events
+
+```typescript
+import { ref, computed } from 'vue'
+import { useSipClient, useCallSession, useMediaDevices, MediaManager } from 'vuesip'
+
+// Step 1: Initialize SIP client and get the event bus
+const { getClient, getEventBus, connect, isConnected } = useSipClient()
+
+// Step 2: Create a shared MediaManager with the event bus
+const mediaManager = ref(new MediaManager({ eventBus: getEventBus() }))
+
+// Step 3: Pass the MediaManager to useCallSession
+const sipClient = computed(() => getClient())
+const { makeCall, hangup, state } = useCallSession(sipClient, mediaManager)
+
+// Step 4: Pass the same MediaManager to useMediaDevices
+const {
+  audioInputDevices,
+  audioOutputDevices,
+  selectAudioInput,
+  selectAudioOutput,
+  requestPermissions,
+} = useMediaDevices(mediaManager)
+
+// Step 5: Request permissions early (recommended)
+await requestPermissions(true, false) // audio: true, video: false
+```
+
+💡 **Why this matters:** Without a shared MediaManager, `useCallSession` will try to acquire media itself during the call setup, which can cause permission errors if the browser blocks the request. By sharing a MediaManager, media is acquired through `useMediaDevices` first, and then reused by `useCallSession`.
+
+📝 **Note:** The simple pattern shown in the Quick Start works for basic usage, but for production applications with device selection, use the MediaManager pattern above.
+
 ### Target URI Formats
 
 VueSip is flexible and accepts multiple target URI formats, making it easy to integrate with different systems:
@@ -108,7 +147,7 @@ await makeCall('sip:user@domain.com:5060')
 await makeCall('"Bob Smith" <sip:bob@domain.com>')
 
 // Extension/short number (automatically formatted based on your config)
-await makeCall('1000')  // Becomes sip:1000@your-domain.com
+await makeCall('1000') // Becomes sip:1000@your-domain.com
 ```
 
 ⚠️ **Important:** The target URI is validated before initiating the call. Invalid URIs will throw an error immediately, so you can catch and handle them before any network activity occurs.
@@ -148,8 +187,8 @@ Audio-only calls are the default and most common use case:
 ```typescript
 // Explicit audio-only configuration
 await makeCall('sip:user@domain.com', {
-  audio: true,   // Enable microphone
-  video: false   // Disable camera
+  audio: true, // Enable microphone
+  video: false, // Disable camera
 })
 
 // Or simply use the default (same result)
@@ -163,8 +202,8 @@ Enable video for face-to-face conversations:
 ```typescript
 // Enable both audio and video
 await makeCall('sip:user@domain.com', {
-  audio: true,   // Enable microphone
-  video: true    // Enable camera
+  audio: true, // Enable microphone
+  video: true, // Enable camera
 })
 ```
 
@@ -178,11 +217,11 @@ Store metadata with your call for tracking, analytics, or business logic:
 // Add custom metadata to the call
 await makeCall('sip:user@domain.com', {
   data: {
-    callType: 'support',      // Categorize the call
-    ticketId: '12345',        // Link to support ticket
-    priority: 'high',         // Business priority
-    customerId: 'ABC-789'     // Customer reference
-  }
+    callType: 'support', // Categorize the call
+    ticketId: '12345', // Link to support ticket
+    priority: 'high', // Business priority
+    customerId: 'ABC-789', // Customer reference
+  },
 })
 
 // Access the metadata later (during or after the call)
@@ -207,14 +246,14 @@ Enable or disable audio and video with simple boolean flags:
 ```typescript
 // Audio-only call (default)
 await makeCall('sip:user@domain.com', {
-  audio: true,   // Enable microphone with default optimized settings
-  video: false   // Disable camera
+  audio: true, // Enable microphone with default optimized settings
+  video: false, // Disable camera
 })
 
 // Audio + video call
 await makeCall('sip:user@domain.com', {
-  audio: true,   // Enable microphone with default optimized settings
-  video: true    // Enable camera with default settings
+  audio: true, // Enable microphone with default optimized settings
+  video: true, // Enable camera with default settings
 })
 ```
 
@@ -228,7 +267,8 @@ Let users choose which microphone or camera to use before making calls:
 import { useMediaDevices } from 'vuesip'
 
 // Get available devices
-const { audioInputDevices, videoInputDevices, selectAudioInput, selectVideoInput } = useMediaDevices()
+const { audioInputDevices, videoInputDevices, selectAudioInput, selectVideoInput } =
+  useMediaDevices()
 
 // Let the user select devices
 selectAudioInput(audioInputDevices.value[0].deviceId)
@@ -237,7 +277,7 @@ selectVideoInput(videoInputDevices.value[0].deviceId)
 // Now make the call - it will use the selected devices
 await makeCall('sip:user@domain.com', {
   audio: true,
-  video: true
+  video: true,
 })
 ```
 
@@ -257,17 +297,17 @@ Here's what each state means and when it occurs:
 
 ```typescript
 type CallState =
-  | 'idle'          // No active call - ready to make/receive calls
-  | 'calling'       // Outgoing call initiated - waiting for response
-  | 'ringing'       // Incoming call (not applicable for outgoing)
-  | 'answering'     // Call being answered (not applicable for outgoing)
-  | 'early_media'   // Early media playing (e.g., ringback tone or announcements)
-  | 'active'        // Call connected - conversation in progress
-  | 'held'          // Call on hold by you (local hold)
-  | 'remote_held'   // Call on hold by remote party
-  | 'terminating'   // Call ending - cleanup in progress
-  | 'terminated'    // Call ended normally
-  | 'failed'        // Call failed due to error
+  | 'idle' // No active call - ready to make/receive calls
+  | 'calling' // Outgoing call initiated - waiting for response
+  | 'ringing' // Incoming call (not applicable for outgoing)
+  | 'answering' // Call being answered (not applicable for outgoing)
+  | 'early_media' // Early media playing (e.g., ringback tone or announcements)
+  | 'active' // Call connected - conversation in progress
+  | 'held' // Call on hold by you (local hold)
+  | 'remote_held' // Call on hold by remote party
+  | 'terminating' // Call ending - cleanup in progress
+  | 'terminated' // Call ended normally
+  | 'failed' // Call failed due to error
 ```
 
 📝 **Note:** "Early media" is audio/video that plays before the call is fully answered, like ringback tones, busy signals, or "your call is important to us" messages.
@@ -325,16 +365,16 @@ Track detailed timing information for analytics or billing:
 const {
   makeCall,
   state,
-  timing,           // Detailed timing information
-  duration,         // Current duration in seconds (updates every second)
-  terminationCause  // Why the call ended
+  timing, // Detailed timing information
+  duration, // Current duration in seconds (updates every second)
+  terminationCause, // Why the call ended
 } = useCallSession(sipClient)
 
 // Monitor timing information
 watch(timing, (timingInfo) => {
-  console.log('Call started at:', timingInfo.startTime)    // When makeCall() was called
-  console.log('Call answered at:', timingInfo.answerTime)  // When remote party answered
-  console.log('Call ended at:', timingInfo.endTime)        // When call terminated
+  console.log('Call started at:', timingInfo.startTime) // When makeCall() was called
+  console.log('Call answered at:', timingInfo.answerTime) // When remote party answered
+  console.log('Call ended at:', timingInfo.endTime) // When call terminated
   console.log('Total duration:', timingInfo.duration, 'seconds')
 })
 
@@ -374,10 +414,10 @@ Access and display audio/video streams as they become available:
 
 ```typescript
 const {
-  localStream,      // Your microphone/camera stream
-  remoteStream,     // Remote party's audio/video stream
-  hasLocalVideo,    // Whether your local stream has video
-  hasRemoteVideo    // Whether remote stream has video
+  localStream, // Your microphone/camera stream
+  remoteStream, // Remote party's audio/video stream
+  hasLocalVideo, // Whether your local stream has video
+  hasRemoteVideo, // Whether remote stream has video
 } = useCallSession(sipClient)
 
 // Handle your local stream (microphone/camera)
@@ -388,8 +428,8 @@ watch(localStream, (stream) => {
     // Attach to video element to show your camera
     const localVideo = document.getElementById('local-video') as HTMLVideoElement
     if (localVideo) {
-      localVideo.srcObject = stream   // Display your video
-      localVideo.muted = true          // ✅ Always mute local video to prevent feedback
+      localVideo.srcObject = stream // Display your video
+      localVideo.muted = true // ✅ Always mute local video to prevent feedback
     }
   }
 })
@@ -402,7 +442,7 @@ watch(remoteStream, (stream) => {
     // Attach to video element to show/play remote audio/video
     const remoteVideo = document.getElementById('remote-video') as HTMLVideoElement
     if (remoteVideo) {
-      remoteVideo.srcObject = stream  // Display/play their audio/video
+      remoteVideo.srcObject = stream // Display/play their audio/video
       // Don't mute remote video - you want to hear them!
     }
   }
@@ -454,7 +494,7 @@ This catches malformed or invalid SIP addresses:
 
 ```typescript
 try {
-  await makeCall('invalid-uri')  // Missing 'sip:' prefix
+  await makeCall('invalid-uri') // Missing 'sip:' prefix
 } catch (error) {
   if (error.message.includes('Invalid target URI')) {
     console.error('Please enter a valid SIP URI')
@@ -473,7 +513,7 @@ This catches when users click "Call" without entering a number:
 
 ```typescript
 try {
-  await makeCall('')  // Empty string
+  await makeCall('') // Empty string
 } catch (error) {
   if (error.message === 'Target URI cannot be empty') {
     console.error('Please enter a phone number or URI')
@@ -514,14 +554,12 @@ try {
 
     // UI: Show instructions on how to grant permissions
     // "Please allow camera/microphone access in your browser settings"
-  }
-  else if (error.name === 'NotFoundError') {
+  } else if (error.name === 'NotFoundError') {
     console.error('No camera/microphone found')
 
     // Solution: Fall back to audio-only
     await makeCall('sip:user@domain.com', { audio: true, video: false })
-  }
-  else if (error.name === 'NotReadableError') {
+  } else if (error.name === 'NotReadableError') {
     console.error('Camera/microphone is in use by another application')
 
     // UI: "Please close other apps using your camera/microphone"
@@ -542,26 +580,19 @@ const handleCallError = (error: Error) => {
   // Map errors to user-friendly messages
   if (error.message.includes('SIP client not initialized')) {
     showNotification('Please connect to SIP server first', 'error')
-  }
-  else if (error.message.includes('Invalid target URI')) {
+  } else if (error.message.includes('Invalid target URI')) {
     showNotification('Invalid phone number or SIP address', 'error')
-  }
-  else if (error.message.includes('Target URI cannot be empty')) {
+  } else if (error.message.includes('Target URI cannot be empty')) {
     showNotification('Please enter a phone number', 'error')
-  }
-  else if (error.message.includes('Call operation already in progress')) {
+  } else if (error.message.includes('Call operation already in progress')) {
     showNotification('Please wait for current operation to complete', 'warning')
-  }
-  else if (error.name === 'NotAllowedError') {
+  } else if (error.name === 'NotAllowedError') {
     showNotification('Please grant camera/microphone permissions', 'error')
-  }
-  else if (error.name === 'NotFoundError') {
+  } else if (error.name === 'NotFoundError') {
     showNotification('No camera/microphone found', 'error')
-  }
-  else if (error.name === 'NotReadableError') {
+  } else if (error.name === 'NotReadableError') {
     showNotification('Camera/microphone is already in use', 'error')
-  }
-  else {
+  } else {
     // Fallback for unexpected errors
     showNotification('Failed to make call. Please try again.', 'error')
   }
@@ -626,7 +657,7 @@ watch(state, (newState) => {
     setTimeout(async () => {
       console.log('Attempting to reconnect...')
       try {
-        await connect()  // Reconnect to SIP server
+        await connect() // Reconnect to SIP server
 
         // Optionally: Retry the call automatically
         // await makeCall(lastTarget)
@@ -661,10 +692,7 @@ Here's a production-ready component showing best practices:
         placeholder="Enter SIP URI or number"
         @keyup.enter="handleMakeCall"
       />
-      <button
-        @click="handleMakeCall"
-        :disabled="!isConnected || isProcessing"
-      >
+      <button @click="handleMakeCall" :disabled="!isConnected || isProcessing">
         {{ isProcessing ? 'Calling...' : 'Call' }}
       </button>
     </div>
@@ -688,9 +716,7 @@ Here's a production-ready component showing best practices:
         <button @click="toggleHold">
           {{ isOnHold ? 'Resume' : 'Hold' }}
         </button>
-        <button @click="handleHangup" class="danger">
-          Hang Up
-        </button>
+        <button @click="handleHangup" class="danger">Hang Up</button>
       </div>
 
       <!-- Video display -->
@@ -730,7 +756,7 @@ const {
   isOnHold,
   localStream,
   remoteStream,
-  terminationCause
+  terminationCause,
 } = useCallSession(sipClient)
 
 const localVideo = ref<HTMLVideoElement>()
@@ -766,7 +792,7 @@ const handleMakeCall = async () => {
     // Initiate the call
     await makeCall(targetUri.value, {
       audio: true,
-      video: false
+      video: false,
     })
   } catch (err: any) {
     // Show user-friendly error
@@ -894,11 +920,7 @@ const { makeCall, state, terminationCause } = useCallSession(sipClient)
  * @param maxRetries - Maximum number of retry attempts
  * @param retryDelay - Delay between retries in milliseconds
  */
-const makeCallWithRetry = async (
-  target: string,
-  maxRetries = 3,
-  retryDelay = 2000
-) => {
+const makeCallWithRetry = async (target: string, maxRetries = 3, retryDelay = 2000) => {
   let attempts = 0
 
   while (attempts < maxRetries) {
@@ -933,9 +955,8 @@ const makeCallWithRetry = async (
       // If we have retries left, wait and try again
       if (attempts < maxRetries) {
         console.log(`Call failed, retrying in ${retryDelay}ms...`)
-        await new Promise(resolve => setTimeout(resolve, retryDelay))
+        await new Promise((resolve) => setTimeout(resolve, retryDelay))
       }
-
     } catch (error) {
       console.error(`Attempt ${attempts} failed:`, error)
 
@@ -950,7 +971,7 @@ const makeCallWithRetry = async (
       }
 
       // Wait before next retry
-      await new Promise(resolve => setTimeout(resolve, retryDelay))
+      await new Promise((resolve) => setTimeout(resolve, retryDelay))
     }
   }
 
@@ -986,7 +1007,7 @@ Prevent calls from ringing forever:
  */
 const makeCallWithTimeout = async (
   target: string,
-  timeoutMs = 30000  // 30 seconds
+  timeoutMs = 30000 // 30 seconds
 ) => {
   // Create a timeout promise that rejects after timeoutMs
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -1076,7 +1097,7 @@ import { validateSipUri } from 'vuesip'
 // ✅ Validate first
 const validation = validateSipUri(targetUri.value)
 if (!validation.valid) {
-  showError(validation.error)  // Instant feedback
+  showError(validation.error) // Instant feedback
   return
 }
 
@@ -1128,7 +1149,7 @@ const { requestPermissions, audioPermission, videoPermission } = useMediaDevices
 // ✅ Request permissions when component mounts or app starts
 onMounted(async () => {
   try {
-    await requestPermissions(true, false)  // Request audio only
+    await requestPermissions(true, false) // Request audio only
     // Permissions granted - calls will be instant
   } catch (error) {
     console.error('Permission denied:', error)
@@ -1188,6 +1209,7 @@ onUnmounted(() => {
 ```
 
 📝 **Metrics Guide:**
+
 - **Packet Loss** >5%: Noticeable quality degradation
 - **Jitter** >30ms: Audio choppiness
 - **RTT** >300ms: Noticeable delay
@@ -1199,9 +1221,7 @@ onUnmounted(() => {
 ```typescript
 // ✅ Computed states for UI feedback
 const isDialing = computed(() => state.value === 'calling')
-const isConnecting = computed(() =>
-  state.value === 'calling' || state.value === 'early_media'
-)
+const isConnecting = computed(() => state.value === 'calling' || state.value === 'early_media')
 
 // ✅ User-friendly status messages
 const statusMessage = computed(() => {
@@ -1273,8 +1293,7 @@ watch(state, (newState, oldState) => {
 // ✅ Log timing metrics
 watch(timing, (timingInfo) => {
   if (timingInfo.answerTime) {
-    const ringDuration = timingInfo.answerTime.getTime() -
-                        timingInfo.startTime.getTime()
+    const ringDuration = timingInfo.answerTime.getTime() - timingInfo.startTime.getTime()
     console.log(`[Call] Answered after ${ringDuration}ms`)
   }
 })
