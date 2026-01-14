@@ -552,7 +552,7 @@ export function createVueSip(options: VueSipOptions = {}): Plugin {
  *
  * @public
  */
-export const version = '1.0.3'
+export const version = '1.0.4'
 
 /**
  * VueSip library metadata.
