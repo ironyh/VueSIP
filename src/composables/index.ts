@@ -63,6 +63,16 @@ export { useAmiConfBridge, type UseAmiConfBridgeReturn } from './useAmiConfBridg
 export { useAmiPjsip } from './useAmiPjsip'
 export { useAmiSystem } from './useAmiSystem'
 export { useAmiMWI } from './useAmiMWI'
+export { useAmiOriginate } from './useAmiOriginate'
+export type { UseAmiOriginateReturn } from '../types/originate.types'
+export {
+  useAmiSpy,
+  type SpyMode,
+  type SpyOptions,
+  type SpySession,
+  type UseAmiSpyOptions,
+  type UseAmiSpyReturn,
+} from './useAmiSpy'
 
 // SIP composables
 export { useSipWebRTCStats } from './useSipWebRTCStats'
@@ -78,6 +88,15 @@ export { useNetworkQualityIndicator } from './useNetworkQualityIndicator'
 export { useBandwidthAdaptation } from './useBandwidthAdaptation'
 export { useConnectionRecovery } from './useConnectionRecovery'
 export { useSessionPersistence } from './useSessionPersistence'
+
+// Audio processing composable
+export {
+  useAudioProcessing,
+  type NoiseSuppressionLevel,
+  type AudioQualityMetrics,
+  type UseAudioProcessingOptions,
+  type UseAudioProcessingReturn,
+} from './useAudioProcessing'
 
 // Additional composables
 export { useCallHold } from './useCallHold'
@@ -129,6 +148,17 @@ export type {
   ExportOptions,
   ProviderCapabilities,
 } from '../types/transcription.types'
+
+// Sentiment analysis composable
+export {
+  useSentiment,
+  type SentimentOptions,
+  type SentimentResult,
+  type EmotionBreakdown,
+  type SentimentAlert,
+  type SentimentTrend,
+  type UseSentimentReturn,
+} from './useSentiment'
 
 // Local recording composable
 export { useLocalRecording } from './useLocalRecording'
@@ -278,3 +308,46 @@ export type {
   FetchCallsOptions,
 } from '../providers/services/elks46ApiService'
 export type { TelnyxCredential, TelnyxConnection } from '../providers/services/telnyxApiService'
+
+// Mock/Testing composables
+export {
+  useSipMock,
+  type MockCallState,
+  type MockCall,
+  type UseSipMockOptions,
+  type UseSipMockReturn,
+} from './useSipMock'
+
+// Click-to-Call widget composable
+export {
+  useClickToCall,
+  type ClickToCallOptions,
+  type ClickToCallPosition,
+  type ClickToCallTheme,
+  type ClickToCallSize,
+  type SipConfiguration,
+  type UseClickToCallReturn,
+} from './useClickToCall'
+
+// Smart Routing composable
+export {
+  useSmartRouting,
+  type RoutingRule,
+  type RoutingContext,
+  type RoutingAction,
+  type RoutingDecision,
+  type AgentSkill,
+  type AvailableAgent,
+  type UseSmartRoutingOptions,
+  type UseSmartRoutingReturn,
+} from './useSmartRouting'
+
+// Call Summary composable
+export {
+  useCallSummary,
+  type CallSummaryOptions,
+  type ActionItem,
+  type TopicMention,
+  type CallSummaryResult,
+  type UseCallSummaryReturn,
+} from './useCallSummary'
