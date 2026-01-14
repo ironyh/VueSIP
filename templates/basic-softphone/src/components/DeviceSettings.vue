@@ -24,12 +24,16 @@ const emit = defineEmits<{
 const inputOptions = computed(() => [...props.audioInputDevices])
 const outputOptions = computed(() => [...props.audioOutputDevices])
 
-function handleInputChange(event: { value: string }) {
-  emit('selectInput', event.value)
+function handleInputChange(deviceId: string) {
+  if (deviceId) {
+    emit('selectInput', deviceId)
+  }
 }
 
-function handleOutputChange(event: { value: string }) {
-  emit('selectOutput', event.value)
+function handleOutputChange(deviceId: string) {
+  if (deviceId) {
+    emit('selectOutput', deviceId)
+  }
 }
 </script>
 
@@ -47,7 +51,7 @@ function handleOutputChange(event: { value: string }) {
         option-value="deviceId"
         placeholder="Select microphone"
         class="w-full"
-        @change="handleInputChange"
+        @update:model-value="handleInputChange"
       />
     </div>
 
@@ -61,7 +65,7 @@ function handleOutputChange(event: { value: string }) {
         option-value="deviceId"
         placeholder="Select speaker"
         class="w-full"
-        @change="handleOutputChange"
+        @update:model-value="handleOutputChange"
       />
     </div>
   </div>
