@@ -76,10 +76,23 @@ describe('SipClient - E2E Test Mode', () => {
       await sipClient.stop()
     })
 
-    // SKIP: This test times out inconsistently due to complex async mock coordination
-    // The E2E mode itself works (13/14 tests pass), this is a test infrastructure issue
-    // TODO: Investigate why mock UA.start() implementation doesn't properly coordinate with waitForConnection()
-    it.skip('should use normal mode when E2E globals not present', async () => {
+    it('should use normal mode when E2E globals not present', async () => {
+      // Manually configure mock to simulate successful connection and registration
+      // This ensures correct coordination with waitForConnection() and register()
+      mockUA.once.mockImplementation((event: string, handler: (...args: any[]) => void) => {
+        if (event === 'connected') {
+          mockUA.isConnected.mockReturnValue(true)
+          // Run handler asynchronously to simulate real connection event
+          setTimeout(() => handler({}), 0)
+        } else if (event === 'registered') {
+          mockUA.isRegistered.mockReturnValue(true)
+          setTimeout(() => handler({ response: { getHeader: () => '600' } }), 0)
+        } else if (event === 'unregistered') {
+          mockUA.isRegistered.mockReturnValue(false)
+          setTimeout(() => handler({}), 0)
+        }
+      })
+
       const sipClient = new SipClient(config, eventBus)
 
       // This test verifies that SipClient works in normal (non-E2E) mode

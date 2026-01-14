@@ -363,7 +363,6 @@ export class SipClient {
       // Create UA instance with completely plain configuration
       logger.debug('Creating JsSIP UA instance')
       this.ua = new JsSIP.UA(plainUaConfig)
-
       // Setup event handlers
       this.setupEventHandlers()
 
