@@ -1,0 +1,84 @@
+name: Dependency Janitor
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Every Monday at 00:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  janitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.14.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Update dependencies (semver)
+        run: pnpm update -r
+
+      - name: Run Audit
+        id: audit
+        run: |
+          echo "Running pnpm audit..."
+          # Capture audit output, but don't fail the step immediately so we can report it.
+          # We force success with || true because we want the workflow to proceed to PR creation
+          # (unless build/test fails later) or at least capture the output.
+          pnpm audit > audit-report.txt 2>&1 || true
+
+          echo "AUDIT_REPORT<<EOF" >> $GITHUB_ENV
+          # Limit report size to avoid env var limits
+          head -c 60000 audit-report.txt >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Build Project
+        run: pnpm run build
+
+      - name: Run Unit Tests
+        run: pnpm run test:unit
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: weekly dependency updates"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: janitor/weekly-updates
+          delete-branch: true
+          title: 'chore: Weekly Dependency Updates & Audit'
+          body: |
+            This PR updates dependencies within their defined semver ranges.
+
+            ### Verification status
+            - [x] `pnpm build` passed
+            - [x] `pnpm test:unit` passed
+
+            ### Audit Report
+            <details>
+            <summary>Click to see pnpm audit output</summary>
+
+            ```
+            ${{ env.AUDIT_REPORT }}
+            ```
+            </details>
+          labels: |
+            dependencies
+            janitor
