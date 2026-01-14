@@ -2,16 +2,16 @@
 layout: home
 
 hero:
-  name: VueSip
-  text: Headless SIP/VoIP for Vue
-  tagline: A modern, type-safe Vue.js component library for building SIP/VoIP applications with WebRTC
+  name: VueSIP
+  text: SIP Calling for Vue.js
+  tagline: Build production-ready softphones in minutes. No server required to start learning!
   actions:
     - theme: brand
-      text: Get Started
-      link: /guide/getting-started
+      text: Start Tutorial
+      link: /tutorial/
     - theme: alt
       text: View on GitHub
-      link: https://github.com/ironyh/VueSip
+      link: https://github.com/ironyh/VueSIP
     - theme: alt
       text: API Reference
       link: /api/
@@ -76,7 +76,7 @@ import { useSipClient, useCallSession } from 'vuesip'
 const { register, isRegistered } = useSipClient({
   uri: 'sip:user@example.com',
   password: 'your-password',
-  server: 'wss://sip.example.com:7443'
+  server: 'wss://sip.example.com:7443',
 })
 
 const { call, answer, hangup, currentCall } = useCallSession()
@@ -92,9 +92,7 @@ function makeCall(target: string) {
 
 <template>
   <div v-if="isRegistered">
-    <button @click="makeCall('sip:1234@example.com')">
-      Call Extension 1234
-    </button>
+    <button @click="makeCall('sip:1234@example.com')">Call Extension 1234</button>
     <div v-if="currentCall">
       Call in progress...
       <button @click="hangup">Hang Up</button>
@@ -123,6 +121,7 @@ function makeCall(target: string) {
 ## Key Features
 
 ### Call Management
+
 - Outgoing and incoming calls
 - Call hold, resume, and transfer
 - DTMF tone generation
@@ -130,6 +129,7 @@ function makeCall(target: string) {
 - Call history with persistence
 
 ### Media Handling
+
 - Audio and video calls
 - Device enumeration and selection
 - Local media preview
@@ -137,6 +137,7 @@ function makeCall(target: string) {
 - Audio/video quality controls
 
 ### Advanced Capabilities
+
 - SIP presence and messaging
 - Real-time status updates
 - Typing indicators
@@ -144,6 +145,7 @@ function makeCall(target: string) {
 - Custom SIP headers
 
 ### Quality Assurance
+
 - Comprehensive error handling
 - Automatic reconnection
 - Network quality monitoring
