@@ -33,6 +33,9 @@ const rememberCredentials = ref(false)
 // Form validation
 const isLoginFormValid = computed(() => apiKey.value.trim().length > 0)
 
+// Convert readonly credentials array to mutable for PrimeVue Dropdown
+const credentialOptions = computed(() => [...credentials.value])
+
 // Load saved credentials on mount
 onMounted(() => {
   try {
@@ -163,7 +166,7 @@ function handleReset() {
         <Dropdown
           id="credential"
           :model-value="selectedCredential"
-          :options="credentials"
+          :options="credentialOptions"
           option-label="name"
           placeholder="Select a credential"
           class="w-full"

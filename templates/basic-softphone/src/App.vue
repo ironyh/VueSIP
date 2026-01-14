@@ -14,6 +14,7 @@ import DeviceSettings from './components/DeviceSettings.vue'
 import Elks46ApiLogin from './components/Elks46ApiLogin.vue'
 import TelnyxApiLogin from './components/TelnyxApiLogin.vue'
 import TranscriptView from './components/TranscriptView.vue'
+import RecordingControls from './components/RecordingControls.vue'
 import { usePhone } from './composables/usePhone'
 import { useProviderSelector } from 'vuesip'
 import type { ProviderConfig } from 'vuesip'
@@ -313,6 +314,14 @@ onUnmounted(async () => {
               @toggle-hold="phone.toggleHold"
               @toggle-mute="phone.toggleMute"
               @transfer="handleTransferClick"
+            />
+
+            <!-- Recording Controls during active call -->
+            <RecordingControls
+              v-if="phone.isActive.value"
+              :local-stream="phone.localStream.value"
+              :remote-stream="phone.remoteStream.value"
+              :is-call-active="phone.isActive.value"
             />
 
             <!-- Transcript during active call -->
