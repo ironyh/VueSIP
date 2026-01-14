@@ -9,6 +9,7 @@ import {
   useCallHistory,
   buildSipUri,
   extractSipDomain,
+  MediaManager,
 } from 'vuesip'
 
 export interface PhoneConfig {
@@ -23,7 +24,7 @@ export function usePhone() {
   const isConfigured = ref(false)
   const currentConfig = ref<PhoneConfig | null>(null)
 
-  // SIP Client
+  // SIP Client - must be initialized first to get eventBus
   const sipClient = useSipClient()
   const {
     connect,
@@ -34,13 +35,18 @@ export function usePhone() {
     error: sipError,
     updateConfig,
     getClient,
+    getEventBus,
   } = sipClient
+
+  // Media Manager - shared between call session and media devices
+  // Use the same eventBus as the SIP client for consistent event handling
+  const mediaManager = ref<MediaManager | null>(new MediaManager({ eventBus: getEventBus() }))
 
   // Get client ref for call session
   const clientRef = computed(() => getClient())
 
-  // Call Session
-  const callSession = useCallSession(clientRef)
+  // Call Session - pass mediaManager to acquire media before calls
+  const callSession = useCallSession(clientRef, mediaManager)
   const {
     makeCall,
     hangup,
@@ -65,8 +71,8 @@ export function usePhone() {
     remoteStream,
   } = callSession
 
-  // Media Devices
-  const mediaDevices = useMediaDevices()
+  // Media Devices - share the same mediaManager for consistent media handling
+  const mediaDevices = useMediaDevices(mediaManager)
   const {
     audioInputDevices,
     audioOutputDevices,
