@@ -44,8 +44,12 @@ import {
   fetchNumberDetails,
   filterActiveNumbers,
   formatPhoneForSip,
+  fetchCalls,
+  fetchAllCalls,
   type Elks46ApiCredentials,
   type Elks46Number,
+  type Elks46Call,
+  type FetchCallsOptions,
 } from '../providers/services/elks46ApiService'
 
 export interface Use46ElksApiReturn {
@@ -61,12 +65,20 @@ export interface Use46ElksApiReturn {
   selectedNumber: DeepReadonly<Ref<Elks46Number | null>>
   /** WebRTC secret for selected number */
   secret: DeepReadonly<Ref<string | null>>
+  /** Call history from 46elks */
+  callHistory: DeepReadonly<Ref<Elks46Call[]>>
+  /** Whether call history is loading */
+  isLoadingCallHistory: DeepReadonly<Ref<boolean>>
   /** Authenticate with 46 elks API and fetch numbers */
   authenticate: (username: string, password: string) => Promise<boolean>
   /** Select a number and fetch its WebRTC secret */
   selectNumber: (number: Elks46Number) => Promise<void>
   /** Get credentials for the selected number (for use with provider form) */
   getCredentials: () => { phoneNumber: string; secret: string } | null
+  /** Fetch call history from 46elks */
+  loadCallHistory: (options?: FetchCallsOptions) => Promise<Elks46Call[]>
+  /** Fetch all call history (handles pagination) */
+  loadAllCallHistory: (options?: Omit<FetchCallsOptions, 'start'>) => Promise<Elks46Call[]>
   /** Clear all state (logout) */
   clear: () => void
 }
@@ -81,6 +93,8 @@ export function use46ElksApi(): Use46ElksApiReturn {
   const numbers = ref<Elks46Number[]>([])
   const selectedNumber = ref<Elks46Number | null>(null)
   const secret = ref<string | null>(null)
+  const callHistory = ref<Elks46Call[]>([])
+  const isLoadingCallHistory = ref(false)
 
   /**
    * Authenticate with 46 elks API credentials and fetch available numbers
@@ -174,6 +188,56 @@ export function use46ElksApi(): Use46ElksApiReturn {
   }
 
   /**
+   * Load call history from 46elks API
+   */
+  async function loadCallHistory(options?: FetchCallsOptions): Promise<Elks46Call[]> {
+    if (!storedCredentials) {
+      error.value = 'Not authenticated'
+      return []
+    }
+
+    isLoadingCallHistory.value = true
+    error.value = null
+
+    try {
+      const calls = await fetchCalls(storedCredentials, options)
+      callHistory.value = calls
+      return calls
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch call history'
+      return []
+    } finally {
+      isLoadingCallHistory.value = false
+    }
+  }
+
+  /**
+   * Load all call history (handles pagination automatically)
+   */
+  async function loadAllCallHistory(
+    options?: Omit<FetchCallsOptions, 'start'>
+  ): Promise<Elks46Call[]> {
+    if (!storedCredentials) {
+      error.value = 'Not authenticated'
+      return []
+    }
+
+    isLoadingCallHistory.value = true
+    error.value = null
+
+    try {
+      const calls = await fetchAllCalls(storedCredentials, options)
+      callHistory.value = calls
+      return calls
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch call history'
+      return []
+    } finally {
+      isLoadingCallHistory.value = false
+    }
+  }
+
+  /**
    * Clear all state (logout)
    */
   function clear(): void {
@@ -183,6 +247,8 @@ export function use46ElksApi(): Use46ElksApiReturn {
     numbers.value = []
     selectedNumber.value = null
     secret.value = null
+    callHistory.value = []
+    isLoadingCallHistory.value = false
     storedCredentials = null
   }
 
@@ -193,9 +259,13 @@ export function use46ElksApi(): Use46ElksApiReturn {
     numbers: numbers as DeepReadonly<Ref<Elks46Number[]>>,
     selectedNumber: selectedNumber as DeepReadonly<Ref<Elks46Number | null>>,
     secret: secret as DeepReadonly<Ref<string | null>>,
+    callHistory: callHistory as DeepReadonly<Ref<Elks46Call[]>>,
+    isLoadingCallHistory: isLoadingCallHistory as DeepReadonly<Ref<boolean>>,
     authenticate,
     selectNumber,
     getCredentials,
+    loadCallHistory,
+    loadAllCallHistory,
     clear,
   }
 }

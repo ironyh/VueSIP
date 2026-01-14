@@ -268,5 +268,13 @@ export { useTelnyxApi, type UseTelnyxApiReturn } from './useTelnyxApi'
 export { use46ElksApi, type Use46ElksApiReturn } from './use46ElksApi'
 
 // Re-export provider service types
-export type { Elks46Number, Elks46ApiCredentials } from '../providers/services/elks46ApiService'
+export type {
+  Elks46Number,
+  Elks46ApiCredentials,
+  Elks46Call,
+  Elks46CallDirection,
+  Elks46CallState,
+  Elks46CallLeg,
+  FetchCallsOptions,
+} from '../providers/services/elks46ApiService'
 export type { TelnyxCredential, TelnyxConnection } from '../providers/services/telnyxApiService'

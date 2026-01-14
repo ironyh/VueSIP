@@ -241,6 +241,9 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
       throw new Error('Not connected')
     }
 
+    console.log('[JsSipAdapter] Making call to:', target)
+    console.log('[JsSipAdapter] Call options:', options)
+
     const jssipOptions: Record<string, unknown> = {
       mediaConstraints: options?.mediaConstraints ?? { audio: true, video: false },
     }

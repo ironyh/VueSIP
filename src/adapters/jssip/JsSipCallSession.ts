@@ -396,6 +396,11 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     this.session.on(
       'ended',
       (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
+        console.log('[JsSipCallSession] Call ended:', {
+          originator: data.originator,
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
         this._state = CallState.Terminated
         this._endTime = new Date()
         this.emit('ended', {
@@ -409,6 +414,11 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     this.session.on(
       'failed',
       (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
+        console.error('[JsSipCallSession] Call failed:', {
+          originator: data.originator,
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
         this._state = CallState.Failed
         this._endTime = new Date()
         this.emit('failed', {
