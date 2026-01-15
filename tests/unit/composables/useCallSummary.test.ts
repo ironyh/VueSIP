@@ -731,4 +731,89 @@ describe('useCallSummary', () => {
       expect(result.actionItems.length).toBeGreaterThan(0)
     })
   })
+
+  describe('Helpers', () => {
+    it('should correctly identify when summary exists', async () => {
+      const { hasSummary, generateSummary } = useCallSummary()
+
+      expect(hasSummary.value).toBe(false)
+
+      await generateSummary(sampleTranscription)
+
+      expect(hasSummary.value).toBe(true)
+    })
+
+    it('should filter high priority action items', () => {
+      const { getHighPriorityActionItems } = useCallSummary()
+
+      const items = [
+        {
+          id: '1',
+          description: 'High',
+          priority: 'high',
+          status: 'pending',
+          extractedFrom: '',
+        } as any,
+        {
+          id: '2',
+          description: 'Low',
+          priority: 'low',
+          status: 'pending',
+          extractedFrom: '',
+        } as any,
+      ]
+
+      const high = getHighPriorityActionItems(items)
+      expect(high.length).toBe(1)
+      expect(high[0].priority).toBe('high')
+    })
+
+    it('should filter pending action items', () => {
+      const { getPendingActionItems } = useCallSummary()
+
+      const items = [
+        { id: '1', status: 'pending' } as any,
+        { id: '2', status: 'completed' } as any,
+      ]
+
+      const pending = getPendingActionItems(items)
+      expect(pending.length).toBe(1)
+      expect(pending[0].status).toBe('pending')
+    })
+
+    it('should count action items by status', () => {
+      const { countActionItemsByStatus } = useCallSummary()
+
+      const items = [
+        { id: '1', status: 'pending' } as any,
+        { id: '2', status: 'pending' } as any,
+        { id: '3', status: 'completed' } as any,
+      ]
+
+      const counts = countActionItemsByStatus(items)
+      expect(counts.pending).toBe(2)
+      expect(counts.completed).toBe(1)
+    })
+
+    it('should mark action item as completed', () => {
+      const { completeActionItem } = useCallSummary()
+
+      const items = [{ id: '1', status: 'pending' } as any]
+
+      const success = completeActionItem(items, '1')
+
+      expect(success).toBe(true)
+      expect(items[0].status).toBe('completed')
+    })
+
+    it('should return false when completing non-existent item', () => {
+      const { completeActionItem } = useCallSummary()
+
+      const items = [] as any[]
+
+      const success = completeActionItem(items, '999')
+
+      expect(success).toBe(false)
+    })
+  })
 })

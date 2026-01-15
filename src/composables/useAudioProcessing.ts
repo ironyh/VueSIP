@@ -225,7 +225,9 @@ export function useAudioProcessing(
 
       // Create audio context with latency hint
       const latencyHint = options.processingLatency ?? 'interactive'
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
       audioContext = new AudioContextClass({
         latencyHint,
       })
@@ -467,7 +469,8 @@ export function useAudioProcessing(
       const desiredGain = targetLevel / currentLevel
       const newGain = clamp(currentGain * 0.95 + desiredGain * 0.05, 0.1, 4)
 
-      inputGainNode.gain.setValueAtTime(newGain, audioContext!.currentTime)
+      if (!audioContext) return
+      inputGainNode.gain.setValueAtTime(newGain, audioContext.currentTime)
       inputGain.value = newGain
     }
   }

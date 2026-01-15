@@ -82,11 +82,19 @@ export interface UseSentimentReturn {
   sentimentHistory: Ref<Array<{ score: number; timestamp: Date }>>
   averageSentiment: ComputedRef<number>
 
+  // Computed
+  hasActiveAlerts: ComputedRef<boolean>
+  alertCount: ComputedRef<number>
+
   // Methods
   analyzeSentiment: (text: string) => Promise<SentimentResult>
   acknowledgeAlert: (alertId: string) => void
   clearAlerts: () => void
   reset: () => void
+  getSentimentLabel: (score: number) => 'positive' | 'negative' | 'neutral'
+  getDominantEmotion: () => string
+  getAlertsByType: (type: SentimentAlert['type']) => SentimentAlert[]
+  getRecentAlerts: (seconds: number) => SentimentAlert[]
 
   // Events
   onEscalation: (callback: (alert: SentimentAlert) => void) => () => void
@@ -316,13 +324,13 @@ async function defaultAnalyzer(text: string): Promise<SentimentResult> {
 
     // Check for intensifier
     if (word in INTENSIFIERS) {
-      intensifier = INTENSIFIERS[word]!
+      intensifier = INTENSIFIERS[word] ?? 1
       continue
     }
 
     // Check positive keywords
     if (word in POSITIVE_KEYWORDS) {
-      let score = POSITIVE_KEYWORDS[word]! * intensifier
+      let score = (POSITIVE_KEYWORDS[word] ?? 0) * intensifier
       if (negationActive) {
         score = -score * 0.8 // Negation flips and slightly reduces magnitude
       }
@@ -335,7 +343,7 @@ async function defaultAnalyzer(text: string): Promise<SentimentResult> {
 
     // Check negative keywords
     if (word in NEGATIVE_KEYWORDS) {
-      let score = NEGATIVE_KEYWORDS[word]! * intensifier
+      let score = (NEGATIVE_KEYWORDS[word] ?? 0) * intensifier
       if (negationActive) {
         score = -score * 0.8 // Negation flips negative to positive
       }
@@ -528,8 +536,10 @@ export function useSentiment(
     let sumX2 = 0
 
     for (let i = 0; i < n; i++) {
+      const item = recentHistory[i]
+      if (!item) continue
       const x = i
-      const y = recentHistory[i]!.score
+      const y = item.score
       sumX += x
       sumY += y
       sumXY += x * y
@@ -560,6 +570,20 @@ export function useSentiment(
 
     const sum = recentHistory.reduce((acc, h) => acc + h.score, 0)
     return sum / recentHistory.length
+  })
+
+  /**
+   * Check if there are any unacknowledged alerts
+   */
+  const hasActiveAlerts = computed<boolean>(() => {
+    return alerts.value.some((a) => !a.acknowledged)
+  })
+
+  /**
+   * Count of unacknowledged alerts
+   */
+  const alertCount = computed<number>(() => {
+    return alerts.value.filter((a) => !a.acknowledged).length
   })
 
   // ============================================================================
@@ -708,6 +732,48 @@ export function useSentiment(
   }
 
   /**
+   * Get human-readable label for a sentiment score
+   */
+  function getSentimentLabel(score: number): 'positive' | 'negative' | 'neutral' {
+    if (score > 0.2) return 'positive'
+    if (score < -0.2) return 'negative'
+    return 'neutral'
+  }
+
+  /**
+   * Get the dominant emotion from the current breakdown
+   */
+  function getDominantEmotion(): string {
+    const breakdown = emotionBreakdown.value
+    let maxEmotion = 'neutral'
+    let maxScore = breakdown.neutral
+
+    for (const [emotion, score] of Object.entries(breakdown)) {
+      if (score > maxScore) {
+        maxScore = score
+        maxEmotion = emotion
+      }
+    }
+
+    return maxEmotion
+  }
+
+  /**
+   * Get alerts filtered by type
+   */
+  function getAlertsByType(type: SentimentAlert['type']): SentimentAlert[] {
+    return alerts.value.filter((a) => a.type === type)
+  }
+
+  /**
+   * Get alerts from the last N seconds
+   */
+  function getRecentAlerts(seconds: number): SentimentAlert[] {
+    const cutoff = Date.now() - seconds * 1000
+    return alerts.value.filter((a) => a.timestamp.getTime() > cutoff)
+  }
+
+  /**
    * Register callback for escalation events
    */
   function onEscalation(callback: (alert: SentimentAlert) => void): () => void {
@@ -777,11 +843,19 @@ export function useSentiment(
     sentimentHistory,
     averageSentiment,
 
+    // Computed
+    hasActiveAlerts,
+    alertCount,
+
     // Methods
     analyzeSentiment,
     acknowledgeAlert,
     clearAlerts,
     reset,
+    getSentimentLabel,
+    getDominantEmotion,
+    getAlertsByType,
+    getRecentAlerts,
 
     // Events
     onEscalation,

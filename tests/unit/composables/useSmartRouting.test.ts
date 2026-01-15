@@ -1128,4 +1128,110 @@ describe('useSmartRouting', () => {
       expect(decision!.timestamp.getTime()).toBeLessThanOrEqual(after.getTime())
     })
   })
+
+  describe('Helpers and Computed Properties', () => {
+    it('should track rule statistics', () => {
+      const {
+        addRule,
+        ruleCount,
+        hasRules,
+        enabledRulesCount,
+        disabledRulesCount,
+        enabledRules,
+        disabledRules,
+        disableRule,
+      } = useSmartRouting()
+
+      expect(hasRules.value).toBe(false)
+      expect(ruleCount.value).toBe(0)
+
+      const rule1Id = addRule({
+        name: 'Rule 1',
+        priority: 1,
+        enabled: true,
+        condition: () => true,
+        action: { type: 'route_to_queue' },
+      })
+
+      addRule({
+        name: 'Rule 2',
+        priority: 1,
+        enabled: true,
+        condition: () => true,
+        action: { type: 'route_to_queue' },
+      })
+
+      expect(hasRules.value).toBe(true)
+      expect(ruleCount.value).toBe(2)
+      expect(enabledRulesCount.value).toBe(2)
+      expect(enabledRules.value.length).toBe(2)
+      expect(disabledRulesCount.value).toBe(0)
+
+      disableRule(rule1Id)
+
+      expect(enabledRulesCount.value).toBe(1)
+      expect(disabledRulesCount.value).toBe(1)
+      expect(disabledRules.value.length).toBe(1)
+    })
+
+    it('should track decision history status', async () => {
+      const { hasDecisionHistory, addRule, evaluateRouting } = useSmartRouting()
+
+      expect(hasDecisionHistory.value).toBe(false)
+
+      addRule({
+        name: 'Rule 1',
+        priority: 1,
+        enabled: true,
+        condition: () => true,
+        action: { type: 'route_to_queue' },
+      })
+
+      await evaluateRouting(createContext())
+
+      expect(hasDecisionHistory.value).toBe(true)
+    })
+
+    it('should enable/disable all rules', () => {
+      const { addRule, enableAllRules, disableAllRules, enabledRulesCount } = useSmartRouting()
+
+      addRule({
+        name: 'Rule 1',
+        priority: 1,
+        enabled: true,
+        condition: () => true,
+        action: { type: 'route_to_queue' },
+      })
+
+      addRule({
+        name: 'Rule 2',
+        priority: 1,
+        enabled: false,
+        condition: () => true,
+        action: { type: 'route_to_queue' },
+      })
+
+      expect(enabledRulesCount.value).toBe(1)
+
+      disableAllRules()
+      expect(enabledRulesCount.value).toBe(0)
+
+      enableAllRules()
+      expect(enabledRulesCount.value).toBe(2)
+    })
+
+    it('should expose addRule as alias for registerRule', () => {
+      const { addRule, ruleCount } = useSmartRouting()
+
+      addRule({
+        name: 'Rule 1',
+        priority: 1,
+        enabled: true,
+        condition: () => true,
+        action: { type: 'route_to_queue' },
+      })
+
+      expect(ruleCount.value).toBe(1)
+    })
+  })
 })

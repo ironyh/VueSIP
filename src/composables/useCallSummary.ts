@@ -7,7 +7,7 @@
  * @module composables/useCallSummary
  */
 
-import { ref, type Ref } from 'vue'
+import { ref, computed, type Ref, type ComputedRef } from 'vue'
 
 // =============================================================================
 // Types
@@ -109,6 +109,10 @@ export interface UseCallSummaryReturn {
   /** Error message if any */
   error: Ref<string | null>
 
+  // Computed
+  /** Whether a summary has been generated */
+  hasSummary: ComputedRef<boolean>
+
   // Methods
   /** Generate a complete call summary from transcription */
   generateSummary: (
@@ -129,6 +133,15 @@ export interface UseCallSummaryReturn {
   formatSummary: (result: CallSummaryResult, format: CallSummaryOptions['format']) => string
   /** Estimate sentiment from transcription */
   estimateSentiment: (transcription: string) => CallSummaryResult['sentiment']
+
+  /** Get high priority action items */
+  getHighPriorityActionItems: (items: ActionItem[]) => ActionItem[]
+  /** Get pending action items */
+  getPendingActionItems: (items: ActionItem[]) => ActionItem[]
+  /** Count action items by status */
+  countActionItemsByStatus: (items: ActionItem[]) => { pending: number; completed: number }
+  /** Mark action item as completed */
+  completeActionItem: (items: ActionItem[], id: string) => boolean
 
   // Export
   /** Export summary as plain text */
@@ -671,11 +684,11 @@ function calculateSegmentSentiment(text: string): number {
 
   for (const word of words) {
     if (word in POSITIVE_KEYWORDS) {
-      totalScore += POSITIVE_KEYWORDS[word]!
+      totalScore += POSITIVE_KEYWORDS[word] ?? 0
       matchCount++
     }
     if (word in NEGATIVE_KEYWORDS) {
-      totalScore += NEGATIVE_KEYWORDS[word]!
+      totalScore += NEGATIVE_KEYWORDS[word] ?? 0
       matchCount++
     }
   }
@@ -697,7 +710,7 @@ function parseSpeakerTurns(
   for (const line of lines) {
     const speakerMatch = line.match(/^(agent|caller|speaker\s*\d*):\s*/i)
     if (speakerMatch) {
-      const speaker = speakerMatch[1]!.toLowerCase()
+      const speaker = (speakerMatch[1] ?? 'unknown').toLowerCase()
       const text = line.substring(speakerMatch[0].length)
       if (text.trim()) {
         turns.push({ speaker, text, index: currentIndex })
@@ -759,6 +772,12 @@ export function useCallSummary(options?: CallSummaryOptions): UseCallSummaryRetu
   const isGenerating = ref(false)
   const lastSummary = ref<CallSummaryResult | null>(null)
   const error = ref<string | null>(null)
+
+  // ==========================================================================
+  // Computed
+  // ==========================================================================
+
+  const hasSummary = computed<boolean>(() => lastSummary.value !== null)
 
   // ==========================================================================
   // Methods
@@ -1068,6 +1087,42 @@ export function useCallSummary(options?: CallSummaryOptions): UseCallSummaryRetu
   }
 
   /**
+   * Get high priority action items
+   */
+  function getHighPriorityActionItems(items: ActionItem[]): ActionItem[] {
+    return items.filter((item) => item.priority === 'high')
+  }
+
+  /**
+   * Get pending action items
+   */
+  function getPendingActionItems(items: ActionItem[]): ActionItem[] {
+    return items.filter((item) => item.status === 'pending')
+  }
+
+  /**
+   * Count action items by status
+   */
+  function countActionItemsByStatus(items: ActionItem[]): { pending: number; completed: number } {
+    return {
+      pending: items.filter((i) => i.status === 'pending').length,
+      completed: items.filter((i) => i.status === 'completed').length,
+    }
+  }
+
+  /**
+   * Mark action item as completed
+   */
+  function completeActionItem(items: ActionItem[], id: string): boolean {
+    const item = items.find((i) => i.id === id)
+    if (item) {
+      item.status = 'completed'
+      return true
+    }
+    return false
+  }
+
+  /**
    * Generate extractive summary from transcription
    */
   function generateExtractSummary(transcription: string, maxWords: number): string {
@@ -1343,7 +1398,8 @@ export function useCallSummary(options?: CallSummaryOptions): UseCallSummaryRetu
       lines.push('ACTION ITEMS')
       lines.push('-'.repeat(20))
       for (let i = 0; i < result.actionItems.length; i++) {
-        const item = result.actionItems[i]!
+        const item = result.actionItems[i]
+        if (!item) continue
         lines.push(`${i + 1}. [${item.priority.toUpperCase()}] ${item.description}`)
         if (item.assignee) {
           lines.push(`   Assignee: ${item.assignee}`)
@@ -1512,6 +1568,9 @@ export function useCallSummary(options?: CallSummaryOptions): UseCallSummaryRetu
     lastSummary,
     error,
 
+    // Computed
+    hasSummary,
+
     // Methods
     generateSummary,
     extractActionItems,
@@ -1522,6 +1581,10 @@ export function useCallSummary(options?: CallSummaryOptions): UseCallSummaryRetu
     // Utilities
     formatSummary,
     estimateSentiment,
+    getHighPriorityActionItems,
+    getPendingActionItems,
+    countActionItemsByStatus,
+    completeActionItem,
 
     // Export
     exportAsText,

@@ -711,4 +711,82 @@ describe('useSentiment', () => {
       expect(result.score).toBeLessThanOrEqual(0)
     })
   })
+
+  describe('Helpers', () => {
+    it('should identify active alerts correctly', async () => {
+      const transcription = ref('')
+      const { hasActiveAlerts, alertCount, analyzeSentiment, acknowledgeAlert, alerts } =
+        useSentiment(transcription, {
+          escalationThreshold: -0.3,
+          smoothingFactor: 0,
+        })
+
+      await analyzeSentiment('I am furious!')
+      expect(hasActiveAlerts.value).toBe(true)
+      expect(alertCount.value).toBe(1)
+
+      const alertId = alerts.value[0]!.id
+      acknowledgeAlert(alertId)
+
+      expect(hasActiveAlerts.value).toBe(false)
+      expect(alertCount.value).toBe(0)
+    })
+
+    it('should return correct sentiment label', () => {
+      const transcription = ref('')
+      const { getSentimentLabel } = useSentiment(transcription)
+
+      expect(getSentimentLabel(0.5)).toBe('positive')
+      expect(getSentimentLabel(-0.5)).toBe('negative')
+      expect(getSentimentLabel(0)).toBe('neutral')
+    })
+
+    it('should return dominant emotion', async () => {
+      const transcription = ref('')
+      const { getDominantEmotion, analyzeSentiment } = useSentiment(transcription)
+
+      await analyzeSentiment('I am happy and delighted!')
+      expect(getDominantEmotion()).toBe('joy')
+
+      await analyzeSentiment('I am angry and furious!')
+      expect(getDominantEmotion()).toBe('anger')
+    })
+
+    it('should filter alerts by type', async () => {
+      const transcription = ref('')
+      const { getAlertsByType, analyzeSentiment } = useSentiment(transcription, {
+        escalationThreshold: -0.3,
+        smoothingFactor: 0,
+      })
+
+      await analyzeSentiment('I am furious!')
+
+      const escalationAlerts = getAlertsByType('escalation')
+      expect(escalationAlerts.length).toBeGreaterThan(0)
+      expect(escalationAlerts.every((a) => a.type === 'escalation')).toBe(true)
+
+      const trendAlerts = getAlertsByType('trend_decline')
+      expect(trendAlerts.every((a) => a.type === 'trend_decline')).toBe(true)
+    })
+
+    it('should filter recent alerts', async () => {
+      const transcription = ref('')
+      const { getRecentAlerts, analyzeSentiment } = useSentiment(transcription, {
+        escalationThreshold: -0.3,
+        smoothingFactor: 0,
+      })
+
+      // Create an alert
+      await analyzeSentiment('I am furious!')
+
+      const recent = getRecentAlerts(60) // Last 60 seconds
+      expect(recent.length).toBeGreaterThan(0)
+
+      // Simulate passage of time
+      vi.setSystemTime(new Date(Date.now() + 61000))
+
+      const recentAfterDelay = getRecentAlerts(60)
+      expect(recentAfterDelay.length).toBe(0)
+    })
+  })
 })
