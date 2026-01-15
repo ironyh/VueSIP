@@ -7,8 +7,12 @@
  * @module composables/useClickToCall
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, shallowRef, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import { useSipMock, type UseSipMockReturn } from './useSipMock'
+import { useSipClient } from './useSipClient'
+import { useCallSession } from './useCallSession'
+import type { SipClient } from '../core/SipClient'
+import type { SipClientConfig } from '../types/config.types'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('useClickToCall')
@@ -276,6 +280,131 @@ function savePosition(pos: { x: number; y: number }): void {
 }
 
 // =============================================================================
+// Real SIP Implementation
+// =============================================================================
+
+/**
+ * Adapter to bridge real SIP client with the interface expected by useClickToCall
+ */
+function useRealSip(sipConfig: SipConfiguration) {
+  // Normalize config
+  const clientConfig: SipClientConfig = {
+    uri: sipConfig.wsUri,
+    sipUri: sipConfig.sipUri,
+    password: sipConfig.password,
+    displayName: sipConfig.displayName,
+    // Add defaults
+    wsOptions: {
+      connectionTimeout: 10000,
+      maxReconnectionAttempts: 3,
+    },
+    registrationOptions: {
+      autoRegister: true,
+      expires: 600,
+    },
+  }
+
+  // Initialize SIP client
+  const {
+    connect: clientConnect,
+    disconnect: clientDisconnect,
+    isConnected,
+    isRegistered,
+    getClient,
+    error: clientError,
+  } = useSipClient(clientConfig, {
+    autoConnect: false,
+    autoCleanup: true,
+  })
+
+  // Track the client instance for useCallSession
+  const clientRef = shallowRef<SipClient | null>(null)
+
+  // Initialize call session
+  const {
+    makeCall,
+    hangup: sessionHangup,
+    answer: sessionAnswer,
+    state: sessionState,
+    session,
+  } = useCallSession(clientRef)
+
+  // Map call state to MockCallState strings
+  const callState = computed(() => {
+    const s = sessionState.value
+    // Map 'terminated', 'failed' -> 'ended'
+    if (s === 'terminated' || s === 'failed') return 'ended'
+    // Map 'idle' -> 'idle'
+    if (s === 'idle') return 'idle'
+    // Map others
+    if (s === 'answering' || s === 'early_media') return 'calling'
+    if (s === 'terminating') return 'active'
+    if (s === 'remote_held') return 'held'
+
+    return s as string
+  })
+
+  // Wrap connect to update clientRef
+  async function connect() {
+    await clientConnect()
+    clientRef.value = getClient()
+  }
+
+  // Wrap disconnect
+  async function disconnect() {
+    await clientDisconnect()
+    clientRef.value = null
+  }
+
+  // Wrap call
+  async function call(number: string) {
+    await makeCall(number, { audio: true, video: false })
+    // Return ID to match interface
+    return session.value?.id || ''
+  }
+
+  // Wrap hangup
+  async function hangup() {
+    await sessionHangup()
+  }
+
+  // Wrap answer
+  async function answer() {
+    await sessionAnswer()
+  }
+
+  // Dummy implementations for unused methods
+  const notImplemented = () => {
+    log.warn('Not implemented in real mode')
+  }
+
+  // Return object matching UseSipMockReturn interface
+  return {
+    isConnected,
+    isRegistered,
+    callState,
+    activeCall: ref(null), // Not used by useClickToCall logic directly
+    callHistory: ref([]),
+    error: computed(() => clientError.value?.message || null),
+
+    connect,
+    disconnect,
+    call,
+    hangup,
+    answer,
+
+    // Mock-only methods
+    hold: async () => notImplemented(),
+    unhold: async () => notImplemented(),
+    sendDTMF: notImplemented,
+    simulateIncomingCall: notImplemented,
+    simulateCallQualityDrop: notImplemented,
+    simulateNetworkIssue: notImplemented,
+    configure: notImplemented,
+  }
+}
+
+// =============================================================================
 // Composable Implementation
 // =============================================================================
 
@@ -388,15 +517,8 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
       connectCallDelay: 1000,
     })
   } else {
-    // TODO: Implement real SIP mode using useSip composable
-    // For now, fall back to mock
-    log.warn('Real SIP mode not yet implemented, using mock mode')
-    sipClient = useSipMock({
-      connectDelay: 500,
-      registerDelay: 300,
-      ringDelay: 2000,
-      connectCallDelay: 1000,
-    })
+    log.info('Initializing real SIP mode')
+    sipClient = useRealSip(config.value.sipConfig) as unknown as UseSipMockReturn
   }
 
   // ===========================================================================
@@ -431,6 +553,38 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
       durationTimer = null
     }
   }
+
+  // Watch call state to manage duration timer and callbacks
+  watch(
+    () => sipClient.callState.value,
+    (newState, oldState) => {
+      // Start timer when call becomes active
+      if (newState === 'active' && oldState !== 'active') {
+        startDurationTimer()
+      }
+
+      // Stop timer when call ends
+      if (
+        (newState === 'ended' || newState === 'idle') &&
+        (oldState === 'active' ||
+          oldState === 'ringing' ||
+          oldState === 'calling' ||
+          oldState === 'held')
+      ) {
+        const duration = callDuration.value
+        stopDurationTimer()
+
+        // Notify callback if we were tracking a call
+        if (duration > 0 || oldState === 'active') {
+          config.value.onCallEnd?.(duration)
+        }
+
+        // Reset state
+        callDuration.value = 0
+        remoteNumber.value = null
+      }
+    }
+  )
 
   // ===========================================================================
   // CSS Variables
@@ -528,9 +682,6 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
       // Make the call
       await sipClient.call(targetNumber)
 
-      // Start duration timer when call becomes active
-      startDurationTimer()
-
       log.info('Call started to', targetNumber)
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Call failed')
@@ -543,18 +694,8 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
 
   async function hangup(): Promise<void> {
     try {
-      const duration = callDuration.value
-      stopDurationTimer()
-
       await sipClient.hangup()
-
-      // Notify callback
-      config.value.onCallEnd?.(duration)
-
-      remoteNumber.value = null
-      callDuration.value = 0
-
-      log.info('Call ended, duration:', duration, 'seconds')
+      log.info('Hangup requested')
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Hangup failed')
       log.error('Hangup failed:', err.message)
@@ -566,7 +707,6 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
   async function answer(): Promise<void> {
     try {
       await sipClient.answer()
-      startDurationTimer()
       log.info('Call answered')
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Answer failed')

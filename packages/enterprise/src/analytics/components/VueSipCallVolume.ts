@@ -177,10 +177,12 @@ export const VueSipCallVolume = defineComponent({
     const peakHour = computed<{ timestamp: Date; value: number } | null>(() => {
       const points = analytics.callVolume.value
       if (points.length === 0) return null
-      let max = points[0]!
+      const first = points[0]
+      if (!first) return null
+      let max = first
       for (let i = 1; i < points.length; i++) {
-        const p = points[i]!
-        if (p.value > max.value) max = p
+        const p = points[i]
+        if (p && p.value > max.value) max = p
       }
       return max
     })
@@ -188,10 +190,12 @@ export const VueSipCallVolume = defineComponent({
     const lowHour = computed<{ timestamp: Date; value: number } | null>(() => {
       const points = analytics.callVolume.value
       if (points.length === 0) return null
-      let min = points[0]!
+      const first = points[0]
+      if (!first) return null
+      let min = first
       for (let i = 1; i < points.length; i++) {
-        const p = points[i]!
-        if (p.value < min.value) min = p
+        const p = points[i]
+        if (p && p.value < min.value) min = p
       }
       return min
     })

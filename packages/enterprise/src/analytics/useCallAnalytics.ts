@@ -331,11 +331,11 @@ export function useCallAnalytics(config?: AnalyticsConfig): UseCallAnalyticsRetu
       return
     }
 
-    const positive = calls.filter((c) => c.sentiment! > 0.3)
-    const negative = calls.filter((c) => c.sentiment! < -0.3)
-    const neutral = calls.filter((c) => c.sentiment! >= -0.3 && c.sentiment! <= 0.3)
+    const positive = calls.filter((c) => (c.sentiment ?? 0) > 0.3)
+    const negative = calls.filter((c) => (c.sentiment ?? 0) < -0.3)
+    const neutral = calls.filter((c) => (c.sentiment ?? 0) >= -0.3 && (c.sentiment ?? 0) <= 0.3)
 
-    const totalSentiment = calls.reduce((sum, c) => sum + c.sentiment!, 0)
+    const totalSentiment = calls.reduce((sum, c) => sum + (c.sentiment ?? 0), 0)
     const averageSentiment = totalSentiment / calls.length
 
     // Calculate trend (compare first half to second half)
@@ -345,8 +345,9 @@ export function useCallAnalytics(config?: AnalyticsConfig): UseCallAnalyticsRetu
 
     let trendDirection: 'improving' | 'declining' | 'stable' = 'stable'
     if (firstHalf.length > 0 && secondHalf.length > 0) {
-      const firstAvg = firstHalf.reduce((sum, c) => sum + c.sentiment!, 0) / firstHalf.length
-      const secondAvg = secondHalf.reduce((sum, c) => sum + c.sentiment!, 0) / secondHalf.length
+      const firstAvg = firstHalf.reduce((sum, c) => sum + (c.sentiment ?? 0), 0) / firstHalf.length
+      const secondAvg =
+        secondHalf.reduce((sum, c) => sum + (c.sentiment ?? 0), 0) / secondHalf.length
       const diff = secondAvg - firstAvg
 
       if (diff > 0.1) {
@@ -428,7 +429,7 @@ export function useCallAnalytics(config?: AnalyticsConfig): UseCallAnalyticsRetu
       const withSentiment = b.calls.filter((c) => c.sentiment !== undefined)
       const avg =
         withSentiment.length > 0
-          ? withSentiment.reduce((sum, c) => sum + c.sentiment!, 0) / withSentiment.length
+          ? withSentiment.reduce((sum, c) => sum + (c.sentiment ?? 0), 0) / withSentiment.length
           : 0
       return { timestamp: b.timestamp, value: avg }
     })

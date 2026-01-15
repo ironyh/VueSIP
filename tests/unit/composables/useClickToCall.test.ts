@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { ref } from 'vue'
 
 // Mock the logger
 vi.mock('@/utils/logger', () => ({
@@ -17,19 +18,29 @@ vi.mock('@/utils/logger', () => ({
 
 // Mock useSipMock - we'll use this in the composable
 vi.mock('@/composables/useSipMock', () => ({
-  useSipMock: vi.fn(() => ({
-    isConnected: { value: false },
-    isRegistered: { value: false },
-    callState: { value: 'idle' },
-    activeCall: { value: null },
-    error: { value: null },
-    connect: vi.fn().mockResolvedValue(undefined),
-    disconnect: vi.fn().mockResolvedValue(undefined),
-    call: vi.fn().mockResolvedValue('mock-call-id'),
-    hangup: vi.fn().mockResolvedValue(undefined),
-    answer: vi.fn().mockResolvedValue(undefined),
-    configure: vi.fn(),
-  })),
+  useSipMock: vi.fn(() => {
+    const callState = ref('idle')
+    return {
+      isConnected: ref(false),
+      isRegistered: ref(false),
+      callState,
+      activeCall: ref(null),
+      error: ref(null),
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockResolvedValue(undefined),
+      call: vi.fn().mockImplementation(async () => {
+        callState.value = 'active'
+        return 'mock-call-id'
+      }),
+      hangup: vi.fn().mockImplementation(async () => {
+        callState.value = 'ended'
+      }),
+      answer: vi.fn().mockImplementation(async () => {
+        callState.value = 'active'
+      }),
+      configure: vi.fn(),
+    }
+  }),
 }))
 
 import {
