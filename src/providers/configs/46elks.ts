@@ -40,5 +40,6 @@ export const elks46Provider: ProviderConfig = {
     uri: 'wss://voip.46elks.com/w1/websocket',
     sipUri: `sip:${input.phoneNumber}@voip.46elks.com`,
     password: input.secret ?? '',
+    audioCodec: 'pcma', // 46elks requires PCMA (A-law)
   }),
 }

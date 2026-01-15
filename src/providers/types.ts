@@ -43,6 +43,8 @@ export interface SipCredentials {
   password: string
   /** Display name for caller ID */
   displayName?: string
+  /** Preferred audio codec */
+  audioCodec?: 'opus' | 'pcmu' | 'pcma' | 'g722'
 }
 
 /** Config-only provider definition (simple providers) */

@@ -91,6 +91,7 @@ watch(enableDtmfToasts, saveSettings)
 function toggleSettings(event: Event) {
   settingsPanel.value?.toggle(event)
 }
+ 
 
 // Computed
 const isConnected = computed(() => ivrTester.isConnected.value)
@@ -270,6 +271,7 @@ function formatRelative(ts: number): string {
 
 <template>
   <div class="ivr-tester">
+    <Toast />
     <Toast />
     <!-- Header -->
     <header class="app-header">
@@ -452,6 +454,7 @@ function formatRelative(ts: number): string {
             @dtmf-click="handleDtmfClick"
           />
 
+<<<<<<< HEAD
           <!-- Inline DTMF status line -->
           <div v-if="showDtmfStatus" class="dtmf-status">
             <i class="pi pi-hashtag" />
@@ -460,6 +463,8 @@ function formatRelative(ts: number): string {
             <span v-if="lastDtmfTime" class="time">{{ formatRelative(lastDtmfTime!) }}</span>
           </div>
 
+=======
+>>>>>>> origin/main
           <!-- Tabs for Keypad and Transcript -->
           <TabView v-model:active-index="activeRightTab" class="bottom-tabs">
             <TabPanel>
@@ -598,6 +603,7 @@ function formatRelative(ts: number): string {
   max-width: 420px;
 }
 
+<<<<<<< HEAD
 /* DTMF inline status */
 .dtmf-status {
   display: flex;
@@ -667,7 +673,6 @@ function formatRelative(ts: number): string {
   font-size: 0.8rem;
   color: var(--text-color-secondary);
 }
-
 .card-header {
   display: flex;
   align-items: center;

@@ -379,12 +379,24 @@ export const deviceStore = {
     const audioInputs: MediaDevice[] = []
     const audioOutputs: MediaDevice[] = []
     const videoInputs: MediaDevice[] = []
+    const counters = { audioinput: 0, audiooutput: 0, videoinput: 0 }
 
     for (const device of devices) {
+      const kindLabel =
+        device.kind === 'audioinput'
+          ? 'Microphone'
+          : device.kind === 'audiooutput'
+            ? 'Speaker'
+            : 'Camera'
+      const index = ++counters[device.kind as keyof typeof counters]
+      const fallbackLabel = device.deviceId
+        ? `${kindLabel} (${device.deviceId.slice(0, 8)})`
+        : `${kindLabel} ${index}`
+
       const mediaDevice: MediaDevice = {
         deviceId: device.deviceId,
         kind: device.kind as MediaDeviceKind,
-        label: device.label || `${device.kind} (${device.deviceId.slice(0, 8)})`,
+        label: device.label || fallbackLabel,
         groupId: device.groupId,
         isDefault: device.deviceId === 'default',
       }
@@ -655,28 +667,32 @@ export const deviceStore = {
   setDevices(devices: MediaDeviceInfo[]): void {
     const audioInputs: MediaDevice[] = devices
       .filter((d) => d.kind === 'audioinput')
-      .map((d) => ({
+      .map((d, index) => ({
         deviceId: d.deviceId,
         kind: d.kind as MediaDeviceKind,
-        label: d.label || `Microphone (${d.deviceId.slice(0, 8)})`,
+        label:
+          d.label ||
+          (d.deviceId ? `Microphone (${d.deviceId.slice(0, 8)})` : `Microphone ${index + 1}`),
         groupId: d.groupId,
         isDefault: d.deviceId === 'default',
       }))
     const audioOutputs: MediaDevice[] = devices
       .filter((d) => d.kind === 'audiooutput')
-      .map((d) => ({
+      .map((d, index) => ({
         deviceId: d.deviceId,
         kind: d.kind as MediaDeviceKind,
-        label: d.label || `Speaker (${d.deviceId.slice(0, 8)})`,
+        label:
+          d.label || (d.deviceId ? `Speaker (${d.deviceId.slice(0, 8)})` : `Speaker ${index + 1}`),
         groupId: d.groupId,
         isDefault: d.deviceId === 'default',
       }))
     const videoInputs: MediaDevice[] = devices
       .filter((d) => d.kind === 'videoinput')
-      .map((d) => ({
+      .map((d, index) => ({
         deviceId: d.deviceId,
         kind: d.kind as MediaDeviceKind,
-        label: d.label || `Camera (${d.deviceId.slice(0, 8)})`,
+        label:
+          d.label || (d.deviceId ? `Camera (${d.deviceId.slice(0, 8)})` : `Camera ${index + 1}`),
         groupId: d.groupId,
         isDefault: d.deviceId === 'default',
       }))

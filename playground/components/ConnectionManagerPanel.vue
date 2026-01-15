@@ -305,6 +305,17 @@
             </div>
 
             <div class="form-group">
+              <label for="conn-codec">Audio Codec</label>
+              <select id="conn-codec" v-model="form.audioCodec">
+                <option value="">Default (Browser Preference)</option>
+                <option value="pcma">PCMA (A-law) - Required by 46elks</option>
+                <option value="pcmu">PCMU (µ-law)</option>
+                <option value="opus">Opus</option>
+                <option value="g722">G.722</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label class="checkbox-label">
                 <input type="checkbox" v-model="form.savePassword" />
                 <span>Save password</span>
@@ -452,6 +463,7 @@ const form = reactive({
   displayName: '',
   savePassword: false,
   setAsDefault: false,
+  audioCodec: '' as '' | 'opus' | 'pcmu' | 'pcma' | 'g722',
 })
 
 const formErrors = reactive({
@@ -495,6 +507,7 @@ function openEditModal(connection: SavedConnection) {
   form.password = connection.password || ''
   form.displayName = connection.displayName
   form.savePassword = connection.savePassword
+  form.audioCodec = connection.audioCodec || ''
   form.setAsDefault = false
   formErrors.name = ''
   showModal.value = true
@@ -513,6 +526,7 @@ function resetForm() {
   form.displayName = ''
   form.savePassword = false
   form.setAsDefault = false
+  form.audioCodec = ''
   formErrors.name = ''
 }
 
@@ -543,6 +557,7 @@ function saveConnection() {
       password: form.savePassword ? form.password : undefined,
       displayName: form.displayName.trim(),
       savePassword: form.savePassword,
+      audioCodec: form.audioCodec || undefined,
     })
   } else {
     // Add new
@@ -553,6 +568,7 @@ function saveConnection() {
       password: form.savePassword ? form.password : undefined,
       displayName: form.displayName.trim(),
       savePassword: form.savePassword,
+      audioCodec: form.audioCodec || undefined,
     })
 
     if (form.setAsDefault) {

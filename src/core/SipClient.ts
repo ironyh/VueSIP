@@ -2476,8 +2476,8 @@ export class SipClient {
       callOptions.sessionTimersEnabled = false
     }
 
-    // PCMA codec only
-    if (options?.pcmaCodecOnly) {
+    // PCMA codec only - check both options and global config
+    if (options?.pcmaCodecOnly || this.config.mediaConfiguration?.audioCodec === 'pcma') {
       callOptions.pcmaCodecOnly = true
     }
 

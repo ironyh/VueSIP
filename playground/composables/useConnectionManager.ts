@@ -25,6 +25,8 @@ export interface SavedConnection {
   displayName: string
   /** Whether to save the password */
   savePassword: boolean
+  /** Preferred audio codec */
+  audioCodec?: 'opus' | 'pcmu' | 'pcma' | 'g722'
   /** Creation timestamp */
   createdAt: string
   /** Last used timestamp */
@@ -311,6 +313,7 @@ export function useConnectionManager() {
         displayName: conn.displayName,
         savePassword: false,
         password: undefined,
+        audioCodec: conn.audioCodec,
       })
       count++
     }

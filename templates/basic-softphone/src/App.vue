@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, watch } from 'vue'
 import Card from 'primevue/card'
 import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
@@ -14,8 +14,9 @@ import DeviceSettings from './components/DeviceSettings.vue'
 import Elks46ApiLogin from './components/Elks46ApiLogin.vue'
 import TelnyxApiLogin from './components/TelnyxApiLogin.vue'
 import TranscriptView from './components/TranscriptView.vue'
+import RecordingControls from './components/RecordingControls.vue'
 import { usePhone } from './composables/usePhone'
-import { useProviderSelector } from 'vuesip'
+import { useProviderSelector, version } from 'vuesip'
 import type { ProviderConfig } from 'vuesip'
 
 // Phone composable
@@ -43,6 +44,88 @@ const transferTarget = ref('')
 const activeTab = ref(0)
 const statusMessage = ref('')
 
+// Auto-save credentials with debounce when form values change
+let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null
+watch(
+  () => ({ ...credentials }),
+  () => {
+    // Clear existing timer
+    if (saveDebounceTimer) {
+      clearTimeout(saveDebounceTimer)
+    }
+    // Debounce save by 500ms to avoid excessive writes
+    saveDebounceTimer = setTimeout(() => {
+      if (selectedProvider.value) {
+        saveCredentials()
+      }
+    }, 500)
+  },
+  { deep: true }
+)
+
+// Device selection persistence
+const DEVICE_STORAGE_KEY = 'vuesip_device_preferences'
+
+interface DevicePreferences {
+  audioInputId: string | null
+  audioOutputId: string | null
+}
+
+function saveDevicePreferences() {
+  const prefs: DevicePreferences = {
+    audioInputId: phone.selectedAudioInputId.value,
+    audioOutputId: phone.selectedAudioOutputId.value,
+  }
+  try {
+    localStorage.setItem(DEVICE_STORAGE_KEY, JSON.stringify(prefs))
+  } catch {
+    // Storage might be full or disabled
+  }
+}
+
+function loadDevicePreferences(): DevicePreferences | null {
+  try {
+    const data = localStorage.getItem(DEVICE_STORAGE_KEY)
+    if (data) {
+      return JSON.parse(data) as DevicePreferences
+    }
+  } catch {
+    // Invalid JSON or storage error
+  }
+  return null
+}
+
+// Restore device preferences when devices become available
+watch(
+  () => phone.audioInputDevices.value.length,
+  (newLength) => {
+    if (newLength > 0) {
+      const prefs = loadDevicePreferences()
+      if (prefs) {
+        // Restore audio input if the device still exists
+        if (prefs.audioInputId) {
+          const deviceExists = phone.audioInputDevices.value.some(
+            (d) => d.deviceId === prefs.audioInputId
+          )
+          if (deviceExists) {
+            phone.selectAudioInput(prefs.audioInputId)
+          }
+        }
+        // Restore audio output if the device still exists
+        if (prefs.audioOutputId) {
+          const deviceExists = phone.audioOutputDevices.value.some(
+            (d) => d.deviceId === prefs.audioOutputId
+          )
+          if (deviceExists) {
+            phone.selectAudioOutput(prefs.audioOutputId)
+          }
+        }
+      }
+    }
+  },
+  { immediate: true }
+)
+
 // API login state
 const use46ElksApiLogin = ref(true) // Show API login by default for 46 elks
 const useTelnyxApiLogin = ref(true) // Show API login by default for Telnyx
@@ -64,6 +147,8 @@ function handle46ElksCredentials(creds: { phoneNumber: string; secret: string })
   // Auto-fill the credentials from API
   updateCredential('phoneNumber', creds.phoneNumber)
   updateCredential('secret', creds.secret)
+  // Save credentials immediately for persistence across refreshes
+  saveCredentials()
   // Switch to showing the filled form (ready to connect)
   use46ElksApiLogin.value = false
 }
@@ -73,6 +158,8 @@ function handleTelnyxCredentials(creds: { username: string; password: string }) 
   // Auto-fill the credentials from API
   updateCredential('username', creds.username)
   updateCredential('password', creds.password)
+  // Save credentials immediately for persistence across refreshes
+  saveCredentials()
   // Switch to showing the filled form (ready to connect)
   useTelnyxApiLogin.value = false
 }
@@ -85,6 +172,17 @@ function handleUseManual46Elks() {
 // Switch to manual entry for Telnyx
 function handleUseManualTelnyx() {
   useTelnyxApiLogin.value = false
+}
+
+// Device selection with persistence
+function handleSelectAudioInput(deviceId: string) {
+  phone.selectAudioInput(deviceId)
+  saveDevicePreferences()
+}
+
+function handleSelectAudioOutput(deviceId: string) {
+  phone.selectAudioOutput(deviceId)
+  saveDevicePreferences()
 }
 
 // Check if all required fields are filled
@@ -120,8 +218,7 @@ async function handleConnect() {
 async function handleDisconnect() {
   try {
     await phone.disconnectPhone()
-    // Clear stored credentials on disconnect
-    clearCredentials()
+    // Keep credentials saved - user can manually clear via clearCredentials() if needed
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Disconnect failed'
   }
@@ -159,6 +256,10 @@ async function handleTransfer() {
 
 // Cleanup
 onUnmounted(async () => {
+  // Clear debounce timer
+  if (saveDebounceTimer) {
+    clearTimeout(saveDebounceTimer)
+  }
   if (phone.isConnected.value) {
     await phone.disconnectPhone()
   }
@@ -315,6 +416,14 @@ onUnmounted(async () => {
               @transfer="handleTransferClick"
             />
 
+            <!-- Recording Controls during active call -->
+            <RecordingControls
+              v-if="phone.isActive.value"
+              :local-stream="phone.localStream.value"
+              :remote-stream="phone.remoteStream.value"
+              :is-call-active="phone.isActive.value"
+            />
+
             <!-- Transcript during active call -->
             <TranscriptView
               v-if="phone.isActive.value"
@@ -348,8 +457,8 @@ onUnmounted(async () => {
                 :audio-output-devices="phone.audioOutputDevices.value"
                 :selected-audio-input-id="phone.selectedAudioInputId.value"
                 :selected-audio-output-id="phone.selectedAudioOutputId.value"
-                @select-input="phone.selectAudioInput"
-                @select-output="phone.selectAudioOutput"
+                @select-input="handleSelectAudioInput"
+                @select-output="handleSelectAudioOutput"
               />
 
               <div class="disconnect-section">
@@ -359,9 +468,21 @@ onUnmounted(async () => {
                   class="p-button-secondary w-full"
                   @click="handleDisconnect"
                 />
+                <Button
+                  label="Clear Saved Credentials"
+                  icon="pi pi-trash"
+                  class="p-button-text p-button-sm w-full mt-2"
+                  @click="clearCredentials"
+                />
               </div>
             </TabPanel>
           </TabView>
+        </div>
+      </template>
+
+      <template #footer>
+        <div class="phone-footer">
+          <span class="version">VueSip v{{ version }}</span>
         </div>
       </template>
     </Card>
@@ -498,6 +619,10 @@ onUnmounted(async () => {
   width: 100%;
 }
 
+.mt-2 {
+  margin-top: 8px;
+}
+
 .error-message {
   color: var(--red-500);
   font-size: 0.875rem;
@@ -540,5 +665,17 @@ onUnmounted(async () => {
 .api-login-link {
   text-align: center;
   margin: 8px 0;
+}
+
+.phone-footer {
+  text-align: center;
+  padding: 8px;
+  border-top: 1px solid var(--surface-200);
+}
+
+.phone-footer .version {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  opacity: 0.7;
 }
 </style>

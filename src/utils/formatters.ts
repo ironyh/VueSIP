@@ -471,3 +471,79 @@ export function formatCallDirection(direction: string): string {
 
   return directionMap[direction.toLowerCase()] || direction
 }
+
+/**
+ * Builds a SIP URI from a target (phone number or username) and domain
+ *
+ * If the target is already a SIP URI (starts with sip: or sips:), returns it as-is.
+ * Otherwise, constructs a SIP URI using the provided domain.
+ *
+ * @param target - Phone number, username, or existing SIP URI
+ * @param domain - SIP domain to use (required if target is not already a SIP URI)
+ * @param scheme - SIP scheme to use (default: 'sip')
+ * @returns Properly formatted SIP URI
+ * @throws {Error} If target is not a SIP URI and no domain is provided
+ *
+ * @example
+ * ```typescript
+ * // Phone numbers
+ * buildSipUri('+46700123456', 'sip.46elks.com') // "sip:+46700123456@sip.46elks.com"
+ *
+ * // Usernames
+ * buildSipUri('alice', 'example.com') // "sip:alice@example.com"
+ *
+ * // Existing SIP URIs passed through
+ * buildSipUri('sip:bob@other.com', 'example.com') // "sip:bob@other.com"
+ * buildSipUri('sips:secure@other.com') // "sips:secure@other.com"
+ * ```
+ */
+export function buildSipUri(
+  target: string,
+  domain?: string,
+  scheme: 'sip' | 'sips' = 'sip'
+): string {
+  if (!target || typeof target !== 'string') {
+    throw new Error('Target cannot be empty')
+  }
+
+  const trimmedTarget = target.trim()
+
+  // Check if target is empty after trimming
+  if (!trimmedTarget) {
+    throw new Error('Target cannot be empty')
+  }
+
+  // If already a SIP URI, return as-is
+  if (trimmedTarget.startsWith('sip:') || trimmedTarget.startsWith('sips:')) {
+    return trimmedTarget
+  }
+
+  // Domain is required for non-SIP targets
+  if (!domain) {
+    throw new Error('Domain is required when target is not a SIP URI')
+  }
+
+  return `${scheme}:${trimmedTarget}@${domain}`
+}
+
+/**
+ * Extracts the domain from a SIP URI
+ *
+ * @param sipUri - SIP URI to extract domain from
+ * @returns Domain portion of the SIP URI, or null if invalid
+ *
+ * @example
+ * ```typescript
+ * extractSipDomain('sip:alice@example.com') // "example.com"
+ * extractSipDomain('sips:bob@secure.example.com:5061') // "secure.example.com"
+ * extractSipDomain('invalid') // null
+ * ```
+ */
+export function extractSipDomain(sipUri: string): string | null {
+  if (!sipUri || typeof sipUri !== 'string') {
+    return null
+  }
+
+  const parsed = parseSipUri(sipUri)
+  return parsed?.host ?? null
+}

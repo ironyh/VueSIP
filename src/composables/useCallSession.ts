@@ -232,7 +232,9 @@ export function useCallSession(
    * @param videoElement - Optional video element to use for PiP
    * @returns The PictureInPictureWindow if successful, null otherwise
    */
-  const enterPiP = async (videoElement?: HTMLVideoElement): Promise<PictureInPictureWindow | null> => {
+  const enterPiP = async (
+    videoElement?: HTMLVideoElement
+  ): Promise<PictureInPictureWindow | null> => {
     // If videoElement provided, set it first
     if (videoElement) {
       setVideoRef(videoElement)
@@ -577,17 +579,30 @@ export function useCallSession(
 
       console.log('[useCallSession] About to call sipClient.call()', {
         hasSipClient: !!sipClient.value,
+        hasLocalStream: !!localStreamBeforeCall,
       })
       // Initiate call via SIP client
       // call() method now properly returns CallSession instance
-      const newSession = await sipClient.value.call(target, {
-        mediaConstraints: {
-          audio: options.audio ?? true,
-          video: options.video ?? false,
-        },
+      // Pass the already-acquired mediaStream to avoid double getUserMedia call
+      const callOptions: Record<string, unknown> = {
         extraHeaders: [],
         ...options.data,
-      })
+      }
+
+      // If we already acquired a stream, pass it directly to JsSIP
+      // Otherwise, let JsSIP handle getUserMedia via mediaConstraints
+      if (localStreamBeforeCall) {
+        callOptions.mediaStream = localStreamBeforeCall
+        console.log('[useCallSession] Passing existing mediaStream to JsSIP')
+      } else {
+        callOptions.mediaConstraints = {
+          audio: options.audio ?? true,
+          video: options.video ?? false,
+        }
+        console.log('[useCallSession] Using mediaConstraints for JsSIP')
+      }
+
+      const newSession = await sipClient.value.call(target, callOptions)
 
       console.log('[useCallSession] sipClient.call() returned', { sessionId: newSession.id })
 
