@@ -21,6 +21,14 @@ VueSip provides **60+ composables** for building professional SIP interfaces wit
 - **50+ Interactive Demos** - Working examples for every feature
 - **Modern Stack** - Vue 3, Vite, TypeScript
 
+## Live Demos
+
+- Landing: https://demos.vuesip.com (or see docs: `docs/guide/demos.md`)
+- Softphone (PWA): https://softphone.vuesip.com
+- IVR Tester: https://ivr.vuesip.com
+- Video Room: https://video.vuesip.com
+- Call Center: https://callcenter.vuesip.com
+
 ## Installation
 
 ```bash
