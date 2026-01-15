@@ -1,0 +1,47 @@
+name: Enterprise Package Pack Check
+
+on:
+  pull_request:
+    branches: [ main, feature/** ]
+    paths:
+      - 'packages/enterprise/**'
+      - '.github/workflows/enterprise-pack.yml'
+
+jobs:
+  build-and-pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install deps (root)
+        run: pnpm install --frozen-lockfile
+
+      - name: Build enterprise package
+        working-directory: packages/enterprise
+        run: pnpm run build
+
+      - name: Pack (dry run)
+        working-directory: packages/enterprise
+        run: npm pack --dry-run
+
+      - name: Upload package artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-dist
+          path: |
+            packages/enterprise/dist/**
+            packages/enterprise/*.tgz
+          if-no-files-found: ignore
+
