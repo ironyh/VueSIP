@@ -24,6 +24,7 @@ export default defineConfig({
     nav: [
       { text: 'Tutorial', link: '/tutorial/', activeMatch: '/tutorial/' },
       { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
+      { text: 'Demos', link: '/guide/demos', activeMatch: '/guide/demos' },
       { text: 'API Reference', link: '/api/', activeMatch: '/api/' },
       { text: 'Examples', link: '/examples/', activeMatch: '/examples/' },
       { text: 'Developer', link: '/developer/', activeMatch: '/developer/' },

@@ -2,12 +2,22 @@
 
 Explore VueSIP demos deployed under dedicated subdomains. Each app is isolated for clean PWA/service worker scopes and simpler backend CORS.
 
+<<<<<<< HEAD
 > Note: Replace the domains below with your own if self-hosting. Locally, use the default ports listed.
 
 ## Softphone
 
 - URL: https://softphone.vuesip.com
 - Local: http://localhost:3002
+=======
+> Replace the domains below with your own if self-hosting. Locally, use the default ports listed.
+
+## Softphone
+
+- PWA Softphone: https://softphone.vuesip.com
+- Basic Softphone: https://basic-softphone.vuesip.com (optional)
+- Local (PWA): http://localhost:3002
+>>>>>>> f461131 (docs(demos): add demos landing + link in docs nav; include Basic Softphone; add demos page)
 - Highlights: Installable PWA, push notifications, offline cache, full call controls, device selection.
 
 ## IVR Tester
