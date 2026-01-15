@@ -21,7 +21,7 @@ import { networkSimulatorExample } from './network-simulator'
 import { screenSharingExample } from './screen-sharing'
 import { transcriptionExample } from './transcription'
 import { pictureInPictureExample } from './picture-in-picture'
-import { callSessionPiPExample } from './call-session-pip'
+import { clickToCallWidgetExample } from './click-to-call-widget'
 import { callWaitingExample } from './call-waiting'
 import { sipMessagingExample } from './sip-messaging'
 import { presenceExample } from './presence'
@@ -60,6 +60,7 @@ import type { ExampleCategory } from './types'
 export const sipExamples = [
   basicCallExample,
   videoCallExample,
+  clickToCallWidgetExample,
   dtmfExample,
   audioDevicesExample,
   callTransferExample,
@@ -102,6 +103,7 @@ export const amiExamples = [
   timeConditionsExample,
   featureCodesExample,
   callbackExample,
+  clickToCallExample,
   confBridgeExample,
   pjsipExample,
   systemHealthExample,
@@ -118,7 +120,6 @@ export const utilityExamples = [
   autoAnswerExample,
   customRingtonesExample,
   blacklistExample,
-  clickToCallExample,
   e911Example,
   toolbarLayoutsExample,
   networkSimulatorExample,

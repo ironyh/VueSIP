@@ -2,6 +2,8 @@
 
 Learn how to initiate and manage outgoing calls in VueSip. This guide covers everything from basic call setup to advanced error handling and call quality monitoring, helping you build robust voice and video calling features in your Vue application.
 
+> See also: If you want a compact, embeddable dialer widget, check out the [Click-to-Call Guide](/guide/click-to-call) and the [Click-to-Call Example](/examples/click-to-call).
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)

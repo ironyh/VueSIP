@@ -8,12 +8,15 @@
  */
 
 import { ref, shallowRef, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
-import { useSipMock, type UseSipMockReturn } from './useSipMock'
+import { useSipMock } from './useSipMock'
 import { useSipClient } from './useSipClient'
 import { useCallSession } from './useCallSession'
 import type { SipClient } from '../core/SipClient'
 import type { SipClientConfig } from '../types/config.types'
 import { createLogger } from '../utils/logger'
+import type { UseSipAdapter, ReadonlyRef } from '@/types/sipAdapter.types'
+import type { MockCallState } from '@/composables/useSipMock'
+import { CallState } from '@/types/call.types'
 
 const log = createLogger('useClickToCall')
 
@@ -115,11 +118,11 @@ export interface UseClickToCallReturn {
 
   // Call state (from underlying SIP)
   /** Whether connected to SIP server */
-  isConnected: Ref<boolean>
+  isConnected: ReadonlyRef<boolean>
   /** Whether currently on a call */
   isOnCall: ComputedRef<boolean>
   /** Current call state */
-  callState: Ref<string>
+  callState: ReadonlyRef<string>
   /** Current call duration in seconds */
   callDuration: Ref<number>
   /** Remote party phone number */
@@ -286,7 +289,7 @@ function savePosition(pos: { x: number; y: number }): void {
 /**
  * Adapter to bridge real SIP client with the interface expected by useClickToCall
  */
-function useRealSip(sipConfig: SipConfiguration) {
+function useRealSip(sipConfig: SipConfiguration): UseSipAdapter {
   // Normalize config
   const clientConfig: SipClientConfig = {
     uri: sipConfig.wsUri,
@@ -309,7 +312,6 @@ function useRealSip(sipConfig: SipConfiguration) {
     connect: clientConnect,
     disconnect: clientDisconnect,
     isConnected,
-    isRegistered,
     getClient,
     error: clientError,
   } = useSipClient(clientConfig, {
@@ -327,21 +329,47 @@ function useRealSip(sipConfig: SipConfiguration) {
     answer: sessionAnswer,
     state: sessionState,
     session,
+    remoteUri,
+    remoteDisplayName,
   } = useCallSession(clientRef)
 
-  // Map call state to MockCallState strings
-  const callState = computed(() => {
-    const s = sessionState.value
-    // Map 'terminated', 'failed' -> 'ended'
-    if (s === 'terminated' || s === 'failed') return 'ended'
-    // Map 'idle' -> 'idle'
-    if (s === 'idle') return 'idle'
-    // Map others
-    if (s === 'answering' || s === 'early_media') return 'calling'
-    if (s === 'terminating') return 'active'
-    if (s === 'remote_held') return 'held'
+  // Map CallState enum to widget/MockCallState
+  function mapCallState(state: CallState): MockCallState {
+    switch (state) {
+      case CallState.Idle:
+        return 'idle'
+      case CallState.Calling:
+        return 'calling'
+      case CallState.Ringing:
+        return 'ringing'
+      case CallState.Answering:
+      case CallState.EarlyMedia:
+        return 'calling'
+      case CallState.Active:
+        return 'active'
+      case CallState.Held:
+      case CallState.RemoteHeld:
+        return 'held'
+      case CallState.Terminating:
+        return 'active'
+      case CallState.Terminated:
+      case CallState.Failed:
+        return 'ended'
+      default: {
+        const _never: never = state
+        void _never
+        return 'idle'
+      }
+    }
+  }
 
-    return s as string
+  const callState = computed<MockCallState>(() => mapCallState(sessionState.value))
+
+  // Prefer display name, fallback to URI if available
+  const adapterRemoteNumber = computed<string | null>(() => {
+    const name = remoteDisplayName?.value ?? null
+    const uri = remoteUri?.value ?? null
+    return name || uri || null
   })
 
   // Wrap connect to update clientRef
@@ -373,34 +401,18 @@ function useRealSip(sipConfig: SipConfiguration) {
     await sessionAnswer()
   }
 
-  // Dummy implementations for unused methods
-  const notImplemented = () => {
-    log.warn('Not implemented in real mode')
-  }
-
-  // Return object matching UseSipMockReturn interface
+  // Return object matching UseSipAdapter interface
   return {
     isConnected,
-    isRegistered,
     callState,
-    activeCall: ref(null), // Not used by useClickToCall logic directly
-    callHistory: ref([]),
     error: computed(() => clientError.value?.message || null),
+    remoteNumber: adapterRemoteNumber,
 
     connect,
     disconnect,
     call,
     hangup,
     answer,
-
-    // Mock-only methods
-    hold: async () => notImplemented(),
-    unhold: async () => notImplemented(),
-    sendDTMF: notImplemented,
-    simulateIncomingCall: notImplemented,
-    simulateCallQualityDrop: notImplemented,
-    simulateNetworkIssue: notImplemented,
-    configure: notImplemented,
   }
 }
 
@@ -504,10 +516,7 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
   // ===========================================================================
   // SIP/Mock Client
   // ===========================================================================
-
-  // For now, always use mock mode
-  // In the future, this would conditionally use real SIP client
-  let sipClient: UseSipMockReturn
+  let sipClient: UseSipAdapter
 
   if (config.value.mockMode || !config.value.sipConfig) {
     sipClient = useSipMock({
@@ -515,10 +524,10 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
       registerDelay: 300,
       ringDelay: 2000,
       connectCallDelay: 1000,
-    })
+    }) as unknown as UseSipAdapter
   } else {
     log.info('Initializing real SIP mode')
-    sipClient = useRealSip(config.value.sipConfig) as unknown as UseSipMockReturn
+    sipClient = useRealSip(config.value.sipConfig)
   }
 
   // ===========================================================================
@@ -558,6 +567,15 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
   watch(
     () => sipClient.callState.value,
     (newState, oldState) => {
+      // If ringing (possible inbound), hydrate remote number from adapter when available
+      if (newState === 'ringing' && !remoteNumber.value) {
+        // Use adapter-provided remote if available
+        const rn = (sipClient as { remoteNumber?: { value: string | null } }).remoteNumber?.value
+        if (rn) {
+          remoteNumber.value = rn
+        }
+      }
+
       // Start timer when call becomes active
       if (newState === 'active' && oldState !== 'active') {
         startDurationTimer()
@@ -574,10 +592,8 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
         const duration = callDuration.value
         stopDurationTimer()
 
-        // Notify callback if we were tracking a call
-        if (duration > 0 || oldState === 'active') {
-          config.value.onCallEnd?.(duration)
-        }
+        // Notify callback for any call attempt lifecycle (even 0s on no-answer/failure)
+        config.value.onCallEnd?.(duration)
 
         // Reset state
         callDuration.value = 0
