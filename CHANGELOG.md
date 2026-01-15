@@ -33,6 +33,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ProviderSelector and ProviderLoginForm components
   - Seamless provider switching in softphone UI
 
+### Click-to-Call (Real SIP) — Added
+
+- Real SIP support for Click-to-Call via adapter bridging `useSipClient` + `useCallSession`
+- `UseSipAdapter` minimal interface to unify mock and real implementations (no unsafe casts)
+- Inbound caller hydration: populate `remoteNumber` for ringing inbound calls in real SIP mode
+- New unit tests for real SIP init path and inbound identity hydration
+- Documentation: new Click-to-Call guide and example page
+- Playground: new “Click-to-Call Widget (Browser SIP)” demo (mock by default, optional real SIP)
+- Playground: cross-links between SIP widget and AMI agent-first demos for quick comparison
+
+### Click-to-Call — Changed
+
+- `onCallEnd` now fires for any termination (including missed/rejected/failed) with `duration = 0` when not answered
+- Duration timer now driven by a single callState watcher for consistent start/stop behavior
+- Playground defaults to the SIP Click-to-Call Widget example for faster discovery
+
 ## [1.0.0] - 2025-11-08
 
 VueSip 1.0.0 is a complete, production-ready headless Vue.js component library for SIP/VoIP applications. This release represents the culmination of extensive development, testing, and documentation efforts across 11 major phases.
