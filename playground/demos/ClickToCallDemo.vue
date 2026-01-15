@@ -22,11 +22,22 @@
 
     <!-- Configuration Panel -->
     <div v-if="!isAmiConnected" class="config-panel">
-      <h3>Click-to-Call Demo</h3>
-      <p class="info-text">
-        Connect to Asterisk via AMI to originate calls. This demonstrates agent-first click-to-call
-        where your phone rings first, then connects to the destination.
-      </p>
+      <h3>AMI Click-to-Call (Agent-First)</h3>
+      <div class="infobox">
+        <p>
+          <strong>What this is:</strong> Agent-first click-to-call via Asterisk AMI. Your desk
+          phone/softphone rings first; when you answer, the PBX dials the destination.
+        </p>
+        <p>
+          <strong>When to use:</strong> CRM integrations, call-center flows, server-originated
+          dialing. <em>No browser media required.</em>
+        </p>
+        <p>
+          <strong>Looking for a browser SIP widget?</strong> Try the
+          <em>Click-to-Call Widget</em> example in the SIP section.
+        </p>
+        <button class="link-btn" @click="goSipWidget">Open SIP Click-to-Call Widget</button>
+      </div>
 
       <div class="form-group">
         <label for="ami-url">AMI WebSocket URL</label>
@@ -558,6 +569,24 @@ watch(agentChannel, (value) => {
 .btn-danger:hover:not(:disabled) {
   background: #dc2626;
 }
+.infobox {
+  color: var(--vp-c-text-2);
+  margin: 0 0 8px;
+  border: 1px dashed var(--vp-c-divider);
+  padding: 8px;
+  border-radius: 8px;
+}
+.link-btn {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.link-btn:hover {
+  background: var(--vp-c-bg-soft);
+}
 .btn-sm {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
@@ -867,3 +896,4 @@ watch(agentChannel, (value) => {
   }
 }
 </style>
+function goSipWidget() { window.location.hash = '#click-to-call-widget' }

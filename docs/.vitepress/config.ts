@@ -65,6 +65,7 @@ export default defineConfig({
             { text: 'Call Controls', link: '/guide/call-controls' },
             { text: 'Video Calling', link: '/guide/video-calling' },
             { text: 'Picture-in-Picture', link: '/guide/picture-in-picture' },
+            { text: 'Click-to-Call', link: '/guide/click-to-call' },
           ],
         },
         {
@@ -159,6 +160,7 @@ export default defineConfig({
           text: 'Core Calling',
           collapsed: false,
           items: [
+            { text: 'Click-to-Call', link: '/examples/click-to-call' },
             { text: 'Basic Audio Call', link: '/examples/basic-call' },
             { text: 'Video Calling', link: '/examples/video-call' },
             { text: 'Conference Calls', link: '/examples/conference' },
