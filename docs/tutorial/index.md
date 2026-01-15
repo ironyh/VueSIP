@@ -10,6 +10,7 @@ Welcome to the VueSIP tutorial! This hands-on guide takes you from zero to build
 | [2. Building a Softphone](/tutorial/part-2-softphone)     | 15 min   | Complete UI with call controls  |
 | [3. Real Server Connection](/tutorial/part-3-real-server) | 10 min   | Connect to a real SIP provider  |
 | [4. Advanced Features](/tutorial/part-4-advanced)         | 20 min   | Transfer, conference, recording |
+| [5. AI-Powered Insights](/tutorial/part-5-ai-insights)    | 15 min   | Sentiment, summaries, routing   |
 
 ## Prerequisites
 
@@ -67,6 +68,13 @@ npm run dev
 - Conference calls with multiple participants
 - Call recording with local storage
 - Audio device management
+
+### Part 5: AI-Powered Insights (15 minutes)
+
+- Real-time sentiment analysis with alerts
+- Automatic call summarization
+- Action item extraction and management
+- Smart routing with batch operations
 
 ## Philosophy
 

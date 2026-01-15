@@ -8,7 +8,7 @@
  * @module composables/useSmartRouting
  */
 
-import { ref, type Ref } from 'vue'
+import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '../core/AmiClient'
 
 /**
@@ -158,15 +158,30 @@ export interface UseSmartRoutingReturn {
   /** History of routing decisions */
   decisionHistory: Ref<RoutingDecision[]>
 
+  // Computed
+  ruleCount: ComputedRef<number>
+  hasRules: ComputedRef<boolean>
+  enabledRulesCount: ComputedRef<number>
+  disabledRulesCount: ComputedRef<number>
+  enabledRules: ComputedRef<RoutingRule[]>
+  disabledRules: ComputedRef<RoutingRule[]>
+  hasDecisionHistory: ComputedRef<boolean>
+
   // Rule Management
   /** Register a new routing rule */
   registerRule: (rule: Omit<RoutingRule, 'id'>) => string
+  /** Add a new routing rule (alias for registerRule) */
+  addRule: (rule: Omit<RoutingRule, 'id'>) => string
   /** Remove a routing rule */
   unregisterRule: (ruleId: string) => boolean
   /** Enable a rule */
   enableRule: (ruleId: string) => void
   /** Disable a rule */
   disableRule: (ruleId: string) => void
+  /** Enable all rules */
+  enableAllRules: () => void
+  /** Disable all rules */
+  disableAllRules: () => void
   /** Update a rule */
   updateRule: (ruleId: string, updates: Partial<RoutingRule>) => void
 
@@ -554,6 +569,18 @@ export function useSmartRouting(
   const decisionHistory = ref<RoutingDecision[]>([])
 
   // ============================================================================
+  // Computed
+  // ============================================================================
+
+  const ruleCount = computed(() => rules.value.length)
+  const hasRules = computed(() => rules.value.length > 0)
+  const enabledRules = computed(() => rules.value.filter((r) => r.enabled))
+  const disabledRules = computed(() => rules.value.filter((r) => !r.enabled))
+  const enabledRulesCount = computed(() => enabledRules.value.length)
+  const disabledRulesCount = computed(() => disabledRules.value.length)
+  const hasDecisionHistory = computed(() => decisionHistory.value.length > 0)
+
+  // ============================================================================
   // Language Detection
   // ============================================================================
 
@@ -699,6 +726,20 @@ export function useSmartRouting(
     if (rule) {
       rule.enabled = false
     }
+  }
+
+  /**
+   * Enable all rules
+   */
+  function enableAllRules(): void {
+    rules.value.forEach((r) => (r.enabled = true))
+  }
+
+  /**
+   * Disable all rules
+   */
+  function disableAllRules(): void {
+    rules.value.forEach((r) => (r.enabled = false))
   }
 
   /**
@@ -986,11 +1027,23 @@ export function useSmartRouting(
     lastDecision,
     decisionHistory,
 
+    // Computed
+    ruleCount,
+    hasRules,
+    enabledRulesCount,
+    disabledRulesCount,
+    enabledRules,
+    disabledRules,
+    hasDecisionHistory,
+
     // Rule Management
     registerRule,
+    addRule: registerRule, // Alias
     unregisterRule,
     enableRule,
     disableRule,
+    enableAllRules,
+    disableAllRules,
     updateRule,
 
     // Routing
