@@ -180,7 +180,23 @@ netlify deploy --prod
 npm i -g wrangler
 wrangler pages deploy dist
 ```
+Or deploy to a specific Pages project:
 
+```bash
+# From repo root
+pnpm build
+
+cd templates/pwa-softphone
+pnpm build
+
+# Create project once (safe if it already exists)
+wrangler pages project create vuesip-pwa-softphone --production-branch=main
+
+# Deploy the dist/ folder
+wrangler pages deploy dist --project-name=vuesip-pwa-softphone
+```
+
+After deploying, map your subdomain (e.g., `softphone.vuesip.com`) to the Pages project in Cloudflare Pages → Custom Domains.
 ## Troubleshooting
 
 ### PWA Install Prompt Not Showing

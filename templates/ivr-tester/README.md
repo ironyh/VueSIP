@@ -255,6 +255,34 @@ ivr-tester/
 └── tsconfig.json
 ```
 
+<<<<<<< HEAD
+## Cloudflare Pages (Deploy)
+
+This template is ready to deploy on Cloudflare Pages.
+
+- Project name: `vuesip-ivr-tester`
+- Config: `templates/ivr-tester/wrangler.toml`
+
+Commands:
+
+```bash
+# From repo root
+pnpm build
+
+cd templates/ivr-tester
+pnpm build
+
+# Create project once (safe if it already exists)
+wrangler pages project create vuesip-ivr-tester --production-branch=main
+
+# Deploy the dist/ folder
+wrangler pages deploy dist --project-name=vuesip-ivr-tester
+```
+
+After deploying, map your subdomain (e.g., `ivr.vuesip.com`) to the Pages project in Cloudflare Pages → Custom Domains.
+
+=======
+>>>>>>> origin/main
 ## Dependencies
 
 - **Vue 3**: Reactive UI framework

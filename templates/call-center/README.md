@@ -214,6 +214,30 @@ VITE_SIP_DISPLAY_NAME=Agent Name
 VITE_AMI_WS_URL=ws://pbx.example.com:8080
 ```
 
+## Cloudflare Pages (Deploy)
+
+This template is ready to deploy on Cloudflare Pages.
+
+- Project name: `vuesip-callcenter`
+
+Commands:
+
+```bash
+# From repo root
+pnpm build
+
+cd templates/call-center
+pnpm build
+
+# Create project once (safe if it already exists)
+wrangler pages project create vuesip-callcenter --production-branch=main
+
+# Deploy the dist/ folder
+wrangler pages deploy dist --project-name=vuesip-callcenter
+```
+
+After deploying, map your subdomain (e.g., `callcenter.vuesip.com`) to the Pages project in Cloudflare Pages → Custom Domains.
+
 ## SIP Provider Configuration
 
 ### Asterisk

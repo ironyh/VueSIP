@@ -39,6 +39,23 @@ pnpm dev
 
 :::
 
+## Live Demos
+
+See also: [Live Demos](./demos.md) for hosted subdomains and local ports.
+
+## Default Ports
+
+Run dev servers without collisions by using these defaults:
+
+| Template | Port | URL |
+|----------|------|-----|
+| Minimal | 3000 | http://localhost:3000 |
+| Basic Softphone | 3001 | http://localhost:3001 |
+| PWA Softphone | 3002 | http://localhost:3002 |
+| Video Room | 3003 | http://localhost:3003 |
+| Call Center | 3004 | http://localhost:3004 |
+| IVR Tester | 3005 | http://localhost:3005 |
+
 ## Minimal Template
 
 A bare-bones template demonstrating core VueSip functionality with no external UI dependencies.

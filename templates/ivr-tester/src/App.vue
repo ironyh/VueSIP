@@ -16,7 +16,8 @@ import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
-import ToastService from 'primevue/toastservice'
+import InputSwitch from 'primevue/inputswitch'
+import OverlayPanel from 'primevue/overlaypanel'
 import { useProviderSelector } from 'vuesip'
 import type { ProviderConfig } from 'vuesip'
 
@@ -54,6 +55,43 @@ const {
 const showConnectionPanel = ref(true)
 const statusMessage = ref('')
 const activeRightTab = ref(0)
+const lastDtmfTime = ref<number | null>(null)
+const toast = useToast()
+
+// Developer-configurable settings (persisted in localStorage)
+const showDtmfStatus = ref<boolean>(true)
+const enableDtmfToasts = ref<boolean>(false)
+const settingsPanel = ref()
+
+const SETTINGS_KEY = 'ivrTester.settings'
+function loadSettings() {
+  try {
+    const stored = localStorage.getItem(SETTINGS_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (typeof parsed.showDtmfStatus === 'boolean') showDtmfStatus.value = parsed.showDtmfStatus
+      if (typeof parsed.enableDtmfToasts === 'boolean') enableDtmfToasts.value = parsed.enableDtmfToasts
+    }
+  } catch {}
+}
+function saveSettings() {
+  try {
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({ showDtmfStatus: showDtmfStatus.value, enableDtmfToasts: enableDtmfToasts.value })
+    )
+  } catch {}
+}
+loadSettings()
+
+// Persist settings changes
+watch(showDtmfStatus, saveSettings)
+watch(enableDtmfToasts, saveSettings)
+
+function toggleSettings(event: Event) {
+  settingsPanel.value?.toggle(event)
+}
+ 
 
 // Computed
 const isConnected = computed(() => ivrTester.isConnected.value)
@@ -84,8 +122,10 @@ async function handleConnect(): Promise<void> {
     await ivrTester.configure(sipConfig)
     await ivrTester.connect()
     showConnectionPanel.value = false
+    toast.add({ severity: 'success', summary: 'Connected', detail: selectedProvider?.name || 'SIP server', life: 2000 })
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Connection failed'
+    toast.add({ severity: 'error', summary: 'Connection failed', detail: statusMessage.value, life: 3000 })
   }
 }
 
@@ -95,25 +135,32 @@ async function handleDisconnect(): Promise<void> {
     await ivrTester.disconnect()
     clearCredentials()
     showConnectionPanel.value = true
+    toast.add({ severity: 'info', summary: 'Disconnected', life: 2000 })
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Disconnect failed'
+    toast.add({ severity: 'error', summary: 'Disconnect failed', detail: statusMessage.value, life: 3000 })
   }
 }
 
 // Start new test
 function handleStartTest(targetNumber: string, sessionName?: string): void {
   ivrTester.startTest(targetNumber, sessionName)
+  toast.add({ severity: 'info', summary: 'Starting test', detail: `Calling ${targetNumber}`, life: 2000 })
 }
 
 // End current test
 function handleEndTest(): void {
   ivrTester.endTest()
+  toast.add({ severity: 'warn', summary: 'Test ended', life: 2000 })
 }
 
 // Send DTMF digit
 function handleDtmfDigit(digit: string): void {
   if (isCallActive.value) {
     ivrTester.sendDtmf(digit)
+    if (enableDtmfToasts.value) {
+      toast.add({ severity: 'info', summary: 'DTMF', detail: `Sent ${digit}`, life: 1000 })
+    }
   }
 }
 
@@ -145,10 +192,12 @@ function handleMarkEndpoint(nodeId: string, isEndpoint: boolean): void {
 // Session management
 function handleLoadSession(sessionId: string): void {
   ivrTester.loadSession(sessionId)
+  toast.add({ severity: 'info', summary: 'Session loaded', life: 2000 })
 }
 
 function handleDeleteSession(sessionId: string): void {
   ivrTester.deleteSession(sessionId)
+  toast.add({ severity: 'warn', summary: 'Session deleted', life: 2000 })
 }
 
 function handleExportSession(format: ExportFormat, sessionId?: string): void {
@@ -166,23 +215,28 @@ function handleExportSession(format: ExportFormat, sessionId?: string): void {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+    toast.add({ severity: 'success', summary: 'Export ready', life: 2000 })
   }
 }
 
 function handleImportSession(jsonData: string): void {
   try {
     ivrTester.importSession(jsonData)
+    toast.add({ severity: 'success', summary: 'Session imported', life: 2000 })
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Import failed'
+    toast.add({ severity: 'error', summary: 'Import failed', detail: statusMessage.value, life: 3000 })
   }
 }
 
 function handleClearAllSessions(): void {
   ivrTester.clearAllSessions()
+  toast.add({ severity: 'warn', summary: 'All sessions cleared', life: 2000 })
 }
 
 function handleAddNote(note: string): void {
   ivrTester.addSessionNote(note)
+  toast.add({ severity: 'success', summary: 'Note added', life: 1500 })
 }
 
 // Clear transcript
@@ -197,10 +251,28 @@ onUnmounted(async () => {
     await ivrTester.disconnect()
   }
 })
+
+// Track last DTMF timestamp for inline status
+watch(
+  () => ivrTester.lastDtmfSent.value,
+  (digit) => {
+    if (digit) lastDtmfTime.value = Date.now()
+  }
+)
+
+function formatRelative(ts: number): string {
+  const diffSec = Math.floor((Date.now() - ts) / 1000)
+  if (diffSec < 2) return 'just now'
+  if (diffSec < 60) return `${diffSec}s ago`
+  const mins = Math.floor(diffSec / 60)
+  return `${mins}m ago`
+}
 </script>
 
 <template>
   <div class="ivr-tester">
+    <Toast />
+    <Toast />
     <!-- Header -->
     <header class="app-header">
       <div class="header-left">
@@ -221,6 +293,13 @@ onUnmounted(async () => {
           <span class="status-dot" />
           <span>{{ callStatus }}</span>
         </div>
+        <!-- Settings button -->
+        <Button
+          icon="pi pi-cog"
+          class="p-button-text p-button-rounded p-button-sm settings-btn"
+          aria-label="Settings"
+          @click="toggleSettings($event)"
+        />
         <Button
           v-if="isConnected"
           icon="pi pi-sign-out"
@@ -228,6 +307,23 @@ onUnmounted(async () => {
           title="Disconnect"
           @click="handleDisconnect"
         />
+        <!-- Settings overlay -->
+        <OverlayPanel ref="settingsPanel" class="settings-panel" :dismissable="true">
+          <div class="settings-row">
+            <div class="settings-text">
+              <div class="title"><i class="pi pi-hashtag" /> Show Last DTMF</div>
+              <div class="hint">Display the latest DTMF pressed below the timeline.</div>
+            </div>
+            <InputSwitch v-model="showDtmfStatus" aria-label="Show Last DTMF" />
+          </div>
+          <div class="settings-row">
+            <div class="settings-text">
+              <div class="title"><i class="pi pi-bell" /> DTMF Toasts</div>
+              <div class="hint">Show a brief toast when a digit is sent.</div>
+            </div>
+            <InputSwitch v-model="enableDtmfToasts" aria-label="DTMF Toasts" />
+          </div>
+        </OverlayPanel>
       </div>
     </header>
 
@@ -358,6 +454,17 @@ onUnmounted(async () => {
             @dtmf-click="handleDtmfClick"
           />
 
+<<<<<<< HEAD
+          <!-- Inline DTMF status line -->
+          <div v-if="showDtmfStatus" class="dtmf-status">
+            <i class="pi pi-hashtag" />
+            <span class="label">Last DTMF:</span>
+            <span class="digit">{{ ivrTester.lastDtmfSent.value ?? '—' }}</span>
+            <span v-if="lastDtmfTime" class="time">{{ formatRelative(lastDtmfTime!) }}</span>
+          </div>
+
+=======
+>>>>>>> origin/main
           <!-- Tabs for Keypad and Transcript -->
           <TabView v-model:active-index="activeRightTab" class="bottom-tabs">
             <TabPanel>
@@ -496,6 +603,76 @@ onUnmounted(async () => {
   max-width: 420px;
 }
 
+<<<<<<< HEAD
+/* DTMF inline status */
+.dtmf-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 8px 0 4px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--surface-100), var(--surface-200));
+  color: var(--text-color-secondary);
+  }
+
+.dtmf-status i {
+  opacity: 0.8;
+}
+
+.dtmf-status .label {
+  font-weight: 500;
+}
+
+.dtmf-status .digit {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: var(--surface-200);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--text-color);
+}
+
+.dtmf-status .time {
+  margin-left: auto;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* Settings overlay styling */
+.settings-panel {
+  min-width: 320px;
+  padding: 8px 4px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-100);
+  border: 1px solid var(--surface-border);
+  margin: 6px 4px;
+}
+
+.settings-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-text .title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.settings-text .hint {
+  font-size: 0.8rem;
+  color: var(--text-color-secondary);
+}
 .card-header {
   display: flex;
   align-items: center;

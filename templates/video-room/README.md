@@ -280,7 +280,31 @@ This template demonstrates how to build a video conferencing application using V
 - `useMediaDevices` - For device selection
 - `useActiveSpeaker` - For active speaker detection
 - `useGalleryLayout` - For gallery layout calculations
+ 
+## Cloudflare Pages (Deploy)
 
+This template is ready to deploy on Cloudflare Pages.
+
+- Project name: `vuesip-video-room`
+- Config: `templates/video-room/wrangler.toml`
+
+Commands:
+
+```bash
+# From repo root
+pnpm build
+
+cd templates/video-room
+pnpm build
+
+# Create project once (safe if it already exists)
+wrangler pages project create vuesip-video-room --production-branch=main
+
+# Deploy the dist/ folder
+wrangler pages deploy dist --project-name=vuesip-video-room
+```
+
+After deploying, map your subdomain (e.g., `video.vuesip.com`) to the Pages project in Cloudflare Pages → Custom Domains.
 ## License
 
 MIT
