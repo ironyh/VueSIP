@@ -111,7 +111,7 @@
           <span class="tab-header">
             <span>📋</span>
             <span>Summary</span>
-            <i v-if="hasSummary" class="pi pi-check-circle text-green-500"></i>
+            <i v-if="hasSummary" class="pi pi-check-circle text-green-500" />
           </span>
         </template>
 
@@ -246,7 +246,7 @@
               <div v-else class="rule-list">
                 <div v-for="rule in enabledRules" :key="rule.id" class="rule-item">
                   <span class="rule-name">{{ rule.name }}</span>
-                  <Tag :value="String(rule.priority)" size="small" />
+                  <Tag :value="rule.priority" size="small" />
                 </div>
               </div>
             </Panel>
@@ -256,7 +256,7 @@
               <div v-else class="rule-list">
                 <div v-for="rule in disabledRules" :key="rule.id" class="rule-item muted">
                   <span class="rule-name">{{ rule.name }}</span>
-                  <Tag :value="String(rule.priority)" size="small" severity="secondary" />
+                  <Tag :value="rule.priority" size="small" severity="secondary" />
                 </div>
               </div>
             </Panel>
@@ -366,6 +366,7 @@ const {
 } = useCallSummary()
 
 const {
+  rules,
   ruleCount,
   hasRules,
   enabledRulesCount,
@@ -377,6 +378,7 @@ const {
   enableAllRules,
   disableAllRules,
   addRule,
+  reset: resetRouting,
 } = useSmartRouting()
 
 // =============================================================================
