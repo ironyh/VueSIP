@@ -14,6 +14,30 @@ import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('useAmiSpy')
 
+/**
+ * Safely match channel names to prevent false positives from substring matching.
+ * AMI channel names follow patterns like "PJSIP/1001-00000001" where the base
+ * channel is followed by a unique identifier separated by a hyphen.
+ *
+ * @param eventChannel - Channel name from the AMI event
+ * @param targetChannel - Channel we're looking for
+ * @returns True if the channels match (either exact or base channel match)
+ */
+function channelMatches(
+  eventChannel: string | undefined,
+  targetChannel: string | undefined
+): boolean {
+  if (!eventChannel || !targetChannel) return false
+
+  // Exact match
+  if (eventChannel === targetChannel) return true
+
+  // Match base channel: "PJSIP/1001-00000001" should match "PJSIP/1001"
+  // but "PJSIP/100" should NOT match "PJSIP/1001"
+  const eventBase = eventChannel.split('-')[0]
+  return eventBase === targetChannel
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -612,12 +636,12 @@ export function useAmiSpy(
     if (!client || !useEvents) return
 
     const handleHangup = (eventData: { Channel?: string; Cause?: string }) => {
-      // Check if the hangup is for any of our spy sessions
+      // Check if the hangup is for any of our spy sessions using safe channel matching
       for (const [sessionId, session] of activeSessions.value) {
         if (
           eventData.Channel &&
           (eventData.Channel === session.spyChannel ||
-            eventData.Channel.includes(session.supervisorChannel.split('/')[1] || ''))
+            channelMatches(eventData.Channel, session.supervisorChannel))
         ) {
           logger.debug('Spy channel hangup detected', { sessionId, channel: eventData.Channel })
 

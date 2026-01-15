@@ -33,6 +33,27 @@ function generateActionId(): string {
 }
 
 /**
+ * Safely match channel names to prevent false positives from substring matching.
+ * AMI channel names follow patterns like "PJSIP/1001-00000001" where the base
+ * channel is followed by a unique identifier separated by a hyphen.
+ *
+ * @param eventChannel - Channel name from the AMI event
+ * @param targetChannel - Channel we're looking for
+ * @returns True if the channels match (either exact or base channel match)
+ */
+function channelMatches(eventChannel: string | undefined, targetChannel: string): boolean {
+  if (!eventChannel) return false
+
+  // Exact match
+  if (eventChannel === targetChannel) return true
+
+  // Match base channel: "PJSIP/1001-00000001" should match "PJSIP/1001"
+  // but "PJSIP/100" should NOT match "PJSIP/1001"
+  const eventBase = eventChannel.split('-')[0]
+  return eventBase === targetChannel
+}
+
+/**
  * AMI Originate Composable
  *
  * @param amiClientRef - Ref to AMI client instance
@@ -443,11 +464,11 @@ export function useAmiOriginate(
     }
 
     const handleDialBegin = (eventData: AmiDialBeginEvent) => {
-      // Check if this is related to our origination
+      // Check if this is related to our origination using safe channel matching
       if (
         currentChannel &&
-        (eventData.Channel?.includes(currentChannel) ||
-          eventData.DestChannel?.includes(currentChannel))
+        (channelMatches(eventData.Channel, currentChannel) ||
+          channelMatches(eventData.DestChannel, currentChannel))
       ) {
         updateProgress('ringing', {
           channel: eventData.Channel,
@@ -458,11 +479,11 @@ export function useAmiOriginate(
     }
 
     const handleDialEnd = (eventData: AmiDialEndEvent) => {
-      // Check if this is related to our origination
+      // Check if this is related to our origination using safe channel matching
       if (
         currentChannel &&
-        (eventData.Channel?.includes(currentChannel) ||
-          eventData.DestChannel?.includes(currentChannel))
+        (channelMatches(eventData.Channel, currentChannel) ||
+          channelMatches(eventData.DestChannel, currentChannel))
       ) {
         const dialStatus = eventData.DialStatus
 
@@ -493,8 +514,8 @@ export function useAmiOriginate(
     }
 
     const handleHangup = (eventData: { Channel?: string; Cause?: string }) => {
-      // Check if our originating channel was hung up
-      if (currentChannel && eventData.Channel?.includes(currentChannel)) {
+      // Check if our originating channel was hung up using safe channel matching
+      if (currentChannel && channelMatches(eventData.Channel, currentChannel)) {
         if (isOriginating.value) {
           updateProgress('completed')
           isOriginating.value = false
