@@ -281,7 +281,8 @@ function normalizeWord(word: string): string {
  * Check if a word contains a negation contraction
  */
 function containsNegation(word: string): boolean {
-  return word.includes("n't") || word.includes("n't")
+  // Check for various negation patterns: "n't", "not", "never", "no"
+  return word.includes("n't") || word === 'not' || word === 'never' || word === 'no'
 }
 
 /**
@@ -538,7 +539,9 @@ export function useSentiment(
       sumX2 += x * x
     }
 
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+    // Protect against division by zero when all x values are identical
+    const denominator = n * sumX2 - sumX * sumX
+    const slope = denominator === 0 ? 0 : (n * sumXY - sumX * sumY) / denominator
 
     // Determine trend based on slope
     if (slope > 0.05) return 'improving'

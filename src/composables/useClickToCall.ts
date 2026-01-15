@@ -607,7 +607,17 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
   // ===========================================================================
 
   const cssVars = computed<Record<string, string>>(() => {
-    const theme = config.value.theme === 'auto' ? 'light' : config.value.theme
+    // Detect system preference when theme is 'auto'
+    let resolvedTheme: 'light' | 'dark' = 'light'
+    if (config.value.theme === 'auto') {
+      // Check for system dark mode preference via matchMedia
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      }
+    } else {
+      resolvedTheme = config.value.theme
+    }
+    const theme = resolvedTheme
     const colors = THEME_COLORS[theme]
     const dimensions = widgetDimensions.value
 
@@ -825,10 +835,26 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
 
 /**
  * Adjust a hex color by a percentage
+ * Supports both short (#fff) and long (#ffffff) hex formats
  */
 function adjustColor(hex: string, percent: number): string {
   // Remove # if present
-  const cleanHex = hex.replace('#', '')
+  let cleanHex = hex.replace('#', '')
+
+  // Handle 3-character hex codes by expanding to 6 characters
+  // e.g., #fff -> #ffffff, #abc -> #aabbcc
+  if (cleanHex.length === 3) {
+    cleanHex = cleanHex
+      .split('')
+      .map((c) => c + c)
+      .join('')
+  }
+
+  // Validate hex format
+  if (cleanHex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(cleanHex)) {
+    // Return original if invalid
+    return hex
+  }
 
   // Parse RGB values
   const r = parseInt(cleanHex.substring(0, 2), 16)
