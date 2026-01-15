@@ -1,0 +1,32 @@
+name: Jules Maintenance
+
+on:
+  schedule:
+    - cron: '0 2 * * 1' # Runs every Monday at 2 AM UTC
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  jules_janitor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: google-labs-code/jules-invoke@v1
+        with:
+          # IMPORTANT: You must add JULES_API_KEY to your Repository Secrets
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          model: "gemini-2.0-flash-exp"
+          prompt: |
+            You are a diligent maintenance agent for this Vue.js/TypeScript project.
+            The project uses `pnpm` for package management.
+
+            Your mission is to perform a weekly cleanup:
+            1. **Check for updates**: Identify outdated dependencies in `package.json` that can be updated safely (respecting semver ranges).
+            2. **Audit**: Run `pnpm audit` to detect security vulnerabilities.
+            3. **Update**: Perform the updates and fix vulnerabilities where possible.
+            4. **Verify**:
+               - Run `pnpm install` to ensure lockfile consistency.
+               - Run `pnpm run build` to ensure the project builds.
+               - Run `pnpm run test:unit` to ensure no regressions.
+            5. **Report**: Create a Pull Request with the updates. Include a summary of what was updated and the results of the audit and tests.
