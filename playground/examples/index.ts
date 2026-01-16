@@ -55,6 +55,7 @@ import { pjsipExample } from './pjsip'
 import { systemHealthExample } from './system-health'
 import { mwiExample } from './mwi'
 import { aiInsightsExample } from './ai-insights'
+import { callSessionPiPExample } from './call-session-pip'
 import type { ExampleCategory } from './types'
 
 // SIP Features - Core WebRTC/SIP functionality
