@@ -68,6 +68,9 @@ export default defineConfig({
             { text: 'Call Parking', link: '/guide/call-parking' },
             { text: 'Voicemail', link: '/guide/voicemail' },
             { text: 'Real-Time Transcription', link: '/guide/transcription' },
+            { text: 'AMI Originate', link: '/guide/ami-originate' },
+            { text: 'Sentiment Analysis', link: '/guide/sentiment' },
+            { text: 'SIP Mock', link: '/guide/sip-mock' },
           ],
         },
         {
