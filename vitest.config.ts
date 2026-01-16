@@ -30,6 +30,7 @@ export default defineConfig({
       '@/stores': resolve(__dirname, 'src/stores'),
       '@/plugins': resolve(__dirname, 'src/plugins'),
       '@/providers': resolve(__dirname, 'src/providers'),
+      '@/codecs': resolve(__dirname, 'src/codecs'),
       // Mock optional sip.js library for testing
       'sip.js': resolve(__dirname, 'tests/mocks/sip.js.mock.ts'),
     },

@@ -29,7 +29,7 @@ describe('useCodecs', () => {
     const local = getLocalCapabilities()
     const ordered = negotiate(local)
     expect(ordered.audio[0].mimeType.toLowerCase()).toContain('opus')
-    expect(ordered.video[0].mimeType.toLowerCase()).toContain('vp9' || 'vp8')
+    expect(ordered.video[0].mimeType.toLowerCase()).toContain('vp8')
   })
 
   it('applies preferences to transceiver when available', () => {

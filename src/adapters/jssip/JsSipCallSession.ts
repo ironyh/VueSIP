@@ -31,9 +31,12 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
   private _localStream: MediaStream | null = null
   private _remoteStream: MediaStream | null = null
 
-  constructor(session: RTCSession) {
+  private _codecPolicy: import('../../codecs/types').CodecPolicy | undefined
+
+  constructor(session: RTCSession, codecPolicy?: import('../../codecs/types').CodecPolicy) {
     super()
     this.session = session
+    this._codecPolicy = codecPolicy
     this.setupEventHandlers()
     this.initializeState()
   }
@@ -499,6 +502,27 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
         if (videoSender?.track) tracks.push(videoSender.track)
         this._localStream = new MediaStream(tracks)
         this.emit('localStream', { stream: this._localStream })
+      }
+
+      // Apply codec preferences via transceivers when available
+      try {
+        const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : []
+        if (transceivers && transceivers.length > 0) {
+          const { useCodecs } =
+            require('../../codecs/useCodecs') as typeof import('../../codecs/useCodecs')
+          const codecs = useCodecs(this._codecPolicy)
+          for (const t of transceivers) {
+            const kind = (t.sender?.track?.kind ?? t.receiver?.track?.kind) as
+              | 'audio'
+              | 'video'
+              | undefined
+            if (kind === 'audio' || kind === 'video') {
+              codecs.applyToTransceiver(t as unknown as RTCRtpTransceiver, kind)
+            }
+          }
+        }
+      } catch {
+        // Best effort; skip if environment doesn't support
       }
     })
 

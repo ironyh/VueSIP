@@ -154,6 +154,12 @@ export interface SipClientConfig {
   /** Enable debug mode */
   debug?: boolean
 
+  /**
+   * Codec policy configuration (preview)
+   * Controls preferred codecs and negotiation strategy.
+   */
+  codecPolicy?: import('../codecs/types').CodecPolicy
+
   /** Logger instance (if custom logging is needed) */
   logger?: {
     debug: (...args: unknown[]) => void
