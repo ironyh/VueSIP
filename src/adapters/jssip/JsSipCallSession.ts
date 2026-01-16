@@ -6,6 +6,7 @@
 
 import type { RTCSession } from 'jssip'
 import { EventEmitter } from '../../utils/EventEmitter'
+import { DefaultSdpTransformer } from '../../codecs/sdp/DefaultSdpTransformer'
 import type {
   ICallSession,
   AnswerOptions,
@@ -32,6 +33,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
   private _remoteStream: MediaStream | null = null
 
   private _codecPolicy: import('../../codecs/types').CodecPolicy | undefined
+  private _sdpTransformer = new DefaultSdpTransformer()
 
   constructor(session: RTCSession, codecPolicy?: import('../../codecs/types').CodecPolicy) {
     super()
@@ -530,6 +532,24 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
         // Best effort; skip if environment doesn't support
       }
     })
+
+    // SDP hook: apply fallback codec reordering if transceiver API is disabled by policy
+    this.session.on(
+      'sdp',
+      (data: { originator?: string; type?: 'offer' | 'answer'; sdp: string }) => {
+        try {
+          if (this._codecPolicy && this._codecPolicy.preferTransceiverApi === false && data?.sdp) {
+            // Reorder both audio and video m-lines conservatively
+            let sdp = data.sdp
+            sdp = this._sdpTransformer.reorderCodecs(sdp, 'audio', [])
+            sdp = this._sdpTransformer.reorderCodecs(sdp, 'video', [])
+            data.sdp = sdp
+          }
+        } catch {
+          // Ignore SDP transform errors
+        }
+      }
+    )
 
     // Refer (transfer)
     this.session.on(
