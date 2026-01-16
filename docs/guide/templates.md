@@ -4,11 +4,11 @@ VueSip includes production-ready starter templates to jumpstart your project. Ea
 
 ## Available Templates
 
-| Template | Description | Features |
-|----------|-------------|----------|
-| **Minimal** | Bare-bones SIP functionality | Connection, calls, DTMF |
+| Template            | Description                         | Features                               |
+| ------------------- | ----------------------------------- | -------------------------------------- |
+| **Minimal**         | Bare-bones SIP functionality        | Connection, calls, DTMF                |
 | **Basic Softphone** | Complete softphone with PrimeVue UI | Dialpad, call history, device settings |
-| **Call Center** | Full agent interface | Queue management, supervisor controls |
+| **Call Center**     | Full agent interface                | Queue management, supervisor controls  |
 
 ## Quick Start
 
@@ -47,31 +47,34 @@ See also: [Live Demos](./demos.md) for hosted subdomains and local ports.
 
 Run dev servers without collisions by using these defaults:
 
-| Template | Port | URL |
-|----------|------|-----|
-| Minimal | 3000 | http://localhost:3000 |
-| Basic Softphone | 3001 | http://localhost:3001 |
-| PWA Softphone | 3002 | http://localhost:3002 |
-| Video Room | 3003 | http://localhost:3003 |
-| Call Center | 3004 | http://localhost:3004 |
-| IVR Tester | 3005 | http://localhost:3005 |
+| Template        | Port | URL            |
+| --------------- | ---- | -------------- |
+| Minimal         | 3000 | localhost:3000 |
+| Basic Softphone | 3001 | localhost:3001 |
+| PWA Softphone   | 3002 | localhost:3002 |
+| Video Room      | 3003 | localhost:3003 |
+| Call Center     | 3004 | localhost:3004 |
+| IVR Tester      | 3005 | localhost:3005 |
 
 ## Minimal Template
 
 A bare-bones template demonstrating core VueSip functionality with no external UI dependencies.
 
 **Best for:**
+
 - Learning VueSip fundamentals
 - Custom UI implementations
 - Lightweight applications
 
 **Features:**
+
 - SIP connection and registration
 - Make and receive calls
 - DTMF keypad during active calls
 - Call duration display
 
 **VueSip APIs Used:**
+
 - `useSipClient()` - SIP connection management
 - `useCallSession()` - Call control and state
 - `sendDTMF()` - DTMF tone sending
@@ -96,11 +99,13 @@ minimal/
 A production-ready softphone with PrimeVue UI components, featuring a complete dialpad, call controls, call history, and audio device settings.
 
 **Best for:**
+
 - Softphone applications
 - Click-to-call integrations
 - Customer-facing calling interfaces
 
 **Features:**
+
 - Professional UI with PrimeVue components
 - Full dialpad with DTMF support
 - Call controls (hold, mute, transfer)
@@ -110,6 +115,7 @@ A production-ready softphone with PrimeVue UI components, featuring a complete d
 - Responsive design
 
 **VueSip APIs Used:**
+
 - `useSipClient()` - SIP connection management
 - `useCallSession()` - Call control and state
 - `useMediaDevices()` - Audio device enumeration
@@ -140,24 +146,28 @@ basic-softphone/
 ### Component Details
 
 #### Dialpad
+
 - Number pad with letters (like a phone keypad)
 - Number display with backspace/clear
 - Call button to initiate calls
 - Emits digits for DTMF during active calls
 
 #### CallControls
+
 - Incoming call answer/reject buttons
 - Active call controls: mute, hold, transfer
 - Call duration display
 - Caller ID display
 
 #### CallHistory
+
 - Chronological list of recent calls
 - Shows call direction, duration, and status
 - One-tap callback functionality
 - Persisted to localStorage
 
 #### DeviceSettings
+
 - Microphone selection dropdown
 - Speaker selection dropdown
 - Automatic device enumeration
@@ -167,11 +177,13 @@ basic-softphone/
 A full call center agent interface with PrimeVue UI, featuring agent dashboard, queue statistics, call controls, and supervisor capabilities.
 
 **Best for:**
+
 - Call center applications
 - Agent workspaces
 - Queue-based calling systems
 
 **Features:**
+
 - Agent login/logout/pause with queue management
 - Real-time queue statistics via AMI WebSocket
 - Call controls with hold, mute, transfer, DTMF
@@ -181,6 +193,7 @@ A full call center agent interface with PrimeVue UI, featuring agent dashboard, 
 - Responsive grid layout
 
 **VueSip APIs Used:**
+
 - `useSipClient()` - SIP connection management
 - `useCallSession()` - Call control and state
 - `createAmiClient()` - AMI WebSocket connection
@@ -214,17 +227,20 @@ call-center/
 ### Component Details
 
 #### AgentDashboard
+
 - Agent login/logout buttons
 - Pause/break selector with reasons
 - Agent statistics (calls handled, avg talk time)
 - Connection status indicator
 
 #### QueueStats
+
 - Summary cards: calls waiting, available agents, longest wait, service level
 - Queue table with real-time metrics
 - Waiting callers list with wait times
 
 #### CallPanel
+
 - Dial pad for outbound calls
 - Incoming call answer/reject
 - Active call controls: mute, hold, transfer
@@ -232,6 +248,7 @@ call-center/
 - Call disposition form after hangup
 
 #### SupervisorPanel
+
 - Agent list with status
 - Monitor mode selection (spy/whisper/barge)
 - Active monitoring indicator
@@ -341,9 +358,9 @@ import {
   useSipClient,
   useCallSession,
   useDTMF,
-  useCallHistory,      // Call history tracking
-  useMediaDevices,     // Audio/video device selection
-  useCallControls,     // Hold, mute, transfer
+  useCallHistory, // Call history tracking
+  useMediaDevices, // Audio/video device selection
+  useCallControls, // Hold, mute, transfer
 } from 'vuesip'
 ```
 
@@ -389,6 +406,7 @@ Each template is designed to be a starting point. Common extensions include:
 ### Browser Compatibility
 
 VueSip works best in modern browsers:
+
 - Chrome/Edge 90+
 - Firefox 90+
 - Safari 14+

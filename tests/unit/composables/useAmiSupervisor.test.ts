@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useAmiSupervisor } from '@/composables/useAmiSupervisor'
 import type { AmiClient } from '@/core/AmiClient'
+import { withSetup } from '../../utils/test-helpers'
 
 // Create mock AMI client
 const createMockClient = (): AmiClient => {
@@ -82,7 +83,9 @@ describe('useAmiSupervisor', () => {
     it('should throw when client is null', async () => {
       const { monitor } = useAmiSupervisor(null)
 
-      await expect(monitor('SIP/supervisor', 'SIP/agent')).rejects.toThrow('AMI client not connected')
+      await expect(monitor('SIP/supervisor', 'SIP/agent')).rejects.toThrow(
+        'AMI client not connected'
+      )
     })
 
     it('should handle originate failure', async () => {
@@ -117,7 +120,9 @@ describe('useAmiSupervisor', () => {
     it('should throw when client is null', async () => {
       const { whisper } = useAmiSupervisor(null)
 
-      await expect(whisper('SIP/supervisor', 'SIP/agent')).rejects.toThrow('AMI client not connected')
+      await expect(whisper('SIP/supervisor', 'SIP/agent')).rejects.toThrow(
+        'AMI client not connected'
+      )
     })
   })
 
@@ -174,7 +179,9 @@ describe('useAmiSupervisor', () => {
     })
 
     it('should remove session from state even if hangup fails', async () => {
-      ;(mockClient.hangupChannel as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Channel not found'))
+      ;(mockClient.hangupChannel as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Channel not found')
+      )
 
       const { monitor, endSession, sessions } = useAmiSupervisor(mockClient)
 
@@ -401,6 +408,42 @@ describe('useAmiSupervisor', () => {
           data: 'SIP/1000,q',
         })
       )
+    })
+  })
+
+  describe('Cleanup on Unmount', () => {
+    it('should end all sessions when component unmounts', async () => {
+      const localMockClient = createMockClient()
+
+      const { result, unmount } = withSetup(() => useAmiSupervisor(localMockClient))
+
+      // Start a monitoring session
+      await result.monitor('SIP/supervisor', 'SIP/1000')
+      expect(result.sessions.value.size).toBe(1)
+
+      // Unmount should trigger cleanup
+      unmount()
+
+      // Give async cleanup time to complete
+      await new Promise((r) => setTimeout(r, 10))
+
+      // hangupChannel should have been called for cleanup
+      expect(localMockClient.hangupChannel).toHaveBeenCalled()
+    })
+
+    it('should handle cleanup errors gracefully', async () => {
+      const localMockClient = {
+        ...createMockClient(),
+        hangupChannel: vi.fn().mockRejectedValue(new Error('Hangup failed')),
+      } as unknown as AmiClient
+
+      const { result, unmount } = withSetup(() => useAmiSupervisor(localMockClient))
+
+      // Start a session
+      await result.monitor('SIP/supervisor', 'SIP/1000')
+
+      // Unmount should handle the error gracefully (not throw)
+      expect(() => unmount()).not.toThrow()
     })
   })
 })

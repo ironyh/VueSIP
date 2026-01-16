@@ -3,7 +3,12 @@ import { useSipMock } from '@/composables/useSipMock'
 
 describe('useSipMock', () => {
   it('connects, registers and makes a call', async () => {
-    const mock = useSipMock({ connectDelay: 0, registerDelay: 0, ringDelay: 1, connectCallDelay: 1 })
+    const mock = useSipMock({
+      connectDelay: 0,
+      registerDelay: 0,
+      ringDelay: 1,
+      connectCallDelay: 1,
+    })
     await mock.connect()
     expect(mock.isConnected.value).toBe(true)
     expect(mock.isRegistered.value).toBe(true)
@@ -21,11 +26,16 @@ describe('useSipMock', () => {
   })
 
   it('simulates incoming calls when enabled', async () => {
-    const mock = useSipMock({ connectDelay: 0, registerDelay: 0, generateIncomingCalls: true, incomingCallInterval: 5, autoAnswer: false })
+    const mock = useSipMock({
+      connectDelay: 0,
+      registerDelay: 0,
+      generateIncomingCalls: true,
+      incomingCallInterval: 5,
+      autoAnswer: false,
+    })
     await mock.connect()
-    await new Promise((r) => setTimeout(r, 8))
-    // An incoming call should be ringing
-    expect(mock.activeCall.value?.direction === 'inbound').toBe(true)
+    // Instead of waiting for the interval (min 5000ms), trigger one manually
+    mock.simulateIncomingCall('5551234', 'Caller')
+    expect(mock.activeCall.value?.direction).toBe('inbound')
   })
 })
-

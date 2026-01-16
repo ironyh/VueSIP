@@ -634,5 +634,5 @@ setInterval(() => {
 ## Related Guides
 
 - [Call Controls](/guide/call-controls)
-- [AMI Integration Overview](/guide/ami-overview)
+- [AMI Integration Overview](/guide/ami-cdr)
 - [Error Handling](/guide/error-handling)

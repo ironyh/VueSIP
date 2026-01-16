@@ -1835,9 +1835,9 @@ if (!supportsAudioOutput) {
 
 Continue learning about VueSip's capabilities:
 
-- [Call Management Guide](./call-management.md) - Learn how to make and manage SIP calls
-- [Conference Management Guide](./conference-management.md) - Build multi-party conference features
-- [Testing Guide](../testing-guide.md) - Test your device management implementation
+- [Making Calls Guide](./making-calls.md) - Learn how to make and manage SIP calls
+- [Video Calling Guide](./video-calling.md) - Build multi-party conference features
+- [Testing Guide](../developer/testing.md) - Test your device management implementation
 
 ## Further Reading
 

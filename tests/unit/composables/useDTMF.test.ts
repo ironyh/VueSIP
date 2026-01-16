@@ -330,6 +330,18 @@ describe('useDTMF - Phase 6.11 Queue Limit Enforcement', () => {
       expect(lastResult.value?.error?.message).toBe('Send failed')
     })
 
+    it('should handle non-Error exception by wrapping in Error', async () => {
+      const sessionRef = ref<CallSession>(mockSession)
+      const { sendTone, lastResult } = useDTMF(sessionRef)
+
+      mockSession.sendDTMF = vi.fn().mockRejectedValue('string error')
+
+      await expect(sendTone('1')).rejects.toThrow('DTMF send failed')
+
+      expect(lastResult.value?.success).toBe(false)
+      expect(lastResult.value?.error?.message).toBe('DTMF send failed')
+    })
+
     it('should increment tonesSentCount on each successful send', async () => {
       const sessionRef = ref<CallSession>(mockSession)
       const { sendTone, tonesSentCount } = useDTMF(sessionRef)
@@ -426,6 +438,27 @@ describe('useDTMF - Phase 6.11 Queue Limit Enforcement', () => {
 
       // Should have tried to send only tones 1 and 2
       expect(mockSession.sendDTMF).toHaveBeenCalledTimes(2)
+    })
+
+    it('should handle non-Error exception in sequence via sendTone wrapping', async () => {
+      const sessionRef = ref<CallSession>(mockSession)
+      const { sendToneSequence } = useDTMF(sessionRef)
+      const onError = vi.fn()
+
+      mockSession.sendDTMF = vi.fn().mockImplementation(async (tone: string) => {
+        if (tone === '2') {
+          throw 'string error in sequence' // Non-Error exception
+        }
+      })
+
+      // sendTone wraps non-Error exceptions with 'DTMF send failed'
+      await expect(sendToneSequence('123', { onError })).rejects.toThrow('DTMF send failed')
+
+      // onError callback should receive a wrapped Error from sendTone
+      expect(onError).toHaveBeenCalled()
+      const errorArg = onError.mock.calls[0][0]
+      expect(errorArg).toBeInstanceOf(Error)
+      expect(errorArg.message).toBe('DTMF send failed')
     })
 
     it('should respect custom duration and interToneGap', async () => {

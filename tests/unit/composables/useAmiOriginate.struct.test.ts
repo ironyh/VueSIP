@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { ref } from 'vue'
 import type { AmiMessage, AmiEventData } from '@/types/ami.types'
 import { useAmiOriginate } from '@/composables/useAmiOriginate'
@@ -6,7 +6,7 @@ import { useAmiOriginate } from '@/composables/useAmiOriginate'
 class MockAmiClient {
   private listeners: Array<(e: AmiMessage<AmiEventData>) => void> = []
 
-  async sendAction(action: Record<string, unknown>) {
+  async sendAction(_action: Record<string, unknown>) {
     // Simulate a success originate
     return { data: { Response: 'Success', Message: 'Originate successfully queued' } }
   }
@@ -59,12 +59,15 @@ describe('useAmiOriginate', () => {
     await originate({ channel: 'PJSIP/1001', exten: '201', context: 'from-internal' })
 
     // Emit OriginateResponse success
-    client.emit({ data: { Event: 'OriginateResponse', Response: 'Success', Channel: 'PJSIP/1001-0001' } as any })
+    client.emit({
+      data: { Event: 'OriginateResponse', Response: 'Success', Channel: 'PJSIP/1001-0001' } as any,
+    })
     expect(progress.value?.state).toBe('ringing')
 
     // Emit DialEnd BUSY
-    client.emit({ data: { Event: 'DialEnd', Channel: 'PJSIP/1001-0001', DialStatus: 'BUSY' } as any })
+    client.emit({
+      data: { Event: 'DialEnd', Channel: 'PJSIP/1001-0001', DialStatus: 'BUSY' } as any,
+    })
     expect(progress.value?.state).toBe('busy')
   })
 })
-

@@ -1,359 +1,534 @@
+---
+title: 'Part 3: Real Server Connection'
+description: 'Connect your softphone to a real SIP provider and make actual calls'
+---
+
 # Part 3: Real Server Connection
 
-**Time: 10 minutes** | [&larr; Previous](/tutorial/part-2-softphone) | [Next: Advanced Features &rarr;](/tutorial/part-4-advanced)
+**Time: 10 minutes** | **Difficulty: Intermediate**
 
-Time to connect to a real SIP provider and make actual phone calls!
+You've built a complete softphone in mock mode. Now let's connect it to a real SIP server and make actual phone calls.
 
 ## What You'll Learn
 
+- Differences between mock and real mode
 - Choosing a SIP provider
-- Getting your credentials
-- Configuring VueSIP for production
-- Troubleshooting common connection issues
+- Configuring real SIP credentials
+- Handling real-world connection issues
+- Testing with actual calls
 
-## Choosing a Provider
+## Mock Mode vs Real Mode
 
-VueSIP works with any WebRTC-enabled SIP provider. Here are some popular options:
+Here's what changes when moving from mock to real:
 
-| Provider                     | Strengths                      | Pricing         | Best For         |
-| ---------------------------- | ------------------------------ | --------------- | ---------------- |
-| [Telnyx](https://telnyx.com) | Developer-friendly, great docs | Pay-as-you-go   | US/Canada focus  |
-| [46elks](https://46elks.com) | Simple API, EU-based           | Pay-as-you-go   | European numbers |
-| [VoIP.ms](https://voip.ms)   | Low cost, feature-rich         | Very affordable | Budget projects  |
-| Your own PBX                 | Full control                   | Self-hosted     | Enterprise       |
+| Aspect           | Mock Mode        | Real Mode         |
+| ---------------- | ---------------- | ----------------- |
+| **Composable**   | `useSipMock`     | `useSipClient`    |
+| **Connection**   | Simulated delays | Real WebSocket    |
+| **Registration** | Simulated        | Real SIP REGISTER |
+| **Calls**        | State simulation | Real WebRTC audio |
+| **DTMF**         | Logged only      | Actual tones sent |
+| **Credentials**  | None needed      | Required          |
 
-::: tip First Time?
-We recommend **Telnyx** for beginners - their free trial includes credits and their portal is straightforward.
-:::
+The great news: **your UI code stays exactly the same!** Only the composable import changes.
 
-## Step 1: Get Your Credentials
+## Step 1: Choose a SIP Provider
 
-### Option A: Telnyx
+You need a SIP provider to make real calls. Here are popular options:
 
-1. Sign up at [portal.telnyx.com](https://portal.telnyx.com)
-2. Go to **Voice** → **SIP Connections**
-3. Click **Create SIP Connection**
-4. Choose **Credential Authentication**
-5. Note your **Username** and **Password**
+### Recommended Providers
 
-### Option B: 46elks
+| Provider                         | Best For        | WebSocket Support | Pricing          |
+| -------------------------------- | --------------- | ----------------- | ---------------- |
+| [Telnyx](https://telnyx.com)     | Production apps | Yes               | Pay-per-use      |
+| [VoIP.ms](https://voip.ms)       | Budget-friendly | Yes               | Low rates        |
+| [Twilio](https://twilio.com)     | Enterprise      | Yes (Elastic SIP) | Premium          |
+| [Asterisk](https://asterisk.org) | Self-hosted     | Yes (with config) | Free (self-host) |
 
-1. Sign up at [46elks.com](https://46elks.com)
-2. Purchase or port a phone number
-3. Get the WebRTC secret via API:
-   ```bash
-   curl -u API_USER:API_PASSWORD \
-     https://api.46elks.com/a1/numbers/YOUR_NUMBER
+::: tip Start with Telnyx
+For this tutorial, we recommend **Telnyx**. They offer:
+
+- Free trial credits
+- Excellent WebSocket support
+- Simple setup process
+- Good documentation
+  :::
+
+## Step 2: Get Your Credentials
+
+### Telnyx Setup
+
+1. **Create Account**: Sign up at [telnyx.com](https://telnyx.com)
+2. **Get a Number**: Purchase a phone number ($1/month)
+3. **Create SIP Connection**:
+   - Go to Voice > SIP Connections
+   - Click "Add SIP Connection"
+   - Choose "Credentials" authentication
+   - Note your username and password
+
+4. **Get WebSocket URL**: Telnyx WebSocket endpoint:
    ```
-4. The response includes your `webrtc_secret`
+   wss://sip.telnyx.com:7443
+   ```
 
-### Option C: Your Own PBX (Asterisk/FreeSWITCH)
+### VoIP.ms Setup
 
-Ensure your PBX has:
+1. **Create Account**: Sign up at [voip.ms](https://voip.ms)
+2. **Create Sub Account**:
+   - Go to Main Menu > Sub Accounts
+   - Create a new sub account
+   - Enable "WebRTC/WebSocket" in allowed protocols
 
-- WebSocket transport enabled (wss://)
-- A SIP user with WebRTC enabled
-- Proper TLS certificates
+3. **Get Credentials**:
+   - Username: Your sub account username
+   - Password: Your sub account password
+   - Server: `wss://toronto1.voip.ms:5061` (or your closest server)
 
-## Step 2: Update Your Softphone
+### Self-Hosted Asterisk
+
+If you have your own Asterisk server:
+
+1. Enable WebSocket in `http.conf`:
+
+   ```ini
+   [general]
+   enabled=yes
+   bindaddr=0.0.0.0
+   bindport=8088
+
+   [websocket]
+   enabled=yes
+   ```
+
+2. Configure PJSIP endpoint with WebSocket transport
+
+3. Use your server's WebSocket URL:
+   ```
+   wss://your-server.com:8089/ws
+   ```
+
+## Step 3: Update Your Component
 
 Replace `useSipMock` with `useSipClient`:
 
 ```vue
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useSipClient, useCallSession } from 'vuesip'
+// Before: Mock mode
+// import { useSipMock } from 'vuesip'
+// const { ... } = useSipMock()
 
-// Configuration - in production, load from env or secure storage
-const config = {
-  server: 'wss://rtc.telnyx.com', // WebSocket URL
-  uri: 'sip:your-username@sip.telnyx.com', // Your SIP URI
-  password: 'your-password', // SIP password
-  displayName: 'My Softphone', // Caller ID name
-}
+// After: Real mode
+import { useSipClient } from 'vuesip'
 
-// Initialize real SIP client
-const {
-  isConnected,
-  isRegistered,
-  connectionState,
-  registrationState,
-  error,
-  connect,
-  disconnect,
-  register,
-} = useSipClient(config)
+const { isConnected, isRegistered, error, connect, disconnect, register } = useSipClient({
+  // WebSocket URI of your SIP provider
+  uri: 'wss://sip.telnyx.com:7443',
 
-// Call session management
-const { activeCall, callState, call, answer, hangup, hold, unhold, sendDtmf } = useCallSession()
+  // Your SIP identity
+  sipUri: 'sip:your-username@sip.telnyx.com',
 
-// Connect on mount
-onMounted(async () => {
+  // Authentication
+  password: 'your-password',
+
+  // Display name (shown to people you call)
+  displayName: 'My Softphone',
+
+  // Optional: Auto-register after connection
+  registrationOptions: {
+    autoRegister: true,
+    expires: 300,
+  },
+})
+
+// Connect and register
+async function handleConnect() {
   try {
     await connect()
-    // Registration happens automatically after connection
+    console.log('Connected to SIP server!')
   } catch (err) {
     console.error('Connection failed:', err)
   }
-})
+}
 </script>
-
-<template>
-  <div class="softphone">
-    <!-- Connection Status -->
-    <div class="status-bar">
-      <span class="status" :class="connectionState">
-        {{ connectionState }}
-      </span>
-      <span v-if="error" class="error">
-        {{ error.message }}
-      </span>
-    </div>
-
-    <!-- Your existing softphone UI from Part 2 -->
-    <div v-if="isRegistered">
-      <!-- ... dial pad, call controls, etc ... -->
-    </div>
-
-    <div v-else-if="isConnected">Registering with server...</div>
-
-    <div v-else>Connecting to {{ config.server }}...</div>
-  </div>
-</template>
 ```
 
-## Step 3: Provider-Specific Configurations
+## Step 4: Handle Call Sessions
 
-### Telnyx Configuration
-
-```typescript
-const telnyxConfig = {
-  server: 'wss://rtc.telnyx.com',
-  uri: `sip:${username}@sip.telnyx.com`,
-  password: password,
-  displayName: 'My App',
-  // Telnyx-specific options
-  iceServers: [{ urls: 'stun:stun.telnyx.com:3478' }],
-}
-```
-
-### 46elks Configuration
-
-```typescript
-const elks46Config = {
-  server: 'wss://voip.46elks.com/w1/websocket',
-  uri: `sip:${phoneNumber}@voip.46elks.com`,
-  password: webrtcSecret,
-  // 46elks requires PCMA codec
-  mediaConfiguration: {
-    audioCodec: 'pcma',
-  },
-}
-```
-
-### Self-Hosted PBX
-
-```typescript
-const pbxConfig = {
-  server: 'wss://pbx.yourcompany.com:8089/ws',
-  uri: `sip:${extension}@pbx.yourcompany.com`,
-  password: password,
-  realm: 'yourcompany.com',
-  // Custom STUN/TURN servers
-  iceServers: [
-    { urls: 'stun:stun.yourcompany.com:3478' },
-    {
-      urls: 'turn:turn.yourcompany.com:3478',
-      username: 'turnuser',
-      credential: 'turnpass',
-    },
-  ],
-}
-```
-
-## Step 4: Environment Variables
-
-Never hardcode credentials! Use environment variables:
-
-```typescript
-// vite.config.ts loads from .env files
-const config = {
-  server: import.meta.env.VITE_SIP_SERVER,
-  uri: import.meta.env.VITE_SIP_URI,
-  password: import.meta.env.VITE_SIP_PASSWORD,
-}
-```
-
-Create `.env.local` (git-ignored):
-
-```bash
-VITE_SIP_SERVER=wss://rtc.telnyx.com
-VITE_SIP_URI=sip:myuser@sip.telnyx.com
-VITE_SIP_PASSWORD=mysecretpassword
-```
-
-## Troubleshooting
-
-### "Connection Failed"
-
-**Check:**
-
-1. WebSocket URL is correct (wss://, not ws://)
-2. Your network allows WebSocket connections
-3. Provider's service is up
-
-```typescript
-// Add detailed logging
-import { setLogLevel } from 'vuesip'
-setLogLevel('debug')
-```
-
-### "Registration Failed" / 403 Forbidden
-
-**Common causes:**
-
-- Wrong username/password
-- SIP URI format incorrect
-- Account not activated
-
-```typescript
-// Double-check your URI format
-// Telnyx: sip:username@sip.telnyx.com
-// 46elks: sip:46XXXXXXXXX@voip.46elks.com
-```
-
-### "No Audio" After Connecting
-
-**Check:**
-
-1. Microphone permissions granted
-2. ICE servers configured correctly
-3. For 46elks: PCMA codec enabled
-
-```typescript
-// Request permissions before connecting
-await navigator.mediaDevices.getUserMedia({ audio: true })
-```
-
-### CORS Errors
-
-WebSocket connections don't have CORS issues, but if you're calling REST APIs:
-
-```typescript
-// Use a backend proxy for API calls
-// Never expose API keys in frontend code
-```
-
-## Using VueSIP Provider System
-
-VueSIP includes built-in provider configurations:
-
-```typescript
-import { useProviderSelector } from 'vuesip'
-
-const {
-  providers, // Available provider configs
-  selectedProvider, // Currently selected
-  selectProvider, // Switch providers
-  getCredentialFields, // Get required fields
-} = useProviderSelector()
-
-// Get Telnyx config
-selectProvider('telnyx')
-const fields = getCredentialFields()
-// Returns: [{ name: 'username', label: 'SIP Username', ... }, ...]
-```
-
-## Complete Example
-
-Here's a production-ready connection component:
+For calls, use `useCallSession` with the real SIP client:
 
 ```vue
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useSipClient, useCallSession, setLogLevel } from 'vuesip'
+import { useSipClient, useCallSession } from 'vuesip'
 
-// Enable debug logging in development
-if (import.meta.env.DEV) {
-  setLogLevel('debug')
+// Initialize SIP client
+const sipClient = useSipClient({
+  uri: 'wss://sip.telnyx.com:7443',
+  sipUri: 'sip:your-username@sip.telnyx.com',
+  password: 'your-password',
+})
+
+// Initialize call session
+const {
+  session,
+  state,
+  isActive,
+  isMuted,
+  isOnHold,
+  duration,
+  remoteUri,
+  makeCall,
+  answerCall,
+  hangup,
+  toggleMute,
+  toggleHold,
+} = useCallSession()
+
+// Make a call
+async function handleCall(number: string) {
+  try {
+    await makeCall(`sip:${number}@sip.telnyx.com`, {
+      audio: true,
+      video: false,
+    })
+  } catch (err) {
+    console.error('Call failed:', err)
+  }
+}
+</script>
+```
+
+## Step 5: Configure STUN/TURN
+
+For calls to work through NAT/firewalls, configure STUN/TURN servers:
+
+```typescript
+const sipClient = useSipClient({
+  uri: 'wss://sip.telnyx.com:7443',
+  sipUri: 'sip:your-username@sip.telnyx.com',
+  password: 'your-password',
+
+  // Critical for real calls!
+  rtcConfiguration: {
+    // STUN servers (free, for NAT discovery)
+    stunServers: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'],
+
+    // TURN servers (for difficult NAT scenarios)
+    // You may need to use your provider's TURN servers
+    turnServers: [
+      {
+        urls: 'turn:turn.telnyx.com:3478',
+        username: 'your-turn-username',
+        credential: 'your-turn-credential',
+      },
+    ],
+  },
+})
+```
+
+::: warning STUN/TURN is Critical
+Without STUN/TURN configuration, calls may:
+
+- Connect but have no audio
+- Work on some networks but not others
+- Fail behind corporate firewalls
+
+Always configure these for production!
+:::
+
+## Step 6: Handle Real-World Errors
+
+Real connections can fail. Handle errors gracefully:
+
+```typescript
+import { watch } from 'vue'
+
+const { isConnected, error, connectionState } = useSipClient(config)
+
+// Watch for connection state changes
+watch(connectionState, (state) => {
+  switch (state) {
+    case 'connecting':
+      showNotification('Connecting to server...')
+      break
+    case 'connected':
+      showNotification('Connected!')
+      break
+    case 'disconnected':
+      showNotification('Disconnected')
+      break
+    case 'failed':
+      showNotification('Connection failed')
+      break
+  }
+})
+
+// Watch for errors
+watch(error, (err) => {
+  if (err) {
+    console.error('SIP Error:', err)
+
+    // Handle specific error types
+    if (err.message.includes('Authentication')) {
+      showError('Invalid credentials. Please check your username and password.')
+    } else if (err.message.includes('Network')) {
+      showError('Network error. Check your internet connection.')
+    } else if (err.message.includes('Registration')) {
+      showError('Registration failed. Your account may not be configured correctly.')
+    } else {
+      showError('An error occurred. Please try again.')
+    }
+  }
+})
+```
+
+## Step 7: Request Microphone Permissions
+
+Real calls need microphone access:
+
+```typescript
+import { useMediaDevices } from 'vuesip'
+
+const { hasAudioPermission, requestPermissions, audioInputDevices } = useMediaDevices()
+
+// Request permissions before first call
+async function ensurePermissions() {
+  if (!hasAudioPermission.value) {
+    try {
+      await requestPermissions(true, false) // audio: true, video: false
+      console.log('Microphone permission granted')
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        showError('Microphone access denied. Please enable in browser settings.')
+      } else if (err.name === 'NotFoundError') {
+        showError('No microphone found. Please connect a microphone.')
+      }
+      return false
+    }
+  }
+  return true
 }
 
+// Call this before making calls
+async function handleCall(number: string) {
+  const hasPermission = await ensurePermissions()
+  if (!hasPermission) return
+
+  await makeCall(`sip:${number}@provider.com`)
+}
+```
+
+## Complete Example: Real Softphone
+
+Here's the softphone from Part 2, updated for real mode:
+
+```vue
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { useSipClient, useCallSession, useMediaDevices } from 'vuesip'
+
+// Configuration - replace with your credentials
 const config = {
-  server: import.meta.env.VITE_SIP_SERVER,
-  uri: import.meta.env.VITE_SIP_URI,
-  password: import.meta.env.VITE_SIP_PASSWORD,
+  uri: import.meta.env.VITE_SIP_URI || 'wss://sip.telnyx.com:7443',
+  sipUri: import.meta.env.VITE_SIP_USER || 'sip:user@sip.telnyx.com',
+  password: import.meta.env.VITE_SIP_PASSWORD || '',
+  displayName: 'My Softphone',
+  rtcConfiguration: {
+    stunServers: ['stun:stun.l.google.com:19302'],
+  },
 }
 
-const { isConnected, isRegistered, connectionState, error, connect, disconnect, reconnect } =
-  useSipClient(config)
+// Initialize composables
+const {
+  isConnected,
+  isRegistered,
+  error: connectionError,
+  connect,
+  disconnect,
+} = useSipClient(config)
 
-const { activeCall, call, hangup, answer } = useCallSession()
+const {
+  state: callState,
+  isActive,
+  isMuted,
+  isOnHold,
+  duration,
+  session,
+  makeCall,
+  answerCall,
+  hangup,
+  toggleMute,
+  toggleHold,
+} = useCallSession()
 
-// Auto-reconnect on disconnect
-const reconnectAttempts = ref(0)
-const maxReconnects = 3
+const { hasAudioPermission, requestPermissions } = useMediaDevices()
 
-async function handleConnection() {
+// Local state
+const dialNumber = ref('')
+const localError = ref<string | null>(null)
+
+// Computed
+const error = computed(() => localError.value || connectionError.value?.message)
+
+// Methods
+async function handleConnect() {
+  localError.value = null
   try {
     await connect()
-    reconnectAttempts.value = 0
   } catch (err) {
-    console.error('Connection failed:', err)
-
-    if (reconnectAttempts.value < maxReconnects) {
-      reconnectAttempts.value++
-      setTimeout(handleConnection, 2000 * reconnectAttempts.value)
-    }
+    localError.value = 'Failed to connect. Check your credentials.'
   }
 }
 
-onMounted(() => {
-  handleConnection()
-})
+async function handleCall() {
+  if (!dialNumber.value) return
 
-onUnmounted(() => {
-  disconnect()
+  // Ensure microphone permission
+  if (!hasAudioPermission.value) {
+    try {
+      await requestPermissions(true, false)
+    } catch (err) {
+      localError.value = 'Microphone access required for calls.'
+      return
+    }
+  }
+
+  try {
+    // Format number with provider domain
+    const target = `sip:${dialNumber.value}@sip.telnyx.com`
+    await makeCall(target, { audio: true, video: false })
+    dialNumber.value = ''
+  } catch (err) {
+    localError.value = 'Failed to start call.'
+  }
+}
+
+async function handleAnswer() {
+  try {
+    await answerCall({ audio: true, video: false })
+  } catch (err) {
+    localError.value = 'Failed to answer call.'
+  }
+}
+
+async function handleHangup() {
+  try {
+    await hangup()
+  } catch (err) {
+    localError.value = 'Failed to end call.'
+  }
+}
+
+// Watch for incoming calls
+watch(session, (newSession) => {
+  if (newSession?.direction === 'incoming' && callState.value === 'ringing') {
+    // Show incoming call notification
+    console.log('Incoming call from:', newSession.remoteUri)
+  }
 })
 </script>
-
-<template>
-  <div class="phone">
-    <div class="connection-status">
-      <template v-if="error">
-        Connection error: {{ error.message }}
-        <button @click="reconnect">Retry</button>
-      </template>
-      <template v-else-if="!isConnected">
-        Connecting...
-        <span v-if="reconnectAttempts > 0">
-          (Attempt {{ reconnectAttempts }}/{{ maxReconnects }})
-        </span>
-      </template>
-      <template v-else-if="!isRegistered"> Registering... </template>
-      <template v-else> Ready </template>
-    </div>
-
-    <!-- Your softphone UI here -->
-  </div>
-</template>
 ```
+
+## Environment Variables
+
+Store credentials securely using environment variables:
+
+```bash
+# .env.local (never commit this file!)
+VITE_SIP_URI=wss://sip.telnyx.com:7443
+VITE_SIP_USER=sip:your-username@sip.telnyx.com
+VITE_SIP_PASSWORD=your-secure-password
+```
+
+Access in your code:
+
+```typescript
+const config = {
+  uri: import.meta.env.VITE_SIP_URI,
+  sipUri: import.meta.env.VITE_SIP_USER,
+  password: import.meta.env.VITE_SIP_PASSWORD,
+}
+```
+
+::: danger Security Warning
+**Never commit credentials to git!**
+
+- Add `.env.local` to `.gitignore`
+- Use environment variables for all secrets
+- In production, use secure secret management
+  :::
+
+## Testing Your Real Connection
+
+### Test 1: Connection
+
+1. Click Connect
+2. Watch for "Connected" then "Registered" status
+3. Check browser console for any errors
+
+### Test 2: Outbound Call
+
+1. Enter a real phone number (your cell phone)
+2. Click Call
+3. Answer on your phone
+4. Test mute/hold
+5. Hang up from either end
+
+### Test 3: Inbound Call
+
+1. Call your SIP number from another phone
+2. Answer in your softphone
+3. Verify audio works both ways
+4. Test call controls
+
+## Troubleshooting
+
+### No Audio
+
+**Symptoms**: Call connects but no sound
+
+**Solutions**:
+
+1. Check STUN/TURN configuration
+2. Verify microphone permissions granted
+3. Check if firewall blocks WebRTC ports
+4. Try different STUN servers
+
+### Registration Failed
+
+**Symptoms**: Connected but not registered
+
+**Solutions**:
+
+1. Verify username and password
+2. Check SIP URI format (must be `sip:user@domain`)
+3. Ensure account is active with provider
+4. Check provider's WebSocket is enabled
+
+### Connection Refused
+
+**Symptoms**: Cannot connect at all
+
+**Solutions**:
+
+1. Verify WebSocket URI (wss:// not ws://)
+2. Check port number is correct
+3. Ensure HTTPS is being used (required for WebSocket)
+4. Test WebSocket connection with browser tools
 
 ## What You Learned
 
-- How to get credentials from different SIP providers
-- Configuring VueSIP for production use
-- Provider-specific settings (codecs, ICE servers)
-- Secure credential management with environment variables
-- Troubleshooting common connection issues
-- Auto-reconnection patterns
+- **Provider Selection**: Choosing and configuring a SIP provider
+- **Real Credentials**: Securely managing SIP credentials
+- **STUN/TURN**: Configuring ICE servers for NAT traversal
+- **Error Handling**: Managing real-world connection issues
+- **Permissions**: Handling microphone permission requests
+- **Environment Variables**: Keeping credentials secure
 
 ## Next Steps
 
-Your softphone now makes real calls! But there's more to explore:
+Your softphone can now make real calls! In Part 4, we'll add advanced features like call transfers, conference calling, and real-time transcription.
 
-- **Call Transfer** - Send calls to other extensions
-- **Conference Calls** - Multi-party conversations
-- **Call Recording** - Save calls locally
-- **Advanced Audio** - Noise suppression, echo cancellation
-
-Continue to [Part 4: Advanced Features](/tutorial/part-4-advanced) to complete your softphone.
+<div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+  <a href="/tutorial/part-2-softphone">Back to Part 2</a>
+  <a href="/tutorial/part-4-advanced">Part 4: Advanced Features</a>
+</div>

@@ -676,4 +676,183 @@ describe('useAmiPjsip', () => {
       expect(mockClient.sendAction).toHaveBeenCalledTimes(3)
     })
   })
+
+  describe('autoRefresh', () => {
+    it('should auto-refresh when client becomes available with autoRefresh=true', async () => {
+      mockClient.sendAction = vi
+        .fn()
+        .mockResolvedValue({ data: { Response: 'Success', events: [] } })
+
+      // Start with null client
+      const clientRefLocal = ref<AmiClient | null>(null)
+
+      // Enable autoRefresh (default is true, but be explicit)
+      useAmiPjsip(clientRefLocal, { autoRefresh: true })
+
+      // Initially no calls
+      expect(mockClient.sendAction).not.toHaveBeenCalled()
+
+      // Set the client - should trigger auto-refresh
+      clientRefLocal.value = mockClient
+      await nextTick()
+      // Wait for the async refresh to complete
+      await vi.runAllTimersAsync()
+
+      // Should have called refresh (listEndpoints, listContacts, listAors)
+      expect(mockClient.sendAction).toHaveBeenCalled()
+    })
+
+    it('should not auto-refresh when autoRefresh=false', async () => {
+      mockClient.sendAction = vi
+        .fn()
+        .mockResolvedValue({ data: { Response: 'Success', events: [] } })
+
+      const clientRefLocal = ref<AmiClient | null>(null)
+
+      useAmiPjsip(clientRefLocal, { autoRefresh: false })
+
+      clientRefLocal.value = mockClient
+      await nextTick()
+      await vi.runAllTimersAsync()
+
+      // Should not have called any actions
+      expect(mockClient.sendAction).not.toHaveBeenCalled()
+    })
+
+    it('should handle autoRefresh error gracefully', async () => {
+      mockClient.sendAction = vi.fn().mockRejectedValue(new Error('Refresh failed'))
+
+      const clientRefLocal = ref<AmiClient | null>(null)
+
+      // This should not throw - error is caught and logged
+      useAmiPjsip(clientRefLocal, { autoRefresh: true })
+
+      clientRefLocal.value = mockClient
+      await nextTick()
+      await vi.runAllTimersAsync()
+
+      // Error should be caught, not thrown
+      expect(mockClient.sendAction).toHaveBeenCalled()
+    })
+  })
+
+  describe('client change handling', () => {
+    it('should cleanup old client and setup new client when switching', async () => {
+      const oldClient = {
+        sendAction: vi.fn().mockResolvedValue({ data: { Response: 'Success', events: [] } }),
+        on: vi.fn(),
+        off: vi.fn(),
+      } as unknown as AmiClient
+
+      const newClient = {
+        sendAction: vi.fn().mockResolvedValue({ data: { Response: 'Success', events: [] } }),
+        on: vi.fn(),
+        off: vi.fn(),
+      } as unknown as AmiClient
+
+      const clientRefLocal = ref<AmiClient | null>(oldClient)
+
+      useAmiPjsip(clientRefLocal, { autoRefresh: false, useEvents: true })
+      await nextTick()
+
+      // Old client should have event listener
+      expect(oldClient.on).toHaveBeenCalled()
+
+      // Switch to new client
+      clientRefLocal.value = newClient
+      await nextTick()
+
+      // Old client should be cleaned up
+      expect(oldClient.off).toHaveBeenCalled()
+      // New client should have event listener
+      expect(newClient.on).toHaveBeenCalled()
+    })
+  })
+
+  describe('listRegistrations', () => {
+    it('should list outbound registrations', async () => {
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'OutboundRegistrationDetail',
+              ObjectName: 'trunk-provider',
+              ServerUri: 'sip:sip.provider.com',
+              ClientUri: 'sip:myaccount@provider.com',
+              Status: 'Registered',
+              NextRegisterTime: '60',
+            },
+          ],
+        },
+      })
+
+      const { listRegistrations, registrationList } = useAmiPjsip(ref(mockClient), {
+        autoRefresh: false,
+        includeRegistrations: true,
+      })
+
+      const result = await listRegistrations()
+
+      expect(result).toHaveLength(1)
+      expect(registrationList.value[0]).toEqual(
+        expect.objectContaining({
+          registration: 'trunk-provider',
+          serverUri: 'sip:sip.provider.com',
+          status: 'Registered',
+        })
+      )
+    })
+  })
+
+  describe('getEndpointDetail', () => {
+    it('should fetch detailed endpoint information', async () => {
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [
+            {
+              Event: 'EndpointDetail',
+              ObjectName: '1001',
+              DeviceState: 'NOT_INUSE',
+              Aor: '1001',
+              Callerid: '"John Doe" <1001>',
+              Context: 'internal',
+              Transport: 'transport-udp',
+            },
+          ],
+        },
+      })
+
+      const { getEndpointDetail } = useAmiPjsip(ref(mockClient), { autoRefresh: false })
+
+      const result = await getEndpointDetail('1001')
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          endpoint: '1001',
+          status: 'Available',
+        })
+      )
+      expect(mockClient.sendAction).toHaveBeenCalledWith({
+        Action: 'PJSIPShowEndpoint',
+        Endpoint: '1001',
+      })
+    })
+
+    it('should return null when no endpoint found', async () => {
+      mockClient.sendAction = vi.fn().mockResolvedValue({
+        data: {
+          Response: 'Success',
+          events: [],
+        },
+      })
+
+      const { getEndpointDetail } = useAmiPjsip(ref(mockClient), { autoRefresh: false })
+
+      const result = await getEndpointDetail('nonexistent')
+
+      expect(result).toBeNull()
+    })
+  })
 })

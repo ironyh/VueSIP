@@ -164,7 +164,7 @@ export function luhnValidate(cardNumber: string): boolean {
 
   // Loop through values starting from the rightmost side
   for (let i = digits.length - 1; i >= 0; i--) {
-    let digit = parseInt(digits[i], 10)
+    let digit = parseInt(digits.charAt(i), 10)
 
     if (isEven) {
       digit *= 2
@@ -533,7 +533,7 @@ export function useCompliance(config: ComplianceConfig): UseComplianceReturn {
           c.id === consentId ? { ...c, granted: false } : c
         )
 
-        if (config.auditEnabled) {
+        if (config.auditEnabled && consent) {
           logAuditEntry('consent_revoked', 'consent', {
             consentId,
             type: consent.type,

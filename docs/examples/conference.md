@@ -158,6 +158,6 @@ const { gridCols, gridRows, tileDimensions, gridStyle } = useGalleryLayout(parti
 ## Related
 
 - [Conference Gallery](/examples/conference-gallery)
-- [Active Speaker Detection](/examples/active-speaker)
+- [API: useActiveSpeaker](/api/composables#useactivespeaker)
 - [Video Calling](/examples/video-call)
 - [API: useConference](/api/composables#useconference)

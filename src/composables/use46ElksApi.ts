@@ -249,6 +249,8 @@ export function use46ElksApi(): Use46ElksApiReturn {
     secret.value = null
     callHistory.value = []
     isLoadingCallHistory.value = false
+    callHistory.value = []
+    isLoadingCallHistory.value = false
     storedCredentials = null
   }
 
@@ -266,6 +268,7 @@ export function use46ElksApi(): Use46ElksApiReturn {
     getCredentials,
     loadCallHistory,
     loadAllCallHistory,
+
     clear,
   }
 }

@@ -356,5 +356,22 @@ describe('useSipDtmf - AbortController Integration', () => {
 
       expect(mockDtmfSender.insertDTMF).not.toHaveBeenCalled()
     })
+
+    it('should handle when dtmf property exists but is null', async () => {
+      const mockSenderWithNullDtmf = {
+        track: { kind: 'audio' },
+        dtmf: null, // DTMF property exists but is null
+      }
+
+      mockPeerConnection.getSenders.mockReturnValue([mockSenderWithNullDtmf])
+
+      const sessionRef = ref(mockSession)
+      const { sendDtmf } = useSipDtmf(sessionRef)
+
+      // Should not throw, just not send DTMF
+      await sendDtmf('1')
+
+      expect(mockDtmfSender.insertDTMF).not.toHaveBeenCalled()
+    })
   })
 })
