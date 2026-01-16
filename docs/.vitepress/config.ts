@@ -64,6 +64,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
       { text: 'Demos', link: '/guide/demos', activeMatch: '/guide/demos' },
       { text: 'API Reference', link: '/api/', activeMatch: '/api/' },
+      { text: 'Enterprise', link: '/enterprise/', activeMatch: '/enterprise/' },
       { text: 'Examples', link: '/examples/', activeMatch: '/examples/' },
       { text: 'Developer', link: '/developer/', activeMatch: '/developer/' },
       { text: 'FAQ', link: '/faq' },
@@ -289,6 +290,19 @@ export default defineConfig({
             { text: 'TypeDoc Setup', link: '/developer/typedoc-setup' },
             { text: 'Testing Guide', link: '/developer/testing' },
             { text: 'Code Style & Patterns', link: '/developer/code-style' },
+          ],
+        },
+      ],
+
+      '/enterprise/': [
+        {
+          text: 'Enterprise',
+          collapsed: false,
+          items: [
+            { text: 'Overview', link: '/enterprise/' },
+            { text: 'Analytics', link: '/enterprise/analytics' },
+            { text: 'Compliance', link: '/enterprise/compliance' },
+            { text: 'CRM', link: '/enterprise/crm' },
           ],
         },
       ],
