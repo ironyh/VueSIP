@@ -118,6 +118,11 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
           jssipOptions.pcConfig = options.pcConfig
         }
 
+        // Allow per-call codec policy override on answer
+        if (options?.codecPolicy) {
+          this._codecPolicy = options.codecPolicy
+        }
+
         this.session.answer(jssipOptions)
         resolve()
       } catch (error) {

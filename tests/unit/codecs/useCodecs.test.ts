@@ -39,4 +39,18 @@ describe('useCodecs', () => {
     applyToTransceiver(transceiver, 'audio')
     expect(setCodecPreferences).toHaveBeenCalledTimes(1)
   })
+
+  it('respects custom policy override', () => {
+    const custom = {
+      ...DefaultCodecPolicy,
+      audio: [
+        { id: 'pcmu', priority: 100 },
+        { id: 'opus', priority: 50 },
+      ],
+      video: [{ id: 'h264', priority: 100 }],
+    }
+    const { getLocalCapabilities, negotiate } = useCodecs(custom)
+    const ordered = negotiate(getLocalCapabilities())
+    expect(ordered.audio[0].mimeType.toLowerCase()).toContain('pcmu')
+  })
 })
