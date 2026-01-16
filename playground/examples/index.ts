@@ -54,6 +54,7 @@ import { confBridgeExample } from './confbridge'
 import { pjsipExample } from './pjsip'
 import { systemHealthExample } from './system-health'
 import { mwiExample } from './mwi'
+import { codecsExample } from './codecs'
 import type { ExampleCategory } from './types'
 
 // SIP Features - Core WebRTC/SIP functionality
@@ -113,6 +114,7 @@ export const amiExamples = [
 // Utility Features - Settings, helpers, and tools
 export const utilityExamples = [
   settingsExample,
+  codecsExample,
   callHistoryExample,
   speedDialExample,
   contactsExample,
