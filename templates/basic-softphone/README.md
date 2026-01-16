@@ -15,23 +15,28 @@ A production-ready softphone template with PrimeVue UI components, featuring a c
 ## Quick Start
 
 1. **Copy the template:**
+
    ```bash
    cp -r templates/basic-softphone my-softphone
    cd my-softphone
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
 
 3. **Configure SIP credentials:**
+
    ```bash
    cp .env.example .env
    ```
+
    Edit `.env` with your SIP server details.
 
 4. **Start development server:**
+
    ```bash
    pnpm dev
    ```
@@ -64,24 +69,28 @@ basic-softphone/
 ## Components
 
 ### Dialpad
+
 - Number pad with letters (like a phone keypad)
 - Number display with backspace/clear
 - Call button to initiate calls
 - Emits digits for DTMF during active calls
 
 ### CallControls
+
 - Incoming call answer/reject buttons
 - Active call controls: mute, hold, transfer
 - Call duration display
 - Caller ID display
 
 ### CallHistory
+
 - Chronological list of recent calls
 - Shows call direction, duration, and status
 - One-tap callback functionality
 - Persisted to localStorage
 
 ### DeviceSettings
+
 - Microphone selection dropdown
 - Speaker selection dropdown
 - Automatic device enumeration
@@ -131,6 +140,7 @@ const conference = useConference()
 ### Asterisk
 
 Enable WebSocket in `/etc/asterisk/http.conf`:
+
 ```ini
 [general]
 enabled = yes
@@ -142,6 +152,7 @@ tlscertfile = /etc/asterisk/keys/asterisk.pem
 ```
 
 Enable WebSocket transport in `/etc/asterisk/pjsip.conf`:
+
 ```ini
 [transport-wss]
 type = transport
@@ -199,6 +210,7 @@ dtls_auto_generate_cert = yes
 ### Browser Compatibility
 
 VueSip works best in modern browsers:
+
 - Chrome/Edge 90+
 - Firefox 90+
 - Safari 14+

@@ -79,10 +79,7 @@ function handlePauseSelect(event: { value: string }) {
         <h2>Agent {{ agentId }}</h2>
         <Tag :value="stateLabel" :severity="stateColor" />
       </div>
-      <div
-        class="connection-status"
-        :class="{ connected: isConnected }"
-      >
+      <div class="connection-status" :class="{ connected: isConnected }">
         <i class="pi pi-circle-fill" />
         <span>{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
       </div>

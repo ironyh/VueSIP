@@ -86,11 +86,7 @@ function stopMonitor() {
   <div class="supervisor-panel">
     <div class="panel-header">
       <h3>Supervisor Controls</h3>
-      <Tag
-        v-if="monitorMode"
-        :value="`Monitoring: ${monitorMode.toUpperCase()}`"
-        severity="info"
-      />
+      <Tag v-if="monitorMode" :value="`Monitoring: ${monitorMode.toUpperCase()}`" severity="info" />
     </div>
 
     <!-- Active Monitor Session -->
@@ -147,7 +143,10 @@ function stopMonitor() {
       modal
     >
       <div v-if="selectedAgent" class="monitor-options">
-        <p>Select monitoring mode for <strong>{{ selectedAgent.name }}</strong>:</p>
+        <p>
+          Select monitoring mode for <strong>{{ selectedAgent.name }}</strong
+          >:
+        </p>
 
         <div class="monitor-buttons">
           <Button

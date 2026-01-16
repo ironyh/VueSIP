@@ -94,7 +94,7 @@ function handleCallback(entry: CallHistoryEntry) {
             :class="[
               'pi',
               entry.direction === 'incoming' ? 'pi-phone-incoming' : 'pi-phone-outgoing',
-              entry.wasMissed ? 'missed' : ''
+              entry.wasMissed ? 'missed' : '',
             ]"
           />
         </div>
