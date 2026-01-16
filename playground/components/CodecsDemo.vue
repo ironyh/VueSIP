@@ -2,8 +2,19 @@
 import { computed, onMounted, ref } from 'vue'
 import { useCodecsStore } from '../composables/useCodecsStore'
 
-const { policy, codecs, setAudioPreference, setVideoPreference, setLegacyFallbacks } =
-  useCodecsStore()
+const {
+  policy,
+  codecs,
+  presets,
+  applyPreset,
+  remoteProfiles,
+  selectedRemoteProfile,
+  selectedPreset,
+  setAudioPreference,
+  setVideoPreference,
+  setLegacyFallbacks,
+  negotiatePreview,
+} = useCodecsStore()
 
 const audioPref = ref<'auto' | 'opus' | 'pcmu' | 'pcma'>('auto')
 const videoPref = ref<'auto' | 'vp8' | 'vp9' | 'h264'>('auto')
@@ -54,6 +65,12 @@ await adapter.call('sip:bob@example.com', {
 
     <section class="controls">
       <div class="control">
+        <label>Preset</label>
+        <select v-model="selectedPreset" @change="applyPreset(selectedPreset)">
+          <option v-for="p in presets" :value="p.id" :key="p.id">{{ p.label }}</option>
+        </select>
+      </div>
+      <div class="control">
         <label>Audio preference</label>
         <select v-model="audioPref">
           <option value="auto">Auto</option>
@@ -93,6 +110,30 @@ await adapter.call('sip:bob@example.com', {
           <strong>Video</strong>
           <ul>
             <li v-for="c in localCaps.video" :key="c.mimeType">{{ c.mimeType }}</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="diagnostics">
+      <h4>Negotiated Result Preview</h4>
+      <div class="control">
+        <label>Remote Profile</label>
+        <select v-model="selectedRemoteProfile">
+          <option v-for="rp in remoteProfiles" :key="rp.id" :value="rp.id">{{ rp.label }}</option>
+        </select>
+      </div>
+      <div class="caps">
+        <div>
+          <strong>Audio Order</strong>
+          <ul>
+            <li v-for="c in negotiatePreview().audio" :key="c.mimeType">{{ c.mimeType }}</li>
+          </ul>
+        </div>
+        <div>
+          <strong>Video Order</strong>
+          <ul>
+            <li v-for="c in negotiatePreview().video" :key="c.mimeType">{{ c.mimeType }}</li>
           </ul>
         </div>
       </div>
