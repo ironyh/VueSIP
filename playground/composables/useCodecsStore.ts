@@ -194,6 +194,10 @@ export function useCodecsStore() {
     policy.value.allowLegacyFallbacks = enabled
   }
 
+  function setPreferTransceiverApi(enabled: boolean) {
+    policy.value.preferTransceiverApi = enabled
+  }
+
   return {
     policy,
     codecs,
@@ -211,6 +215,7 @@ export function useCodecsStore() {
     setAudioPreference,
     setVideoPreference,
     setLegacyFallbacks,
+    setPreferTransceiverApi,
     negotiatePreview,
   }
 }

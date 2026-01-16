@@ -126,6 +126,12 @@ const importText = ref('')
           H264)
         </label>
       </div>
+      <div class="control toggle">
+        <label>
+          <input type="checkbox" v-model="forceSdpFallback" /> Force SDP fallback (disable
+          transceiver API)
+        </label>
+      </div>
       <button class="apply-btn" @click="applyPrefs">Apply & Save</button>
     </section>
 
@@ -222,6 +228,39 @@ const importText = ref('')
       </div>
     </section>
 
+    <section class="provider-notes">
+      <h4>Provider Notes</h4>
+      <div v-if="selectedPreset === 'asterisk_legacy'">
+        <ul>
+          <li>
+            H264 often requires baseline profile. When using SDP fallback, ensure fmtp compatibility
+            if you customize transforms.
+          </li>
+          <li>Legacy IVRs may expect G.711 (PCMU/PCMA). Keep Opus as secondary for browsers.</li>
+        </ul>
+      </div>
+      <div v-else-if="selectedPreset === 'telnyx'">
+        <ul>
+          <li>Opus is generally preferred for audio. H264 and VP8 both interop well.</li>
+          <li>Prefer transceiver API when possible; use fallback only for legacy interop tests.</li>
+        </ul>
+      </div>
+      <div v-else-if="selectedPreset === 'twilio'">
+        <ul>
+          <li>Twilio WebRTC commonly supports Opus + VP8; H264 is available in many regions.</li>
+          <li>Safari may prefer H264; test on target browsers if you prioritize VP8 first.</li>
+        </ul>
+      </div>
+      <div v-else>
+        <ul>
+          <li>
+            Default preset favors Opus/VP8. Use Auto unless your PBX enforces a specific codec.
+          </li>
+          <li>Toggle legacy fallbacks and SDP fallback when integrating with older gateways.</li>
+        </ul>
+      </div>
+    </section>
+
     <section class="use-in-call">
       <h4>Use in Call (Demo)</h4>
       <div class="controls">
@@ -294,5 +333,9 @@ textarea {
 }
 .error {
   color: #e33;
+}
+.provider-notes ul {
+  margin: 0;
+  padding-left: 1.25rem;
 }
 </style>
