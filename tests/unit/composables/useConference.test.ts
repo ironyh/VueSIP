@@ -175,6 +175,26 @@ describe('useConference', () => {
 
       unmount()
     })
+
+    it('should throw error if maxParticipants is less than 1', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await expect(result.createConference({ maxParticipants: 0 })).rejects.toThrow(
+        'maxParticipants must be at least 1'
+      )
+
+      unmount()
+    })
+
+    it('should throw error if maxParticipants exceeds 1000', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await expect(result.createConference({ maxParticipants: 1001 })).rejects.toThrow(
+        'maxParticipants cannot exceed 1000'
+      )
+
+      unmount()
+    })
   })
 
   // ============================================================================
@@ -229,6 +249,36 @@ describe('useConference', () => {
         'Conference not found'
       )
       expect(result.state.value).toBe(ConferenceState.Failed)
+
+      unmount()
+    })
+
+    it('should throw error for invalid SIP URI', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await expect(result.joinConference('not-a-valid-uri')).rejects.toThrow(
+        'Invalid conference URI'
+      )
+
+      unmount()
+    })
+
+    it('should throw error if maxParticipants is less than 1 in joinConference', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await expect(
+        result.joinConference('sip:conference@example.com', { maxParticipants: 0 })
+      ).rejects.toThrow('maxParticipants must be at least 1')
+
+      unmount()
+    })
+
+    it('should throw error if maxParticipants exceeds 1000 in joinConference', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await expect(
+        result.joinConference('sip:conference@example.com', { maxParticipants: 1001 })
+      ).rejects.toThrow('maxParticipants cannot exceed 1000')
 
       unmount()
     })
@@ -356,6 +406,18 @@ describe('useConference', () => {
 
       unmount()
     })
+
+    it('should throw error for invalid participant URI', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await result.createConference()
+
+      await expect(result.addParticipant('not-a-valid-uri')).rejects.toThrow(
+        'Invalid participant URI'
+      )
+
+      unmount()
+    })
   })
 
   // ============================================================================
@@ -443,6 +505,36 @@ describe('useConference', () => {
         'sip:alice@example.com'
       )
 
+      unmount()
+    })
+
+    it('should prevent concurrent removeParticipant attempts', async () => {
+      const { result, unmount } = withSetup(() => useConference(sipClientRef))
+
+      await result.createConference()
+      const aliceId = await result.addParticipant('sip:alice@example.com')
+      const bobId = await result.addParticipant('sip:bob@example.com')
+
+      // Make removeFromConference hang
+      let resolveRemove: any
+      mockSipClient.removeFromConference = vi.fn(
+        () => new Promise((resolve) => (resolveRemove = () => resolve(undefined)))
+      )
+
+      // Start first removal
+      const remove1 = result.removeParticipant(aliceId)
+
+      // Try to remove another participant while first is in progress
+      const remove2 = result.removeParticipant(bobId)
+
+      // Second removal should be rejected
+      await expect(remove2).rejects.toThrow('Another conference operation is already in progress')
+
+      // Complete first removal
+      resolveRemove()
+      await remove1
+
+      expect(mockSipClient.removeFromConference).toHaveBeenCalledTimes(1)
       unmount()
     })
   })
