@@ -1,0 +1,37 @@
+name: Deploy Demos Landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'demos/**'
+      - '.github/workflows/deploy-demos.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build and Deploy Demos Landing
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create Pages project (if not exists)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: demos
+          command: pages project create vuesip-demos --production-branch=main
+        continue-on-error: true
+
+      - name: Deploy static landing
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: demos
+          command: pages deploy . --project-name=vuesip-demos --branch=main --commit-dirty=true
+

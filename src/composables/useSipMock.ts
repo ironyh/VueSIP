@@ -289,7 +289,6 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
       qualityInterval = null
     }
   }
-
   /**
    * Moves the active call to history and clears it
    */
@@ -643,7 +642,6 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
   // ===========================================================================
   // Return Public API
   // ===========================================================================
-
   return {
     // State
     isConnected,

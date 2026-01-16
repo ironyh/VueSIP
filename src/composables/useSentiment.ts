@@ -278,10 +278,10 @@ function normalizeWord(word: string): string {
 }
 
 /**
- * Check if a word contains a negation contraction or is a negation word
+ * Check if a word contains a negation contraction
  */
 function containsNegation(word: string): boolean {
-  // Check for various negation patterns: "n't" contractions and common negation words
+  // Check for various negation patterns: "n't", "not", "never", "no"
   return word.includes("n't") || word === 'not' || word === 'never' || word === 'no'
 }
 
@@ -317,13 +317,13 @@ async function defaultAnalyzer(text: string): Promise<SentimentResult> {
 
     // Check for intensifier
     if (word in INTENSIFIERS) {
-      intensifier = INTENSIFIERS[word]!
+      intensifier = INTENSIFIERS[word] ?? 1
       continue
     }
 
     // Check positive keywords
     if (word in POSITIVE_KEYWORDS) {
-      let score = POSITIVE_KEYWORDS[word]! * intensifier
+      let score = (POSITIVE_KEYWORDS[word] ?? 0) * intensifier
       if (negationActive) {
         score = -score * 0.8 // Negation flips and slightly reduces magnitude
       }
@@ -336,7 +336,7 @@ async function defaultAnalyzer(text: string): Promise<SentimentResult> {
 
     // Check negative keywords
     if (word in NEGATIVE_KEYWORDS) {
-      let score = NEGATIVE_KEYWORDS[word]! * intensifier
+      let score = (NEGATIVE_KEYWORDS[word] ?? 0) * intensifier
       if (negationActive) {
         score = -score * 0.8 // Negation flips negative to positive
       }
@@ -529,8 +529,10 @@ export function useSentiment(
     let sumX2 = 0
 
     for (let i = 0; i < n; i++) {
+      const item = recentHistory[i]
+      if (!item) continue
       const x = i
-      const y = recentHistory[i]!.score
+      const y = item.score
       sumX += x
       sumY += y
       sumXY += x * y

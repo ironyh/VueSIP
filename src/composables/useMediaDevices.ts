@@ -353,12 +353,23 @@ export function useMediaDevices(
           // Check signal after enumeration
           throwIfAborted(effectiveSignal)
 
-          devices = rawDevices.map((device) => ({
-            deviceId: device.deviceId,
-            label: device.label || `${device.kind} ${device.deviceId.slice(0, 5)}`,
-            kind: device.kind as MediaDeviceKind,
-            groupId: device.groupId,
-          }))
+          devices = rawDevices.map((device, index) => {
+            const kindLabel =
+              device.kind === 'audioinput'
+                ? 'Microphone'
+                : device.kind === 'audiooutput'
+                  ? 'Speaker'
+                  : 'Camera'
+            const fallbackLabel = device.deviceId
+              ? `${kindLabel} (${device.deviceId.slice(0, 8)})`
+              : `${kindLabel} ${index + 1}`
+            return {
+              deviceId: device.deviceId,
+              label: device.label || fallbackLabel,
+              kind: device.kind as MediaDeviceKind,
+              groupId: device.groupId,
+            }
+          })
         }
 
         // Update store with raw browser MediaDeviceInfo[]

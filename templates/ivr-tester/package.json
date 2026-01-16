@@ -1,0 +1,25 @@
+{
+  "name": "vuesip-ivr-tester-template",
+  "version": "1.0.0",
+  "description": "IVR testing and debugging tool with visual tree navigation, DTMF keypad, and real-time transcription",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vuesip": "workspace:*",
+    "primevue": "^3.50.0",
+    "primeicons": "^7.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "typescript": "~5.4.0",
+    "vite": "^7.0.0",
+    "vue-tsc": "^2.0.0"
+  }
+}

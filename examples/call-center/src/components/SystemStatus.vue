@@ -3,7 +3,7 @@
     <!-- System Health Indicator -->
     <div class="health-section">
       <span class="health-indicator" :class="healthClass" :title="healthTitle" aria-hidden="true"
-        >●</span
+      >●</span
       >
       <span class="sr-only">{{ healthAccessibleLabel }}</span>
       <span class="health-label">{{ healthLabel }}</span>

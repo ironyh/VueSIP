@@ -7,9 +7,16 @@
  * @module composables/useClickToCall
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
-import { useSipMock, type UseSipMockReturn } from './useSipMock'
+import { ref, shallowRef, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { useSipMock } from './useSipMock'
+import { useSipClient } from './useSipClient'
+import { useCallSession } from './useCallSession'
+import type { SipClient } from '../core/SipClient'
+import type { SipClientConfig } from '../types/config.types'
 import { createLogger } from '../utils/logger'
+import type { UseSipAdapter, ReadonlyRef } from '@/types/sipAdapter.types'
+import type { MockCallState } from '@/composables/useSipMock'
+import { CallState } from '@/types/call.types'
 
 const log = createLogger('useClickToCall')
 
@@ -111,11 +118,11 @@ export interface UseClickToCallReturn {
 
   // Call state (from underlying SIP)
   /** Whether connected to SIP server */
-  isConnected: Ref<boolean>
+  isConnected: ReadonlyRef<boolean>
   /** Whether currently on a call */
   isOnCall: ComputedRef<boolean>
   /** Current call state */
-  callState: Ref<string>
+  callState: ReadonlyRef<string>
   /** Current call duration in seconds */
   callDuration: Ref<number>
   /** Remote party phone number */
@@ -276,6 +283,140 @@ function savePosition(pos: { x: number; y: number }): void {
 }
 
 // =============================================================================
+// Real SIP Implementation
+// =============================================================================
+
+/**
+ * Adapter to bridge real SIP client with the interface expected by useClickToCall
+ */
+function useRealSip(sipConfig: SipConfiguration): UseSipAdapter {
+  // Normalize config
+  const clientConfig: SipClientConfig = {
+    uri: sipConfig.wsUri,
+    sipUri: sipConfig.sipUri,
+    password: sipConfig.password,
+    displayName: sipConfig.displayName,
+    // Add defaults
+    wsOptions: {
+      connectionTimeout: 10000,
+      maxReconnectionAttempts: 3,
+    },
+    registrationOptions: {
+      autoRegister: true,
+      expires: 600,
+    },
+  }
+
+  // Initialize SIP client
+  const {
+    connect: clientConnect,
+    disconnect: clientDisconnect,
+    isConnected,
+    getClient,
+    error: clientError,
+  } = useSipClient(clientConfig, {
+    autoConnect: false,
+    autoCleanup: true,
+  })
+
+  // Track the client instance for useCallSession
+  const clientRef = shallowRef<SipClient | null>(null)
+
+  // Initialize call session
+  const {
+    makeCall,
+    hangup: sessionHangup,
+    answer: sessionAnswer,
+    state: sessionState,
+    session,
+    remoteUri,
+    remoteDisplayName,
+  } = useCallSession(clientRef)
+
+  // Map CallState enum to widget/MockCallState
+  function mapCallState(state: CallState): MockCallState {
+    switch (state) {
+      case CallState.Idle:
+        return 'idle'
+      case CallState.Calling:
+        return 'calling'
+      case CallState.Ringing:
+        return 'ringing'
+      case CallState.Answering:
+      case CallState.EarlyMedia:
+        return 'calling'
+      case CallState.Active:
+        return 'active'
+      case CallState.Held:
+      case CallState.RemoteHeld:
+        return 'held'
+      case CallState.Terminating:
+        return 'active'
+      case CallState.Terminated:
+      case CallState.Failed:
+        return 'ended'
+      default: {
+        const _never: never = state
+        void _never
+        return 'idle'
+      }
+    }
+  }
+
+  const callState = computed<MockCallState>(() => mapCallState(sessionState.value))
+
+  // Prefer display name, fallback to URI if available
+  const adapterRemoteNumber = computed<string | null>(() => {
+    const name = remoteDisplayName?.value ?? null
+    const uri = remoteUri?.value ?? null
+    return name || uri || null
+  })
+
+  // Wrap connect to update clientRef
+  async function connect() {
+    await clientConnect()
+    clientRef.value = getClient()
+  }
+
+  // Wrap disconnect
+  async function disconnect() {
+    await clientDisconnect()
+    clientRef.value = null
+  }
+
+  // Wrap call
+  async function call(number: string) {
+    await makeCall(number, { audio: true, video: false })
+    // Return ID to match interface
+    return session.value?.id || ''
+  }
+
+  // Wrap hangup
+  async function hangup() {
+    await sessionHangup()
+  }
+
+  // Wrap answer
+  async function answer() {
+    await sessionAnswer()
+  }
+
+  // Return object matching UseSipAdapter interface
+  return {
+    isConnected,
+    callState,
+    error: computed(() => clientError.value?.message || null),
+    remoteNumber: adapterRemoteNumber,
+
+    connect,
+    disconnect,
+    call,
+    hangup,
+    answer,
+  }
+}
+
+// =============================================================================
 // Composable Implementation
 // =============================================================================
 
@@ -375,10 +516,7 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
   // ===========================================================================
   // SIP/Mock Client
   // ===========================================================================
-
-  // For now, always use mock mode
-  // In the future, this would conditionally use real SIP client
-  let sipClient: UseSipMockReturn
+  let sipClient: UseSipAdapter
 
   if (config.value.mockMode || !config.value.sipConfig) {
     sipClient = useSipMock({
@@ -386,17 +524,10 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
       registerDelay: 300,
       ringDelay: 2000,
       connectCallDelay: 1000,
-    })
+    }) as unknown as UseSipAdapter
   } else {
-    // TODO: Implement real SIP mode using useSip composable
-    // For now, fall back to mock
-    log.warn('Real SIP mode not yet implemented, using mock mode')
-    sipClient = useSipMock({
-      connectDelay: 500,
-      registerDelay: 300,
-      ringDelay: 2000,
-      connectCallDelay: 1000,
-    })
+    log.info('Initializing real SIP mode')
+    sipClient = useRealSip(config.value.sipConfig)
   }
 
   // ===========================================================================
@@ -432,23 +563,61 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
     }
   }
 
+  // Watch call state to manage duration timer and callbacks
+  watch(
+    () => sipClient.callState.value,
+    (newState, oldState) => {
+      // If ringing (possible inbound), hydrate remote number from adapter when available
+      if (newState === 'ringing' && !remoteNumber.value) {
+        // Use adapter-provided remote if available
+        const rn = (sipClient as { remoteNumber?: { value: string | null } }).remoteNumber?.value
+        if (rn) {
+          remoteNumber.value = rn
+        }
+      }
+
+      // Start timer when call becomes active
+      if (newState === 'active' && oldState !== 'active') {
+        startDurationTimer()
+      }
+
+      // Stop timer when call ends
+      if (
+        (newState === 'ended' || newState === 'idle') &&
+        (oldState === 'active' ||
+          oldState === 'ringing' ||
+          oldState === 'calling' ||
+          oldState === 'held')
+      ) {
+        const duration = callDuration.value
+        stopDurationTimer()
+
+        // Notify callback for any call attempt lifecycle (even 0s on no-answer/failure)
+        config.value.onCallEnd?.(duration)
+
+        // Reset state
+        callDuration.value = 0
+        remoteNumber.value = null
+      }
+    }
+  )
   // ===========================================================================
   // CSS Variables
   // ===========================================================================
 
   const cssVars = computed<Record<string, string>>(() => {
-    // Resolve 'auto' theme using system preference (prefers-color-scheme)
+    // Detect system preference when theme is 'auto'
     let resolvedTheme: 'light' | 'dark' = 'light'
     if (config.value.theme === 'auto') {
-      // Check system preference for dark mode (SSR-safe check)
+      // Check for system dark mode preference via matchMedia
       if (typeof window !== 'undefined' && window.matchMedia) {
         resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
       }
     } else {
       resolvedTheme = config.value.theme
     }
-
-    const colors = THEME_COLORS[resolvedTheme]
+    const theme = resolvedTheme
+    const colors = THEME_COLORS[theme]
     const dimensions = widgetDimensions.value
 
     return {
@@ -537,10 +706,6 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
 
       // Make the call
       await sipClient.call(targetNumber)
-
-      // Start duration timer when call becomes active
-      startDurationTimer()
-
       log.info('Call started to', targetNumber)
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Call failed')
@@ -553,18 +718,8 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
 
   async function hangup(): Promise<void> {
     try {
-      const duration = callDuration.value
-      stopDurationTimer()
-
       await sipClient.hangup()
-
-      // Notify callback
-      config.value.onCallEnd?.(duration)
-
-      remoteNumber.value = null
-      callDuration.value = 0
-
-      log.info('Call ended, duration:', duration, 'seconds')
+      log.info('Hangup requested')
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Hangup failed')
       log.error('Hangup failed:', err.message)
@@ -576,7 +731,6 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
   async function answer(): Promise<void> {
     try {
       await sipClient.answer()
-      startDurationTimer()
       log.info('Call answered')
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Answer failed')
@@ -679,12 +833,14 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
 
 /**
  * Adjust a hex color by a percentage
+ * Supports both short (#fff) and long (#ffffff) hex formats
  */
 function adjustColor(hex: string, percent: number): string {
   // Remove # if present
   let cleanHex = hex.replace('#', '')
 
-  // Handle 3-character hex codes (#fff → #ffffff)
+  // Handle 3-character hex codes by expanding to 6 characters
+  // e.g., #fff -> #ffffff, #abc -> #aabbcc
   if (cleanHex.length === 3) {
     cleanHex = cleanHex
       .split('')
@@ -692,9 +848,9 @@ function adjustColor(hex: string, percent: number): string {
       .join('')
   }
 
-  // Validate hex format - must be 6 characters of valid hex digits
+  // Validate hex format
   if (cleanHex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(cleanHex)) {
-    // Return original color if invalid format
+    // Return original if invalid
     return hex
   }
 

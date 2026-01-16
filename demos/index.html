@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VueSIP Demos</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --card: #151823;
+        --border: #222638;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --primary: #4f46e5;
+<<<<<<< HEAD
+        --green: #22c55e;
+      }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+      }
+=======
+      }
+      html, body { height: 100%; }
+      body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial; }
+>>>>>>> f461131 (docs(demos): add demos landing + link in docs nav; include Basic Softphone; add demos page)
+      .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px; }
+      header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+      header h1 { font-size: 20px; margin: 0; }
+      .grid { display: grid; grid-template-columns: repeat( auto-fit, minmax(280px, 1fr) ); gap: 16px; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+      .card h2 { margin: 0; font-size: 16px; }
+      .desc { color: var(--muted); font-size: 14px; }
+      .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+      .tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); background: #0f1220; color: var(--muted); }
+      .links { display: flex; gap: 10px; margin-top: 8px; }
+      a.btn { text-decoration: none; color: white; background: var(--primary); padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+      a.btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+      footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
+<<<<<<< HEAD
+      .muted { color: var(--muted); }
+=======
+>>>>>>> f461131 (docs(demos): add demos landing + link in docs nav; include Basic Softphone; add demos page)
+      .ports { margin: 20px 0; font-size: 14px; }
+      .ports table { width: 100%; border-collapse: collapse; }
+      .ports th, .ports td { border-bottom: 1px solid var(--border); padding: 8px; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>VueSIP Live Demos</h1>
+<<<<<<< HEAD
+        <a class="btn secondary" href="https://github.com/openai/VueSIP">View Source</a>
+      </header>
+
+      <p class="muted">Explore VueSIP demos. Each runs on its own subdomain for clean PWA scopes and simpler backend CORS.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Softphone</h2>
+=======
+        <a class="btn secondary" href="https://github.com/ironyh/VueSIP">View Source</a>
+      </header>
+
+      <p style="color:#9ca3af">Explore VueSIP demos. Each runs on its own subdomain for clean PWA scopes and simpler backend CORS.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Softphone (PWA)</h2>
+>>>>>>> f461131 (docs(demos): add demos landing + link in docs nav; include Basic Softphone; add demos page)
+          <div class="desc">Installable PWA softphone with push notifications, offline cache, full call controls, and device selection.</div>
+          <div class="tags">
+            <span class="tag">PWA</span>
+            <span class="tag">Push</span>
+            <span class="tag">DTMF</span>
+          </div>
+          <div class="links">
+            <a class="btn" href="https://softphone.vuesip.com">Open</a>
+            <a class="btn secondary" href="http://localhost:3002">Local</a>
+          </div>
+        </div>
+
+        <div class="card">
+<<<<<<< HEAD
+=======
+          <h2>Basic Softphone</h2>
+          <div class="desc">Reference softphone using PrimeVue UI components. Good for learning and customization.</div>
+          <div class="tags">
+            <span class="tag">PrimeVue</span>
+            <span class="tag">DTMF</span>
+            <span class="tag">Devices</span>
+          </div>
+          <div class="links">
+            <a class="btn" href="https://basic-softphone.vuesip.com">Open</a>
+            <a class="btn secondary" href="http://localhost:3001">Local</a>
+          </div>
+        </div>
+
+        <div class="card">
+>>>>>>> f461131 (docs(demos): add demos landing + link in docs nav; include Basic Softphone; add demos page)
+          <h2>IVR Tester</h2>
+          <div class="desc">Map IVR trees visually as you navigate menus. Send DTMF, capture transcripts, and export sessions.</div>
+          <div class="tags">
+            <span class="tag">IVR</span>
+            <span class="tag">DTMF</span>
+            <span class="tag">Transcripts</span>
+          </div>
+          <div class="links">
+            <a class="btn" href="https://ivr.vuesip.com">Open</a>
+            <a class="btn secondary" href="http://localhost:3005">Local</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Video Room</h2>
+          <div class="desc">Multi-participant grid with active speaker highlights, participant pinning, chat, and screen sharing.</div>
+          <div class="tags">
+            <span class="tag">Video</span>
+            <span class="tag">Screen Share</span>
+            <span class="tag">Chat</span>
+          </div>
+          <div class="links">
+            <a class="btn" href="https://video.vuesip.com">Open</a>
+            <a class="btn secondary" href="http://localhost:3003">Local</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Call Center</h2>
+          <div class="desc">Agent dashboard, queues, and supervisor controls. Requires AMI WebSocket proxy.</div>
+          <div class="tags">
+            <span class="tag">Queues</span>
+            <span class="tag">Supervisor</span>
+            <span class="tag">DTMF</span>
+          </div>
+          <div class="links">
+            <a class="btn" href="https://callcenter.vuesip.com">Open</a>
+            <a class="btn secondary" href="http://localhost:3004">Local</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="ports">
+        <h3>Default Local Ports</h3>
+        <table>
+          <tr><th>Template</th><th>Port</th><th>URL</th></tr>
+          <tr><td>Minimal</td><td>3000</td><td>http://localhost:3000</td></tr>
+          <tr><td>Basic Softphone</td><td>3001</td><td>http://localhost:3001</td></tr>
+          <tr><td>PWA Softphone</td><td>3002</td><td>http://localhost:3002</td></tr>
+          <tr><td>Video Room</td><td>3003</td><td>http://localhost:3003</td></tr>
+          <tr><td>Call Center</td><td>3004</td><td>http://localhost:3004</td></tr>
+          <tr><td>IVR Tester</td><td>3005</td><td>http://localhost:3005</td></tr>
+        </table>
+      </div>
+
+      <footer>
+        Deploy these demos to Cloudflare Pages or your preferred host. Subdomain mapping keeps PWA scopes isolated.
+      </footer>
+    </div>
+  </body>
+  </html>
+

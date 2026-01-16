@@ -671,11 +671,11 @@ function calculateSegmentSentiment(text: string): number {
 
   for (const word of words) {
     if (word in POSITIVE_KEYWORDS) {
-      totalScore += POSITIVE_KEYWORDS[word]!
+      totalScore += POSITIVE_KEYWORDS[word] ?? 0
       matchCount++
     }
     if (word in NEGATIVE_KEYWORDS) {
-      totalScore += NEGATIVE_KEYWORDS[word]!
+      totalScore += NEGATIVE_KEYWORDS[word] ?? 0
       matchCount++
     }
   }
@@ -697,7 +697,7 @@ function parseSpeakerTurns(
   for (const line of lines) {
     const speakerMatch = line.match(/^(agent|caller|speaker\s*\d*):\s*/i)
     if (speakerMatch) {
-      const speaker = speakerMatch[1]!.toLowerCase()
+      const speaker = (speakerMatch[1] ?? 'unknown').toLowerCase()
       const text = line.substring(speakerMatch[0].length)
       if (text.trim()) {
         turns.push({ speaker, text, index: currentIndex })
@@ -1343,7 +1343,8 @@ export function useCallSummary(options?: CallSummaryOptions): UseCallSummaryRetu
       lines.push('ACTION ITEMS')
       lines.push('-'.repeat(20))
       for (let i = 0; i < result.actionItems.length; i++) {
-        const item = result.actionItems[i]!
+        const item = result.actionItems[i]
+        if (!item) continue
         lines.push(`${i + 1}. [${item.priority.toUpperCase()}] ${item.description}`)
         if (item.assignee) {
           lines.push(`   Assignee: ${item.assignee}`)

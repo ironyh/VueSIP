@@ -23,10 +23,7 @@ const logger = createLogger('useAmiSpy')
  * @param targetChannel - Channel we're looking for
  * @returns True if the channels match (either exact or base channel match)
  */
-function channelMatches(
-  eventChannel: string | undefined,
-  targetChannel: string | undefined
-): boolean {
+function channelMatches(eventChannel: string | undefined, targetChannel: string): boolean {
   if (!eventChannel || !targetChannel) return false
 
   // Exact match

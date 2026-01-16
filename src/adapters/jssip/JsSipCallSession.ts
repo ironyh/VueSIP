@@ -101,6 +101,12 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
           jssipOptions.mediaConstraints = options.mediaConstraints
         }
 
+        // Pass pre-acquired mediaStream if provided (takes precedence over mediaConstraints)
+        if (options?.mediaStream) {
+          jssipOptions.mediaStream = options.mediaStream
+          console.log('[JsSipCallSession] Using pre-acquired mediaStream for answer')
+        }
+
         if (options?.extraHeaders) {
           jssipOptions.extraHeaders = options.extraHeaders
         }
@@ -213,7 +219,9 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     return new Promise((resolve, reject) => {
       try {
         // JsSIP uses refer for transfers
-        const session = this.session as RTCSession & { refer?: (target: string, options?: unknown) => void }
+        const session = this.session as RTCSession & {
+          refer?: (target: string, options?: unknown) => void
+        }
         if (typeof session.refer === 'function') {
           session.refer(target)
           resolve()
@@ -231,7 +239,9 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
       try {
         // For attended transfer, we need the underlying JsSIP session
         const targetSession = target as JsSipCallSession
-        const session = this.session as RTCSession & { refer?: (target: string, options?: unknown) => void }
+        const session = this.session as RTCSession & {
+          refer?: (target: string, options?: unknown) => void
+        }
 
         if (typeof session.refer === 'function') {
           // Use Replaces header for attended transfer
@@ -353,15 +363,18 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
 
   private setupEventHandlers(): void {
     // Progress (180 Ringing, 183 Session Progress)
-    this.session.on('progress', (data: { originator: string; response?: { status_code: number; reason_phrase: string } }) => {
-      if (data.originator === 'remote') {
-        this._state = CallState.Ringing
+    this.session.on(
+      'progress',
+      (data: { originator: string; response?: { status_code: number; reason_phrase: string } }) => {
+        if (data.originator === 'remote') {
+          this._state = CallState.Ringing
+        }
+        this.emit('progress', {
+          statusCode: data.response?.status_code ?? 0,
+          reasonPhrase: data.response?.reason_phrase ?? '',
+        })
       }
-      this.emit('progress', {
-        statusCode: data.response?.status_code ?? 0,
-        reasonPhrase: data.response?.reason_phrase ?? '',
-      })
-    })
+    )
 
     // Accepted (2xx response)
     this.session.on('accepted', () => {
@@ -380,24 +393,40 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     })
 
     // Ended (BYE)
-    this.session.on('ended', (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
-      this._state = CallState.Terminated
-      this._endTime = new Date()
-      this.emit('ended', {
-        cause: data.cause,
-        statusCode: data.message?.status_code,
-      })
-    })
+    this.session.on(
+      'ended',
+      (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
+        console.log('[JsSipCallSession] Call ended:', {
+          originator: data.originator,
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
+        this._state = CallState.Terminated
+        this._endTime = new Date()
+        this.emit('ended', {
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
+      }
+    )
 
     // Failed
-    this.session.on('failed', (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
-      this._state = CallState.Failed
-      this._endTime = new Date()
-      this.emit('failed', {
-        cause: data.cause,
-        statusCode: data.message?.status_code,
-      })
-    })
+    this.session.on(
+      'failed',
+      (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
+        console.error('[JsSipCallSession] Call failed:', {
+          originator: data.originator,
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
+        this._state = CallState.Failed
+        this._endTime = new Date()
+        this.emit('failed', {
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
+      }
+    )
 
     // Hold/Unhold
     this.session.on('hold', (data: { originator: string }) => {
@@ -474,12 +503,15 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     })
 
     // Refer (transfer)
-    this.session.on('refer', (data: { request: { getHeader: (name: string) => string | undefined } }) => {
-      const referTo = data.request.getHeader('Refer-To')
-      if (referTo) {
-        this.emit('referred', { target: referTo })
+    this.session.on(
+      'refer',
+      (data: { request: { getHeader: (name: string) => string | undefined } }) => {
+        const referTo = data.request.getHeader('Refer-To')
+        if (referTo) {
+          this.emit('referred', { target: referTo })
+        }
       }
-    })
+    )
   }
 
   private getReasonPhrase(statusCode: number): string {

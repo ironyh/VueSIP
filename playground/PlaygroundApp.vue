@@ -371,7 +371,7 @@ const examples = allExamples
 const { connect, disconnect: _disconnect, isConnected, updateConfig } = playgroundSipClient
 
 // State
-const currentExample = ref('basic-call')
+const currentExample = ref('click-to-call-widget')
 const activeTab = ref<'demo' | 'code' | 'setup'>('demo')
 const searchQuery = ref('')
 const copiedSnippets = ref<Record<number, boolean>>({})
@@ -385,15 +385,15 @@ const categoryOrder: ExampleCategory[] = ['sip', 'ami', 'utility']
 // URL Hash Routing
 const parseHashRoute = () => {
   const hash = window.location.hash.slice(1) // Remove the #
-  if (!hash) return { example: 'basic-call', tab: 'demo' as const }
+  if (!hash) return { example: 'click-to-call-widget', tab: 'demo' as const }
 
   // Support formats: #basic-call, #basic-call/code, #basic-call/setup
   const parts = hash.split('/')
-  const example = parts[0] || 'basic-call'
+  const example = parts[0] || 'click-to-call-widget'
   const tab = (parts[1] as 'demo' | 'code' | 'setup') || 'demo'
 
   // Validate example exists
-  const validExample = examples.find((ex) => ex.id === example) ? example : 'basic-call'
+  const validExample = examples.find((ex) => ex.id === example) ? example : 'click-to-call-widget'
   // Validate tab
   const validTab = ['demo', 'code', 'setup'].includes(tab) ? tab : 'demo'
 
@@ -567,6 +567,9 @@ const loadAndConnectCredentials = async () => {
       autoRegister: true,
       connectionTimeout: 10000,
       registerExpires: 600,
+      mediaConfiguration: defaultConnection.audioCodec
+        ? { audioCodec: defaultConnection.audioCodec }
+        : undefined,
     }
 
     // Add password if it was saved

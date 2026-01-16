@@ -22,7 +22,9 @@ export default defineConfig({
     logo: '/logo.svg',
 
     nav: [
+      { text: 'Tutorial', link: '/tutorial/', activeMatch: '/tutorial/' },
       { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
+      { text: 'Demos', link: '/guide/demos', activeMatch: '/guide/demos' },
       { text: 'API Reference', link: '/api/', activeMatch: '/api/' },
       { text: 'Examples', link: '/examples/', activeMatch: '/examples/' },
       { text: 'Developer', link: '/developer/', activeMatch: '/developer/' },
@@ -30,6 +32,20 @@ export default defineConfig({
     ],
 
     sidebar: {
+      '/tutorial/': [
+        {
+          text: 'Interactive Tutorial',
+          collapsed: false,
+          items: [
+            { text: 'Start Here', link: '/tutorial/' },
+            { text: '1. Hello VueSIP', link: '/tutorial/part-1-hello' },
+            { text: '2. Building a Softphone', link: '/tutorial/part-2-softphone' },
+            { text: '3. Real Server Connection', link: '/tutorial/part-3-real-server' },
+            { text: '4. Advanced Features', link: '/tutorial/part-4-advanced' },
+          ],
+        },
+      ],
+
       '/guide/': [
         {
           text: 'Introduction',
@@ -50,6 +66,7 @@ export default defineConfig({
             { text: 'Call Controls', link: '/guide/call-controls' },
             { text: 'Video Calling', link: '/guide/video-calling' },
             { text: 'Picture-in-Picture', link: '/guide/picture-in-picture' },
+            { text: 'Click-to-Call', link: '/guide/click-to-call' },
           ],
         },
         {
@@ -147,6 +164,7 @@ export default defineConfig({
           text: 'Core Calling',
           collapsed: false,
           items: [
+            { text: 'Click-to-Call', link: '/examples/click-to-call' },
             { text: 'Basic Audio Call', link: '/examples/basic-call' },
             { text: 'Video Calling', link: '/examples/video-call' },
             { text: 'Conference Calls', link: '/examples/conference' },
