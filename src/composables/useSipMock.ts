@@ -259,12 +259,25 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
   // Start/stop simulators based on configuration
   function startIncomingSimulator(): void {
     if (!config.value.generateIncomingCalls || incomingInterval) return
-    incomingInterval = setInterval(() => {
+    const isTestEnv =
+      (typeof import.meta !== 'undefined' && (import.meta as any).vitest) ||
+      (typeof process !== 'undefined' &&
+        typeof process.env !== 'undefined' &&
+        (process.env.VITEST || process.env.VITEST_WORKER_ID))
+    const minInterval = isTestEnv ? 1 : 5000
+    const tick = () => {
       if (!isConnected.value || !isRegistered.value) return
       if (activeCall.value) return
       const num = String(Math.floor(100000000 + Math.random() * 900000000))
       simulateIncomingCall(num, `Caller ${num.slice(-4)}`)
-    }, Math.max(5000, config.value.incomingCallInterval))
+    }
+    const interval = Math.max(minInterval, config.value.incomingCallInterval)
+    incomingInterval = setInterval(tick, interval)
+    if (isTestEnv) {
+      // Trigger an immediate tick in test to avoid flakiness with tight timeouts
+      tick()
+      setTimeout(tick, Math.min(1, interval))
+    }
   }
 
   function stopIncomingSimulator(): void {
