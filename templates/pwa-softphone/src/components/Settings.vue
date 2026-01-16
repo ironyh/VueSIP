@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import ProviderSelector from './ProviderSelector.vue'
+import Elks46Login from './Elks46Login.vue'
+import TelnyxLogin from './TelnyxLogin.vue'
+
+type ProviderId = '46elks' | 'telnyx' | 'custom'
 
 defineProps<{
   isConnecting: boolean
@@ -10,13 +15,16 @@ const emit = defineEmits<{
   connect: [config: { uri: string; sipUri: string; password: string; displayName?: string }]
 }>()
 
-// Form fields
+// Provider selection state
+const selectedProvider = ref<ProviderId | null>(null)
+
+// Custom PBX form fields
 const wsServer = ref('')
 const sipUri = ref('')
 const password = ref('')
 const displayName = ref('')
 
-// Load saved credentials
+// Load saved credentials for custom PBX
 onMounted(() => {
   const saved = localStorage.getItem('vuesip-credentials')
   if (saved) {
@@ -35,7 +43,24 @@ const isFormValid = computed(() => {
   return wsServer.value.trim() !== '' && sipUri.value.trim() !== '' && password.value.trim() !== ''
 })
 
-function handleSubmit() {
+function handleProviderSelect(providerId: ProviderId) {
+  selectedProvider.value = providerId
+}
+
+function handleBack() {
+  selectedProvider.value = null
+}
+
+function handleConnect(config: {
+  uri: string
+  sipUri: string
+  password: string
+  displayName?: string
+}) {
+  emit('connect', config)
+}
+
+function handleCustomSubmit() {
   if (!isFormValid.value) return
 
   // Save credentials (except password)
@@ -59,90 +84,127 @@ function handleSubmit() {
 
 <template>
   <div class="settings">
-    <div class="settings-header">
-      <div class="logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path
-            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-          />
-        </svg>
+    <!-- Provider Selection -->
+    <template v-if="!selectedProvider">
+      <div class="settings-logo">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+            />
+          </svg>
+        </div>
       </div>
-      <h2>Connect to SIP Server</h2>
-      <p>Enter your SIP credentials to get started</p>
-    </div>
-
-    <form @submit.prevent="handleSubmit" class="settings-form">
-      <div class="form-group">
-        <label for="ws-server">WebSocket Server</label>
-        <input
-          id="ws-server"
-          v-model="wsServer"
-          type="url"
-          placeholder="wss://sip.example.com:8089/ws"
-          autocomplete="url"
-          required
-        />
-        <span class="hint">WebSocket URL for SIP connection</span>
+      <ProviderSelector @select="handleProviderSelect" />
+      <div class="settings-footer">
+        <p>Powered by VueSIP</p>
       </div>
+    </template>
 
-      <div class="form-group">
-        <label for="sip-uri">SIP URI</label>
-        <input
-          id="sip-uri"
-          v-model="sipUri"
-          type="text"
-          placeholder="sip:1001@sip.example.com"
-          autocomplete="username"
-          required
-        />
-        <span class="hint">Your SIP address (sip:user@domain)</span>
+    <!-- 46 elks Login -->
+    <template v-else-if="selectedProvider === '46elks'">
+      <Elks46Login @connect="handleConnect" @back="handleBack" />
+    </template>
+
+    <!-- Telnyx Login -->
+    <template v-else-if="selectedProvider === 'telnyx'">
+      <TelnyxLogin
+        :is-connecting="isConnecting"
+        :error-message="errorMessage"
+        @connect="handleConnect"
+        @back="handleBack"
+      />
+    </template>
+
+    <!-- Custom PBX Login -->
+    <template v-else-if="selectedProvider === 'custom'">
+      <div class="custom-login">
+        <div class="login-header">
+          <button class="back-btn" @click="handleBack">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <div class="header-content">
+            <h2>Custom PBX</h2>
+            <p>Enter your SIP server credentials</p>
+          </div>
+        </div>
+
+        <form @submit.prevent="handleCustomSubmit" class="login-form">
+          <div class="form-group">
+            <label for="ws-server">WebSocket Server</label>
+            <input
+              id="ws-server"
+              v-model="wsServer"
+              type="url"
+              placeholder="wss://sip.example.com:8089/ws"
+              autocomplete="url"
+              :disabled="isConnecting"
+              required
+            />
+            <span class="hint">WebSocket URL for SIP connection</span>
+          </div>
+
+          <div class="form-group">
+            <label for="sip-uri">SIP URI</label>
+            <input
+              id="sip-uri"
+              v-model="sipUri"
+              type="text"
+              placeholder="sip:1001@sip.example.com"
+              autocomplete="username"
+              :disabled="isConnecting"
+              required
+            />
+            <span class="hint">Your SIP address (sip:user@domain)</span>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              id="password"
+              v-model="password"
+              type="password"
+              placeholder="Enter your SIP password"
+              autocomplete="current-password"
+              :disabled="isConnecting"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="display-name">Display Name (optional)</label>
+            <input
+              id="display-name"
+              v-model="displayName"
+              type="text"
+              placeholder="Your Name"
+              autocomplete="name"
+              :disabled="isConnecting"
+            />
+          </div>
+
+          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
+          <button type="submit" class="submit-btn" :disabled="!isFormValid || isConnecting">
+            <svg
+              v-if="isConnecting"
+              class="spinner"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"
+              />
+            </svg>
+            <span>{{ isConnecting ? 'Connecting...' : 'Connect' }}</span>
+          </button>
+        </form>
       </div>
-
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input
-          id="password"
-          v-model="password"
-          type="password"
-          placeholder="Enter your SIP password"
-          autocomplete="current-password"
-          required
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="display-name">Display Name (optional)</label>
-        <input
-          id="display-name"
-          v-model="displayName"
-          type="text"
-          placeholder="Your Name"
-          autocomplete="name"
-        />
-      </div>
-
-      <button type="submit" class="connect-btn" :disabled="!isFormValid || isConnecting">
-        <svg
-          v-if="isConnecting"
-          class="spinner"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path
-            d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"
-          />
-        </svg>
-        <span>{{ isConnecting ? 'Connecting...' : 'Connect' }}</span>
-      </button>
-
-      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-    </form>
-
-    <div class="settings-footer">
-      <p>Powered by VueSIP</p>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -153,15 +215,15 @@ function handleSubmit() {
   flex-direction: column;
 }
 
-.settings-header {
-  text-align: center;
-  padding: 1.5rem 0;
+.settings-logo {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0 0.5rem;
 }
 
 .logo {
   width: 64px;
   height: 64px;
-  margin: 0 auto 1rem;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   border-radius: var(--radius-lg);
   display: flex;
@@ -175,20 +237,74 @@ function handleSubmit() {
   color: white;
 }
 
-.settings-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem;
+.settings-footer {
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+.settings-footer p {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* Custom login styles (same as Telnyx/Elks) */
+.custom-login {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.back-btn:hover {
+  background: var(--bg-secondary);
   color: var(--text-primary);
 }
 
-.settings-header p {
+.back-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.header-content {
+  flex: 1;
+}
+
+.header-content h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+  color: var(--text-primary);
+}
+
+.header-content p {
   font-size: 0.875rem;
   color: var(--text-secondary);
   margin: 0;
 }
 
-.settings-form {
+.login-form {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -227,19 +343,34 @@ function handleSubmit() {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+.form-group input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .hint {
   font-size: 0.75rem;
   color: var(--text-tertiary);
 }
 
-.connect-btn {
+.error-message {
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.submit-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
   padding: 1rem;
-  margin-top: 0.5rem;
+  margin-top: auto;
   background: var(--color-primary);
   color: white;
   border: none;
@@ -250,11 +381,11 @@ function handleSubmit() {
   transition: all 0.2s;
 }
 
-.connect-btn:hover:not(:disabled) {
+.submit-btn:hover:not(:disabled) {
   background: var(--color-primary-dark);
 }
 
-.connect-btn:disabled {
+.submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -272,23 +403,5 @@ function handleSubmit() {
   to {
     transform: rotate(360deg);
   }
-}
-
-.error-message {
-  text-align: center;
-  color: var(--color-error);
-  font-size: 0.875rem;
-  margin: 0.5rem 0 0;
-}
-
-.settings-footer {
-  padding: 1.5rem 0;
-  text-align: center;
-}
-
-.settings-footer p {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-  margin: 0;
 }
 </style>
