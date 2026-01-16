@@ -216,6 +216,9 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
 
   // Duration timer reference
   let durationTimer: ReturnType<typeof setInterval> | null = null
+  // Simulation timers
+  let incomingInterval: ReturnType<typeof setInterval> | null = null
+  let qualityInterval: ReturnType<typeof setInterval> | null = null
 
   // ===========================================================================
   // Computed Values
@@ -253,6 +256,39 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
     }
   }
 
+  // Start/stop simulators based on configuration
+  function startIncomingSimulator(): void {
+    if (!config.value.generateIncomingCalls || incomingInterval) return
+    incomingInterval = setInterval(() => {
+      if (!isConnected.value || !isRegistered.value) return
+      if (activeCall.value) return
+      const num = String(Math.floor(100000000 + Math.random() * 900000000))
+      simulateIncomingCall(num, `Caller ${num.slice(-4)}`)
+    }, Math.max(5000, config.value.incomingCallInterval))
+  }
+
+  function stopIncomingSimulator(): void {
+    if (incomingInterval) {
+      clearInterval(incomingInterval)
+      incomingInterval = null
+    }
+  }
+
+  function startQualitySimulator(): void {
+    if (!config.value.simulateQualityEvents || qualityInterval) return
+    qualityInterval = setInterval(() => {
+      if (activeCall.value && activeCall.value.state === 'active') {
+        simulateCallQualityDrop()
+      }
+    }, 15000)
+  }
+
+  function stopQualitySimulator(): void {
+    if (qualityInterval) {
+      clearInterval(qualityInterval)
+      qualityInterval = null
+    }
+  }
   /**
    * Moves the active call to history and clears it
    */
@@ -299,6 +335,10 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
     await delay(config.value.registerDelay)
     isRegistered.value = true
     log.info('Registered with mock SIP server')
+
+    // Start simulators if enabled
+    startIncomingSimulator()
+    startQualitySimulator()
   }
 
   /**
@@ -315,6 +355,10 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
     isRegistered.value = false
     isConnected.value = false
     log.debug('Disconnected')
+
+    // Stop simulators
+    stopIncomingSimulator()
+    stopQualitySimulator()
   }
 
   // ===========================================================================
@@ -569,11 +613,12 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
       ...config.value,
       ...newOptions,
     }
+    // Restart simulators to apply new settings
+    stopIncomingSimulator()
+    stopQualitySimulator()
+    startIncomingSimulator()
+    startQualitySimulator()
   }
-
-  // ===========================================================================
-  // Return Public API
-  // ===========================================================================
 
   // ===========================================================================
   // Lifecycle Cleanup
@@ -585,6 +630,8 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
    */
   onUnmounted(() => {
     stopDurationTimer()
+    stopIncomingSimulator()
+    stopQualitySimulator()
     // Ensure clean disconnect state
     if (isConnected.value) {
       isConnected.value = false
@@ -592,6 +639,9 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
     }
   })
 
+  // ===========================================================================
+  // Return Public API
+  // ===========================================================================
   return {
     // State
     isConnected,

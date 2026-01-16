@@ -308,7 +308,6 @@ export type {
   FetchCallsOptions,
 } from '../providers/services/elks46ApiService'
 export type { TelnyxCredential, TelnyxConnection } from '../providers/services/telnyxApiService'
-
 // Mock/Testing composables
 export {
   useSipMock,

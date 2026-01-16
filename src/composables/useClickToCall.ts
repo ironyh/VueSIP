@@ -601,7 +601,6 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
       }
     }
   )
-
   // ===========================================================================
   // CSS Variables
   // ===========================================================================
@@ -707,7 +706,6 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
 
       // Make the call
       await sipClient.call(targetNumber)
-
       log.info('Call started to', targetNumber)
     } catch (error) {
       const err = error instanceof Error ? error : new Error('Call failed')

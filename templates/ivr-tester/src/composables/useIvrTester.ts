@@ -11,10 +11,6 @@
  */
 
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
-<<<<<<< HEAD
-import { useSipClient, useCallSession } from 'vuesip'
-=======
->>>>>>> origin/main
 
 /**
  * Represents a node in the IVR menu tree
@@ -107,26 +103,6 @@ export type ExportFormat = 'json' | 'markdown' | 'csv'
  * Return type for useIvrTester composable
  */
 export interface UseIvrTesterReturn {
-  // ============================================================================
-<<<<<<< HEAD
-  // SIP Connection
-  // ============================================================================
-
-  /** Configure SIP client (pass provider config) */
-  configure: (config: Record<string, unknown>) => Promise<void> | void
-  /** Connect to SIP server */
-  connect: () => Promise<void>
-  /** Disconnect from SIP server */
-  disconnect: () => Promise<void>
-  /** Registered/connected state */
-  isConnected: Ref<boolean>
-  /** Connecting state */
-  isConnecting: Ref<boolean>
-  /** Call state from session */
-  callState: Ref<string>
-  // ============================================================================
-=======
->>>>>>> origin/main
   // Session State
   // ============================================================================
 
@@ -147,13 +123,6 @@ export interface UseIvrTesterReturn {
   currentPath: ComputedRef<IvrNode[]>
   /** Breadcrumb string representation */
   breadcrumbs: ComputedRef<string>
-<<<<<<< HEAD
-  /** Root node for binding in UI */
-  ivrTree: ComputedRef<IvrNode | null>
-  /** Current node ID for UI */
-  currentNodeId: ComputedRef<string | null>
-=======
->>>>>>> origin/main
 
   // ============================================================================
   // Call State
