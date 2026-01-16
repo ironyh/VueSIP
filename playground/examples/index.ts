@@ -54,6 +54,7 @@ import { confBridgeExample } from './confbridge'
 import { pjsipExample } from './pjsip'
 import { systemHealthExample } from './system-health'
 import { mwiExample } from './mwi'
+import { aiInsightsExample } from './ai-insights'
 import type { ExampleCategory } from './types'
 
 // SIP Features - Core WebRTC/SIP functionality
@@ -83,6 +84,7 @@ export const sipExamples = [
   sessionPersistenceExample,
   callMutePatternsExample,
   transcriptionExample,
+  aiInsightsExample,
 ]
 
 // AMI Features - Asterisk Manager Interface / PBX functionality
