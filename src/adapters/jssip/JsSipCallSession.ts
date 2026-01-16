@@ -7,6 +7,7 @@
 import type { RTCSession } from 'jssip'
 import { EventEmitter } from '../../utils/EventEmitter'
 import { DefaultSdpTransformer } from '../../codecs/sdp/DefaultSdpTransformer'
+import { useCodecs } from '../../codecs/useCodecs'
 import type {
   ICallSession,
   AnswerOptions,
@@ -515,8 +516,6 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
       try {
         const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : []
         if (transceivers && transceivers.length > 0) {
-          const { useCodecs } =
-            require('../../codecs/useCodecs') as typeof import('../../codecs/useCodecs')
           const codecs = useCodecs(this._codecPolicy)
           for (const t of transceivers) {
             const kind = (t.sender?.track?.kind ?? t.receiver?.track?.kind) as
