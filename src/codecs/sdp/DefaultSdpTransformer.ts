@@ -13,17 +13,20 @@ export class DefaultSdpTransformer implements SdpTransformer {
       for (const line of lines) {
         const m = line.match(rtpmapRe)
         if (m) {
-          const pt = m[1]
-          const codec = m[2].toLowerCase()
+          const pt = m[1] ?? ''
+          const codec = (m[2] ?? '').toLowerCase()
+          if (!pt || !codec) continue
           const mime = `${kind}/${codec}`.toLowerCase()
-          mimeToPt[mime] = mimeToPt[mime] || []
-          mimeToPt[mime].push(pt)
+          const list = mimeToPt[mime] ?? (mimeToPt[mime] = [])
+          list.push(pt)
         }
       }
 
-      const mIndex = lines.findIndex((l) => l.startsWith(`m=${kind}`))
+      const mIndex = lines.findIndex((l) => l?.startsWith(`m=${kind}`))
       if (mIndex === -1) return sdp
-      const parts = lines[mIndex].split(' ')
+      const mLine = lines[mIndex]
+      if (!mLine) return sdp
+      const parts = mLine.split(' ')
       const header = parts.slice(0, 3) // m=<kind> <port> <proto>
       const pts = parts.slice(3)
 
