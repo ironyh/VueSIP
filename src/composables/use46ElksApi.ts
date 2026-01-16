@@ -95,8 +95,6 @@ export function use46ElksApi(): Use46ElksApiReturn {
   const secret = ref<string | null>(null)
   const callHistory = ref<Elks46Call[]>([])
   const isLoadingCallHistory = ref(false)
-  const callHistory = ref<Elks46Call[]>([])
-  const isLoadingCallHistory = ref(false)
 
   /**
    * Authenticate with 46 elks API credentials and fetch available numbers

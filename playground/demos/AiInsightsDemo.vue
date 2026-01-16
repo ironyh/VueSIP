@@ -111,7 +111,7 @@
           <span class="tab-header">
             <span>📋</span>
             <span>Summary</span>
-            <i v-if="hasSummary" class="pi pi-check-circle text-green-500" />
+            <i v-if="hasSummary" class="pi pi-check-circle text-green-500"></i>
           </span>
         </template>
 
@@ -366,7 +366,7 @@ const {
 } = useCallSummary()
 
 const {
-  rules,
+  rules, // eslint-disable-line @typescript-eslint/no-unused-vars
   ruleCount,
   hasRules,
   enabledRulesCount,
@@ -378,7 +378,7 @@ const {
   enableAllRules,
   disableAllRules,
   addRule,
-  reset: resetRouting,
+  reset: resetRouting, // eslint-disable-line @typescript-eslint/no-unused-vars
 } = useSmartRouting()
 
 // =============================================================================
