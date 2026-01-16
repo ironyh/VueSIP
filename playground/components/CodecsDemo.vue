@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useCodecsStore } from '../composables/useCodecsStore'
+import { playgroundSipClient } from '../sipClient'
 
 const {
   policy,
   codecs,
   presets,
   applyPreset,
+  customPresets,
+  saveCustomPreset,
+  deleteCustomPreset,
+  applyCustomPreset,
+  exportPolicy,
+  importPolicy,
   remoteProfiles,
   selectedRemoteProfile,
   selectedPreset,
@@ -50,6 +57,31 @@ await adapter.call('sip:bob@example.com', {
   codecPolicy: ${JSON.stringify(policy.value, null, 2)}
 })`
 )
+
+// Use-in-call demo
+const targetUri = ref('sip:2000@example.com')
+const placing = ref(false)
+const callError = ref<string | null>(null)
+async function placeCall() {
+  callError.value = null
+  try {
+    placing.value = true
+    const client = playgroundSipClient.getClient()
+    if (!client) throw new Error('SIP client not initialized')
+    await client.call(targetUri.value, {
+      mediaConstraints: { audio: true, video: false },
+      codecPolicy: policy.value as any,
+    } as any)
+  } catch (e) {
+    callError.value = e instanceof Error ? e.message : String(e)
+  } finally {
+    placing.value = false
+  }
+}
+
+// Custom preset helpers
+const newPresetName = ref('My PBX Policy')
+const importText = ref('')
 </script>
 
 <template>
@@ -139,6 +171,45 @@ await adapter.call('sip:bob@example.com', {
       </div>
     </section>
 
+    <section class="presets">
+      <h4>Custom Presets</h4>
+      <div class="controls">
+        <div class="control">
+          <label>Preset name</label>
+          <input v-model="newPresetName" placeholder="My PBX Policy" />
+        </div>
+        <button class="apply-btn" @click="saveCustomPreset(newPresetName)">Save Preset</button>
+      </div>
+      <div v-if="Object.keys(customPresets).length" class="custom-list">
+        <strong>Saved:</strong>
+        <ul>
+          <li v-for="(p, name) in customPresets" :key="name">
+            <span>{{ name }}</span>
+            <button @click="applyCustomPreset(name)" class="link">Apply</button>
+            <button @click="deleteCustomPreset(name)" class="link danger">Delete</button>
+          </li>
+        </ul>
+      </div>
+      <div class="import-export">
+        <div>
+          <h5>Export Current Policy</h5>
+          <pre><code>{{ exportPolicy() }}</code></pre>
+        </div>
+        <div>
+          <h5>Import Policy (JSON)</h5>
+          <textarea v-model="importText" rows="6" placeholder="Paste policy JSON here"></textarea>
+          <div>
+            <button
+              class="apply-btn"
+              @click="importPolicy(importText) || (callError = 'Invalid JSON')"
+            >
+              Import
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="snippets">
       <h4>Usage</h4>
       <div class="snippet">
@@ -149,6 +220,20 @@ await adapter.call('sip:bob@example.com', {
         <h5>Per-call override</h5>
         <pre><code>{{ snippetPerCall }}</code></pre>
       </div>
+    </section>
+
+    <section class="use-in-call">
+      <h4>Use in Call (Demo)</h4>
+      <div class="controls">
+        <div class="control">
+          <label>Target SIP URI</label>
+          <input v-model="targetUri" placeholder="sip:2000@example.com" />
+        </div>
+        <button class="apply-btn" :disabled="placing" @click="placeCall">
+          {{ placing ? 'Placing…' : 'Call with Current Policy' }}
+        </button>
+      </div>
+      <p v-if="callError" class="error">{{ callError }}</p>
     </section>
   </div>
 </template>
@@ -183,5 +268,31 @@ await adapter.call('sip:bob@example.com', {
   color: #eee;
   padding: 0.75rem;
   overflow: auto;
+}
+.presets .custom-list ul {
+  list-style: none;
+  padding: 0;
+}
+.presets .custom-list li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.link {
+  background: transparent;
+  color: #4da3ff;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.link.danger {
+  color: #ff6b6b;
+}
+textarea {
+  width: 100%;
+  max-width: 600px;
+}
+.error {
+  color: #e33;
 }
 </style>

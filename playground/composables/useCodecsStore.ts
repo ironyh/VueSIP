@@ -4,6 +4,7 @@ import { DefaultCodecPolicy } from '@/codecs/types'
 import { useCodecs } from '@/codecs/useCodecs'
 
 const STORAGE_KEY = 'vuesip-codecs-policy'
+const PRESETS_KEY = 'vuesip-codecs-presets'
 
 export function useCodecsStore() {
   const saved = localStorage.getItem(STORAGE_KEY)
@@ -139,6 +140,36 @@ export function useCodecsStore() {
     { deep: true }
   )
 
+  // Custom presets (persisted)
+  const customPresets = ref<Record<string, CodecPolicy>>(
+    JSON.parse(localStorage.getItem(PRESETS_KEY) || '{}')
+  )
+  function saveCustomPreset(name: string) {
+    if (!name.trim()) return
+    customPresets.value[name] = JSON.parse(JSON.stringify(policy.value))
+    localStorage.setItem(PRESETS_KEY, JSON.stringify(customPresets.value))
+  }
+  function deleteCustomPreset(name: string) {
+    delete customPresets.value[name]
+    localStorage.setItem(PRESETS_KEY, JSON.stringify(customPresets.value))
+  }
+  function applyCustomPreset(name: string) {
+    const p = customPresets.value[name]
+    if (p) policy.value = JSON.parse(JSON.stringify(p))
+  }
+  function exportPolicy(): string {
+    return JSON.stringify(policy.value, null, 2)
+  }
+  function importPolicy(json: string): boolean {
+    try {
+      const obj = JSON.parse(json)
+      policy.value = obj
+      return true
+    } catch {
+      return false
+    }
+  }
+
   function setAudioPreference(pref: 'auto' | 'opus' | 'pcmu' | 'pcma') {
     if (pref === 'auto') {
       policy.value.audio = DefaultCodecPolicy.audio
@@ -168,6 +199,12 @@ export function useCodecsStore() {
     codecs,
     presets,
     applyPreset,
+    customPresets,
+    saveCustomPreset,
+    deleteCustomPreset,
+    applyCustomPreset,
+    exportPolicy,
+    importPolicy,
     remoteProfiles,
     selectedRemoteProfile,
     selectedPreset,
