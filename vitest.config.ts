@@ -81,7 +81,8 @@ export default defineConfig({
       // These are expected in benchmarks that test raw classes without Vue context
       if (
         typeof log === 'string' &&
-        log.includes('onUnmounted is called when there is no active component instance')
+        (log.includes('onUnmounted is called when there is no active component instance') ||
+          log.includes('onBeforeUnmount is called when there is no active component instance'))
       ) {
         return false // Suppress this warning
       }
