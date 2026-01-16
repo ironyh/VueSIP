@@ -125,4 +125,4 @@ const { provider } = useCallCenterProvider({
 
 ## API Reference
 
-See the [Call Center API Reference](/api/call-center) for complete documentation.
+See the [Call Center API Reference](/api/generated/index.md#usecallcenterprovider) for complete documentation.

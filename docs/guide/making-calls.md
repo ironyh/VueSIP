@@ -1307,8 +1307,8 @@ watch(timing, (timingInfo) => {
 
 - [Receiving Calls Guide](./receiving-calls.md) - Learn how to handle incoming calls
 - [Call Controls Guide](./call-controls.md) - Master hold, mute, transfer, DTMF, and more
-- [Media Management Guide](./media-management.md) - Advanced audio/video configuration
-- [API Reference](../api/use-call-session.md) - Complete API documentation
+- [Media Management Guide](./device-management.md) - Advanced audio/video configuration
+- [API Reference](../api/composables.md#usecallsession) - Complete API documentation
 
 ---
 

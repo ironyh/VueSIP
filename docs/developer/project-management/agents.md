@@ -7,7 +7,7 @@
 - `docs/`: VitePress documentation; `dist/`: build output (do not edit).
 
 ## Build, Test, and Development Commands
-- Dev server: `pnpm dev` (Vite at http://localhost:5173).
+- Dev server: `pnpm dev` (Vite at `http://localhost:5173`).
 - Build library: `pnpm build` (outputs to `dist/`).
 - Unit/integration tests: `pnpm test`, `pnpm test:unit`, `pnpm test:integration`.
 - E2E (Playwright): `pnpm test:e2e`, UI mode `pnpm test:e2e:ui`, report `pnpm test:e2e:report`.

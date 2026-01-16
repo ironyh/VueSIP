@@ -1532,9 +1532,9 @@ eventBus.on('connected', handleConnection)
 - [EventBus Source Code](../../src/core/EventBus.ts)
 - [Event Type Definitions](../../src/types/events.types.ts)
 - [EventBus Tests](../../tests/unit/EventBus.test.ts)
-- [SIP Client Documentation](./sip-client.md)
+- [SIP Client Documentation](./composables.md#usesipclient)
 
 **Related Documentation:**
 - [Plugin System](./plugins.md)
-- [Call Management](./calls.md)
-- [Media Management](./media.md)
+- [Call Management](../guide/making-calls.md)
+- [Media Management](../guide/device-management.md)

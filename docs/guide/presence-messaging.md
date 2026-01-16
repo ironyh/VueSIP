@@ -3158,16 +3158,16 @@ You've learned how to build complete presence and messaging features with VueSip
 
 ### For API Reference:
 
-- 📖 **[usePresence API](/api/composables/usePresence)** - Complete API documentation and type definitions
-- 📖 **[useMessaging API](/api/composables/useMessaging)** - Complete API documentation and type definitions
-- 📖 **[useSipClient API](/api/composables/useSipClient)** - SIP client configuration and methods
+- 📖 **[usePresence API](/api/composables.md#usepresence)** - Complete API documentation and type definitions
+- 📖 **[useMessaging API](/api/composables.md#usemessaging)** - Complete API documentation and type definitions
+- 📖 **[useSipClient API](/api/composables.md#usesipclient)** - SIP client configuration and methods
 - 📖 **[Events API](/api/events)** - All presence and messaging events explained
 
 ### For Production Deployment:
 
-- 🔧 **[Server Configuration](./server-configuration.md)** - Production-ready server setups
-- 🐛 **[Troubleshooting Guide](./troubleshooting.md)** - Comprehensive troubleshooting reference
-- 📊 **[Monitoring & Analytics](./monitoring.md)** - Track presence and messaging metrics
+- 🔧 **[Server Configuration](./getting-started.md)** - Production-ready server setups
+- 🐛 **[Troubleshooting Guide](./error-handling.md)** - Comprehensive troubleshooting reference
+- 📊 **[Monitoring & Analytics](./call-quality.md)** - Track presence and messaging metrics
 
 ### Example Projects:
 

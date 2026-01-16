@@ -485,6 +485,6 @@ const displayMessage = computed(() => {
 
 ## Related Guides
 
-- [AMI Integration Overview](/guide/ami-overview)
+- [AMI Integration Overview](/guide/ami-cdr)
 - [Presence & Messaging](/guide/presence-messaging)
 - [Error Handling](/guide/error-handling)
