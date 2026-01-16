@@ -267,7 +267,10 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
     }
 
     const rtcSession = this.ua.call(target, jssipOptions)
-    const session = new JsSipCallSession(rtcSession)
+    const session = new JsSipCallSession(
+      rtcSession,
+      options?.codecPolicy ?? this.config?.codecPolicy
+    )
     this.activeSessions.set(session.id, session)
 
     // Clean up when session ends

@@ -26,9 +26,7 @@ const formattedDuration = computed(() => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 })
 
-const callerDisplay = computed(() =>
-  props.remoteDisplayName || props.remoteUri || 'Unknown Caller'
-)
+const callerDisplay = computed(() => props.remoteDisplayName || props.remoteUri || 'Unknown Caller')
 
 const isIncoming = computed(() => props.callState === 'ringing')
 const isActive = computed(() => props.callState === 'active' || props.callState === 'held')

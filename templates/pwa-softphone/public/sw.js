@@ -27,9 +27,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+        cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
       )
     })
   )
@@ -99,18 +97,17 @@ self.addEventListener('push', (event) => {
     tag: data.tag,
     vibrate: [200, 100, 200],
     requireInteraction: data.tag === 'incoming-call',
-    actions: data.tag === 'incoming-call'
-      ? [
-          { action: 'answer', title: 'Answer' },
-          { action: 'reject', title: 'Decline' },
-        ]
-      : [],
+    actions:
+      data.tag === 'incoming-call'
+        ? [
+            { action: 'answer', title: 'Answer' },
+            { action: 'reject', title: 'Decline' },
+          ]
+        : [],
     data: data,
   }
 
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  )
+  event.waitUntil(self.registration.showNotification(data.title, options))
 })
 
 // Notification click event
@@ -124,26 +121,18 @@ self.addEventListener('notificationclick', (event) => {
   // Handle incoming call actions
   if (data.tag === 'incoming-call' || data.type === 'incoming-call') {
     if (action === 'answer') {
-      event.waitUntil(
-        handleCallAction('answer', data)
-      )
+      event.waitUntil(handleCallAction('answer', data))
     } else if (action === 'reject') {
-      event.waitUntil(
-        handleCallAction('reject', data)
-      )
+      event.waitUntil(handleCallAction('reject', data))
     } else {
       // Default click - open app
-      event.waitUntil(
-        focusOrOpenApp()
-      )
+      event.waitUntil(focusOrOpenApp())
     }
     return
   }
 
   // Default click - open/focus app
-  event.waitUntil(
-    focusOrOpenApp()
-  )
+  event.waitUntil(focusOrOpenApp())
 })
 
 // Handle call actions from notification

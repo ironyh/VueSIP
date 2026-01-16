@@ -11,6 +11,7 @@
  */
 
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
+import { useSipClient, useCallSession } from 'vuesip'
 
 /**
  * Represents a node in the IVR menu tree
@@ -132,11 +133,8 @@ export interface UseIvrTesterReturn {
   isCallActive: Ref<boolean>
   /** Whether transcription is recording */
   isRecording: Ref<boolean>
-<<<<<<< HEAD
   /** Alias used by UI */
   isTranscribing: Ref<boolean>
-=======
->>>>>>> origin/main
   /** Current call duration in seconds */
   callDuration: Ref<number>
   /** Call status message */
@@ -356,10 +354,16 @@ export function useIvrTester(): UseIvrTesterReturn {
   // Internal State
   // ============================================================================
 
-<<<<<<< HEAD
   // SIP client + call session
   const sipClient = useSipClient()
-  const { connect: sipConnect, disconnect: sipDisconnect, isConnected, isConnecting, updateConfig, getClient } = sipClient
+  const {
+    connect: sipConnect,
+    disconnect: sipDisconnect,
+    isConnected,
+    isConnecting,
+    updateConfig,
+    getClient,
+  } = sipClient
   const clientRef = computed(() => getClient())
   const callSession = useCallSession(clientRef)
   const {
@@ -369,9 +373,6 @@ export function useIvrTester(): UseIvrTesterReturn {
     state: callState,
     duration: callDurationRef,
   } = callSession
-
-=======
->>>>>>> origin/main
   const currentSession = ref<IvrSession | null>(null)
   const savedSessions = ref<IvrSession[]>([])
   const isTestActive = ref(false)
@@ -407,13 +408,9 @@ export function useIvrTester(): UseIvrTesterReturn {
     return currentPath.value.map((node) => node.dtmf ?? 'Start').join(' > ')
   })
 
-<<<<<<< HEAD
   // Bindings for UI expectations
   const ivrTree = computed<IvrNode | null>(() => currentSession.value?.tree ?? null)
   const currentNodeId = computed<string | null>(() => currentNode.value?.id ?? null)
-
-=======
->>>>>>> origin/main
   const transcriptEntries = computed(() => {
     return currentSession.value?.transcript ?? []
   })
@@ -424,37 +421,11 @@ export function useIvrTester(): UseIvrTesterReturn {
 
   // Keep exposed call flags in sync with call session
   watch(
-    // @ts-ignore callState provided when SIP client is configured
-    () => (callState as any)?.value,
-    (state) => {
-      if (state == null) return
-      isCallActive.value = state === 'calling' || state === 'ringing' || state === 'active' || state === 'held'
-      switch (state) {
-        case 'calling':
-          callStatus.value = 'Calling...'
-          break
-        case 'ringing':
-          callStatus.value = 'Ringing...'
-          break
-        case 'active':
-          callStatus.value = 'Connected'
-          break
-        case 'held':
-          callStatus.value = 'On hold'
-          break
-        default:
-          callStatus.value = isConnected?.value ? 'Ready' : 'Disconnected'
-      }
-    }
-  )
-
-<<<<<<< HEAD
-  // Keep exposed call flags in sync with call session
-  watch(
     () => callState.value,
     (state) => {
       // calling, ringing, active, held, idle, ended
-      isCallActive.value = state === 'calling' || state === 'ringing' || state === 'active' || state === 'held'
+      isCallActive.value =
+        state === 'calling' || state === 'ringing' || state === 'active' || state === 'held'
       switch (state) {
         case 'calling':
           callStatus.value = 'Calling...'
@@ -484,9 +455,6 @@ export function useIvrTester(): UseIvrTesterReturn {
       if (typeof d === 'number') callDuration.value = d
     }
   )
-
-=======
->>>>>>> origin/main
   // ============================================================================
   // Session Persistence
   // ============================================================================
@@ -1088,7 +1056,6 @@ export function useIvrTester(): UseIvrTesterReturn {
   // ============================================================================
 
   return {
-<<<<<<< HEAD
     // SIP Connection
     configure: (config: Record<string, unknown>) => updateConfig(config as any),
     connect: sipConnect,
@@ -1096,9 +1063,6 @@ export function useIvrTester(): UseIvrTesterReturn {
     isConnected,
     isConnecting,
     callState: callState as Ref<string>,
-
-=======
->>>>>>> origin/main
     // Session State
     currentSession,
     savedSessions,
@@ -1108,19 +1072,13 @@ export function useIvrTester(): UseIvrTesterReturn {
     currentNode,
     currentPath,
     breadcrumbs,
-<<<<<<< HEAD
     ivrTree,
     currentNodeId,
-=======
->>>>>>> origin/main
 
     // Call State
     isCallActive,
     isRecording,
-<<<<<<< HEAD
     isTranscribing: isRecording,
-=======
->>>>>>> origin/main
     callDuration,
     callStatus,
 

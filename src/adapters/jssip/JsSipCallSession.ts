@@ -6,6 +6,8 @@
 
 import type { RTCSession } from 'jssip'
 import { EventEmitter } from '../../utils/EventEmitter'
+import { DefaultSdpTransformer } from '../../codecs/sdp/DefaultSdpTransformer'
+import { useCodecs } from '../../codecs/useCodecs'
 import type {
   ICallSession,
   AnswerOptions,
@@ -31,9 +33,13 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
   private _localStream: MediaStream | null = null
   private _remoteStream: MediaStream | null = null
 
-  constructor(session: RTCSession) {
+  private _codecPolicy: import('../../codecs/types').CodecPolicy | undefined
+  private _sdpTransformer = new DefaultSdpTransformer()
+
+  constructor(session: RTCSession, codecPolicy?: import('../../codecs/types').CodecPolicy) {
     super()
     this.session = session
+    this._codecPolicy = codecPolicy
     this.setupEventHandlers()
     this.initializeState()
   }
@@ -113,6 +119,11 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
 
         if (options?.pcConfig) {
           jssipOptions.pcConfig = options.pcConfig
+        }
+
+        // Allow per-call codec policy override on answer
+        if (options?.codecPolicy) {
+          this._codecPolicy = options.codecPolicy
         }
 
         this.session.answer(jssipOptions)
@@ -500,7 +511,44 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
         this._localStream = new MediaStream(tracks)
         this.emit('localStream', { stream: this._localStream })
       }
+
+      // Apply codec preferences via transceivers when available
+      try {
+        const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : []
+        if (transceivers && transceivers.length > 0) {
+          const codecs = useCodecs(this._codecPolicy)
+          for (const t of transceivers) {
+            const kind = (t.sender?.track?.kind ?? t.receiver?.track?.kind) as
+              | 'audio'
+              | 'video'
+              | undefined
+            if (kind === 'audio' || kind === 'video') {
+              codecs.applyToTransceiver(t as unknown as RTCRtpTransceiver, kind)
+            }
+          }
+        }
+      } catch {
+        // Best effort; skip if environment doesn't support
+      }
     })
+
+    // SDP hook: apply fallback codec reordering if transceiver API is disabled by policy
+    this.session.on(
+      'sdp',
+      (data: { originator?: string; type?: 'offer' | 'answer'; sdp: string }) => {
+        try {
+          if (this._codecPolicy && this._codecPolicy.preferTransceiverApi === false && data?.sdp) {
+            // Reorder both audio and video m-lines conservatively
+            let sdp = data.sdp
+            sdp = this._sdpTransformer.reorderCodecs(sdp, 'audio', [])
+            sdp = this._sdpTransformer.reorderCodecs(sdp, 'video', [])
+            data.sdp = sdp
+          }
+        } catch {
+          // Ignore SDP transform errors
+        }
+      }
+    )
 
     // Refer (transfer)
     this.session.on(

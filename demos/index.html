@@ -12,6 +12,7 @@
         --text: #e5e7eb;
         --muted: #9ca3af;
         --primary: #4f46e5;
+        --green: #22c55e;
       }
       html, body { height: 100%; }
       body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial; }
@@ -28,6 +29,7 @@
       a.btn { text-decoration: none; color: white; background: var(--primary); padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 14px; }
       a.btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
       footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
+      .muted { color: var(--muted); }
       .ports { margin: 20px 0; font-size: 14px; }
       .ports table { width: 100%; border-collapse: collapse; }
       .ports th, .ports td { border-bottom: 1px solid var(--border); padding: 8px; text-align: left; }
@@ -40,7 +42,7 @@
         <a class="btn secondary" href="https://github.com/ironyh/VueSIP">View Source</a>
       </header>
 
-      <p style="color:#9ca3af">Explore VueSIP demos. Each runs on its own subdomain for clean PWA scopes and simpler backend CORS.</p>
+      <p class="muted">Explore VueSIP demos. Each runs on its own subdomain for clean PWA scopes and simpler backend CORS.</p>
 
       <div class="grid">
         <div class="card">
@@ -133,4 +135,3 @@
     </div>
   </body>
   </html>
-

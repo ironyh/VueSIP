@@ -4,7 +4,7 @@ import { ref, computed, onMounted } from 'vue'
 const STORAGE_KEY = 'vuesip_telnyx_credentials'
 
 defineProps<{
-  isConnecting?: boolean
+  isConnecting: boolean
   errorMessage?: string
 }>()
 
@@ -29,9 +29,9 @@ onMounted(() => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      const parsed = JSON.parse(saved)
-      sipUsername.value = parsed.sipUsername || ''
-      displayName.value = parsed.displayName || ''
+      const { username, name } = JSON.parse(saved)
+      sipUsername.value = username || ''
+      displayName.value = name || ''
       rememberCredentials.value = true
     }
   } catch {
@@ -39,22 +39,26 @@ onMounted(() => {
   }
 })
 
-// Handle form submission
-function handleSubmit() {
-  if (!isFormValid.value) return
-
-  // Save credentials (except password)
+// Save credentials to localStorage (except password)
+function saveCredentials() {
   if (rememberCredentials.value) {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        sipUsername: sipUsername.value,
-        displayName: displayName.value,
+        username: sipUsername.value,
+        name: displayName.value,
       })
     )
   } else {
     localStorage.removeItem(STORAGE_KEY)
   }
+}
+
+// Handle form submission
+function handleSubmit() {
+  if (!isFormValid.value) return
+
+  saveCredentials()
 
   emit('connect', {
     uri: 'wss://rtc.telnyx.com',
@@ -77,7 +81,7 @@ function handleSubmit() {
         <h2>Telnyx Login</h2>
         <p>
           Enter your SIP credentials from the
-          <a href="https://portal.telnyx.com" target="_blank" rel="noopener">Telnyx Portal</a>
+          <a href="https://portal.telnyx.com" target="_blank" rel="noopener">Telnyx portal</a>
         </p>
       </div>
     </div>
@@ -94,7 +98,7 @@ function handleSubmit() {
           :disabled="isConnecting"
           required
         />
-        <span class="hint">From your Telnyx Credential Connection</span>
+        <span class="hint">From Telnyx Mission Control → SIP Connections</span>
       </div>
 
       <div class="form-group">

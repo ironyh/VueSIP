@@ -70,7 +70,8 @@ function loadSettings() {
     if (stored) {
       const parsed = JSON.parse(stored)
       if (typeof parsed.showDtmfStatus === 'boolean') showDtmfStatus.value = parsed.showDtmfStatus
-      if (typeof parsed.enableDtmfToasts === 'boolean') enableDtmfToasts.value = parsed.enableDtmfToasts
+      if (typeof parsed.enableDtmfToasts === 'boolean')
+        enableDtmfToasts.value = parsed.enableDtmfToasts
     }
   } catch {}
 }
@@ -78,7 +79,10 @@ function saveSettings() {
   try {
     localStorage.setItem(
       SETTINGS_KEY,
-      JSON.stringify({ showDtmfStatus: showDtmfStatus.value, enableDtmfToasts: enableDtmfToasts.value })
+      JSON.stringify({
+        showDtmfStatus: showDtmfStatus.value,
+        enableDtmfToasts: enableDtmfToasts.value,
+      })
     )
   } catch {}
 }
@@ -91,7 +95,6 @@ watch(enableDtmfToasts, saveSettings)
 function toggleSettings(event: Event) {
   settingsPanel.value?.toggle(event)
 }
- 
 
 // Computed
 const isConnected = computed(() => ivrTester.isConnected.value)
@@ -122,10 +125,20 @@ async function handleConnect(): Promise<void> {
     await ivrTester.configure(sipConfig)
     await ivrTester.connect()
     showConnectionPanel.value = false
-    toast.add({ severity: 'success', summary: 'Connected', detail: selectedProvider?.name || 'SIP server', life: 2000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Connected',
+      detail: selectedProvider?.name || 'SIP server',
+      life: 2000,
+    })
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Connection failed'
-    toast.add({ severity: 'error', summary: 'Connection failed', detail: statusMessage.value, life: 3000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Connection failed',
+      detail: statusMessage.value,
+      life: 3000,
+    })
   }
 }
 
@@ -138,14 +151,24 @@ async function handleDisconnect(): Promise<void> {
     toast.add({ severity: 'info', summary: 'Disconnected', life: 2000 })
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Disconnect failed'
-    toast.add({ severity: 'error', summary: 'Disconnect failed', detail: statusMessage.value, life: 3000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Disconnect failed',
+      detail: statusMessage.value,
+      life: 3000,
+    })
   }
 }
 
 // Start new test
 function handleStartTest(targetNumber: string, sessionName?: string): void {
   ivrTester.startTest(targetNumber, sessionName)
-  toast.add({ severity: 'info', summary: 'Starting test', detail: `Calling ${targetNumber}`, life: 2000 })
+  toast.add({
+    severity: 'info',
+    summary: 'Starting test',
+    detail: `Calling ${targetNumber}`,
+    life: 2000,
+  })
 }
 
 // End current test
@@ -225,7 +248,12 @@ function handleImportSession(jsonData: string): void {
     toast.add({ severity: 'success', summary: 'Session imported', life: 2000 })
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Import failed'
-    toast.add({ severity: 'error', summary: 'Import failed', detail: statusMessage.value, life: 3000 })
+    toast.add({
+      severity: 'error',
+      summary: 'Import failed',
+      detail: statusMessage.value,
+      life: 3000,
+    })
   }
 }
 
@@ -453,8 +481,6 @@ function formatRelative(ts: number): string {
             @seek="handleTimelineSeek"
             @dtmf-click="handleDtmfClick"
           />
-
-<<<<<<< HEAD
           <!-- Inline DTMF status line -->
           <div v-if="showDtmfStatus" class="dtmf-status">
             <i class="pi pi-hashtag" />
@@ -462,9 +488,6 @@ function formatRelative(ts: number): string {
             <span class="digit">{{ ivrTester.lastDtmfSent.value ?? '—' }}</span>
             <span v-if="lastDtmfTime" class="time">{{ formatRelative(lastDtmfTime!) }}</span>
           </div>
-
-=======
->>>>>>> origin/main
           <!-- Tabs for Keypad and Transcript -->
           <TabView v-model:active-index="activeRightTab" class="bottom-tabs">
             <TabPanel>
@@ -603,7 +626,6 @@ function formatRelative(ts: number): string {
   max-width: 420px;
 }
 
-<<<<<<< HEAD
 /* DTMF inline status */
 .dtmf-status {
   display: flex;
@@ -614,7 +636,7 @@ function formatRelative(ts: number): string {
   border-radius: 6px;
   background: linear-gradient(180deg, var(--surface-100), var(--surface-200));
   color: var(--text-color-secondary);
-  }
+}
 
 .dtmf-status i {
   opacity: 0.8;

@@ -5,12 +5,7 @@
  * In production, connect the AMI methods to your actual queue system.
  */
 import { ref, shallowRef, computed, type Ref, type ComputedRef, type ShallowRef } from 'vue'
-import {
-  useSipClient,
-  useCallSession,
-  createAmiClient,
-  type AmiClient,
-} from 'vuesip'
+import { useSipClient, useCallSession, createAmiClient, type AmiClient } from 'vuesip'
 
 export type AgentState = 'logged-out' | 'available' | 'on-call' | 'paused' | 'wrap-up'
 

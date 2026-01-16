@@ -39,17 +39,20 @@ Before you begin, ensure you have the following installed:
 1. **Fork the repository** on GitHub
 
 2. **Clone your fork**:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/VueSip.git
    cd VueSip
    ```
 
 3. **Add upstream remote**:
+
    ```bash
    git remote add upstream https://github.com/ironyh/VueSip.git
    ```
 
 4. **Install dependencies**:
+
    ```bash
    pnpm install
    ```
@@ -410,14 +413,14 @@ const userName = 'John'
 const isConnected = ref(false)
 
 // Functions: camelCase
-function calculateTotal() { }
-const handleClick = () => { }
+function calculateTotal() {}
+const handleClick = () => {}
 
 // Classes: PascalCase
-class SipClient { }
+class SipClient {}
 
 // Interfaces and Types: PascalCase
-interface UserConfig { }
+interface UserConfig {}
 type ConnectionState = string
 
 // Constants: UPPER_SNAKE_CASE
@@ -437,7 +440,7 @@ enum RegistrationState {
 
 All public APIs must have JSDoc comments:
 
-```typescript
+````typescript
 /**
  * Connects to the SIP server and initiates registration
  *
@@ -456,13 +459,10 @@ All public APIs must have JSDoc comments:
  * })
  * ```
  */
-export async function connect(
-  config: SipClientConfig,
-  options?: ConnectionOptions
-): Promise<void> {
+export async function connect(config: SipClientConfig, options?: ConnectionOptions): Promise<void> {
   // implementation
 }
-```
+````
 
 #### Inline Comments
 
@@ -500,6 +500,7 @@ VueSip uses a three-tier testing strategy:
 Test individual composables, classes, and utilities in isolation.
 
 **When to write unit tests:**
+
 - For all new composables
 - For all core classes
 - For utility functions
@@ -543,7 +544,7 @@ describe('useSipClient', () => {
     const config = {
       uri: 'wss://sip.example.com',
       sipUri: 'sip:user@example.com',
-      password: 'secret'
+      password: 'secret',
     }
 
     const [result, unmount] = withSetup(() => useSipClient(config))
@@ -562,6 +563,7 @@ describe('useSipClient', () => {
 Test interaction between multiple modules and complete workflows.
 
 **When to write integration tests:**
+
 - For complete SIP workflows (connect → register → call → hangup)
 - For multi-component interactions
 - For state management across modules
@@ -584,7 +586,7 @@ describe('SIP Workflow Integration', () => {
     const config: SipClientConfig = {
       uri: 'wss://sip.example.com',
       sipUri: 'sip:user@example.com',
-      password: 'secret'
+      password: 'secret',
     }
     sipClient = new SipClient(config, eventBus)
   })
@@ -610,6 +612,7 @@ describe('SIP Workflow Integration', () => {
 Test complete user flows in a browser environment using Playwright.
 
 **When to write E2E tests:**
+
 - For critical user journeys
 - For UI interactions in example applications
 - For cross-browser compatibility
@@ -770,7 +773,7 @@ git push origin main
 
 1. **Create the composable file** in `src/composables/`:
 
-```typescript
+````typescript
 // src/composables/useNewFeature.ts
 
 import { ref, computed, readonly, type Ref, type ComputedRef } from 'vue'
@@ -801,9 +804,7 @@ export interface UseNewFeatureReturn {
  * await activate()
  * ```
  */
-export function useNewFeature(
-  initialConfig?: NewFeatureConfig
-): UseNewFeatureReturn {
+export function useNewFeature(initialConfig?: NewFeatureConfig): UseNewFeatureReturn {
   // Implementation
   const isActive = ref(false)
 
@@ -823,7 +824,7 @@ export function useNewFeature(
     deactivate,
   }
 }
-```
+````
 
 2. **Export from index**:
 
@@ -1004,12 +1005,14 @@ test(composables): add integration tests for useSipClient
 ### Before Submitting
 
 1. **Update from main**:
+
    ```bash
    git fetch upstream
    git rebase upstream/main
    ```
 
 2. **Run all checks**:
+
    ```bash
    pnpm run lint:fix
    pnpm run type-check
@@ -1018,6 +1021,7 @@ test(composables): add integration tests for useSipClient
    ```
 
 3. **Verify coverage**:
+
    ```bash
    pnpm run coverage
    ```
@@ -1040,46 +1044,56 @@ docs: update contributing guidelines
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] Documentation update
 
 ## Related Issues
+
 Closes #123
 Relates to #456
 
 ## Changes Made
+
 - Detailed list of changes
 - Another change
 - Yet another change
 
 ## Testing
+
 - [ ] Unit tests pass
 - [ ] Integration tests pass
 - [ ] E2E tests pass
 - [ ] Manual testing completed
 
 ## Coverage
+
 - [ ] Coverage maintained/improved (minimum 80%)
 - [ ] All new code is covered by tests
 
 ## Documentation
+
 - [ ] README updated
 - [ ] API documentation updated
 - [ ] Examples added/updated
 - [ ] CHANGELOG updated
 
 ## Screenshots (if applicable)
+
 Add screenshots for UI changes
 
 ## Breaking Changes (if applicable)
+
 Describe any breaking changes and migration path
 
 ## Checklist
+
 - [ ] Code follows style guidelines
 - [ ] Self-review completed
 - [ ] Comments added for complex code
@@ -1099,6 +1113,7 @@ Keep PRs focused and manageable:
 - **Large**: > 500 lines changed (break into smaller PRs if possible)
 
 For large features, consider:
+
 - Breaking into multiple smaller PRs
 - Creating a tracking issue with subtasks
 - Using feature flags for incremental delivery
@@ -1128,6 +1143,7 @@ git push origin main
 ### For Authors
 
 **Before requesting review:**
+
 - Self-review your code
 - Run all checks locally
 - Add clear PR description
@@ -1135,6 +1151,7 @@ git push origin main
 - Add screenshots for UI changes
 
 **During review:**
+
 - Respond to all comments
 - Ask for clarification if needed
 - Be open to feedback
@@ -1143,6 +1160,7 @@ git push origin main
 ### For Reviewers
 
 **Focus areas:**
+
 1. **Correctness**: Does the code work as intended?
 2. **Tests**: Is there adequate test coverage?
 3. **Performance**: Any performance concerns?
@@ -1151,6 +1169,7 @@ git push origin main
 6. **Documentation**: Is it properly documented?
 
 **Review checklist:**
+
 - [ ] Code follows style guidelines
 - [ ] Logic is correct and handles edge cases
 - [ ] Tests are comprehensive
@@ -1162,6 +1181,7 @@ git push origin main
 - [ ] Documentation is clear and complete
 
 **Providing feedback:**
+
 - Be constructive and respectful
 - Explain the "why" behind suggestions
 - Distinguish between required changes and suggestions
@@ -1169,6 +1189,7 @@ git push origin main
 - Use GitHub's suggestion feature for small fixes
 
 **Comment types:**
+
 - **Required**: Must be addressed before merge
 - **Suggestion**: Nice to have, author decides
 - **Question**: Seeking clarification
@@ -1179,6 +1200,7 @@ git push origin main
 ### General Performance
 
 1. **Avoid unnecessary reactivity**:
+
    ```typescript
    // ✅ Good - using readonly for derived state
    const count = ref(0)
@@ -1186,20 +1208,25 @@ git push origin main
 
    // ❌ Bad - unnecessary reactive overhead
    const state = reactive({ count: 0, doubled: 0 })
-   watch(() => state.count, (val) => state.doubled = val * 2)
+   watch(
+     () => state.count,
+     (val) => (state.doubled = val * 2)
+   )
    ```
 
 2. **Use computed for derived values**:
+
    ```typescript
    // ✅ Good
    const doubled = computed(() => count.value * 2)
 
    // ❌ Bad
    const doubled = ref(0)
-   watch(count, (val) => doubled.value = val * 2)
+   watch(count, (val) => (doubled.value = val * 2))
    ```
 
 3. **Debounce expensive operations**:
+
    ```typescript
    import { useDebounceFn } from '@vueuse/core'
 
@@ -1220,6 +1247,7 @@ git push origin main
 ### WebRTC Performance
 
 1. **Limit media constraints**:
+
    ```typescript
    // Request only what you need
    const constraints = {
@@ -1227,15 +1255,16 @@ git push origin main
      video: {
        width: { ideal: 1280 },
        height: { ideal: 720 },
-       frameRate: { ideal: 30 }
-     }
+       frameRate: { ideal: 30 },
+     },
    }
    ```
 
 2. **Release media streams promptly**:
+
    ```typescript
    const releaseStream = (stream: MediaStream) => {
-     stream.getTracks().forEach(track => track.stop())
+     stream.getTracks().forEach((track) => track.stop())
    }
    ```
 
@@ -1269,21 +1298,23 @@ git push origin main
    - Add sensitive files to `.gitignore`
 
 2. **Secure credential handling**:
+
    ```typescript
    // ✅ Good - credentials from secure config
    const config = {
      sipUri: import.meta.env.VITE_SIP_URI,
-     password: import.meta.env.VITE_SIP_PASSWORD
+     password: import.meta.env.VITE_SIP_PASSWORD,
    }
 
    // ❌ Bad - hardcoded credentials
    const config = {
      sipUri: 'sip:user@example.com',
-     password: 'secret123'
+     password: 'secret123',
    }
    ```
 
 3. **Encrypt sensitive data**:
+
    ```typescript
    import { encrypt, decrypt } from '@/utils/encryption'
 
@@ -1295,6 +1326,7 @@ git push origin main
 ### Input Validation
 
 1. **Validate all inputs**:
+
    ```typescript
    import { validateSipUri, validatePassword } from '@/utils/validators'
 
@@ -1334,6 +1366,7 @@ git push origin main
 ### Dependencies
 
 1. **Keep dependencies updated**:
+
    ```bash
    pnpm update
    pnpm audit
@@ -1346,6 +1379,7 @@ git push origin main
 ### Error Messages
 
 1. **Don't expose sensitive information**:
+
    ```typescript
    // ✅ Good - generic error
    throw new Error('Authentication failed')
@@ -1367,18 +1401,19 @@ git push origin main
 2. **Inline comments** for complex logic
 
 3. **Examples** in JSDoc:
-   ```typescript
+   ````typescript
    /**
     * @example
     * ```typescript
     * const { isActive } = useFeature()
     * ```
     */
-   ```
+   ````
 
 ### README Updates
 
 When adding features, update README.md with:
+
 - Feature description
 - Usage examples
 - API reference
@@ -1387,6 +1422,7 @@ When adding features, update README.md with:
 ### API Documentation
 
 Update VitePress docs in `docs/` folder:
+
 - Add new pages for major features
 - Update API reference
 - Include code examples
@@ -1395,6 +1431,7 @@ Update VitePress docs in `docs/` folder:
 ### Examples
 
 Create practical examples in `examples/`:
+
 - Demonstrate real-world usage
 - Show best practices
 - Cover common scenarios
@@ -1407,12 +1444,15 @@ Update CHANGELOG.md following [Keep a Changelog](https://keepachangelog.com/):
 ## [Unreleased]
 
 ### Added
+
 - New feature X with Y capability
 
 ### Changed
+
 - Improved performance of Z
 
 ### Fixed
+
 - Resolved issue with A causing B
 ```
 
@@ -1436,6 +1476,7 @@ Update CHANGELOG.md following [Keep a Changelog](https://keepachangelog.com/):
 ### Reporting Issues
 
 **Bug Reports**:
+
 - Clear, descriptive title
 - Steps to reproduce
 - Expected vs actual behavior
@@ -1443,6 +1484,7 @@ Update CHANGELOG.md following [Keep a Changelog](https://keepachangelog.com/):
 - Minimal reproduction (CodeSandbox, repo)
 
 **Feature Requests**:
+
 - Use case and motivation
 - Proposed solution
 - Alternative approaches considered
@@ -1472,3 +1514,18 @@ By contributing to VueSip, you agree that your contributions will be licensed un
 ---
 
 **Thank you for contributing to VueSip! Your efforts help make SIP/VoIP development easier for everyone.**
+
+### Cloudflare Workers Checks on PRs
+
+This repository integrates with Cloudflare Workers via the Cloudflare GitHub App to publish:
+
+- `vuesip` (docs) from `docs/.vitepress/dist`
+- `vuesiplay` (playground) from `dist-playground`
+
+To avoid noisy failures and redundant builds on pull requests:
+
+- In the Cloudflare dashboard → Workers & Pages → GitHub Integration, limit auto-builds to the `main` branch only. GitHub Actions handle deploys on `main`.
+- If you must keep PR checks visible, ensure your Worker configs have a `build` command (done in this repo) so the CF App can build assets before upload.
+- As a last resort, mark “Workers Builds: vuesip” / “Workers Builds: vuesiplay” as non-required checks in GitHub branch protection.
+
+See `docs/guide/ci-workers.md` for more details and troubleshooting tips.

@@ -54,6 +54,7 @@ import { confBridgeExample } from './confbridge'
 import { pjsipExample } from './pjsip'
 import { systemHealthExample } from './system-health'
 import { mwiExample } from './mwi'
+import { codecsExample } from './codecs'
 import { aiInsightsExample } from './ai-insights'
 import { callSessionPiPExample } from './call-session-pip'
 import type { ExampleCategory } from './types'
@@ -116,6 +117,7 @@ export const amiExamples = [
 // Utility Features - Settings, helpers, and tools
 export const utilityExamples = [
   settingsExample,
+  codecsExample,
   callHistoryExample,
   speedDialExample,
   contactsExample,

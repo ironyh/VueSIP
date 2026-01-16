@@ -13,21 +13,26 @@ A minimal starter template demonstrating core VueSip functionality with a simple
 ## Quick Start
 
 1. **Copy the template:**
+
    ```bash
    cp -r templates/minimal my-sip-app
    cd my-sip-app
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
 
 3. **Configure SIP credentials:**
+
    ```bash
    cp .env.example .env
    ```
+
    Edit `.env` with your SIP server details:
+
    ```env
    VITE_SIP_URI=wss://your-sip-server.com:8089/ws
    VITE_SIP_USER=sip:1000@your-domain.com
@@ -36,6 +41,7 @@ A minimal starter template demonstrating core VueSip functionality with a simple
    ```
 
 4. **Start development server:**
+
    ```bash
    pnpm dev
    ```
@@ -46,16 +52,17 @@ A minimal starter template demonstrating core VueSip functionality with a simple
 
 ### Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `VITE_SIP_URI` | WebSocket URI for SIP server | `wss://sip.example.com:8089/ws` |
-| `VITE_SIP_USER` | Your SIP account URI | `sip:1000@example.com` |
-| `VITE_SIP_PASSWORD` | SIP account password | `secret123` |
-| `VITE_SIP_DISPLAY_NAME` | Display name for caller ID | `John Doe` |
+| Variable                | Description                  | Example                         |
+| ----------------------- | ---------------------------- | ------------------------------- |
+| `VITE_SIP_URI`          | WebSocket URI for SIP server | `wss://sip.example.com:8089/ws` |
+| `VITE_SIP_USER`         | Your SIP account URI         | `sip:1000@example.com`          |
+| `VITE_SIP_PASSWORD`     | SIP account password         | `secret123`                     |
+| `VITE_SIP_DISPLAY_NAME` | Display name for caller ID   | `John Doe`                      |
 
 ### SIP Server Requirements
 
 Your SIP server must support:
+
 - WebSocket transport (WSS recommended for production)
 - WebRTC media handling (if using browser audio/video)
 
@@ -71,6 +78,7 @@ Your SIP server must support:
 ### Asterisk
 
 Enable WebSocket in `/etc/asterisk/http.conf`:
+
 ```ini
 [general]
 enabled = yes
@@ -82,6 +90,7 @@ tlscertfile = /etc/asterisk/keys/asterisk.pem
 ```
 
 Enable WebSocket transport in `/etc/asterisk/pjsip.conf`:
+
 ```ini
 [transport-wss]
 type = transport
@@ -112,6 +121,7 @@ dtls_auto_generate_cert = yes
 ### Cloud SIP Providers
 
 Works with WebRTC-enabled providers:
+
 - **Twilio** - Use Programmable Voice with SIP
 - **Vonage** - SIP Connect with WebSocket
 - **SignalWire** - Native WebRTC support
@@ -156,9 +166,9 @@ import {
   useSipClient,
   useCallSession,
   useDTMF,
-  useCallHistory,      // Call history tracking
-  useMediaDevices,     // Audio/video device selection
-  useCallControls,     // Hold, mute, transfer
+  useCallHistory, // Call history tracking
+  useMediaDevices, // Audio/video device selection
+  useCallControls, // Hold, mute, transfer
 } from 'vuesip'
 </script>
 ```
@@ -185,6 +195,7 @@ import {
 ### Browser Compatibility
 
 VueSip works best in modern browsers:
+
 - Chrome/Edge 90+
 - Firefox 90+
 - Safari 14+

@@ -117,6 +117,7 @@ export default defineConfig({
           text: 'Advanced Topics',
           collapsed: false,
           items: [
+            { text: 'Codecs & Negotiation', link: '/guide/codecs' },
             { text: 'Device Management', link: '/guide/device-management' },
             { text: 'Presence & Messaging', link: '/guide/presence-messaging' },
             { text: 'Call History', link: '/guide/call-history' },

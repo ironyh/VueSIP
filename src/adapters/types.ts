@@ -622,6 +622,11 @@ export interface CallOptions {
    * RTCPeerConnection configuration
    */
   pcConfig?: RTCConfiguration
+
+  /**
+   * Per-call codec policy override (preview)
+   */
+  codecPolicy?: import('../codecs/types').CodecPolicy
 }
 
 /**
@@ -648,6 +653,11 @@ export interface AnswerOptions {
    * RTCPeerConnection configuration
    */
   pcConfig?: RTCConfiguration
+
+  /**
+   * Per-call codec policy override (preview)
+   */
+  codecPolicy?: import('../codecs/types').CodecPolicy
 }
 
 /**

@@ -30,9 +30,9 @@ VueSip provides **60+ composables** for building professional SIP interfaces wit
 - Video Room: https://video.vuesip.com
 - Call Center: https://callcenter.vuesip.com
 
-## CI & Cloudflare Workers
+## CI
 
-If you notice PR checks like “Workers Builds: vuesip” or “Workers Builds: vuesiplay” failing, they originate from Cloudflare’s GitHub integration (independent of our GH workflows). See `docs/guide/ci-workers.md` for recommended settings (limit builds to `main`) or mark those checks non-required for templates PRs.
+See `docs/guide/ci-workers.md` for guidance on Cloudflare Workers checks. Our recommendation is to scope the Cloudflare GitHub App builds to the `main` branch only and rely on GitHub Actions for deploys.
 
 ## Installation
 
