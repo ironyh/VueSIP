@@ -43,6 +43,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Playground: new “Click-to-Call Widget (Browser SIP)” demo (mock by default, optional real SIP)
 - Playground: cross-links between SIP widget and AMI agent-first demos for quick comparison
 
+### Enterprise
+
+- New `@vuesip/enterprise` package with analytics, compliance, and CRM modules
+- CI workflow for enterprise pack checks
+
+### AMI/Providers
+
+- Templates: persist selected number/credential for 46elks/Telnyx API logins
+- 46elks: add call history helpers and use proxy API base to avoid CORS
+
+### Documentation
+
+- Merged Examples sidebar with categorized pages and tutorial docs
+- Added AI Insights demo page and unified transcription example links
+
+### Chores
+
+- Lint fixes across demos/tests; generated branch mergeability report at `.merge_report.txt`
+
 ### Click-to-Call — Changed
 
 - `onCallEnd` now fires for any termination (including missed/rejected/failed) with `duration = 0` when not answered

@@ -125,9 +125,4 @@ const { provider } = useCallCenterProvider({
 
 ## API Reference
 
-<<<<<<< HEAD
-See the [Call Center API Reference](/api/generated/index.md#usecallcenterprovider) for complete documentation.
-=======
-See the [Call Center API Reference](/api/call-center) for complete documentation.
-
-> > > > > > > origin/feature/ami-advanced-features
+See the [Call Center API Reference](/api/) for complete documentation.

@@ -7,6 +7,7 @@ export default defineConfig({
   lang: 'en-US',
   lastUpdated: true,
   cleanUrls: true,
+  ignoreDeadLinks: [/^\/playground\/index$/],
 
   srcExclude: [
     '**/README.md',

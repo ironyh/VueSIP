@@ -164,6 +164,8 @@ const htmlReport = exportAsHTML(lastSummary)
 
 ## Smart Routing
 
+For a live demo, open the Examples page and select "AI Insights".
+
 Create rule-based routing decisions with batch management.
 
 ### Rule Management
