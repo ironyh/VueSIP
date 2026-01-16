@@ -76,7 +76,7 @@ watch(numbers, async (nums) => {
   if (savedPhoneNumber.value && nums.length > 0 && !selectedNumber.value) {
     const savedNum = nums.find((n) => n.number === savedPhoneNumber.value)
     if (savedNum) {
-      await selectNumber(savedNum)
+      await selectNumber(savedNum as Elks46Number)
     }
   }
 })
@@ -99,7 +99,7 @@ async function handleNumberSelect(event: Event) {
   const target = event.target as HTMLSelectElement
   const num = numbers.value.find((n) => n.id === target.value)
   if (num) {
-    await selectNumber(num)
+    await selectNumber(num as Elks46Number)
   }
 }
 
