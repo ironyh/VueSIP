@@ -1,35 +1,22 @@
 export type MediaKind = 'audio' | 'video'
 
 export interface CodecPreference {
-<<<<<<< HEAD
-  id: string
-  priority: number
-=======
   id: string // e.g., 'opus', 'pcmu', 'vp8', 'h264'
   priority: number // higher = preferred
->>>>>>> origin/main
   fmtp?: Record<string, string | number | boolean>
 }
 
 export interface CodecPolicy {
   audio?: CodecPreference[]
   video?: CodecPreference[]
-<<<<<<< HEAD
-  preferTransceiverApi?: boolean
-=======
   // If true, use transceiver.setCodecPreferences when available; otherwise use SDP transformation
   preferTransceiverApi?: boolean
   // If true, allow fallback to legacy codecs for interop (pcmu/pcma, h264-baseline)
->>>>>>> origin/main
   allowLegacyFallbacks?: boolean
 }
 
 export interface CodecCapability {
-<<<<<<< HEAD
-  mimeType: string
-=======
   mimeType: string // e.g., 'audio/opus'
->>>>>>> origin/main
   clockRate?: number
   channels?: number
   sdpFmtpLine?: string

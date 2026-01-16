@@ -4,11 +4,7 @@ import { ref, computed, onMounted } from 'vue'
 const STORAGE_KEY = 'vuesip_telnyx_credentials'
 
 defineProps<{
-<<<<<<< HEAD
   isConnecting: boolean
-=======
-  isConnecting?: boolean
->>>>>>> origin/main
   errorMessage?: string
 }>()
 
@@ -33,15 +29,9 @@ onMounted(() => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-<<<<<<< HEAD
       const { username, name } = JSON.parse(saved)
       sipUsername.value = username || ''
       displayName.value = name || ''
-=======
-      const parsed = JSON.parse(saved)
-      sipUsername.value = parsed.sipUsername || ''
-      displayName.value = parsed.displayName || ''
->>>>>>> origin/main
       rememberCredentials.value = true
     }
   } catch {
@@ -49,33 +39,19 @@ onMounted(() => {
   }
 })
 
-<<<<<<< HEAD
 // Save credentials to localStorage (except password)
 function saveCredentials() {
-=======
-// Handle form submission
-function handleSubmit() {
-  if (!isFormValid.value) return
-
-  // Save credentials (except password)
->>>>>>> origin/main
   if (rememberCredentials.value) {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-<<<<<<< HEAD
         username: sipUsername.value,
         name: displayName.value,
-=======
-        sipUsername: sipUsername.value,
-        displayName: displayName.value,
->>>>>>> origin/main
       })
     )
   } else {
     localStorage.removeItem(STORAGE_KEY)
   }
-<<<<<<< HEAD
 }
 
 // Handle form submission
@@ -83,8 +59,6 @@ function handleSubmit() {
   if (!isFormValid.value) return
 
   saveCredentials()
-=======
->>>>>>> origin/main
 
   emit('connect', {
     uri: 'wss://rtc.telnyx.com',
@@ -107,11 +81,7 @@ function handleSubmit() {
         <h2>Telnyx Login</h2>
         <p>
           Enter your SIP credentials from the
-<<<<<<< HEAD
           <a href="https://portal.telnyx.com" target="_blank" rel="noopener">Telnyx portal</a>
-=======
-          <a href="https://portal.telnyx.com" target="_blank" rel="noopener">Telnyx Portal</a>
->>>>>>> origin/main
         </p>
       </div>
     </div>
@@ -128,11 +98,7 @@ function handleSubmit() {
           :disabled="isConnecting"
           required
         />
-<<<<<<< HEAD
         <span class="hint">From Telnyx Mission Control → SIP Connections</span>
-=======
-        <span class="hint">From your Telnyx Credential Connection</span>
->>>>>>> origin/main
       </div>
 
       <div class="form-group">

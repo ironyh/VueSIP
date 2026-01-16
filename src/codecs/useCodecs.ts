@@ -41,10 +41,7 @@ export function useCodecs(initialPolicy?: CodecPolicy, transformer?: SdpTransfor
   }
 
   function negotiate(local: CodecCapabilities, remote?: CodecCapabilities) {
-<<<<<<< HEAD
-=======
     // If remote unknown, just order by local policy
->>>>>>> origin/main
     const audio = sortByPolicy('audio', local.audio, policy.value)
     const video = sortByPolicy('video', local.video, policy.value)
 
