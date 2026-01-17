@@ -9,6 +9,7 @@
 
 import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import { CallSession } from '../core/CallSession'
+import { toEventBus } from '@/utils/eventBus'
 import { MediaManager } from '../core/MediaManager'
 import { callStore } from '../stores/callStore'
 import type { SipClient } from '../core/SipClient'
@@ -290,7 +291,7 @@ export function useCallSession(
     }
 
     // Get the eventBus from the session
-    const eventBus = callSession.eventBus
+    const eventBus = toEventBus(callSession.eventBus)
     if (!eventBus) {
       log.warn('Session has no eventBus, state changes may not be reactive')
       return
@@ -325,13 +326,13 @@ export function useCallSession(
 
     // Store cleanup function that removes listeners by their IDs
     sessionEventCleanup = () => {
-      eventBus.off('call:state_changed', stateChangedListenerId)
-      eventBus.off('call:confirmed', confirmedListenerId)
-      eventBus.off('call:ended', endedListenerId)
-      eventBus.off('call:hold', holdListenerId)
-      eventBus.off('call:unhold', unholdListenerId)
-      eventBus.off('call:muted', mutedListenerId)
-      eventBus.off('call:unmuted', unmutedListenerId)
+      eventBus.off('call:state_changed', stateChangedListenerId as number)
+      eventBus.off('call:confirmed', confirmedListenerId as number)
+      eventBus.off('call:ended', endedListenerId as number)
+      eventBus.off('call:hold', holdListenerId as number)
+      eventBus.off('call:unhold', unholdListenerId as number)
+      eventBus.off('call:muted', mutedListenerId as number)
+      eventBus.off('call:unmuted', unmutedListenerId as number)
     }
   }
 
@@ -1313,15 +1314,14 @@ export function useCallSession(
       incomingCallListenerCleanup = null
     }
 
-    const eventBus = client.eventBus
+    const eventBus = client.getEventBus()
     if (!eventBus) {
       log.warn('SipClient has no eventBus, incoming calls will not be detected')
       return
     }
 
     // Listen for new sessions (incoming calls)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:new_session
-    const listenerId = eventBus.on('sip:new_session' as any, (event: any) => {
+    const listenerId = eventBus.on('sip:new_session', (event) => {
       log.debug('Received sip:new_session event:', event)
 
       // Only handle incoming calls - outgoing calls are handled by makeCall()
@@ -1366,8 +1366,7 @@ export function useCallSession(
 
     // Store cleanup function
     incomingCallListenerCleanup = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:new_session
-      eventBus.off('sip:new_session' as any, listenerId)
+      eventBus.off('sip:new_session', listenerId as number)
     }
 
     log.debug('Incoming call listener set up')

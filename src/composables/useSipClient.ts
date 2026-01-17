@@ -20,6 +20,8 @@ import {
 } from 'vue'
 import { SipClient } from '@/core/SipClient'
 import { EventBus } from '@/core/EventBus'
+import type { TypedEventBus } from '@/utils/eventBus'
+import type { EventMap } from '@/types/events.types'
 import { configStore } from '@/stores/configStore'
 import { registrationStore } from '@/stores/registrationStore'
 import type { SipClientConfig, ValidationResult } from '@/types/config.types'
@@ -128,10 +130,10 @@ export interface UseSipClientReturn {
   getClient: () => SipClient | null
 
   /**
-   * Get the event bus instance
-   * @returns Event bus instance
+   * Get the typed event bus instance
+   * @returns Typed event bus instance
    */
-  getEventBus: () => EventBus
+  getEventBus: () => TypedEventBus<EventMap>
 }
 
 /**
@@ -728,8 +730,13 @@ export function useSipClient(
   /**
    * Get the event bus instance
    */
-  function getEventBus(): EventBus {
-    return eventBus
+  function getEventBus(): TypedEventBus<EventMap> {
+    // Prefer the client's typed event bus when available
+    if (sipClient.value) {
+      return sipClient.value.getEventBus()
+    }
+    // Fall back to local bus casted through the typed facade
+    return eventBus as unknown as TypedEventBus<EventMap>
   }
 
   // ============================================================================

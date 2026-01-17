@@ -7,6 +7,8 @@
 import JsSIP, { type UA, type Socket } from 'jssip'
 import type { UAConfiguration } from 'jssip/lib/UA'
 import type { EventBus } from './EventBus'
+import type { TypedEventBus } from '@/utils/eventBus'
+import type { EventMap } from '@/types/events.types'
 import type { SipClientConfig, ValidationResult } from '@/types/config.types'
 import type {
   ConferenceOptions,
@@ -146,6 +148,15 @@ export class SipClient {
    */
   get eventBus(): EventBus {
     return this._eventBus
+  }
+
+  /**
+   * Get a typed event bus to receive type-safe payloads keyed by event name.
+   * This preserves runtime behavior while providing compile-time safety.
+   */
+  getEventBus(): TypedEventBus<EventMap> {
+    // EventBus implements on/off/emit; cast through the typed facade
+    return this._eventBus as unknown as TypedEventBus<EventMap>
   }
   private isStarting = false
   private isStopping = false
