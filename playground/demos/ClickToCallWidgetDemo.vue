@@ -32,18 +32,18 @@
       <details class="advanced">
         <summary>Real SIP (optional)</summary>
         <div class="form-grid">
-          <label class="row"
-            ><span>WS URI</span><input v-model="wsUri" placeholder="wss://sip.example.com"
-          /></label>
-          <label class="row"
-            ><span>SIP URI</span><input v-model="sipUri" placeholder="sip:user@example.com"
-          /></label>
-          <label class="row"
-            ><span>Password</span><input v-model="password" type="password" placeholder="secret"
-          /></label>
-          <label class="row"
-            ><span>Display Name</span><input v-model="displayName" placeholder="Agent"
-          /></label>
+          <label class="row">
+            <span>WS URI</span><input v-model="wsUri" placeholder="wss://sip.example.com" />
+          </label>
+          <label class="row">
+            <span>SIP URI</span><input v-model="sipUri" placeholder="sip:user@example.com" />
+          </label>
+          <label class="row">
+            <span>Password</span><input v-model="password" type="password" placeholder="secret" />
+          </label>
+          <label class="row">
+            <span>Display Name</span><input v-model="displayName" placeholder="Agent" />
+          </label>
         </div>
       </details>
     </div>

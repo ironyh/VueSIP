@@ -158,9 +158,10 @@
               </div>
               <div class="detail-row">
                 <span class="detail-label">Active Channels:</span>
-                <span
-                  >{{ selectedEndpoint.activeChannels }} / {{ selectedEndpoint.maxContacts }}</span
-                >
+                <span>
+                  {{ selectedEndpoint.activeChannels }} /
+                  {{ selectedEndpoint.maxContacts }}
+                </span>
               </div>
             </div>
           </Panel>

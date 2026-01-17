@@ -12,6 +12,7 @@ import type { CallSession } from '@/core/CallSession'
 import { HoldState, type HoldOptions, type HoldEvent, type HoldResult } from '@/types/call.types'
 import type { BaseEvent } from '@/types/events.types'
 import { createLogger } from '@/utils/logger'
+import { toEventBus } from '@/utils/eventBus'
 import { logErrorWithContext, ErrorSeverity, createOperationTimer } from '@/utils/errorContext'
 
 const log = createLogger('useCallHold')
@@ -199,7 +200,7 @@ export function useCallHold(session: Ref<CallSession | null>): UseCallHoldReturn
    * Set up event listeners for hold events
    */
   const setupEventListeners = (callSession: CallSession): void => {
-    const eventBus = callSession.eventBus
+    const eventBus = toEventBus(callSession.eventBus)
     if (!eventBus) {
       log.warn('Session has no eventBus, hold events will not be handled')
       return
@@ -255,10 +256,10 @@ export function useCallHold(session: Ref<CallSession | null>): UseCallHoldReturn
 
     // Store cleanup functions
     eventListenerCleanups.push(() => {
-      eventBus.off('call:hold', holdListenerId)
-      eventBus.off('call:unhold', unholdListenerId)
-      eventBus.off('call:hold_failed', holdFailedListenerId)
-      eventBus.off('call:unhold_failed', unholdFailedListenerId)
+      eventBus.off('call:hold', holdListenerId as number)
+      eventBus.off('call:unhold', unholdListenerId as number)
+      eventBus.off('call:hold_failed', holdFailedListenerId as number)
+      eventBus.off('call:unhold_failed', unholdFailedListenerId as number)
     })
 
     log.debug('Hold event listeners set up')

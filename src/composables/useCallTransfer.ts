@@ -21,6 +21,7 @@ import type {
   BaseEvent,
 } from '@/types/events.types'
 import { createLogger } from '@/utils/logger'
+import { toEventBus } from '@/utils/eventBus'
 import { validateSipUri } from '@/utils/validators'
 import { logErrorWithContext, ErrorSeverity, createOperationTimer } from '@/utils/errorContext'
 
@@ -219,7 +220,7 @@ export function useCallTransfer(session: Ref<CallSession | null>): UseCallTransf
    * Set up event listeners for transfer events
    */
   const setupEventListeners = (callSession: CallSession): void => {
-    const eventBus = callSession.eventBus
+    const eventBus = toEventBus(callSession.eventBus)
     if (!eventBus) {
       log.warn('Session has no eventBus, transfer events will not be handled')
       return
@@ -289,12 +290,12 @@ export function useCallTransfer(session: Ref<CallSession | null>): UseCallTransf
 
     // Store cleanup functions
     eventListenerCleanups.push(() => {
-      eventBus.off('call:transfer_initiated', initiatedListenerId)
-      eventBus.off('call:transfer_accepted', acceptedListenerId)
-      eventBus.off('call:transfer_progress', progressListenerId)
-      eventBus.off('call:transfer_completed', completedListenerId)
-      eventBus.off('call:transfer_failed', failedListenerId)
-      eventBus.off('call:transfer_canceled', canceledListenerId)
+      eventBus.off('call:transfer_initiated', initiatedListenerId as number)
+      eventBus.off('call:transfer_accepted', acceptedListenerId as number)
+      eventBus.off('call:transfer_progress', progressListenerId as number)
+      eventBus.off('call:transfer_completed', completedListenerId as number)
+      eventBus.off('call:transfer_failed', failedListenerId as number)
+      eventBus.off('call:transfer_canceled', canceledListenerId as number)
     })
 
     log.debug('Transfer event listeners set up')
