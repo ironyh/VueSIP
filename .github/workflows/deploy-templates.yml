@@ -1,5 +1,9 @@
 name: Deploy Starter Templates
 
+concurrency:
+  group: templates-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -135,7 +139,7 @@ jobs:
   deploy-softphone:
     name: Deploy Basic Softphone Template
     runs-on: ubuntu-latest
-    needs: build-library
+    needs: [build-library, deploy-minimal]
     if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'basic-softphone' || github.event.inputs.template == '')
 
     steps:
@@ -190,7 +194,7 @@ jobs:
   deploy-callcenter:
     name: Deploy Call Center Template
     runs-on: ubuntu-latest
-    needs: build-library
+    needs: [build-library, deploy-softphone]
     if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'call-center' || github.event.inputs.template == '')
 
     steps:
@@ -243,7 +247,7 @@ jobs:
   deploy-pwa-softphone:
     name: Deploy PWA Softphone Template
     runs-on: ubuntu-latest
-    needs: build-library
+    needs: [build-library, deploy-callcenter]
     if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'pwa-softphone' || github.event.inputs.template == '')
 
     steps:
@@ -297,7 +301,7 @@ jobs:
   deploy-ivrtester:
     name: Deploy IVR Tester Template
     runs-on: ubuntu-latest
-    needs: build-library
+    needs: [build-library, deploy-pwa-softphone]
     if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'ivr-tester' || github.event.inputs.template == '')
 
     steps:
@@ -351,7 +355,7 @@ jobs:
   deploy-videoroom:
     name: Deploy Video Room Template
     runs-on: ubuntu-latest
-    needs: build-library
+    needs: [build-library, deploy-ivrtester]
     if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'video-room' || github.event.inputs.template == '')
 
     steps:
