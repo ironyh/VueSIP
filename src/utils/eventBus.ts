@@ -1,7 +1,10 @@
 import type { BaseEvent, EventMap } from '@/types/events.types'
 
 export interface TypedEventBus<EM extends Record<string, BaseEvent> = EventMap> {
-  on<K extends Extract<keyof EM, string>>(event: K, cb: (event: EM[K]) => void): number | void
+  on<K extends Extract<keyof EM, string>>(
+    event: K,
+    cb: (event: EM[K]) => void
+  ): string | number | void
   off(event: string, idOrCb: unknown): void
   emit<K extends Extract<keyof EM, string>>(event: K, payload: EM[K]): void
 }

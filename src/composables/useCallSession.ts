@@ -10,6 +10,8 @@
 import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import { CallSession } from '../core/CallSession'
 import { toEventBus } from '@/utils/eventBus'
+import type { CallSessionEventMap } from '@/types/call-internal.types'
+import type { EventMap } from '@/types/events.types'
 import { MediaManager } from '../core/MediaManager'
 import { callStore } from '../stores/callStore'
 import type { SipClient } from '../core/SipClient'
@@ -291,7 +293,8 @@ export function useCallSession(
     }
 
     // Get the eventBus from the session
-    const eventBus = toEventBus(callSession.eventBus)
+    type CombinedEventMap = EventMap & CallSessionEventMap
+    const eventBus = toEventBus<CombinedEventMap>(callSession.eventBus)
     if (!eventBus) {
       log.warn('Session has no eventBus, state changes may not be reactive')
       return
@@ -326,7 +329,7 @@ export function useCallSession(
 
     // Store cleanup function that removes listeners by their IDs
     sessionEventCleanup = () => {
-      eventBus.off('call:state_changed', stateChangedListenerId as number)
+      eventBus.off('call:state_changed', stateChangedListenerId as unknown as string)
       eventBus.off('call:confirmed', confirmedListenerId as number)
       eventBus.off('call:ended', endedListenerId as number)
       eventBus.off('call:hold', holdListenerId as number)
