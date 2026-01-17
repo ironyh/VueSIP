@@ -9,9 +9,13 @@ import type {
 import { DefaultCodecPolicy } from './types'
 
 function getCapabilities(kind: MediaKind): CodecCapability[] {
-  const sender = (globalThis as any).RTCRtpSender
+  const sender = (
+    globalThis as unknown as {
+      RTCRtpSender?: { getCapabilities: (k: MediaKind) => { codecs?: unknown[] } | null }
+    }
+  ).RTCRtpSender
   if (sender && typeof sender.getCapabilities === 'function') {
-    const caps = sender.getCapabilities(kind as any)
+    const caps = sender.getCapabilities(kind)
     return (caps?.codecs ?? []) as CodecCapability[]
   }
   return []
@@ -60,7 +64,11 @@ export function useCodecs(initialPolicy?: CodecPolicy, transformer?: SdpTransfor
   function applyToTransceiver(transceiver: RTCRtpTransceiver, kind: MediaKind) {
     const caps = getCapabilities(kind)
     const ordered = sortByPolicy(kind, caps, policy.value)
-    const setPrefs = (transceiver as any).setCodecPreferences
+    const setPrefs = (
+      transceiver as unknown as {
+        setCodecPreferences?: (codecs: unknown[]) => void
+      }
+    ).setCodecPreferences
     if (typeof setPrefs === 'function') {
       setPrefs.call(transceiver, ordered)
     }
