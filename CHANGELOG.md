@@ -62,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Lint fixes across demos/tests; generated branch mergeability report at `.merge_report.txt`
 
+### Changed
+
+- Types: standardize `TypedEventBus` IDs to plain strings and centralize SIP event names into `SipEventNames` constants shared by producers/consumers; updated remaining usages in dialog and client; added migration notes in docs (VueSIP-g3g)
+
 ### Click-to-Call — Changed
 
 - `onCallEnd` now fires for any termination (including missed/rejected/failed) with `duration = 0` when not answered
