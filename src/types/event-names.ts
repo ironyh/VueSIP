@@ -1,6 +1,8 @@
 export const SipEventNames = {
+  Connecting: 'sip:connecting',
   Connected: 'sip:connected',
   Disconnected: 'sip:disconnected',
+  Registering: 'sip:registering',
   Registered: 'sip:registered',
   Unregistered: 'sip:unregistered',
   RegistrationFailed: 'sip:registration_failed',
