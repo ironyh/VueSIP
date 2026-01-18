@@ -25,6 +25,10 @@ jobs:
       - name: Install deps (root)
         run: pnpm install --frozen-lockfile
 
+      - name: Install deps (enterprise)
+        working-directory: packages/enterprise
+        run: pnpm install --no-frozen-lockfile
+
       - name: Build enterprise package
         working-directory: packages/enterprise
         run: pnpm run build
