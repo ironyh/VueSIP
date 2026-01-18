@@ -122,17 +122,17 @@ function validateSipUri(uri: string): SimpleValidationResult
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `uri` | `string` | The SIP URI to validate (e.g., "sip:user@domain") |
+| Parameter | Type     | Description                                       |
+| --------- | -------- | ------------------------------------------------- |
+| `uri`     | `string` | The SIP URI to validate (e.g., "sip:user@domain") |
 
 **Returns:** `SimpleValidationResult`
 
 ```typescript
 interface SimpleValidationResult {
-  valid: boolean              // Whether the input is valid
-  error: string | null        // Error message if validation failed
-  normalized: string | null   // Normalized/cleaned version if valid
+  valid: boolean // Whether the input is valid
+  error: string | null // Error message if validation failed
+  normalized: string | null // Normalized/cleaned version if valid
 }
 ```
 
@@ -173,9 +173,9 @@ function validatePhoneNumber(number: string): SimpleValidationResult
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `number` | `string` | Phone number in E.164 format (e.g., "+14155551234") |
+| Parameter | Type     | Description                                         |
+| --------- | -------- | --------------------------------------------------- |
+| `number`  | `string` | Phone number in E.164 format (e.g., "+14155551234") |
 
 **Returns:** `SimpleValidationResult`
 
@@ -194,6 +194,7 @@ console.log(invalid.error)
 ```
 
 **E.164 Format:**
+
 - Must start with `+`
 - Followed by country code (1-3 digits)
 - Followed by subscriber number
@@ -213,17 +214,17 @@ function validateSipConfig(config: Partial<SipClientConfig>): ValidationResult
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `config` | `Partial<SipClientConfig>` | SIP client configuration object |
+| Parameter | Type                       | Description                     |
+| --------- | -------------------------- | ------------------------------- |
+| `config`  | `Partial<SipClientConfig>` | SIP client configuration object |
 
 **Returns:** `ValidationResult`
 
 ```typescript
 interface ValidationResult {
-  valid: boolean              // Whether the configuration is valid
-  errors?: string[]          // List of validation errors
-  warnings?: string[]        // List of validation warnings
+  valid: boolean // Whether the configuration is valid
+  errors?: string[] // List of validation errors
+  warnings?: string[] // List of validation warnings
 }
 ```
 
@@ -233,7 +234,7 @@ interface ValidationResult {
 const config: SipClientConfig = {
   uri: 'wss://sip.example.com:7443',
   sipUri: 'sip:alice@example.com',
-  password: 'secret123'
+  password: 'secret123',
 }
 
 const result = validateSipConfig(config)
@@ -245,6 +246,7 @@ if (result.valid) {
 ```
 
 **Validates:**
+
 - Required fields: `uri`, `sipUri`, `password` or `ha1`
 - WebSocket URL format
 - SIP URI format
@@ -266,9 +268,9 @@ function validateMediaConfig(config: Partial<MediaConfiguration>): ValidationRes
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `config` | `Partial<MediaConfiguration>` | Media configuration object |
+| Parameter | Type                          | Description                |
+| --------- | ----------------------------- | -------------------------- |
+| `config`  | `Partial<MediaConfiguration>` | Media configuration object |
 
 **Returns:** `ValidationResult`
 
@@ -280,7 +282,7 @@ const config: MediaConfiguration = {
   video: false,
   echoCancellation: true,
   noiseSuppression: true,
-  audioCodec: 'opus'
+  audioCodec: 'opus',
 }
 
 const result = validateMediaConfig(config)
@@ -290,6 +292,7 @@ if (!result.valid) {
 ```
 
 **Validates:**
+
 - Audio constraints (boolean or object)
 - Video constraints (boolean or object)
 - Echo cancellation, noise suppression, auto gain control
@@ -311,9 +314,9 @@ function validateWebSocketUrl(url: string): SimpleValidationResult
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `url` | `string` | WebSocket URL to validate |
+| Parameter | Type     | Description               |
+| --------- | -------- | ------------------------- |
+| `url`     | `string` | WebSocket URL to validate |
 
 **Returns:** `SimpleValidationResult`
 
@@ -332,6 +335,7 @@ console.log(invalid.error)
 ```
 
 **Validation Rules:**
+
 - Must start with `ws://` or `wss://`
 - Must have valid URL structure
 - Must include hostname
@@ -350,9 +354,9 @@ function validateDtmfTone(tone: string): SimpleValidationResult
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `tone` | `string` | DTMF tone character (0-9, *, #, A-D) |
+| Parameter | Type     | Description                           |
+| --------- | -------- | ------------------------------------- |
+| `tone`    | `string` | DTMF tone character (0-9, \*, #, A-D) |
 
 **Returns:** `SimpleValidationResult`
 
@@ -371,8 +375,9 @@ console.log(invalid.error)
 ```
 
 **Valid DTMF Tones:**
+
 - Digits: 0-9
-- Symbols: *, #
+- Symbols: \*, #
 - Letters: A, B, C, D (case-insensitive, normalized to uppercase)
 
 ---
@@ -389,9 +394,9 @@ function validateDtmfSequence(sequence: string): SimpleValidationResult
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `sequence` | `string` | String of DTMF tones (e.g., "1234*#") |
+| Parameter  | Type     | Description                            |
+| ---------- | -------- | -------------------------------------- |
+| `sequence` | `string` | String of DTMF tones (e.g., "1234\*#") |
 
 **Returns:** `SimpleValidationResult`
 
@@ -430,8 +435,8 @@ function formatDuration(seconds: number): string
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter | Type     | Description         |
+| --------- | -------- | ------------------- |
 | `seconds` | `number` | Duration in seconds |
 
 **Returns:** `string` - Formatted duration (HH:MM:SS)
@@ -439,9 +444,9 @@ function formatDuration(seconds: number): string
 **Example:**
 
 ```typescript
-formatDuration(65)    // "00:01:05"
-formatDuration(3665)  // "01:01:05"
-formatDuration(0)     // "00:00:00"
+formatDuration(65) // "00:01:05"
+formatDuration(3665) // "01:01:05"
+formatDuration(0) // "00:00:00"
 ```
 
 ---
@@ -458,8 +463,8 @@ function formatDurationShort(seconds: number): string
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter | Type     | Description         |
+| --------- | -------- | ------------------- |
 | `seconds` | `number` | Duration in seconds |
 
 **Returns:** `string` - Short formatted duration (e.g., "5m 30s")
@@ -467,10 +472,10 @@ function formatDurationShort(seconds: number): string
 **Example:**
 
 ```typescript
-formatDurationShort(65)    // "1m 5s"
-formatDurationShort(3665)  // "1h 1m"
-formatDurationShort(30)    // "30s"
-formatDurationShort(7200)  // "2h"
+formatDurationShort(65) // "1m 5s"
+formatDurationShort(3665) // "1h 1m"
+formatDurationShort(30) // "30s"
+formatDurationShort(7200) // "2h"
 ```
 
 ---
@@ -487,9 +492,9 @@ function formatSipUri(uri: string, includeScheme?: boolean): string
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `uri` | `string` | - | SIP URI to format |
+| Parameter       | Type      | Default | Description                             |
+| --------------- | --------- | ------- | --------------------------------------- |
+| `uri`           | `string`  | -       | SIP URI to format                       |
 | `includeScheme` | `boolean` | `false` | Whether to include sip: or sips: prefix |
 
 **Returns:** `string` - Formatted SIP URI
@@ -497,9 +502,9 @@ function formatSipUri(uri: string, includeScheme?: boolean): string
 **Example:**
 
 ```typescript
-formatSipUri('sip:alice@example.com')           // "alice@example.com"
-formatSipUri('sip:alice@example.com', true)     // "sip:alice@example.com"
-formatSipUri('sips:bob@example.com:5061')       // "bob@example.com"
+formatSipUri('sip:alice@example.com') // "alice@example.com"
+formatSipUri('sip:alice@example.com', true) // "sip:alice@example.com"
+formatSipUri('sips:bob@example.com:5061') // "bob@example.com"
 formatSipUri('sips:bob@example.com:5061', true) // "sips:bob@example.com:5061"
 ```
 
@@ -517,9 +522,9 @@ function parseSipUri(uri: string): Partial<SipUri> | null
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `uri` | `string` | SIP URI to parse |
+| Parameter | Type     | Description      |
+| --------- | -------- | ---------------- |
+| `uri`     | `string` | SIP URI to parse |
 
 **Returns:** `Partial<SipUri> | null` - Parsed URI components or null if invalid
 
@@ -546,7 +551,7 @@ console.log(parsed)
 //   port: 5061
 // }
 
-parseSipUri('invalid-uri')  // null
+parseSipUri('invalid-uri') // null
 ```
 
 ---
@@ -563,18 +568,18 @@ function extractDisplayName(uri: string): string | null | undefined
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `uri` | `string` | SIP URI with optional display name |
+| Parameter | Type     | Description                        |
+| --------- | -------- | ---------------------------------- |
+| `uri`     | `string` | SIP URI with optional display name |
 
 **Returns:** `string | null | undefined` - Display name or null if not present
 
 **Example:**
 
 ```typescript
-extractDisplayName('"Alice Smith" <sip:alice@example.com>')  // "Alice Smith"
-extractDisplayName('Alice <sip:alice@example.com>')          // "Alice"
-extractDisplayName('sip:alice@example.com')                  // null
+extractDisplayName('"Alice Smith" <sip:alice@example.com>') // "Alice Smith"
+extractDisplayName('Alice <sip:alice@example.com>') // "Alice"
+extractDisplayName('sip:alice@example.com') // null
 ```
 
 ---
@@ -591,18 +596,18 @@ function formatPhoneNumber(number: string): string
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `number` | `string` | E.164 phone number |
+| Parameter | Type     | Description        |
+| --------- | -------- | ------------------ |
+| `number`  | `string` | E.164 phone number |
 
 **Returns:** `string` - Formatted phone number
 
 **Example:**
 
 ```typescript
-formatPhoneNumber('+14155551234')    // "+1 (415) 555-1234"
-formatPhoneNumber('+442071234567')   // "+44 20 7123 4567"
-formatPhoneNumber('+33123456789')    // "+33 123 456 789"
+formatPhoneNumber('+14155551234') // "+1 (415) 555-1234"
+formatPhoneNumber('+442071234567') // "+44 20 7123 4567"
+formatPhoneNumber('+33123456789') // "+33 123 456 789"
 ```
 
 ---
@@ -619,24 +624,25 @@ function formatCallTime(date: Date, now?: Date): string
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `date` | `Date` | - | Date to format |
-| `now` | `Date` | `new Date()` | Current date (for testing) |
+| Parameter | Type   | Default      | Description                |
+| --------- | ------ | ------------ | -------------------------- |
+| `date`    | `Date` | -            | Date to format             |
+| `now`     | `Date` | `new Date()` | Current date (for testing) |
 
 **Returns:** `string` - Formatted time string
 
 **Example:**
 
 ```typescript
-formatCallTime(new Date())                         // "Just now"
-formatCallTime(new Date(Date.now() - 60000))       // "1 minute ago"
-formatCallTime(new Date(Date.now() - 3600000))     // "1 hour ago"
-formatCallTime(new Date(Date.now() - 86400000))    // "1 day ago"
-formatCallTime(new Date('2024-01-01'))             // "Jan 1, 2024"
+formatCallTime(new Date()) // "Just now"
+formatCallTime(new Date(Date.now() - 60000)) // "1 minute ago"
+formatCallTime(new Date(Date.now() - 3600000)) // "1 hour ago"
+formatCallTime(new Date(Date.now() - 86400000)) // "1 day ago"
+formatCallTime(new Date('2024-01-01')) // "Jan 1, 2024"
 ```
 
 **Time Ranges:**
+
 - < 60 seconds: "Just now"
 - < 60 minutes: "X minute(s) ago"
 - < 24 hours: "X hour(s) ago"
@@ -657,9 +663,9 @@ function formatDateTime(date: Date): string
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `date` | `Date` | Date to format |
+| Parameter | Type   | Description    |
+| --------- | ------ | -------------- |
+| `date`    | `Date` | Date to format |
 
 **Returns:** `string` - Formatted date and time
 
@@ -684,9 +690,9 @@ function formatIsoTimestamp(date: Date): string
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `date` | `Date` | Date to format |
+| Parameter | Type   | Description    |
+| --------- | ------ | -------------- |
+| `date`    | `Date` | Date to format |
 
 **Returns:** `string` - ISO 8601 formatted string
 
@@ -711,20 +717,20 @@ function formatBytes(bytes: number, decimals?: number): string
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `bytes` | `number` | - | Number of bytes |
-| `decimals` | `number` | `1` | Number of decimal places |
+| Parameter  | Type     | Default | Description              |
+| ---------- | -------- | ------- | ------------------------ |
+| `bytes`    | `number` | -       | Number of bytes          |
+| `decimals` | `number` | `1`     | Number of decimal places |
 
 **Returns:** `string` - Formatted size string
 
 **Example:**
 
 ```typescript
-formatBytes(1024)        // "1 KB"
-formatBytes(1536)        // "1.5 KB"
-formatBytes(1048576)     // "1 MB"
-formatBytes(1536, 2)     // "1.50 KB"
+formatBytes(1024) // "1 KB"
+formatBytes(1536) // "1.5 KB"
+formatBytes(1048576) // "1 MB"
+formatBytes(1536, 2) // "1.50 KB"
 ```
 
 ---
@@ -741,19 +747,19 @@ function formatBitrate(bitsPerSecond: number, decimals?: number): string
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `bitsPerSecond` | `number` | - | Bitrate in bits per second |
-| `decimals` | `number` | `1` | Number of decimal places |
+| Parameter       | Type     | Default | Description                |
+| --------------- | -------- | ------- | -------------------------- |
+| `bitsPerSecond` | `number` | -       | Bitrate in bits per second |
+| `decimals`      | `number` | `1`     | Number of decimal places   |
 
 **Returns:** `string` - Formatted bitrate string
 
 **Example:**
 
 ```typescript
-formatBitrate(128000)     // "128 kbps"
-formatBitrate(1536000)    // "1.5 Mbps"
-formatBitrate(64000)      // "64 kbps"
+formatBitrate(128000) // "128 kbps"
+formatBitrate(1536000) // "1.5 Mbps"
+formatBitrate(64000) // "64 kbps"
 ```
 
 ---
@@ -770,20 +776,20 @@ function truncate(str: string, maxLength: number, ellipsis?: string): string
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `str` | `string` | - | String to truncate |
-| `maxLength` | `number` | - | Maximum length |
-| `ellipsis` | `string` | `'...'` | Ellipsis string to append |
+| Parameter   | Type     | Default | Description               |
+| ----------- | -------- | ------- | ------------------------- |
+| `str`       | `string` | -       | String to truncate        |
+| `maxLength` | `number` | -       | Maximum length            |
+| `ellipsis`  | `string` | `'...'` | Ellipsis string to append |
 
 **Returns:** `string` - Truncated string
 
 **Example:**
 
 ```typescript
-truncate('This is a long string', 10)              // "This is a..."
-truncate('Short', 10)                              // "Short"
-truncate('This is a long string', 10, '…')         // "This is a…"
+truncate('This is a long string', 10) // "This is a..."
+truncate('Short', 10) // "Short"
+truncate('This is a long string', 10, '…') // "This is a…"
 ```
 
 ---
@@ -800,21 +806,22 @@ function formatCallStatus(status: string): string
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `status` | `string` | Call status |
+| Parameter | Type     | Description |
+| --------- | -------- | ----------- |
+| `status`  | `string` | Call status |
 
 **Returns:** `string` - Human-readable status
 
 **Example:**
 
 ```typescript
-formatCallStatus('completed')   // "Completed"
-formatCallStatus('missed')      // "Missed"
-formatCallStatus('busy')        // "Busy"
+formatCallStatus('completed') // "Completed"
+formatCallStatus('missed') // "Missed"
+formatCallStatus('busy') // "Busy"
 ```
 
 **Supported Statuses:**
+
 - completed, missed, cancelled, failed, busy, rejected
 
 ---
@@ -831,8 +838,8 @@ function formatCallDirection(direction: string): string
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter   | Type     | Description    |
+| ----------- | -------- | -------------- |
 | `direction` | `string` | Call direction |
 
 **Returns:** `string` - Human-readable direction
@@ -840,8 +847,8 @@ function formatCallDirection(direction: string): string
 **Example:**
 
 ```typescript
-formatCallDirection('incoming')   // "Incoming"
-formatCallDirection('outgoing')   // "Outgoing"
+formatCallDirection('incoming') // "Incoming"
+formatCallDirection('outgoing') // "Outgoing"
 ```
 
 ---
@@ -892,20 +899,20 @@ async function encrypt<T = unknown>(
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `data` | `T` | Data to encrypt (will be JSON.stringified) |
-| `password` | `string` | Password for encryption |
-| `options` | `Partial<EncryptionOptions>` | Optional encryption options |
+| Parameter  | Type                         | Description                                |
+| ---------- | ---------------------------- | ------------------------------------------ |
+| `data`     | `T`                          | Data to encrypt (will be JSON.stringified) |
+| `password` | `string`                     | Password for encryption                    |
+| `options`  | `Partial<EncryptionOptions>` | Optional encryption options                |
 
 **Options:**
 
 ```typescript
 interface EncryptionOptions {
-  enabled: boolean       // Whether encryption is enabled
-  algorithm: string      // Algorithm (default: 'AES-GCM')
-  iterations: number     // PBKDF2 iterations (default: 100000)
-  salt: string          // Custom salt (auto-generated if not provided)
+  enabled: boolean // Whether encryption is enabled
+  algorithm: string // Algorithm (default: 'AES-GCM')
+  iterations: number // PBKDF2 iterations (default: 100000)
+  salt: string // Custom salt (auto-generated if not provided)
 }
 ```
 
@@ -913,12 +920,12 @@ interface EncryptionOptions {
 
 ```typescript
 interface EncryptedData {
-  data: string         // Encrypted data (base64)
-  iv: string          // Initialization vector (base64)
-  salt: string        // Salt for key derivation (base64)
-  algorithm: string   // Encryption algorithm
-  iterations: number  // PBKDF2 iterations
-  version: number     // Format version
+  data: string // Encrypted data (base64)
+  iv: string // Initialization vector (base64)
+  salt: string // Salt for key derivation (base64)
+  algorithm: string // Encryption algorithm
+  iterations: number // PBKDF2 iterations
+  version: number // Format version
 }
 ```
 
@@ -927,7 +934,7 @@ interface EncryptedData {
 ```typescript
 const credentials = {
   username: 'alice',
-  password: 'secret123'
+  password: 'secret123',
 }
 
 const encrypted = await encrypt(credentials, 'masterPassword')
@@ -935,6 +942,7 @@ const encrypted = await encrypt(credentials, 'masterPassword')
 ```
 
 **Features:**
+
 - AES-GCM 256-bit encryption
 - PBKDF2 key derivation with configurable iterations
 - Automatic salt and IV generation
@@ -951,18 +959,15 @@ Decrypts data encrypted with `encrypt()`.
 **Signature:**
 
 ```typescript
-async function decrypt<T = unknown>(
-  encryptedData: EncryptedData,
-  password: string
-): Promise<T>
+async function decrypt<T = unknown>(encryptedData: EncryptedData, password: string): Promise<T>
 ```
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter       | Type            | Description              |
+| --------------- | --------------- | ------------------------ |
 | `encryptedData` | `EncryptedData` | Encrypted data structure |
-| `password` | `string` | Password for decryption |
+| `password`      | `string`        | Password for decryption  |
 
 **Returns:** `Promise<T>` - Decrypted and parsed data
 
@@ -989,9 +994,9 @@ function generateEncryptionKey(length?: number): string
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `length` | `number` | `32` | Key length in bytes |
+| Parameter | Type     | Default | Description         |
+| --------- | -------- | ------- | ------------------- |
+| `length`  | `number` | `32`    | Key length in bytes |
 
 **Returns:** `string` - Random key as base64 string
 
@@ -1021,8 +1026,8 @@ async function hashPassword(password: string): Promise<string>
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter  | Type     | Description      |
+| ---------- | -------- | ---------------- |
 | `password` | `string` | Password to hash |
 
 **Returns:** `Promise<string>` - Hashed password as hex string
@@ -1036,6 +1041,7 @@ console.log(hashed)
 ```
 
 **Use Cases:**
+
 - Creating consistent encryption keys from user passwords
 - Password verification (compare hashes)
 - Generating deterministic keys
@@ -1064,11 +1070,11 @@ async function getStorageQuota(): Promise<StorageQuotaInfo>
 
 ```typescript
 interface StorageQuotaInfo {
-  quota: number         // Total quota in bytes (0 if unavailable)
-  usage: number         // Current usage in bytes
-  available: number     // Available space in bytes
-  usagePercent: number  // Usage percentage (0-100)
-  supported: boolean    // Whether quota API is supported
+  quota: number // Total quota in bytes (0 if unavailable)
+  usage: number // Current usage in bytes
+  available: number // Available space in bytes
+  usagePercent: number // Usage percentage (0-100)
+  supported: boolean // Whether quota API is supported
 }
 ```
 
@@ -1085,6 +1091,7 @@ if (quota.usagePercent > 80) {
 ```
 
 **Browser Compatibility:**
+
 - Modern browsers: Uses Storage API's `estimate()` method
 - Older browsers: Returns default values with `supported: false`
 
@@ -1102,8 +1109,8 @@ function isStorageAvailable(storageType: StorageType): boolean
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter     | Type                                                | Description           |
+| ------------- | --------------------------------------------------- | --------------------- |
 | `storageType` | `'localStorage' \| 'sessionStorage' \| 'indexedDB'` | Storage type to check |
 
 **Returns:** `boolean` - True if storage is available
@@ -1121,6 +1128,7 @@ if (isStorageAvailable('indexedDB')) {
 ```
 
 **Features:**
+
 - Tests actual write capability (not just presence)
 - Handles private browsing mode gracefully
 - Cleans up test data
@@ -1157,18 +1165,15 @@ Checks if there's enough storage space for a given requirement.
 **Signature:**
 
 ```typescript
-async function hasEnoughSpace(
-  requiredBytes: number,
-  buffer?: number
-): Promise<boolean>
+async function hasEnoughSpace(requiredBytes: number, buffer?: number): Promise<boolean>
 ```
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `requiredBytes` | `number` | - | Required space in bytes |
-| `buffer` | `number` | `0.1` | Safety buffer percentage (0.1 = 10%) |
+| Parameter       | Type     | Default | Description                          |
+| --------------- | -------- | ------- | ------------------------------------ |
+| `requiredBytes` | `number` | -       | Required space in bytes              |
+| `buffer`        | `number` | `0.1`   | Safety buffer percentage (0.1 = 10%) |
 
 **Returns:** `Promise<boolean>` - True if enough space is available
 
@@ -1198,9 +1203,9 @@ async function checkStorageUsageWarning(threshold?: number): Promise<boolean>
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `threshold` | `number` | `80` | Warning threshold percentage |
+| Parameter   | Type     | Default | Description                  |
+| ----------- | -------- | ------- | ---------------------------- |
+| `threshold` | `number` | `80`    | Warning threshold percentage |
 
 **Returns:** `Promise<boolean>` - True if usage is above threshold
 
@@ -1231,11 +1236,11 @@ async function clearOldDataLRU<T extends { id: string; timestamp: Date | number 
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `getData` | `() => T[]` | - | Function to get all data with timestamps |
-| `removeData` | `(ids: string[]) => void \| Promise<void>` | - | Function to remove specific items |
-| `targetReduction` | `number` | `20` | Target reduction percentage |
+| Parameter         | Type                                       | Default | Description                              |
+| ----------------- | ------------------------------------------ | ------- | ---------------------------------------- |
+| `getData`         | `() => T[]`                                | -       | Function to get all data with timestamps |
+| `removeData`      | `(ids: string[]) => void \| Promise<void>` | -       | Function to remove specific items        |
+| `targetReduction` | `number`                                   | `20`    | Target reduction percentage              |
 
 **Returns:** `Promise<number>` - Number of items removed
 
@@ -1243,16 +1248,18 @@ async function clearOldDataLRU<T extends { id: string; timestamp: Date | number 
 
 ```typescript
 await clearOldDataLRU(
-  () => callStore.history.map(h => ({
-    id: h.id,
-    timestamp: h.startTime
-  })),
-  (ids) => ids.forEach(id => callStore.removeFromHistory(id)),
+  () =>
+    callStore.history.map((h) => ({
+      id: h.id,
+      timestamp: h.startTime,
+    })),
+  (ids) => ids.forEach((id) => callStore.removeFromHistory(id)),
   20 // Remove oldest 20% of entries
 )
 ```
 
 **Strategy:**
+
 - Sorts items by timestamp (oldest first)
 - Removes specified percentage of oldest items
 - Returns count of removed items
@@ -1284,7 +1291,7 @@ const summary = await getStorageUsageSummary()
 console.log('Overall:', formatBytes(summary.overall.usage))
 console.log('localStorage:', {
   available: summary.localStorage.available,
-  usage: formatBytes(summary.localStorage.estimatedUsage)
+  usage: formatBytes(summary.localStorage.estimatedUsage),
 })
 console.log('sessionStorage available:', summary.sessionStorage.available)
 console.log('indexedDB available:', summary.indexedDB.available)
@@ -1306,8 +1313,8 @@ class QuotaExceededError extends Error {
 
 **Properties:**
 
-| Property | Type | Description |
-|----------|------|-------------|
+| Property    | Type               | Description                                |
+| ----------- | ------------------ | ------------------------------------------ |
 | `quotaInfo` | `StorageQuotaInfo` | Storage quota information at time of error |
 
 **Example:**
@@ -1315,7 +1322,7 @@ class QuotaExceededError extends Error {
 ```typescript
 try {
   // Store large amount of data
-  if (!await hasEnoughSpace(dataSize)) {
+  if (!(await hasEnoughSpace(dataSize))) {
     const quotaInfo = await getStorageQuota()
     throw new QuotaExceededError('Not enough storage space', quotaInfo)
   }
@@ -1436,8 +1443,8 @@ function createLogger(namespace: string): Logger
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
+| Parameter   | Type     | Description      |
+| ----------- | -------- | ---------------- |
 | `namespace` | `string` | Logger namespace |
 
 **Returns:** `Logger` - Logger instance
@@ -1465,18 +1472,18 @@ function configureLogger(config: Partial<LoggerConfig>): void
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `config` | `Partial<LoggerConfig>` | Logger configuration |
+| Parameter | Type                    | Description          |
+| --------- | ----------------------- | -------------------- |
+| `config`  | `Partial<LoggerConfig>` | Logger configuration |
 
 **Configuration Options:**
 
 ```typescript
 interface LoggerConfig {
-  level: 'debug' | 'info' | 'warn' | 'error'  // Minimum log level
-  enabled: boolean                             // Enable/disable logging
-  showTimestamp: boolean                       // Show timestamps
-  handler?: LogHandler                         // Custom log handler
+  level: 'debug' | 'info' | 'warn' | 'error' // Minimum log level
+  enabled: boolean // Enable/disable logging
+  showTimestamp: boolean // Show timestamps
+  handler?: LogHandler // Custom log handler
 }
 ```
 
@@ -1488,7 +1495,7 @@ import { configureLogger } from 'vuesip/utils'
 configureLogger({
   level: 'debug',
   enabled: true,
-  showTimestamp: true
+  showTimestamp: true,
 })
 ```
 
@@ -1563,18 +1570,19 @@ function setLogLevel(level: LogLevel): void
 
 **Parameters:**
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `level` | `'debug' \| 'info' \| 'warn' \| 'error'` | Minimum log level |
+| Parameter | Type                                     | Description       |
+| --------- | ---------------------------------------- | ----------------- |
+| `level`   | `'debug' \| 'info' \| 'warn' \| 'error'` | Minimum log level |
 
 **Example:**
 
 ```typescript
-setLogLevel('debug')  // Show all logs
-setLogLevel('error')  // Show only errors
+setLogLevel('debug') // Show all logs
+setLogLevel('error') // Show only errors
 ```
 
 **Log Level Priorities:**
+
 - `debug` (0) - Lowest priority, most verbose
 - `info` (1)
 - `warn` (2)
@@ -1616,12 +1624,7 @@ function setLogHandler(handler: LogHandler | undefined): void
 **Handler Type:**
 
 ```typescript
-type LogHandler = (
-  level: LogLevel,
-  namespace: string,
-  message: string,
-  ...args: unknown[]
-) => void
+type LogHandler = (level: LogLevel, namespace: string, message: string, ...args: unknown[]) => void
 ```
 
 **Example:**
@@ -1631,7 +1634,7 @@ type LogHandler = (
 setLogHandler((level, namespace, message, ...args) => {
   fetch('/api/logs', {
     method: 'POST',
-    body: JSON.stringify({ level, namespace, message, args })
+    body: JSON.stringify({ level, namespace, message, args }),
   })
 })
 
@@ -1649,9 +1652,9 @@ VueSip provides numerous constants for SIP configuration, media settings, and mo
 
 ### Library Information
 
-| Constant | Type | Value | Description |
-|----------|------|-------|-------------|
-| `VERSION` | `string` | `'1.0.0'` | Library version |
+| Constant     | Type     | Value            | Description               |
+| ------------ | -------- | ---------------- | ------------------------- |
+| `VERSION`    | `string` | `'1.0.0'`        | Library version           |
 | `USER_AGENT` | `string` | `'VueSip/1.0.0'` | Default User-Agent string |
 
 **Example:**
@@ -1666,13 +1669,13 @@ console.log(`Using VueSip version ${VERSION}`)
 
 ### SIP Configuration Defaults
 
-| Constant | Type | Value | Description |
-|----------|------|-------|-------------|
-| `DEFAULT_REGISTER_EXPIRES` | `number` | `600` | Registration expiration (seconds) |
-| `DEFAULT_SESSION_TIMERS` | `number` | `90` | Session timer expiration (seconds) |
-| `DEFAULT_NO_ANSWER_TIMEOUT` | `number` | `60` | No answer timeout (seconds) |
-| `DEFAULT_PING_INTERVAL` | `number` | `30000` | WebSocket keep-alive interval (ms) |
-| `DEFAULT_MAX_FORWARDS` | `number` | `70` | Maximum forwards header value |
+| Constant                    | Type     | Value   | Description                        |
+| --------------------------- | -------- | ------- | ---------------------------------- |
+| `DEFAULT_REGISTER_EXPIRES`  | `number` | `600`   | Registration expiration (seconds)  |
+| `DEFAULT_SESSION_TIMERS`    | `number` | `90`    | Session timer expiration (seconds) |
+| `DEFAULT_NO_ANSWER_TIMEOUT` | `number` | `60`    | No answer timeout (seconds)        |
+| `DEFAULT_PING_INTERVAL`     | `number` | `30000` | WebSocket keep-alive interval (ms) |
+| `DEFAULT_MAX_FORWARDS`      | `number` | `70`    | Maximum forwards header value      |
 
 **Example:**
 
@@ -1681,8 +1684,8 @@ import { DEFAULT_REGISTER_EXPIRES } from 'vuesip/utils'
 
 const config = {
   registrationOptions: {
-    expires: DEFAULT_REGISTER_EXPIRES
-  }
+    expires: DEFAULT_REGISTER_EXPIRES,
+  },
 }
 ```
 
@@ -1690,11 +1693,11 @@ const config = {
 
 ### Media Configuration Defaults
 
-| Constant | Type | Description |
-|----------|------|-------------|
+| Constant                    | Type     | Description                                |
+| --------------------------- | -------- | ------------------------------------------ |
 | `DEFAULT_AUDIO_CONSTRAINTS` | `object` | Default audio constraints for getUserMedia |
 | `DEFAULT_VIDEO_CONSTRAINTS` | `object` | Default video constraints for getUserMedia |
-| `DEFAULT_MEDIA_CONSTRAINTS` | `object` | Default media stream constraints |
+| `DEFAULT_MEDIA_CONSTRAINTS` | `object` | Default media stream constraints           |
 
 **DEFAULT_AUDIO_CONSTRAINTS:**
 
@@ -1726,7 +1729,7 @@ import { DEFAULT_AUDIO_CONSTRAINTS } from 'vuesip/utils'
 
 const stream = await navigator.mediaDevices.getUserMedia({
   audio: DEFAULT_AUDIO_CONSTRAINTS,
-  video: false
+  video: false,
 })
 ```
 
@@ -1734,15 +1737,15 @@ const stream = await navigator.mediaDevices.getUserMedia({
 
 ### Timeout Values
 
-| Constant | Type | Value | Description |
-|----------|------|-------|-------------|
-| `RECONNECTION_DELAYS` | `number[]` | `[2000, 4000, 8000, 16000, 32000]` | Exponential backoff delays (ms) |
-| `MAX_RETRY_ATTEMPTS` | `number` | `5` | Maximum reconnection attempts |
-| `ICE_GATHERING_TIMEOUT` | `number` | `5000` | ICE gathering timeout (ms) |
-| `DEFAULT_DTMF_DURATION` | `number` | `100` | DTMF tone duration (ms) |
-| `DEFAULT_DTMF_INTER_TONE_GAP` | `number` | `70` | Inter-tone gap (ms) |
-| `STATS_COLLECTION_INTERVAL` | `number` | `1000` | Stats collection interval (ms) |
-| `AUDIO_LEVEL_INTERVAL` | `number` | `100` | Audio level update interval (ms) |
+| Constant                      | Type       | Value                              | Description                      |
+| ----------------------------- | ---------- | ---------------------------------- | -------------------------------- |
+| `RECONNECTION_DELAYS`         | `number[]` | `[2000, 4000, 8000, 16000, 32000]` | Exponential backoff delays (ms)  |
+| `MAX_RETRY_ATTEMPTS`          | `number`   | `5`                                | Maximum reconnection attempts    |
+| `ICE_GATHERING_TIMEOUT`       | `number`   | `5000`                             | ICE gathering timeout (ms)       |
+| `DEFAULT_DTMF_DURATION`       | `number`   | `100`                              | DTMF tone duration (ms)          |
+| `DEFAULT_DTMF_INTER_TONE_GAP` | `number`   | `70`                               | Inter-tone gap (ms)              |
+| `STATS_COLLECTION_INTERVAL`   | `number`   | `1000`                             | Stats collection interval (ms)   |
+| `AUDIO_LEVEL_INTERVAL`        | `number`   | `100`                              | Audio level update interval (ms) |
 
 **Example:**
 
@@ -1760,21 +1763,21 @@ for (let attempt = 0; attempt < MAX_RETRY_ATTEMPTS; attempt++) {
 
 ### Supported Codecs
 
-| Constant | Type | Description |
-|----------|------|-------------|
+| Constant       | Type       | Description                                     |
+| -------------- | ---------- | ----------------------------------------------- |
 | `AUDIO_CODECS` | `string[]` | Supported audio codecs (in order of preference) |
 | `VIDEO_CODECS` | `string[]` | Supported video codecs (in order of preference) |
 
 **AUDIO_CODECS:**
 
 ```typescript
-['opus', 'G722', 'PCMU', 'PCMA']
+;['opus', 'G722', 'PCMU', 'PCMA']
 ```
 
 **VIDEO_CODECS:**
 
 ```typescript
-['VP8', 'VP9', 'H264']
+;['VP8', 'VP9', 'H264']
 ```
 
 **Example:**
@@ -1789,14 +1792,14 @@ const preferredCodec = AUDIO_CODECS[0] // 'opus'
 
 ### SIP Status Codes
 
-| Category | Codes |
-|----------|-------|
-| **Provisional (1xx)** | TRYING (100), RINGING (180), SESSION_PROGRESS (183) |
-| **Success (2xx)** | OK (200), ACCEPTED (202) |
-| **Redirection (3xx)** | MULTIPLE_CHOICES (300), MOVED_PERMANENTLY (301), MOVED_TEMPORARILY (302) |
-| **Client Error (4xx)** | BAD_REQUEST (400), UNAUTHORIZED (401), FORBIDDEN (403), NOT_FOUND (404), etc. |
-| **Server Error (5xx)** | SERVER_INTERNAL_ERROR (500), NOT_IMPLEMENTED (501), BAD_GATEWAY (502), etc. |
-| **Global Failure (6xx)** | BUSY_EVERYWHERE (600), DECLINE (603), DOES_NOT_EXIST_ANYWHERE (604), etc. |
+| Category                 | Codes                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| **Provisional (1xx)**    | TRYING (100), RINGING (180), SESSION_PROGRESS (183)                           |
+| **Success (2xx)**        | OK (200), ACCEPTED (202)                                                      |
+| **Redirection (3xx)**    | MULTIPLE_CHOICES (300), MOVED_PERMANENTLY (301), MOVED_TEMPORARILY (302)      |
+| **Client Error (4xx)**   | BAD_REQUEST (400), UNAUTHORIZED (401), FORBIDDEN (403), NOT_FOUND (404), etc. |
+| **Server Error (5xx)**   | SERVER_INTERNAL_ERROR (500), NOT_IMPLEMENTED (501), BAD_GATEWAY (502), etc.   |
+| **Global Failure (6xx)** | BUSY_EVERYWHERE (600), DECLINE (603), DOES_NOT_EXIST_ANYWHERE (604), etc.     |
 
 **Example:**
 
@@ -1819,6 +1822,7 @@ if (response.statusCode === SIP_STATUS_CODES.BUSY_HERE) {
 Standardized event names used throughout the library.
 
 **Categories:**
+
 - Connection events: `CONNECTION_*`
 - Registration events: `REGISTRATION_*`
 - Call events: `CALL_*`
@@ -1906,15 +1910,15 @@ const EVENTS = {
 
 LocalStorage keys with namespace prefix.
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `STORAGE_PREFIX` | `'vuesip:'` | Key prefix for namespacing |
-| `STORAGE_VERSION` | `'v1'` | Storage format version |
-| `STORAGE_KEYS.CONFIG` | `'vuesip:v1:config'` | Config storage key |
-| `STORAGE_KEYS.CREDENTIALS` | `'vuesip:v1:credentials'` | Credentials storage key |
-| `STORAGE_KEYS.DEVICE_PREFERENCES` | `'vuesip:v1:devices'` | Device preferences key |
-| `STORAGE_KEYS.USER_PREFERENCES` | `'vuesip:v1:preferences'` | User preferences key |
-| `STORAGE_KEYS.CALL_HISTORY` | `'vuesip:v1:history'` | Call history key |
+| Constant                          | Value                     | Description                |
+| --------------------------------- | ------------------------- | -------------------------- |
+| `STORAGE_PREFIX`                  | `'vuesip:'`               | Key prefix for namespacing |
+| `STORAGE_VERSION`                 | `'v1'`                    | Storage format version     |
+| `STORAGE_KEYS.CONFIG`             | `'vuesip:v1:config'`      | Config storage key         |
+| `STORAGE_KEYS.CREDENTIALS`        | `'vuesip:v1:credentials'` | Credentials storage key    |
+| `STORAGE_KEYS.DEVICE_PREFERENCES` | `'vuesip:v1:devices'`     | Device preferences key     |
+| `STORAGE_KEYS.USER_PREFERENCES`   | `'vuesip:v1:preferences'` | User preferences key       |
+| `STORAGE_KEYS.CALL_HISTORY`       | `'vuesip:v1:history'`     | Call history key           |
 
 **Example:**
 
@@ -1930,17 +1934,17 @@ localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(prefs))
 
 Performance targets and limits.
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `PERFORMANCE.MAX_BUNDLE_SIZE` | `153600` | Max bundle size (150 KB) |
-| `PERFORMANCE.MAX_BUNDLE_SIZE_GZIPPED` | `51200` | Max gzipped size (50 KB) |
-| `PERFORMANCE.TARGET_CALL_SETUP_TIME` | `2000` | Target call setup (2 seconds) |
-| `PERFORMANCE.MAX_STATE_UPDATE_LATENCY` | `50` | Max state update (50ms) |
-| `PERFORMANCE.MAX_EVENT_PROPAGATION_TIME` | `10` | Max event propagation (10ms) |
-| `PERFORMANCE.MAX_MEMORY_PER_CALL` | `52428800` | Max memory per call (50 MB) |
-| `PERFORMANCE.TARGET_CPU_USAGE` | `15` | Target CPU usage (15%) |
-| `PERFORMANCE.DEFAULT_MAX_CONCURRENT_CALLS` | `5` | Max concurrent calls |
-| `PERFORMANCE.DEFAULT_MAX_HISTORY_ENTRIES` | `1000` | Max history entries |
+| Constant                                   | Value      | Description                   |
+| ------------------------------------------ | ---------- | ----------------------------- |
+| `PERFORMANCE.MAX_BUNDLE_SIZE`              | `153600`   | Max bundle size (150 KB)      |
+| `PERFORMANCE.MAX_BUNDLE_SIZE_GZIPPED`      | `51200`    | Max gzipped size (50 KB)      |
+| `PERFORMANCE.TARGET_CALL_SETUP_TIME`       | `2000`     | Target call setup (2 seconds) |
+| `PERFORMANCE.MAX_STATE_UPDATE_LATENCY`     | `50`       | Max state update (50ms)       |
+| `PERFORMANCE.MAX_EVENT_PROPAGATION_TIME`   | `10`       | Max event propagation (10ms)  |
+| `PERFORMANCE.MAX_MEMORY_PER_CALL`          | `52428800` | Max memory per call (50 MB)   |
+| `PERFORMANCE.TARGET_CPU_USAGE`             | `15`       | Target CPU usage (15%)        |
+| `PERFORMANCE.DEFAULT_MAX_CONCURRENT_CALLS` | `5`        | Max concurrent calls          |
+| `PERFORMANCE.DEFAULT_MAX_HISTORY_ENTRIES`  | `1000`     | Max history entries           |
 
 **Example:**
 
@@ -1956,11 +1960,11 @@ if (callHistory.length > PERFORMANCE.DEFAULT_MAX_HISTORY_ENTRIES) {
 
 ### Regular Expressions
 
-| Constant | Pattern | Description |
-|----------|---------|-------------|
-| `SIP_URI_REGEX` | `/^sips?:([a-zA-Z0-9._+-]+)@([a-zA-Z0-9.-]+)(?::(\d+))?/` | SIP URI validation |
-| `E164_PHONE_REGEX` | `/^\+[1-9]\d{1,14}$/` | E.164 phone number |
-| `WEBSOCKET_URL_REGEX` | `/^wss?:\/\/.+/` | WebSocket URL validation |
+| Constant              | Pattern                                                   | Description              |
+| --------------------- | --------------------------------------------------------- | ------------------------ |
+| `SIP_URI_REGEX`       | `/^sips?:([a-zA-Z0-9._+-]+)@([a-zA-Z0-9.-]+)(?::(\d+))?/` | SIP URI validation       |
+| `E164_PHONE_REGEX`    | `/^\+[1-9]\d{1,14}$/`                                     | E.164 phone number       |
+| `WEBSOCKET_URL_REGEX` | `/^wss?:\/\/.+/`                                          | WebSocket URL validation |
 
 **Example:**
 
@@ -1978,12 +1982,12 @@ if (SIP_URI_REGEX.test(uri)) {
 
 Arrays of valid values for type guards.
 
-| Constant | Values | Description |
-|----------|--------|-------------|
-| `DTMF_TONES` | `['0'-'9', '*', '#', 'A'-'D']` | Valid DTMF tones |
-| `LOG_LEVELS` | `['debug', 'info', 'warn', 'error']` | Valid log levels |
-| `CALL_STATES` | `['idle', 'calling', 'ringing', ...]` | Valid call states |
-| `CONNECTION_STATES` | `['disconnected', 'connecting', ...]` | Valid connection states |
+| Constant              | Values                                 | Description               |
+| --------------------- | -------------------------------------- | ------------------------- |
+| `DTMF_TONES`          | `['0'-'9', '*', '#', 'A'-'D']`         | Valid DTMF tones          |
+| `LOG_LEVELS`          | `['debug', 'info', 'warn', 'error']`   | Valid log levels          |
+| `CALL_STATES`         | `['idle', 'calling', 'ringing', ...]`  | Valid call states         |
+| `CONNECTION_STATES`   | `['disconnected', 'connecting', ...]`  | Valid connection states   |
 | `REGISTRATION_STATES` | `['unregistered', 'registering', ...]` | Valid registration states |
 
 **Example:**
@@ -2010,16 +2014,17 @@ function isValidLogLevel(level: string): level is LogLevel {
 
 VueSip provides **43 utility functions** organized into 6 categories:
 
-| Category | Functions | Purpose |
-|----------|-----------|---------|
-| **Validation** | 7 functions | Validate SIP URIs, phone numbers, configs, DTMF tones |
-| **Formatting** | 14 functions | Format durations, URIs, dates, bytes, bitrates for display |
-| **Encryption** | 5 functions | Secure data encryption using Web Crypto API |
-| **Storage** | 8 functions | Manage storage quota and prevent quota errors |
-| **Logging** | 9 functions | Configurable logging with namespaces and levels |
-| **Constants** | 148+ constants | SIP codes, events, defaults, regex patterns |
+| Category       | Functions      | Purpose                                                    |
+| -------------- | -------------- | ---------------------------------------------------------- |
+| **Validation** | 7 functions    | Validate SIP URIs, phone numbers, configs, DTMF tones      |
+| **Formatting** | 14 functions   | Format durations, URIs, dates, bytes, bitrates for display |
+| **Encryption** | 5 functions    | Secure data encryption using Web Crypto API                |
+| **Storage**    | 8 functions    | Manage storage quota and prevent quota errors              |
+| **Logging**    | 9 functions    | Configurable logging with namespaces and levels            |
+| **Constants**  | 148+ constants | SIP codes, events, defaults, regex patterns                |
 
 All utilities are:
+
 - Fully typed with TypeScript
 - Well-documented with examples
 - Tested and production-ready

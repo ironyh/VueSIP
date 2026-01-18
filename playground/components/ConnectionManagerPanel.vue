@@ -105,12 +105,12 @@
             <div class="connection-name">
               <span class="name">{{ connection.name }}</span>
               <span v-if="defaultConnectionId === connection.id" class="badge badge-default"
-              >Default</span
+                >Default</span
               >
               <span
                 v-if="isCurrentlyConnected && activeConnectionId === connection.id"
                 class="badge badge-connected"
-              >Connected</span
+                >Connected</span
               >
             </div>
             <div class="connection-details">

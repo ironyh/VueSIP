@@ -29,6 +29,7 @@ This comprehensive guide covers everything you need to implement professional vi
 Video calling extends VueSip's audio capabilities with real-time video communication. Built on WebRTC technology, VueSip makes it easy to add face-to-face video calls to your Vue application with minimal code.
 
 **Why Use Video Calling?**
+
 - **Personal Connection**: Face-to-face interaction builds stronger relationships
 - **Visual Communication**: Show documents, products, or demonstrations
 - **Remote Collaboration**: Work together as if in the same room
@@ -39,12 +40,14 @@ Video calling extends VueSip's audio capabilities with real-time video communica
 ### When to Use Video vs Audio-Only
 
 **Use Video When:**
+
 - Visual communication adds value (product demos, support)
 - Face-to-face interaction is important (interviews, consultations)
 - Screen sharing is needed (collaboration, troubleshooting)
 - Users have sufficient bandwidth (>500 kbps recommended)
 
 **Use Audio-Only When:**
+
 - Bandwidth is limited (mobile networks, poor connectivity)
 - Privacy is a concern (users may not want to be seen)
 - Battery life matters (audio uses less power than video)
@@ -57,6 +60,7 @@ Video calling extends VueSip's audio capabilities with real-time video communica
 Video calling requires modern browsers with WebRTC support:
 
 ✅ **Fully Supported:**
+
 - Chrome/Chromium 56+
 - Firefox 52+
 - Safari 11+
@@ -64,6 +68,7 @@ Video calling requires modern browsers with WebRTC support:
 - Opera 43+
 
 ⚠️ **Limited Support:**
+
 - Safari on iOS 11+ (with restrictions)
 - Chrome on Android 5+
 
@@ -84,17 +89,12 @@ import { useSipClient, useCallSession } from 'vuesip'
 const { sipClient } = useSipClient()
 
 // Initialize call session
-const {
-  makeCall,
-  localStream,
-  remoteStream,
-  hangup
-} = useCallSession(sipClient)
+const { makeCall, localStream, remoteStream, hangup } = useCallSession(sipClient)
 
 // Make a video call (both audio and video enabled)
 await makeCall('sip:bob@example.com', {
-  audio: true,  // Enable microphone
-  video: true   // Enable camera
+  audio: true, // Enable microphone
+  video: true, // Enable camera
 })
 
 // localStream and remoteStream are now available
@@ -102,6 +102,7 @@ await makeCall('sip:bob@example.com', {
 ```
 
 💡 **What's Happening Behind the Scenes:**
+
 1. VueSip requests camera and microphone permissions
 2. Captures your video/audio stream
 3. Initiates a SIP call with video enabled
@@ -117,21 +118,10 @@ Once streams are available, display them in your UI:
 <template>
   <div class="video-call">
     <!-- Remote video (the person you're calling) -->
-    <video
-      ref="remoteVideo"
-      autoplay
-      playsinline
-      class="remote-video"
-    />
+    <video ref="remoteVideo" autoplay playsinline class="remote-video" />
 
     <!-- Local video (your camera - self-view) -->
-    <video
-      ref="localVideo"
-      autoplay
-      muted
-      playsinline
-      class="local-video"
-    />
+    <video ref="localVideo" autoplay muted playsinline class="local-video" />
   </div>
 </template>
 
@@ -189,6 +179,7 @@ watch(remoteStream, (stream) => {
 ⚠️ **Critical**: Always set `muted` on the local video element to prevent audio feedback loops. The `autoplay` and `playsinline` attributes ensure smooth playback across all browsers.
 
 📝 **Note**: The `object-fit` CSS property controls how video fits in its container:
+
 - `contain`: Shows entire video (may have black bars)
 - `cover`: Fills container (may crop video)
 - `fill`: Stretches video to fit (may distort)
@@ -200,6 +191,7 @@ watch(remoteStream, (stream) => {
 ### Understanding Camera Enumeration
 
 Before making video calls, you need to discover what cameras are available on the user's device. This is essential for:
+
 - Letting users choose their preferred camera
 - Supporting multiple cameras (built-in + external)
 - Handling mobile front/back camera switching
@@ -211,15 +203,15 @@ Before making video calls, you need to discover what cameras are available on th
 import { useMediaDevices } from 'vuesip'
 
 const {
-  videoInputDevices,      // Array of available cameras
-  hasVideoInputDevices,   // Boolean: true if any cameras found
-  hasVideoPermission,     // Boolean: true if permission granted
-  requestPermissions,     // Request camera permission
-  enumerateDevices        // Refresh device list
+  videoInputDevices, // Array of available cameras
+  hasVideoInputDevices, // Boolean: true if any cameras found
+  hasVideoPermission, // Boolean: true if permission granted
+  requestPermissions, // Request camera permission
+  enumerateDevices, // Refresh device list
 } = useMediaDevices()
 
 // Request camera permission first (required to see camera labels)
-await requestPermissions(false, true)  // audio: false, video: true
+await requestPermissions(false, true) // audio: false, video: true
 
 // Enumerate devices to populate the list
 await enumerateDevices()
@@ -243,11 +235,7 @@ Let users choose which camera to use for video calls:
 ```typescript
 import { useMediaDevices } from 'vuesip'
 
-const {
-  videoInputDevices,
-  selectedVideoInputId,
-  selectVideoInput
-} = useMediaDevices()
+const { videoInputDevices, selectedVideoInputId, selectVideoInput } = useMediaDevices()
 
 // Let user select a camera
 function selectCamera(deviceId: string) {
@@ -265,16 +253,8 @@ function selectCamera(deviceId: string) {
 <template>
   <div class="camera-selector">
     <label for="camera">Select Camera:</label>
-    <select
-      id="camera"
-      v-model="selectedVideoInputId"
-      @change="handleCameraChange"
-    >
-      <option
-        v-for="camera in videoInputDevices"
-        :key="camera.deviceId"
-        :value="camera.deviceId"
-      >
+    <select id="camera" v-model="selectedVideoInputId" @change="handleCameraChange">
+      <option v-for="camera in videoInputDevices" :key="camera.deviceId" :value="camera.deviceId">
         {{ camera.label }}
       </option>
     </select>
@@ -300,11 +280,7 @@ Handle camera permission requests gracefully:
 ```typescript
 import { useMediaDevices } from 'vuesip'
 
-const {
-  requestVideoPermission,
-  hasVideoPermission,
-  videoPermission
-} = useMediaDevices()
+const { requestVideoPermission, hasVideoPermission, videoPermission } = useMediaDevices()
 
 // Request camera permission
 async function requestCamera() {
@@ -343,21 +319,11 @@ Show a camera preview so users can check their appearance before joining:
     <h3>Camera Preview</h3>
 
     <!-- Preview video element -->
-    <video
-      ref="previewVideo"
-      autoplay
-      muted
-      playsinline
-      class="preview"
-    />
+    <video ref="previewVideo" autoplay muted playsinline class="preview" />
 
     <!-- Camera selector -->
     <select v-model="selectedVideoInputId">
-      <option
-        v-for="camera in videoInputDevices"
-        :key="camera.deviceId"
-        :value="camera.deviceId"
-      >
+      <option v-for="camera in videoInputDevices" :key="camera.deviceId" :value="camera.deviceId">
         {{ camera.label }}
       </option>
     </select>
@@ -374,11 +340,7 @@ import { useMediaDevices, useCallSession } from 'vuesip'
 const previewVideo = ref<HTMLVideoElement>()
 let previewStream: MediaStream | null = null
 
-const {
-  videoInputDevices,
-  selectedVideoInputId,
-  requestPermissions
-} = useMediaDevices()
+const { videoInputDevices, selectedVideoInputId, requestPermissions } = useMediaDevices()
 
 const { makeCall } = useCallSession(sipClient)
 
@@ -397,17 +359,15 @@ watch(selectedVideoInputId, async () => {
 async function startPreview() {
   // Stop existing preview
   if (previewStream) {
-    previewStream.getTracks().forEach(track => track.stop())
+    previewStream.getTracks().forEach((track) => track.stop())
   }
 
   try {
     // Get camera stream
     previewStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        deviceId: selectedVideoInputId.value
-          ? { exact: selectedVideoInputId.value }
-          : undefined
-      }
+        deviceId: selectedVideoInputId.value ? { exact: selectedVideoInputId.value } : undefined,
+      },
     })
 
     // Attach to video element
@@ -423,21 +383,21 @@ async function startPreview() {
 async function joinWithVideo() {
   // Stop preview stream (call will create its own)
   if (previewStream) {
-    previewStream.getTracks().forEach(track => track.stop())
+    previewStream.getTracks().forEach((track) => track.stop())
     previewStream = null
   }
 
   // Make video call
   await makeCall('sip:meeting@example.com', {
     audio: true,
-    video: true
+    video: true,
   })
 }
 
 // Cleanup on unmount
 onUnmounted(() => {
   if (previewStream) {
-    previewStream.getTracks().forEach(track => track.stop())
+    previewStream.getTracks().forEach((track) => track.stop())
   }
 })
 </script>
@@ -465,17 +425,15 @@ async function switchCamera(newDeviceId: string) {
     // Get new media stream with the selected camera
     const newStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        deviceId: { exact: newDeviceId }
-      }
+        deviceId: { exact: newDeviceId },
+      },
     })
 
     // Get the video track from the new stream
     const newVideoTrack = newStream.getVideoTracks()[0]
 
     // Find the existing video sender
-    const sender = session.value.rtcSession
-      .getSenders()
-      .find(s => s.track?.kind === 'video')
+    const sender = session.value.rtcSession.getSenders().find((s) => s.track?.kind === 'video')
 
     if (sender) {
       // Replace the video track
@@ -484,7 +442,7 @@ async function switchCamera(newDeviceId: string) {
     }
 
     // Stop old video tracks
-    session.value.localStream?.getVideoTracks().forEach(track => {
+    session.value.localStream?.getVideoTracks().forEach((track) => {
       if (track !== newVideoTrack) {
         track.stop()
       }
@@ -536,9 +494,7 @@ Create a professional video call interface:
     />
 
     <!-- Show placeholder if no local video -->
-    <div v-if="!hasLocalVideo" class="local-placeholder">
-      Camera Off
-    </div>
+    <div v-if="!hasLocalVideo" class="local-placeholder">Camera Off</div>
 
     <!-- Call controls overlay -->
     <div class="controls-overlay">
@@ -548,9 +504,7 @@ Create a professional video call interface:
       <button @click="toggleVideo">
         {{ hasLocalVideo ? '📹 Stop Video' : '📹 Start Video' }}
       </button>
-      <button @click="hangup" class="danger">
-        📞 Hang Up
-      </button>
+      <button @click="hangup" class="danger">📞 Hang Up</button>
     </div>
   </div>
 </template>
@@ -570,7 +524,7 @@ const {
   remoteDisplayName,
   isMuted,
   toggleMute,
-  hangup
+  hangup,
 } = useCallSession(sipClient)
 
 // Attach streams to video elements
@@ -647,7 +601,7 @@ async function toggleVideo() {
   border: 2px solid white;
   border-radius: 12px;
   object-fit: cover;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .local-placeholder {
@@ -658,7 +612,7 @@ async function toggleVideo() {
   height: 180px;
   border: 2px solid white;
   border-radius: 12px;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -674,7 +628,7 @@ async function toggleVideo() {
   display: flex;
   gap: 10px;
   padding: 15px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 50px;
   backdrop-filter: blur(10px);
 }
@@ -848,7 +802,7 @@ Adapt video layout for different screen sizes:
 /* Portrait orientation on mobile */
 @media (max-width: 480px) and (orientation: portrait) {
   .remote-video {
-    object-fit: cover;  /* Fill screen in portrait */
+    object-fit: cover; /* Fill screen in portrait */
   }
 }
 
@@ -878,7 +832,7 @@ const { makeCall } = useCallSession(sipClient)
 // Basic video call (720p default)
 await makeCall('sip:bob@example.com', {
   audio: true,
-  video: true
+  video: true,
 })
 
 // High-quality video call (1080p)
@@ -887,8 +841,8 @@ await makeCall('sip:bob@example.com', {
   video: {
     width: { ideal: 1920 },
     height: { ideal: 1080 },
-    frameRate: { ideal: 30 }
-  }
+    frameRate: { ideal: 30 },
+  },
 })
 
 // Mobile-optimized video call (lower quality for bandwidth)
@@ -897,8 +851,8 @@ await makeCall('sip:bob@example.com', {
   video: {
     width: { ideal: 640 },
     height: { ideal: 480 },
-    frameRate: { ideal: 15 }
-  }
+    frameRate: { ideal: 15 },
+  },
 })
 
 // Video call with specific camera
@@ -907,8 +861,8 @@ await makeCall('sip:bob@example.com', {
   video: {
     deviceId: { exact: 'camera-device-id-here' },
     width: { ideal: 1280 },
-    height: { ideal: 720 }
-  }
+    height: { ideal: 720 },
+  },
 })
 ```
 
@@ -921,43 +875,44 @@ Fine-tune video quality and behavior:
 const videoConstraints = {
   // Resolution preferences
   width: {
-    min: 640,      // Minimum acceptable width
-    ideal: 1280,   // Preferred width (browser tries to match)
-    max: 1920      // Maximum width
+    min: 640, // Minimum acceptable width
+    ideal: 1280, // Preferred width (browser tries to match)
+    max: 1920, // Maximum width
   },
   height: {
     min: 480,
     ideal: 720,
-    max: 1080
+    max: 1080,
   },
 
   // Frame rate
   frameRate: {
-    min: 10,       // Minimum FPS
-    ideal: 30,     // Target FPS
-    max: 60        // Maximum FPS
+    min: 10, // Minimum FPS
+    ideal: 30, // Target FPS
+    max: 60, // Maximum FPS
   },
 
   // Aspect ratio
-  aspectRatio: { ideal: 16/9 },  // 16:9 widescreen
+  aspectRatio: { ideal: 16 / 9 }, // 16:9 widescreen
 
   // Camera selection
-  facingMode: 'user',  // 'user' = front, 'environment' = back
+  facingMode: 'user', // 'user' = front, 'environment' = back
 
   // Or specific device
   deviceId: { exact: 'abc123' },
 
   // Video quality hints
-  resizeMode: 'crop-and-scale',  // How to adjust resolution
+  resizeMode: 'crop-and-scale', // How to adjust resolution
 }
 
 await makeCall('sip:bob@example.com', {
   audio: true,
-  video: videoConstraints
+  video: videoConstraints,
 })
 ```
 
 📝 **Constraint Types**:
+
 - `exact`: Must match exactly (fails if not available)
 - `ideal`: Preferred value (browser tries to match)
 - `min`/`max`: Acceptable range
@@ -975,8 +930,8 @@ const professionalQuality = {
   video: {
     width: { ideal: 1920 },
     height: { ideal: 1080 },
-    frameRate: { ideal: 30 }
-  }
+    frameRate: { ideal: 30 },
+  },
 }
 
 // Scenario 2: Balanced quality (default recommended)
@@ -985,8 +940,8 @@ const balancedQuality = {
   video: {
     width: { ideal: 1280 },
     height: { ideal: 720 },
-    frameRate: { ideal: 30 }
-  }
+    frameRate: { ideal: 30 },
+  },
 }
 
 // Scenario 3: Low bandwidth / mobile
@@ -995,8 +950,8 @@ const economyQuality = {
   video: {
     width: { ideal: 640 },
     height: { ideal: 480 },
-    frameRate: { ideal: 15 }
-  }
+    frameRate: { ideal: 15 },
+  },
 }
 
 // Scenario 4: Screen sharing companion video
@@ -1005,17 +960,19 @@ const companionQuality = {
   video: {
     width: { ideal: 320 },
     height: { ideal: 240 },
-    frameRate: { ideal: 15 }
-  }
+    frameRate: { ideal: 15 },
+  },
 }
 
 // Use based on connection quality
-const connectionSpeed = measureBandwidth()  // Your bandwidth detection
+const connectionSpeed = measureBandwidth() // Your bandwidth detection
 let quality
 
-if (connectionSpeed > 5000) {  // > 5 Mbps
+if (connectionSpeed > 5000) {
+  // > 5 Mbps
   quality = professionalQuality
-} else if (connectionSpeed > 2000) {  // > 2 Mbps
+} else if (connectionSpeed > 2000) {
+  // > 2 Mbps
   quality = balancedQuality
 } else {
   quality = economyQuality
@@ -1025,6 +982,7 @@ await makeCall(targetUri, quality)
 ```
 
 💡 **Bandwidth Guidelines**:
+
 - **1080p @ 30fps**: ~3-4 Mbps
 - **720p @ 30fps**: ~1.5-2 Mbps
 - **480p @ 15fps**: ~500-800 Kbps
@@ -1056,7 +1014,7 @@ async function answerWithVideo() {
   try {
     await answer({
       audio: true,
-      video: true  // Enable camera when answering
+      video: true, // Enable camera when answering
     })
     console.log('Answered with video')
   } catch (error) {
@@ -1074,7 +1032,7 @@ async function answerWithVideo() {
 async function answerAudioOnly() {
   await answer({
     audio: true,
-    video: false
+    video: false,
   })
   console.log('Answered audio-only')
 }
@@ -1092,18 +1050,18 @@ const { answer, state, direction, hasRemoteVideo } = useCallSession(sipClient)
 
 // Auto-answer configuration
 const autoAnswerEnabled = ref(true)
-const autoAnswerWithVideo = ref(true)  // Answer with camera on
+const autoAnswerWithVideo = ref(true) // Answer with camera on
 
 watch([state, direction], async ([newState, newDirection]) => {
   if (newState === 'ringing' && newDirection === 'incoming' && autoAnswerEnabled.value) {
     // Delay slightly to allow UI to render
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
     try {
       // Answer with video if configured
       await answer({
         audio: true,
-        video: autoAnswerWithVideo.value
+        video: autoAnswerWithVideo.value,
       })
 
       console.log('Auto-answered', autoAnswerWithVideo.value ? 'with video' : 'audio-only')
@@ -1137,23 +1095,15 @@ Show rich notifications for incoming video calls:
       <!-- Answer options -->
       <div class="call-actions">
         <!-- Answer with video -->
-        <button
-          v-if="hasRemoteVideoOffer"
-          @click="answerWithVideo"
-          class="answer-video"
-        >
+        <button v-if="hasRemoteVideoOffer" @click="answerWithVideo" class="answer-video">
           📹 Answer with Video
         </button>
 
         <!-- Answer audio-only -->
-        <button @click="answerAudioOnly" class="answer-audio">
-          📞 Answer Audio Only
-        </button>
+        <button @click="answerAudioOnly" class="answer-audio">📞 Answer Audio Only</button>
 
         <!-- Decline -->
-        <button @click="decline" class="decline">
-          ❌ Decline
-        </button>
+        <button @click="decline" class="decline">❌ Decline</button>
       </div>
     </div>
   </div>
@@ -1163,27 +1113,14 @@ Show rich notifications for incoming video calls:
 import { ref, computed, watch } from 'vue'
 import { useCallSession } from 'vuesip'
 
-const {
-  answer,
-  reject,
-  state,
-  direction,
-  remoteUri,
-  remoteDisplayName,
-  hasRemoteVideo
-} = useCallSession(sipClient)
+const { answer, reject, state, direction, remoteUri, remoteDisplayName, hasRemoteVideo } =
+  useCallSession(sipClient)
 
-const showIncomingCall = computed(() =>
-  state.value === 'ringing' && direction.value === 'incoming'
-)
+const showIncomingCall = computed(() => state.value === 'ringing' && direction.value === 'incoming')
 
-const callerName = computed(() =>
-  remoteDisplayName.value || 'Unknown Caller'
-)
+const callerName = computed(() => remoteDisplayName.value || 'Unknown Caller')
 
-const callerInitial = computed(() =>
-  callerName.value.charAt(0).toUpperCase()
-)
+const callerInitial = computed(() => callerName.value.charAt(0).toUpperCase())
 
 const callerUri = computed(() => remoteUri.value || '')
 
@@ -1198,7 +1135,7 @@ async function answerAudioOnly() {
 }
 
 async function decline() {
-  await reject(603)  // 603 Decline
+  await reject(603) // 603 Decline
 }
 </script>
 
@@ -1209,7 +1146,7 @@ async function decline() {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1222,7 +1159,7 @@ async function decline() {
   border-radius: 16px;
   text-align: center;
   max-width: 400px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .caller-avatar {
@@ -1299,6 +1236,7 @@ async function decline() {
 ### Understanding Video Quality
 
 Video quality in WebRTC is affected by:
+
 - **Resolution**: Higher resolution = better clarity but more bandwidth
 - **Frame rate**: Higher FPS = smoother motion
 - **Bitrate**: Higher bitrate = better quality but more data
@@ -1336,7 +1274,7 @@ const qualityInterval = setInterval(async () => {
   if (state.value === 'active') {
     await checkVideoQuality()
   }
-}, 5000)  // Check every 5 seconds
+}, 5000) // Check every 5 seconds
 
 // Cleanup
 onUnmounted(() => {
@@ -1364,7 +1302,7 @@ async function adaptVideoQuality(stats: CallStatistics) {
     newConstraints = {
       width: { ideal: 320 },
       height: { ideal: 240 },
-      frameRate: { ideal: 10 }
+      frameRate: { ideal: 10 },
     }
   } else if (packetLoss > 5) {
     // Moderate packet loss - reduce to medium
@@ -1372,7 +1310,7 @@ async function adaptVideoQuality(stats: CallStatistics) {
     newConstraints = {
       width: { ideal: 640 },
       height: { ideal: 480 },
-      frameRate: { ideal: 15 }
+      frameRate: { ideal: 15 },
     }
   } else if (packetLoss < 2 && currentWidth < 1280) {
     // Low packet loss and currently low quality - increase
@@ -1380,7 +1318,7 @@ async function adaptVideoQuality(stats: CallStatistics) {
     newConstraints = {
       width: { ideal: 1280 },
       height: { ideal: 720 },
-      frameRate: { ideal: 30 }
+      frameRate: { ideal: 30 },
     }
   } else {
     // No change needed
@@ -1407,7 +1345,7 @@ setInterval(async () => {
       await adaptVideoQuality(stats)
     }
   }
-}, 10000)  // Check every 10 seconds
+}, 10000) // Check every 10 seconds
 ```
 
 ### Video Statistics Monitoring
@@ -1464,13 +1402,13 @@ const qualityClass = computed(() => ({
   'quality-excellent': quality.value === 'Excellent',
   'quality-good': quality.value === 'Good',
   'quality-fair': quality.value === 'Fair',
-  'quality-poor': quality.value === 'Poor'
+  'quality-poor': quality.value === 'Poor',
 }))
 
 const packetLossClass = computed(() => ({
   'loss-low': packetLoss.value < 2,
   'loss-medium': packetLoss.value >= 2 && packetLoss.value < 5,
-  'loss-high': packetLoss.value >= 5
+  'loss-high': packetLoss.value >= 5,
 }))
 
 let statsInterval: number
@@ -1500,7 +1438,7 @@ onUnmounted(() => {
   position: absolute;
   top: 20px;
   left: 20px;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 15px;
   border-radius: 8px;
@@ -1520,14 +1458,31 @@ onUnmounted(() => {
   margin-bottom: 5px;
 }
 
-.quality-excellent { color: #10b981; font-weight: bold; }
-.quality-good { color: #3b82f6; }
-.quality-fair { color: #f59e0b; }
-.quality-poor { color: #ef4444; font-weight: bold; }
+.quality-excellent {
+  color: #10b981;
+  font-weight: bold;
+}
+.quality-good {
+  color: #3b82f6;
+}
+.quality-fair {
+  color: #f59e0b;
+}
+.quality-poor {
+  color: #ef4444;
+  font-weight: bold;
+}
 
-.loss-low { color: #10b981; }
-.loss-medium { color: #f59e0b; }
-.loss-high { color: #ef4444; font-weight: bold; }
+.loss-low {
+  color: #10b981;
+}
+.loss-medium {
+  color: #f59e0b;
+}
+.loss-high {
+  color: #ef4444;
+  font-weight: bold;
+}
 </style>
 ```
 
@@ -1554,10 +1509,10 @@ async function handlePoorConnection(stats: CallStatistics) {
               videoTrack.enabled = false
             }
             console.log('Switched to audio-only')
-          }
+          },
         },
-        { label: 'Keep Video', handler: () => {} }
-      ]
+        { label: 'Keep Video', handler: () => {} },
+      ],
     })
   } else if (packetLoss > 8) {
     // Moderate packet loss - automatically reduce quality
@@ -1581,10 +1536,10 @@ async function startScreenShare() {
     // Request screen sharing permission
     const screenStream = await navigator.mediaDevices.getDisplayMedia({
       video: {
-        cursor: 'always',  // Include cursor in share
-        displaySurface: 'monitor'  // Prefer full screen
+        cursor: 'always', // Include cursor in share
+        displaySurface: 'monitor', // Prefer full screen
       },
-      audio: false  // No system audio (can enable if needed)
+      audio: false, // No system audio (can enable if needed)
     })
 
     console.log('Screen share started')
@@ -1593,9 +1548,7 @@ async function startScreenShare() {
     const screenTrack = screenStream.getVideoTracks()[0]
 
     // Replace camera track with screen track
-    const sender = session.value?.rtcSession
-      .getSenders()
-      .find(s => s.track?.kind === 'video')
+    const sender = session.value?.rtcSession.getSenders().find((s) => s.track?.kind === 'video')
 
     if (sender) {
       // Store original camera track for later
@@ -1635,8 +1588,8 @@ async function startScreenShareWithAudio() {
       audio: {
         echoCancellation: false,
         noiseSuppression: false,
-        autoGainControl: false
-      }
+        autoGainControl: false,
+      },
     })
 
     console.log('Screen share with audio started')
@@ -1685,15 +1638,13 @@ async function startScreenShare() {
     // Get screen stream
     screenStream = await navigator.mediaDevices.getDisplayMedia({
       video: true,
-      audio: false
+      audio: false,
     })
 
     const screenTrack = screenStream.getVideoTracks()[0]
 
     // Find video sender
-    const sender = session.value.rtcSession
-      .getSenders()
-      .find(s => s.track?.kind === 'video')
+    const sender = session.value.rtcSession.getSenders().find((s) => s.track?.kind === 'video')
 
     if (sender && sender.track) {
       // Store camera track
@@ -1718,12 +1669,10 @@ async function stopScreenShare() {
 
   try {
     // Stop screen stream
-    screenStream.getTracks().forEach(track => track.stop())
+    screenStream.getTracks().forEach((track) => track.stop())
 
     // Find video sender
-    const sender = session.value.rtcSession
-      .getSenders()
-      .find(s => s.track?.kind === 'video')
+    const sender = session.value.rtcSession.getSenders().find((s) => s.track?.kind === 'video')
 
     if (sender && originalCameraTrack) {
       // Restore camera track
@@ -1743,7 +1692,7 @@ async function stopScreenShare() {
 // Cleanup on unmount
 onUnmounted(() => {
   if (screenStream) {
-    screenStream.getTracks().forEach(track => track.stop())
+    screenStream.getTracks().forEach((track) => track.stop())
   }
 })
 ```
@@ -1782,11 +1731,7 @@ Build a professional screen sharing interface:
 import { ref, computed, watch } from 'vue'
 import { useCallSession } from 'vuesip'
 
-const {
-  session,
-  remoteStream,
-  remoteDisplayName
-} = useCallSession(sipClient)
+const { session, remoteStream, remoteDisplayName } = useCallSession(sipClient)
 
 const isSharingScreen = ref(false)
 
@@ -1856,8 +1801,13 @@ async function toggleScreenShare() {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 @keyframes slideIn {
@@ -1881,7 +1831,7 @@ async function toggleScreenShare() {
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   z-index: 100;
 }
 </style>
@@ -1896,6 +1846,7 @@ async function toggleScreenShare() {
 Multi-party video conferencing allows multiple participants to join a single video call, similar to Zoom, Microsoft Teams, or Google Meet. Instead of simple 1-to-1 calls, conferences support many participants viewing and interacting with each other simultaneously.
 
 **What Makes Multi-Party Different:**
+
 - **Multiple Video Streams**: Each participant has their own video stream that needs to be managed
 - **Complex UI Layouts**: Gallery view, speaker view, and grid layouts instead of simple PiP
 - **Participant Management**: Add, remove, mute participants dynamically
@@ -1906,6 +1857,7 @@ Multi-party video conferencing allows multiple participants to join a single vid
 ### When to Use Conferences vs Multiple 1-to-1 Calls
 
 **Use Conferences When:**
+
 - You need 3+ participants in the same conversation
 - Everyone should see and hear everyone else
 - You need centralized controls (mute all, lock, record)
@@ -1913,6 +1865,7 @@ Multi-party video conferencing allows multiple participants to join a single vid
 - Server-side mixing is available (better performance)
 
 **Use Multiple 1-to-1 Calls When:**
+
 - You need separate private conversations
 - Different quality settings per call
 - Independent call controls
@@ -1935,33 +1888,33 @@ const { sipClient } = useSipClient()
 
 const {
   // State
-  conference,           // Conference details
-  state,                // Current state (Idle, Creating, Active, etc.)
-  participants,         // Array of all participants
-  participantCount,     // Total number of participants
-  isActive,            // Whether conference is active
-  isLocked,            // Whether conference is locked
-  isRecording,         // Whether recording is active
+  conference, // Conference details
+  state, // Current state (Idle, Creating, Active, etc.)
+  participants, // Array of all participants
+  participantCount, // Total number of participants
+  isActive, // Whether conference is active
+  isLocked, // Whether conference is locked
+  isRecording, // Whether recording is active
 
   // Conference management
-  createConference,    // Create a new conference
-  joinConference,      // Join existing conference
-  endConference,       // End the conference
+  createConference, // Create a new conference
+  joinConference, // Join existing conference
+  endConference, // End the conference
 
   // Participant management
-  addParticipant,      // Add a participant
-  removeParticipant,   // Remove a participant
-  muteParticipant,     // Mute a participant
-  unmuteParticipant,   // Unmute a participant
+  addParticipant, // Add a participant
+  removeParticipant, // Remove a participant
+  muteParticipant, // Mute a participant
+  unmuteParticipant, // Unmute a participant
 
   // Controls
-  lockConference,      // Lock the conference
-  unlockConference,    // Unlock the conference
-  startRecording,      // Start recording
-  stopRecording,       // Stop recording
+  lockConference, // Lock the conference
+  unlockConference, // Unlock the conference
+  startRecording, // Start recording
+  stopRecording, // Stop recording
 
   // Events
-  onConferenceEvent    // Listen to conference events
+  onConferenceEvent, // Listen to conference events
 } = useConference(sipClient)
 ```
 
@@ -1976,17 +1929,17 @@ console.log('Conference created:', conferenceId)
 
 // Create with custom settings
 const confId = await createConference({
-  maxParticipants: 25,        // Allow up to 25 people
-  locked: false,              // Start unlocked
+  maxParticipants: 25, // Allow up to 25 people
+  locked: false, // Start unlocked
   metadata: {
     topic: 'Team Standup',
-    scheduled: new Date()
-  }
+    scheduled: new Date(),
+  },
 })
 
 // Conference is now active
-console.log('Active:', isActive.value)  // true
-console.log('Participants:', participantCount.value)  // 1 (you)
+console.log('Active:', isActive.value) // true
+console.log('Participants:', participantCount.value) // 1 (you)
 ```
 
 💡 **Why it matters**: Creating a conference makes you the moderator with full control over participants, recording, and conference settings.
@@ -2003,7 +1956,7 @@ console.log('Joined conference')
 console.log('Participants:', participants.value.length)
 
 // You may not have moderator privileges when joining
-const localUser = participants.value.find(p => p.isSelf)
+const localUser = participants.value.find((p) => p.isSelf)
 console.log('Am I moderator?', localUser?.isModerator)
 ```
 
@@ -2015,17 +1968,14 @@ Invite participants to join your conference:
 
 ```typescript
 // Add participant with display name
-const participantId = await addParticipant(
-  'sip:alice@example.com',
-  'Alice Smith'
-)
+const participantId = await addParticipant('sip:alice@example.com', 'Alice Smith')
 console.log('Added participant:', participantId)
 
 // Add multiple participants
 const participants = [
   { uri: 'sip:bob@example.com', name: 'Bob Jones' },
   { uri: 'sip:charlie@example.com', name: 'Charlie Brown' },
-  { uri: 'sip:diana@example.com', name: 'Diana Prince' }
+  { uri: 'sip:diana@example.com', name: 'Diana Prince' },
 ]
 
 for (const p of participants) {
@@ -2048,9 +1998,7 @@ Control participant behavior during the conference:
 
 ```typescript
 // Get a specific participant
-const participant = participants.value.find(
-  p => p.displayName === 'Alice Smith'
-)
+const participant = participants.value.find((p) => p.displayName === 'Alice Smith')
 
 if (participant) {
   // Mute the participant
@@ -2181,7 +2129,7 @@ Each participant in the conference has a `stream` property containing their Medi
 
 ```typescript
 // Access participant streams
-participants.value.forEach(participant => {
+participants.value.forEach((participant) => {
   if (participant.stream) {
     const videoTracks = participant.stream.getVideoTracks()
     const audioTracks = participant.stream.getAudioTracks()
@@ -2211,7 +2159,7 @@ Create video elements dynamically for each participant:
       :class="{
         'is-self': participant.isSelf,
         'is-speaking': isParticipantSpeaking(participant),
-        'is-muted': participant.isMuted
+        'is-muted': participant.isMuted,
       }"
     >
       <!-- Video element -->
@@ -2258,16 +2206,20 @@ function setVideoRef(participantId: string, el: any) {
 }
 
 // Attach streams when participants change
-watch(participants, () => {
-  participants.value.forEach(participant => {
-    if (participant.stream) {
-      const videoEl = videoRefs.value.get(participant.id)
-      if (videoEl && videoEl.srcObject !== participant.stream) {
-        videoEl.srcObject = participant.stream
+watch(
+  participants,
+  () => {
+    participants.value.forEach((participant) => {
+      if (participant.stream) {
+        const videoEl = videoRefs.value.get(participant.id)
+        if (videoEl && videoEl.srcObject !== participant.stream) {
+          videoEl.srcObject = participant.stream
+        }
       }
-    }
-  })
-}, { deep: true })
+    })
+  },
+  { deep: true }
+)
 
 // Check if participant has video
 function hasVideo(participant: Participant): boolean {
@@ -2299,25 +2251,29 @@ import { ref, watch, onUnmounted } from 'vue'
 const activeStreams = ref<Map<string, MediaStream>>(new Map())
 
 // Watch for new participants
-watch(participants, (newParticipants, oldParticipants) => {
-  // Find removed participants
-  const oldIds = new Set((oldParticipants || []).map(p => p.id))
-  const newIds = new Set(newParticipants.map(p => p.id))
+watch(
+  participants,
+  (newParticipants, oldParticipants) => {
+    // Find removed participants
+    const oldIds = new Set((oldParticipants || []).map((p) => p.id))
+    const newIds = new Set(newParticipants.map((p) => p.id))
 
-  oldIds.forEach(oldId => {
-    if (!newIds.has(oldId)) {
-      // Participant left - clean up their stream
-      cleanupParticipantStream(oldId)
-    }
-  })
+    oldIds.forEach((oldId) => {
+      if (!newIds.has(oldId)) {
+        // Participant left - clean up their stream
+        cleanupParticipantStream(oldId)
+      }
+    })
 
-  // Add new participant streams
-  newParticipants.forEach(participant => {
-    if (participant.stream && !activeStreams.value.has(participant.id)) {
-      activeStreams.value.set(participant.id, participant.stream)
-    }
-  })
-}, { deep: true })
+    // Add new participant streams
+    newParticipants.forEach((participant) => {
+      if (participant.stream && !activeStreams.value.has(participant.id)) {
+        activeStreams.value.set(participant.id, participant.stream)
+      }
+    })
+  },
+  { deep: true }
+)
 
 // Cleanup a specific participant's stream
 function cleanupParticipantStream(participantId: string) {
@@ -2353,31 +2309,35 @@ Participants can enable/disable their video during the conference:
 
 ```typescript
 // Watch for stream changes
-watch(participants, (newParticipants) => {
-  newParticipants.forEach(participant => {
-    const videoEl = videoRefs.value.get(participant.id)
-    if (!videoEl) return
+watch(
+  participants,
+  (newParticipants) => {
+    newParticipants.forEach((participant) => {
+      const videoEl = videoRefs.value.get(participant.id)
+      if (!videoEl) return
 
-    if (participant.stream) {
-      // Update video element if stream changed
-      if (videoEl.srcObject !== participant.stream) {
-        videoEl.srcObject = participant.stream
-      }
+      if (participant.stream) {
+        // Update video element if stream changed
+        if (videoEl.srcObject !== participant.stream) {
+          videoEl.srcObject = participant.stream
+        }
 
-      // Check video track status
-      const videoTrack = participant.stream.getVideoTracks()[0]
-      if (videoTrack) {
-        console.log(
-          `${participant.displayName} video:`,
-          videoTrack.enabled ? 'enabled' : 'disabled'
-        )
+        // Check video track status
+        const videoTrack = participant.stream.getVideoTracks()[0]
+        if (videoTrack) {
+          console.log(
+            `${participant.displayName} video:`,
+            videoTrack.enabled ? 'enabled' : 'disabled'
+          )
+        }
+      } else {
+        // No stream - show placeholder
+        videoEl.srcObject = null
       }
-    } else {
-      // No stream - show placeholder
-      videoEl.srcObject = null
-    }
-  })
-}, { deep: true })
+    })
+  },
+  { deep: true }
+)
 ```
 
 ---
@@ -2393,11 +2353,7 @@ Display all participants in equal-sized tiles:
 ```vue
 <template>
   <div class="video-grid" :style="gridStyle">
-    <div
-      v-for="participant in participants"
-      :key="participant.id"
-      class="grid-tile"
-    >
+    <div v-for="participant in participants" :key="participant.id" class="grid-tile">
       <video
         :ref="(el) => setVideoRef(participant.id, el)"
         autoplay
@@ -2429,7 +2385,7 @@ const gridStyle = computed(() => {
   else columns = 5
 
   return {
-    gridTemplateColumns: `repeat(${columns}, 1fr)`
+    gridTemplateColumns: `repeat(${columns}, 1fr)`,
   }
 })
 </script>
@@ -2462,7 +2418,7 @@ const gridStyle = computed(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 8px;
   font-size: 14px;
@@ -2527,7 +2483,7 @@ const activeSpeaker = ref<Participant | null>(null)
 
 // Other participants (not the active speaker)
 const otherParticipants = computed(() =>
-  participants.value.filter(p => p.id !== activeSpeaker.value?.id)
+  participants.value.filter((p) => p.id !== activeSpeaker.value?.id)
 )
 
 // Detect active speaker from audio levels
@@ -2537,8 +2493,9 @@ onConferenceEvent((event) => {
     let loudestParticipant: Participant | null = null
 
     event.levels.forEach((level, uri) => {
-      if (level > maxLevel && level > 0.3) {  // Threshold to avoid noise
-        const participant = participants.value.find(p => p.uri === uri)
+      if (level > maxLevel && level > 0.3) {
+        // Threshold to avoid noise
+        const participant = participants.value.find((p) => p.uri === uri)
         if (participant && !participant.isSelf) {
           maxLevel = level
           loudestParticipant = participant
@@ -2553,11 +2510,15 @@ onConferenceEvent((event) => {
 })
 
 // Initialize with first participant
-watch(participants, (newParticipants) => {
-  if (!activeSpeaker.value && newParticipants.length > 0) {
-    activeSpeaker.value = newParticipants[0]
-  }
-}, { immediate: true })
+watch(
+  participants,
+  (newParticipants) => {
+    if (!activeSpeaker.value && newParticipants.length > 0) {
+      activeSpeaker.value = newParticipants[0]
+    }
+  },
+  { immediate: true }
+)
 
 // Manually set active speaker
 function setActiveSpeaker(participant: Participant) {
@@ -2589,7 +2550,7 @@ function setActiveSpeaker(participant: Participant) {
   position: absolute;
   bottom: 20px;
   left: 20px;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 10px 20px;
   border-radius: 8px;
@@ -2634,7 +2595,7 @@ function setActiveSpeaker(participant: Participant) {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   color: white;
   padding: 4px;
   font-size: 12px;
@@ -2672,24 +2633,15 @@ Handle large conferences with pagination:
 
     <!-- Pagination controls -->
     <div v-if="totalPages > 1" class="pagination">
-      <button
-        @click="previousPage"
-        :disabled="currentPage === 0"
-        class="page-btn"
-      >
+      <button @click="previousPage" :disabled="currentPage === 0" class="page-btn">
         ← Previous
       </button>
 
       <span class="page-info">
-        Page {{ currentPage + 1 }} of {{ totalPages }}
-        ({{ participants.length }} participants)
+        Page {{ currentPage + 1 }} of {{ totalPages }} ({{ participants.length }} participants)
       </span>
 
-      <button
-        @click="nextPage"
-        :disabled="currentPage >= totalPages - 1"
-        class="page-btn"
-      >
+      <button @click="nextPage" :disabled="currentPage >= totalPages - 1" class="page-btn">
         Next →
       </button>
     </div>
@@ -2701,13 +2653,11 @@ import { ref, computed } from 'vue'
 
 const { participants } = useConference(sipClient)
 
-const PARTICIPANTS_PER_PAGE = 9  // 3x3 grid
+const PARTICIPANTS_PER_PAGE = 9 // 3x3 grid
 const currentPage = ref(0)
 
 // Calculate total pages
-const totalPages = computed(() =>
-  Math.ceil(participants.value.length / PARTICIPANTS_PER_PAGE)
-)
+const totalPages = computed(() => Math.ceil(participants.value.length / PARTICIPANTS_PER_PAGE))
 
 // Get participants for current page
 const currentPageParticipants = computed(() => {
@@ -2764,7 +2714,7 @@ function previousPage() {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 8px;
   text-align: center;
@@ -2841,7 +2791,7 @@ Adapt grid layout based on screen size:
   }
 
   .grid-tile {
-    aspect-ratio: 4/3;  /* Better for portrait */
+    aspect-ratio: 4/3; /* Better for portrait */
   }
 }
 </style>
@@ -2867,7 +2817,7 @@ const activeSpeaker = ref<Participant | null>(null)
 const audioLevels = ref<Map<string, number>>(new Map())
 
 // Threshold for considering someone as "speaking"
-const SPEAKING_THRESHOLD = 0.3  // 30% audio level
+const SPEAKING_THRESHOLD = 0.3 // 30% audio level
 
 // Listen for audio level updates
 onConferenceEvent((event) => {
@@ -2881,7 +2831,7 @@ onConferenceEvent((event) => {
 
     event.levels.forEach((level, uri) => {
       if (level > maxLevel) {
-        const participant = participants.value.find(p => p.uri === uri)
+        const participant = participants.value.find((p) => p.uri === uri)
         // Don't set self as active speaker (optional)
         if (participant && !participant.isSelf) {
           maxLevel = level
@@ -2922,7 +2872,7 @@ Highlight the active speaker in the UI:
       class="video-tile"
       :class="{
         'is-active-speaker': participant.id === activeSpeaker?.id,
-        'is-speaking': isSpeaking(participant)
+        'is-speaking': isSpeaking(participant),
       }"
     >
       <video
@@ -2939,9 +2889,7 @@ Highlight the active speaker in the UI:
       </div>
 
       <!-- Active speaker badge -->
-      <div v-if="participant.id === activeSpeaker?.id" class="speaker-badge">
-        🔊 Speaking
-      </div>
+      <div v-if="participant.id === activeSpeaker?.id" class="speaker-badge">🔊 Speaking</div>
 
       <div class="participant-name">
         {{ participant.displayName }}
@@ -2969,7 +2917,7 @@ onConferenceEvent((event) => {
 
     event.levels.forEach((level, uri) => {
       if (level > maxLevel) {
-        const participant = participants.value.find(p => p.uri === uri)
+        const participant = participants.value.find((p) => p.uri === uri)
         if (participant && !participant.isSelf) {
           maxLevel = level
           currentSpeaker = participant
@@ -2991,7 +2939,7 @@ function audioIndicatorStyle(participant: Participant) {
   const level = audioLevels.value.get(participant.uri) || 0
   return {
     opacity: level > 0.1 ? 1 : 0,
-    transform: `scaleX(${level})`
+    transform: `scaleX(${level})`,
   }
 }
 </script>
@@ -3018,7 +2966,7 @@ function audioIndicatorStyle(participant: Participant) {
   left: 10px;
   right: 10px;
   height: 4px;
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 2px;
   overflow: hidden;
   transition: opacity 0.2s;
@@ -3045,8 +2993,13 @@ function audioIndicatorStyle(participant: Participant) {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .participant-name {
@@ -3054,7 +3007,7 @@ function audioIndicatorStyle(participant: Participant) {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 8px;
   text-align: center;
@@ -3074,8 +3027,8 @@ const activeSpeaker = ref<Participant | null>(null)
 const pinnedParticipant = ref<Participant | null>(null)
 
 // Main video shows pinned participant or active speaker
-const mainParticipant = computed(() =>
-  pinnedParticipant.value || activeSpeaker.value || participants.value[0]
+const mainParticipant = computed(
+  () => pinnedParticipant.value || activeSpeaker.value || participants.value[0]
 )
 
 // Detect active speaker with debouncing
@@ -3089,7 +3042,7 @@ onConferenceEvent((event) => {
 
     event.levels.forEach((level, uri) => {
       if (level > maxLevel) {
-        const participant = participants.value.find(p => p.uri === uri)
+        const participant = participants.value.find((p) => p.uri === uri)
         if (participant && !participant.isSelf) {
           maxLevel = level
           currentSpeaker = participant
@@ -3108,7 +3061,7 @@ onConferenceEvent((event) => {
         if (!pinnedParticipant.value) {
           activeSpeaker.value = currentSpeaker
         }
-      }, 500)  // 500ms debounce
+      }, 500) // 500ms debounce
     }
   }
 })
@@ -3145,30 +3098,18 @@ Build a comprehensive control panel for managing the conference.
 
     <!-- Mute/Video controls -->
     <div class="control-section">
-      <button
-        @click="toggleMute"
-        :class="{ active: isMuted }"
-        class="control-btn"
-      >
+      <button @click="toggleMute" :class="{ active: isMuted }" class="control-btn">
         {{ isMuted ? '🔇 Unmute' : '🔊 Mute' }}
       </button>
 
-      <button
-        @click="toggleVideo"
-        :class="{ active: !hasVideo }"
-        class="control-btn"
-      >
+      <button @click="toggleVideo" :class="{ active: !hasVideo }" class="control-btn">
         {{ hasVideo ? '📹 Stop Video' : '📹 Start Video' }}
       </button>
     </div>
 
     <!-- Conference controls (moderator only) -->
     <div v-if="isModerator" class="control-section">
-      <button
-        @click="toggleLock"
-        :class="{ active: isLocked }"
-        class="control-btn"
-      >
+      <button @click="toggleLock" :class="{ active: isLocked }" class="control-btn">
         {{ isLocked ? '🔓 Unlock' : '🔒 Lock' }}
       </button>
 
@@ -3180,27 +3121,15 @@ Build a comprehensive control panel for managing the conference.
         {{ isRecording ? '⏹️ Stop Recording' : '⏺️ Record' }}
       </button>
 
-      <button @click="handleAddParticipant" class="control-btn">
-        ➕ Add Participant
-      </button>
+      <button @click="handleAddParticipant" class="control-btn">➕ Add Participant</button>
     </div>
 
     <!-- Leave/End conference -->
     <div class="control-section">
-      <button
-        v-if="isModerator"
-        @click="confirmEndConference"
-        class="control-btn danger"
-      >
+      <button v-if="isModerator" @click="confirmEndConference" class="control-btn danger">
         🛑 End Conference
       </button>
-      <button
-        v-else
-        @click="handleLeaveConference"
-        class="control-btn danger"
-      >
-        📞 Leave
-      </button>
+      <button v-else @click="handleLeaveConference" class="control-btn danger">📞 Leave</button>
     </div>
   </div>
 </template>
@@ -3217,7 +3146,7 @@ const {
   unlockConference,
   startRecording,
   stopRecording,
-  endConference
+  endConference,
 } = useConference(sipClient)
 
 const isMuted = ref(false)
@@ -3271,18 +3200,16 @@ function handleAddParticipant() {
     const name = prompt('Enter display name (optional):')
     addParticipant(uri, name || undefined)
       .then(() => console.log('Participant added'))
-      .catch(error => alert(`Failed to add participant: ${error.message}`))
+      .catch((error) => alert(`Failed to add participant: ${error.message}`))
   }
 }
 
 function confirmEndConference() {
-  const confirmed = confirm(
-    'End this conference for all participants?'
-  )
+  const confirmed = confirm('End this conference for all participants?')
   if (confirmed) {
     endConference()
       .then(() => console.log('Conference ended'))
-      .catch(error => console.error('Failed to end conference:', error))
+      .catch((error) => console.error('Failed to end conference:', error))
   }
 }
 
@@ -3300,7 +3227,7 @@ function handleLeaveConference() {
   display: flex;
   gap: 15px;
   padding: 15px 20px;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   border-radius: 50px;
   backdrop-filter: blur(10px);
   z-index: 100;
@@ -3311,7 +3238,7 @@ function handleLeaveConference() {
   gap: 10px;
   align-items: center;
   padding: 0 15px;
-  border-right: 1px solid rgba(255,255,255,0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .control-section:last-child {
@@ -3328,7 +3255,7 @@ function handleLeaveConference() {
   padding: 10px 20px;
   border: none;
   border-radius: 25px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -3338,7 +3265,7 @@ function handleLeaveConference() {
 }
 
 .control-btn:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
   transform: scale(1.05);
 }
 
@@ -3360,8 +3287,13 @@ function handleLeaveConference() {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 </style>
 ```
@@ -3375,13 +3307,7 @@ Manage individual participants:
   <div class="participant-roster">
     <div class="roster-header">
       <h3>Participants ({{ participantCount }})</h3>
-      <button
-        v-if="isModerator"
-        @click="showAddDialog = true"
-        class="add-btn"
-      >
-        ➕ Add
-      </button>
+      <button v-if="isModerator" @click="showAddDialog = true" class="add-btn">➕ Add</button>
     </div>
 
     <div class="roster-list">
@@ -3450,7 +3376,7 @@ const {
   localParticipant,
   muteParticipant,
   unmuteParticipant,
-  removeParticipant
+  removeParticipant,
 } = useConference(sipClient)
 
 const showAddDialog = ref(false)
@@ -3481,13 +3407,11 @@ async function toggleParticipantMute(participant: Participant) {
 }
 
 function removeParticipantConfirm(participant: Participant) {
-  const confirmed = confirm(
-    `Remove ${participant.displayName} from the conference?`
-  )
+  const confirmed = confirm(`Remove ${participant.displayName} from the conference?`)
   if (confirmed) {
     removeParticipant(participant.id, 'Removed by moderator')
       .then(() => console.log('Participant removed'))
-      .catch(error => console.error('Failed to remove:', error))
+      .catch((error) => console.error('Failed to remove:', error))
   }
 }
 </script>
@@ -3572,7 +3496,8 @@ function removeParticipantConfirm(participant: Participant) {
   gap: 6px;
 }
 
-.you-badge, .mod-badge {
+.you-badge,
+.mod-badge {
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 4px;
@@ -3598,7 +3523,7 @@ function removeParticipantConfirm(participant: Participant) {
 .audio-level {
   width: 4px;
   height: 30px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   overflow: hidden;
   position: relative;
@@ -3622,7 +3547,7 @@ function removeParticipantConfirm(participant: Participant) {
   height: 32px;
   border: none;
   border-radius: 6px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: white;
   cursor: pointer;
   transition: background 0.2s;
@@ -3632,7 +3557,7 @@ function removeParticipantConfirm(participant: Participant) {
 }
 
 .action-btn:hover {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .action-btn.active {
@@ -3665,41 +3590,45 @@ import { watch } from 'vue'
 const activeSpeaker = ref<Participant | null>(null)
 
 // Optimize video quality based on priority
-watch([participants, activeSpeaker], async ([currentParticipants, speaker]) => {
-  for (const participant of currentParticipants) {
-    if (!participant.stream) continue
+watch(
+  [participants, activeSpeaker],
+  async ([currentParticipants, speaker]) => {
+    for (const participant of currentParticipants) {
+      if (!participant.stream) continue
 
-    const videoTrack = participant.stream.getVideoTracks()[0]
-    if (!videoTrack) continue
+      const videoTrack = participant.stream.getVideoTracks()[0]
+      if (!videoTrack) continue
 
-    try {
-      if (participant.id === speaker?.id) {
-        // Active speaker gets HD quality
-        await videoTrack.applyConstraints({
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 }
-        })
-      } else if (participant.isSelf) {
-        // Self view gets medium quality
-        await videoTrack.applyConstraints({
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          frameRate: { ideal: 15 }
-        })
-      } else {
-        // Other participants get low quality
-        await videoTrack.applyConstraints({
-          width: { ideal: 320 },
-          height: { ideal: 240 },
-          frameRate: { ideal: 10 }
-        })
+      try {
+        if (participant.id === speaker?.id) {
+          // Active speaker gets HD quality
+          await videoTrack.applyConstraints({
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 },
+          })
+        } else if (participant.isSelf) {
+          // Self view gets medium quality
+          await videoTrack.applyConstraints({
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 15 },
+          })
+        } else {
+          // Other participants get low quality
+          await videoTrack.applyConstraints({
+            width: { ideal: 320 },
+            height: { ideal: 240 },
+            frameRate: { ideal: 10 },
+          })
+        }
+      } catch (error) {
+        console.error('Failed to apply constraints:', error)
       }
-    } catch (error) {
-      console.error('Failed to apply constraints:', error)
     }
-  }
-}, { deep: true })
+  },
+  { deep: true }
+)
 ```
 
 #### Virtual Scrolling for Large Conferences
@@ -3708,11 +3637,7 @@ Only render visible participants for 50+ participant conferences:
 
 ```vue
 <template>
-  <div
-    ref="scrollContainer"
-    class="virtual-scroll-container"
-    @scroll="handleScroll"
-  >
+  <div ref="scrollContainer" class="virtual-scroll-container" @scroll="handleScroll">
     <!-- Spacer for scrolling -->
     <div :style="{ height: `${totalHeight}px` }" class="scroll-spacer">
       <!-- Only render visible items -->
@@ -3722,7 +3647,7 @@ Only render visible participants for 50+ participant conferences:
         :style="{
           position: 'absolute',
           top: `${getParticipantOffset(participant)}px`,
-          width: '100%'
+          width: '100%',
         }"
         class="virtual-item"
       >
@@ -3746,15 +3671,13 @@ import { ref, computed } from 'vue'
 
 const { participants } = useConference(sipClient)
 
-const ITEM_HEIGHT = 200  // Height of each video tile
-const BUFFER = 2  // Number of items to render above/below viewport
+const ITEM_HEIGHT = 200 // Height of each video tile
+const BUFFER = 2 // Number of items to render above/below viewport
 
 const scrollContainer = ref<HTMLElement>()
 const scrollTop = ref(0)
 
-const totalHeight = computed(() =>
-  participants.value.length * ITEM_HEIGHT
-)
+const totalHeight = computed(() => participants.value.length * ITEM_HEIGHT)
 
 const visibleRange = computed(() => {
   if (!scrollContainer.value) return { start: 0, end: 10 }
@@ -3765,7 +3688,7 @@ const visibleRange = computed(() => {
 
   return {
     start: Math.max(0, start),
-    end: Math.min(participants.value.length, end)
+    end: Math.min(participants.value.length, end),
   }
 })
 
@@ -3775,7 +3698,7 @@ const visibleParticipants = computed(() => {
 })
 
 function getParticipantOffset(participant: Participant): number {
-  const index = participants.value.findIndex(p => p.id === participant.id)
+  const index = participants.value.findIndex((p) => p.id === participant.id)
   return index * ITEM_HEIGHT
 }
 
@@ -3798,9 +3721,9 @@ await createConference({
   metadata: {
     simulcast: {
       enabled: true,
-      layers: ['low', 'medium', 'high']
-    }
-  }
+      layers: ['low', 'medium', 'high'],
+    },
+  },
 })
 
 // Server will provide multiple quality levels
@@ -3817,20 +3740,19 @@ await createConference({
 Implement progressive quality degradation:
 
 ```typescript
-const MAX_HD_STREAMS = 1     // Only active speaker in HD
-const MAX_SD_STREAMS = 8      // Next 8 in SD
+const MAX_HD_STREAMS = 1 // Only active speaker in HD
+const MAX_SD_STREAMS = 8 // Next 8 in SD
 // Rest in low quality
 
 function optimizeStreamQualities() {
-  const sorted = participants.value.slice()
-    .sort((a, b) => {
-      // Prioritize: 1) Active speaker, 2) Self, 3) Others by join time
-      if (a.id === activeSpeaker.value?.id) return -1
-      if (b.id === activeSpeaker.value?.id) return 1
-      if (a.isSelf) return -1
-      if (b.isSelf) return 1
-      return a.joinedAt.getTime() - b.joinedAt.getTime()
-    })
+  const sorted = participants.value.slice().sort((a, b) => {
+    // Prioritize: 1) Active speaker, 2) Self, 3) Others by join time
+    if (a.id === activeSpeaker.value?.id) return -1
+    if (b.id === activeSpeaker.value?.id) return 1
+    if (a.isSelf) return -1
+    if (b.isSelf) return 1
+    return a.joinedAt.getTime() - b.joinedAt.getTime()
+  })
 
   sorted.forEach(async (participant, index) => {
     const videoTrack = participant.stream?.getVideoTracks()[0]
@@ -3852,7 +3774,7 @@ function optimizeStreamQualities() {
       await videoTrack.applyConstraints({
         width: { ideal: constraints.width },
         height: { ideal: constraints.height },
-        frameRate: { ideal: constraints.frameRate }
+        frameRate: { ideal: constraints.frameRate },
       })
     } catch (error) {
       console.error('Failed to apply constraints:', error)
@@ -3883,13 +3805,7 @@ Production-ready conference components you can use directly.
 
       <!-- Camera preview -->
       <div class="preview-section">
-        <video
-          ref="previewVideo"
-          autoplay
-          muted
-          playsinline
-          class="preview"
-        />
+        <video ref="previewVideo" autoplay muted playsinline class="preview" />
         <button @click="togglePreviewVideo">
           {{ previewVideoEnabled ? 'Stop Video' : 'Start Video' }}
         </button>
@@ -3897,14 +3813,8 @@ Production-ready conference components you can use directly.
 
       <!-- Join options -->
       <div class="join-options">
-        <input
-          v-model="displayName"
-          placeholder="Your name"
-          class="input"
-        />
-        <button @click="handleJoinConference" class="join-btn">
-          Join Conference
-        </button>
+        <input v-model="displayName" placeholder="Your name" class="input" />
+        <button @click="handleJoinConference" class="join-btn">Join Conference</button>
       </div>
     </div>
 
@@ -3918,7 +3828,7 @@ Production-ready conference components you can use directly.
           class="video-tile"
           :class="{
             'is-active-speaker': participant.id === activeSpeaker?.id,
-            'is-self': participant.isSelf
+            'is-self': participant.isSelf,
           }"
         >
           <video
@@ -3944,9 +3854,7 @@ Production-ready conference components you can use directly.
         <button @click="toggleVideo" :class="{ active: !hasVideo }">
           {{ hasVideo ? '📹' : '📹' }}
         </button>
-        <button @click="handleEndConference" class="danger">
-          📞 Leave
-        </button>
+        <button @click="handleEndConference" class="danger">📞 Leave</button>
       </div>
     </div>
   </div>
@@ -3963,7 +3871,7 @@ const {
   createConference,
   joinConference,
   endConference,
-  onConferenceEvent
+  onConferenceEvent,
 } = useConference(sipClient)
 
 const displayName = ref('')
@@ -3987,7 +3895,7 @@ onMounted(async () => {
   try {
     previewStream.value = await navigator.mediaDevices.getUserMedia({
       video: true,
-      audio: false
+      audio: false,
     })
     if (previewVideo.value) {
       previewVideo.value.srcObject = previewStream.value
@@ -4000,7 +3908,7 @@ onMounted(async () => {
 // Cleanup on unmount
 onUnmounted(() => {
   if (previewStream.value) {
-    previewStream.value.getTracks().forEach(track => track.stop())
+    previewStream.value.getTracks().forEach((track) => track.stop())
   }
 })
 
@@ -4020,14 +3928,14 @@ async function handleJoinConference() {
   try {
     // Stop preview
     if (previewStream.value) {
-      previewStream.value.getTracks().forEach(track => track.stop())
+      previewStream.value.getTracks().forEach((track) => track.stop())
       previewStream.value = null
     }
 
     // Create or join conference
     await createConference({
       maxParticipants: 10,
-      metadata: { displayName: displayName.value }
+      metadata: { displayName: displayName.value },
     })
   } catch (error) {
     console.error('Failed to join:', error)
@@ -4043,16 +3951,20 @@ function setVideoRef(participantId: string, el: any) {
 }
 
 // Attach streams
-watch(participants, () => {
-  participants.value.forEach(participant => {
-    if (participant.stream) {
-      const videoEl = videoRefs.value.get(participant.id)
-      if (videoEl && videoEl.srcObject !== participant.stream) {
-        videoEl.srcObject = participant.stream
+watch(
+  participants,
+  () => {
+    participants.value.forEach((participant) => {
+      if (participant.stream) {
+        const videoEl = videoRefs.value.get(participant.id)
+        if (videoEl && videoEl.srcObject !== participant.stream) {
+          videoEl.srcObject = participant.stream
+        }
       }
-    }
-  })
-}, { deep: true })
+    })
+  },
+  { deep: true }
+)
 
 // Detect active speaker
 onConferenceEvent((event) => {
@@ -4062,7 +3974,7 @@ onConferenceEvent((event) => {
 
     event.levels.forEach((level, uri) => {
       if (level > maxLevel) {
-        const p = participants.value.find(p => p.uri === uri)
+        const p = participants.value.find((p) => p.uri === uri)
         if (p && !p.isSelf) {
           maxLevel = level
           speaker = p
@@ -4199,7 +4111,7 @@ async function handleEndConference() {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   padding: 8px;
   display: flex;
   justify-content: space-between;
@@ -4219,7 +4131,7 @@ async function handleEndConference() {
   justify-content: center;
   gap: 15px;
   padding: 20px;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
 }
 
 .controls button {
@@ -4227,7 +4139,7 @@ async function handleEndConference() {
   height: 50px;
   border: none;
   border-radius: 50%;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   color: white;
   font-size: 20px;
   cursor: pointer;
@@ -4301,23 +4213,19 @@ async function switchMobileCamera() {
 
   try {
     // Toggle facing mode
-    const newFacingMode = currentFacingMode.value === 'user'
-      ? 'environment'
-      : 'user'
+    const newFacingMode = currentFacingMode.value === 'user' ? 'environment' : 'user'
 
     // Get new stream with switched camera
     const newStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: { exact: newFacingMode }
-      }
+        facingMode: { exact: newFacingMode },
+      },
     })
 
     const newVideoTrack = newStream.getVideoTracks()[0]
 
     // Replace track
-    const sender = session.value.rtcSession
-      .getSenders()
-      .find(s => s.track?.kind === 'video')
+    const sender = session.value.rtcSession.getSenders().find((s) => s.track?.kind === 'video')
 
     if (sender) {
       const oldTrack = sender.track
@@ -4339,11 +4247,7 @@ async function switchMobileCamera() {
 ```vue
 <!-- Mobile camera flip button -->
 <template>
-  <button
-    v-if="isMobile"
-    @click="switchMobileCamera"
-    class="flip-camera-btn"
-  >
+  <button v-if="isMobile" @click="switchMobileCamera" class="flip-camera-btn">
     🔄 Flip Camera
   </button>
 </template>
@@ -4366,32 +4270,33 @@ Use facingMode for mobile camera selection:
 await makeCall('sip:bob@example.com', {
   audio: true,
   video: {
-    facingMode: 'user',  // or { ideal: 'user' }
+    facingMode: 'user', // or { ideal: 'user' }
     width: { ideal: 1280 },
-    height: { ideal: 720 }
-  }
+    height: { ideal: 720 },
+  },
 })
 
 // Back camera (environment mode)
 await makeCall('sip:bob@example.com', {
   audio: true,
   video: {
-    facingMode: 'environment',  // or { ideal: 'environment' }
+    facingMode: 'environment', // or { ideal: 'environment' }
     width: { ideal: 1920 },
-    height: { ideal: 1080 }
-  }
+    height: { ideal: 1080 },
+  },
 })
 
 // Let browser choose best camera
 await makeCall('sip:bob@example.com', {
   audio: true,
   video: {
-    facingMode: { ideal: 'user' }  // Prefer front, but accept back if needed
-  }
+    facingMode: { ideal: 'user' }, // Prefer front, but accept back if needed
+  },
 })
 ```
 
 📝 **facingMode Values**:
+
 - `'user'`: Front-facing camera (selfie)
 - `'environment'`: Back-facing camera
 - `'left'`: Left-facing camera (rare)
@@ -4461,13 +4366,13 @@ function adjustVideoLayout() {
     // Portrait: Use 9:16 aspect ratio
     applyVideoConstraints({
       width: { ideal: 720 },
-      height: { ideal: 1280 }
+      height: { ideal: 1280 },
     })
   } else {
     // Landscape: Use 16:9 aspect ratio
     applyVideoConstraints({
       width: { ideal: 1280 },
-      height: { ideal: 720 }
+      height: { ideal: 720 },
     })
   }
 }
@@ -4492,7 +4397,7 @@ Use lower quality on mobile to conserve data:
 import { ref, computed } from 'vue'
 
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-const isOnWifi = ref(true)  // Detect via Network Information API if available
+const isOnWifi = ref(true) // Detect via Network Information API if available
 
 // Detect connection type (if supported)
 if ('connection' in navigator) {
@@ -4511,7 +4416,7 @@ const mobileVideoConstraints = computed(() => {
     return {
       width: { ideal: 1280 },
       height: { ideal: 720 },
-      frameRate: { ideal: 30 }
+      frameRate: { ideal: 30 },
     }
   }
 
@@ -4520,14 +4425,14 @@ const mobileVideoConstraints = computed(() => {
     return {
       width: { ideal: 960 },
       height: { ideal: 540 },
-      frameRate: { ideal: 24 }
+      frameRate: { ideal: 24 },
     }
   } else {
     // Mobile on cellular: Use low quality
     return {
       width: { ideal: 640 },
       height: { ideal: 360 },
-      frameRate: { ideal: 15 }
+      frameRate: { ideal: 15 },
     }
   }
 })
@@ -4535,11 +4440,12 @@ const mobileVideoConstraints = computed(() => {
 // Use in call
 await makeCall('sip:bob@example.com', {
   audio: true,
-  video: mobileVideoConstraints.value
+  video: mobileVideoConstraints.value,
 })
 ```
 
 💡 **Data Usage Estimates**:
+
 - **High (1280x720 @ 30fps)**: ~2-3 MB/minute
 - **Medium (960x540 @ 24fps)**: ~1-1.5 MB/minute
 - **Low (640x360 @ 15fps)**: ~500-800 KB/minute
@@ -4562,7 +4468,7 @@ const remoteVideoStream = ref<MediaStream | null>(null)
 function cleanupVideoStreams() {
   // Stop local stream tracks
   if (localVideoStream.value) {
-    localVideoStream.value.getTracks().forEach(track => {
+    localVideoStream.value.getTracks().forEach((track) => {
       track.stop()
       console.log(`Stopped ${track.kind} track`)
     })
@@ -4612,7 +4518,7 @@ async function reduceQualityForPerformance() {
     await videoTrack.applyConstraints({
       width: { ideal: 320 },
       height: { ideal: 240 },
-      frameRate: { ideal: 10 }
+      frameRate: { ideal: 10 },
     })
 
     console.log('Reduced video quality for better performance')
@@ -4653,11 +4559,12 @@ function optimizeMultipleStreams(streams: MediaStream[]) {
     if (!videoTrack) return
 
     // First 2 streams get HD, rest get SD
-    const constraints = index < MAX_HD_STREAMS
-      ? { width: { ideal: 1280 }, height: { ideal: 720 } }
-      : { width: { ideal: 320 }, height: { ideal: 240 } }
+    const constraints =
+      index < MAX_HD_STREAMS
+        ? { width: { ideal: 1280 }, height: { ideal: 720 } }
+        : { width: { ideal: 320 }, height: { ideal: 240 } }
 
-    videoTrack.applyConstraints(constraints).catch(err => {
+    videoTrack.applyConstraints(constraints).catch((err) => {
       console.error('Failed to apply constraints:', err)
     })
   })
@@ -4680,7 +4587,7 @@ const { requestPermissions } = useMediaDevices()
 // Request on app initialization or settings page
 onMounted(async () => {
   try {
-    await requestPermissions(true, true)  // audio and video
+    await requestPermissions(true, true) // audio and video
     console.log('Permissions granted')
   } catch (error) {
     console.error('Permission denied:', error)
@@ -4696,7 +4603,7 @@ onMounted(async () => {
 // Show preview before making call
 async function showCameraPreview() {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: true
+    video: true,
   })
 
   if (previewVideo.value) {
@@ -4732,7 +4639,7 @@ const selectedQuality = ref('medium')
 const qualityPresets = {
   low: { width: 320, height: 240, frameRate: 10 },
   medium: { width: 640, height: 480, frameRate: 15 },
-  high: { width: 1280, height: 720, frameRate: 30 }
+  high: { width: 1280, height: 720, frameRate: 30 },
 }
 
 async function applyQuality() {
@@ -4743,7 +4650,7 @@ async function applyQuality() {
     await videoTrack.applyConstraints({
       width: { ideal: preset.width },
       height: { ideal: preset.height },
-      frameRate: { ideal: preset.frameRate }
+      frameRate: { ideal: preset.frameRate },
     })
   }
 }
@@ -4762,10 +4669,12 @@ setInterval(async () => {
 
   const bandwidth = stats.network.availableOutgoingBitrate
 
-  if (bandwidth < 500000) {  // < 500 Kbps
+  if (bandwidth < 500000) {
+    // < 500 Kbps
     console.log('Low bandwidth detected, reducing quality')
     await applyQualityPreset('low')
-  } else if (bandwidth > 2000000) {  // > 2 Mbps
+  } else if (bandwidth > 2000000) {
+    // > 2 Mbps
     console.log('Good bandwidth, using high quality')
     await applyQualityPreset('high')
   }
@@ -4780,37 +4689,18 @@ setInterval(async () => {
 <template>
   <div class="video-call" role="region" aria-label="Video call">
     <!-- Remote video with label -->
-    <video
-      ref="remoteVideo"
-      autoplay
-      playsinline
-      aria-label="Remote participant video"
-    />
+    <video ref="remoteVideo" autoplay playsinline aria-label="Remote participant video" />
 
     <!-- Local video with label -->
-    <video
-      ref="localVideo"
-      autoplay
-      muted
-      playsinline
-      aria-label="Your camera preview"
-    />
+    <video ref="localVideo" autoplay muted playsinline aria-label="Your camera preview" />
 
     <!-- Controls with labels -->
     <div class="controls" role="toolbar" aria-label="Call controls">
-      <button
-        @click="toggleVideo"
-        aria-label="Toggle video"
-        :aria-pressed="hasLocalVideo"
-      >
+      <button @click="toggleVideo" aria-label="Toggle video" :aria-pressed="hasLocalVideo">
         {{ hasLocalVideo ? '📹 Stop Video' : '📹 Start Video' }}
       </button>
 
-      <button
-        @click="toggleMute"
-        aria-label="Toggle microphone"
-        :aria-pressed="isMuted"
-      >
+      <button @click="toggleMute" aria-label="Toggle microphone" :aria-pressed="isMuted">
         {{ isMuted ? '🔇 Unmute' : '🔊 Mute' }}
       </button>
 
@@ -4841,7 +4731,7 @@ const screenReaderStatus = computed(() => {
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0,0,0,0);
+  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
 }
@@ -4857,6 +4747,7 @@ const screenReaderStatus = computed(() => {
 **Problem**: `NotFoundError` - No camera detected
 
 **Solutions**:
+
 ```typescript
 try {
   await makeCall(target, { audio: true, video: true })
@@ -4874,6 +4765,7 @@ try {
 ```
 
 💡 **Common Causes**:
+
 - No camera physically connected
 - Camera disabled in system settings
 - Camera in use by another application
@@ -4883,6 +4775,7 @@ try {
 **Problem**: `NotAllowedError` - User denied camera/mic access
 
 **Solutions**:
+
 ```typescript
 try {
   await requestPermissions(true, true)
@@ -4912,6 +4805,7 @@ To enable:
 **Common Causes & Solutions**:
 
 **1. Stream not attached:**
+
 ```typescript
 // Ensure stream is attached
 watch(remoteStream, (stream) => {
@@ -4923,12 +4817,14 @@ watch(remoteStream, (stream) => {
 ```
 
 **2. Missing autoplay attribute:**
+
 ```vue
 <!-- Always include autoplay and playsinline -->
 <video ref="remoteVideo" autoplay playsinline />
 ```
 
 **3. Track is disabled:**
+
 ```typescript
 // Check if video track is enabled
 const videoTrack = remoteStream.value?.getVideoTracks()[0]
@@ -4939,6 +4835,7 @@ if (videoTrack && !videoTrack.enabled) {
 ```
 
 **4. No video in remote stream:**
+
 ```typescript
 // Verify remote stream has video
 const hasVideo = remoteStream.value?.getVideoTracks().length > 0
@@ -4955,6 +4852,7 @@ if (!hasVideo) {
 **Solutions**:
 
 **1. Check network stats:**
+
 ```typescript
 const stats = await getStats()
 console.log('Packet loss:', stats?.video?.packetLossPercentage)
@@ -4966,20 +4864,23 @@ if (stats?.video?.packetLossPercentage > 5) {
 ```
 
 **2. Reduce quality:**
+
 ```typescript
 await videoTrack.applyConstraints({
   width: { ideal: 640 },
   height: { ideal: 480 },
-  frameRate: { ideal: 15 }
+  frameRate: { ideal: 15 },
 })
 ```
 
 **3. Check bandwidth:**
+
 ```typescript
 const stats = await getStats()
 const bandwidth = stats?.network?.availableOutgoingBitrate
 
-if (bandwidth < 1000000) {  // < 1 Mbps
+if (bandwidth < 1000000) {
+  // < 1 Mbps
   console.warn('Insufficient bandwidth for HD video')
   // Reduce to SD
 }
@@ -4992,6 +4893,7 @@ if (bandwidth < 1000000) {  // < 1 Mbps
 **Solutions**:
 
 **1. Monitor packet loss:**
+
 ```typescript
 const stats = await getStats()
 if (stats?.video?.packetsLost > 100) {
@@ -5001,6 +4903,7 @@ if (stats?.video?.packetsLost > 100) {
 ```
 
 **2. Check frame drops:**
+
 ```typescript
 const stats = await getStats()
 console.log('Frames dropped:', stats?.video?.framesDropped)
@@ -5009,18 +4912,20 @@ if (stats?.video?.framesDropped > 50) {
   console.warn('Frames being dropped')
   // Reduce frame rate
   await videoTrack.applyConstraints({
-    frameRate: { ideal: 10 }
+    frameRate: { ideal: 10 },
   })
 }
 ```
 
 **3. Network issues:**
+
 ```typescript
 // Monitor round-trip time
 const stats = await getStats()
 const rtt = stats?.audio?.roundTripTime
 
-if (rtt > 0.3) {  // > 300ms
+if (rtt > 0.3) {
+  // > 300ms
   console.warn('High latency detected')
   // Show warning to user
 }
@@ -5043,13 +4948,7 @@ A production-ready video calling component with all features:
 
       <!-- Camera preview -->
       <div class="preview-section">
-        <video
-          ref="previewVideo"
-          autoplay
-          muted
-          playsinline
-          class="preview"
-        />
+        <video ref="previewVideo" autoplay muted playsinline class="preview" />
 
         <!-- Camera selector -->
         <select v-model="selectedVideoInputId">
@@ -5065,13 +4964,8 @@ A production-ready video calling component with all features:
 
       <!-- Call form -->
       <div class="call-form">
-        <input
-          v-model="targetUri"
-          placeholder="Enter SIP URI (e.g., sip:bob@example.com)"
-        />
-        <button @click="startVideoCall" :disabled="!targetUri">
-          📹 Start Video Call
-        </button>
+        <input v-model="targetUri" placeholder="Enter SIP URI (e.g., sip:bob@example.com)" />
+        <button @click="startVideoCall" :disabled="!targetUri">📹 Start Video Call</button>
       </div>
     </div>
 
@@ -5120,47 +5014,21 @@ A production-ready video calling component with all features:
 
       <!-- Controls -->
       <div class="controls">
-        <button
-          @click="toggleMute"
-          :class="{ active: isMuted }"
-        >
+        <button @click="toggleMute" :class="{ active: isMuted }">
           {{ isMuted ? '🔇' : '🔊' }}
         </button>
 
-        <button
-          @click="toggleVideo"
-          :class="{ active: !hasLocalVideo }"
-        >
+        <button @click="toggleVideo" :class="{ active: !hasLocalVideo }">
           {{ hasLocalVideo ? '📹' : '📹' }}
         </button>
 
-        <button
-          v-if="isMobile"
-          @click="flipCamera"
-        >
-          🔄
-        </button>
+        <button v-if="isMobile" @click="flipCamera">🔄</button>
 
-        <button
-          @click="toggleScreenShare"
-          :class="{ active: isSharingScreen }"
-        >
-          🖥️
-        </button>
+        <button @click="toggleScreenShare" :class="{ active: isSharingScreen }">🖥️</button>
 
-        <button
-          @click="toggleStats"
-          :class="{ active: showStats }"
-        >
-          📊
-        </button>
+        <button @click="toggleStats" :class="{ active: showStats }">📊</button>
 
-        <button
-          @click="hangup"
-          class="hangup"
-        >
-          📞
-        </button>
+        <button @click="hangup" class="hangup">📞</button>
       </div>
     </div>
 
@@ -5193,15 +5061,11 @@ const {
   remoteDisplayName,
   isMuted,
   duration,
-  getStats
+  getStats,
 } = useCallSession(sipClient)
 
-const {
-  videoInputDevices,
-  selectedVideoInputId,
-  requestPermissions,
-  selectVideoInput
-} = useMediaDevices()
+const { videoInputDevices, selectedVideoInputId, requestPermissions, selectVideoInput } =
+  useMediaDevices()
 
 // Component state
 const targetUri = ref('')
@@ -5219,17 +5083,11 @@ const frameRate = ref(0)
 const packetLoss = ref(0)
 
 // Computed
-const isMobile = computed(() =>
-  /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-)
+const isMobile = computed(() => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
 
-const shouldMirror = computed(() =>
-  currentFacingMode.value === 'user' && hasLocalVideo.value
-)
+const shouldMirror = computed(() => currentFacingMode.value === 'user' && hasLocalVideo.value)
 
-const remoteInitial = computed(() =>
-  (remoteDisplayName.value || '?').charAt(0).toUpperCase()
-)
+const remoteInitial = computed(() => (remoteDisplayName.value || '?').charAt(0).toUpperCase())
 
 const qualityIndicator = computed(() => {
   if (packetLoss.value > 5) return '❌ Poor'
@@ -5241,7 +5099,7 @@ const qualityIndicator = computed(() => {
 const qualityClass = computed(() => ({
   'quality-poor': packetLoss.value > 5,
   'quality-fair': packetLoss.value > 2 && packetLoss.value <= 5,
-  'quality-good': packetLoss.value <= 2
+  'quality-good': packetLoss.value <= 2,
 }))
 
 // Initialize
@@ -5267,10 +5125,8 @@ async function startPreview() {
   try {
     previewStream.value = await navigator.mediaDevices.getUserMedia({
       video: {
-        deviceId: selectedVideoInputId.value
-          ? { exact: selectedVideoInputId.value }
-          : undefined
-      }
+        deviceId: selectedVideoInputId.value ? { exact: selectedVideoInputId.value } : undefined,
+      },
     })
 
     if (previewVideo.value) {
@@ -5284,7 +5140,7 @@ async function startPreview() {
 // Stop camera preview
 function stopPreview() {
   if (previewStream.value) {
-    previewStream.value.getTracks().forEach(track => track.stop())
+    previewStream.value.getTracks().forEach((track) => track.stop())
     previewStream.value = null
   }
 }
@@ -5307,8 +5163,8 @@ async function startVideoCall() {
       video: {
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        frameRate: { ideal: 30 }
-      }
+        frameRate: { ideal: 30 },
+      },
     })
   } catch (error) {
     console.error('Failed to start call:', error)
@@ -5340,13 +5196,11 @@ async function toggleVideo() {
 
 // Flip camera (mobile)
 async function flipCamera() {
-  const newFacingMode = currentFacingMode.value === 'user'
-    ? 'environment'
-    : 'user'
+  const newFacingMode = currentFacingMode.value === 'user' ? 'environment' : 'user'
 
   try {
     const newStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: newFacingMode } }
+      video: { facingMode: { exact: newFacingMode } },
     })
 
     const newTrack = newStream.getVideoTracks()[0]
@@ -5377,7 +5231,7 @@ async function toggleScreenShare() {
 async function startScreenShare() {
   try {
     const screenStream = await navigator.mediaDevices.getDisplayMedia({
-      video: true
+      video: true,
     })
 
     const screenTrack = screenStream.getVideoTracks()[0]
@@ -5467,7 +5321,10 @@ watch(state, (newState) => {
   height: 100vh;
   background: #000;
   color: white;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 /* Pre-call screen */
@@ -5495,7 +5352,7 @@ watch(state, (newState) => {
   background: #000;
   border-radius: 8px;
   object-fit: cover;
-  transform: scaleX(-1);  /* Mirror preview */
+  transform: scaleX(-1); /* Mirror preview */
 }
 
 .preview-section select {
@@ -5598,7 +5455,7 @@ watch(state, (newState) => {
   border: 2px solid white;
   border-radius: 12px;
   object-fit: cover;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   z-index: 10;
 }
 
@@ -5606,7 +5463,7 @@ watch(state, (newState) => {
   position: absolute;
   top: 20px;
   left: 20px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   padding: 10px 20px;
   border-radius: 20px;
   font-size: 18px;
@@ -5618,7 +5475,7 @@ watch(state, (newState) => {
   position: absolute;
   top: 20px;
   right: 20px;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   padding: 15px;
   border-radius: 8px;
   font-size: 12px;
@@ -5629,9 +5486,15 @@ watch(state, (newState) => {
   margin-bottom: 5px;
 }
 
-.quality-poor { color: #ef4444; }
-.quality-fair { color: #f59e0b; }
-.quality-good { color: #10b981; }
+.quality-poor {
+  color: #ef4444;
+}
+.quality-fair {
+  color: #f59e0b;
+}
+.quality-good {
+  color: #10b981;
+}
 
 .controls {
   position: absolute;
@@ -5641,7 +5504,7 @@ watch(state, (newState) => {
   display: flex;
   gap: 15px;
   padding: 15px 20px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 50px;
   backdrop-filter: blur(10px);
   z-index: 20;
@@ -5689,14 +5552,16 @@ watch(state, (newState) => {
 .spinner {
   width: 60px;
   height: 60px;
-  border: 4px solid rgba(255,255,255,0.1);
+  border: 4px solid rgba(255, 255, 255, 0.1);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive */

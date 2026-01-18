@@ -340,7 +340,7 @@
                   </span>
                   <span class="sentiment-label">{{ sentiment.overall }}</span>
                   <span class="sentiment-confidence"
-                  >{{ Math.round(sentiment.confidence * 100) }}% confident</span
+                    >{{ Math.round(sentiment.confidence * 100) }}% confident</span
                   >
                 </div>
                 <div v-if="sentiment.indicators.length > 0" class="sentiment-indicators">

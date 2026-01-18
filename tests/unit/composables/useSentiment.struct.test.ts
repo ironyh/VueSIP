@@ -11,7 +11,7 @@ describe('useSentiment', () => {
   })
 
   it('handles negation and intensifiers', async () => {
-    const t = ref("not really good")
+    const t = ref('not really good')
     const s = useSentiment(t)
     await s.analyzeSentiment(t.value)
     // Negation + intensifier should bring score near neutral or negative
@@ -29,4 +29,3 @@ describe('useSentiment', () => {
     expect(alerted).toBe(true)
   })
 })
-

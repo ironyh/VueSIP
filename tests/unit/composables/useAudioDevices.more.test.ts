@@ -137,7 +137,8 @@ describe('useAudioDevices (additional coverage)', () => {
   })
 
   it('lookup helpers and availability reflect enumerated devices', async () => {
-    const { refreshDevices, getMicrophoneById, getSpeakerById, getCameraById, isDeviceAvailable } = useAudioDevices()
+    const { refreshDevices, getMicrophoneById, getSpeakerById, getCameraById, isDeviceAvailable } =
+      useAudioDevices()
     await refreshDevices()
     expect(getMicrophoneById('mic-1')?.kind).toBe('audioinput')
     expect(getSpeakerById('spk-1')?.kind).toBe('audiooutput')

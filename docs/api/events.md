@@ -35,6 +35,7 @@
 VueSip provides a type-safe event system built on the `EventBus` class. The event system enables reactive communication between different components of your SIP application, allowing you to listen for and respond to various call, media, connection, and other events.
 
 **Key Features:**
+
 - **Type-safe**: Full TypeScript support with strongly-typed event payloads
 - **Wildcard listeners**: Listen to multiple events with pattern matching
 - **Priority-based execution**: Control the order in which event handlers execute
@@ -43,6 +44,7 @@ VueSip provides a type-safe event system built on the `EventBus` class. The even
 - **Memory-safe**: Automatic cleanup of one-time listeners
 
 **Source Files:**
+
 - [EventBus Implementation](../../src/core/EventBus.ts)
 - [Event Type Definitions](../../src/types/events.types.ts)
 - [Call Event Types](../../src/types/call.types.ts)
@@ -70,6 +72,7 @@ import { globalEventBus } from '@/core/EventBus'
 Register an event listener that will be called each time the event is emitted.
 
 **Parameters:**
+
 - `event` (string | WildcardPattern): The event name or wildcard pattern
 - `handler` (EventHandler): The callback function to execute
 - `options` (EventListenerOptions, optional):
@@ -92,7 +95,7 @@ const listenerId = eventBus.on('connected', (event) => {
 // With options
 eventBus.on('call:incoming', handleIncomingCall, {
   priority: 10,
-  id: 'my-call-handler'
+  id: 'my-call-handler',
 })
 
 // Type-safe with EventNames
@@ -106,6 +109,7 @@ eventBus.on(EventNames.CALL_INCOMING, (event) => {
 Register a one-time event listener that will be automatically removed after the first invocation.
 
 **Parameters:**
+
 - `event` (string | WildcardPattern): The event name or wildcard pattern
 - `handler` (EventHandler): The callback function to execute
 
@@ -133,6 +137,7 @@ eventBus.once('call:accepted', async (event) => {
 Emit an event asynchronously, waiting for all handlers to complete.
 
 **Parameters:**
+
 - `event` (string): The event name
 - `data` (EventMap[K]): The event data matching the event type
 
@@ -145,14 +150,14 @@ Emit an event asynchronously, waiting for all handlers to complete.
 await eventBus.emit('connected', {
   type: 'connected',
   state: 'connected',
-  timestamp: new Date()
+  timestamp: new Date(),
 })
 
 // Emit a call event
 await eventBus.emit('call:incoming', {
   type: 'call:incoming',
   session: callSession,
-  timestamp: new Date()
+  timestamp: new Date(),
 })
 ```
 
@@ -161,6 +166,7 @@ await eventBus.emit('call:incoming', {
 Emit an event synchronously (fire and forget). Does not wait for handlers to complete.
 
 **Parameters:**
+
 - `event` (string): The event name
 - `data` (EventMap[K]): The event data matching the event type
 
@@ -175,7 +181,7 @@ eventBus.emitSync('call:progress', {
   session: callSession,
   responseCode: 180,
   reasonPhrase: 'Ringing',
-  timestamp: new Date()
+  timestamp: new Date(),
 })
 ```
 
@@ -186,6 +192,7 @@ eventBus.emitSync('call:progress', {
 Remove an event listener by handler function or listener ID.
 
 **Parameters:**
+
 - `event` (string | WildcardPattern): The event name or wildcard pattern
 - `handlerOrId` (EventHandler | string): The handler function or listener ID
 
@@ -209,6 +216,7 @@ eventBus.off('disconnected', id)
 Remove a listener by ID across all events.
 
 **Parameters:**
+
 - `id` (string): The listener ID
 
 **Returns:** `boolean` - `true` if listener was removed, `false` otherwise
@@ -226,6 +234,7 @@ eventBus.removeById(id)
 Remove all listeners for a specific event or all events.
 
 **Parameters:**
+
 - `event` (string | WildcardPattern, optional): The event name. If omitted, removes all listeners for all events.
 
 **Returns:** `void`
@@ -247,6 +256,7 @@ eventBus.removeAllListeners()
 Wait for an event to be emitted, returning a promise that resolves with the event data.
 
 **Parameters:**
+
 - `event` (string): The event name
 - `timeout` (number, optional): Timeout in milliseconds
 
@@ -275,6 +285,7 @@ console.log('Call accepted:', event.session.id)
 Get the number of listeners for an event.
 
 **Parameters:**
+
 - `event` (string | WildcardPattern): The event name or wildcard pattern
 
 **Returns:** `number` - The number of listeners
@@ -305,6 +316,7 @@ console.log('Events with listeners:', events)
 Check if an event has any registered listeners.
 
 **Parameters:**
+
 - `event` (string | WildcardPattern): The event name or wildcard pattern
 
 **Returns:** `boolean` - `true` if event has listeners, `false` otherwise
@@ -338,13 +350,13 @@ onUnmounted(() => {
 
 Events related to WebSocket connection status.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `connected` | `EventNames.CONNECTED` | `ConnectionEvent` | Successfully connected to SIP server |
-| `disconnected` | `EventNames.DISCONNECTED` | `ConnectionEvent` | Disconnected from SIP server |
-| `connecting` | `EventNames.CONNECTING` | `ConnectionEvent` | Attempting to connect to SIP server |
-| `connection_failed` | `EventNames.CONNECTION_FAILED` | `ConnectionEvent` | Connection attempt failed |
-| `reconnecting` | `EventNames.RECONNECTING` | `ConnectionEvent` | Attempting to reconnect to SIP server |
+| Event               | Constant                       | Payload Type      | Description                           |
+| ------------------- | ------------------------------ | ----------------- | ------------------------------------- |
+| `connected`         | `EventNames.CONNECTED`         | `ConnectionEvent` | Successfully connected to SIP server  |
+| `disconnected`      | `EventNames.DISCONNECTED`      | `ConnectionEvent` | Disconnected from SIP server          |
+| `connecting`        | `EventNames.CONNECTING`        | `ConnectionEvent` | Attempting to connect to SIP server   |
+| `connection_failed` | `EventNames.CONNECTION_FAILED` | `ConnectionEvent` | Connection attempt failed             |
+| `reconnecting`      | `EventNames.RECONNECTING`      | `ConnectionEvent` | Attempting to reconnect to SIP server |
 
 **ConnectionEvent Payload:**
 
@@ -363,7 +375,7 @@ enum ConnectionState {
   Connected = 'connected',
   ConnectionFailed = 'connection_failed',
   Error = 'error',
-  Reconnecting = 'reconnecting'
+  Reconnecting = 'reconnecting',
 }
 ```
 
@@ -386,12 +398,12 @@ eventBus.on('disconnected', (event) => {
 
 Events related to SIP registration status.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `registered` | `EventNames.REGISTERED` | `RegistrationEvent` | Successfully registered with SIP server |
-| `unregistered` | `EventNames.UNREGISTERED` | `RegistrationEvent` | Unregistered from SIP server |
-| `registering` | `EventNames.REGISTERING` | `RegistrationEvent` | Registration in progress |
-| `registration_failed` | `EventNames.REGISTRATION_FAILED` | `RegistrationEvent` | Registration attempt failed |
+| Event                 | Constant                         | Payload Type        | Description                             |
+| --------------------- | -------------------------------- | ------------------- | --------------------------------------- |
+| `registered`          | `EventNames.REGISTERED`          | `RegistrationEvent` | Successfully registered with SIP server |
+| `unregistered`        | `EventNames.UNREGISTERED`        | `RegistrationEvent` | Unregistered from SIP server            |
+| `registering`         | `EventNames.REGISTERING`         | `RegistrationEvent` | Registration in progress                |
+| `registration_failed` | `EventNames.REGISTRATION_FAILED` | `RegistrationEvent` | Registration attempt failed             |
 
 **RegistrationEvent Payload:**
 
@@ -410,7 +422,7 @@ enum RegistrationState {
   Registering = 'registering',
   Registered = 'registered',
   RegistrationFailed = 'registration_failed',
-  Unregistering = 'unregistering'
+  Unregistering = 'unregistering',
 }
 ```
 
@@ -432,20 +444,20 @@ eventBus.on('registration_failed', (event) => {
 
 Events related to call lifecycle and state changes.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `call:incoming` | `EventNames.CALL_INCOMING` | `CallEvent` | Incoming call received |
-| `call:outgoing` | `EventNames.CALL_OUTGOING` | `CallEvent` | Outgoing call initiated |
-| `call:progress` | `EventNames.CALL_PROGRESS` | `CallEvent` | Call progress (provisional response) |
-| `call:ringing` | `EventNames.CALL_RINGING` | `CallEvent` | Remote party is ringing |
-| `call:accepted` | `EventNames.CALL_ACCEPTED` | `CallAcceptedEvent` | Call was accepted |
-| `call:confirmed` | `EventNames.CALL_CONFIRMED` | `CallConfirmedEvent` | Call confirmed and active |
-| `call:failed` | `EventNames.CALL_FAILED` | `CallFailedEvent` | Call failed |
-| `call:ended` | `EventNames.CALL_ENDED` | `CallEndedEvent` | Call ended |
-| `call:hold` | `EventNames.CALL_HOLD` | `CallEvent` | Call placed on hold |
-| `call:unhold` | `EventNames.CALL_UNHOLD` | `CallEvent` | Call resumed from hold |
-| `call:muted` | `EventNames.CALL_MUTED` | `CallEvent` | Audio muted |
-| `call:unmuted` | `EventNames.CALL_UNMUTED` | `CallEvent` | Audio unmuted |
+| Event            | Constant                    | Payload Type         | Description                          |
+| ---------------- | --------------------------- | -------------------- | ------------------------------------ |
+| `call:incoming`  | `EventNames.CALL_INCOMING`  | `CallEvent`          | Incoming call received               |
+| `call:outgoing`  | `EventNames.CALL_OUTGOING`  | `CallEvent`          | Outgoing call initiated              |
+| `call:progress`  | `EventNames.CALL_PROGRESS`  | `CallEvent`          | Call progress (provisional response) |
+| `call:ringing`   | `EventNames.CALL_RINGING`   | `CallEvent`          | Remote party is ringing              |
+| `call:accepted`  | `EventNames.CALL_ACCEPTED`  | `CallAcceptedEvent`  | Call was accepted                    |
+| `call:confirmed` | `EventNames.CALL_CONFIRMED` | `CallConfirmedEvent` | Call confirmed and active            |
+| `call:failed`    | `EventNames.CALL_FAILED`    | `CallFailedEvent`    | Call failed                          |
+| `call:ended`     | `EventNames.CALL_ENDED`     | `CallEndedEvent`     | Call ended                           |
+| `call:hold`      | `EventNames.CALL_HOLD`      | `CallEvent`          | Call placed on hold                  |
+| `call:unhold`    | `EventNames.CALL_UNHOLD`    | `CallEvent`          | Call resumed from hold               |
+| `call:muted`     | `EventNames.CALL_MUTED`     | `CallEvent`          | Audio muted                          |
+| `call:unmuted`   | `EventNames.CALL_UNMUTED`   | `CallEvent`          | Audio unmuted                        |
 
 **CallEvent Payload:**
 
@@ -486,12 +498,12 @@ enum CallState {
   RemoteHeld = 'remote_held',
   Terminating = 'terminating',
   Terminated = 'terminated',
-  Failed = 'failed'
+  Failed = 'failed',
 }
 
 enum CallDirection {
   Outgoing = 'outgoing',
-  Incoming = 'incoming'
+  Incoming = 'incoming',
 }
 ```
 
@@ -517,7 +529,7 @@ enum TerminationCause {
   WebRtcError = 'webrtc_error',
   InternalError = 'internal_error',
   NetworkError = 'network_error',
-  Other = 'other'
+  Other = 'other',
 }
 ```
 
@@ -571,15 +583,15 @@ eventBus.on('call:ended', (event) => {
 
 Events related to media streams, tracks, and devices.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `media:stream:added` | `EventNames.MEDIA_STREAM_ADDED` | `MediaStreamEvent` | Media stream added |
-| `media:stream:removed` | `EventNames.MEDIA_STREAM_REMOVED` | `MediaStreamEvent` | Media stream removed |
-| `media:track:added` | `EventNames.MEDIA_TRACK_ADDED` | `MediaTrackEvent` | Media track added to stream |
-| `media:track:removed` | `EventNames.MEDIA_TRACK_REMOVED` | `MediaTrackEvent` | Media track removed from stream |
-| `media:track:muted` | `EventNames.MEDIA_TRACK_MUTED` | `MediaTrackEvent` | Media track muted |
-| `media:track:unmuted` | `EventNames.MEDIA_TRACK_UNMUTED` | `MediaTrackEvent` | Media track unmuted |
-| `media:device:changed` | `EventNames.MEDIA_DEVICE_CHANGED` | `MediaDeviceChangeEvent` | Media devices changed |
+| Event                  | Constant                          | Payload Type             | Description                     |
+| ---------------------- | --------------------------------- | ------------------------ | ------------------------------- |
+| `media:stream:added`   | `EventNames.MEDIA_STREAM_ADDED`   | `MediaStreamEvent`       | Media stream added              |
+| `media:stream:removed` | `EventNames.MEDIA_STREAM_REMOVED` | `MediaStreamEvent`       | Media stream removed            |
+| `media:track:added`    | `EventNames.MEDIA_TRACK_ADDED`    | `MediaTrackEvent`        | Media track added to stream     |
+| `media:track:removed`  | `EventNames.MEDIA_TRACK_REMOVED`  | `MediaTrackEvent`        | Media track removed from stream |
+| `media:track:muted`    | `EventNames.MEDIA_TRACK_MUTED`    | `MediaTrackEvent`        | Media track muted               |
+| `media:track:unmuted`  | `EventNames.MEDIA_TRACK_UNMUTED`  | `MediaTrackEvent`        | Media track unmuted             |
+| `media:device:changed` | `EventNames.MEDIA_DEVICE_CHANGED` | `MediaDeviceChangeEvent` | Media devices changed           |
 
 **MediaStreamEvent Payload:**
 
@@ -624,7 +636,7 @@ interface MediaDevice {
 enum MediaDeviceKind {
   AudioInput = 'audioinput',
   AudioOutput = 'audiooutput',
-  VideoInput = 'videoinput'
+  VideoInput = 'videoinput',
 }
 ```
 
@@ -660,12 +672,12 @@ eventBus.on('media:device:changed', (event) => {
 
 Events related to call transfers (blind and attended).
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `transfer:initiated` | `EventNames.TRANSFER_INITIATED` | `CallTransferInitiatedEvent` | Transfer initiated |
-| `transfer:accepted` | `EventNames.TRANSFER_ACCEPTED` | `CallTransferAcceptedEvent` | Transfer accepted by target |
-| `transfer:failed` | `EventNames.TRANSFER_FAILED` | `CallTransferFailedEvent` | Transfer failed |
-| `transfer:completed` | `EventNames.TRANSFER_COMPLETED` | `CallTransferCompletedEvent` | Transfer completed |
+| Event                | Constant                        | Payload Type                 | Description                 |
+| -------------------- | ------------------------------- | ---------------------------- | --------------------------- |
+| `transfer:initiated` | `EventNames.TRANSFER_INITIATED` | `CallTransferInitiatedEvent` | Transfer initiated          |
+| `transfer:accepted`  | `EventNames.TRANSFER_ACCEPTED`  | `CallTransferAcceptedEvent`  | Transfer accepted by target |
+| `transfer:failed`    | `EventNames.TRANSFER_FAILED`    | `CallTransferFailedEvent`    | Transfer failed             |
+| `transfer:completed` | `EventNames.TRANSFER_COMPLETED` | `CallTransferCompletedEvent` | Transfer completed          |
 
 **CallTransferInitiatedEvent Payload:**
 
@@ -732,20 +744,20 @@ eventBus.on('transfer:failed', (event) => {
 
 Events related to conference calls and participants.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `conference:created` | `EventNames.CONFERENCE_CREATED` | `ConferenceCreatedEvent` | Conference created |
-| `conference:joined` | `EventNames.CONFERENCE_JOINED` | `ConferenceJoinedEvent` | Joined conference |
-| `conference:left` | `EventNames.CONFERENCE_LEFT` | `ConferenceLeftEvent` | Left conference |
-| `conference:ended` | `EventNames.CONFERENCE_ENDED` | `ConferenceEndedEvent` | Conference ended |
-| `conference:participant:joined` | `EventNames.CONFERENCE_PARTICIPANT_JOINED` | `ConferenceParticipantJoinedEvent` | Participant joined |
-| `conference:participant:left` | `EventNames.CONFERENCE_PARTICIPANT_LEFT` | `ConferenceParticipantLeftEvent` | Participant left |
-| `sip:conference:participant:invited` | - | `ConferenceParticipantInvitedEvent` | Participant invited to conference |
-| `sip:conference:participant:removed` | - | `ConferenceParticipantRemovedEvent` | Participant removed from conference |
-| `sip:conference:participant:muted` | - | `ConferenceParticipantMutedEvent` | Participant muted |
-| `sip:conference:participant:unmuted` | - | `ConferenceParticipantUnmutedEvent` | Participant unmuted |
-| `sip:conference:recording:started` | - | `ConferenceRecordingStartedEvent` | Conference recording started |
-| `sip:conference:recording:stopped` | - | `ConferenceRecordingStoppedEvent` | Conference recording stopped |
+| Event                                | Constant                                   | Payload Type                        | Description                         |
+| ------------------------------------ | ------------------------------------------ | ----------------------------------- | ----------------------------------- |
+| `conference:created`                 | `EventNames.CONFERENCE_CREATED`            | `ConferenceCreatedEvent`            | Conference created                  |
+| `conference:joined`                  | `EventNames.CONFERENCE_JOINED`             | `ConferenceJoinedEvent`             | Joined conference                   |
+| `conference:left`                    | `EventNames.CONFERENCE_LEFT`               | `ConferenceLeftEvent`               | Left conference                     |
+| `conference:ended`                   | `EventNames.CONFERENCE_ENDED`              | `ConferenceEndedEvent`              | Conference ended                    |
+| `conference:participant:joined`      | `EventNames.CONFERENCE_PARTICIPANT_JOINED` | `ConferenceParticipantJoinedEvent`  | Participant joined                  |
+| `conference:participant:left`        | `EventNames.CONFERENCE_PARTICIPANT_LEFT`   | `ConferenceParticipantLeftEvent`    | Participant left                    |
+| `sip:conference:participant:invited` | -                                          | `ConferenceParticipantInvitedEvent` | Participant invited to conference   |
+| `sip:conference:participant:removed` | -                                          | `ConferenceParticipantRemovedEvent` | Participant removed from conference |
+| `sip:conference:participant:muted`   | -                                          | `ConferenceParticipantMutedEvent`   | Participant muted                   |
+| `sip:conference:participant:unmuted` | -                                          | `ConferenceParticipantUnmutedEvent` | Participant unmuted                 |
+| `sip:conference:recording:started`   | -                                          | `ConferenceRecordingStartedEvent`   | Conference recording started        |
+| `sip:conference:recording:stopped`   | -                                          | `ConferenceRecordingStoppedEvent`   | Conference recording stopped        |
 
 > **Note on EventNames Constants:** Events with the `sip:` prefix are defined in the EventMap for type safety but don't currently have corresponding constants in `EventNames`. When using these events, use the string literal (e.g., `'sip:conference:participant:invited'`) or reference the EventMap type for type safety.
 
@@ -822,7 +834,7 @@ enum ParticipantState {
   Connected = 'connected',
   OnHold = 'on_hold',
   Muted = 'muted',
-  Disconnected = 'disconnected'
+  Disconnected = 'disconnected',
 }
 ```
 
@@ -943,11 +955,11 @@ eventBus.on('sip:conference:recording:stopped', (event) => {
 
 Events related to presence (availability status) publication and subscription.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `presence:updated` | `EventNames.PRESENCE_UPDATED` | - | Presence status updated |
-| `presence:subscribed` | `EventNames.PRESENCE_SUBSCRIBED` | - | Subscribed to presence |
-| `presence:unsubscribed` | `EventNames.PRESENCE_UNSUBSCRIBED` | - | Unsubscribed from presence |
+| Event                   | Constant                           | Payload Type | Description                |
+| ----------------------- | ---------------------------------- | ------------ | -------------------------- |
+| `presence:updated`      | `EventNames.PRESENCE_UPDATED`      | -            | Presence status updated    |
+| `presence:subscribed`   | `EventNames.PRESENCE_SUBSCRIBED`   | -            | Subscribed to presence     |
+| `presence:unsubscribed` | `EventNames.PRESENCE_UNSUBSCRIBED` | -            | Unsubscribed from presence |
 
 **PresencePublishEvent Payload:**
 
@@ -973,11 +985,11 @@ eventBus.on('presence:updated', (event) => {
 
 Events related to SIP instant messaging.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `message:received` | `EventNames.MESSAGE_RECEIVED` | `SipNewMessageEvent` | Message received |
-| `message:sent` | `EventNames.MESSAGE_SENT` | `MessageSentEvent` | Message sent successfully |
-| `message:failed` | `EventNames.MESSAGE_FAILED` | `MessageFailedEvent` | Message failed to send |
+| Event              | Constant                      | Payload Type         | Description               |
+| ------------------ | ----------------------------- | -------------------- | ------------------------- |
+| `message:received` | `EventNames.MESSAGE_RECEIVED` | `SipNewMessageEvent` | Message received          |
+| `message:sent`     | `EventNames.MESSAGE_SENT`     | `MessageSentEvent`   | Message sent successfully |
+| `message:failed`   | `EventNames.MESSAGE_FAILED`   | `MessageFailedEvent` | Message failed to send    |
 
 **SipNewMessageEvent Payload:**
 
@@ -1041,9 +1053,9 @@ eventBus.on('message:failed', (event) => {
 
 Events related to DTMF (Dual-Tone Multi-Frequency) tones.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `dtmf:sent` | `EventNames.DTMF_SENT` | `DTMFSentEvent` | DTMF tone sent |
+| Event           | Constant                   | Payload Type        | Description        |
+| --------------- | -------------------------- | ------------------- | ------------------ |
+| `dtmf:sent`     | `EventNames.DTMF_SENT`     | `DTMFSentEvent`     | DTMF tone sent     |
 | `dtmf:received` | `EventNames.DTMF_RECEIVED` | `DTMFReceivedEvent` | DTMF tone received |
 
 **DTMFSentEvent Payload:**
@@ -1084,10 +1096,10 @@ eventBus.on('dtmf:received', (event) => {
 
 Events related to audio mute/unmute state.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
-| `sip:audio:muted` | - | `AudioMutedEvent` | Audio muted |
-| `sip:audio:unmuted` | - | `AudioUnmutedEvent` | Audio unmuted |
+| Event               | Constant | Payload Type        | Description   |
+| ------------------- | -------- | ------------------- | ------------- |
+| `sip:audio:muted`   | -        | `AudioMutedEvent`   | Audio muted   |
+| `sip:audio:unmuted` | -        | `AudioUnmutedEvent` | Audio unmuted |
 
 **Example:**
 
@@ -1107,8 +1119,8 @@ eventBus.on('sip:audio:unmuted', (event) => {
 
 Generic error events for the event system.
 
-| Event | Constant | Payload Type | Description |
-|-------|----------|--------------|-------------|
+| Event   | Constant           | Payload Type | Description    |
+| ------- | ------------------ | ------------ | -------------- |
 | `error` | `EventNames.ERROR` | `ErrorEvent` | Error occurred |
 
 **ErrorEvent Payload:**
@@ -1197,6 +1209,7 @@ registering → registered → unregistered
 #### Call Lifecycle
 
 **Outgoing Call:**
+
 ```
 call:outgoing → call:progress → call:ringing → call:accepted →
 call:confirmed → call:ended
@@ -1205,6 +1218,7 @@ call:confirmed → call:ended
 ```
 
 **Incoming Call:**
+
 ```
 call:incoming → call:accepted → call:confirmed → call:ended
             ↓
@@ -1212,6 +1226,7 @@ call:incoming → call:accepted → call:confirmed → call:ended
 ```
 
 **Call with Hold:**
+
 ```
 call:confirmed → call:hold → call:unhold → call:confirmed
 ```
@@ -1234,6 +1249,7 @@ eventBus.on('call:incoming', handleLogging, { priority: -10 })
 ```
 
 **Priority Execution Order:**
+
 1. Handlers are sorted by priority (highest to lowest)
 2. Handlers with the same priority execute in registration order
 3. Both direct and wildcard listeners are included in the priority queue
@@ -1255,6 +1271,7 @@ eventBus.on('connected', () => {
 ```
 
 **Error Handling Features:**
+
 - Errors in handlers are caught and logged
 - Other handlers continue to execute
 - Works with both sync and async handlers
@@ -1274,7 +1291,7 @@ eventBus.on('call:incoming', async (event) => {
       error,
       context: 'call:incoming handler',
       severity: 'high',
-      timestamp: new Date()
+      timestamp: new Date(),
     })
   }
 })
@@ -1326,7 +1343,7 @@ Provide meaningful IDs for easier debugging:
 ```typescript
 eventBus.on('call:incoming', handleIncomingCall, {
   id: 'main-call-handler',
-  priority: 10
+  priority: 10,
 })
 
 // Later, easy to identify and remove
@@ -1339,14 +1356,22 @@ Use wildcards for cross-cutting concerns like logging:
 
 ```typescript
 // Log all call events
-eventBus.on('call:*', (event) => {
-  logger.debug('Call event:', event.type, event)
-}, { priority: -100 }) // Low priority to log after other handlers
+eventBus.on(
+  'call:*',
+  (event) => {
+    logger.debug('Call event:', event.type, event)
+  },
+  { priority: -100 }
+) // Low priority to log after other handlers
 
 // Log all events
-eventBus.on('*', (event) => {
-  analytics.track(event.type, event)
-}, { priority: -100 })
+eventBus.on(
+  '*',
+  (event) => {
+    analytics.track(event.type, event)
+  },
+  { priority: -100 }
+)
 ```
 
 ### 5. Use `once()` for One-Time Events
@@ -1378,7 +1403,7 @@ async function makeCall(uri: string) {
     // Wait for call to be accepted or fail
     const event = await Promise.race([
       eventBus.waitFor('call:accepted', 30000),
-      eventBus.waitFor('call:failed', 30000)
+      eventBus.waitFor('call:failed', 30000),
     ])
 
     if (event.type === 'call:accepted') {
@@ -1478,12 +1503,12 @@ eventBus.on('call:incoming', (event) => {
 eventBus.emit('connected', {
   type: 'connected',
   state: 'connected',
-  timestamp: new Date()
+  timestamp: new Date(),
 }) // ✓ Valid
 
 eventBus.emit('connected', {
   // TypeScript error: missing required properties
-  type: 'connected'
+  type: 'connected',
 }) // ✗ TypeScript error
 ```
 
@@ -1535,6 +1560,7 @@ eventBus.on('connected', handleConnection)
 - [SIP Client Documentation](./composables.md#usesipclient)
 
 **Related Documentation:**
+
 - [Plugin System](./plugins.md)
 - [Call Management](../guide/making-calls.md)
 - [Media Management](../guide/device-management.md)

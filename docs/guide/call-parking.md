@@ -12,6 +12,7 @@ Call parking allows you to put a call into a "parking lot" where it can be retri
 - **Busy Environments**: Manage multiple calls efficiently
 
 **Why Call Parking Matters:**
+
 - **Flexibility**: Calls can be retrieved from any phone in the system
 - **Customer Experience**: Better than traditional hold for transfers
 - **Efficiency**: Visual parking lot status helps manage calls
@@ -52,20 +53,20 @@ const ami = useAmi()
 
 // Create the parking composable
 const {
-  parkingLots,         // Map of parking lot configurations
-  parkedCalls,         // Array of all parked calls
-  isLoading,           // Loading state
-  error,               // Error message if any
-  totalParkedCalls,    // Total count of parked calls
+  parkingLots, // Map of parking lot configurations
+  parkedCalls, // Array of all parked calls
+  isLoading, // Loading state
+  error, // Error message if any
+  totalParkedCalls, // Total count of parked calls
 
   // Methods
-  getParkingLots,      // Get all parking lot configurations
-  getParkedCalls,      // Get currently parked calls
-  parkCall,            // Park a call
-  retrieveCall,        // Retrieve a parked call
-  refreshParkingLot,   // Refresh parking lot status
-  getParkedCallBySpace,// Find call by parking space
-  onParkingEvent,      // Listen for parking events
+  getParkingLots, // Get all parking lot configurations
+  getParkedCalls, // Get currently parked calls
+  parkCall, // Park a call
+  retrieveCall, // Retrieve a parked call
+  refreshParkingLot, // Refresh parking lot status
+  getParkedCallBySpace, // Find call by parking space
+  onParkingEvent, // Listen for parking events
 } = useAmiParking(computed(() => ami.getClient()))
 ```
 
@@ -196,7 +197,7 @@ await retrieveCall(801, 'PJSIP/1002-00000001', 'vip')
 // Get all parking lots
 const lots = await getParkingLots()
 
-lots.forEach(lot => {
+lots.forEach((lot) => {
   console.log(`Lot: ${lot.name}`)
   console.log(`  Spaces: ${lot.startSpace}-${lot.endSpace}`)
   console.log(`  Total: ${lot.totalSpaces}`)
@@ -208,13 +209,13 @@ lots.forEach(lot => {
 
 ```typescript
 interface ParkingLot {
-  name: string         // Parking lot name
-  startSpace: number   // First parking space number
-  endSpace: number     // Last parking space number
-  timeout: number      // Default timeout in seconds
-  totalSpaces: number  // Total available spaces
-  occupied: number     // Currently occupied spaces
-  serverId?: number    // AMI server ID
+  name: string // Parking lot name
+  startSpace: number // First parking space number
+  endSpace: number // Last parking space number
+  timeout: number // Default timeout in seconds
+  totalSpaces: number // Total available spaces
+  occupied: number // Currently occupied spaces
+  serverId?: number // AMI server ID
 }
 ```
 
@@ -224,7 +225,7 @@ interface ParkingLot {
 // Get all parked calls
 const calls = await getParkedCalls()
 
-calls.forEach(call => {
+calls.forEach((call) => {
   console.log(`Space ${call.parkingSpace}: ${call.callerIdNum}`)
   console.log(`  Parked for: ${call.duration} seconds`)
   console.log(`  Timeout in: ${call.timeoutRemaining} seconds`)
@@ -238,17 +239,17 @@ const vipCalls = await getParkedCalls('vip')
 
 ```typescript
 interface ParkedCall {
-  parkingSpace: number     // The parking space number
-  parkingLot: string       // Parking lot name
-  channel: string          // Channel identifier
-  uniqueId: string         // Unique call ID
-  linkedId: string         // Linked call ID
-  callerIdNum: string      // Caller's number
-  callerIdName: string     // Caller's name
-  timeout: number          // Total timeout value
-  duration: number         // Time parked (seconds)
-  parkedAt: Date           // When the call was parked
-  serverId?: number        // AMI server ID
+  parkingSpace: number // The parking space number
+  parkingLot: string // Parking lot name
+  channel: string // Channel identifier
+  uniqueId: string // Unique call ID
+  linkedId: string // Linked call ID
+  callerIdNum: string // Caller's number
+  callerIdName: string // Caller's name
+  timeout: number // Total timeout value
+  duration: number // Time parked (seconds)
+  parkedAt: Date // When the call was parked
+  serverId?: number // AMI server ID
 }
 ```
 
@@ -324,7 +325,7 @@ const parking = useAmiParking(clientRef, {
         class="parking-space"
         :class="{
           occupied: space.call,
-          warning: space.call?.timeoutRemaining < 30
+          warning: space.call?.timeoutRemaining < 30,
         }"
         @click="handleSpaceClick(space)"
       >
@@ -352,16 +353,9 @@ const props = defineProps<{
   lotName: string
 }>()
 
-const {
-  parkingLots,
-  parkedCalls,
-  getParkingLots,
-  retrieveCall
-} = useAmiParking(clientRef)
+const { parkingLots, parkedCalls, getParkingLots, retrieveCall } = useAmiParking(clientRef)
 
-const lot = computed(() =>
-  parkingLots.value.get(props.lotName)
-)
+const lot = computed(() => parkingLots.value.get(props.lotName))
 
 const spaces = computed(() => {
   if (!lot.value) return []
@@ -370,9 +364,7 @@ const spaces = computed(() => {
   for (let i = lot.value.startSpace; i <= lot.value.endSpace; i++) {
     result.push({
       number: i,
-      call: parkedCalls.value.find(
-        c => c.parkingSpace === i && c.parkingLot === props.lotName
-      )
+      call: parkedCalls.value.find((c) => c.parkingSpace === i && c.parkingLot === props.lotName),
     })
   }
   return result
@@ -438,11 +430,7 @@ onMounted(() => {
           <span>{{ lot.occupied }} / {{ lot.totalSpaces }}</span>
         </div>
         <div class="lot-calls">
-          <div
-            v-for="call in getCallsForLot(name)"
-            :key="call.uniqueId"
-            class="parked-call"
-          >
+          <div v-for="call in getCallsForLot(name)" :key="call.uniqueId" class="parked-call">
             <span>{{ call.parkingSpace }}: {{ call.callerIdNum }}</span>
             <button @click="retrieve(call)">Retrieve</button>
           </div>
@@ -455,15 +443,10 @@ onMounted(() => {
 <script setup lang="ts">
 import { useAmiParking } from 'vuesip'
 
-const {
-  parkingLots,
-  parkedCalls,
-  totalParkedCalls,
-  retrieveCall
-} = useAmiParking(clientRef)
+const { parkingLots, parkedCalls, totalParkedCalls, retrieveCall } = useAmiParking(clientRef)
 
 function getCallsForLot(lotName: string) {
-  return parkedCalls.value.filter(c => c.parkingLot === lotName)
+  return parkedCalls.value.filter((c) => c.parkingLot === lotName)
 }
 
 async function retrieve(call: ParkedCall) {
@@ -555,6 +538,7 @@ write = call,originate
 ### Required Permissions
 
 For parking features, your AMI user needs:
+
 - `read`: `call` (for parking events)
 - `write`: `call` (for Park action)
 - `write`: `originate` (for retrieving calls)
@@ -589,25 +573,16 @@ const parking = useAmiParking(clientRef, {
 
 ```vue
 <template>
-  <div
-    class="parked-call"
-    :class="{ warning: isNearTimeout }"
-  >
+  <div class="parked-call" :class="{ warning: isNearTimeout }">
     <span>{{ call.callerIdNum }}</span>
-    <span class="countdown" v-if="isNearTimeout">
-      {{ timeoutRemaining }}s remaining!
-    </span>
+    <span class="countdown" v-if="isNearTimeout"> {{ timeoutRemaining }}s remaining! </span>
   </div>
 </template>
 
 <script setup lang="ts">
-const isNearTimeout = computed(() =>
-  (props.call.timeout - props.call.duration) < 30
-)
+const isNearTimeout = computed(() => props.call.timeout - props.call.duration < 30)
 
-const timeoutRemaining = computed(() =>
-  props.call.timeout - props.call.duration
-)
+const timeoutRemaining = computed(() => props.call.timeout - props.call.duration)
 </script>
 ```
 
@@ -622,7 +597,7 @@ onCallParked: (call) => {
 
 // Alert when timeout is imminent
 setInterval(() => {
-  parkedCalls.value.forEach(call => {
+  parkedCalls.value.forEach((call) => {
     const remaining = call.timeout - call.duration
     if (remaining === 30) {
       playSound('warning')

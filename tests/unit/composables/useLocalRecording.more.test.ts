@@ -9,7 +9,10 @@ class FakeMediaRecorder {
   onpause: (() => void) | null = null
   onresume: (() => void) | null = null
   onstop: (() => void) | null = null
-  constructor(public stream: MediaStream, public options: MediaRecorderOptions) {
+  constructor(
+    public stream: MediaStream,
+    public options: MediaRecorderOptions
+  ) {
     ;(global as any).__lastRecorder = this
   }
   start = vi.fn((_timeslice?: number) => {
@@ -39,7 +42,7 @@ afterEach(() => {
 
 function mockStream(): MediaStream {
   // minimal mock
-  return ({ getTracks: () => [] } as unknown) as MediaStream
+  return { getTracks: () => [] } as unknown as MediaStream
 }
 
 describe('useLocalRecording (additional coverage)', () => {
@@ -47,14 +50,14 @@ describe('useLocalRecording (additional coverage)', () => {
     ;(global as any).MediaRecorder = undefined
     const { isSupported } = useLocalRecording()
     expect(isSupported('audio/webm')).toBe(false)
-
     ;(global as any).MediaRecorder = FakeMediaRecorder
     const { isSupported: supported } = useLocalRecording()
     expect(supported('audio/webm')).toBe(true)
   })
 
   it('start → pause → resume → stop produces recording data and updates state', async () => {
-    const { start, pause, resume, stop, state, isRecording, isPaused, duration, recordingData } = useLocalRecording({ mimeType: 'audio/webm' })
+    const { start, pause, resume, stop, state, isRecording, isPaused, duration, recordingData } =
+      useLocalRecording({ mimeType: 'audio/webm' })
     start(mockStream())
     expect(state.value).toBe(RecordingState.Recording)
     expect(isRecording.value).toBe(true)
@@ -103,7 +106,10 @@ describe('useLocalRecording (additional coverage)', () => {
       return el
     }) as any)
 
-    const { start, stop, download } = useLocalRecording({ mimeType: 'audio/webm', autoDownload: false })
+    const { start, stop, download } = useLocalRecording({
+      mimeType: 'audio/webm',
+      autoDownload: false,
+    })
     start(mockStream())
     await stop()
     download()

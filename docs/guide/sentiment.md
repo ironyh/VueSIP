@@ -22,6 +22,7 @@ transcript.value = 'I am extremely frustrated with this service'
 ```
 
 ## Options
+
 - `escalationThreshold`: trigger escalation below this score.
 - `windowSize`: seconds to compute trend/averages.
 - `minTextLength`: skip very short texts.
@@ -29,6 +30,6 @@ transcript.value = 'I am extremely frustrated with this service'
 - `analyzer(text)`: provide a custom analyzer.
 
 ## Notes
+
 - Default analyzer is keyword-based (English). For other languages or better accuracy, pass a custom analyzer.
 - Alerts: `escalation`, `trend_decline`, `sustained_negative`.
-

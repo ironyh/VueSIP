@@ -81,7 +81,7 @@ watch(
       duration.value = '00:00'
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 onUnmounted(() => {

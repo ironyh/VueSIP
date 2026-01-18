@@ -23,14 +23,15 @@ await mock.hangup()
 ```
 
 ## Options
+
 - `autoAnswer`: automatically answer inbound calls.
 - `generateIncomingCalls`: periodically simulate inbound calls.
 - `incomingCallInterval`: ms interval for generated calls.
 - `simulateQualityEvents`: periodically simulate call quality drops.
 
 ## API
+
 - Connection: `connect`, `disconnect`.
 - Calls: `call`, `answer`, `hangup`, `hold`, `unhold`, `sendDTMF`.
 - Simulation: `simulateIncomingCall`, `simulateCallQualityDrop`, `simulateNetworkIssue`.
 - Config: `configure(options)` to update behavior at runtime.
-

@@ -11,7 +11,8 @@ afterEach(() => {
 
 describe('useRecordingIndicator (additional coverage)', () => {
   it('records duration and blinks while recording, stops on pause', () => {
-    const { setRecordingState, duration, blinkState, indicatorStyle, isRecording, isPaused } = useRecordingIndicator({ blinkInterval: 100 })
+    const { setRecordingState, duration, blinkState, indicatorStyle, isRecording, isPaused } =
+      useRecordingIndicator({ blinkInterval: 100 })
 
     setRecordingState('recording')
     expect(isRecording.value).toBe(true)
@@ -60,4 +61,3 @@ describe('useRecordingIndicator (additional coverage)', () => {
     expect(state.value).toBe('inactive')
   })
 })
-
