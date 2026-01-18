@@ -9,7 +9,12 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html'],
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.d.ts'],
+      exclude: [
+        'src/**/*.d.ts',
+        'src/**/index.ts',
+        'src/analytics/components/**',
+        'src/crm/adapters/**',
+      ],
     },
   },
 })
