@@ -52,6 +52,7 @@ try {
 ```
 
 **Properties:**
+
 - `message` - Human-readable error description
 - `quotaInfo` - Detailed storage information including:
   - `usage` - Current storage used in bytes
@@ -71,22 +72,22 @@ The MediaError interface provides detailed information about what went wrong dur
 
 ```typescript
 interface MediaError {
-  name: string      // Error type identifier
-  message: string   // Human-readable description
+  name: string // Error type identifier
+  message: string // Human-readable description
   constraint?: string // Which constraint failed (e.g., 'echoCancellation')
 }
 ```
 
 **Common Media Error Names:**
 
-| Error Name | Meaning | Common Cause |
-|------------|---------|--------------|
-| `NotAllowedError` | User denied permission | User clicked "Block" on permission prompt |
-| `NotFoundError` | No media devices found | No microphone connected to computer |
-| `NotReadableError` | Device is already in use | Another app or tab is using the microphone |
+| Error Name             | Meaning                         | Common Cause                                                              |
+| ---------------------- | ------------------------------- | ------------------------------------------------------------------------- |
+| `NotAllowedError`      | User denied permission          | User clicked "Block" on permission prompt                                 |
+| `NotFoundError`        | No media devices found          | No microphone connected to computer                                       |
+| `NotReadableError`     | Device is already in use        | Another app or tab is using the microphone                                |
 | `OverconstrainedError` | Constraints cannot be satisfied | Requested features not available (e.g., noise cancellation on old device) |
-| `AbortError` | Device access was aborted | User cancelled or system interrupted access |
-| `TypeError` | Invalid constraints | Programming error in constraint specification |
+| `AbortError`           | Device access was aborted       | User cancelled or system interrupted access                               |
+| `TypeError`            | Invalid constraints             | Programming error in constraint specification                             |
 
 **Real-World Example:**
 
@@ -130,17 +131,17 @@ Each call termination has a specific cause that tells you exactly what happened.
 
 ```typescript
 enum TerminationCause {
-  Canceled = 'canceled',         // User cancelled before connection
-  Rejected = 'rejected',         // Remote party declined the call
-  NoAnswer = 'no_answer',        // Remote party didn't answer in time
-  Unavailable = 'unavailable',   // Remote party cannot be reached
-  Busy = 'busy',                 // Remote party is on another call
-  Bye = 'bye',                   // Normal call ending (either party hung up)
+  Canceled = 'canceled', // User cancelled before connection
+  Rejected = 'rejected', // Remote party declined the call
+  NoAnswer = 'no_answer', // Remote party didn't answer in time
+  Unavailable = 'unavailable', // Remote party cannot be reached
+  Busy = 'busy', // Remote party is on another call
+  Bye = 'bye', // Normal call ending (either party hung up)
   RequestTimeout = 'request_timeout', // Network took too long to respond
-  WebRtcError = 'webrtc_error',  // Media connection failed
+  WebRtcError = 'webrtc_error', // Media connection failed
   InternalError = 'internal_error', // VueSip or SIP.js internal error
   NetworkError = 'network_error', // Network connection lost
-  Other = 'other'                // Unknown or unclassified reason
+  Other = 'other', // Unknown or unclassified reason
 }
 ```
 
@@ -189,11 +190,11 @@ Connection errors track the lifecycle of your WebSocket connection to the SIP se
 
 ```typescript
 enum ConnectionState {
-  Disconnected = 'disconnected',           // Not connected
-  Connecting = 'connecting',               // Attempting to connect
-  Connected = 'connected',                 // Successfully connected
-  ConnectionFailed = 'connection_failed',  // Connection attempt failed
-  Reconnecting = 'reconnecting'            // Attempting to reconnect
+  Disconnected = 'disconnected', // Not connected
+  Connecting = 'connecting', // Attempting to connect
+  Connected = 'connected', // Successfully connected
+  ConnectionFailed = 'connection_failed', // Connection attempt failed
+  Reconnecting = 'reconnecting', // Attempting to reconnect
 }
 ```
 
@@ -231,15 +232,16 @@ Registration is how your SIP client identifies itself to the server. Registratio
 
 ```typescript
 enum RegistrationState {
-  Unregistered = 'unregistered',           // Not registered with server
-  Registering = 'registering',             // Sending registration request
-  Registered = 'registered',               // Successfully registered
-  Unregistering = 'unregistering',         // Removing registration
-  RegistrationFailed = 'registration_failed' // Registration attempt failed
+  Unregistered = 'unregistered', // Not registered with server
+  Registering = 'registering', // Sending registration request
+  Registered = 'registered', // Successfully registered
+  Unregistering = 'unregistering', // Removing registration
+  RegistrationFailed = 'registration_failed', // Registration attempt failed
 }
 ```
 
 **Common SIP Response Codes:**
+
 - **401 Unauthorized** - Wrong username or password
 - **403 Forbidden** - Account exists but access denied (e.g., IP restriction)
 - **404 Not Found** - User account doesn't exist
@@ -278,9 +280,9 @@ VueSip provides validators that check your inputs before attempting operations. 
 
 ```typescript
 interface ValidationResult {
-  valid: boolean        // Whether the input is valid
-  errors?: string[]    // Array of error messages if invalid
-  warnings?: string[]  // Non-critical issues that should be addressed
+  valid: boolean // Whether the input is valid
+  errors?: string[] // Array of error messages if invalid
+  warnings?: string[] // Non-critical issues that should be addressed
 }
 ```
 
@@ -299,7 +301,7 @@ if (!uriResult.valid) {
 const configResult = validateSipConfig({
   uri: 'wss://sip.example.com:7443',
   sipUri: 'sip:1000@example.com',
-  password: 'secret'
+  password: 'secret',
 })
 
 // Check for errors (prevent operation)
@@ -329,13 +331,14 @@ import { ErrorSeverity } from 'vuesip'
 
 interface ErrorEvent extends BaseEvent {
   type: 'error'
-  error: Error                   // The actual error object
-  context?: string               // Where the error occurred
-  severity?: ErrorSeverity       // How serious is it
+  error: Error // The actual error object
+  context?: string // Where the error occurred
+  severity?: ErrorSeverity // How serious is it
 }
 ```
 
 **Severity Levels** (see [VueSip Error Handling Utilities](#vuesip-error-handling-utilities) for detailed information):
+
 - **ErrorSeverity.LOW** - Informational, doesn't affect functionality
 - **ErrorSeverity.MEDIUM** - Degraded functionality, user might notice
 - **ErrorSeverity.HIGH** - Feature broken, requires attention
@@ -380,14 +383,15 @@ VueSip's error context system provides structured, consistent error logging with
 import { ErrorSeverity } from 'vuesip'
 
 enum ErrorSeverity {
-  LOW = 'low',           // Minor issues, informational
-  MEDIUM = 'medium',     // Noticeable degradation
-  HIGH = 'high',         // Significant failures
-  CRITICAL = 'critical'  // System-threatening errors
+  LOW = 'low', // Minor issues, informational
+  MEDIUM = 'medium', // Noticeable degradation
+  HIGH = 'high', // Significant failures
+  CRITICAL = 'critical', // System-threatening errors
 }
 ```
 
 **When to use each level:**
+
 - **LOW** - Informational warnings (e.g., using default settings)
 - **MEDIUM** - Degraded functionality (e.g., one device failed but fallback works)
 - **HIGH** - Feature failures (e.g., call failed, device not accessible)
@@ -401,21 +405,23 @@ The `createErrorContext` utility creates structured error context with operation
 import { createErrorContext, ErrorSeverity } from 'vuesip'
 
 const context = createErrorContext(
-  'makeCall',           // Operation being performed
-  'useCallSession',     // Component/module name
-  ErrorSeverity.HIGH,   // Severity level
+  'makeCall', // Operation being performed
+  'useCallSession', // Component/module name
+  ErrorSeverity.HIGH, // Severity level
   {
-    context: {          // Additional context data
+    context: {
+      // Additional context data
       target: 'sip:user@domain.com',
       audio: true,
-      video: false
+      video: false,
     },
-    state: {            // Current state snapshot
+    state: {
+      // Current state snapshot
       isConnected: true,
-      hasActiveCall: false
+      hasActiveCall: false,
     },
-    duration: 1234,     // Operation duration in ms
-    userId: 'user123'   // Optional user identifier
+    duration: 1234, // Operation duration in ms
+    userId: 'user123', // Optional user identifier
   }
 )
 ```
@@ -446,13 +452,13 @@ async function makeCall(target: string) {
       {
         context: {
           target,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         state: {
           connectionState: 'connected',
-          registrationState: 'registered'
+          registrationState: 'registered',
         },
-        duration: performance.now() - timer
+        duration: performance.now() - timer,
       }
     )
     throw error
@@ -477,7 +483,7 @@ try {
   console.log({
     message: info.message,
     name: info.name,
-    stack: info.stack
+    stack: info.stack,
   })
 }
 ```
@@ -572,7 +578,7 @@ async function trackedOperation() {
       'MyComponent',
       ErrorSeverity.MEDIUM,
       {
-        duration: timer.elapsed()
+        duration: timer.elapsed(),
       }
     )
     throw error
@@ -622,9 +628,9 @@ async function initiateCall(targetUri: string) {
         context: { targetUri },
         state: {
           isConnected: connectionState.value === 'connected',
-          hasActiveSession: !!activeCall.value
+          hasActiveSession: !!activeCall.value,
         },
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       }
     )
 
@@ -678,6 +684,7 @@ function clearError() {
 ```
 
 **In your template:**
+
 ```vue
 <template>
   <div v-if="isError" class="error-banner">
@@ -753,6 +760,7 @@ function makeCallWithValidation(target: string) {
 ```
 
 **What validation catches:**
+
 - Malformed URIs (e.g., missing `sip:` prefix)
 - Invalid characters
 - Missing domain
@@ -830,10 +838,7 @@ import { throwIfAborted, isAbortError, abortableSleep } from 'vuesip'
 
 const { makeCall } = useCallSession()
 
-async function makeCallWithTimeout(
-  target: string,
-  timeoutMs: number = 30000
-): Promise<void> {
+async function makeCallWithTimeout(target: string, timeoutMs: number = 30000): Promise<void> {
   const abortController = new AbortController()
   const timeoutId = setTimeout(() => abortController.abort(), timeoutMs)
 
@@ -926,12 +931,19 @@ Errors will happen. The key is how your application recovers. These strategies h
 When operations fail due to temporary issues (like network hiccups), retrying with increasing delays often succeeds. Use VueSip's `abortableSleep` for cancellable retries.
 
 **Why Exponential Backoff?**
+
 - **Prevents hammering** - Doesn't overwhelm a struggling server
 - **Adapts to severity** - Longer delays for persistent issues
 - **Industry standard** - Used by AWS, Google Cloud, etc.
 
 ```typescript
-import { abortableSleep, isAbortError, logErrorWithContext, ErrorSeverity, createLogger } from 'vuesip'
+import {
+  abortableSleep,
+  isAbortError,
+  logErrorWithContext,
+  ErrorSeverity,
+  createLogger,
+} from 'vuesip'
 
 const logger = createLogger('RetryManager')
 
@@ -980,7 +992,7 @@ async function retryWithBackoff<T>(
           'RetryManager',
           ErrorSeverity.HIGH,
           {
-            context: { attempts: maxRetries, baseDelay }
+            context: { attempts: maxRetries, baseDelay },
           }
         )
       }
@@ -998,12 +1010,7 @@ const abortController = new AbortController()
 async function connectWithRetry() {
   try {
     // Try connecting with 3 retries and cancellation support
-    await retryWithBackoff(
-      () => connect(),
-      3,
-      1000,
-      abortController.signal
-    )
+    await retryWithBackoff(() => connect(), 3, 1000, abortController.signal)
     logger.info('Connected successfully')
   } catch (error) {
     if (isAbortError(error)) {
@@ -1040,7 +1047,7 @@ if (registrationStore.retryCount > 3) {
 // Listen for registration failures and implement custom retry
 eventBus.on('sip:registration_failed', async () => {
   // Wait before retrying to avoid hammering server
-  await new Promise(resolve => setTimeout(resolve, 5000))
+  await new Promise((resolve) => setTimeout(resolve, 5000))
 
   // Attempt registration again
   try {
@@ -1119,15 +1126,11 @@ eventBus.on('media:device:changed', async (event) => {
   const currentDevice = selectedAudioInput.value
 
   // Check if the currently selected device is still available
-  const stillAvailable = event.currentDevices.some(
-    d => d.deviceId === currentDevice
-  )
+  const stillAvailable = event.currentDevices.some((d) => d.deviceId === currentDevice)
 
   if (!stillAvailable && event.currentDevices.length > 0) {
     // Current device was removed, switch to another one
-    const newDevice = event.currentDevices.find(
-      d => d.kind === 'audioinput'
-    )
+    const newDevice = event.currentDevices.find((d) => d.kind === 'audioinput')
 
     if (newDevice) {
       console.log('Switching to new audio device:', newDevice.label)
@@ -1162,7 +1165,7 @@ async function makeCallWithRecovery(target: string, retries = 2) {
 
       if (attempt < retries) {
         // Not the last attempt - wait and retry
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        await new Promise((resolve) => setTimeout(resolve, 2000))
       } else {
         // All attempts exhausted
         throw new Error('Call failed after ' + (retries + 1) + ' attempts')
@@ -1195,8 +1198,8 @@ async function saveWithQuotaManagement(data: any) {
 
       // Remove oldest 20% of recordings
       await clearOldDataLRU(
-        () => getAllRecordings(),        // Get all recordings
-        (ids) => deleteRecordings(ids),  // Delete by IDs
+        () => getAllRecordings(), // Get all recordings
+        (ids) => deleteRecordings(ids), // Delete by IDs
         20 // Remove oldest 20%
       )
     }
@@ -1236,6 +1239,7 @@ Effective logging is crucial for debugging production issues and understanding a
 Configure logging levels based on your environment to get the right amount of detail.
 
 **Log Levels (in order of severity):**
+
 1. **debug** - Verbose information for development
 2. **info** - Important events and state changes
 3. **warn** - Potential issues that don't stop functionality
@@ -1247,9 +1251,9 @@ import { configureLogger, setLogLevel } from 'vuesip'
 // Development: Show all logs including debug info
 if (import.meta.env.DEV) {
   configureLogger({
-    level: 'debug',      // Show everything
-    enabled: true,       // Enable logging
-    showTimestamp: true  // Include timestamps for performance analysis
+    level: 'debug', // Show everything
+    enabled: true, // Enable logging
+    showTimestamp: true, // Include timestamps for performance analysis
   })
 }
 
@@ -1297,6 +1301,7 @@ subLogger.debug('Sub-component initialized')
 ```
 
 **Log output example:**
+
 ```
 [MyComponent] Starting operation { timestamp: 1234567890 }
 [MyComponent] Operation completed successfully
@@ -1323,7 +1328,7 @@ setLogHandler((level, namespace, message, ...args) => {
     userAgent: navigator.userAgent,
     // Add custom context
     userId: getCurrentUserId(),
-    sessionId: getSessionId()
+    sessionId: getSessionId(),
   }
 
   // Send warnings and errors to monitoring service (e.g., Sentry, LogRocket)
@@ -1331,15 +1336,12 @@ setLogHandler((level, namespace, message, ...args) => {
     fetch('/api/logs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(logEntry)
+      body: JSON.stringify(logEntry),
     }).catch(console.error) // Don't let logging errors crash the app
   }
 
   // Also log to browser console for development
-  console[level === 'debug' ? 'log' : level](
-    `[${namespace}] ${message}`,
-    ...args
-  )
+  console[level === 'debug' ? 'log' : level](`[${namespace}] ${message}`, ...args)
 })
 ```
 
@@ -1389,6 +1391,7 @@ eventBus.on('sip:disconnected', () => {
 Monitor call quality in real-time to detect and respond to network issues.
 
 **Key Metrics:**
+
 - **Packet Loss** - Percentage of packets that didn't arrive (>5% is problematic)
 - **Jitter** - Variation in packet arrival times (>30ms is problematic)
 - **Bitrate** - Data transfer rate for audio (lower = worse quality)
@@ -1411,13 +1414,13 @@ const statsInterval = setInterval(async () => {
         packetsLost: stats.audio?.packetsLost,
         packetLoss: stats.audio?.packetLossPercentage?.toFixed(2) + '%',
         jitter: stats.audio?.jitter?.toFixed(3) + 's',
-        bitrate: (stats.audio?.bitrate / 1000).toFixed(0) + ' kbps'
+        bitrate: (stats.audio?.bitrate / 1000).toFixed(0) + ' kbps',
       },
       network: {
         rtt: stats.network?.currentRoundTripTime?.toFixed(3) + 's',
         bytesReceived: (stats.network?.totalBytesReceived / 1024).toFixed(0) + ' KB',
-        bytesSent: (stats.network?.totalBytesSent / 1024).toFixed(0) + ' KB'
-      }
+        bytesSent: (stats.network?.totalBytesSent / 1024).toFixed(0) + ' KB',
+      },
     })
 
     // Warn about poor quality
@@ -1445,11 +1448,13 @@ This section covers the most frequent problems you'll encounter and proven solut
 ### Issue 1: Microphone Permission Denied
 
 **Symptoms:**
+
 - ❌ `NotAllowedError` when requesting media
 - ❌ No audio in calls
 - ❌ Empty device list
 
 **Causes:**
+
 - User clicked "Block" on permission prompt
 - Browser settings permanently blocked microphone
 - Using HTTP instead of HTTPS (browsers block mic on HTTP)
@@ -1478,7 +1483,7 @@ async function handlePermissionDenied() {
           3. Refresh the page
 
           Still having trouble? Check your browser settings.
-        `
+        `,
       })
     }
   }
@@ -1493,6 +1498,7 @@ watch(hasPermission, (permissions) => {
 ```
 
 **Prevention:**
+
 - ✅ Request permissions early with context: "We need microphone access to make calls"
 - ✅ Use HTTPS in production (required for mic access)
 - ✅ Provide clear instructions before requesting permission
@@ -1503,11 +1509,13 @@ watch(hasPermission, (permissions) => {
 ### Issue 2: Connection Timeout
 
 **Symptoms:**
+
 - ❌ Connection fails to establish
 - ❌ `ConnectionState` stuck in `connecting`
 - ❌ "Connection timeout" errors
 
 **Causes:**
+
 - Corporate firewall blocking WebSocket connections
 - Incorrect server URI (typo in configuration)
 - SIP server is down or unreachable
@@ -1558,14 +1566,15 @@ watch(connectionState, (state) => {
       message: 'Connection failed',
       actions: [
         { label: 'Retry', onClick: () => connect() },
-        { label: 'Use Different Server', onClick: () => showServerSelection() }
-      ]
+        { label: 'Use Different Server', onClick: () => showServerSelection() },
+      ],
     })
   }
 })
 ```
 
 **Prevention:**
+
 - ✅ Validate server URI format before attempting connection
 - ✅ Implement connection timeout (don't wait forever)
 - ✅ Show connection status to user
@@ -1577,11 +1586,13 @@ watch(connectionState, (state) => {
 ### Issue 3: Registration Failure (401/403)
 
 **Symptoms:**
+
 - ❌ `RegistrationState` is `registration_failed`
 - ❌ "401 Unauthorized" or "403 Forbidden" errors
 - ❌ Cannot make or receive calls
 
 **Causes:**
+
 - **401** - Wrong username or password
 - **403** - Correct credentials but access denied (IP restriction, account disabled)
 - Incorrect authentication realm
@@ -1607,7 +1618,9 @@ eventBus.on('sip:registration_failed', (event) => {
     showLoginDialog()
   } else if (cause.includes('403')) {
     // Forbidden - account or IP issue
-    showError('Access forbidden. Your account may be disabled or your IP address may not be whitelisted. Contact your administrator.')
+    showError(
+      'Access forbidden. Your account may be disabled or your IP address may not be whitelisted. Contact your administrator.'
+    )
   } else if (cause.includes('timeout')) {
     // Network timeout
     showError('Registration timeout. Please check your network connection.')
@@ -1631,6 +1644,7 @@ function validateCredentials(config: SipClientConfig) {
 ```
 
 **Prevention:**
+
 - ✅ Validate credentials format before attempting registration
 - ✅ Store credentials securely (never in localStorage)
 - ✅ Implement credential verification flow
@@ -1642,11 +1656,13 @@ function validateCredentials(config: SipClientConfig) {
 ### Issue 4: Audio Not Working During Call
 
 **Symptoms:**
+
 - ❌ Call connects but no audio heard
 - ❌ One-way audio (you can't hear them OR they can't hear you)
 - ❌ Audio cutting in and out
 
 **Causes:**
+
 - Microphone or speaker muted
 - Wrong audio device selected
 - Network issues (packet loss, jitter)
@@ -1683,27 +1699,27 @@ async function diagnoseAudioIssues() {
 
   // Check 3: Are media streams active?
   if (activeCall.value) {
-    const localStream = activeCall.value.localStream  // Your audio
+    const localStream = activeCall.value.localStream // Your audio
     const remoteStream = activeCall.value.remoteStream // Their audio
 
     console.log('Local stream (your mic):', {
       active: localStream?.active,
-      tracks: localStream?.getTracks().map(t => ({
+      tracks: localStream?.getTracks().map((t) => ({
         kind: t.kind,
-        enabled: t.enabled,      // Is track enabled?
-        muted: t.muted,         // Is track muted?
-        readyState: t.readyState // Is track live?
-      }))
+        enabled: t.enabled, // Is track enabled?
+        muted: t.muted, // Is track muted?
+        readyState: t.readyState, // Is track live?
+      })),
     })
 
     console.log('Remote stream (their mic):', {
       active: remoteStream?.active,
-      tracks: remoteStream?.getTracks().map(t => ({
+      tracks: remoteStream?.getTracks().map((t) => ({
         kind: t.kind,
         enabled: t.enabled,
         muted: t.muted,
-        readyState: t.readyState
-      }))
+        readyState: t.readyState,
+      })),
     })
   }
 
@@ -1713,7 +1729,7 @@ async function diagnoseAudioIssues() {
     console.log('Audio quality:', {
       packetLoss: stats.audio.packetLossPercentage + '%',
       jitter: stats.audio.jitter + 's',
-      bitrate: stats.audio.bitrate + ' bps'
+      bitrate: stats.audio.bitrate + ' bps',
     })
 
     if (stats.audio.packetLossPercentage > 5) {
@@ -1725,6 +1741,7 @@ async function diagnoseAudioIssues() {
 ```
 
 **Prevention:**
+
 - ✅ Test audio devices before calls with echo test
 - ✅ Monitor call quality with statistics
 - ✅ Provide audio troubleshooting UI
@@ -1735,11 +1752,13 @@ async function diagnoseAudioIssues() {
 ### Issue 5: Call Drops or Connection Lost
 
 **Symptoms:**
+
 - ❌ Active call suddenly ends
 - ❌ `TerminationCause` is `network_error`
 - ❌ WebSocket disconnects during call
 
 **Causes:**
+
 - Network instability (weak WiFi, congested network)
 - Mobile device switching networks (WiFi to cellular)
 - Server timeout or restart
@@ -1780,7 +1799,7 @@ eventBus.on('call:failed', (event) => {
     logNetworkError({
       terminationCause: event.terminationCause,
       timestamp: new Date(),
-      callDuration: event.duration
+      callDuration: event.duration,
     })
   }
 })
@@ -1800,6 +1819,7 @@ function setupKeepAlive() {
 ```
 
 **Prevention:**
+
 - ✅ Implement connection monitoring
 - ✅ Use session timers (SIP feature) to detect dead connections
 - ✅ Handle network changes gracefully
@@ -1811,11 +1831,13 @@ function setupKeepAlive() {
 ### Issue 6: Device Not Found or In Use
 
 **Symptoms:**
+
 - ❌ `NotFoundError` - No media devices available
 - ❌ `NotReadableError` - Device is already in use
 - ❌ Empty device list
 
 **Causes:**
+
 - No physical devices connected (no microphone plugged in)
 - Device being used by another application (Zoom, Skype, etc.)
 - Another browser tab already using the device
@@ -1869,7 +1891,7 @@ eventBus.on('media:device:changed', (event) => {
   console.log('Device change detected:', {
     added: event.addedDevices,
     removed: event.removedDevices,
-    current: event.currentDevices
+    current: event.currentDevices,
   })
 
   // Handle device removal
@@ -1888,6 +1910,7 @@ eventBus.on('media:device:changed', (event) => {
 ```
 
 **Prevention:**
+
 - ✅ Check for devices before allowing calls
 - ✅ Handle device changes during calls
 - ✅ Provide clear device selection UI
@@ -1899,11 +1922,13 @@ eventBus.on('media:device:changed', (event) => {
 ### Issue 7: Storage Quota Exceeded
 
 **Symptoms:**
+
 - ❌ `QuotaExceededError` thrown
 - ❌ Unable to save recordings or call history
 - ❌ Persistence operations fail silently
 
 **Causes:**
+
 - Too many recordings stored (audio files are large)
 - Call history grown too large
 - Browser storage limit reached (typically 5-50 MB)
@@ -1912,12 +1937,7 @@ eventBus.on('media:device:changed', (event) => {
 **Solutions:**
 
 ```typescript
-import {
-  getStorageQuota,
-  hasEnoughSpace,
-  clearOldDataLRU,
-  checkStorageUsageWarning
-} from 'vuesip'
+import { getStorageQuota, hasEnoughSpace, clearOldDataLRU, checkStorageUsageWarning } from 'vuesip'
 
 /**
  * Check and manage storage quota
@@ -1931,7 +1951,7 @@ async function handleStorageQuota() {
     used: (quota.usage / 1024 / 1024).toFixed(2) + ' MB',
     total: (quota.quota / 1024 / 1024).toFixed(2) + ' MB',
     available: (quota.available / 1024 / 1024).toFixed(2) + ' MB',
-    percentage: quota.usagePercent.toFixed(1) + '%'
+    percentage: quota.usagePercent.toFixed(1) + '%',
   })
 
   // Warn user if usage is high
@@ -1953,7 +1973,7 @@ async function cleanupStorage() {
   try {
     // Remove oldest 30% of recordings
     const removedRecordings = await clearOldDataLRU(
-      () => getAllRecordings(),      // Function that returns all recordings
+      () => getAllRecordings(), // Function that returns all recordings
       (ids) => deleteRecordings(ids), // Function to delete recordings by ID
       30 // Remove oldest 30%
     )
@@ -1996,6 +2016,7 @@ async function saveRecordingWithCheck(recording: RecordingData) {
 ```
 
 **Prevention:**
+
 - ✅ Monitor storage usage regularly
 - ✅ Implement automatic cleanup policies
 - ✅ Limit recording duration or quality to reduce file size
@@ -2007,13 +2028,15 @@ async function saveRecordingWithCheck(recording: RecordingData) {
 ### Issue 8: DTMF Tones Not Working
 
 **Symptoms:**
+
 - ❌ DTMF tones not sent or not heard locally
 - ❌ Remote system doesn't respond to tones (IVR, voicemail)
 - ❌ Invalid tone errors
 
 **Causes:**
+
 - Call not in 'active' state yet
-- Invalid DTMF tone character (only 0-9, *, #, A-D allowed)
+- Invalid DTMF tone character (only 0-9, \*, #, A-D allowed)
 - Duration too short for receiver to detect
 - SIP server doesn't support RTP DTMF events
 
@@ -2046,8 +2069,8 @@ async function sendToneWithValidation(tone: string) {
   try {
     // Step 3: Send with appropriate timing
     await sendDTMF(validation.normalized!, {
-      duration: 100,      // Duration of tone in milliseconds
-      interToneGap: 70   // Gap between tones in milliseconds
+      duration: 100, // Duration of tone in milliseconds
+      interToneGap: 70, // Gap between tones in milliseconds
     })
   } catch (error) {
     console.error('DTMF send failed:', error)
@@ -2070,12 +2093,13 @@ async function sendDTMFSequence(sequence: string) {
   for (const tone of validation.normalized!) {
     await sendToneWithValidation(tone)
     // Wait between tones to ensure they're detected separately
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
 }
 ```
 
 **Prevention:**
+
 - ✅ Validate DTMF input before sending
 - ✅ Check call state before allowing DTMF
 - ✅ Use appropriate tone duration (100ms minimum)
@@ -2133,8 +2157,8 @@ try {
     message: 'Failed to connect',
     actions: [
       { label: 'Retry', onClick: () => connect() },
-      { label: 'Help', onClick: () => showTroubleshooting() }
-    ]
+      { label: 'Help', onClick: () => showTroubleshooting() },
+    ],
   })
 }
 ```
@@ -2263,8 +2287,8 @@ showErrorWithActions({
   actions: [
     { label: 'Retry', onClick: () => connect() },
     { label: 'Use Different Server', onClick: () => showServerSelection() },
-    { label: 'Help', onClick: () => openHelpDialog() }
-  ]
+    { label: 'Help', onClick: () => openHelpDialog() },
+  ],
 })
 ```
 
@@ -2349,4 +2373,4 @@ Continue learning with these related guides:
 - [Getting Started Guide](./getting-started.md) - Set up your first VueSip application
 - [Making Calls Guide](./making-calls.md) - Learn call management and features
 - [Device Management Guide](./device-management.md) - Handle microphones, speakers, and cameras
-- [API Reference](/api) - Complete API documentation
+- [API Reference](/api/) - Complete API documentation

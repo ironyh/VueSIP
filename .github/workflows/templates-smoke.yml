@@ -1,0 +1,109 @@
+name: Template Smoke (PR)
+
+on:
+  pull_request:
+    paths:
+      - 'templates/**'
+      - 'src/**'
+      - 'package.json'
+      - '.github/workflows/templates-smoke.yml'
+      - '.github/workflows/reusable-template-deploy.yml'
+
+jobs:
+  build-library:
+    name: Build VueSip Library
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build library
+        run: pnpm run build
+
+      - name: Create dist package.json
+        run: |
+          # Create a package.json in dist with correct exports for file: dependency
+          cat > dist/package.json << 'EOF'
+          {
+            "name": "vuesip",
+            "version": "1.0.0",
+            "type": "module",
+            "main": "./vuesip.cjs",
+            "module": "./vuesip.js",
+            "types": "./index.d.ts",
+            "exports": {
+              ".": {
+                "types": "./index.d.ts",
+                "import": "./vuesip.js",
+                "require": "./vuesip.cjs"
+              }
+            }
+          }
+          EOF
+
+      - name: Upload library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vuesip-dist
+          path: dist/
+          retention-days: 1
+
+  smoke:
+    name: Build ${{ matrix.template }} template
+    runs-on: ubuntu-latest
+    needs: build-library
+    strategy:
+      fail-fast: false
+      matrix:
+        template: [minimal, basic-softphone, call-center, pwa-softphone, ivr-tester, video-room]
+
+    concurrency:
+      group: templates-smoke-${{ matrix.template }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Download library artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vuesip-dist
+          path: dist/
+
+      - name: Install template dependencies
+        working-directory: templates/${{ matrix.template }}
+        run: |
+          sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
+          pnpm install --no-frozen-lockfile
+
+      - name: Build template (smoke)
+        working-directory: templates/${{ matrix.template }}
+        run: pnpm run build
+

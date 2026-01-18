@@ -20,6 +20,19 @@ VueSip provides **60+ composables** for building professional SIP interfaces wit
 - **TypeScript** - Full type safety and IntelliSense
 - **50+ Interactive Demos** - Working examples for every feature
 - **Modern Stack** - Vue 3, Vite, TypeScript
+- **Codec Policy (preview)** - Inspect capabilities, set preferences (e.g., Opus/VP8) and apply during negotiation with transceiver API or SDP fallback
+
+## Live Demos
+
+- Landing: https://demos.vuesip.com (or see docs: `docs/guide/demos.md`)
+- Softphone (PWA): https://softphone.vuesip.com
+- IVR Tester: https://ivr.vuesip.com
+- Video Room: https://video.vuesip.com
+- Call Center: https://callcenter.vuesip.com
+
+## CI
+
+See `docs/guide/ci-workers.md` for guidance on Cloudflare Workers checks. Our recommendation is to scope the Cloudflare GitHub App builds to the `main` branch only and rely on GitHub Actions for deploys.
 
 ## Installation
 
@@ -415,3 +428,13 @@ Built with:
 - [TypeScript](https://www.typescriptlang.org/) - Type safety
 - [Vite](https://vitejs.dev/) - Next generation frontend tooling
 - [Vitest](https://vitest.dev/) - Testing framework
+
+### Codecs (preview)
+
+The library will expose a `useCodecs` composable that lets you:
+
+- Query local codec capabilities (audio/video)
+- Set a codec policy (e.g., prefer Opus/VP8, allow legacy fallbacks)
+- Apply preferences to transceivers or transform SDP as a fallback
+
+See `docs/adr/0001-codecs-architecture.md` for the design overview.

@@ -20,6 +20,7 @@ import {
 } from 'vue'
 import { SipClient } from '@/core/SipClient'
 import { EventBus } from '@/core/EventBus'
+import { SipEventNames } from '@/types/event-names'
 import { configStore } from '@/stores/configStore'
 import { registrationStore } from '@/stores/registrationStore'
 import type { SipClientConfig, ValidationResult } from '@/types/config.types'
@@ -273,7 +274,8 @@ export function useSipClient(
   })
 
   const isRegistered = computed(() => {
-    return sipClient.value?.isRegistered ?? false
+    // Use registrationStore for reactive updates (sipClient getter doesn't trigger reactivity)
+    return registrationStore.isRegistered
   })
 
   const registrationState = computed(() => {
@@ -313,8 +315,8 @@ export function useSipClient(
 
     console.log('[DIAGNOSTIC 3/3] useSipClient: Registering "sip:connected" listener...')
     listeners.push({
-      event: 'sip:connected',
-      id: eventBus.on('sip:connected', () => {
+      event: SipEventNames.Connected,
+      id: eventBus.on(SipEventNames.Connected, () => {
         console.log('[DIAGNOSTIC 3/3] useSipClient: ✅ "sip:connected" event RECEIVED by listener!')
         logger.debug('SIP client connected')
         error.value = null
@@ -339,8 +341,8 @@ export function useSipClient(
     console.log('[DIAGNOSTIC 3/3] useSipClient: "sip:connected" listener registered successfully')
 
     listeners.push({
-      event: 'sip:disconnected',
-      id: eventBus.on('sip:disconnected', (data: unknown) => {
+      event: SipEventNames.Disconnected,
+      id: eventBus.on(SipEventNames.Disconnected, (data: unknown) => {
         logger.debug('SIP client disconnected', data)
         const payload = data as SipEventPayloads['sip:disconnected'] | undefined
         if (payload?.error) {
@@ -354,8 +356,8 @@ export function useSipClient(
 
     // Registration events
     listeners.push({
-      event: 'sip:registered',
-      id: eventBus.on('sip:registered', (data: unknown) => {
+      event: SipEventNames.Registered,
+      id: eventBus.on(SipEventNames.Registered, (data: unknown) => {
         logger.info('SIP registered', data)
         const payload = data as SipEventPayloads['sip:registered']
         if (payload?.uri) {
@@ -378,16 +380,16 @@ export function useSipClient(
     })
 
     listeners.push({
-      event: 'sip:unregistered',
-      id: eventBus.on('sip:unregistered', () => {
+      event: SipEventNames.Unregistered,
+      id: eventBus.on(SipEventNames.Unregistered, () => {
         logger.info('SIP unregistered')
         registrationStore.setUnregistered()
       }),
     })
 
     listeners.push({
-      event: 'sip:registration_failed',
-      id: eventBus.on('sip:registration_failed', (data: unknown) => {
+      event: SipEventNames.RegistrationFailed,
+      id: eventBus.on(SipEventNames.RegistrationFailed, (data: unknown) => {
         logger.error('SIP registration failed', data)
         const payload = data as SipEventPayloads['sip:registration_failed'] | undefined
         const errorMsg = payload?.cause ?? 'Registration failed'
@@ -397,8 +399,8 @@ export function useSipClient(
     })
 
     listeners.push({
-      event: 'sip:registration_expiring',
-      id: eventBus.on('sip:registration_expiring', () => {
+      event: SipEventNames.RegistrationExpiring,
+      id: eventBus.on(SipEventNames.RegistrationExpiring, () => {
         logger.debug('SIP registration expiring, auto-refresh')
         // Auto-refresh will be handled by the SIP client
       }),

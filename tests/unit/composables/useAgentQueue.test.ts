@@ -1,8 +1,9 @@
 // tests/unit/composables/useAgentQueue.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useAgentQueue } from '@/composables/useAgentQueue'
 import type { CallCenterProvider, AgentState, QueueInfo } from '@/providers/call-center/types'
+import { withSetup } from '../../utils/test-helpers'
 
 const mockQueues: QueueInfo[] = [
   {
@@ -163,6 +164,16 @@ describe('useAgentQueue', () => {
       expect(isMemberOf('billing')).toBe(false)
     })
 
+    it('should check if paused in queue', async () => {
+      const providerRef = ref(mockProvider)
+      const { isPausedIn } = useAgentQueue(providerRef)
+
+      await new Promise((r) => setTimeout(r, 10))
+
+      expect(isPausedIn('sales')).toBe(true)
+      expect(isPausedIn('support')).toBe(false)
+    })
+
     it('should get queue by name', async () => {
       const providerRef = ref(mockProvider)
       const { getQueue } = useAgentQueue(providerRef)
@@ -172,6 +183,173 @@ describe('useAgentQueue', () => {
       const queue = getQueue('sales')
       expect(queue?.isPaused).toBe(true)
       expect(queue?.penalty).toBe(5)
+    })
+
+    it('should calculate total calls handled', async () => {
+      const providerRef = ref(mockProvider)
+      const { totalCallsHandled } = useAgentQueue(providerRef)
+
+      await new Promise((r) => setTimeout(r, 10))
+
+      // 5 from support + 3 from sales = 8
+      expect(totalCallsHandled.value).toBe(8)
+    })
+  })
+
+  describe('queue events', () => {
+    it('should subscribe to queue events', async () => {
+      const providerRef = ref(mockProvider)
+      const { onQueueEvent } = useAgentQueue(providerRef)
+
+      const callback = vi.fn()
+      const unsubscribe = onQueueEvent(callback)
+
+      expect(mockProvider.onQueueEvent).toHaveBeenCalledWith(callback)
+      expect(typeof unsubscribe).toBe('function')
+    })
+
+    it('should return noop when provider is null', () => {
+      const providerRef = ref<CallCenterProvider | null>(null)
+      const { onQueueEvent } = useAgentQueue(providerRef)
+
+      const callback = vi.fn()
+      const unsubscribe = onQueueEvent(callback)
+
+      expect(typeof unsubscribe).toBe('function')
+      // Should not throw when called
+      unsubscribe()
+    })
+  })
+
+  describe('error handling', () => {
+    it('should handle join queue error', async () => {
+      mockProvider.joinQueue = vi.fn().mockRejectedValue(new Error('Join failed'))
+      const providerRef = ref(mockProvider)
+      const { joinQueue, error } = useAgentQueue(providerRef)
+
+      await expect(joinQueue('billing')).rejects.toThrow('Join failed')
+      expect(error.value).toBe('Join failed')
+    })
+
+    it('should handle leave queue error', async () => {
+      mockProvider.leaveQueue = vi.fn().mockRejectedValue(new Error('Leave failed'))
+      const providerRef = ref(mockProvider)
+      const { leaveQueue, error } = useAgentQueue(providerRef)
+
+      await expect(leaveQueue('support')).rejects.toThrow('Leave failed')
+      expect(error.value).toBe('Leave failed')
+    })
+
+    it('should handle pause in queue error', async () => {
+      mockProvider.pause = vi.fn().mockRejectedValue(new Error('Pause failed'))
+      const providerRef = ref(mockProvider)
+      const { pauseInQueue, error } = useAgentQueue(providerRef)
+
+      await expect(pauseInQueue('support', 'Break')).rejects.toThrow('Pause failed')
+      expect(error.value).toBe('Pause failed')
+    })
+
+    it('should handle unpause in queue error', async () => {
+      mockProvider.unpause = vi.fn().mockRejectedValue(new Error('Unpause failed'))
+      const providerRef = ref(mockProvider)
+      const { unpauseInQueue, error } = useAgentQueue(providerRef)
+
+      await expect(unpauseInQueue('sales')).rejects.toThrow('Unpause failed')
+      expect(error.value).toBe('Unpause failed')
+    })
+
+    it('should handle non-Error exception in join queue', async () => {
+      mockProvider.joinQueue = vi.fn().mockRejectedValue('Unknown error')
+      const providerRef = ref(mockProvider)
+      const { joinQueue, error } = useAgentQueue(providerRef)
+
+      await expect(joinQueue('billing')).rejects.toBe('Unknown error')
+      expect(error.value).toBe('Join queue failed')
+    })
+  })
+
+  describe('null provider handling', () => {
+    it('should handle operations when provider is null', async () => {
+      const providerRef = ref<CallCenterProvider | null>(null)
+      const { joinQueue, leaveQueue, pauseInQueue, unpauseInQueue } = useAgentQueue(providerRef)
+
+      await expect(joinQueue('billing')).resolves.not.toThrow()
+      await expect(leaveQueue('support')).resolves.not.toThrow()
+      await expect(pauseInQueue('support', 'Break')).resolves.not.toThrow()
+      await expect(unpauseInQueue('sales')).resolves.not.toThrow()
+    })
+
+    it('should have empty queues when provider is null', () => {
+      const providerRef = ref<CallCenterProvider | null>(null)
+      const { queues, totalQueues, activeQueues, pausedQueues } = useAgentQueue(providerRef)
+
+      expect(queues.value).toEqual([])
+      expect(totalQueues.value).toBe(0)
+      expect(activeQueues.value).toEqual([])
+      expect(pausedQueues.value).toEqual([])
+    })
+  })
+
+  describe('provider change handling', () => {
+    it('should reset state when provider changes to different provider', async () => {
+      const provider1 = createMockProvider()
+      const provider2 = createMockProvider()
+      const providerRef = ref<CallCenterProvider | null>(provider1)
+
+      const { queues } = useAgentQueue(providerRef)
+
+      // Wait for initial state subscription
+      await new Promise((r) => setTimeout(r, 10))
+      expect(queues.value).toHaveLength(2)
+
+      // Change to a different provider
+      providerRef.value = provider2
+
+      // Wait for watcher to trigger and resubscribe
+      await nextTick()
+      await new Promise((r) => setTimeout(r, 10))
+
+      // Should still have queues from new provider
+      expect(queues.value).toHaveLength(2)
+    })
+
+    it('should clear state when provider changes to null', async () => {
+      const provider = createMockProvider()
+      const providerRef = ref<CallCenterProvider | null>(provider)
+
+      const { queues } = useAgentQueue(providerRef)
+
+      // Wait for initial state subscription
+      await new Promise((r) => setTimeout(r, 10))
+      expect(queues.value).toHaveLength(2)
+
+      // Change to null
+      providerRef.value = null
+
+      // Wait for watcher to trigger
+      await nextTick()
+
+      // Should have empty queues
+      expect(queues.value).toEqual([])
+    })
+  })
+
+  describe('Cleanup on Unmount', () => {
+    it('should unsubscribe from state on unmount', async () => {
+      const localMockProvider = createMockProvider()
+      const providerRef = ref<CallCenterProvider | null>(localMockProvider)
+
+      const { result, unmount } = withSetup(() => useAgentQueue(providerRef))
+
+      // Wait for initial state subscription
+      await new Promise((r) => setTimeout(r, 10))
+      expect(result.queues.value).toHaveLength(2)
+
+      // Unmount should trigger cleanup
+      unmount()
+
+      // The composable should have cleaned up without errors
+      expect(localMockProvider.onStateChange).toHaveBeenCalled()
     })
   })
 })

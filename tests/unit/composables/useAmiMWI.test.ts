@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { useAmiMWI } from '@/composables/useAmiMWI'
 import type { AmiClient } from '@/core/AmiClient'
+import { withSetup } from '../../utils/test-helpers'
 
 // Mock AmiClient
 function createMockAmiClient() {
@@ -613,6 +614,31 @@ describe('useAmiMWI', () => {
       const { getMailboxStatus } = useAmiMWI(clientRef)
 
       await expect(getMailboxStatus('1001')).rejects.toThrow('AMI client not connected')
+    })
+  })
+
+  describe('Cleanup on Unmount', () => {
+    it('should clean up events and clear mailboxes on unmount', async () => {
+      const localMockClient = createMockAmiClient()
+      const localClientRef = ref(localMockClient as unknown as AmiClient)
+
+      const { result, unmount } = withSetup(() => useAmiMWI(localClientRef))
+
+      // Add some mailboxes to the state
+      result.mailboxes.value.set('1001', {
+        mailbox: '1001',
+        context: 'default',
+        newMessages: 5,
+        oldMessages: 10,
+      })
+
+      expect(result.mailboxes.value.size).toBe(1)
+
+      // Unmount should clean up events and clear mailboxes
+      unmount()
+
+      expect(result.mailboxes.value.size).toBe(0)
+      expect(localMockClient.off).toHaveBeenCalled()
     })
   })
 })

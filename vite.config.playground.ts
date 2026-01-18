@@ -73,5 +73,6 @@ export default defineConfig({
   // Optimize dependency pre-bundling
   optimizeDeps: {
     include: ['vue', 'pinia', 'primevue/config'],
+    exclude: ['vuesip'],
   },
 })

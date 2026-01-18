@@ -50,9 +50,7 @@ const isActive = computed(() => props.callState === 'active' || props.callState 
 const isCalling = computed(() => props.callState === 'calling')
 const isWrapUp = computed(() => props.agentState === 'wrap-up')
 
-const displayName = computed(() =>
-  props.remoteDisplayName || props.remoteUri || 'Unknown Caller'
-)
+const displayName = computed(() => props.remoteDisplayName || props.remoteUri || 'Unknown Caller')
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -201,11 +199,7 @@ const dtmfKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
           class="p-button-primary"
           @click="showDispositionDialog = true"
         />
-        <Button
-          label="Skip"
-          class="p-button-text"
-          @click="skipDisposition"
-        />
+        <Button label="Skip" class="p-button-text" @click="skipDisposition" />
       </div>
     </div>
 
@@ -226,11 +220,7 @@ const dtmfKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
         />
       </div>
       <template #footer>
-        <Button
-          label="Cancel"
-          class="p-button-text"
-          @click="showTransferDialog = false"
-        />
+        <Button label="Cancel" class="p-button-text" @click="showTransferDialog = false" />
         <Button
           label="Transfer"
           icon="pi pi-arrow-right-arrow-left"
@@ -271,11 +261,7 @@ const dtmfKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
         </div>
       </div>
       <template #footer>
-        <Button
-          label="Cancel"
-          class="p-button-text"
-          @click="showDispositionDialog = false"
-        />
+        <Button label="Cancel" class="p-button-text" @click="showDispositionDialog = false" />
         <Button
           label="Save"
           icon="pi pi-check"
@@ -328,8 +314,13 @@ const dtmfKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .caller-details {

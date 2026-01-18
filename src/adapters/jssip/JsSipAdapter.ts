@@ -241,8 +241,17 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
       throw new Error('Not connected')
     }
 
+    console.log('[JsSipAdapter] Making call to:', target)
+    console.log('[JsSipAdapter] Call options:', options)
+
     const jssipOptions: Record<string, unknown> = {
       mediaConstraints: options?.mediaConstraints ?? { audio: true, video: false },
+    }
+
+    // Pass pre-acquired mediaStream if provided (takes precedence over mediaConstraints)
+    if (options?.mediaStream) {
+      jssipOptions.mediaStream = options.mediaStream
+      console.log('[JsSipAdapter] Using pre-acquired mediaStream for call')
     }
 
     if (options?.extraHeaders) {
@@ -258,7 +267,10 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
     }
 
     const rtcSession = this.ua.call(target, jssipOptions)
-    const session = new JsSipCallSession(rtcSession)
+    const session = new JsSipCallSession(
+      rtcSession,
+      options?.codecPolicy ?? this.config?.codecPolicy
+    )
     this.activeSessions.set(session.id, session)
 
     // Clean up when session ends

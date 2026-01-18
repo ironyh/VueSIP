@@ -7,7 +7,45 @@ export default defineConfig({
   lang: 'en-US',
   lastUpdated: true,
   cleanUrls: true,
-  ignoreDeadLinks: true, // TODO: Remove after creating missing guide pages
+  ignoreDeadLinks: [/^\/playground\/index$/],
+
+  srcExclude: [
+    '**/README.md',
+    '**/TODO.md',
+    'plans/**',
+    'tickets/**',
+    'hive-mind/**',
+    'implementation/**',
+    'testing/**',
+    'adapters/**',
+    '**/*_REPORT.md',
+    '**/*_SUMMARY.md',
+    '**/*_PLAN.md',
+    '**/*_INDEX.md',
+    '**/*_CHECKLIST.md',
+    '**/*_REFERENCE.md',
+    '**/*_POLICY.md',
+    '**/*_COMPLETE.md',
+    '**/*_FINDINGS.md',
+    '**/*_ANALYSIS.md',
+    '**/*_TRACKER.md',
+    '**/*_ASSESSMENT.md',
+    '**/*_FIXES.md',
+    '**/*_PATTERNS.md',
+    '**/*_PRIORITY.md',
+    '**/*_STATUS.md',
+    '**/*_GUIDE.md', // Be careful with this one, but looking at file list PHASE_1_MIGRATION_GUIDE.md seems internal
+    '**/*_ROADMAP.md',
+    '**/*_EXECUTION_PLAN.md',
+    '**/*_PRESCAN.md',
+    '**/*_RESEARCH.md',
+    '**/*_INVENTORY.md',
+    '**/*_SCRIPT.md',
+    '**/*_TEMPLATE.md', // PR_TEMPLATE.md
+    '**/*_IMPROVEMENTS.md',
+    '**/*_MIGRATION.md',
+    'README_CROSS_BROWSER.md',
+  ],
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
@@ -22,9 +60,11 @@ export default defineConfig({
     logo: '/logo.svg',
 
     nav: [
-      { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
       { text: 'Tutorial', link: '/tutorial/', activeMatch: '/tutorial/' },
+      { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
+      { text: 'Demos', link: '/guide/demos', activeMatch: '/guide/demos' },
       { text: 'API Reference', link: '/api/', activeMatch: '/api/' },
+      { text: 'Enterprise', link: '/enterprise/', activeMatch: '/enterprise/' },
       { text: 'Examples', link: '/examples/', activeMatch: '/examples/' },
       { text: 'Developer', link: '/developer/', activeMatch: '/developer/' },
       { text: 'FAQ', link: '/faq' },
@@ -33,14 +73,14 @@ export default defineConfig({
     sidebar: {
       '/tutorial/': [
         {
-          text: 'Tutorial',
+          text: 'Interactive Tutorial',
           collapsed: false,
           items: [
-            { text: 'Overview', link: '/tutorial/' },
-            { text: 'Part 1: Hello VueSIP', link: '/tutorial/part-1-hello' },
-            { text: 'Part 2: Building a Softphone', link: '/tutorial/part-2-softphone' },
-            { text: 'Part 3: Real Server Connection', link: '/tutorial/part-3-real-server' },
-            { text: 'Part 4: Advanced Features', link: '/tutorial/part-4-advanced' },
+            { text: 'Start Here', link: '/tutorial/' },
+            { text: '1. Hello VueSIP', link: '/tutorial/part-1-hello' },
+            { text: '2. Building a Softphone', link: '/tutorial/part-2-softphone' },
+            { text: '3. Real Server Connection', link: '/tutorial/part-3-real-server' },
+            { text: '4. Advanced Features', link: '/tutorial/part-4-advanced' },
           ],
         },
       ],
@@ -65,6 +105,7 @@ export default defineConfig({
             { text: 'Call Controls', link: '/guide/call-controls' },
             { text: 'Video Calling', link: '/guide/video-calling' },
             { text: 'Picture-in-Picture', link: '/guide/picture-in-picture' },
+            { text: 'Click-to-Call', link: '/guide/click-to-call' },
           ],
         },
         {
@@ -76,6 +117,7 @@ export default defineConfig({
           text: 'Advanced Topics',
           collapsed: false,
           items: [
+            { text: 'Codecs & Negotiation', link: '/guide/codecs' },
             { text: 'Device Management', link: '/guide/device-management' },
             { text: 'Presence & Messaging', link: '/guide/presence-messaging' },
             { text: 'Call History', link: '/guide/call-history' },
@@ -83,6 +125,9 @@ export default defineConfig({
             { text: 'Call Parking', link: '/guide/call-parking' },
             { text: 'Voicemail', link: '/guide/voicemail' },
             { text: 'Real-Time Transcription', link: '/guide/transcription' },
+            { text: 'AMI Originate', link: '/guide/ami-originate' },
+            { text: 'Sentiment Analysis', link: '/guide/sentiment' },
+            { text: 'SIP Mock', link: '/guide/sip-mock' },
           ],
         },
         {
@@ -159,6 +204,7 @@ export default defineConfig({
           text: 'Core Calling',
           collapsed: false,
           items: [
+            { text: 'Click-to-Call', link: '/examples/click-to-call' },
             { text: 'Basic Audio Call', link: '/examples/basic-call' },
             { text: 'Video Calling', link: '/examples/video-call' },
             { text: 'Conference Calls', link: '/examples/conference' },
@@ -245,6 +291,20 @@ export default defineConfig({
             { text: 'TypeDoc Setup', link: '/developer/typedoc-setup' },
             { text: 'Testing Guide', link: '/developer/testing' },
             { text: 'Code Style & Patterns', link: '/developer/code-style' },
+            { text: 'Event Flow & TypedEventBus', link: '/developer/event-bus' },
+          ],
+        },
+      ],
+
+      '/enterprise/': [
+        {
+          text: 'Enterprise',
+          collapsed: false,
+          items: [
+            { text: 'Overview', link: '/enterprise/' },
+            { text: 'Analytics', link: '/enterprise/analytics' },
+            { text: 'Compliance', link: '/enterprise/compliance' },
+            { text: 'CRM', link: '/enterprise/crm' },
           ],
         },
       ],

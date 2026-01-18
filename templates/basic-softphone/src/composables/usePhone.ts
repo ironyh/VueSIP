@@ -1,12 +1,15 @@
 /**
  * Phone Composable - Wraps VueSip APIs for softphone functionality
  */
-import { ref, computed } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 import {
   useSipClient,
   useCallSession,
   useMediaDevices,
   useCallHistory,
+  buildSipUri,
+  extractSipDomain,
+  MediaManager,
 } from 'vuesip'
 
 export interface PhoneConfig {
@@ -21,7 +24,7 @@ export function usePhone() {
   const isConfigured = ref(false)
   const currentConfig = ref<PhoneConfig | null>(null)
 
-  // SIP Client
+  // SIP Client - must be initialized first to get eventBus
   const sipClient = useSipClient()
   const {
     connect,
@@ -32,13 +35,18 @@ export function usePhone() {
     error: sipError,
     updateConfig,
     getClient,
+    getEventBus,
   } = sipClient
+
+  // Media Manager - shared between call session and media devices
+  // Use the same eventBus as the SIP client for consistent event handling
+  const mediaManager = ref<MediaManager | null>(new MediaManager({ eventBus: getEventBus() }))
 
   // Get client ref for call session
   const clientRef = computed(() => getClient())
 
-  // Call Session
-  const callSession = useCallSession(clientRef)
+  // Call Session - pass mediaManager to acquire media before calls
+  const callSession = useCallSession(clientRef, mediaManager as Ref<MediaManager | null>)
   const {
     makeCall,
     hangup,
@@ -59,18 +67,20 @@ export function usePhone() {
     remoteDisplayName,
     duration,
     direction,
+    localStream,
+    remoteStream,
   } = callSession
 
-  // Media Devices
-  const mediaDevices = useMediaDevices()
+  // Media Devices - share the same mediaManager for consistent media handling
+  const mediaDevices = useMediaDevices(mediaManager as Ref<MediaManager | null>)
   const {
     audioInputDevices,
     audioOutputDevices,
     selectedAudioInputId,
     selectedAudioOutputId,
-    enumerateDevices,
     selectAudioInput,
     selectAudioOutput,
+    requestPermissions,
   } = mediaDevices
 
   // Call History - history is automatically updated by the call store
@@ -94,7 +104,9 @@ export function usePhone() {
       throw new Error('Phone not configured. Call configure() first.')
     }
     await connect()
-    await enumerateDevices()
+    // Request microphone permission to get real device names
+    // (browsers hide device labels until permission is granted)
+    await requestPermissions(true, false)
   }
 
   async function disconnectPhone() {
@@ -104,7 +116,22 @@ export function usePhone() {
   }
 
   async function call(target: string) {
-    await makeCall(target)
+    // Extract domain from current config to build proper SIP URI
+    const sipUri = currentConfig.value?.sipUri
+    if (!sipUri) {
+      throw new Error('Cannot make call: Phone not configured. Call configure() first.')
+    }
+
+    const domain = extractSipDomain(sipUri)
+    if (!domain) {
+      throw new Error(
+        `Cannot make call: Invalid SIP URI configuration. Expected sip:user@domain, got: ${sipUri}`
+      )
+    }
+
+    // Build SIP URI from target (handles phone numbers, usernames, or existing SIP URIs)
+    const sipTarget = buildSipUri(target, domain)
+    await makeCall(sipTarget)
   }
 
   async function endCall() {
@@ -171,5 +198,9 @@ export function usePhone() {
     historyEntries,
     history,
     clearHistory,
+
+    // Media streams (for recording)
+    localStream,
+    remoteStream,
   }
 }

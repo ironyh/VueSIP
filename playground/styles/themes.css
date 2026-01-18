@@ -200,25 +200,69 @@
 }
 
 /* ============================================
-   MANUAL DARK MODE TOGGLE (Optional)
-   Uncomment this section if implementing manual toggle
+   MANUAL DARK MODE TOGGLE
+   Used when .dark-mode class is applied to documentElement
    ============================================ */
-/*
-:root.dark {
+.dark-mode {
+  /* Background Colors - Dark Mode */
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
   --bg-card: #1e293b;
   --bg-hover: #334155;
+
+  /* Text Colors - Dark Mode */
   --text-primary: #f1f5f9;
   --text-secondary: #cbd5e1;
   --text-tertiary: #94a3b8;
   --text-muted: #64748b;
+  --text-on-gradient: #ffffff;
+
+  /* Border Colors - Dark Mode */
   --border-color: #334155;
   --border-color-hover: #475569;
   --border-color-focus: #64748b;
+
+  /* Status Colors - Dark Mode (Slightly Lighter) */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+  --color-neutral: #94a3b8;
+
+  /* Status Colors - Dark Backgrounds */
+  --bg-success-light: rgba(16, 185, 129, 0.15);
+  --bg-warning-light: rgba(245, 158, 11, 0.15);
+  --bg-danger-light: rgba(239, 68, 68, 0.15);
+  --bg-info-light: rgba(59, 130, 246, 0.15);
+  --bg-neutral-light: rgba(100, 116, 139, 0.15);
+
+  /* Primary color RGB values for rgba() usage */
+  --primary-500-rgb: 99, 102, 241;
+
+  /* Gradient Definitions - Dark Mode */
+  --gradient-blue: linear-gradient(135deg, #60a5fa, #3b82f6);
+  --gradient-indigo: linear-gradient(135deg, #6366f1, #4f46e5);
+  --gradient-purple: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  --gradient-pink: linear-gradient(135deg, #f472b6, #ec4899);
+  --gradient-orange: linear-gradient(135deg, #fbbf24, #f59e0b);
+  --gradient-green: linear-gradient(135deg, #34d399, #10b981);
+  --gradient-red: linear-gradient(135deg, #f87171, #ef4444);
+  --gradient-teal: linear-gradient(135deg, #2dd4bf, #14b8a6);
+  --gradient-cyan: linear-gradient(135deg, #22d3ee, #06b6d4);
+
+  /* Shadows - Dark Mode */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 32px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.5);
+
+  /* Shadows - Colored */
+  --shadow-blue: 0 8px 16px rgba(59, 130, 246, 0.3);
+  --shadow-purple: 0 8px 16px rgba(99, 102, 241, 0.3);
+  --shadow-pink: 0 8px 16px rgba(236, 72, 153, 0.3);
+  --shadow-green: 0 8px 16px rgba(16, 185, 129, 0.3);
 }
-*/
 
 /* ============================================
    ANIMATION KEYFRAMES

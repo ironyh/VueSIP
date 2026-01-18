@@ -1508,9 +1508,9 @@ You've learned the fundamentals of VueSip! Here are recommended next steps based
 
 📚 **Documentation:**
 
-- **[Full API Reference](https://vuesip.com/api)** - Complete API documentation
-- **[Composables Guide](https://vuesip.com/composables)** - Detailed composable reference
-- **[Configuration Reference](./configuration.md)** - All configuration options
+- **[Full API Reference](/api/)** - Complete API documentation
+- **[Composables Guide](/api/composables.md)** - Detailed composable reference
+- **[Configuration Reference](#configuration-overview)** - All configuration options
 
 🐛 **Bug Reports & Feature Requests:**
 

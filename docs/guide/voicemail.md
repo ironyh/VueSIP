@@ -12,6 +12,7 @@ Voicemail is an essential feature for any business phone system. VueSIP provides
 - **User Information**: Retrieve voicemail user details and settings
 
 **Why Voicemail Management Matters:**
+
 - **User Experience**: Users need to know when they have messages waiting
 - **Productivity**: Quick access to message counts reduces phone tag
 - **Business Intelligence**: Track voicemail usage patterns
@@ -52,23 +53,23 @@ const ami = useAmi()
 
 // Create the voicemail composable
 const {
-  mwiStates,           // Map of MWI states by mailbox
-  mailboxes,           // Map of mailbox info
-  isLoading,           // Loading state
-  error,               // Error message if any
-  totalNewMessages,    // Total new messages across all monitored mailboxes
-  totalOldMessages,    // Total old messages
-  hasWaitingMessages,  // Whether any mailbox has waiting messages
+  mwiStates, // Map of MWI states by mailbox
+  mailboxes, // Map of mailbox info
+  isLoading, // Loading state
+  error, // Error message if any
+  totalNewMessages, // Total new messages across all monitored mailboxes
+  totalOldMessages, // Total old messages
+  hasWaitingMessages, // Whether any mailbox has waiting messages
 
   // Methods
-  getMwiState,         // Get MWI state for a mailbox
-  getMailboxInfo,      // Get detailed mailbox info
-  getVoicemailUsers,   // List all voicemail users
-  refreshMailbox,      // Refresh MWI for a mailbox
-  monitorMailbox,      // Start monitoring a mailbox
-  unmonitorMailbox,    // Stop monitoring a mailbox
-  clearMonitoring,     // Clear all monitoring
-  onMwiChange,         // Listen for MWI changes
+  getMwiState, // Get MWI state for a mailbox
+  getMailboxInfo, // Get detailed mailbox info
+  getVoicemailUsers, // List all voicemail users
+  refreshMailbox, // Refresh MWI for a mailbox
+  monitorMailbox, // Start monitoring a mailbox
+  unmonitorMailbox, // Stop monitoring a mailbox
+  clearMonitoring, // Clear all monitoring
+  onMwiChange, // Listen for MWI changes
 } = useAmiVoicemail(computed(() => ami.getClient()))
 ```
 
@@ -120,10 +121,11 @@ monitorMailbox('1001', 'default')
 
 // Monitor multiple mailboxes
 const extensions = ['1001', '1002', '1003']
-extensions.forEach(ext => monitorMailbox(ext, 'default'))
+extensions.forEach((ext) => monitorMailbox(ext, 'default'))
 ```
 
 When you monitor a mailbox, VueSIP:
+
 1. Adds it to the monitored set
 2. Fetches the initial MWI state
 3. Listens for MessageWaiting events for that mailbox
@@ -159,12 +161,12 @@ Each MWI state contains:
 
 ```typescript
 interface MwiState {
-  mailbox: string       // Mailbox identifier (e.g., '1001@default')
-  waiting: boolean      // Whether messages are waiting
-  newMessages: number   // Count of new/unread messages
-  oldMessages: number   // Count of old/read messages
-  lastUpdated: Date     // When this state was last updated
-  serverId?: number     // AMI server ID (for multi-server setups)
+  mailbox: string // Mailbox identifier (e.g., '1001@default')
+  waiting: boolean // Whether messages are waiting
+  newMessages: number // Count of new/unread messages
+  oldMessages: number // Count of old/read messages
+  lastUpdated: Date // When this state was last updated
+  serverId?: number // AMI server ID (for multi-server setups)
 }
 ```
 
@@ -196,7 +198,7 @@ await refreshMailbox('1001', 'default')
 // Get all voicemail users
 const users = await getVoicemailUsers()
 
-users.forEach(user => {
+users.forEach((user) => {
   console.log(`${user.mailbox} - ${user.fullName}`)
   console.log(`  New: ${user.newMessages}, Old: ${user.oldMessages}`)
   console.log(`  Email: ${user.email || 'Not configured'}`)
@@ -227,15 +229,15 @@ if (info) {
 
 ```typescript
 interface MailboxInfo {
-  mailbox: string         // Mailbox number
-  context: string         // Voicemail context
-  newMessages: number     // New message count
-  oldMessages: number     // Old message count
-  urgentMessages: number  // Urgent message count
-  fullName?: string       // User's full name
-  email?: string          // Email address for notifications
-  pager?: string          // Pager number
-  serverId?: number       // AMI server ID
+  mailbox: string // Mailbox number
+  context: string // Voicemail context
+  newMessages: number // New message count
+  oldMessages: number // Old message count
+  urgentMessages: number // Urgent message count
+  fullName?: string // User's full name
+  email?: string // Email address for notifications
+  pager?: string // Pager number
+  serverId?: number // AMI server ID
 }
 ```
 
@@ -292,28 +294,18 @@ const props = defineProps<{
 }>()
 
 const ami = useAmi()
-const { mwiStates, monitorMailbox } = useAmiVoicemail(
-  computed(() => ami.getClient())
-)
+const { mwiStates, monitorMailbox } = useAmiVoicemail(computed(() => ami.getClient()))
 
 // Start monitoring this mailbox
 monitorMailbox(props.mailbox, props.context)
 
-const mwiKey = computed(() =>
-  `${props.mailbox}@${props.context || 'default'}`
-)
+const mwiKey = computed(() => `${props.mailbox}@${props.context || 'default'}`)
 
-const mwiState = computed(() =>
-  mwiStates.value.get(mwiKey.value)
-)
+const mwiState = computed(() => mwiStates.value.get(mwiKey.value))
 
-const hasMessages = computed(() =>
-  mwiState.value?.waiting ?? false
-)
+const hasMessages = computed(() => mwiState.value?.waiting ?? false)
 
-const newCount = computed(() =>
-  mwiState.value?.newMessages ?? 0
-)
+const newCount = computed(() => mwiState.value?.newMessages ?? 0)
 </script>
 ```
 
@@ -334,12 +326,8 @@ const newCount = computed(() =>
         :class="{ 'has-new': mwi.newMessages > 0 }"
       >
         <span class="mailbox-name">{{ mwi.mailbox }}</span>
-        <span class="message-counts">
-          {{ mwi.newMessages }} new / {{ mwi.oldMessages }} old
-        </span>
-        <span class="updated">
-          Updated: {{ formatTime(mwi.lastUpdated) }}
-        </span>
+        <span class="message-counts"> {{ mwi.newMessages }} new / {{ mwi.oldMessages }} old </span>
+        <span class="updated"> Updated: {{ formatTime(mwi.lastUpdated) }} </span>
       </div>
     </div>
   </div>
@@ -349,16 +337,12 @@ const newCount = computed(() =>
 import { onMounted } from 'vue'
 import { useAmiVoicemail } from 'vuesip'
 
-const {
-  mwiStates,
-  totalNewMessages,
-  monitorMailbox
-} = useAmiVoicemail(clientRef)
+const { mwiStates, totalNewMessages, monitorMailbox } = useAmiVoicemail(clientRef)
 
 // Monitor all extension mailboxes
 onMounted(() => {
   const extensions = ['1001', '1002', '1003', '1004', '1005']
-  extensions.forEach(ext => monitorMailbox(ext))
+  extensions.forEach((ext) => monitorMailbox(ext))
 })
 
 function formatTime(date: Date): string {
@@ -434,6 +418,7 @@ write = call,agent,user,originate,system
 ### Required Permissions
 
 For voicemail features, your AMI user needs:
+
 - `read`: `system` (for VoicemailUsersList)
 - `write`: `system` (for VoicemailRefresh)
 
@@ -454,12 +439,15 @@ monitorMailbox(currentUserExtension)
 ```typescript
 import { watch } from 'vue'
 
-watch(() => ami.isConnected.value, (connected) => {
-  if (!connected) {
-    // Connection lost - states may be stale
-    console.log('AMI disconnected - voicemail states may be outdated')
+watch(
+  () => ami.isConnected.value,
+  (connected) => {
+    if (!connected) {
+      // Connection lost - states may be stale
+      console.log('AMI disconnected - voicemail states may be outdated')
+    }
   }
-})
+)
 ```
 
 ### 3. Clean Up on Unmount
@@ -485,6 +473,6 @@ const displayMessage = computed(() => {
 
 ## Related Guides
 
-- [AMI Integration Overview](/guide/ami-overview)
+- [AMI Integration Overview](/guide/ami-cdr)
 - [Presence & Messaging](/guide/presence-messaging)
 - [Error Handling](/guide/error-handling)

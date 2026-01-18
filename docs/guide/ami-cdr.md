@@ -6,10 +6,10 @@ This guide covers integrating VueSIP with Asterisk/FreePBX to retrieve server-si
 
 VueSIP provides two complementary approaches for call history:
 
-| Approach | Source | Use Case |
-|----------|--------|----------|
-| **Client-side** (`useCallHistory`) | Browser IndexedDB | Local tracking, offline access |
-| **Server-side** (`useAmiCDR`) | Asterisk CDR via AMI | Enterprise reporting, billing, compliance |
+| Approach                           | Source               | Use Case                                  |
+| ---------------------------------- | -------------------- | ----------------------------------------- |
+| **Client-side** (`useCallHistory`) | Browser IndexedDB    | Local tracking, offline access            |
+| **Server-side** (`useAmiCDR`)      | Asterisk CDR via AMI | Enterprise reporting, billing, compliance |
 
 This guide focuses on the **server-side approach** using AMI CDR events.
 
@@ -78,6 +78,7 @@ eventfilter = !Event: VarSet
 ```
 
 **Required Permissions:**
+
 - `read = cdr` - Receive CDR events
 - `read = call` - Track call state changes
 - `read = agent` - Queue agent statistics
@@ -185,18 +186,18 @@ const ami = useAmi()
 
 // Connect to amiws proxy
 await ami.connect({
-  url: 'ws://pbx.example.com:8080'
+  url: 'ws://pbx.example.com:8080',
 })
 
 // Initialize CDR tracking
 const {
-  records,           // Reactive CDR records array
-  stats,             // Computed statistics
-  agentStats,        // Per-agent statistics
-  queueStats,        // Per-queue statistics
-  getRecords,        // Filtered record retrieval
-  exportRecords,     // CSV/JSON export
-  getTodayCalls,     // Today's calls helper
+  records, // Reactive CDR records array
+  stats, // Computed statistics
+  agentStats, // Per-agent statistics
+  queueStats, // Per-queue statistics
+  getRecords, // Filtered record retrieval
+  exportRecords, // CSV/JSON export
+  getTodayCalls, // Today's calls helper
 } = useAmiCDR(computed(() => ami.getClient()))
 ```
 
@@ -281,13 +282,13 @@ import type { CdrFilter } from 'vuesip'
 // Filter by date range
 const todaysCalls = getRecords({
   startDate: new Date(new Date().setHours(0, 0, 0, 0)),
-  endDate: new Date()
+  endDate: new Date(),
 })
 
 // Filter by disposition
 const missedCalls = getRecords({
   disposition: ['NO ANSWER', 'CANCEL'],
-  direction: 'inbound'
+  direction: 'inbound',
 })
 
 // Filter by extension/agent
@@ -295,14 +296,14 @@ const agentCalls = getRecords({
   agent: '1001',
   startDate: startOfWeek,
   sortBy: 'startTime',
-  sortOrder: 'desc'
+  sortOrder: 'desc',
 })
 
 // Filter by queue
 const queueCalls = getRecords({
   queue: 'support',
   disposition: 'ANSWERED',
-  minDuration: 30  // At least 30 seconds
+  minDuration: 30, // At least 30 seconds
 })
 
 // Pagination
@@ -310,7 +311,7 @@ const pagedCalls = getRecords({
   limit: 25,
   offset: page * 25,
   sortBy: 'startTime',
-  sortOrder: 'desc'
+  sortOrder: 'desc',
 })
 ```
 
@@ -328,10 +329,10 @@ const csv = exportRecords({
     'duration',
     'billableSeconds',
     'disposition',
-    'direction'
+    'direction',
   ],
   dateFormat: 'yyyy-MM-dd HH:mm:ss',
-  includeHeader: true
+  includeHeader: true,
 })
 
 // Download CSV
@@ -350,7 +351,7 @@ const answeredCsv = exportRecords(
   { format: 'csv' },
   {
     disposition: 'ANSWERED',
-    startDate: startOfWeek
+    startDate: startOfWeek,
   }
 )
 ```
@@ -388,7 +389,7 @@ const todayAgentStats = computed(() => {
     agent,
     callsHandled: stats.callsHandled,
     avgTalkTime: stats.averageTalkTime,
-    totalTalkTime: stats.totalTalkTime
+    totalTalkTime: stats.totalTalkTime,
   }))
 })
 
@@ -411,7 +412,7 @@ const allQueueStats = computed(() => {
     answered: stats.callsAnswered,
     abandoned: stats.callsAbandoned,
     serviceLevelPct: stats.serviceLevelPct,
-    abandonmentRate: stats.abandonmentRate
+    abandonmentRate: stats.abandonmentRate,
   }))
 })
 
@@ -438,63 +439,59 @@ const chartData = Object.entries(hourlyBreakdown).map(([hour, stats]) => ({
   hour: parseInt(hour),
   calls: stats.totalCalls,
   answered: stats.answeredCalls,
-  answerRate: stats.answerRate
+  answerRate: stats.answerRate,
 }))
 ```
 
 ## CDR Event Fields Reference
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `uniqueId` | string | Unique call identifier |
-| `accountCode` | string | Billing account code |
-| `source` | string | Caller's number |
-| `destination` | string | Dialed destination |
-| `destinationContext` | string | Dialplan context |
-| `callerId` | string | Caller ID name |
-| `channel` | string | Party A channel |
-| `destinationChannel` | string | Party B channel |
-| `lastApplication` | string | Final dialplan app |
-| `lastData` | string | App parameters |
-| `startTime` | Date | Call initiated |
-| `answerTime` | Date \| null | Call answered (null if unanswered) |
-| `endTime` | Date | Call ended |
-| `duration` | number | Total duration (seconds) |
-| `billableSeconds` | number | Talk time (seconds) |
-| `disposition` | string | Final status |
-| `amaFlags` | string | AMA billing flags |
-| `userField` | string | Custom user data |
-| `direction` | string | inbound/outbound/internal |
-| `queue` | string \| undefined | Queue name (if applicable) |
-| `agent` | string \| undefined | Agent extension (if applicable) |
+| Field                | Type                | Description                        |
+| -------------------- | ------------------- | ---------------------------------- |
+| `uniqueId`           | string              | Unique call identifier             |
+| `accountCode`        | string              | Billing account code               |
+| `source`             | string              | Caller's number                    |
+| `destination`        | string              | Dialed destination                 |
+| `destinationContext` | string              | Dialplan context                   |
+| `callerId`           | string              | Caller ID name                     |
+| `channel`            | string              | Party A channel                    |
+| `destinationChannel` | string              | Party B channel                    |
+| `lastApplication`    | string              | Final dialplan app                 |
+| `lastData`           | string              | App parameters                     |
+| `startTime`          | Date                | Call initiated                     |
+| `answerTime`         | Date \| null        | Call answered (null if unanswered) |
+| `endTime`            | Date                | Call ended                         |
+| `duration`           | number              | Total duration (seconds)           |
+| `billableSeconds`    | number              | Talk time (seconds)                |
+| `disposition`        | string              | Final status                       |
+| `amaFlags`           | string              | AMA billing flags                  |
+| `userField`          | string              | Custom user data                   |
+| `direction`          | string              | inbound/outbound/internal          |
+| `queue`              | string \| undefined | Queue name (if applicable)         |
+| `agent`              | string \| undefined | Agent extension (if applicable)    |
 
 ### Disposition Values
 
-| Value | Description |
-|-------|-------------|
-| `ANSWERED` | Call was answered |
-| `NO ANSWER` | No answer (timeout) |
-| `BUSY` | Destination busy |
-| `FAILED` | Call failed |
-| `CONGESTION` | Network congestion |
-| `CANCEL` | Caller hung up |
+| Value        | Description         |
+| ------------ | ------------------- |
+| `ANSWERED`   | Call was answered   |
+| `NO ANSWER`  | No answer (timeout) |
+| `BUSY`       | Destination busy    |
+| `FAILED`     | Call failed         |
+| `CONGESTION` | Network congestion  |
+| `CANCEL`     | Caller hung up      |
 
 ## Hybrid Architecture: Combining Both Approaches
 
 For robust call history, combine client-side and server-side approaches:
 
 ```typescript
-import {
-  useCallHistory,
-  useAmi,
-  useAmiCDR
-} from 'vuesip'
+import { useCallHistory, useAmi, useAmiCDR } from 'vuesip'
 import type { CdrRecord } from 'vuesip'
 
 // Client-side history (local)
 const localHistory = useCallHistory(sipClient, {
   maxRecords: 500,
-  persist: true
+  persist: true,
 })
 
 // Server-side CDR (AMI)
@@ -527,15 +524,15 @@ watch(serverCdr.records, (cdrRecords) => {
 
 ### When to Use Each Approach
 
-| Scenario | Recommended Approach |
-|----------|---------------------|
-| Personal call log | Client-side (`useCallHistory`) |
-| Billing reports | Server-side (`useAmiCDR`) |
-| Compliance/audit | Server-side with database backend |
-| Offline access | Client-side with sync |
-| Real-time dashboard | Server-side |
-| Multi-device sync | Server-side |
-| Privacy-focused | Client-side only |
+| Scenario            | Recommended Approach              |
+| ------------------- | --------------------------------- |
+| Personal call log   | Client-side (`useCallHistory`)    |
+| Billing reports     | Server-side (`useAmiCDR`)         |
+| Compliance/audit    | Server-side with database backend |
+| Offline access      | Client-side with sync             |
+| Real-time dashboard | Server-side                       |
+| Multi-device sync   | Server-side                       |
+| Privacy-focused     | Client-side only                  |
 
 ## Custom CDR Variables
 
@@ -566,9 +563,9 @@ const { records } = useAmiCDR(amiClient, {
     ...cdr,
     customFields: {
       department: cdr.customFields?.Department,
-      campaign: cdr.customFields?.Campaign
-    }
-  })
+      campaign: cdr.customFields?.Campaign,
+    },
+  }),
 })
 ```
 
@@ -585,8 +582,8 @@ function detectCallDirection(cdr: CdrRecord): CdrDirection {
     /^(?:SIP|PJSIP|IAX2|DAHDI)\/gateway/i,
   ]
 
-  const isSourceExternal = externalPatterns.some(p => p.test(cdr.channel))
-  const isDestExternal = externalPatterns.some(p => p.test(cdr.destinationChannel))
+  const isSourceExternal = externalPatterns.some((p) => p.test(cdr.channel))
+  const isDestExternal = externalPatterns.some((p) => p.test(cdr.destinationChannel))
 
   if (isSourceExternal && !isDestExternal) return 'inbound'
   if (!isSourceExternal && isDestExternal) return 'outbound'
@@ -604,7 +601,7 @@ const { records } = useAmiCDR(amiClient, {
     if (cdr.channel.includes('PSTN')) return 'inbound'
     if (cdr.destinationChannel.includes('PSTN')) return 'outbound'
     return 'internal'
-  }
+  },
 })
 ```
 
@@ -634,7 +631,7 @@ CDR records include `serverId` for identification:
 // Filter by server
 const eastCalls = getRecords({
   // serverId matches amiws server_id (1, 2, etc.)
-}).filter(cdr => cdr.serverId === 1)
+}).filter((cdr) => cdr.serverId === 1)
 ```
 
 ## Troubleshooting
@@ -642,18 +639,21 @@ const eastCalls = getRecords({
 ### No CDR Events Received
 
 1. **Verify cdr_manager is loaded:**
+
    ```bash
    asterisk -rx "module show like cdr_manager"
    # Should show: cdr_manager.so
    ```
 
 2. **Check cdr_manager.conf:**
+
    ```bash
    cat /etc/asterisk/cdr_manager.conf
    # Must have: enabled = yes
    ```
 
 3. **Verify AMI permissions:**
+
    ```bash
    asterisk -rx "manager show user vuesip"
    # Check read permissions include 'cdr'
@@ -675,6 +675,7 @@ MyField = myfield
 ```
 
 And dialplan setting:
+
 ```
 Set(CDR(myfield)=value)
 ```
@@ -682,11 +683,13 @@ Set(CDR(myfield)=value)
 ### amiws Connection Issues
 
 1. **Check amiws logs:**
+
    ```bash
    journalctl -u amiws -f
    ```
 
 2. **Verify WebSocket connectivity:**
+
    ```javascript
    const ws = new WebSocket('ws://pbx:8080')
    ws.onopen = () => console.log('Connected')
@@ -707,12 +710,12 @@ For high-volume systems:
 
 ```typescript
 const { records } = useAmiCDR(amiClient, {
-  maxRecords: 500,        // Limit in-memory records
-  autoStats: false,       // Disable auto-stats for large datasets
+  maxRecords: 500, // Limit in-memory records
+  autoStats: false, // Disable auto-stats for large datasets
   filter: {
     // Only track answered calls
-    disposition: 'ANSWERED'
-  }
+    disposition: 'ANSWERED',
+  },
 })
 ```
 
@@ -729,6 +732,7 @@ const { records } = useAmiCDR(amiClient, {
    - Use strong passwords
 
 3. **Enable HTTP digest authentication for amiws:**
+
    ```yaml
    auth_domain: pbx.example.com
    auth_file: /etc/amiws/.htdigest
@@ -737,15 +741,14 @@ const { records } = useAmiCDR(amiClient, {
 4. **Use WSS (WebSocket Secure) in production:**
    ```typescript
    await ami.connect({
-     url: 'wss://pbx.example.com/ami'
+     url: 'wss://pbx.example.com/ami',
    })
    ```
 
 ## Related Documentation
 
 - [Call History Guide](./call-history.md) - Client-side call history
-- [AMI Integration](./ami-integration.md) - General AMI usage
-- [Queue Monitoring](./queue-monitoring.md) - Real-time queue stats
+- [Queue Monitoring](../examples/queue-monitor.md) - Real-time queue stats
 
 ## External Resources
 

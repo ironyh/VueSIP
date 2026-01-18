@@ -62,46 +62,59 @@ import { useMediaDevices } from 'vuesip'
 
 const {
   // 📋 Device lists (automatically populated and kept up-to-date)
-  audioInputDevices,      // Array of microphones
-  audioOutputDevices,     // Array of speakers/headphones
-  videoInputDevices,      // Array of cameras
+  audioInputDevices, // Array of microphones
+  audioOutputDevices, // Array of speakers/headphones
+  videoInputDevices, // Array of cameras
 
   // 🎯 Currently selected devices (reactive refs)
-  selectedAudioInputId,   // ID of selected microphone
-  selectedAudioOutputId,  // ID of selected speaker
-  selectedVideoInputId,   // ID of selected camera
+  selectedAudioInputId, // ID of selected microphone
+  selectedAudioOutputId, // ID of selected speaker
+  selectedVideoInputId, // ID of selected camera
 
   // 🔐 Permission states (reactive computed refs)
-  hasAudioPermission,     // Boolean: true if user granted mic access
-  hasVideoPermission,     // Boolean: true if user granted camera access
+  hasAudioPermission, // Boolean: true if user granted mic access
+  hasVideoPermission, // Boolean: true if user granted camera access
 
   // 🛠️ Methods to interact with devices
-  enumerateDevices,       // Refresh the device list
-  requestPermissions,     // Ask user for device permissions
-  selectAudioInput,       // Choose a microphone
-  testAudioInput          // Test if a microphone works
+  enumerateDevices, // Refresh the device list
+  requestPermissions, // Ask user for device permissions
+  selectAudioInput, // Choose a microphone
+  testAudioInput, // Test if a microphone works
 } = useMediaDevices()
 ```
 
 ⚠️ **Important**: The composable automatically enumerates devices on mount, so your device lists will populate without additional code.
 
-### With MediaManager
+### With MediaManager and Call Session
 
-If you're building a more complex application with call management, you'll want to share a single `MediaManager` instance. Here's how to connect them:
+If you're building a phone application with call management, you'll want to share a single `MediaManager` instance between `useCallSession` and `useMediaDevices`. This ensures media is acquired before calls and device selections are synchronized:
 
 ```typescript
-import { ref } from 'vue'
-import { MediaManager } from 'vuesip'
-import { useMediaDevices } from 'vuesip'
+import { ref, computed } from 'vue'
+import { useSipClient, useCallSession, useMediaDevices, MediaManager } from 'vuesip'
 
-// Create a shared MediaManager instance (typically done once at app root)
-const mediaManager = ref(new MediaManager({ eventBus }))
+// Step 1: Initialize SIP client and get the event bus
+const { getClient, getEventBus, connect, isConnected } = useSipClient()
 
-// Pass it to useMediaDevices to ensure synchronized state
-const devices = useMediaDevices(mediaManager)
+// Step 2: Create a shared MediaManager with the event bus from useSipClient
+const mediaManager = ref(new MediaManager({ eventBus: getEventBus() }))
+
+// Step 3: Pass MediaManager to useCallSession for coordinated media handling
+const sipClient = computed(() => getClient())
+const { makeCall, hangup, state } = useCallSession(sipClient, mediaManager)
+
+// Step 4: Pass the same MediaManager to useMediaDevices
+const { audioInputDevices, selectAudioInput, requestPermissions } = useMediaDevices(mediaManager)
+
+// Step 5: Request permissions early (before making calls)
+await requestPermissions(true, false)
 ```
 
-💡 **Why share a MediaManager?** It ensures device selections and media streams are consistent across your entire application. When you select a microphone in settings, the same device is used during calls.
+💡 **Why share a MediaManager?** It ensures:
+
+1. **Media acquisition before calls** - Prevents "User Denied Media Access" errors
+2. **Synchronized device selection** - Selected devices are used during calls
+3. **Coordinated events** - Both composables receive the same media events
 
 ---
 
@@ -119,10 +132,10 @@ By default, VueSip automatically enumerates devices when the composable is initi
 
 ```typescript
 const {
-  audioInputDevices,    // Automatically populated
-  audioOutputDevices,   // Automatically populated
-  videoInputDevices,    // Automatically populated
-  isEnumerating         // Boolean: true during enumeration
+  audioInputDevices, // Automatically populated
+  audioOutputDevices, // Automatically populated
+  videoInputDevices, // Automatically populated
+  isEnumerating, // Boolean: true during enumeration
 } = useMediaDevices()
 
 // React to device changes as they're discovered
@@ -140,7 +153,7 @@ Sometimes you need control over when enumeration happens - for example, when bui
 
 ```typescript
 const { enumerateDevices, isEnumerating } = useMediaDevices({
-  autoEnumerate: false  // Disable automatic enumeration on mount
+  autoEnumerate: false, // Disable automatic enumeration on mount
 })
 
 // Trigger enumeration manually (e.g., when user clicks "Refresh")
@@ -157,6 +170,7 @@ async function refreshDevices() {
 ```
 
 💡 **When to use manual enumeration**:
+
 - After requesting permissions (to get updated device labels)
 - When implementing a "refresh devices" button
 - After detecting device changes to get the latest list
@@ -167,11 +181,11 @@ The composable provides pre-filtered device lists for convenience. Here's how to
 
 ```typescript
 const {
-  audioInputDevices,    // Only microphones
-  audioOutputDevices,   // Only speakers/headphones
-  videoInputDevices,    // Only cameras
-  allDevices,           // All devices combined
-  totalDevices          // Count of all devices
+  audioInputDevices, // Only microphones
+  audioOutputDevices, // Only speakers/headphones
+  videoInputDevices, // Only cameras
+  allDevices, // All devices combined
+  totalDevices, // Count of all devices
 } = useMediaDevices()
 
 // Display device counts in your UI
@@ -179,12 +193,12 @@ console.log(`Total devices: ${totalDevices.value}`)
 // Example: "Total devices: 5"
 
 // Work with specific device types
-const microphones = audioInputDevices.value  // Array of mic devices
-const speakers = audioOutputDevices.value    // Array of speaker devices
-const cameras = videoInputDevices.value      // Array of camera devices
+const microphones = audioInputDevices.value // Array of mic devices
+const speakers = audioOutputDevices.value // Array of speaker devices
+const cameras = videoInputDevices.value // Array of camera devices
 
 // Find the default device (if marked by the OS)
-const defaultMic = microphones.find(d => d.isDefault)
+const defaultMic = microphones.find((d) => d.isDefault)
 if (defaultMic) {
   console.log('System default microphone:', defaultMic.label)
 }
@@ -231,9 +245,9 @@ Audio input selection determines which microphone captures the user's voice duri
 
 ```typescript
 const {
-  audioInputDevices,      // Array of available microphones
-  selectedAudioInputId,   // Currently selected microphone ID (reactive)
-  selectAudioInput        // Function to change selection
+  audioInputDevices, // Array of available microphones
+  selectedAudioInputId, // Currently selected microphone ID (reactive)
+  selectAudioInput, // Function to change selection
 } = useMediaDevices()
 
 // Auto-select the first available microphone (good for first-time setup)
@@ -256,10 +270,10 @@ Audio output selection determines which speaker plays incoming audio during call
 
 ```typescript
 const {
-  audioOutputDevices,        // Array of available speakers
-  selectedAudioOutputId,     // Currently selected speaker ID
-  selectAudioOutput,         // Function to change selection
-  selectedAudioOutputDevice  // Full device object (includes label, etc.)
+  audioOutputDevices, // Array of available speakers
+  selectedAudioOutputId, // Currently selected speaker ID
+  selectAudioOutput, // Function to change selection
+  selectedAudioOutputDevice, // Full device object (includes label, etc.)
 } = useMediaDevices()
 
 // Let user choose a speaker (typically from a dropdown)
@@ -281,10 +295,10 @@ Video input selection determines which camera is used during video calls:
 
 ```typescript
 const {
-  videoInputDevices,        // Array of available cameras
-  selectedVideoInputId,     // Currently selected camera ID
-  selectVideoInput,         // Function to change selection
-  selectedVideoInputDevice  // Full device object
+  videoInputDevices, // Array of available cameras
+  selectedVideoInputId, // Currently selected camera ID
+  selectVideoInput, // Function to change selection
+  selectedVideoInputDevice, // Full device object
 } = useMediaDevices()
 
 // Let user choose a camera
@@ -309,48 +323,24 @@ Here's a complete, production-ready device selector component:
   <div class="device-selector">
     <!-- Microphone Selector -->
     <label for="microphone">Microphone:</label>
-    <select
-      id="microphone"
-      v-model="selectedAudioInputId"
-      @change="onMicrophoneChange"
-    >
-      <option
-        v-for="device in audioInputDevices"
-        :key="device.deviceId"
-        :value="device.deviceId"
-      >
+    <select id="microphone" v-model="selectedAudioInputId" @change="onMicrophoneChange">
+      <option v-for="device in audioInputDevices" :key="device.deviceId" :value="device.deviceId">
         {{ device.label }}
       </option>
     </select>
 
     <!-- Speaker Selector -->
     <label for="speaker">Speaker:</label>
-    <select
-      id="speaker"
-      v-model="selectedAudioOutputId"
-      @change="onSpeakerChange"
-    >
-      <option
-        v-for="device in audioOutputDevices"
-        :key="device.deviceId"
-        :value="device.deviceId"
-      >
+    <select id="speaker" v-model="selectedAudioOutputId" @change="onSpeakerChange">
+      <option v-for="device in audioOutputDevices" :key="device.deviceId" :value="device.deviceId">
         {{ device.label }}
       </option>
     </select>
 
     <!-- Camera Selector -->
     <label for="camera">Camera:</label>
-    <select
-      id="camera"
-      v-model="selectedVideoInputId"
-      @change="onCameraChange"
-    >
-      <option
-        v-for="device in videoInputDevices"
-        :key="device.deviceId"
-        :value="device.deviceId"
-      >
+    <select id="camera" v-model="selectedVideoInputId" @change="onCameraChange">
+      <option v-for="device in videoInputDevices" :key="device.deviceId" :value="device.deviceId">
         {{ device.label }}
       </option>
     </select>
@@ -366,7 +356,7 @@ const {
   videoInputDevices,
   selectedAudioInputId,
   selectedAudioOutputId,
-  selectedVideoInputId
+  selectedVideoInputId,
 } = useMediaDevices()
 
 // Optional: Add handlers for custom logic when devices change
@@ -385,6 +375,7 @@ function onCameraChange() {
 ```
 
 ✅ **What makes this production-ready**:
+
 - Two-way binding with `v-model` for seamless reactivity
 - Change handlers for custom logic (logging, analytics, saving preferences)
 - Accessible with proper `<label>` elements and `id` attributes
@@ -399,6 +390,7 @@ function onCameraChange() {
 Modern browsers require explicit user permission before accessing cameras and microphones. This protects user privacy but adds complexity to your application. VueSip simplifies permission management with a clear state model.
 
 📝 **Why permissions matter**:
+
 - **Security**: Prevents malicious websites from spying on users
 - **Device labels**: Full device names are only available after permission is granted
 - **User control**: Users can grant/deny permissions at any time
@@ -418,13 +410,13 @@ Here's how to request device permissions in your application:
 
 ```typescript
 const {
-  requestPermissions,       // Request audio and/or video permissions
-  requestAudioPermission,   // Request audio only
-  requestVideoPermission,   // Request video only
-  audioPermission,          // Current audio permission state
-  videoPermission,          // Current video permission state
-  hasAudioPermission,       // Boolean: true if audio granted
-  hasVideoPermission        // Boolean: true if video granted
+  requestPermissions, // Request audio and/or video permissions
+  requestAudioPermission, // Request audio only
+  requestVideoPermission, // Request video only
+  audioPermission, // Current audio permission state
+  videoPermission, // Current video permission state
+  hasAudioPermission, // Boolean: true if audio granted
+  hasVideoPermission, // Boolean: true if video granted
 } = useMediaDevices()
 
 // Request both audio and video permissions (common for video calls)
@@ -470,10 +462,10 @@ Before requesting permissions, check the current state to provide appropriate UI
 
 ```typescript
 const {
-  audioPermission,      // PermissionStatus enum value
-  videoPermission,      // PermissionStatus enum value
-  hasAudioPermission,   // Convenience boolean
-  hasVideoPermission    // Convenience boolean
+  audioPermission, // PermissionStatus enum value
+  videoPermission, // PermissionStatus enum value
+  hasAudioPermission, // Convenience boolean
+  hasVideoPermission, // Convenience boolean
 } = useMediaDevices()
 
 // Simple boolean check (most common use case)
@@ -497,6 +489,7 @@ if (audioPermission.value === PermissionStatus.Denied) {
 ```
 
 💡 **UI Guidance**:
+
 - `NotRequested`: Show a "Grant Permissions" button
 - `Prompt`: Same as NotRequested
 - `Granted`: Show device selectors
@@ -530,11 +523,7 @@ Build a user-friendly UI that adapts to permission states:
     <div v-else class="device-selector">
       <label for="microphone">Select Microphone:</label>
       <select id="microphone" v-model="selectedAudioInputId">
-        <option
-          v-for="device in audioInputDevices"
-          :key="device.deviceId"
-          :value="device.deviceId"
-        >
+        <option v-for="device in audioInputDevices" :key="device.deviceId" :value="device.deviceId">
           {{ device.label }}
         </option>
       </select>
@@ -551,7 +540,7 @@ const {
   hasAudioPermission,
   audioPermission,
   requestAudioPermission,
-  enumerateDevices
+  enumerateDevices,
 } = useMediaDevices()
 
 // Request permission and refresh device list
@@ -566,6 +555,7 @@ async function requestAudio() {
 ```
 
 ✅ **What makes this good UX**:
+
 - Clear explanation of why permission is needed
 - Different UI states for different permission states
 - Helpful recovery instructions when permission is denied
@@ -580,6 +570,7 @@ async function requestAudio() {
 Device testing helps ensure users' hardware is working before they join important calls. This prevents frustrating situations where users realize their microphone isn't working after joining a meeting.
 
 💡 **Use Cases**:
+
 - Pre-call device checks
 - Settings/preferences pages
 - Troubleshooting audio/video issues
@@ -614,8 +605,8 @@ async function testMicrophone() {
 // Test a specific device with custom options
 async function testSpecificDevice(deviceId: string) {
   const success = await testAudioInput(deviceId, {
-    duration: 3000,           // Test for 3 seconds (default: 2000ms)
-    audioLevelThreshold: 0.02 // Minimum audio level to pass (default: 0.01)
+    duration: 3000, // Test for 3 seconds (default: 2000ms)
+    audioLevelThreshold: 0.02, // Minimum audio level to pass (default: 0.01)
   })
 
   return success
@@ -623,6 +614,7 @@ async function testSpecificDevice(deviceId: string) {
 ```
 
 📝 **How it works**:
+
 1. VueSip captures audio from the microphone for the specified duration
 2. Monitors audio levels in real-time
 3. Returns `true` if audio exceeds the threshold, `false` otherwise
@@ -662,6 +654,7 @@ async function testSpecificSpeaker(deviceId: string) {
 ```
 
 📝 **How it works**:
+
 1. VueSip generates a 1kHz audio tone
 2. Routes it through the specified speaker
 3. Returns `true` if playback succeeded, `false` otherwise
@@ -682,18 +675,13 @@ Here's a complete device testing component ready for production:
       <h4>🎤 Microphone Test</h4>
       <p class="instructions">Click test and speak into your microphone</p>
 
-      <button
-        @click="performMicTest"
-        :disabled="testing || !hasAudioPermission"
-      >
+      <button @click="performMicTest" :disabled="testing || !hasAudioPermission">
         {{ testing ? 'Testing... Speak now!' : 'Test Microphone' }}
       </button>
 
       <!-- Show result after test completes -->
       <div v-if="micTestResult !== null" class="result">
-        <span v-if="micTestResult" class="success">
-          ✅ Working! Audio detected.
-        </span>
+        <span v-if="micTestResult" class="success"> ✅ Working! Audio detected. </span>
         <span v-else class="failure">
           ❌ Not detected. Check if microphone is muted or unplugged.
         </span>
@@ -705,21 +693,14 @@ Here's a complete device testing component ready for production:
       <h4>🔊 Speaker Test</h4>
       <p class="instructions">Click test and listen for a beep</p>
 
-      <button
-        @click="performSpeakerTest"
-        :disabled="testing"
-      >
+      <button @click="performSpeakerTest" :disabled="testing">
         {{ testing ? 'Testing... Listen!' : 'Test Speaker' }}
       </button>
 
       <!-- Show result after test completes -->
       <div v-if="speakerTestResult !== null" class="result">
-        <span v-if="speakerTestResult" class="success">
-          ✅ Tone played. Did you hear it?
-        </span>
-        <span v-else class="failure">
-          ❌ Failed to play tone.
-        </span>
+        <span v-if="speakerTestResult" class="success"> ✅ Tone played. Did you hear it? </span>
+        <span v-else class="failure"> ❌ Failed to play tone. </span>
       </div>
     </div>
   </div>
@@ -729,11 +710,7 @@ Here's a complete device testing component ready for production:
 import { ref } from 'vue'
 import { useMediaDevices } from 'vuesip'
 
-const {
-  testAudioInput,
-  testAudioOutput,
-  hasAudioPermission
-} = useMediaDevices()
+const { testAudioInput, testAudioOutput, hasAudioPermission } = useMediaDevices()
 
 // Track testing state to prevent overlapping tests
 const testing = ref(false)
@@ -743,12 +720,12 @@ const speakerTestResult = ref<boolean | null>(null)
 // Test microphone with custom options
 async function performMicTest() {
   testing.value = true
-  micTestResult.value = null  // Clear previous result
+  micTestResult.value = null // Clear previous result
 
   try {
     const success = await testAudioInput(undefined, {
-      duration: 2000,            // Test for 2 seconds
-      audioLevelThreshold: 0.01  // Sensitive threshold
+      duration: 2000, // Test for 2 seconds
+      audioLevelThreshold: 0.01, // Sensitive threshold
     })
     micTestResult.value = success
   } catch (error) {
@@ -762,7 +739,7 @@ async function performMicTest() {
 // Test speaker
 async function performSpeakerTest() {
   testing.value = true
-  speakerTestResult.value = null  // Clear previous result
+  speakerTestResult.value = null // Clear previous result
 
   try {
     const success = await testAudioOutput()
@@ -778,6 +755,7 @@ async function performSpeakerTest() {
 ```
 
 ✅ **Production-ready features**:
+
 - Clear instructions for users
 - Disabled states to prevent overlapping tests
 - Visual feedback during testing
@@ -792,6 +770,7 @@ async function performSpeakerTest() {
 ### Why Monitor Device Changes?
 
 Users frequently plug and unplug devices during use:
+
 - Switching from built-in mic to external USB microphone
 - Connecting Bluetooth headphones
 - Unplugging a webcam after a video call
@@ -803,12 +782,8 @@ VueSip automatically detects these changes and updates device lists in real-time
 Device change monitoring is enabled by default - no setup required:
 
 ```typescript
-const {
-  audioInputDevices,
-  audioOutputDevices,
-  videoInputDevices
-} = useMediaDevices({
-  autoMonitor: true  // Default behavior (can omit this line)
+const { audioInputDevices, audioOutputDevices, videoInputDevices } = useMediaDevices({
+  autoMonitor: true, // Default behavior (can omit this line)
 })
 
 // Device lists automatically update when hardware changes
@@ -833,11 +808,8 @@ watch(audioInputDevices, (devices, oldDevices) => {
 For advanced use cases, you can control monitoring manually:
 
 ```typescript
-const {
-  startDeviceChangeMonitoring,
-  stopDeviceChangeMonitoring
-} = useMediaDevices({
-  autoMonitor: false  // Disable automatic monitoring
+const { startDeviceChangeMonitoring, stopDeviceChangeMonitoring } = useMediaDevices({
+  autoMonitor: false, // Disable automatic monitoring
 })
 
 // Start monitoring when user enters settings page
@@ -852,6 +824,7 @@ onUnmounted(() => {
 ```
 
 ⚠️ **When to use manual control**:
+
 - Building a device settings page that's not always visible
 - Optimizing performance in large applications
 - Coordinating with other device monitoring systems
@@ -886,32 +859,25 @@ Build responsive UIs that react to device changes:
 import { ref, watch } from 'vue'
 import { useMediaDevices } from 'vuesip'
 
-const {
-  audioInputDevices,
-  audioOutputDevices,
-  videoInputDevices,
-  totalDevices
-} = useMediaDevices()
+const { audioInputDevices, audioOutputDevices, videoInputDevices, totalDevices } = useMediaDevices()
 
 const deviceJustChanged = ref(false)
 
 // Watch for any device changes
-watch(
-  [audioInputDevices, audioOutputDevices, videoInputDevices],
-  () => {
-    // Show notification when devices change
-    deviceJustChanged.value = true
+watch([audioInputDevices, audioOutputDevices, videoInputDevices], () => {
+  // Show notification when devices change
+  deviceJustChanged.value = true
 
-    // Auto-hide notification after 3 seconds
-    setTimeout(() => {
-      deviceJustChanged.value = false
-    }, 3000)
-  }
-)
+  // Auto-hide notification after 3 seconds
+  setTimeout(() => {
+    deviceJustChanged.value = false
+  }, 3000)
+})
 </script>
 ```
 
 ✅ **User benefits**:
+
 - Users see immediate feedback when plugging/unplugging devices
 - Device lists stay current without manual refreshing
 - Clear visual indication that the system detected the change
@@ -923,17 +889,13 @@ Handle the case where a user's selected device is unplugged:
 ```typescript
 import { watch } from 'vue'
 
-const {
-  selectedAudioInputId,
-  audioInputDevices,
-  selectAudioInput
-} = useMediaDevices()
+const { selectedAudioInputId, audioInputDevices, selectAudioInput } = useMediaDevices()
 
 // Automatically switch to another device if selected one is unplugged
 watch([selectedAudioInputId, audioInputDevices], ([selectedId, devices]) => {
   // Check if currently selected device still exists
   if (selectedId) {
-    const deviceExists = devices.some(d => d.deviceId === selectedId)
+    const deviceExists = devices.some((d) => d.deviceId === selectedId)
 
     // If selected device was unplugged, fall back to first available
     if (!deviceExists && devices.length > 0) {
@@ -960,8 +922,8 @@ watch([selectedAudioInputId, audioInputDevices], ([selectedId, devices]) => {
 ```typescript
 // ✅ Good: Request permission first to get full device labels
 async function initialize() {
-  await requestPermissions(true, false)  // Request audio permission
-  await enumerateDevices()               // Now device labels are clear
+  await requestPermissions(true, false) // Request audio permission
+  await enumerateDevices() // Now device labels are clear
   // Result: "Built-in Microphone", "USB Audio Device"
 }
 
@@ -986,7 +948,7 @@ async function setupAudio() {
     // Show user-friendly message with recovery instructions
     showError(
       'Microphone access is required for calls. ' +
-      'Please enable it in your browser settings (click the lock icon in the address bar).'
+        'Please enable it in your browser settings (click the lock icon in the address bar).'
     )
     return
   }
@@ -1031,20 +993,19 @@ function selectDevice(deviceId: string) {
 async function prepareForCall() {
   // Test microphone before allowing user to join
   const micWorks = await testAudioInput(undefined, {
-    duration: 2000,            // Quick 2-second test
-    audioLevelThreshold: 0.01  // Sensitive threshold
+    duration: 2000, // Quick 2-second test
+    audioLevelThreshold: 0.01, // Sensitive threshold
   })
 
   if (!micWorks) {
     // Block call and show warning
     showWarning(
-      '⚠️ No audio detected from microphone. ' +
-      'Please check your device and try again.'
+      '⚠️ No audio detected from microphone. ' + 'Please check your device and try again.'
     )
     return false
   }
 
-  return true  // Ready to join call
+  return true // Ready to join call
 }
 
 // Use before joining call
@@ -1065,11 +1026,7 @@ async function joinCall() {
 ```typescript
 import { watch } from 'vue'
 
-const {
-  selectedAudioInputId,
-  selectedAudioOutputId,
-  selectedVideoInputId
-} = useMediaDevices()
+const { selectedAudioInputId, selectedAudioOutputId, selectedVideoInputId } = useMediaDevices()
 
 // Auto-save to localStorage whenever selection changes
 watch(selectedAudioInputId, (deviceId) => {
@@ -1129,9 +1086,7 @@ if (isMobile) {
 <template>
   <div class="device-status">
     <!-- Loading state -->
-    <div v-if="isEnumerating" class="loading">
-      🔄 Loading devices...
-    </div>
+    <div v-if="isEnumerating" class="loading">🔄 Loading devices...</div>
 
     <!-- No devices found -->
     <div v-else-if="!hasAudioInputDevices" class="warning">
@@ -1139,24 +1094,19 @@ if (isMobile) {
     </div>
 
     <!-- Devices available -->
-    <div v-else class="success">
-      ✅ {{ audioInputDevices.length }} microphone(s) available
-    </div>
+    <div v-else class="success">✅ {{ audioInputDevices.length }} microphone(s) available</div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useMediaDevices } from 'vuesip'
 
-const {
-  isEnumerating,
-  hasAudioInputDevices,
-  audioInputDevices
-} = useMediaDevices()
+const { isEnumerating, hasAudioInputDevices, audioInputDevices } = useMediaDevices()
 </script>
 ```
 
 ✅ **Good UX includes**:
+
 - Loading indicators during operations
 - Success messages when complete
 - Warning messages for empty states
@@ -1178,12 +1128,8 @@ A complete, production-ready device settings component with all features:
     <!-- Permission Request Section (shown when permission not granted) -->
     <div v-if="!hasAudioPermission" class="permission-section">
       <p>🔐 Microphone and camera access is required for calls.</p>
-      <button @click="handleRequestPermission" class="primary-button">
-        Grant Permissions
-      </button>
-      <p class="help-text">
-        Click "Allow" in the browser prompt to continue
-      </p>
+      <button @click="handleRequestPermission" class="primary-button">Grant Permissions</button>
+      <p class="help-text">Click "Allow" in the browser prompt to continue</p>
     </div>
 
     <!-- Device Selection Section (shown when permission granted) -->
@@ -1191,11 +1137,7 @@ A complete, production-ready device settings component with all features:
       <!-- Microphone Selector with Test Button -->
       <div class="device-group">
         <label for="microphone">🎤 Microphone</label>
-        <select
-          id="microphone"
-          v-model="selectedAudioInputId"
-          :disabled="isEnumerating"
-        >
+        <select id="microphone" v-model="selectedAudioInputId" :disabled="isEnumerating">
           <option
             v-for="device in audioInputDevices"
             :key="device.deviceId"
@@ -1220,11 +1162,7 @@ A complete, production-ready device settings component with all features:
       <!-- Speaker Selector with Test Button -->
       <div class="device-group">
         <label for="speaker">🔊 Speaker</label>
-        <select
-          id="speaker"
-          v-model="selectedAudioOutputId"
-          :disabled="isEnumerating"
-        >
+        <select id="speaker" v-model="selectedAudioOutputId" :disabled="isEnumerating">
           <option
             v-for="device in audioOutputDevices"
             :key="device.deviceId"
@@ -1266,19 +1204,13 @@ A complete, production-ready device settings component with all features:
       </div>
 
       <!-- Refresh Devices Button -->
-      <button
-        @click="handleRefreshDevices"
-        :disabled="isEnumerating"
-        class="refresh-button"
-      >
+      <button @click="handleRefreshDevices" :disabled="isEnumerating" class="refresh-button">
         {{ isEnumerating ? '🔄 Refreshing...' : '🔄 Refresh Devices' }}
       </button>
     </div>
 
     <!-- Error Display -->
-    <div v-if="lastError" class="error">
-      ❌ Error: {{ lastError.message }}
-    </div>
+    <div v-if="lastError" class="error">❌ Error: {{ lastError.message }}</div>
   </div>
 </template>
 
@@ -1312,7 +1244,7 @@ const {
 
   // State
   isEnumerating,
-  lastError
+  lastError,
 } = useMediaDevices()
 
 // Testing state management
@@ -1324,8 +1256,8 @@ const speakerTestResult = ref<boolean | null>(null)
 // Request both audio and video permissions
 async function handleRequestPermission() {
   try {
-    await requestPermissions(true, true)  // Request audio and video
-    await enumerateDevices()              // Refresh to get labels
+    await requestPermissions(true, true) // Request audio and video
+    await enumerateDevices() // Refresh to get labels
   } catch (error) {
     console.error('Permission request failed:', error)
   }
@@ -1343,12 +1275,12 @@ async function handleRefreshDevices() {
 // Test microphone - captures audio and checks if levels detected
 async function testMic() {
   testingMic.value = true
-  micTestResult.value = null  // Clear previous result
+  micTestResult.value = null // Clear previous result
 
   try {
     const result = await testAudioInput(undefined, {
-      duration: 2000,            // Test for 2 seconds
-      audioLevelThreshold: 0.01  // Minimum audio level to pass
+      duration: 2000, // Test for 2 seconds
+      audioLevelThreshold: 0.01, // Minimum audio level to pass
     })
     micTestResult.value = result
   } catch (error) {
@@ -1362,7 +1294,7 @@ async function testMic() {
 // Test speaker - plays a tone through the selected speaker
 async function testSpeaker() {
   testingSpeaker.value = true
-  speakerTestResult.value = null  // Clear previous result
+  speakerTestResult.value = null // Clear previous result
 
   try {
     const result = await testAudioOutput()
@@ -1426,6 +1358,7 @@ async function testSpeaker() {
 ```
 
 📝 **What this component includes**:
+
 - Permission request flow with clear instructions
 - Device selectors for mic, speaker, and camera
 - Device testing with visual feedback
@@ -1451,11 +1384,7 @@ A settings page that saves and restores user preferences:
     <div class="settings-section">
       <h3>🎤 Microphone</h3>
       <select v-model="selectedAudioInputId" @change="onSelectionChange">
-        <option
-          v-for="device in audioInputDevices"
-          :key="device.deviceId"
-          :value="device.deviceId"
-        >
+        <option v-for="device in audioInputDevices" :key="device.deviceId" :value="device.deviceId">
           {{ device.label }}
         </option>
       </select>
@@ -1482,11 +1411,7 @@ A settings page that saves and restores user preferences:
       <h3>📹 Camera</h3>
       <select v-model="selectedVideoInputId" @change="onSelectionChange">
         <option value="">None (audio only)</option>
-        <option
-          v-for="device in videoInputDevices"
-          :key="device.deviceId"
-          :value="device.deviceId"
-        >
+        <option v-for="device in videoInputDevices" :key="device.deviceId" :value="device.deviceId">
           {{ device.label }}
         </option>
       </select>
@@ -1494,9 +1419,7 @@ A settings page that saves and restores user preferences:
     </div>
 
     <!-- Save Confirmation -->
-    <div v-if="settingsSaved" class="save-confirmation">
-      ✅ Settings saved automatically
-    </div>
+    <div v-if="settingsSaved" class="save-confirmation">✅ Settings saved automatically</div>
   </div>
 </template>
 
@@ -1515,7 +1438,7 @@ const {
   selectAudioOutput,
   selectVideoInput,
   requestPermissions,
-  enumerateDevices
+  enumerateDevices,
 } = useMediaDevices()
 
 const settingsSaved = ref(false)
@@ -1621,12 +1544,13 @@ function showSaveConfirmation() {
   color: white;
   padding: 15px 20px;
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 </style>
 ```
 
 ✅ **Production features**:
+
 - Automatic permission request on mount
 - Saves preferences to localStorage automatically
 - Restores saved preferences on page load
@@ -1646,15 +1570,16 @@ Primary composable for device management. This is your main interface to VueSip'
 
 ```typescript
 function useMediaDevices(
-  mediaManager?: Ref<MediaManager | null>,  // Optional: Share MediaManager instance
+  mediaManager?: Ref<MediaManager | null>, // Optional: Share MediaManager instance
   options?: {
-    autoEnumerate?: boolean  // Default: true - Auto-enumerate devices on mount
-    autoMonitor?: boolean    // Default: true - Auto-detect device changes
+    autoEnumerate?: boolean // Default: true - Auto-enumerate devices on mount
+    autoMonitor?: boolean // Default: true - Auto-detect device changes
   }
 ): UseMediaDevicesReturn
 ```
 
 **Parameter Details**:
+
 - `mediaManager`: Pass a shared MediaManager instance to synchronize device state across components
 - `autoEnumerate`: When true, devices are automatically enumerated when component mounts
 - `autoMonitor`: When true, listens for device changes and updates lists automatically
@@ -1664,6 +1589,7 @@ function useMediaDevices(
 ##### Reactive State
 
 **Device Lists** (read-only computed refs):
+
 - `audioInputDevices: ComputedRef<readonly MediaDevice[]>` - Array of microphones
 - `audioOutputDevices: ComputedRef<readonly MediaDevice[]>` - Array of speakers/headphones
 - `videoInputDevices: ComputedRef<readonly MediaDevice[]>` - Array of cameras
@@ -1671,6 +1597,7 @@ function useMediaDevices(
 - `totalDevices: ComputedRef<number>` - Count of all devices
 
 **Selected Devices** (reactive refs, supports v-model):
+
 - `selectedAudioInputId: Ref<string | null>` - ID of selected microphone
 - `selectedAudioOutputId: Ref<string | null>` - ID of selected speaker
 - `selectedVideoInputId: Ref<string | null>` - ID of selected camera
@@ -1679,44 +1606,53 @@ function useMediaDevices(
 - `selectedVideoInputDevice: ComputedRef<MediaDevice | undefined>` - Full selected camera object
 
 **Permission State**:
+
 - `audioPermission: ComputedRef<PermissionStatus>` - Audio permission state enum
 - `videoPermission: ComputedRef<PermissionStatus>` - Video permission state enum
 - `hasAudioPermission: ComputedRef<boolean>` - True if audio granted
 - `hasVideoPermission: ComputedRef<boolean>` - True if video granted
 
 **Device Availability** (boolean convenience refs):
+
 - `hasAudioInputDevices: ComputedRef<boolean>` - True if microphones available
 - `hasAudioOutputDevices: ComputedRef<boolean>` - True if speakers available
 - `hasVideoInputDevices: ComputedRef<boolean>` - True if cameras available
 
 **Operation State**:
+
 - `isEnumerating: Ref<boolean>` - True during device enumeration
 - `lastError: Ref<Error | null>` - Most recent error (null if none)
 
 ##### Methods
 
 **Device Enumeration**:
+
 - `enumerateDevices(): Promise<MediaDevice[]>` - Manually refresh device list
 
 **Permission Requests**:
+
 - `requestAudioPermission(): Promise<boolean>` - Request microphone permission only
 - `requestVideoPermission(): Promise<boolean>` - Request camera permission only
 - `requestPermissions(audio?: boolean, video?: boolean): Promise<void>` - Request both permissions
 
 **Device Selection**:
+
 - `selectAudioInput(deviceId: string): void` - Select a microphone by ID
 - `selectAudioOutput(deviceId: string): void` - Select a speaker by ID
 - `selectVideoInput(deviceId: string): void` - Select a camera by ID
 
 **Device Testing**:
+
 - `testAudioInput(deviceId?: string, options?: DeviceTestOptions): Promise<boolean>` - Test microphone
 - `testAudioOutput(deviceId?: string): Promise<boolean>` - Test speaker
 
 **Device Lookup**:
+
 - `getDeviceById(deviceId: string): MediaDevice | undefined` - Find device by ID
 - `getDevicesByKind(kind: MediaDeviceKind): readonly MediaDevice[]` - Filter by device kind
 
 **Change Monitoring**:
+
 - `startDeviceChangeMonitoring(): void` - Start listening for device changes
 - `stopDeviceChangeMonitoring(): void` - Stop listening for device changes
 
@@ -1728,11 +1664,11 @@ Represents a single audio or video device:
 
 ```typescript
 interface MediaDevice {
-  deviceId: string      // Unique device identifier
+  deviceId: string // Unique device identifier
   kind: MediaDeviceKind // Type: audioinput, audiooutput, videoinput
-  label: string         // Human-readable name (e.g., "Built-in Microphone")
-  groupId: string       // Groups related devices (e.g., mic & speaker on headset)
-  isDefault?: boolean   // True if OS default device
+  label: string // Human-readable name (e.g., "Built-in Microphone")
+  groupId: string // Groups related devices (e.g., mic & speaker on headset)
+  isDefault?: boolean // True if OS default device
 }
 ```
 
@@ -1742,9 +1678,9 @@ Enum for device types:
 
 ```typescript
 enum MediaDeviceKind {
-  AudioInput = 'audioinput',    // Microphones
-  AudioOutput = 'audiooutput',  // Speakers/headphones
-  VideoInput = 'videoinput'     // Cameras
+  AudioInput = 'audioinput', // Microphones
+  AudioOutput = 'audiooutput', // Speakers/headphones
+  VideoInput = 'videoinput', // Cameras
 }
 ```
 
@@ -1754,10 +1690,10 @@ Enum for permission states:
 
 ```typescript
 enum PermissionStatus {
-  Granted = 'granted',          // User clicked "Allow"
-  Denied = 'denied',            // User clicked "Block"
-  Prompt = 'prompt',            // Browser will show prompt
-  NotRequested = 'not_requested' // Haven't asked yet
+  Granted = 'granted', // User clicked "Allow"
+  Denied = 'denied', // User clicked "Block"
+  Prompt = 'prompt', // Browser will show prompt
+  NotRequested = 'not_requested', // Haven't asked yet
 }
 ```
 
@@ -1767,12 +1703,13 @@ Options for device testing:
 
 ```typescript
 interface DeviceTestOptions {
-  duration?: number              // Test duration in milliseconds (default: 2000)
-  audioLevelThreshold?: number   // Min audio level 0-1 to pass test (default: 0.01)
+  duration?: number // Test duration in milliseconds (default: 2000)
+  audioLevelThreshold?: number // Min audio level 0-1 to pass test (default: 0.01)
 }
 ```
 
 **Option Details**:
+
 - `duration`: How long to capture audio before checking results (2000ms = 2 seconds)
 - `audioLevelThreshold`: Minimum audio level required to pass. Range 0.0 (silence) to 1.0 (max). Default 0.01 is very sensitive.
 
@@ -1790,8 +1727,8 @@ interface DeviceTestOptions {
 
 ```typescript
 // ✅ Correct order
-await requestPermissions(true, false)  // Request permission first
-await enumerateDevices()               // Then enumerate - labels now visible
+await requestPermissions(true, false) // Request permission first
+await enumerateDevices() // Then enumerate - labels now visible
 ```
 
 ⚠️ **Why this happens**: Browsers hide device labels to prevent fingerprinting until users grant permission.
@@ -1801,6 +1738,7 @@ await enumerateDevices()               // Then enumerate - labels now visible
 **Problem**: Selected device doesn't produce audio/video during calls
 
 **Possible causes**:
+
 - Device is muted in operating system
 - Device was unplugged
 - Device is in use by another application
@@ -1831,10 +1769,10 @@ if (!works) {
 if (audioPermission.value === PermissionStatus.Denied) {
   showMessage(
     'Microphone permission was blocked. To enable:\n\n' +
-    '1. Click the lock icon in your browser address bar\n' +
-    '2. Find "Microphone" in the permissions list\n' +
-    '3. Change from "Block" to "Allow"\n' +
-    '4. Refresh this page'
+      '1. Click the lock icon in your browser address bar\n' +
+      '2. Find "Microphone" in the permissions list\n' +
+      '3. Change from "Block" to "Allow"\n' +
+      '4. Refresh this page'
   )
 }
 ```
@@ -1846,6 +1784,7 @@ if (audioPermission.value === PermissionStatus.Denied) {
 **Problem**: Plugging/unplugging devices doesn't update the device list
 
 **Possible causes**:
+
 - Device monitoring is disabled
 - Browser doesn't support `devicechange` event
 - Component was unmounted
@@ -1855,7 +1794,7 @@ if (audioPermission.value === PermissionStatus.Denied) {
 ```typescript
 // Verify auto-monitoring is enabled (it is by default)
 const devices = useMediaDevices({
-  autoMonitor: true  // Should be enabled
+  autoMonitor: true, // Should be enabled
 })
 
 // Or start monitoring manually
@@ -1896,9 +1835,9 @@ if (!supportsAudioOutput) {
 
 Continue learning about VueSip's capabilities:
 
-- [Call Management Guide](./call-management.md) - Learn how to make and manage SIP calls
-- [Conference Management Guide](./conference-management.md) - Build multi-party conference features
-- [Testing Guide](../testing-guide.md) - Test your device management implementation
+- [Making Calls Guide](./making-calls.md) - Learn how to make and manage SIP calls
+- [Video Calling Guide](./video-calling.md) - Build multi-party conference features
+- [Testing Guide](../developer/testing.md) - Test your device management implementation
 
 ## Further Reading
 

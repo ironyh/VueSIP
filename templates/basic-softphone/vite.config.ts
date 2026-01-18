@@ -13,5 +13,12 @@ export default defineConfig({
   server: {
     port: 3001,
     host: true,
+    proxy: {
+      '/api/46elks': {
+        target: 'https://api.46elks.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/46elks/, ''),
+      },
+    },
   },
 })

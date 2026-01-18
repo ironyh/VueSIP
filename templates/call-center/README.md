@@ -15,23 +15,28 @@ A production-ready call center agent interface with PrimeVue UI, featuring agent
 ## Quick Start
 
 1. **Copy the template:**
+
    ```bash
    cp -r templates/call-center my-call-center
    cd my-call-center
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
 
 3. **Configure credentials:**
+
    ```bash
    cp .env.example .env
    ```
+
    Edit `.env` with your SIP server and AMI WebSocket details.
 
 4. **Start development server:**
+
    ```bash
    pnpm dev
    ```
@@ -65,17 +70,20 @@ call-center/
 ## Components
 
 ### AgentDashboard
+
 - Agent login/logout buttons
 - Pause/break selector with reasons
 - Agent statistics (calls handled, avg talk time)
 - Connection status indicator
 
 ### QueueStats
+
 - Summary cards: calls waiting, available agents, longest wait, service level
 - Queue table with real-time metrics
 - Waiting callers list with wait times
 
 ### CallPanel
+
 - Dial pad for outbound calls
 - Incoming call answer/reject
 - Active call controls: mute, hold, transfer
@@ -83,6 +91,7 @@ call-center/
 - Call disposition form after hangup
 
 ### SupervisorPanel
+
 - Agent list with status
 - Monitor mode selection (spy/whisper/barge)
 - Active monitoring indicator
@@ -90,15 +99,18 @@ call-center/
 ## VueSip APIs Used
 
 ### Core Composables
+
 - `useSipClient()` - SIP connection management
 - `useCallSession()` - Call control and state
 
 ### AMI Composables
+
 - `useAmiAgentLogin()` - Agent queue login/logout
 - `useAmiQueues()` - Queue status and metrics
 - `useAmiSupervisor()` - Spy/whisper/barge controls
 
 ### Core Classes
+
 - `createAmiClient()` - AMI WebSocket connection
 
 ## Prerequisites
@@ -214,11 +226,36 @@ VITE_SIP_DISPLAY_NAME=Agent Name
 VITE_AMI_WS_URL=ws://pbx.example.com:8080
 ```
 
+## Cloudflare Pages (Deploy)
+
+This template is ready to deploy on Cloudflare Pages.
+
+- Project name: `vuesip-callcenter`
+
+Commands:
+
+```bash
+# From repo root
+pnpm build
+
+cd templates/call-center
+pnpm build
+
+# Create project once (safe if it already exists)
+wrangler pages project create vuesip-callcenter --production-branch=main
+
+# Deploy the dist/ folder
+wrangler pages deploy dist --project-name=vuesip-callcenter
+```
+
+After deploying, map your subdomain (e.g., `callcenter.vuesip.com`) to the Pages project in Cloudflare Pages → Custom Domains.
+
 ## SIP Provider Configuration
 
 ### Asterisk
 
 Enable WebSocket in `/etc/asterisk/http.conf`:
+
 ```ini
 [general]
 enabled = yes
@@ -230,6 +267,7 @@ tlscertfile = /etc/asterisk/keys/asterisk.pem
 ```
 
 Enable WebSocket transport in `/etc/asterisk/pjsip.conf`:
+
 ```ini
 [transport-wss]
 type = transport
@@ -292,6 +330,7 @@ dtls_auto_generate_cert = yes
 ### Browser Compatibility
 
 VueSip works best in modern browsers:
+
 - Chrome/Edge 90+
 - Firefox 90+
 - Safari 14+

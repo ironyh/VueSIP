@@ -4,7 +4,7 @@ layout: home
 hero:
   name: VueSIP
   text: SIP Calling for Vue.js
-  tagline: Works in 5 minutes. No SIP server needed to start.
+  tagline: Build production-ready softphones in minutes. No server required to start learning!
   image:
     src: /logo.svg
     alt: VueSIP
@@ -13,11 +13,11 @@ hero:
       text: Start Tutorial
       link: /tutorial/
     - theme: alt
-      text: View API
-      link: /api/composables
+      text: View on GitHub
+      link: https://github.com/ironyh/VueSIP
     - theme: alt
-      text: GitHub
-      link: https://github.com/ironyh/VueSip
+      text: API Reference
+      link: /api/
 
 features:
   - icon: "\U0001F680"
@@ -400,20 +400,37 @@ await sip.call('extension')
 
 </div>
 
-<div class="demo-section">
+### Call Management
 
-## Why Developers Choose VueSIP
+- Outgoing and incoming calls
+- Call hold, resume, and transfer
+- DTMF tone generation
+- Multi-line support
+- Call history with persistence
 
-| Feature                 | VueSIP                                 | Other Libraries            |
-| ----------------------- | -------------------------------------- | -------------------------- |
-| **Mock Mode**           | Built-in for development               | Manual mocking required    |
-| **TypeScript**          | Full type definitions                  | Partial or none            |
-| **Vue 3 Native**        | Composition API throughout             | Wrappers around vanilla JS |
-| **Tree-Shaking**        | Import only what you need              | Full bundle required       |
-| **Enterprise Features** | Conferencing, transcription, analytics | Basic calling only         |
-| **Documentation**       | Interactive tutorial + 50 demos        | README only                |
+### Media Handling
 
-</div>
+- Audio and video calls
+- Device enumeration and selection
+- Local media preview
+- Screen sharing
+- Audio/video quality controls
+
+### Advanced Capabilities
+
+- SIP presence and messaging
+- Real-time status updates
+- Typing indicators
+- Encrypted messaging
+- Custom SIP headers
+
+### Quality Assurance
+
+- Comprehensive error handling
+- Automatic reconnection
+- Network quality monitoring
+- Performance optimization
+- Security best practices
 
 <div class="demo-section">
 

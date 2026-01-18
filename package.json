@@ -1,6 +1,6 @@
 {
   "name": "vuesip",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A headless Vue.js component library for SIP/VoIP applications",
   "type": "module",
   "author": "Arash Molavi",
@@ -117,6 +117,7 @@
     "docs:api:watch": "typedoc --watch",
     "docs:all": "pnpm run docs:api && pnpm run docs:build",
     "typecheck": "tsc --noEmit",
+    "smoke:template:minimal": "node scripts/smoke-template-build.mjs templates/minimal",
     "type-check": "vue-tsc --noEmit",
     "prepare": "husky"
   },

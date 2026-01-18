@@ -1,0 +1,10 @@
+
+/home/irony/code/VueSIP/playground/demos/ClickToCallWidgetDemo.vue
+  36:1  error  Expected indentation of 10 spaces but found 12 spaces  vue/html-indent
+  39:1  error  Expected indentation of 10 spaces but found 12 spaces  vue/html-indent
+  42:1  error  Expected indentation of 10 spaces but found 12 spaces  vue/html-indent
+  45:1  error  Expected indentation of 10 spaces but found 12 spaces  vue/html-indent
+
+✖ 4 problems (4 errors, 0 warnings)
+  4 errors and 0 warnings potentially fixable with the `--fix` option.
+

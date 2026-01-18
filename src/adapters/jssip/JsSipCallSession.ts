@@ -6,6 +6,8 @@
 
 import type { RTCSession } from 'jssip'
 import { EventEmitter } from '../../utils/EventEmitter'
+import { DefaultSdpTransformer } from '../../codecs/sdp/DefaultSdpTransformer'
+import { useCodecs } from '../../codecs/useCodecs'
 import type {
   ICallSession,
   AnswerOptions,
@@ -31,9 +33,13 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
   private _localStream: MediaStream | null = null
   private _remoteStream: MediaStream | null = null
 
-  constructor(session: RTCSession) {
+  private _codecPolicy: import('../../codecs/types').CodecPolicy | undefined
+  private _sdpTransformer = new DefaultSdpTransformer()
+
+  constructor(session: RTCSession, codecPolicy?: import('../../codecs/types').CodecPolicy) {
     super()
     this.session = session
+    this._codecPolicy = codecPolicy
     this.setupEventHandlers()
     this.initializeState()
   }
@@ -101,12 +107,23 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
           jssipOptions.mediaConstraints = options.mediaConstraints
         }
 
+        // Pass pre-acquired mediaStream if provided (takes precedence over mediaConstraints)
+        if (options?.mediaStream) {
+          jssipOptions.mediaStream = options.mediaStream
+          console.log('[JsSipCallSession] Using pre-acquired mediaStream for answer')
+        }
+
         if (options?.extraHeaders) {
           jssipOptions.extraHeaders = options.extraHeaders
         }
 
         if (options?.pcConfig) {
           jssipOptions.pcConfig = options.pcConfig
+        }
+
+        // Allow per-call codec policy override on answer
+        if (options?.codecPolicy) {
+          this._codecPolicy = options.codecPolicy
         }
 
         this.session.answer(jssipOptions)
@@ -213,7 +230,9 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     return new Promise((resolve, reject) => {
       try {
         // JsSIP uses refer for transfers
-        const session = this.session as RTCSession & { refer?: (target: string, options?: unknown) => void }
+        const session = this.session as RTCSession & {
+          refer?: (target: string, options?: unknown) => void
+        }
         if (typeof session.refer === 'function') {
           session.refer(target)
           resolve()
@@ -231,7 +250,9 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
       try {
         // For attended transfer, we need the underlying JsSIP session
         const targetSession = target as JsSipCallSession
-        const session = this.session as RTCSession & { refer?: (target: string, options?: unknown) => void }
+        const session = this.session as RTCSession & {
+          refer?: (target: string, options?: unknown) => void
+        }
 
         if (typeof session.refer === 'function') {
           // Use Replaces header for attended transfer
@@ -353,15 +374,18 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
 
   private setupEventHandlers(): void {
     // Progress (180 Ringing, 183 Session Progress)
-    this.session.on('progress', (data: { originator: string; response?: { status_code: number; reason_phrase: string } }) => {
-      if (data.originator === 'remote') {
-        this._state = CallState.Ringing
+    this.session.on(
+      'progress',
+      (data: { originator: string; response?: { status_code: number; reason_phrase: string } }) => {
+        if (data.originator === 'remote') {
+          this._state = CallState.Ringing
+        }
+        this.emit('progress', {
+          statusCode: data.response?.status_code ?? 0,
+          reasonPhrase: data.response?.reason_phrase ?? '',
+        })
       }
-      this.emit('progress', {
-        statusCode: data.response?.status_code ?? 0,
-        reasonPhrase: data.response?.reason_phrase ?? '',
-      })
-    })
+    )
 
     // Accepted (2xx response)
     this.session.on('accepted', () => {
@@ -380,24 +404,40 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     })
 
     // Ended (BYE)
-    this.session.on('ended', (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
-      this._state = CallState.Terminated
-      this._endTime = new Date()
-      this.emit('ended', {
-        cause: data.cause,
-        statusCode: data.message?.status_code,
-      })
-    })
+    this.session.on(
+      'ended',
+      (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
+        console.log('[JsSipCallSession] Call ended:', {
+          originator: data.originator,
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
+        this._state = CallState.Terminated
+        this._endTime = new Date()
+        this.emit('ended', {
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
+      }
+    )
 
     // Failed
-    this.session.on('failed', (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
-      this._state = CallState.Failed
-      this._endTime = new Date()
-      this.emit('failed', {
-        cause: data.cause,
-        statusCode: data.message?.status_code,
-      })
-    })
+    this.session.on(
+      'failed',
+      (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
+        console.error('[JsSipCallSession] Call failed:', {
+          originator: data.originator,
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
+        this._state = CallState.Failed
+        this._endTime = new Date()
+        this.emit('failed', {
+          cause: data.cause,
+          statusCode: data.message?.status_code,
+        })
+      }
+    )
 
     // Hold/Unhold
     this.session.on('hold', (data: { originator: string }) => {
@@ -471,15 +511,55 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
         this._localStream = new MediaStream(tracks)
         this.emit('localStream', { stream: this._localStream })
       }
-    })
 
-    // Refer (transfer)
-    this.session.on('refer', (data: { request: { getHeader: (name: string) => string | undefined } }) => {
-      const referTo = data.request.getHeader('Refer-To')
-      if (referTo) {
-        this.emit('referred', { target: referTo })
+      // Apply codec preferences via transceivers when available
+      try {
+        const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : []
+        if (transceivers && transceivers.length > 0) {
+          const codecs = useCodecs(this._codecPolicy)
+          for (const t of transceivers) {
+            const kind = (t.sender?.track?.kind ?? t.receiver?.track?.kind) as
+              | 'audio'
+              | 'video'
+              | undefined
+            if (kind === 'audio' || kind === 'video') {
+              codecs.applyToTransceiver(t as unknown as RTCRtpTransceiver, kind)
+            }
+          }
+        }
+      } catch {
+        // Best effort; skip if environment doesn't support
       }
     })
+
+    // SDP hook: apply fallback codec reordering if transceiver API is disabled by policy
+    this.session.on(
+      'sdp',
+      (data: { originator?: string; type?: 'offer' | 'answer'; sdp: string }) => {
+        try {
+          if (this._codecPolicy && this._codecPolicy.preferTransceiverApi === false && data?.sdp) {
+            // Reorder both audio and video m-lines conservatively
+            let sdp = data.sdp
+            sdp = this._sdpTransformer.reorderCodecs(sdp, 'audio', [])
+            sdp = this._sdpTransformer.reorderCodecs(sdp, 'video', [])
+            data.sdp = sdp
+          }
+        } catch {
+          // Ignore SDP transform errors
+        }
+      }
+    )
+
+    // Refer (transfer)
+    this.session.on(
+      'refer',
+      (data: { request: { getHeader: (name: string) => string | undefined } }) => {
+        const referTo = data.request.getHeader('Refer-To')
+        if (referTo) {
+          this.emit('referred', { target: referTo })
+        }
+      }
+    )
   }
 
   private getReasonPhrase(statusCode: number): string {

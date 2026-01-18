@@ -4,12 +4,13 @@ import ClickToCallDemo from '../demos/ClickToCallDemo.vue'
 export const clickToCallExample: ExampleDefinition = {
   id: 'click-to-call',
   icon: '👆',
-  title: 'Click-to-Call',
-  description: 'Initiate calls by clicking phone numbers on web pages',
-  category: 'utility',
-  tags: ['Integration', 'Click-to-Call', 'CRM'],
+  title: 'AMI Click-to-Call (Agent-First)',
+  description: 'Originate calls via AMI: your phone rings first, then the destination',
+  category: 'ami',
+  tags: ['AMI', 'Agent-First', 'Click-to-Call', 'CRM'],
   component: ClickToCallDemo,
-  setupGuide: '<p>Enable click-to-call functionality for phone numbers in your application. Integrates with CRM and contact management systems.</p>',
+  setupGuide:
+    '<p>Agent-first click-to-call via Asterisk AMI. Your desk phone or softphone rings first; when answered, the PBX dials the destination. Great for CRMs and call centers. For a browser-based SIP widget, see the "Click-to-Call Widget" example under SIP.</p>',
   codeSnippets: [
     {
       title: 'Click-to-Call Setup',

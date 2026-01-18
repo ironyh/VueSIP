@@ -415,7 +415,7 @@ describe('deviceStore', () => {
       deviceStore.updateDevices(mockDevices)
 
       const device = deviceStore.audioInputDevices[0]
-      expect(device.label).toContain('audioinput') // Should generate label
+      expect(device.label).toContain('Microphone') // Should generate human-readable label
       expect(device.label).toContain('mic-1')
     })
 

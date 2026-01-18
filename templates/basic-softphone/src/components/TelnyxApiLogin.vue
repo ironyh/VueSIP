@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
@@ -33,13 +33,19 @@ const rememberCredentials = ref(false)
 // Form validation
 const isLoginFormValid = computed(() => apiKey.value.trim().length > 0)
 
+// Track saved credential ID for auto-selection after login
+const savedCredentialId = ref<string | null>(null)
+// Convert readonly credentials array to mutable for PrimeVue Dropdown
+const credentialOptions = computed(() => [...credentials.value])
+
 // Load saved credentials on mount
 onMounted(() => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      const { key } = JSON.parse(saved)
+      const { key, credentialId } = JSON.parse(saved)
       apiKey.value = key || ''
+      savedCredentialId.value = credentialId || null
       rememberCredentials.value = true
     }
   } catch {
@@ -47,17 +53,37 @@ onMounted(() => {
   }
 })
 
-// Save credentials to localStorage
-function saveCredentials() {
+// Save credentials and selected credential ID to localStorage
+function saveCredentials(credentialId?: string) {
   if (rememberCredentials.value) {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
         key: apiKey.value,
+        credentialId: credentialId || savedCredentialId.value,
+        credentialId: credentialId || savedCredentialId.value,
       })
     )
   }
 }
+
+// Watch for credential selection and save it
+watch(selectedCredential, (cred) => {
+  if (cred && rememberCredentials.value) {
+    savedCredentialId.value = cred.id
+    saveCredentials(cred.id)
+  }
+})
+
+// Auto-select saved credential after authentication
+watch(credentials, (creds) => {
+  if (savedCredentialId.value && creds.length > 0 && !selectedCredential.value) {
+    const savedCred = creds.find((c) => c.id === savedCredentialId.value)
+    if (savedCred) {
+      selectCredential(savedCred)
+    }
+  }
+})
 
 // Clear saved credentials
 function clearSavedCredentials() {
@@ -90,6 +116,8 @@ function handleReset() {
   clear()
   apiKey.value = ''
   rememberCredentials.value = false
+  savedCredentialId.value = null
+  savedCredentialId.value = null
   clearSavedCredentials()
 }
 </script>
@@ -163,7 +191,7 @@ function handleReset() {
         <Dropdown
           id="credential"
           :model-value="selectedCredential"
-          :options="credentials"
+          :options="credentialOptions"
           option-label="name"
           placeholder="Select a credential"
           class="w-full"

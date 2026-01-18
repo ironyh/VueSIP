@@ -2,6 +2,8 @@
 
 This comprehensive guide covers everything you need to handle incoming calls in VueSip, from basic call detection to advanced queue management. You'll learn how to detect incoming calls, configure automatic answering, provide user-friendly feedback, and manage multiple simultaneous calls.
 
+> See also: For a plug-and-play inbound call widget embedded on any page, use the [Click-to-Call Guide](/guide/click-to-call). In real SIP mode it hydrates inbound caller identity and provides simplified answer/hangup controls.
+
 ## Table of Contents
 
 - [Detecting Incoming Calls](#detecting-incoming-calls)
@@ -88,11 +90,11 @@ const sipClient = ref(/* your SIP client */)
 
 // The composable provides reactive state for the current call
 const {
-  session,    // The current call session object
-  state,      // Current call state: 'ringing', 'established', 'terminated', etc.
-  direction,  // 'incoming' or 'outgoing'
-  answer,     // Function to answer the call
-  reject      // Function to reject the call
+  session, // The current call session object
+  state, // Current call state: 'ringing', 'established', 'terminated', etc.
+  direction, // 'incoming' or 'outgoing'
+  answer, // Function to answer the call
+  reject, // Function to reject the call
 } = useCallSession(sipClient)
 
 // Watch for state changes to detect incoming calls
@@ -108,6 +110,7 @@ watch(state, (newState) => {
 ```
 
 📝 **Note:** Each method has its use case:
+
 - **Event listeners** - Low-level control, useful for middleware or logging
 - **Call store** - Managing multiple calls, queue operations
 - **useCallSession** - Component-level reactivity, simplest for UI components
@@ -141,12 +144,13 @@ const vueSip = createVueSip({
 
     // Optional: Add delay before auto-answering (in milliseconds)
     // Default: 0 (answer immediately)
-    autoAnswerDelay: 2000 // Wait 2 seconds before answering
-  }
+    autoAnswerDelay: 2000, // Wait 2 seconds before answering
+  },
 })
 ```
 
 💡 **Tip:** Use a delay to:
+
 - Give users a moment to prepare (grab headset, stop other activities)
 - Allow proper UI rendering before the call connects
 - Comply with regulations requiring answer delays
@@ -257,19 +261,19 @@ const answerOptions: AnswerOptions = {
   // Custom media constraints for fine-grained control
   mediaConstraints: {
     audio: {
-      echoCancellation: true,      // Remove echo for better call quality
-      noiseSuppression: true,       // Filter background noise
-      autoGainControl: true,        // Automatically adjust volume
+      echoCancellation: true, // Remove echo for better call quality
+      noiseSuppression: true, // Filter background noise
+      autoGainControl: true, // Automatically adjust volume
       // You can also specify device ID to select a specific microphone
       // deviceId: { exact: 'microphone-id-here' }
     },
     video: {
-      width: { ideal: 1280 },       // Preferred width (not guaranteed)
-      height: { ideal: 720 },       // Preferred height (not guaranteed)
-      frameRate: { ideal: 30 },     // Frames per second
+      width: { ideal: 1280 }, // Preferred width (not guaranteed)
+      height: { ideal: 720 }, // Preferred height (not guaranteed)
+      frameRate: { ideal: 30 }, // Frames per second
       // You can also specify:
       // facingMode: { ideal: 'user' }  // 'user' for front camera, 'environment' for back
-    }
+    },
   },
 
   // Custom WebRTC configuration
@@ -283,14 +287,11 @@ const answerOptions: AnswerOptions = {
       //   username: 'user',
       //   credential: 'pass'
       // }
-    ]
+    ],
   },
 
   // Additional SIP headers to send with the answer
-  extraHeaders: [
-    'X-Custom-Header: value',
-    'X-App-Version: 1.0.0'
-  ]
+  extraHeaders: ['X-Custom-Header: value', 'X-App-Version: 1.0.0'],
 }
 
 await answer(answerOptions)
@@ -306,20 +307,20 @@ Enable video calling for face-to-face conversations:
 async function answerWithVideo() {
   try {
     await answer({
-      audio: true,  // Always include audio for video calls
+      audio: true, // Always include audio for video calls
       video: true,
       mediaConstraints: {
         audio: true,
         video: {
-          width: { ideal: 1280 },   // HD video
+          width: { ideal: 1280 }, // HD video
           height: { ideal: 720 },
-          frameRate: { ideal: 30 }  // Smooth video
+          frameRate: { ideal: 30 }, // Smooth video
           // For mobile, you might want lower quality:
           // width: { ideal: 640 },
           // height: { ideal: 480 },
           // frameRate: { ideal: 15 }
-        }
-      }
+        },
+      },
     })
   } catch (error) {
     console.error('Failed to answer with video:', error)
@@ -415,13 +416,13 @@ async function rejectUnavailable() {
 
 ### Understanding SIP Rejection Status Codes
 
-| Code | Reason Phrase | Use Case | What It Communicates |
-|------|---------------|----------|---------------------|
-| 486  | Busy Here | User is already on another call | "I'm busy, try later" |
-| 603  | Decline | User explicitly declined the call | "I don't want this call" |
-| 480  | Temporarily Unavailable | User is temporarily unavailable | "I'm away, try later" |
-| 404  | Not Found | User/extension not found | "Wrong number" |
-| 406  | Not Acceptable | Call parameters not acceptable | "Can't support video/codec" |
+| Code | Reason Phrase           | Use Case                          | What It Communicates        |
+| ---- | ----------------------- | --------------------------------- | --------------------------- |
+| 486  | Busy Here               | User is already on another call   | "I'm busy, try later"       |
+| 603  | Decline                 | User explicitly declined the call | "I don't want this call"    |
+| 480  | Temporarily Unavailable | User is temporarily unavailable   | "I'm away, try later"       |
+| 404  | Not Found               | User/extension not found          | "Wrong number"              |
+| 406  | Not Acceptable          | Call parameters not acceptable    | "Can't support video/codec" |
 
 💡 **Tip:** Choose the status code that best matches your rejection reason - it helps PBX systems and caller applications provide better feedback.
 
@@ -442,15 +443,13 @@ const blockedNumbers = ['sip:spam@example.com', 'sip:blocked@example.com']
 watch([state, direction, remoteUri], ([newState, newDirection, newRemoteUri]) => {
   if (newState === 'ringing' && newDirection === 'incoming') {
     // Check if this caller is blocked
-    const isBlocked = blockedNumbers.some(blocked =>
-      newRemoteUri?.includes(blocked)
-    )
+    const isBlocked = blockedNumbers.some((blocked) => newRemoteUri?.includes(blocked))
 
     if (isBlocked) {
       // Silently reject blocked calls with 603 Decline
       reject(603)
         .then(() => console.log('Blocked call rejected'))
-        .catch(err => console.error('Rejection failed:', err))
+        .catch((err) => console.error('Rejection failed:', err))
     }
   }
 })
@@ -538,12 +537,15 @@ import { ref, watch } from 'vue'
 const isHandlingCall = ref(false)
 
 // Watch for new calls entering the queue
-watch(() => callStore.incomingCallCount, (count) => {
-  // If there are calls waiting and we're not busy, handle the next one
-  if (count > 0 && !isHandlingCall.value) {
-    handleNextCall()
+watch(
+  () => callStore.incomingCallCount,
+  (count) => {
+    // If there are calls waiting and we're not busy, handle the next one
+    if (count > 0 && !isHandlingCall.value) {
+      handleNextCall()
+    }
   }
-})
+)
 
 async function handleNextCall() {
   const nextCall = callStore.getNextIncomingCall()
@@ -559,7 +561,6 @@ async function handleNextCall() {
 
     // Wait for user action (answer or reject)
     // When they answer/reject, the call is removed from queue
-
   } finally {
     // Mark as not busy
     isHandlingCall.value = false
@@ -615,27 +616,31 @@ import { callStore } from 'vuesip'
 import { watch } from 'vue'
 
 // Auto-reject incoming calls when already at max capacity
-watch(() => callStore.incomingCallCount, async (count) => {
-  // If there are incoming calls and we're at max capacity
-  if (count > 0 && callStore.isAtMaxCalls) {
-    const calls = callStore.incomingCalls
+watch(
+  () => callStore.incomingCallCount,
+  async (count) => {
+    // If there are incoming calls and we're at max capacity
+    if (count > 0 && callStore.isAtMaxCalls) {
+      const calls = callStore.incomingCalls
 
-    // Reject all excess calls with "486 Busy Here" status
-    for (const call of calls) {
-      try {
-        // Create a session for this call
-        const session = /* get CallSession for this call */
+      // Reject all excess calls with "486 Busy Here" status
+      for (const call of calls) {
+        try {
+          // Create a session for this call
+          const session =
+            /* get CallSession for this call */
 
-        // Reject with 486 (Busy Here) to indicate you're on another call
-        await session.reject(486)
+            // Reject with 486 (Busy Here) to indicate you're on another call
+            await session.reject(486)
 
-        console.log(`Auto-rejected call from ${call.remoteUri} - at capacity`)
-      } catch (error) {
-        console.error('Failed to auto-reject call:', error)
+          console.log(`Auto-rejected call from ${call.remoteUri} - at capacity`)
+        } catch (error) {
+          console.error('Failed to auto-reject call:', error)
+        }
       }
     }
   }
-})
+)
 ```
 
 ✅ **Best Practice:** Use status code 486 (Busy Here) when rejecting due to capacity - it accurately reflects the situation.
@@ -687,8 +692,8 @@ watch(state, (newState) => {
     showIncomingCallModal.value = true
 
     // Audio feedback: Play ringtone
-    ringtone.loop = true  // Keep ringing until answered
-    ringtone.play().catch(err => {
+    ringtone.loop = true // Keep ringing until answered
+    ringtone.play().catch((err) => {
       // Browser may block autoplay
       console.error('Failed to play ringtone:', err)
     })
@@ -696,7 +701,7 @@ watch(state, (newState) => {
     // Call answered/rejected/ended - clean up
     showIncomingCallModal.value = false
     ringtone.pause()
-    ringtone.currentTime = 0  // Reset to start
+    ringtone.currentTime = 0 // Reset to start
   }
 })
 ```
@@ -716,17 +721,16 @@ async function handleAnswer() {
     // This triggers the browser's permission dialog
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: false
+      video: false,
     })
 
     // Step 2: Stop the test stream (we don't need it anymore)
     // VueSip will create its own stream when answering
-    stream.getTracks().forEach(track => track.stop())
+    stream.getTracks().forEach((track) => track.stop())
 
     // Step 3: Now answer the call
     // At this point we know we have permission
     await answer({ audio: true, video: false })
-
   } catch (error) {
     // Handle different error types appropriately
     if (error.name === 'NotAllowedError') {
@@ -800,7 +804,7 @@ async function handleAnswer() {
     showNotification({
       type: 'error',
       message: 'Failed to answer call. Please try again.',
-      duration: 5000
+      duration: 5000,
     })
 
     // Optionally reject the call since we can't answer
@@ -849,7 +853,7 @@ watch(state, (newState) => {
 
     // Step 5: Clean up any media streams
     if (localStream.value) {
-      localStream.value.getTracks().forEach(track => track.stop())
+      localStream.value.getTracks().forEach((track) => track.stop())
       localStream.value = null
     }
 
@@ -892,7 +896,7 @@ watch(hasWaitingCall, (isWaiting) => {
     showCallWaitingNotification({
       message: 'Another call is waiting',
       action: 'View',
-      onAction: () => showCallQueue()
+      onAction: () => showCallQueue(),
     })
   }
 })
@@ -1569,22 +1573,26 @@ Now that you understand incoming call handling, explore these related topics:
 ### Quick Reference
 
 **Detect incoming calls:**
+
 ```typescript
 const { state, direction } = useCallSession(sipClient)
 // state === 'ringing' && direction === 'incoming'
 ```
 
 **Answer a call:**
+
 ```typescript
 await answer({ audio: true, video: false })
 ```
 
 **Reject a call:**
+
 ```typescript
-await reject(603)  // 603 Decline
+await reject(603) // 603 Decline
 ```
 
 **Check call queue:**
+
 ```typescript
 const count = callStore.incomingCallCount
 const next = callStore.getNextIncomingCall()

@@ -596,6 +596,14 @@ export interface CallOptions {
   mediaConstraints?: MediaStreamConstraints
 
   /**
+   * Pre-acquired media stream to use for the call.
+   * When provided, this stream is used instead of acquiring new media.
+   * This is useful when you want to pre-acquire media before the call
+   * to reduce call setup time or to use a specific stream.
+   */
+  mediaStream?: MediaStream
+
+  /**
    * Extra SIP headers to include
    */
   extraHeaders?: string[]
@@ -614,6 +622,11 @@ export interface CallOptions {
    * RTCPeerConnection configuration
    */
   pcConfig?: RTCConfiguration
+
+  /**
+   * Per-call codec policy override (preview)
+   */
+  codecPolicy?: import('../codecs/types').CodecPolicy
 }
 
 /**
@@ -626,6 +639,12 @@ export interface AnswerOptions {
   mediaConstraints?: MediaStreamConstraints
 
   /**
+   * Pre-acquired media stream to use for answering.
+   * When provided, this stream is used instead of acquiring new media.
+   */
+  mediaStream?: MediaStream
+
+  /**
    * Extra SIP headers to include in answer
    */
   extraHeaders?: string[]
@@ -634,6 +653,11 @@ export interface AnswerOptions {
    * RTCPeerConnection configuration
    */
   pcConfig?: RTCConfiguration
+
+  /**
+   * Per-call codec policy override (preview)
+   */
+  codecPolicy?: import('../codecs/types').CodecPolicy
 }
 
 /**

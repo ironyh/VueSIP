@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import Message from 'primevue/message'
 import Checkbox from 'primevue/checkbox'
-import { use46ElksApi } from 'vuesip'
+import { use46ElksApi, type Elks46Number } from 'vuesip'
 
 const STORAGE_KEY = 'vuesip_46elks_credentials'
 
@@ -37,14 +37,17 @@ const isLoginFormValid = computed(
   () => apiUsername.value.trim().length > 0 && apiPassword.value.trim().length > 0
 )
 
+// Track saved phone number for auto-selection after login
+const savedPhoneNumber = ref<string | null>(null)
 // Load saved credentials on mount
 onMounted(() => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      const { username, password } = JSON.parse(saved)
+      const { username, password, phoneNumber } = JSON.parse(saved)
       apiUsername.value = username || ''
       apiPassword.value = password || ''
+      savedPhoneNumber.value = phoneNumber || null
       rememberCredentials.value = true
     }
   } catch {
@@ -52,18 +55,38 @@ onMounted(() => {
   }
 })
 
-// Save credentials to localStorage
-function saveCredentials() {
+// Save credentials and selected number to localStorage
+function saveCredentials(phoneNumber?: string) {
   if (rememberCredentials.value) {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
         username: apiUsername.value,
         password: apiPassword.value,
+        phoneNumber: phoneNumber || savedPhoneNumber.value,
+        phoneNumber: phoneNumber || savedPhoneNumber.value,
       })
     )
   }
 }
+
+// Watch for number selection and save it
+watch(selectedNumber, (num) => {
+  if (num && rememberCredentials.value) {
+    savedPhoneNumber.value = num.number
+    saveCredentials(num.number)
+  }
+})
+
+// Auto-select saved number after authentication
+watch(numbers, async (nums) => {
+  if (savedPhoneNumber.value && nums.length > 0 && !selectedNumber.value) {
+    const savedNum = nums.find((n) => n.number === savedPhoneNumber.value)
+    if (savedNum) {
+      await selectNumber(savedNum)
+    }
+  }
+})
 
 // Clear saved credentials
 function clearSavedCredentials() {
@@ -79,7 +102,7 @@ async function handleLogin() {
 }
 
 // Handle number selection
-async function handleNumberSelect(num: { number: string; active: string; secret?: string }) {
+async function handleNumberSelect(num: Elks46Number) {
   await selectNumber(num)
 }
 
@@ -97,6 +120,8 @@ function handleReset() {
   apiUsername.value = ''
   apiPassword.value = ''
   rememberCredentials.value = false
+  savedPhoneNumber.value = null
+  savedPhoneNumber.value = null
   clearSavedCredentials()
 }
 </script>

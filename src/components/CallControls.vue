@@ -16,7 +16,7 @@
     <div v-else-if="currentCall" class="active-call" data-testid="active-call">
       <h3>Active Call</h3>
       <p>{{ currentCall.remoteDisplayName || currentCall.remoteUri }}</p>
-      <p class="call-duration" data-testid="call-status">{{ formatDuration(currentCall) }}</p>
+      <p class="call-duration" data-testid="call-status">{{ duration }}</p>
       <div class="call-actions">
         <button class="btn btn-secondary" data-testid="mute-audio-button" @click="$emit('mute')">
           <i class="pi pi-microphone"></i> Mute
@@ -35,9 +35,10 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, onUnmounted } from 'vue'
 import type { CallSession } from '../types'
 
-defineProps<{
+const props = defineProps<{
   currentCall: CallSession | null
   incomingCall: CallSession | null
   isCalling: boolean
@@ -50,16 +51,42 @@ defineEmits<{
   mute: []
 }>()
 
-const formatDuration = (call: CallSession): string => {
-  if (!call.timing.answerTime) return '00:00'
+const duration = ref('00:00')
+let timer: ReturnType<typeof setInterval> | null = null
 
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - call.timing.answerTime.getTime()) / 1000)
-  const minutes = Math.floor(diff / 60)
-  const seconds = diff % 60
-
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+const updateDuration = () => {
+  if (props.currentCall?.timing?.answerTime) {
+    const now = new Date()
+    const diff = Math.floor((now.getTime() - props.currentCall.timing.answerTime.getTime()) / 1000)
+    const minutes = Math.floor(diff / 60)
+    const seconds = diff % 60
+    duration.value = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  } else {
+    duration.value = '00:00'
+  }
 }
+
+watch(
+  () => props.currentCall,
+  (newCall) => {
+    if (timer) {
+      clearInterval(timer)
+      timer = null
+    }
+
+    if (newCall) {
+      updateDuration()
+      timer = setInterval(updateDuration, 1000)
+    } else {
+      duration.value = '00:00'
+    }
+  },
+  { immediate: true }
+)
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
 </script>
 
 <style scoped>
