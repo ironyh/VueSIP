@@ -121,53 +121,11 @@ jobs:
     needs: build-library
     if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'pwa-softphone' || github.event.inputs.template == '')
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Download library artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vuesip-dist
-          path: dist/
-
-      - name: Install template dependencies
-        working-directory: templates/pwa-softphone
-        run: |
-          sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
-          pnpm install --no-frozen-lockfile
-
-      - name: Build template
-        working-directory: templates/pwa-softphone
-        run: pnpm run build
-
-      - name: Create Pages project (if not exists)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: templates/pwa-softphone
-          command: pages project create vuesip-pwa-softphone --production-branch=main
-        continue-on-error: true
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: templates/pwa-softphone
-          command: pages deploy dist --project-name=vuesip-pwa-softphone --branch=main --commit-dirty=true
+    uses: ./.github/workflows/reusable-template-deploy.yml
+    secrets: inherit
+    with:
+      template_dir: templates/pwa-softphone
+      project_name: vuesip-pwa-softphone
 
   deploy-ivrtester:
     name: Deploy IVR Tester Template
@@ -175,53 +133,11 @@ jobs:
     needs: build-library
     if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'ivr-tester' || github.event.inputs.template == '')
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Download library artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vuesip-dist
-          path: dist/
-
-      - name: Install template dependencies
-        working-directory: templates/ivr-tester
-        run: |
-          sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
-          pnpm install --no-frozen-lockfile
-
-      - name: Build template
-        working-directory: templates/ivr-tester
-        run: pnpm run build
-
-      - name: Create Pages project (if not exists)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: templates/ivr-tester
-          command: pages project create vuesip-ivr-tester --production-branch=main
-        continue-on-error: true
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: templates/ivr-tester
-          command: pages deploy dist --project-name=vuesip-ivr-tester --branch=main --commit-dirty=true
+    uses: ./.github/workflows/reusable-template-deploy.yml
+    secrets: inherit
+    with:
+      template_dir: templates/ivr-tester
+      project_name: vuesip-ivr-tester
 
   deploy-videoroom:
     name: Deploy Video Room Template
@@ -229,53 +145,11 @@ jobs:
     needs: build-library
     if: github.ref == 'refs/heads/main' && (github.event.inputs.template == 'all' || github.event.inputs.template == 'video-room' || github.event.inputs.template == '')
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Download library artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vuesip-dist
-          path: dist/
-
-      - name: Install template dependencies
-        working-directory: templates/video-room
-        run: |
-          sed -i 's/"vuesip": "workspace:\*"/"vuesip": "file:..\/..\/dist"/' package.json
-          pnpm install --no-frozen-lockfile
-
-      - name: Build template
-        working-directory: templates/video-room
-        run: pnpm run build
-
-      - name: Create Pages project (if not exists)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: templates/video-room
-          command: pages project create vuesip-video-room --production-branch=main
-        continue-on-error: true
-
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: templates/video-room
-          command: pages deploy dist --project-name=vuesip-video-room --branch=main --commit-dirty=true
+    uses: ./.github/workflows/reusable-template-deploy.yml
+    secrets: inherit
+    with:
+      template_dir: templates/video-room
+      project_name: vuesip-video-room
 
   deploy-demos:
     name: Deploy Demos Landing

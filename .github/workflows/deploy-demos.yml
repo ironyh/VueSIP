@@ -13,25 +13,44 @@ jobs:
     name: Build and Deploy Demos Landing
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    concurrency:
+      group: pages-demos-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create Pages project (if not exists)
-        uses: cloudflare/wrangler-action@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: demos
-          command: pages project create vuesip-demos --production-branch=main
-        continue-on-error: true
+          version: 9
 
-      - name: Deploy static landing
-        uses: cloudflare/wrangler-action@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: demos
-          command: pages deploy . --project-name=vuesip-demos --branch=main --commit-dirty=true
+          node-version: 20
+          cache: pnpm
+
+      - name: Create Pages project (if not exists)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm exec wrangler pages project create vuesip-demos --production-branch=main || true
+
+      - name: Deploy static landing (with retry)
+        uses: nick-fields/retry@v3
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 20
+          command: >-
+            pnpm exec wrangler pages deploy demos
+            --project-name=vuesip-demos
+            --branch=main
+            --commit-dirty=true
 
