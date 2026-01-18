@@ -161,18 +161,25 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create Pages project (if not exists)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: demos
-          command: pages project create vuesip-demos --production-branch=main
-        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm exec wrangler pages project create vuesip-demos --production-branch=main || true
+        working-directory: demos
 
-      - name: Deploy static landing
-        uses: cloudflare/wrangler-action@v3
+      - name: Deploy static landing (with retry)
+        uses: nick-fields/retry@v3
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: demos
-          command: pages deploy . --project-name=vuesip-demos --branch=main --commit-dirty=true
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 20
+          command: >-
+            pnpm exec wrangler pages deploy .
+            --project-name=vuesip-demos
+            --branch=main
+            --commit-dirty=true
+        working-directory: demos
