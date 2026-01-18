@@ -117,6 +117,7 @@
     "docs:api:watch": "typedoc --watch",
     "docs:all": "pnpm run docs:api && pnpm run docs:build",
     "typecheck": "tsc --noEmit",
+    "smoke:template:minimal": "node scripts/smoke-template-build.mjs templates/minimal",
     "type-check": "vue-tsc --noEmit",
     "prepare": "husky"
   },
