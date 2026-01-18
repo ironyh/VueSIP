@@ -1,5 +1,7 @@
 name: Enterprise PR Coverage Gate
 
+# Ensures enterprise package meets coverage thresholds on PRs.
+
 on:
   pull_request:
     branches: [ main, develop ]
@@ -11,6 +13,11 @@ jobs:
   coverage:
     name: Enterprise Coverage
     runs-on: ubuntu-latest
+    env:
+      LINES_MIN: '80'
+      STATEMENTS_MIN: '80'
+      FUNCTIONS_MIN: '80'
+      BRANCHES_MIN: '70'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,6 +40,34 @@ jobs:
         run: |
           cd packages/enterprise
           pnpm test:coverage
+      - name: Verify coverage thresholds
+        if: always()
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = 'packages/enterprise/coverage/coverage-summary.json';
+          if (!fs.existsSync(path)) { console.error('coverage-summary.json not found'); process.exit(1); }
+          const s = JSON.parse(fs.readFileSync(path, 'utf8')).total;
+          const need = {
+            lines: parseFloat(process.env.LINES_MIN),
+            statements: parseFloat(process.env.STATEMENTS_MIN),
+            functions: parseFloat(process.env.FUNCTIONS_MIN),
+            branches: parseFloat(process.env.BRANCHES_MIN),
+          };
+          const got = {
+            lines: s.lines?.pct ?? 0,
+            statements: s.statements?.pct ?? 0,
+            functions: s.functions?.pct ?? 0,
+            branches: s.branches?.pct ?? 0,
+          };
+          const fails = Object.entries(need).filter(([k,v]) => (got[k]||0) < v);
+          if (fails.length) {
+            console.error('Coverage thresholds not met:', { need, got });
+            process.exit(1);
+          } else {
+            console.log('Coverage OK:', { need, got });
+          }
+          "
 
       - name: Upload coverage artifact
         if: always()
@@ -43,6 +78,7 @@ jobs:
 
       - name: Comment coverage summary
         if: always()
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
@@ -57,10 +93,10 @@ jobs:
             const md = [
               '### Enterprise Coverage Summary',
               '',
-              `- Lines: ${s.lines?.pct ?? 'n/a'}%`,
-              `- Statements: ${s.statements?.pct ?? 'n/a'}%`,
-              `- Functions: ${s.functions?.pct ?? 'n/a'}%`,
-              `- Branches: ${s.branches?.pct ?? 'n/a'}%`,
+              `- Lines: ${s.lines?.pct ?? 'n/a'}% (min ${process.env.LINES_MIN}%)`,
+              `- Statements: ${s.statements?.pct ?? 'n/a'}% (min ${process.env.STATEMENTS_MIN}%)`,
+              `- Functions: ${s.functions?.pct ?? 'n/a'}% (min ${process.env.FUNCTIONS_MIN}%)`,
+              `- Branches: ${s.branches?.pct ?? 'n/a'}% (min ${process.env.BRANCHES_MIN}%)`,
             ].join('\n');
             await github.rest.issues.createComment({
               owner: context.repo.owner,

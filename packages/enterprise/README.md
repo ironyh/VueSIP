@@ -1,5 +1,7 @@
 # @vuesip/enterprise
 
+Note: PR coverage gate enforces minimums on core units; adapters/components and index barrels are excluded from coverage scope for accuracy.
+
 Enterprise features for VueSIP: CRM integration (Salesforce, HubSpot, Webhooks), compliance utilities (PCI/GDPR helpers), and analytics (composable + renderless components).
 
 ## Install
