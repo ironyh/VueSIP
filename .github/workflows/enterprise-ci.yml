@@ -36,6 +36,12 @@ jobs:
       - name: Lint (enterprise)
         run: pnpm -C packages/enterprise lint
 
-      - name: Unit tests (enterprise)
-        run: pnpm -C packages/enterprise test
+      - name: Unit tests with coverage (enterprise)
+        run: pnpm -C packages/enterprise test:coverage
+
+      - name: Upload enterprise coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-coverage
+          path: packages/enterprise/coverage/
 
