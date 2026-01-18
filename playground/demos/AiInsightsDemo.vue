@@ -246,7 +246,7 @@
               <div v-else class="rule-list">
                 <div v-for="rule in enabledRules" :key="rule.id" class="rule-item">
                   <span class="rule-name">{{ rule.name }}</span>
-                  <Tag :value="rule.priority" size="small" />
+                  <Tag :value="String(rule.priority)" size="small" />
                 </div>
               </div>
             </Panel>
@@ -256,7 +256,7 @@
               <div v-else class="rule-list">
                 <div v-for="rule in disabledRules" :key="rule.id" class="rule-item muted">
                   <span class="rule-name">{{ rule.name }}</span>
-                  <Tag :value="rule.priority" size="small" severity="secondary" />
+                  <Tag :value="String(rule.priority)" size="small" severity="secondary" />
                 </div>
               </div>
             </Panel>
@@ -366,7 +366,6 @@ const {
 } = useCallSummary()
 
 const {
-  rules, // eslint-disable-line @typescript-eslint/no-unused-vars
   ruleCount,
   hasRules,
   enabledRulesCount,
@@ -378,7 +377,6 @@ const {
   enableAllRules,
   disableAllRules,
   addRule,
-  reset: resetRouting, // eslint-disable-line @typescript-eslint/no-unused-vars
 } = useSmartRouting()
 
 // =============================================================================

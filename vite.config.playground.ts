@@ -24,7 +24,6 @@ export default defineConfig({
       '@/stores': resolve(__dirname, 'src/stores'),
       '@/plugins': resolve(__dirname, 'src/plugins'),
       '@/providers': resolve(__dirname, 'src/providers'),
-      '@/codecs': resolve(__dirname, 'src/codecs'),
     },
   },
 
@@ -74,5 +73,6 @@ export default defineConfig({
   // Optimize dependency pre-bundling
   optimizeDeps: {
     include: ['vue', 'pinia', 'primevue/config'],
+    exclude: ['vuesip'],
   },
 })
