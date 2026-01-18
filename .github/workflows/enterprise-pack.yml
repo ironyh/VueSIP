@@ -27,7 +27,7 @@ jobs:
 
       - name: Install deps (enterprise)
         working-directory: packages/enterprise
-        run: npm ci
+        run: npm install
 
       - name: Build enterprise package
         working-directory: packages/enterprise
