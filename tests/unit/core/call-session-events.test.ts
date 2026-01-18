@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { CallSession } from '@/core/CallSession'
 import { EventBus } from '@/core/EventBus'
+import { TerminationCause } from '@/types/call.types'
 
 function createMockRtcSession() {
   const handlers: Record<string, Function[]> = {}
@@ -117,5 +118,50 @@ describe('CallSession event emissions', () => {
     pc.ontrack?.({ track: remoteTrack })
 
     expect(count).toBeGreaterThanOrEqual(1)
+  })
+
+  it('maps ended cause BYE to TerminationCause.Bye', () => {
+    const session = makeSession()
+    let endedCause: TerminationCause | undefined
+    eventBus.on('call:ended', (evt: any) => {
+      endedCause = evt.cause as TerminationCause
+    })
+
+    rtcSession.emit('ended', { cause: 'BYE', originator: 'remote' })
+
+    expect(session.terminationCause).toBe('bye')
+    expect(endedCause).toBe('bye')
+  })
+
+  it('maps failed cause Busy to TerminationCause.Busy and exposes responseCode', () => {
+    const session = makeSession()
+    let failed: { cause?: TerminationCause; responseCode?: number } = {}
+    eventBus.on('call:failed', (evt: any) => {
+      failed = { cause: evt.cause as TerminationCause, responseCode: evt.responseCode }
+    })
+
+    rtcSession.emit('failed', { cause: 'Busy', response: { status_code: 486 } })
+
+    expect(session.terminationCause).toBe('busy')
+    expect(failed.cause).toBe('busy')
+    expect(failed.responseCode).toBe(486)
+  })
+
+  it('maps failed cause Request Timeout to TerminationCause.RequestTimeout', () => {
+    const session = makeSession()
+    rtcSession.emit('failed', { cause: 'Request Timeout' })
+    expect(session.terminationCause).toBe('request_timeout')
+  })
+
+  it('maps failed cause WebRTC Error to TerminationCause.WebRtcError', () => {
+    const session = makeSession()
+    rtcSession.emit('failed', { cause: 'WebRTC Error' })
+    expect(session.terminationCause).toBe('webrtc_error')
+  })
+
+  it('maps unknown cause to TerminationCause.Other', () => {
+    const session = makeSession()
+    rtcSession.emit('failed', { cause: 'SomethingElse' })
+    expect(session.terminationCause).toBe('other')
   })
 })
