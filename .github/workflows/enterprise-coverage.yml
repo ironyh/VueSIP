@@ -1,0 +1,68 @@
+name: Enterprise PR Coverage Gate
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'packages/enterprise/**'
+      - '.github/workflows/enterprise-coverage.yml'
+
+jobs:
+  coverage:
+    name: Enterprise Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run enterprise tests with coverage
+        run: pnpm -C packages/enterprise test:coverage
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-coverage
+          path: packages/enterprise/coverage/
+
+      - name: Comment coverage summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'packages/enterprise/coverage/coverage-summary.json';
+            if (!fs.existsSync(path)) {
+              core.info('No coverage summary found');
+              return;
+            }
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const s = data.total || {};
+            const md = [
+              '### Enterprise Coverage Summary',
+              '',
+              `- Lines: ${s.lines?.pct ?? 'n/a'}%`,
+              `- Statements: ${s.statements?.pct ?? 'n/a'}%`,
+              `- Functions: ${s.functions?.pct ?? 'n/a'}%`,
+              `- Branches: ${s.branches?.pct ?? 'n/a'}%`,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: md,
+            });
