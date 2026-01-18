@@ -21,7 +21,7 @@ import { networkSimulatorExample } from './network-simulator'
 import { screenSharingExample } from './screen-sharing'
 import { transcriptionExample } from './transcription'
 import { pictureInPictureExample } from './picture-in-picture'
-import { clickToCallWidgetExample } from './click-to-call-widget'
+import { callSessionPiPExample } from './call-session-pip'
 import { callWaitingExample } from './call-waiting'
 import { sipMessagingExample } from './sip-messaging'
 import { presenceExample } from './presence'
@@ -54,16 +54,13 @@ import { confBridgeExample } from './confbridge'
 import { pjsipExample } from './pjsip'
 import { systemHealthExample } from './system-health'
 import { mwiExample } from './mwi'
-import { codecsExample } from './codecs'
 import { aiInsightsExample } from './ai-insights'
-import { callSessionPiPExample } from './call-session-pip'
 import type { ExampleCategory } from './types'
 
 // SIP Features - Core WebRTC/SIP functionality
 export const sipExamples = [
   basicCallExample,
   videoCallExample,
-  clickToCallWidgetExample,
   dtmfExample,
   audioDevicesExample,
   callTransferExample,
@@ -107,7 +104,6 @@ export const amiExamples = [
   timeConditionsExample,
   featureCodesExample,
   callbackExample,
-  clickToCallExample,
   confBridgeExample,
   pjsipExample,
   systemHealthExample,
@@ -117,7 +113,6 @@ export const amiExamples = [
 // Utility Features - Settings, helpers, and tools
 export const utilityExamples = [
   settingsExample,
-  codecsExample,
   callHistoryExample,
   speedDialExample,
   contactsExample,
@@ -125,6 +120,7 @@ export const utilityExamples = [
   autoAnswerExample,
   customRingtonesExample,
   blacklistExample,
+  clickToCallExample,
   e911Example,
   toolbarLayoutsExample,
   networkSimulatorExample,
