@@ -77,6 +77,7 @@ import type {
   PresenceUnsubscribeEvent,
 } from '@/types/events.types'
 import { createLogger } from '@/utils/logger'
+import { SipEventNames } from '@/types/event-names'
 import { validateSipConfig } from '@/utils/validators'
 import { USER_AGENT } from '@/utils/constants'
 
@@ -300,7 +301,7 @@ export class SipClient {
         this.updateConnectionState(ConnectionState.Connected)
 
         // Emit success events
-        this.eventBus.emitSync('sip:connected', {
+        this.eventBus.emitSync(SipEventNames.Connected, {
           type: 'sip:connected',
           timestamp: new Date(),
           transport: this.config.uri,
@@ -439,7 +440,7 @@ export class SipClient {
         this.updateConnectionState(ConnectionState.Disconnected)
         this.updateRegistrationState(RegistrationState.Unregistered)
 
-        this.eventBus.emitSync('sip:disconnected', {
+        this.eventBus.emitSync(SipEventNames.Disconnected, {
           type: 'sip:disconnected',
           timestamp: new Date(),
         } satisfies SipDisconnectedEvent)
@@ -756,7 +757,7 @@ export class SipClient {
       this.updateRegistrationState(RegistrationState.Registered)
       this.state.registeredUri = this.config.sipUri
       this.state.lastRegistrationTime = new Date()
-      this.eventBus.emitSync('sip:registered', {
+      this.eventBus.emitSync(SipEventNames.Registered, {
         type: 'sip:registered',
         timestamp: new Date(),
         uri: this.config.sipUri,
@@ -769,7 +770,7 @@ export class SipClient {
       logger.info('UA unregistered')
       this.updateRegistrationState(RegistrationState.Unregistered)
       this.state.registeredUri = undefined
-      this.eventBus.emitSync('sip:unregistered', {
+      this.eventBus.emitSync(SipEventNames.Unregistered, {
         type: 'sip:unregistered',
         timestamp: new Date(),
         cause: event?.cause,
@@ -780,7 +781,7 @@ export class SipClient {
       const event = e as JsSIPRegistrationFailedEvent
       logger.error('UA registration failed:', event)
       this.updateRegistrationState(RegistrationState.RegistrationFailed)
-      this.eventBus.emitSync('sip:registration_failed', {
+      this.eventBus.emitSync(SipEventNames.RegistrationFailed, {
         type: 'sip:registration_failed',
         timestamp: new Date(),
         cause: event.cause,
@@ -790,7 +791,7 @@ export class SipClient {
 
     this.ua.on('registrationExpiring', () => {
       logger.debug('Registration expiring, refreshing')
-      this.eventBus.emitSync('sip:registration_expiring', {
+      this.eventBus.emitSync(SipEventNames.RegistrationExpiring, {
         type: 'sip:registration_expiring',
         timestamp: new Date(),
       } satisfies SipRegistrationExpiringEvent)
