@@ -1,5 +1,7 @@
 name: Enterprise PR Coverage Gate
 
+# Ensures enterprise package meets coverage thresholds on PRs.
+
 on:
   pull_request:
     branches: [ main, develop ]
