@@ -291,6 +291,7 @@ export default defineConfig({
             { text: 'TypeDoc Setup', link: '/developer/typedoc-setup' },
             { text: 'Testing Guide', link: '/developer/testing' },
             { text: 'Code Style & Patterns', link: '/developer/code-style' },
+            { text: 'Event Flow & TypedEventBus', link: '/developer/event-bus' },
           ],
         },
       ],
