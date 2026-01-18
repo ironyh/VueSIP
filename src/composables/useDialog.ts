@@ -21,6 +21,7 @@ import {
   type StateDisplayOptions,
 } from '../types/presence.types'
 import { createLogger } from '../utils/logger'
+import { SipEventNames } from '@/types/event-names'
 import { validateSipUri } from '../utils/validators'
 
 const log = createLogger('useDialog')
@@ -173,8 +174,8 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
     // Listen for dialog NOTIFY events
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Event handler receives varied data structure
     const notifyHandler = (data: any) => handleDialogNotify(data)
-    eventBus.on('sip:dialog:notify', notifyHandler)
-    cleanupFunctions.push(() => eventBus.off('sip:dialog:notify', notifyHandler))
+    eventBus.on(SipEventNames.DialogNotify, notifyHandler)
+    cleanupFunctions.push(() => eventBus.off(SipEventNames.DialogNotify, notifyHandler))
 
     // Listen for subscription events
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Event handler receives varied data structure
@@ -197,8 +198,8 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
         })
       }
     }
-    eventBus.on('sip:dialog:subscribe', subscribeHandler)
-    cleanupFunctions.push(() => eventBus.off('sip:dialog:subscribe', subscribeHandler))
+    eventBus.on(SipEventNames.DialogSubscribe, subscribeHandler)
+    cleanupFunctions.push(() => eventBus.off(SipEventNames.DialogSubscribe, subscribeHandler))
 
     // Listen for unsubscribe events
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Event handler receives varied data structure
@@ -216,8 +217,8 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
         })
       }
     }
-    eventBus.on('sip:dialog:unsubscribe', unsubscribeHandler)
-    cleanupFunctions.push(() => eventBus.off('sip:dialog:unsubscribe', unsubscribeHandler))
+    eventBus.on(SipEventNames.DialogUnsubscribe, unsubscribeHandler)
+    cleanupFunctions.push(() => eventBus.off(SipEventNames.DialogUnsubscribe, unsubscribeHandler))
 
     // Listen for refresh events
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Event handler receives varied data structure
@@ -234,8 +235,8 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
         })
       }
     }
-    eventBus.on('sip:dialog:refreshed', refreshHandler)
-    cleanupFunctions.push(() => eventBus.off('sip:dialog:refreshed', refreshHandler))
+    eventBus.on(SipEventNames.DialogRefreshed, refreshHandler)
+    cleanupFunctions.push(() => eventBus.off(SipEventNames.DialogRefreshed, refreshHandler))
 
     log.debug('Dialog event listeners set up')
   }
@@ -308,7 +309,10 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
   /**
    * Subscribe to multiple extensions at once
    */
-  const subscribeMany = async (uris: string[], options?: DialogSubscriptionOptions): Promise<string[]> => {
+  const subscribeMany = async (
+    uris: string[],
+    options?: DialogSubscriptionOptions
+  ): Promise<string[]> => {
     const results: string[] = []
 
     for (const uri of uris) {

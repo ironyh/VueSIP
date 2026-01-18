@@ -25,6 +25,11 @@ export const SipEventNames = {
   AudioUnmuted: 'sip:audio:unmuted',
   VideoDisabled: 'sip:video:disabled',
   VideoEnabled: 'sip:video:enabled',
+  // Dialog/BLF
+  DialogNotify: 'sip:dialog:notify',
+  DialogSubscribe: 'sip:dialog:subscribe',
+  DialogUnsubscribe: 'sip:dialog:unsubscribe',
+  DialogRefreshed: 'sip:dialog:refreshed',
 } as const
 
 export type SipEventName = (typeof SipEventNames)[keyof typeof SipEventNames]
