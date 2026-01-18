@@ -12,7 +12,8 @@ jobs:
   deploy:
     name: Build and Deploy Demos Landing
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # Allow manual runs for validation on PR branches
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     concurrency:
       group: pages-demos-${{ github.ref }}
       cancel-in-progress: true
