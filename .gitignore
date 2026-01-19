@@ -67,6 +67,10 @@ Thumbs.db
 # TypeDoc generated documentation
 docs/api/generated/
 
+# Local docs drafts / scratchpads
+/docs/PRIMEVUE_PRIMEBLOCKS_BEST_PRACTICES.md
+
+
 # MCP Configuration (contains sensitive tokens)
 .mcp.json
 
