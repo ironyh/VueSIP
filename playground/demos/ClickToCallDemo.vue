@@ -21,232 +21,352 @@
     />
 
     <!-- Configuration Panel -->
-    <div v-if="!isAmiConnected" class="config-panel">
-      <h3>AMI Click-to-Call (Agent-First)</h3>
-      <div class="infobox">
-        <p>
-          <strong>What this is:</strong> Agent-first click-to-call via Asterisk AMI. Your desk
-          phone/softphone rings first; when you answer, the PBX dials the destination.
-        </p>
-        <p>
-          <strong>When to use:</strong> CRM integrations, call-center flows, server-originated
-          dialing. <em>No browser media required.</em>
-        </p>
-        <p>
-          <strong>Looking for a browser SIP widget?</strong> Try the
-          <em>Click-to-Call Widget</em> example in the SIP section.
-        </p>
-        <button class="link-btn" @click="goSipWidget">Open SIP Click-to-Call Widget</button>
-      </div>
+    <!-- Design Decision: Card component structures the configuration panel. Message component
+         for info box and errors. InputText and Button components for form controls. -->
+    <Card v-if="!isAmiConnected" class="config-panel">
+      <template #title>AMI Click-to-Call (Agent-First)</template>
+      <template #content>
+        <Message severity="info" :closable="false" class="infobox mb-4">
+          <p>
+            <strong>What this is:</strong> Agent-first click-to-call via Asterisk AMI. Your desk
+            phone/softphone rings first; when you answer, the PBX dials the destination.
+          </p>
+          <p>
+            <strong>When to use:</strong> CRM integrations, call-center flows, server-originated
+            dialing. <em>No browser media required.</em>
+          </p>
+          <p>
+            <strong>Looking for a browser SIP widget?</strong> Try the
+            <em>Click-to-Call Widget</em> example in the SIP section.
+          </p>
+          <Button
+            label="Open SIP Click-to-Call Widget"
+            @click="goSipWidget"
+            severity="secondary"
+            text
+            size="small"
+            class="mt-2"
+          />
+        </Message>
 
-      <div class="form-group">
-        <label for="ami-url">AMI WebSocket URL</label>
-        <input
-          id="ami-url"
-          v-model="amiConfig.url"
-          type="text"
-          placeholder="ws://pbx.example.com:8080"
-          :disabled="connecting"
+        <div class="form-group">
+          <label for="ami-url">AMI WebSocket URL</label>
+          <InputText
+            id="ami-url"
+            v-model="amiConfig.url"
+            placeholder="ws://pbx.example.com:8080"
+            :disabled="connecting"
+            class="w-full"
+            aria-required="true"
+            aria-describedby="ami-url-hint"
+          />
+          <small id="ami-url-hint">amiws WebSocket proxy URL</small>
+        </div>
+
+        <Button
+          :label="connecting ? 'Connecting...' : 'Connect to AMI'"
+          :disabled="!amiConfig.url || connecting"
+          @click="handleConnect"
+          icon="pi pi-plug"
+          class="w-full"
         />
-        <small>amiws WebSocket proxy URL</small>
-      </div>
 
-      <button
-        class="btn btn-primary"
-        :disabled="!amiConfig.url || connecting"
-        @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
-
-      <div v-if="connectionError" class="error-message">
-        {{ connectionError }}
-      </div>
-    </div>
+        <Message v-if="connectionError" severity="error" :closable="false" class="mt-3">
+          {{ connectionError }}
+        </Message>
+      </template>
+    </Card>
 
     <!-- Connected Interface -->
     <div v-else class="connected-interface">
       <!-- Status Bar -->
-      <div class="status-bar">
-        <div class="status-item">
-          <span class="status-dot connected"></span>
-          <span>AMI Connected</span>
-        </div>
-        <div class="status-item">
-          <span>Active Calls: {{ callCount }}</span>
-        </div>
-        <div class="status-item">
-          <span>Dialing: {{ dialingCount }}</span>
-        </div>
-        <div class="status-item">
-          <span>Total Duration: {{ formatTotalDuration }}</span>
-        </div>
-        <div v-if="lastRefresh" class="status-item">
-          <span class="last-refresh">Last: {{ formatLastRefresh }}</span>
-        </div>
-        <button class="btn btn-sm btn-secondary" @click="handleRefresh" :disabled="loading">
-          🔄 Refresh
-        </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
-      </div>
+      <!-- Design Decision: Card component structures status bar. Badge component for connection status.
+           Button components with secondary severity for actions. -->
+      <Card class="status-bar">
+        <template #content>
+          <div class="flex align-items-center gap-3 flex-wrap">
+            <div class="status-item">
+              <Badge value="AMI Connected" severity="success" />
+            </div>
+            <div class="status-item">
+              <span>Active Calls: {{ callCount }}</span>
+            </div>
+            <div class="status-item">
+              <span>Dialing: {{ dialingCount }}</span>
+            </div>
+            <div class="status-item">
+              <span>Total Duration: {{ formatTotalDuration }}</span>
+            </div>
+            <div v-if="lastRefresh" class="status-item">
+              <span class="last-refresh">Last: {{ formatLastRefresh }}</span>
+            </div>
+            <Button
+              label="Refresh"
+              @click="handleRefresh"
+              :disabled="loading"
+              icon="pi pi-refresh"
+              severity="secondary"
+              size="small"
+            />
+            <Button
+              label="Disconnect"
+              @click="handleDisconnect"
+              icon="pi pi-sign-out"
+              severity="secondary"
+              size="small"
+            />
+          </div>
+        </template>
+      </Card>
 
       <!-- Click-to-Call Form -->
-      <div class="call-form">
-        <h3>Make a Call</h3>
-        <p class="info-text">
-          Enter your extension and the destination number. Your phone will ring first, then when you
-          answer, the destination will be dialed.
-        </p>
+      <!-- Design Decision: Card component structures call form. InputText and InputNumber components
+           for form inputs. Message component for errors and results. -->
+      <Card class="call-form">
+        <template #title>Make a Call</template>
+        <template #content>
+          <p class="info-text mb-4">
+            Enter your extension and the destination number. Your phone will ring first, then when
+            you answer, the destination will be dialed.
+          </p>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="agent-channel">Your Extension/Channel</label>
-            <input
-              id="agent-channel"
-              v-model="agentChannel"
-              type="text"
-              placeholder="SIP/1000 or PJSIP/1000"
+          <div class="form-row">
+            <div class="form-group">
+              <label for="agent-channel">Your Extension/Channel</label>
+              <InputText
+                id="agent-channel"
+                v-model="agentChannel"
+                placeholder="SIP/1000 or PJSIP/1000"
+                class="w-full"
+                aria-required="true"
+                aria-describedby="agent-channel-hint"
+              />
+              <small id="agent-channel-hint">Your SIP channel (e.g., SIP/1000, PJSIP/100)</small>
+            </div>
+
+            <div class="form-group">
+              <label for="destination">Destination Number</label>
+              <InputText
+                id="destination"
+                v-model="destination"
+                placeholder="18005551234"
+                class="w-full"
+                aria-required="true"
+                aria-describedby="destination-hint"
+              />
+              <small id="destination-hint">Number to dial after you answer</small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="caller-id">Caller ID (Optional)</label>
+              <InputText
+                id="caller-id"
+                v-model="callerId"
+                placeholder="Sales <1000>"
+                class="w-full"
+                aria-describedby="caller-id-hint"
+              />
+              <small id="caller-id-hint">Caller ID to present to the destination</small>
+            </div>
+
+            <div class="form-group">
+              <label for="timeout">Ring Timeout (seconds)</label>
+              <InputNumber
+                id="timeout"
+                v-model="timeout"
+                :min="10"
+                :max="120"
+                class="w-full"
+                aria-describedby="timeout-hint"
+              />
+              <small id="timeout-hint">How long to ring before giving up</small>
+            </div>
+          </div>
+
+          <div class="call-actions">
+            <Button
+              :label="calling ? 'Calling...' : 'Call Now'"
+              :disabled="!canCall || calling"
+              @click="handleCall"
+              icon="pi pi-phone"
+              size="large"
+              class="w-full"
             />
-            <small>Your SIP channel (e.g., SIP/1000, PJSIP/100)</small>
           </div>
 
-          <div class="form-group">
-            <label for="destination">Destination Number</label>
-            <input id="destination" v-model="destination" type="text" placeholder="18005551234" />
-            <small>Number to dial after you answer</small>
-          </div>
-        </div>
+          <Message v-if="callError" severity="error" :closable="false" class="mt-3">
+            {{ callError }}
+          </Message>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="caller-id">Caller ID (Optional)</label>
-            <input id="caller-id" v-model="callerId" type="text" placeholder="Sales <1000>" />
-            <small>Caller ID to present to the destination</small>
-          </div>
-
-          <div class="form-group">
-            <label for="timeout">Ring Timeout (seconds)</label>
-            <input id="timeout" v-model.number="timeout" type="number" min="10" max="120" />
-            <small>How long to ring before giving up</small>
-          </div>
-        </div>
-
-        <div class="call-actions">
-          <button
-            class="btn btn-primary btn-lg"
-            :disabled="!canCall || calling"
-            @click="handleCall"
+          <Message
+            v-if="lastCallResult"
+            :severity="lastCallResult.success ? 'success' : 'error'"
+            :closable="false"
+            class="call-result mt-3"
           >
-            {{ calling ? 'Calling...' : 'Call Now' }}
-          </button>
-        </div>
-
-        <div v-if="callError" class="error-message">
-          {{ callError }}
-        </div>
-
-        <div v-if="lastCallResult" class="call-result" :class="{ success: lastCallResult.success }">
-          <strong>{{ lastCallResult.success ? 'Call Initiated' : 'Call Failed' }}</strong>
-          <p v-if="lastCallResult.message">{{ lastCallResult.message }}</p>
-          <p v-if="lastCallResult.channel">Channel: {{ lastCallResult.channel }}</p>
-        </div>
-      </div>
+            <strong>{{ lastCallResult.success ? 'Call Initiated' : 'Call Failed' }}</strong>
+            <p v-if="lastCallResult.message" class="mb-0">{{ lastCallResult.message }}</p>
+            <p v-if="lastCallResult.channel" class="mb-0">Channel: {{ lastCallResult.channel }}</p>
+          </Message>
+        </template>
+      </Card>
 
       <!-- Quick Dial -->
-      <div class="quick-dial">
-        <h3>Quick Dial</h3>
-        <p class="info-text">Click a number to dial it quickly.</p>
-        <div class="quick-dial-buttons">
-          <button
-            v-for="number in quickDialNumbers"
-            :key="number.label"
-            class="btn btn-quick"
-            @click="quickDial(number.number)"
-          >
-            {{ number.label }}
-            <span class="quick-number">{{ number.number }}</span>
-          </button>
-        </div>
-      </div>
+      <!-- Design Decision: Card component structures quick dial section. Button components with
+           secondary severity for quick dial buttons. -->
+      <Card class="quick-dial">
+        <template #title>Quick Dial</template>
+        <template #content>
+          <p class="info-text mb-3">Click a number to dial it quickly.</p>
+          <div class="quick-dial-buttons">
+            <Button
+              v-for="number in quickDialNumbers"
+              :key="number.label"
+              :label="number.label"
+              @click="quickDial(number.number)"
+              severity="secondary"
+              class="btn-quick"
+            >
+              <template #default>
+                <div class="flex flex-column align-items-center gap-1">
+                  <span>{{ number.label }}</span>
+                  <span class="quick-number">{{ number.number }}</span>
+                </div>
+              </template>
+            </Button>
+          </div>
+        </template>
+      </Card>
 
       <!-- Active Calls -->
-      <div class="active-calls">
-        <h3>Active Calls ({{ callCount }})</h3>
+      <!-- Design Decision: Card component structures active calls section. Tag components for
+           call state badges with dynamic severity. Button components for call actions. -->
+      <Card class="active-calls">
+        <template #title>Active Calls ({{ callCount }})</template>
+        <template #content>
+          <div v-if="callList.length === 0" class="empty-state">
+            <p>No active calls</p>
+          </div>
 
-        <div v-if="callList.length === 0" class="empty-state">
-          <p>No active calls</p>
-        </div>
-
-        <div v-else class="calls-list">
-          <div
-            v-for="call in callList"
-            :key="call.uniqueId"
-            class="call-card"
-            :class="getCallStateClass(call.state)"
-          >
-            <div class="call-info">
-              <div class="call-parties">
-                <span class="caller">{{ call.callerIdName || call.callerIdNum }}</span>
-                <span class="arrow">→</span>
-                <span class="callee">{{
-                  call.connectedLineName || call.connectedLineNum || 'Dialing...'
-                }}</span>
+          <div v-else class="calls-list">
+            <div
+              v-for="call in callList"
+              :key="call.uniqueId"
+              class="call-card"
+              :class="getCallStateClass(call.state)"
+            >
+              <div class="call-info">
+                <div class="call-parties">
+                  <span class="caller">{{ call.callerIdName || call.callerIdNum }}</span>
+                  <span class="arrow">→</span>
+                  <span class="callee">{{
+                    call.connectedLineName || call.connectedLineNum || 'Dialing...'
+                  }}</span>
+                </div>
+                <div class="call-details">
+                  <span class="channel">{{ call.channel }}</span>
+                  <span class="duration">{{ formatDuration(call.duration) }}</span>
+                </div>
               </div>
-              <div class="call-details">
-                <span class="channel">{{ call.channel }}</span>
-                <span class="duration">{{ formatDuration(call.duration) }}</span>
+              <div class="call-state">
+                <Tag
+                  :value="call.stateDesc"
+                  :severity="
+                    call.state === ChannelState.Up
+                      ? 'success'
+                      : call.state === ChannelState.Ringing || call.state === ChannelState.Ring
+                        ? 'info'
+                        : 'secondary'
+                  "
+                />
               </div>
-            </div>
-            <div class="call-state">
-              <span class="state-badge" :class="getCallStateClass(call.state)">
-                {{ call.stateDesc }}
-              </span>
-            </div>
-            <div class="call-actions">
-              <button class="btn btn-sm btn-danger" @click="handleHangup(call.uniqueId)">
-                Hangup
-              </button>
-              <button class="btn btn-sm btn-secondary" @click="showTransfer(call)">Transfer</button>
+              <div class="call-actions">
+                <Button
+                  label="Hangup"
+                  @click="handleHangup(call.uniqueId)"
+                  icon="pi pi-times"
+                  severity="danger"
+                  size="small"
+                />
+                <Button
+                  label="Transfer"
+                  @click="showTransfer(call)"
+                  icon="pi pi-arrow-right"
+                  severity="secondary"
+                  size="small"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </template>
+      </Card>
 
       <!-- Transfer Dialog -->
-      <div v-if="transferTarget" class="dialog-overlay" @click.self="cancelTransfer">
-        <div class="dialog">
-          <h3>Transfer Call</h3>
-          <p>Transfer {{ transferTarget.callerIdNum }} to:</p>
-          <div class="form-group">
-            <input
-              v-model="transferDestination"
-              type="text"
-              placeholder="Extension or number"
-              @keyup.enter="handleTransfer"
-            />
-          </div>
-          <div class="dialog-actions">
-            <button
-              class="btn btn-primary"
-              @click="handleTransfer"
-              :disabled="!transferDestination"
-            >
-              Transfer
-            </button>
-            <button class="btn btn-secondary" @click="cancelTransfer">Cancel</button>
-          </div>
+      <!-- Design Decision: Dialog component provides modal functionality for transfer dialog.
+           InputText and Button components for form controls. -->
+      <Dialog
+        v-model:visible="transferDialogVisible"
+        modal
+        header="Transfer Call"
+        :style="{ width: '400px' }"
+        @hide="cancelTransfer"
+      >
+        <p>Transfer {{ transferTarget?.callerIdNum }} to:</p>
+        <div class="form-group">
+          <InputText
+            v-model="transferDestination"
+            placeholder="Extension or number"
+            @keyup.enter="handleTransfer"
+            class="w-full"
+            autofocus
+          />
         </div>
-      </div>
+        <template #footer>
+          <Button label="Cancel" @click="cancelTransfer" severity="secondary" icon="pi pi-times" />
+          <Button
+            label="Transfer"
+            @click="handleTransfer"
+            :disabled="!transferDestination"
+            icon="pi pi-arrow-right"
+          />
+        </template>
+      </Dialog>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * Click-to-Call Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Card components to structure sections for better visual hierarchy
+ * - Button components with appropriate severity (primary, secondary, danger) provide semantic meaning
+ * - InputText and InputNumber components for form inputs with proper validation states
+ * - Badge components for status indicators provide consistent styling
+ * - Message component for error messages ensures consistent error styling
+ * - Dialog component for transfer dialog provides modal functionality
+ * - Tag components for call state badges provide clear visual feedback
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, onMounted, watch } from 'vue'
-import { useAmi, useAmiCalls, type ActiveCall } from '../../src'
+import { useAmi, useAmiCalls } from '../../src'
+import type { ActiveCall } from '../../src/composables/useAmiCalls'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 import { ChannelState, type OriginateResult } from '../../src/types/ami.types'
+import {
+  Button,
+  InputText,
+  InputNumber,
+  Card,
+  Dialog,
+  Badge,
+  Tag,
+  Message,
+} from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -269,6 +389,14 @@ const lastCallResult = ref<OriginateResult | null>(null)
 // Transfer
 const transferTarget = ref<ActiveCall | null>(null)
 const transferDestination = ref('')
+const transferDialogVisible = computed({
+  get: () => transferTarget.value !== null,
+  set: (value) => {
+    if (!value) {
+      cancelTransfer()
+    }
+  },
+})
 
 // Quick dial
 const quickDialNumbers = ref([
@@ -290,12 +418,12 @@ const {
 const callsComposable = ref<ReturnType<typeof useAmiCalls> | null>(null)
 
 // Computed
-const loading = computed(() => callsComposable.value?.loading.value ?? false)
-const callList = computed(() => callsComposable.value?.callList.value ?? [])
-const callCount = computed(() => callsComposable.value?.callCount.value ?? 0)
-const dialingCount = computed(() => callsComposable.value?.dialingCalls.value.length ?? 0)
-const totalDuration = computed(() => callsComposable.value?.totalDuration.value ?? 0)
-const lastRefresh = computed(() => callsComposable.value?.lastRefresh.value ?? null)
+const loading = computed(() => callsComposable.value?.loading ?? false)
+const callList = computed(() => callsComposable.value?.callList ?? [])
+const callCount = computed(() => callsComposable.value?.callCount ?? 0)
+const dialingCount = computed(() => callsComposable.value?.dialingCalls.length ?? 0)
+const totalDuration = computed(() => callsComposable.value?.totalDuration ?? 0)
+const lastRefresh = computed(() => callsComposable.value?.lastRefresh ?? null)
 
 const formatTotalDuration = computed(() => {
   const secs = totalDuration.value
@@ -363,7 +491,9 @@ async function handleConnect() {
       })
 
       // Initial refresh
-      await callsComposable.value.refresh()
+      if (callsComposable.value) {
+        await callsComposable.value.refresh()
+      }
     }
 
     // Save URL
@@ -381,7 +511,9 @@ function handleDisconnect() {
 }
 
 async function handleRefresh() {
-  await callsComposable.value?.refresh()
+  if (callsComposable.value) {
+    await callsComposable.value.refresh()
+  }
 }
 
 async function handleCall() {
@@ -412,6 +544,7 @@ async function handleCall() {
     lastCallResult.value = {
       success: false,
       message: callError.value,
+      response: 'ERROR',
     }
   } finally {
     calling.value = false
@@ -478,6 +611,11 @@ watch(agentChannel, (value) => {
     localStorage.setItem('vuesip-agent-channel', value)
   }
 })
+
+// Navigation function
+const goSipWidget = () => {
+  window.location.hash = '#click-to-call-widget'
+}
 </script>
 
 <style scoped>
@@ -490,14 +628,11 @@ watch(agentChannel, (value) => {
   padding: 2rem;
 }
 
-.config-panel h3 {
-  margin-bottom: 1rem;
-  color: #333;
-}
+/* Card component handles config-panel h3 styling */
 
 .info-text {
   margin-bottom: 1.5rem;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -510,21 +645,19 @@ watch(agentChannel, (value) => {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-color);
 }
 
-.form-group input {
+/* Input styling now handled by PrimeVue InputText/InputNumber components */
+:deep(.p-inputtext),
+:deep(.p-inputnumber) {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
 }
 
 .form-group small {
   display: block;
   margin-top: 0.25rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 
@@ -534,41 +667,7 @@ watch(agentChannel, (value) => {
   gap: 1.5rem;
 }
 
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
+/* Button styling now handled by PrimeVue Button component */
 .infobox {
   color: var(--vp-c-text-2);
   margin: 0 0 8px;
@@ -596,30 +695,15 @@ watch(agentChannel, (value) => {
   font-size: 1.125rem;
 }
 
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
-  font-size: 0.875rem;
-}
+/* Error message styling now handled by PrimeVue Message component */
 
 /* Connected Interface */
 .connected-interface {
   padding: 2rem;
 }
 
+/* Card component handles status-bar styling */
 .status-bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
   margin-bottom: 2rem;
 }
 
@@ -630,34 +714,15 @@ watch(agentChannel, (value) => {
   font-size: 0.875rem;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #ef4444;
-}
-
-.status-dot.connected {
-  background: #10b981;
-}
-
+/* Status dot now handled by PrimeVue Badge component */
 .last-refresh {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 
-/* Call Form */
+/* Card component handles call-form styling */
 .call-form {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
   margin-bottom: 2rem;
-}
-
-.call-form h3 {
-  margin-bottom: 0.5rem;
-  color: #111827;
 }
 
 .call-actions {
@@ -665,31 +730,11 @@ watch(agentChannel, (value) => {
   margin-top: 1.5rem;
 }
 
-.call-result {
-  margin-top: 1rem;
-  padding: 1rem;
-  border-radius: 6px;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-}
+/* Call result styling now handled by PrimeVue Message component */
 
-.call-result.success {
-  background: #d1fae5;
-  border-color: #6ee7b7;
-}
-
-/* Quick Dial */
+/* Card component handles quick-dial styling */
 .quick-dial {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
   margin-bottom: 2rem;
-}
-
-.quick-dial h3 {
-  margin-bottom: 0.5rem;
-  color: #111827;
 }
 
 .quick-dial-buttons {
@@ -699,21 +744,11 @@ watch(agentChannel, (value) => {
   margin-top: 1rem;
 }
 
+/* Button component handles btn-quick styling with severity="secondary" */
 .btn-quick {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  padding: 1rem;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  color: #374151;
-}
-
-.btn-quick:hover {
-  background: #667eea;
-  color: white;
-  border-color: #667eea;
 }
 
 .quick-number {
@@ -721,26 +756,15 @@ watch(agentChannel, (value) => {
   opacity: 0.8;
 }
 
-/* Active Calls */
-.active-calls {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.active-calls h3 {
-  margin-bottom: 1rem;
-  color: #111827;
-}
+/* Card component handles active-calls styling */
 
 .empty-state {
   padding: 2rem;
   text-align: center;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
+  background: var(--surface-50);
+  border: 1px dashed var(--border-color);
   border-radius: 6px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .calls-list {
@@ -754,22 +778,22 @@ watch(agentChannel, (value) => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 6px;
-  border-left: 4px solid #e5e7eb;
+  border-left: 4px solid var(--border-color);
 }
 
 .call-card.connected {
-  border-left-color: #10b981;
+  border-left-color: var(--success);
 }
 
 .call-card.ringing {
-  border-left-color: #3b82f6;
+  border-left-color: var(--primary);
   animation: pulse 1s infinite;
 }
 
 .call-card.ended {
-  border-left-color: #6b7280;
+  border-left-color: var(--text-secondary);
   opacity: 0.7;
 }
 
@@ -792,18 +816,18 @@ watch(agentChannel, (value) => {
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
-  color: #111827;
+  color: var(--text-color);
 }
 
 .arrow {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .call-details {
   display: flex;
   gap: 1rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 
@@ -811,69 +835,14 @@ watch(agentChannel, (value) => {
   padding: 0 1rem;
 }
 
-.state-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.state-badge.connected {
-  background: #d1fae5;
-  color: #065f46;
-}
-.state-badge.ringing {
-  background: #dbeafe;
-  color: #1e40af;
-}
-.state-badge.ended {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-.state-badge.unknown {
-  background: #e5e7eb;
-  color: #374151;
-}
+/* State badge styling now handled by PrimeVue Tag component with dynamic severity */
 
 .call-actions {
   display: flex;
   gap: 0.5rem;
 }
 
-/* Dialog */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.dialog {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 400px;
-  width: 90%;
-}
-
-.dialog h3 {
-  margin-bottom: 0.5rem;
-}
-
-.dialog p {
-  color: #6b7280;
-  margin-bottom: 1rem;
-}
-
-.dialog-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 1rem;
-}
+/* Dialog styling now handled by PrimeVue Dialog component */
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -896,4 +865,3 @@ watch(agentChannel, (value) => {
   }
 }
 </style>
-function goSipWidget() { window.location.hash = '#click-to-call-widget' }

@@ -368,6 +368,19 @@ export * from './utils/notifications'
 export * from './storage'
 
 // ============================================================================
+// Codecs (Preview)
+// ============================================================================
+
+/**
+ * Codec capability inspection and preference APIs (preview).
+ *
+ * Includes `useCodecs` composable and a minimal SDP transformer for
+ * reordering audio/video codecs as a fallback when transceiver API
+ * is unavailable.
+ */
+export * from './codecs'
+
+// ============================================================================
 // Vue Plugin
 // ============================================================================
 
@@ -421,6 +434,10 @@ export interface VueSipOptions {
   userPreferences?: {
     autoAnswer?: boolean
     recordCalls?: boolean
+    notifications?: {
+      enabled?: boolean
+      swActions?: boolean
+    }
     [key: string]: unknown
   }
 
@@ -519,6 +536,21 @@ export function createVueSip(options: VueSipOptions = {}): Plugin {
       if (userPreferences) {
         configStore.setUserPreferences(userPreferences as never)
         logger.debug('User preferences initialized')
+        // Apply notifications defaults
+        try {
+          const n = (userPreferences as any).notifications
+          if (n && typeof localStorage !== 'undefined') {
+            if (typeof n.enabled === 'boolean') {
+              localStorage.setItem('vuesip_notifications_enabled', n.enabled ? 'true' : 'false')
+            }
+            if (typeof n.swActions === 'boolean') {
+              localStorage.setItem(
+                'vuesip_sw_notifications_enabled',
+                n.swActions ? 'true' : 'false'
+              )
+            }
+          }
+        } catch {}
       }
 
       // Store plugin options on app instance for access by components
