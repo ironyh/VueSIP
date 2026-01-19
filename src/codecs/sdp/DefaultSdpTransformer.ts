@@ -30,12 +30,10 @@ export class DefaultSdpTransformer implements SdpTransformer {
         // a=rtpmap:<pt> <codec>/<clock>[/channels]
         // Example: a=rtpmap:111 opus/48000/2
         const m = line.match(/^a=rtpmap:(\d+)\s+([^\s/]+)/i)
-        if (m) {
-          const pt = m[1]
-          const codec = m[2]
-          if (codec) {
-            ptToMime.set(pt, `${kind.toUpperCase()}/${codec.toUpperCase()}`)
-          }
+        if (m && m[1] && m[2]) {
+          const pt: string = m[1]
+          const codec: string = m[2]
+          ptToMime.set(pt, `${kind.toUpperCase()}/${codec.toUpperCase()}`)
         }
       }
 
@@ -45,7 +43,7 @@ export class DefaultSdpTransformer implements SdpTransformer {
       // Reorder the first m=<kind> line encountered
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]
-        if (!line.startsWith(`m=${kind}`)) continue
+        if (!line || !line.startsWith(`m=${kind}`)) continue
 
         // m=<kind> <port> <proto> <pt1> <pt2> ...
         const parts = line.split(/\s+/)
