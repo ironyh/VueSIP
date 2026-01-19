@@ -295,13 +295,13 @@
            danger for hangup) provide clear visual hierarchy. -->
         <div class="button-group">
           <Button
-            v-if="callState === 'incoming'"
+            v-if="callState === CallState.Ringing"
             label="Answer"
-            @click="answer"
+            @click="() => answer()"
             icon="pi pi-phone"
             severity="success"
           />
-          <Button label="Hang Up" @click="hangup" icon="pi pi-times" severity="danger" />
+          <Button label="Hang Up" @click="() => hangup()" icon="pi pi-times" severity="danger" />
         </div>
       </template>
     </Card>
@@ -337,6 +337,7 @@
  */
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useCallSession } from '../../src/composables/useCallSession'
+import { CallState } from '../../src/types/call.types'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
@@ -676,11 +677,11 @@ const stopMetricsMonitoring = () => {
 
 // Watch call state
 watch(callState, (newState, oldState) => {
-  if (newState === 'active' && oldState !== 'active') {
+  if (newState === CallState.Active && oldState !== CallState.Active) {
     // Call became active
     startMetricsMonitoring()
     logEvent('Call connected', 'info')
-  } else if (newState === 'terminated' || newState === 'disconnected') {
+  } else if (newState === CallState.Terminated || newState === CallState.Failed) {
     // Call ended
     stopMetricsMonitoring()
     logEvent('Call ended', 'info')
