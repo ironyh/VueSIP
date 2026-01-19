@@ -23,7 +23,7 @@ import {
   isNotificationsEnabled,
   setNotificationsEnabled,
   showIncomingCallNotification,
-} from 'vuesip/dist/utils/notifications'
+} from 'vuesip'
 
 // Phone composable
 const phone = usePhone()
