@@ -240,6 +240,8 @@ function disableNotifications() {
   notificationsEnabled.value = false
 }
 
+<<<<<<< HEAD
+=======
 async function enableSwNotifications() {
   try {
     localStorage.setItem('vuesip_sw_notifications_enabled', 'true')
@@ -264,6 +266,7 @@ async function disableSwNotifications() {
   } catch {}
 }
 
+>>>>>>> origin/main
 async function handleDisconnect() {
   try {
     await phone.disconnectPhone()
@@ -303,6 +306,13 @@ watch(
     if (!notificationsEnabled.value) return
     if (state === 'ringing' && dir === 'incoming') {
       const display = name || uri || 'Unknown'
+<<<<<<< HEAD
+      await showIncomingCallNotification({
+        title: 'Incoming call',
+        body: `From ${display}`,
+        icon: '/logo.svg',
+      })
+=======
       if (swNotificationsEnabled.value) {
         await showIncomingCallWithActions({
           title: 'Incoming call',
@@ -316,10 +326,13 @@ watch(
           icon: '/logo.svg',
         })
       }
+>>>>>>> origin/main
     }
   }
 )
 
+<<<<<<< HEAD
+=======
 // Handle deep-link actions from SW notification
 try {
   const params = new URLSearchParams(window.location.search)
@@ -335,6 +348,7 @@ try {
   }
 } catch {}
 
+>>>>>>> origin/main
 function handleTransferClick() {
   transferTarget.value = ''
   showTransferDialog.value = true
@@ -573,6 +587,7 @@ onUnmounted(async () => {
                     @click="disableNotifications"
                   />
                 </div>
+                <<<<<<< HEAD =======
                 <h4>Service Worker (Actions)</h4>
                 <p class="help-text">
                   Enable Answer/Decline buttons via Service Worker notifications.
@@ -593,6 +608,7 @@ onUnmounted(async () => {
                     @click="disableSwNotifications"
                   />
                 </div>
+                >>>>>>> origin/main
               </div>
 
               <div class="disconnect-section">
