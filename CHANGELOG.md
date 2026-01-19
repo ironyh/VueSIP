@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Types: standardize `TypedEventBus` IDs to plain strings and centralize SIP event names into `SipEventNames` constants shared by producers/consumers; updated remaining usages in dialog and client; added migration notes in docs (VueSIP-g3g)
+- Notifications: Add in-page incoming-call notifications (Phase 2) and optional Service Worker notifications with Answer/Decline actions behind feature flag (Phase 3); add NotificationManager (Phase 4) and docs/guide/notifications.md.
 
 ### Click-to-Call — Changed
 

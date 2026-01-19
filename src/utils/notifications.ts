@@ -94,3 +94,47 @@ export async function showIncomingCallWithActions(info: IncomingCallInfo): Promi
     return false
   }
 }
+
+// Centralized Notification Manager (Phase 4)
+export type NotificationStrategy = 'auto' | 'sw_actions' | 'in_page'
+
+export interface NotificationManagerConfig {
+  strategy?: NotificationStrategy
+}
+
+export class NotificationManager {
+  private strategy: NotificationStrategy
+  constructor(cfg: NotificationManagerConfig = {}) {
+    this.strategy = cfg.strategy ?? 'auto'
+  }
+  async ensurePermission(userGesture?: boolean): Promise<boolean> {
+    return ensurePermission(userGesture)
+  }
+  async notifyIncomingCall(info: IncomingCallInfo): Promise<boolean> {
+    const strat = await this.resolveStrategy()
+    if (strat === 'sw_actions') return showIncomingCallWithActions(info)
+    return showIncomingCallNotification(info)
+  }
+  private async resolveStrategy(): Promise<NotificationStrategy> {
+    if (this.strategy === 'in_page') return 'in_page'
+    if (this.strategy === 'sw_actions') {
+      const reg = await getSWRegistration()
+      return reg ? 'sw_actions' : 'in_page'
+    }
+    // auto: prefer SW actions if SW registered and permission granted
+    const reg = await getSWRegistration()
+    if (
+      reg &&
+      typeof window !== 'undefined' &&
+      'Notification' in window &&
+      Notification.permission === 'granted'
+    ) {
+      return 'sw_actions'
+    }
+    return 'in_page'
+  }
+}
+
+export function createNotificationManager(cfg?: NotificationManagerConfig): NotificationManager {
+  return new NotificationManager(cfg)
+}

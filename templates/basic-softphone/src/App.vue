@@ -18,13 +18,7 @@ import RecordingControls from './components/RecordingControls.vue'
 import { usePhone } from './composables/usePhone'
 import { useProviderSelector, version } from 'vuesip'
 import type { ProviderConfig } from 'vuesip'
-import {
-  ensurePermission,
-  isNotificationsEnabled,
-  setNotificationsEnabled,
-  showIncomingCallNotification,
-  showIncomingCallWithActions,
-} from 'vuesip'
+import { ensurePermission, isNotificationsEnabled, setNotificationsEnabled, createNotificationManager } from 'vuesip'
 
 // Phone composable
 const phone = usePhone()
@@ -52,6 +46,7 @@ const activeTab = ref(0)
 const statusMessage = ref('')
 const notificationsEnabled = ref(isNotificationsEnabled())
 const swNotificationsEnabled = ref(false)
+const notifManager = createNotificationManager({ strategy: 'auto' })
 
 // Load SW flag
 try {
@@ -313,19 +308,7 @@ watch(
         icon: '/logo.svg',
       })
 =======
-      if (swNotificationsEnabled.value) {
-        await showIncomingCallWithActions({
-          title: 'Incoming call',
-          body: `From ${display}`,
-          icon: '/logo.svg',
-        })
-      } else {
-        await showIncomingCallNotification({
-          title: 'Incoming call',
-          body: `From ${display}`,
-          icon: '/logo.svg',
-        })
-      }
+      await notifManager.notifyIncomingCall({ title: 'Incoming call', body: `From ${display}`, icon: '/logo.svg' })
 >>>>>>> origin/main
     }
   }
