@@ -4,6 +4,11 @@
 
 Add intelligent features to your calls: sentiment analysis, automatic summarization, and smart routing.
 
+> Try it live
+>
+> - Open the Playground demo: /playground/#ai-insights (select “AI-Powered Insights”)
+> - Or run locally: `pnpm dev`, navigate to Playground, and pick “AI-Powered Insights” from the Examples list
+
 ## What You'll Build
 
 - **Sentiment Analysis** - Track caller emotions in real-time
@@ -13,6 +18,38 @@ Add intelligent features to your calls: sentiment analysis, automatic summarizat
 ## Sentiment Analysis
 
 Monitor caller emotions throughout the call and receive alerts when sentiment drops.
+
+### Quick example (with transcript updates)
+
+```vue
+<script setup lang="ts">
+import { useSentiment } from 'vuesip'
+
+const {
+  currentSentiment,
+  hasActiveAlerts,
+  alertCount,
+  getSentimentLabel,
+  getDominantEmotion,
+  analyzeSentiment,
+} = useSentiment()
+
+// Call this whenever your transcription text updates
+function onTranscriptUpdate(text: string) {
+  analyzeSentiment(text)
+}
+</script>
+
+<template>
+  <div class="sentiment-quick">
+    <div class="score">
+      <span>{{ getSentimentLabel(currentSentiment) }}</span>
+      <small v-if="hasActiveAlerts">• Alerts: {{ alertCount }}</small>
+    </div>
+    <div class="emotion">Dominant: {{ getDominantEmotion() }}</div>
+  </div>
+</template>
+```
 
 ### Basic Setup
 
