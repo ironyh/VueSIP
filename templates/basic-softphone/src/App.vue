@@ -18,6 +18,13 @@ import RecordingControls from './components/RecordingControls.vue'
 import { usePhone } from './composables/usePhone'
 import { useProviderSelector, version } from 'vuesip'
 import type { ProviderConfig } from 'vuesip'
+import {
+  ensurePermission,
+  isNotificationsEnabled,
+  setNotificationsEnabled,
+  showIncomingCallNotification,
+  showIncomingCallWithActions,
+} from 'vuesip'
 
 // Phone composable
 const phone = usePhone()
@@ -43,6 +50,13 @@ const showTransferDialog = ref(false)
 const transferTarget = ref('')
 const activeTab = ref(0)
 const statusMessage = ref('')
+const notificationsEnabled = ref(isNotificationsEnabled())
+const swNotificationsEnabled = ref(false)
+
+// Load SW flag
+try {
+  swNotificationsEnabled.value = localStorage.getItem('vuesip_sw_notifications_enabled') === 'true'
+} catch {}
 
 // Auto-save credentials with debounce when form values change
 let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -215,6 +229,41 @@ async function handleConnect() {
   }
 }
 
+async function enableNotifications() {
+  const granted = await ensurePermission(true)
+  setNotificationsEnabled(granted)
+  notificationsEnabled.value = granted
+}
+
+function disableNotifications() {
+  setNotificationsEnabled(false)
+  notificationsEnabled.value = false
+}
+
+async function enableSwNotifications() {
+  try {
+    localStorage.setItem('vuesip_sw_notifications_enabled', 'true')
+    swNotificationsEnabled.value = true
+    if ('serviceWorker' in navigator) {
+      await navigator.serviceWorker.register('/sw.js')
+    }
+    if (notificationsEnabled.value === false) {
+      await enableNotifications()
+    }
+  } catch {}
+}
+
+async function disableSwNotifications() {
+  try {
+    localStorage.setItem('vuesip_sw_notifications_enabled', 'false')
+    swNotificationsEnabled.value = false
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration()
+      await reg?.unregister()
+    }
+  } catch {}
+}
+
 async function handleDisconnect() {
   try {
     await phone.disconnectPhone()
@@ -241,6 +290,50 @@ async function handleDTMF(digit: string) {
     }
   }
 }
+
+// Notify on incoming ringing
+watch(
+  () => ({
+    state: phone.callState.value,
+    dir: phone.direction.value,
+    name: phone.remoteDisplayName.value,
+    uri: phone.remoteUri.value,
+  }),
+  async ({ state, dir, name, uri }) => {
+    if (!notificationsEnabled.value) return
+    if (state === 'ringing' && dir === 'incoming') {
+      const display = name || uri || 'Unknown'
+      if (swNotificationsEnabled.value) {
+        await showIncomingCallWithActions({
+          title: 'Incoming call',
+          body: `From ${display}`,
+          icon: '/logo.svg',
+        })
+      } else {
+        await showIncomingCallNotification({
+          title: 'Incoming call',
+          body: `From ${display}`,
+          icon: '/logo.svg',
+        })
+      }
+    }
+  }
+)
+
+// Handle deep-link actions from SW notification
+try {
+  const params = new URLSearchParams(window.location.search)
+  const notifAction = params.get('notifAction')
+  if (notifAction === 'answer') {
+    setTimeout(() => {
+      if (phone.callState.value === 'ringing') phone.answerCall()
+    }, 0)
+  } else if (notifAction === 'decline') {
+    setTimeout(() => {
+      if (phone.callState.value === 'ringing') phone.rejectCall()
+    }, 0)
+  }
+} catch {}
 
 function handleTransferClick() {
   transferTarget.value = ''
@@ -461,6 +554,47 @@ onUnmounted(async () => {
                 @select-output="handleSelectAudioOutput"
               />
 
+              <div class="notif-settings">
+                <h3>Desktop Notifications</h3>
+                <p class="help-text">Show an OS notification on incoming calls.</p>
+                <div class="notif-actions">
+                  <Button
+                    v-if="!notificationsEnabled"
+                    label="Enable Notifications"
+                    icon="pi pi-bell"
+                    class="w-full"
+                    @click="enableNotifications"
+                  />
+                  <Button
+                    v-else
+                    label="Disable Notifications"
+                    icon="pi pi-bell-slash"
+                    class="p-button-secondary w-full"
+                    @click="disableNotifications"
+                  />
+                </div>
+                <h4>Service Worker (Actions)</h4>
+                <p class="help-text">
+                  Enable Answer/Decline buttons via Service Worker notifications.
+                </p>
+                <div class="notif-actions">
+                  <Button
+                    v-if="!swNotificationsEnabled"
+                    label="Enable SW Notifications"
+                    icon="pi pi-bell"
+                    class="w-full"
+                    @click="enableSwNotifications"
+                  />
+                  <Button
+                    v-else
+                    label="Disable SW Notifications"
+                    icon="pi pi-bell-slash"
+                    class="p-button-secondary w-full"
+                    @click="disableSwNotifications"
+                  />
+                </div>
+              </div>
+
               <div class="disconnect-section">
                 <Button
                   label="Disconnect"
@@ -617,6 +751,13 @@ onUnmounted(async () => {
 
 .w-full {
   width: 100%;
+}
+
+.notif-settings {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .mt-2 {
