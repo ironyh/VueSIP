@@ -15,6 +15,12 @@ import SystemStatus from './components/SystemStatus.vue'
 import { useAgent } from './composables/useAgent'
 import { useQueues } from './composables/useQueues'
 import type { KeywordMatch } from 'vuesip'
+import {
+  ensurePermission,
+  isNotificationsEnabled,
+  setNotificationsEnabled,
+  createNotificationManager,
+} from 'vuesip'
 
 // Agent composable
 const agent = useAgent()
@@ -37,6 +43,13 @@ const configForm = ref({
 // UI state
 const statusMessage = ref('')
 const activeTab = ref(0)
+const notificationsEnabled = ref(isNotificationsEnabled())
+const swNotificationsEnabled = ref(false)
+const notifManager = createNotificationManager({ strategy: 'auto' })
+
+try {
+  swNotificationsEnabled.value = localStorage.getItem('vuesip_sw_notifications_enabled') === 'true'
+} catch {}
 
 // Computed
 const isConfigValid = computed(
@@ -72,6 +85,41 @@ async function handleConnect() {
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Connection failed'
   }
+}
+
+async function enableNotifications() {
+  const granted = await ensurePermission(true)
+  setNotificationsEnabled(granted)
+  notificationsEnabled.value = granted
+}
+
+function disableNotifications() {
+  setNotificationsEnabled(false)
+  notificationsEnabled.value = false
+}
+
+async function enableSwNotifications() {
+  try {
+    localStorage.setItem('vuesip_sw_notifications_enabled', 'true')
+    swNotificationsEnabled.value = true
+    if ('serviceWorker' in navigator) {
+      await navigator.serviceWorker.register('/sw.js')
+    }
+    if (!notificationsEnabled.value) {
+      await enableNotifications()
+    }
+  } catch {}
+}
+
+async function disableSwNotifications() {
+  try {
+    localStorage.setItem('vuesip_sw_notifications_enabled', 'false')
+    swNotificationsEnabled.value = false
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration()
+      await reg?.unregister()
+    }
+  } catch {}
 }
 
 async function handleDisconnect() {
@@ -169,6 +217,26 @@ async function handleDTMF(digit: string) {
     console.error('DTMF error:', err)
   }
 }
+
+// Notify on incoming ringing
+watch(
+  () => ({
+    state: agent.callState.value,
+    name: agent.remoteDisplayName.value,
+    uri: agent.remoteUri.value,
+  }),
+  async ({ state, name, uri }) => {
+    if (!notificationsEnabled.value) return
+    if (state === 'ringing') {
+      const display = name || uri || 'Unknown'
+      await notifManager.notifyIncomingCall({
+        title: 'Incoming call',
+        body: `From ${display}`,
+        icon: '/logo.svg',
+      })
+    }
+  }
+)
 
 function handleDisposition(code: string, notes: string) {
   console.log('Disposition:', code, notes)
@@ -412,6 +480,46 @@ onUnmounted(async () => {
                 class="p-button-secondary w-full"
                 @click="handleDisconnect"
               />
+              <div class="notif-settings mt-3">
+                <h4>Desktop Notifications</h4>
+                <p class="help-text">Show an OS notification on incoming calls.</p>
+                <div class="notif-actions">
+                  <Button
+                    v-if="!notificationsEnabled"
+                    label="Enable Notifications"
+                    icon="pi pi-bell"
+                    class="w-full"
+                    @click="enableNotifications"
+                  />
+                  <Button
+                    v-else
+                    label="Disable Notifications"
+                    icon="pi pi-bell-slash"
+                    class="p-button-secondary w-full"
+                    @click="disableNotifications"
+                  />
+                </div>
+                <h4 class="mt-2">Service Worker (Actions)</h4>
+                <p class="help-text">
+                  Enable Answer/Decline buttons via Service Worker notifications.
+                </p>
+                <div class="notif-actions">
+                  <Button
+                    v-if="!swNotificationsEnabled"
+                    label="Enable SW Notifications"
+                    icon="pi pi-bell"
+                    class="w-full"
+                    @click="enableSwNotifications"
+                  />
+                  <Button
+                    v-else
+                    label="Disable SW Notifications"
+                    icon="pi pi-bell-slash"
+                    class="p-button-secondary w-full"
+                    @click="disableSwNotifications"
+                  />
+                </div>
+              </div>
             </div>
           </TabPanel>
         </TabView>

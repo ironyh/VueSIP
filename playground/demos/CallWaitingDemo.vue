@@ -24,187 +24,331 @@
     </p>
 
     <!-- Connection Status -->
+    <!-- Design Decision: Badge component for connection status provides semantic meaning.
+         Tag component for active calls count. Message component for connection hints. -->
     <div class="status-section">
-      <div :class="['status-badge', connectionState]">
-        {{ connectionState.toUpperCase() }}
-      </div>
+      <Badge
+        :value="connectionState.toUpperCase()"
+        :severity="
+          connectionState === 'connected'
+            ? 'success'
+            : connectionState === 'connecting'
+              ? 'warning'
+              : 'secondary'
+        "
+      />
       <div class="calls-indicator">
         <span class="label">Active Calls:</span>
-        <span class="value">{{ calls.length }}</span>
+        <Tag :value="calls.length.toString()" severity="info" />
       </div>
-      <div v-if="!isConnected" class="connection-hint">
+      <Message v-if="!isConnected" severity="warn" :closable="false" class="connection-hint">
         Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo
-      </div>
+      </Message>
     </div>
 
     <!-- Call Control -->
-    <div v-if="isConnected" class="call-section">
-      <h3>Make a Call</h3>
-      <div class="form-group">
-        <label>Target SIP URI</label>
-        <input
-          v-model="targetUri"
-          type="text"
-          placeholder="sip:target@example.com"
-          @keyup.enter="makeCall"
-        />
-      </div>
-      <button @click="makeCall">Make Call</button>
-    </div>
+    <!-- Design Decision: Card component structures call section. InputText and Button components
+         for form controls. -->
+    <Card v-if="isConnected" class="call-section">
+      <template #title>Make a Call</template>
+      <template #content>
+        <div class="form-group">
+          <label for="target-uri">Target SIP URI</label>
+          <InputText
+            id="target-uri"
+            v-model="targetUri"
+            placeholder="sip:target@example.com"
+            @keyup.enter="makeCall"
+            class="w-full"
+            aria-required="true"
+          />
+        </div>
+        <Button label="Make Call" @click="makeCall" icon="pi pi-phone" class="w-full" />
+      </template>
+    </Card>
 
     <!-- Active Calls List -->
-    <div v-if="calls.length > 0" class="calls-list-section">
-      <h3>Active Calls ({{ calls.length }})</h3>
-
-      <div class="calls-container">
-        <div
-          v-for="call in calls"
-          :key="call.id"
-          :class="[
-            'call-card',
-            {
-              active: call.id === activeCallId,
-              held: call.isHeld,
-              incoming: call.state === 'incoming',
-              ringing: call.state === 'ringing',
-            },
-          ]"
-        >
-          <!-- Call Header -->
-          <div class="call-header">
-            <div class="call-info">
-              <div class="call-uri">{{ call.remoteUri }}</div>
-              <div class="call-meta">
-                <span :class="['state-badge', call.state]">
-                  {{ formatState(call.state) }}
-                </span>
-                <span class="duration">{{ call.duration }}</span>
+    <!-- Design Decision: Card component structures calls list section. -->
+    <Card v-if="calls.length > 0" class="calls-list-section">
+      <template #title>Active Calls ({{ calls.length }})</template>
+      <template #content>
+        <div class="calls-container">
+          <div
+            v-for="call in calls"
+            :key="call.id"
+            :class="[
+              'call-card',
+              {
+                active: call.id === activeCallId,
+                held: call.isHeld,
+                incoming: call.state === 'incoming',
+                ringing: call.state === 'ringing',
+              },
+            ]"
+          >
+            <!-- Call Header -->
+            <div class="call-header">
+              <div class="call-info">
+                <div class="call-uri">{{ call.remoteUri }}</div>
+                <div class="call-meta">
+                  <Badge
+                    :value="formatState(call.state)"
+                    :severity="
+                      call.state === 'active'
+                        ? 'success'
+                        : call.state === 'incoming'
+                          ? 'info'
+                          : call.state === 'ringing'
+                            ? 'warning'
+                            : 'secondary'
+                    "
+                  />
+                  <span class="duration">{{ call.duration }}</span>
+                </div>
               </div>
             </div>
+
+            <!-- Call State Indicator -->
+            <!-- Design Decision: Tag components for call state indicators provide semantic meaning. -->
+            <Tag
+              v-if="call.id === activeCallId"
+              value="ACTIVE CALL"
+              severity="success"
+              class="state-indicator"
+            />
+            <Tag
+              v-else-if="call.isHeld"
+              value="ON HOLD"
+              severity="warning"
+              class="state-indicator"
+            />
+            <Tag
+              v-else-if="call.state === 'incoming'"
+              value="INCOMING..."
+              severity="info"
+              class="state-indicator"
+            />
+
+            <!-- Call Controls -->
+            <!-- Design Decision: Button components with appropriate severity (success for answer,
+               danger for reject/hangup, warning for hold, info for switch) provide clear visual hierarchy. -->
+            <div class="call-controls">
+              <!-- Incoming Call Controls -->
+              <template v-if="call.state === 'incoming'">
+                <Button
+                  label="Answer"
+                  @click="answerCall(call.id)"
+                  icon="pi pi-phone"
+                  severity="success"
+                  size="small"
+                />
+                <Button
+                  label="Answer & Hold Current"
+                  @click="answerAndHoldActive(call.id)"
+                  icon="pi pi-pause"
+                  severity="info"
+                  size="small"
+                />
+                <Button
+                  label="Reject"
+                  @click="rejectCall(call.id)"
+                  icon="pi pi-times"
+                  severity="danger"
+                  size="small"
+                />
+              </template>
+
+              <!-- Active/Held Call Controls -->
+              <template v-else-if="call.state === 'active'">
+                <Button
+                  v-if="call.id !== activeCallId"
+                  label="Switch"
+                  @click="switchToCall(call.id)"
+                  icon="pi pi-refresh"
+                  severity="info"
+                  size="small"
+                />
+                <Button
+                  v-if="!call.isHeld"
+                  label="Hold"
+                  @click="holdCall(call.id)"
+                  icon="pi pi-pause"
+                  severity="warning"
+                  size="small"
+                />
+                <Button
+                  v-if="call.isHeld"
+                  label="Resume"
+                  @click="resumeCall(call.id)"
+                  icon="pi pi-play"
+                  severity="success"
+                  size="small"
+                />
+                <Button
+                  :label="call.isMuted ? 'Unmute' : 'Mute'"
+                  @click="muteCall(call.id)"
+                  :icon="call.isMuted ? 'pi pi-volume-up' : 'pi pi-volume-down'"
+                  severity="secondary"
+                  size="small"
+                />
+                <Button
+                  label="Hangup"
+                  @click="hangupCall(call.id)"
+                  icon="pi pi-times"
+                  severity="danger"
+                  size="small"
+                />
+              </template>
+
+              <!-- Ringing Call Controls -->
+              <template v-else-if="call.state === 'ringing'">
+                <Button
+                  label="Cancel"
+                  @click="hangupCall(call.id)"
+                  icon="pi pi-times"
+                  severity="danger"
+                  size="small"
+                />
+              </template>
+            </div>
           </div>
-
-          <!-- Call State Indicator -->
-          <div v-if="call.id === activeCallId" class="active-indicator">ACTIVE CALL</div>
-          <div v-else-if="call.isHeld" class="held-indicator">ON HOLD</div>
-          <div v-else-if="call.state === 'incoming'" class="incoming-indicator">INCOMING...</div>
-
-          <!-- Call Controls -->
-          <div class="call-controls">
-            <!-- Incoming Call Controls -->
-            <template v-if="call.state === 'incoming'">
-              <button @click="answerCall(call.id)" class="answer-btn">Answer</button>
-              <button @click="answerAndHoldActive(call.id)" class="answer-hold-btn">
-                Answer & Hold Current
-              </button>
-              <button @click="rejectCall(call.id)" class="reject-btn">Reject</button>
-            </template>
-
-            <!-- Active/Held Call Controls -->
-            <template v-else-if="call.state === 'active'">
-              <button
-                v-if="call.id !== activeCallId"
-                @click="switchToCall(call.id)"
-                class="switch-btn"
-              >
-                Switch
-              </button>
-              <button v-if="!call.isHeld" @click="holdCall(call.id)" class="hold-btn">Hold</button>
-              <button v-if="call.isHeld" @click="resumeCall(call.id)" class="resume-btn">
-                Resume
-              </button>
-              <button @click="muteCall(call.id)" :class="['mute-btn', { muted: call.isMuted }]">
-                {{ call.isMuted ? 'Unmute' : 'Mute' }}
-              </button>
-              <button @click="hangupCall(call.id)" class="hangup-btn">Hangup</button>
-            </template>
-
-            <!-- Ringing Call Controls -->
-            <template v-else-if="call.state === 'ringing'">
-              <button @click="hangupCall(call.id)" class="hangup-btn">Cancel</button>
-            </template>
-          </div>
         </div>
-      </div>
+      </template>
+    </Card>
 
-      <!-- Multi-Call Actions -->
-      <div v-if="calls.length >= 2" class="multi-call-actions">
-        <h4>Multi-Call Actions</h4>
+    <!-- Multi-Call Actions -->
+    <!-- Design Decision: Card component structures multi-call actions. Button components for actions. -->
+    <Card v-if="calls.length >= 2" class="multi-call-actions">
+      <template #title>Multi-Call Actions</template>
+      <template #content>
         <div class="button-group">
-          <button @click="swapCalls" :disabled="calls.length < 2 || !hasActiveAndHeldCall">
-            Swap Active/Held
-          </button>
-          <button @click="mergeAllCalls" :disabled="calls.length < 2">
-            Merge All (Conference)
-          </button>
-          <button @click="hangupAllCalls" class="danger">Hangup All</button>
+          <Button
+            label="Swap Active/Held"
+            @click="swapCalls"
+            :disabled="calls.length < 2 || !hasActiveAndHeldCall"
+            icon="pi pi-refresh"
+            severity="info"
+          />
+          <Button
+            label="Merge All (Conference)"
+            @click="mergeAllCalls"
+            :disabled="calls.length < 2"
+            icon="pi pi-users"
+            severity="info"
+          />
+          <Button label="Hangup All" @click="hangupAllCalls" icon="pi pi-times" severity="danger" />
         </div>
-      </div>
+      </template>
+    </Card>
 
-      <!-- Call Scenarios -->
-      <div class="scenarios-section">
-        <h4>Test Scenarios</h4>
+    <!-- Call Scenarios -->
+    <!-- Design Decision: Card component structures scenarios section. Button components for actions. -->
+    <Card class="scenarios-section">
+      <template #title>Test Scenarios</template>
+      <template #content>
         <div class="button-group">
-          <button @click="simulateIncomingCall">Simulate Incoming Call</button>
-          <button @click="simulateCallWaiting" :disabled="calls.length === 0">
-            Simulate Call Waiting
-          </button>
-          <button @click="simulateThreeWay" :disabled="calls.length < 2">
-            Simulate 3-Way Call
-          </button>
+          <Button
+            label="Simulate Incoming Call"
+            @click="simulateIncomingCall"
+            icon="pi pi-phone"
+            severity="secondary"
+          />
+          <Button
+            label="Simulate Call Waiting"
+            @click="simulateCallWaiting"
+            :disabled="calls.length === 0"
+            icon="pi pi-bell"
+            severity="secondary"
+          />
+          <Button
+            label="Simulate 3-Way Call"
+            @click="simulateThreeWay"
+            :disabled="calls.length < 2"
+            icon="pi pi-users"
+            severity="secondary"
+          />
         </div>
-      </div>
-    </div>
+      </template>
+    </Card>
 
     <!-- Call Waiting Settings -->
-    <div v-if="isConnected" class="settings-section">
-      <h3>Call Waiting Settings</h3>
-      <div class="settings-grid">
-        <label>
-          <input type="checkbox" v-model="callWaitingEnabled" />
-          Enable Call Waiting
-        </label>
-        <label>
-          <input type="checkbox" v-model="autoAnswerWaiting" />
-          Auto-answer waiting calls
-        </label>
-        <label>
-          <input type="checkbox" v-model="playWaitingTone" />
-          Play call waiting tone
-        </label>
-        <label>
-          <input type="checkbox" v-model="vibrationOnWaiting" />
-          Vibrate on waiting call
-        </label>
-      </div>
-
-      <div class="setting-item">
-        <label>Maximum Simultaneous Calls</label>
-        <input type="range" v-model.number="maxSimultaneousCalls" min="1" max="5" step="1" />
-        <span class="value">{{ maxSimultaneousCalls }}</span>
-      </div>
-    </div>
-
-    <!-- Call History -->
-    <div v-if="callHistory.length > 0" class="history-section">
-      <h3>Recent Activity</h3>
-      <div class="history-list">
-        <div v-for="(entry, index) in callHistory.slice(0, 5)" :key="index" class="history-item">
-          <div class="history-icon">{{ entry.icon }}</div>
-          <div class="history-details">
-            <div class="history-message">{{ entry.message }}</div>
-            <div class="history-time">{{ entry.timestamp }}</div>
+    <!-- Design Decision: Card component structures settings section. Checkbox components for
+         boolean settings. Slider component for range input. -->
+    <Card v-if="isConnected" class="settings-section">
+      <template #title>Call Waiting Settings</template>
+      <template #content>
+        <div class="settings-grid">
+          <div class="checkbox-item">
+            <Checkbox v-model="callWaitingEnabled" binary inputId="call-waiting-enabled" />
+            <label for="call-waiting-enabled">Enable Call Waiting</label>
+          </div>
+          <div class="checkbox-item">
+            <Checkbox v-model="autoAnswerWaiting" binary inputId="auto-answer-waiting" />
+            <label for="auto-answer-waiting">Auto-answer waiting calls</label>
+          </div>
+          <div class="checkbox-item">
+            <Checkbox v-model="playWaitingTone" binary inputId="play-waiting-tone" />
+            <label for="play-waiting-tone">Play call waiting tone</label>
+          </div>
+          <div class="checkbox-item">
+            <Checkbox v-model="vibrationOnWaiting" binary inputId="vibration-on-waiting" />
+            <label for="vibration-on-waiting">Vibrate on waiting call</label>
           </div>
         </div>
-      </div>
-    </div>
+
+        <div class="setting-item">
+          <label for="max-simultaneous-calls">Maximum Simultaneous Calls</label>
+          <Slider
+            id="max-simultaneous-calls"
+            v-model="maxSimultaneousCalls"
+            :min="1"
+            :max="5"
+            :step="1"
+            class="w-full"
+          />
+          <span class="value">{{ maxSimultaneousCalls }}</span>
+        </div>
+      </template>
+    </Card>
+
+    <!-- Call History -->
+    <!-- Design Decision: Card component structures history section. -->
+    <Card v-if="callHistory.length > 0" class="history-section">
+      <template #title>Recent Activity</template>
+      <template #content>
+        <div class="history-list">
+          <div v-for="(entry, index) in callHistory.slice(0, 5)" :key="index" class="history-item">
+            <div class="history-icon">{{ entry.icon }}</div>
+            <div class="history-details">
+              <div class="history-message">{{ entry.message }}</div>
+              <div class="history-time">{{ entry.timestamp }}</div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </Card>
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * Call Waiting Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Card components to structure sections for better visual hierarchy
+ * - InputText and InputNumber components for form inputs with proper validation states
+ * - Slider component for range inputs provides better UX with visual feedback
+ * - Checkbox components for settings provide consistent styling
+ * - Badge and Tag components for status indicators provide semantic meaning
+ * - Button components with appropriate severity provide clear visual hierarchy
+ * - Message component for connection hints ensures consistent styling
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, watch as _watch, onUnmounted } from 'vue'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Checkbox, Slider, Card, Badge, Tag, Message } from './shared-components'
 
 // Simulation
 const simulation = useSimulation()
@@ -585,7 +729,7 @@ onUnmounted(() => {
 }
 
 .description {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 2rem;
 }
 
@@ -596,28 +740,7 @@ onUnmounted(() => {
   margin-bottom: 2rem;
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.status-badge.connected {
-  background-color: #10b981;
-  color: white;
-}
-
-.status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
-}
-
-.status-badge.connecting {
-  background-color: #f59e0b;
-  color: white;
-}
+/* Status badge styling now handled by PrimeVue Badge component */
 
 .calls-indicator {
   display: flex;
@@ -627,54 +750,14 @@ onUnmounted(() => {
 }
 
 .calls-indicator .label {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
-.calls-indicator .value {
-  font-weight: 700;
-  color: #111827;
-  background: #f3f4f6;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-}
+/* Calls indicator value styling now handled by PrimeVue Tag component */
 
-.connection-hint {
-  font-size: 0.8rem;
-  color: #6b7280;
-  padding: 0.5rem 0.75rem;
-  background: #fef3c7;
-  border-radius: 6px;
-  border: 1px solid #fcd34d;
-}
+/* Connection hint styling now handled by PrimeVue Message component */
 
-.connection-hint strong {
-  color: #92400e;
-}
-
-.call-section,
-.calls-list-section,
-.settings-section,
-.history-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1.125rem;
-  color: #111827;
-}
-
-h4 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  font-size: 1rem;
-  color: #1f2937;
-}
+/* Section styling now handled by PrimeVue Card component */
 
 .form-group {
   margin-bottom: 1rem;
@@ -687,42 +770,8 @@ h4 {
   font-size: 0.875rem;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
-button {
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-button.danger {
-  background-color: #ef4444;
-}
-
-button.danger:hover:not(:disabled) {
-  background-color: #dc2626;
-}
+/* Input styling now handled by PrimeVue InputText component */
+/* Button styling now handled by PrimeVue Button component */
 
 .calls-container {
   display: flex;
@@ -732,37 +781,37 @@ button.danger:hover:not(:disabled) {
 }
 
 .call-card {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--surface-0);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   padding: 1rem;
   transition: all 0.2s;
 }
 
 .call-card.active {
-  border-color: #10b981;
-  background: #ecfdf5;
+  border-color: var(--success);
+  background: var(--surface-50);
 }
 
 .call-card.held {
-  border-color: #f59e0b;
-  background: #fffbeb;
+  border-color: var(--warning);
+  background: var(--surface-50);
   opacity: 0.8;
 }
 
 .call-card.incoming {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: var(--info);
+  background: var(--surface-50);
   animation: pulse-border 1.5s ease-in-out infinite;
 }
 
 @keyframes pulse-border {
   0%,
   100% {
-    border-color: #3b82f6;
+    border-color: var(--info);
   }
   50% {
-    border-color: #60a5fa;
+    border-color: var(--primary);
   }
 }
 
@@ -788,63 +837,19 @@ button.danger:hover:not(:disabled) {
   font-size: 0.875rem;
 }
 
-.state-badge {
-  padding: 0.125rem 0.5rem;
-  border-radius: 12px;
-  font-weight: 500;
-  font-size: 0.75rem;
-}
-
-.state-badge.incoming {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.state-badge.ringing {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.state-badge.active {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.state-badge.held {
-  background: #fef3c7;
-  color: #92400e;
-}
+/* State badge styling now handled by PrimeVue Badge component */
 
 .duration {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
-.active-indicator,
-.held-indicator,
-.incoming-indicator {
-  padding: 0.5rem;
-  border-radius: 6px;
-  text-align: center;
-  font-weight: 600;
-  font-size: 0.875rem;
+.state-indicator {
   margin-bottom: 1rem;
+  display: block;
+  text-align: center;
 }
 
-.active-indicator {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.held-indicator {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.incoming-indicator {
-  background: #dbeafe;
-  color: #1e40af;
-  animation: pulse-bg 1.5s ease-in-out infinite;
-}
+/* State indicator styling now handled by PrimeVue Tag component */
 
 @keyframes pulse-bg {
   0%,
@@ -862,82 +867,9 @@ button.danger:hover:not(:disabled) {
   flex-wrap: wrap;
 }
 
-.call-controls button {
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-}
+/* Call controls button styling now handled by PrimeVue Button component */
 
-.answer-btn {
-  background-color: #10b981;
-}
-
-.answer-btn:hover {
-  background-color: #059669;
-}
-
-.answer-hold-btn {
-  background-color: #3b82f6;
-}
-
-.reject-btn {
-  background-color: #ef4444;
-}
-
-.reject-btn:hover {
-  background-color: #dc2626;
-}
-
-.switch-btn {
-  background-color: #8b5cf6;
-}
-
-.switch-btn:hover {
-  background-color: #7c3aed;
-}
-
-.hold-btn {
-  background-color: #f59e0b;
-}
-
-.hold-btn:hover {
-  background-color: #d97706;
-}
-
-.resume-btn {
-  background-color: #10b981;
-}
-
-.resume-btn:hover {
-  background-color: #059669;
-}
-
-.mute-btn {
-  background-color: #6b7280;
-}
-
-.mute-btn:hover {
-  background-color: #4b5563;
-}
-
-.mute-btn.muted {
-  background-color: #ef4444;
-}
-
-.hangup-btn {
-  background-color: #ef4444;
-}
-
-.hangup-btn:hover {
-  background-color: #dc2626;
-}
-
-.multi-call-actions,
-.scenarios-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
+/* Multi-call actions and scenarios section styling now handled by PrimeVue Card component */
 
 .button-group {
   display: flex;
@@ -952,17 +884,13 @@ button.danger:hover:not(:disabled) {
   margin-bottom: 1rem;
 }
 
-.settings-grid label {
+.checkbox-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
   cursor: pointer;
-  color: #374151;
-}
-
-.settings-grid input[type='checkbox'] {
-  width: auto;
+  color: var(--text-color);
 }
 
 .setting-item {
@@ -974,17 +902,18 @@ button.danger:hover:not(:disabled) {
   margin-bottom: 0.5rem;
   font-weight: 500;
   font-size: 0.875rem;
-  color: #374151;
+  color: var(--text-color);
 }
 
-.setting-item input[type='range'] {
+/* Range input styling now handled by PrimeVue Slider component */
+:deep(.p-slider) {
   width: calc(100% - 3rem);
   margin-right: 0.5rem;
 }
 
 .setting-item .value {
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--primary);
 }
 
 .history-list {
@@ -1014,12 +943,12 @@ button.danger:hover:not(:disabled) {
 }
 
 .history-message {
-  color: #111827;
+  color: var(--text-color);
   margin-bottom: 0.125rem;
 }
 
 .history-time {
-  color: #9ca3af;
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 </style>

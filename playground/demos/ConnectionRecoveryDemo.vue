@@ -33,13 +33,13 @@
     />
 
     <!-- Connection Status -->
-    <div v-if="!effectiveIsConnected" class="status-message info" role="status" aria-live="polite">
+    <Message v-if="!effectiveIsConnected" severity="info" :closable="false">
       {{
         isSimulationMode
           ? 'Enable simulation and run a scenario to see connection recovery'
           : 'Connect to a SIP server to use connection recovery (use the Basic Call demo to connect)'
       }}
-    </div>
+    </Message>
 
     <!-- Recovery Dashboard -->
     <div v-else class="recovery-dashboard">
@@ -115,14 +115,13 @@
 
       <!-- Recovery Controls -->
       <div class="recovery-controls">
-        <button
-          class="btn btn-primary"
+        <Button
           :disabled="isRecovering || recoveryState === 'stable'"
           @click="triggerRecovery"
-        >
-          {{ isRecovering ? 'Recovering...' : 'Trigger Recovery' }}
-        </button>
-        <button class="btn btn-secondary" @click="resetRecovery">Reset State</button>
+          :label="isRecovering ? 'Recovering...' : 'Trigger Recovery'"
+          severity="primary"
+        />
+        <Button @click="resetRecovery" label="Reset State" severity="secondary" />
       </div>
 
       <!-- Recovery Attempt History -->
@@ -149,10 +148,9 @@
       </div>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-display" role="alert">
-        <div class="error-icon">⚠️</div>
-        <div class="error-message">{{ error }}</div>
-      </div>
+      <Message v-if="error" severity="error" :closable="false" class="mt-3">
+        {{ error }}
+      </Message>
     </div>
 
     <!-- Code Example -->
@@ -201,11 +199,21 @@ watch(() => session.value?.connection, (pc) => {
 </template>
 
 <script setup lang="ts">
+/**
+ * Connection Recovery Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue Message for status messages and error displays with appropriate severity
+ * - Status indicators remain custom styled to maintain the visual design pattern
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, onUnmounted } from 'vue'
 import { useSipClient, useCallSession, useConnectionRecovery } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 import type { RecoveryAttempt, NetworkInfo } from '../../src/types/connection-recovery.types'
+import { Button, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -856,27 +864,8 @@ onUnmounted(() => {
   color: var(--danger);
 }
 
-/* Error Display */
-.error-display {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: rgba(239, 68, 68, 0.1);
-  border: 2px solid var(--danger);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-lg);
-}
-
-.error-icon {
-  font-size: 1.5rem;
-}
-
-.error-message {
-  flex: 1;
-  color: var(--danger);
-  font-size: 0.875rem;
-}
+/* Design Decision: PrimeVue Message component handles error display styling.
+   Removed custom .error-display classes as they're no longer needed. */
 
 /* Code Example */
 .code-example {

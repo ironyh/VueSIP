@@ -42,15 +42,22 @@
       <h3>Add Participant</h3>
       <div class="form-group">
         <label>Participant SIP URI</label>
-        <input
+        <InputText
           v-model="newParticipantUri"
-          type="text"
           placeholder="sip:participant@example.com"
           @keyup.enter="addParticipant"
+          class="w-full"
         />
       </div>
-      <button @click="addParticipant" :disabled="activeCalls.length >= 5">Add to Conference</button>
-      <div v-if="activeCalls.length >= 5" class="warning">Maximum 5 participants reached</div>
+      <Button
+        @click="addParticipant"
+        :disabled="activeCalls.length >= 5"
+        label="Add to Conference"
+        severity="primary"
+      />
+      <Message v-if="activeCalls.length >= 5" severity="warn" :closable="false" class="mt-3">
+        Maximum 5 participants reached
+      </Message>
     </div>
 
     <!-- Active Calls List -->
@@ -64,10 +71,11 @@
           :class="['call-card', { held: call.isHeld, selected: selectedCalls.includes(call.id) }]"
         >
           <div class="call-header">
-            <input
-              type="checkbox"
-              :checked="selectedCalls.includes(call.id)"
-              @change="toggleCallSelection(call.id)"
+            <Checkbox
+              :modelValue="selectedCalls.includes(call.id)"
+              @update:modelValue="toggleCallSelection(call.id)"
+              :binary="true"
+              :inputId="`call-${call.id}`"
             />
             <div class="call-info">
               <div class="participant-name">{{ call.displayName }}</div>
@@ -79,17 +87,21 @@
           </div>
 
           <div class="call-controls">
-            <button
+            <Button
               @click="toggleHold(call)"
               :disabled="call.state !== 'active' && !call.isHeld"
-              class="btn-small"
-            >
-              {{ call.isHeld ? 'Resume' : 'Hold' }}
-            </button>
-            <button @click="toggleMute(call)" :disabled="call.state !== 'active'" class="btn-small">
-              {{ call.isMuted ? 'Unmute' : 'Mute' }}
-            </button>
-            <button @click="hangupCall(call.id)" class="btn-small danger">End</button>
+              :label="call.isHeld ? 'Resume' : 'Hold'"
+              severity="secondary"
+              size="small"
+            />
+            <Button
+              @click="toggleMute(call)"
+              :disabled="call.state !== 'active'"
+              :label="call.isMuted ? 'Unmute' : 'Mute'"
+              severity="secondary"
+              size="small"
+            />
+            <Button @click="hangupCall(call.id)" label="End" severity="danger" size="small" />
           </div>
 
           <!-- Audio Level Indicator -->
@@ -103,16 +115,42 @@
       <div class="conference-controls">
         <h4>Conference Actions</h4>
         <div class="button-group">
-          <button @click="startConference" :disabled="activeCalls.length < 2 || isConferenceActive">
-            Start Conference
-          </button>
-          <button @click="stopConference" :disabled="!isConferenceActive">Stop Conference</button>
-          <button @click="holdAll" :disabled="activeCalls.length === 0">Hold All</button>
-          <button @click="resumeAll" :disabled="activeCalls.length === 0">Resume All</button>
-          <button @click="muteAll" :disabled="activeCalls.length === 0">Mute All</button>
-          <button @click="hangupAll" :disabled="activeCalls.length === 0" class="danger">
-            End All
-          </button>
+          <Button
+            @click="startConference"
+            :disabled="activeCalls.length < 2 || isConferenceActive"
+            label="Start Conference"
+            severity="primary"
+          />
+          <Button
+            @click="stopConference"
+            :disabled="!isConferenceActive"
+            label="Stop Conference"
+            severity="secondary"
+          />
+          <Button
+            @click="holdAll"
+            :disabled="activeCalls.length === 0"
+            label="Hold All"
+            severity="secondary"
+          />
+          <Button
+            @click="resumeAll"
+            :disabled="activeCalls.length === 0"
+            label="Resume All"
+            severity="secondary"
+          />
+          <Button
+            @click="muteAll"
+            :disabled="activeCalls.length === 0"
+            label="Mute All"
+            severity="secondary"
+          />
+          <Button
+            @click="hangupAll"
+            :disabled="activeCalls.length === 0"
+            label="End All"
+            severity="danger"
+          />
         </div>
       </div>
 
@@ -120,13 +158,19 @@
       <div v-if="selectedCalls.length > 0" class="selected-actions">
         <h4>Selected Calls ({{ selectedCalls.length }})</h4>
         <div class="button-group">
-          <button @click="mergeSelected" :disabled="selectedCalls.length < 2">
-            Merge Selected
-          </button>
-          <button @click="transferSelected" :disabled="selectedCalls.length !== 2">
-            Transfer Selected
-          </button>
-          <button @click="clearSelection">Clear Selection</button>
+          <Button
+            @click="mergeSelected"
+            :disabled="selectedCalls.length < 2"
+            label="Merge Selected"
+            severity="primary"
+          />
+          <Button
+            @click="transferSelected"
+            :disabled="selectedCalls.length !== 2"
+            label="Transfer Selected"
+            severity="primary"
+          />
+          <Button @click="clearSelection" label="Clear Selection" severity="secondary" />
         </div>
       </div>
 
@@ -166,10 +210,22 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Conference Call Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputText for participant URI input with proper v-model binding
+ * - Using PrimeVue Checkbox for call selection checkboxes with proper binary binding
+ * - Using PrimeVue Message for warning messages with appropriate severity
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ * - Fallback hex colors in var() functions are acceptable as they're only used if custom properties aren't defined
+ */
 import { ref, computed, onUnmounted } from 'vue'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Checkbox, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -584,53 +640,20 @@ h4 {
   font-size: 0.875rem;
 }
 
-.form-group input {
+/* Design Decision: PrimeVue InputText component handles input styling.
+   Removed custom input styles as they're no longer needed. */
+.form-group :deep(.p-inputtext) {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 4px;
-  font-size: 0.875rem;
 }
 
-button {
-  padding: 0.625rem 1.25rem;
-  background-color: var(--primary, #667eea);
-  color: var(--bg-primary, white);
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Removed custom button styles as they're no longer needed. */
 
-button:hover:not(:disabled) {
-  background-color: var(--primary-hover, #5568d3);
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Removed custom button styles (.btn-small, .danger) as they're no longer needed. */
 
-button:disabled {
-  background-color: var(--text-muted, #6b7280);
-  cursor: not-allowed;
-}
-
-button.danger {
-  background-color: var(--danger, #ef4444);
-}
-
-button.danger:hover:not(:disabled) {
-  background-color: var(--danger, #ef4444);
-}
-
-.btn-small {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-}
-
-.warning {
-  margin-top: 0.5rem;
-  color: var(--warning, #f59e0b);
-  font-size: 0.875rem;
-}
+/* Design Decision: PrimeVue Message component handles warning message styling.
+   Removed custom .warning class as it's no longer needed. */
 
 .calls-list {
   display: flex;
@@ -664,9 +687,8 @@ button.danger:hover:not(:disabled) {
   margin-bottom: 0.75rem;
 }
 
-.call-header input[type='checkbox'] {
-  margin-top: 0.25rem;
-}
+/* Design Decision: PrimeVue Checkbox component handles checkbox styling.
+   Removed custom checkbox input styles as they're no longer needed. */
 
 .call-info {
   flex: 1;

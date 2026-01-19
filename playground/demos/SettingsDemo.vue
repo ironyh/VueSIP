@@ -57,42 +57,49 @@
 
       <div class="form-group">
         <label for="ami-url">AMI WebSocket URL</label>
-        <input
+        <InputText
           id="ami-url"
           v-model="amiConfig.url"
-          type="text"
           placeholder="ws://your-asterisk-server:8088/ami"
           :disabled="amiConnecting || isAmiConnected"
+          class="w-full"
         />
         <small>Example: ws://your-asterisk-server:8088/ami</small>
       </div>
 
       <!-- Remember AMI URL -->
       <div class="form-group">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="rememberAmi" :disabled="amiConnecting" />
-          <span>Remember AMI URL</span>
-        </label>
+        <Checkbox
+          v-model="rememberAmi"
+          :disabled="amiConnecting"
+          inputId="remember-ami"
+          :binary="true"
+        />
+        <label for="remember-ami" class="checkbox-label-text">Remember AMI URL</label>
       </div>
 
       <!-- Connect/Disconnect Buttons -->
       <div class="connection-buttons">
-        <button
+        <Button
           v-if="!isAmiConnected"
-          class="btn btn-secondary w-full"
           :disabled="!amiConfig.url || amiConnecting"
           @click="handleAmiConnect"
-        >
-          {{ amiConnecting ? 'Connecting...' : 'Connect to AMI' }}
-        </button>
-        <button v-else class="btn btn-danger w-full" @click="handleAmiDisconnect">
-          Disconnect AMI
-        </button>
+          :label="amiConnecting ? 'Connecting...' : 'Connect to AMI'"
+          severity="secondary"
+          class="w-full"
+        />
+        <Button
+          v-else
+          @click="handleAmiDisconnect"
+          label="Disconnect AMI"
+          severity="danger"
+          class="w-full"
+        />
       </div>
 
-      <div v-if="amiError" class="error-message">
+      <Message v-if="amiError" severity="error" class="mt-3">
         {{ amiError }}
-      </div>
+      </Message>
 
       <div class="demo-tip">
         <strong>Note:</strong> AMI connection requires a WebSocket proxy to your Asterisk server.
@@ -103,6 +110,17 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Settings Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputText for text inputs, with proper v-model binding
+ * - Using PrimeVue Checkbox for the "Remember AMI URL" option with proper binary binding
+ * - Using PrimeVue Message for error messages with appropriate severity
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ * - Status indicators use CSS custom properties for dynamic theming
+ */
 import { ref, computed, watch, onMounted } from 'vue'
 import { playgroundSipClient, playgroundAmiClient } from '../sipClient'
 import { configStore } from '../../src/stores/configStore'
@@ -110,6 +128,7 @@ import { useSimulation } from '../composables/useSimulation'
 import { useConnectionManager, type SavedConnection } from '../composables/useConnectionManager'
 import SimulationControls from '../components/SimulationControls.vue'
 import ConnectionManagerPanel from '../components/ConnectionManagerPanel.vue'
+import { Button, InputText, Checkbox, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -336,12 +355,12 @@ watch(
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--danger);
 }
 
 .connection-status.connected .status-indicator {
-  background: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgba(var(--success-rgb), 0.2);
 }
 
 .status-text {
@@ -358,8 +377,8 @@ watch(
 }
 
 .badge-success {
-  background: #10b981;
-  color: white;
+  background: var(--success);
+  color: var(--surface-0);
 }
 
 /* Connection Info Card */
@@ -374,7 +393,7 @@ watch(
 .connection-info h4 {
   margin: 0 0 0.75rem 0;
   font-size: 1rem;
-  color: #10b981;
+  color: var(--success);
 }
 
 .connection-info dl {
@@ -409,30 +428,10 @@ watch(
   font-size: 0.875rem;
 }
 
-.form-group input[type='text'],
-.form-group input[type='password'] {
+/* Design Decision: PrimeVue InputText component handles input styling.
+   Removed custom input styles as they're no longer needed. */
+.form-group :deep(.p-inputtext) {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 0.875rem;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.form-group input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background: var(--bg-secondary);
 }
 
 .form-group small {
@@ -443,23 +442,14 @@ watch(
 }
 
 /* Checkbox styling */
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-weight: normal;
-}
-
-.checkbox-label input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
-}
-
-.checkbox-label span {
+.checkbox-label-text {
+  margin-left: 0.5rem;
   font-size: 0.875rem;
+  cursor: pointer;
 }
+
+/* Design Decision: PrimeVue Checkbox component handles checkbox styling.
+   Removed custom checkbox input styles as they're no longer needed. */
 
 .form-group.nested {
   margin-left: 1.5rem;
@@ -480,7 +470,7 @@ watch(
 .security-warning p {
   margin: 0;
   font-size: 0.8125rem;
-  color: #b45309;
+  color: var(--warning);
 }
 
 .form-actions {
@@ -502,10 +492,8 @@ watch(
   border: none;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary), #4f46e5);
-  color: white;
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Removed custom .btn-primary class as it's no longer needed. */
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -523,14 +511,8 @@ watch(
   border-color: var(--primary);
 }
 
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Removed custom .btn-danger class as it's no longer needed. */
 
 .btn-sm {
   padding: 0.5rem 1rem;
@@ -546,15 +528,8 @@ watch(
   width: 100%;
 }
 
-.error-message {
-  padding: 0.75rem 1rem;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: 1rem;
-}
+/* Design Decision: PrimeVue Message component handles error message styling.
+   Removed custom .error-message class as it's no longer needed. */
 
 .demo-tip {
   margin-top: 1.5rem;

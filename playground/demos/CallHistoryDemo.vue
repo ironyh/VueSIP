@@ -66,39 +66,49 @@
     <div class="controls-section">
       <div class="filter-controls">
         <div class="search-box">
-          <input
+          <InputText
             v-model="searchQuery"
-            type="text"
             placeholder="Search by name or number..."
             @input="handleSearch"
+            class="w-full"
           />
-          <!-- Search icon removed -->
         </div>
 
-        <select v-model="filterDirection" @change="handleFilterChange">
-          <option value="">All Calls</option>
-          <option value="incoming">Incoming Only</option>
-          <option value="outgoing">Outgoing Only</option>
-        </select>
+        <Dropdown
+          v-model="filterDirection"
+          :options="directionOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All Calls"
+          @change="handleFilterChange"
+          class="w-full"
+        />
 
-        <select v-model="filterType" @change="handleFilterChange">
-          <option value="">All Types</option>
-          <option value="answered">Answered</option>
-          <option value="missed">Missed</option>
-        </select>
+        <Dropdown
+          v-model="filterType"
+          :options="typeOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="All Types"
+          @change="handleFilterChange"
+          class="w-full"
+        />
       </div>
 
       <div class="action-buttons">
-        <button class="btn btn-secondary" :disabled="totalCalls === 0" @click="handleExport">
-          Export CSV
-        </button>
-        <button
-          class="btn btn-danger-outline"
+        <Button
+          :disabled="totalCalls === 0"
+          @click="handleExport"
+          label="Export CSV"
+          severity="secondary"
+        />
+        <Button
           :disabled="totalCalls === 0"
           @click="handleClearHistory"
-        >
-          Clear All
-        </button>
+          label="Clear All"
+          severity="danger"
+          outlined
+        />
       </div>
     </div>
 
@@ -153,22 +163,36 @@
           </div>
 
           <div class="entry-actions">
-            <button class="btn-icon" title="Delete entry" @click="handleDeleteEntry(entry.id)">
-              ✕
-            </button>
+            <Button
+              icon="pi pi-trash"
+              title="Delete entry"
+              @click="handleDeleteEntry(entry.id)"
+              severity="danger"
+              text
+              rounded
+              size="small"
+            />
           </div>
         </div>
       </div>
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="pagination">
-        <button class="btn btn-sm" :disabled="currentPage === 1" @click="currentPage--">
-          ← Previous
-        </button>
+        <Button
+          :disabled="currentPage === 1"
+          @click="currentPage--"
+          label="← Previous"
+          severity="secondary"
+          size="small"
+        />
         <span class="page-info"> Page {{ currentPage }} of {{ totalPages }} </span>
-        <button class="btn btn-sm" :disabled="currentPage === totalPages" @click="currentPage++">
-          Next →
-        </button>
+        <Button
+          :disabled="currentPage === totalPages"
+          @click="currentPage++"
+          label="Next →"
+          severity="secondary"
+          size="small"
+        />
       </div>
     </div>
 
@@ -215,10 +239,21 @@ await exportHistory({
 </template>
 
 <script setup lang="ts">
+/**
+ * Call History Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputText for search input with proper v-model binding
+ * - Using PrimeVue Dropdown for filter selects with proper v-model binding
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ * - Fallback hex colors in var() functions are acceptable as they're only used if custom properties aren't defined
+ */
 import { ref, computed } from 'vue'
 import { useCallHistory } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Dropdown } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -244,6 +279,19 @@ const filterDirection = ref<'' | 'incoming' | 'outgoing'>('')
 const filterType = ref<'' | 'answered' | 'missed'>('')
 const currentPage = ref(1)
 const itemsPerPage = 10
+
+// Dropdown options
+const directionOptions = [
+  { label: 'All Calls', value: '' },
+  { label: 'Incoming Only', value: 'incoming' },
+  { label: 'Outgoing Only', value: 'outgoing' },
+]
+
+const typeOptions = [
+  { label: 'All Types', value: '' },
+  { label: 'Answered', value: 'answered' },
+  { label: 'Missed', value: 'missed' },
+]
 
 // Computed
 const statistics = computed(() => getStatistics())

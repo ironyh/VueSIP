@@ -1,52 +1,83 @@
 import type { MediaKind, SdpTransformer } from '../types'
 
 /**
- * Minimal SDP transformer that reorders payload types in m= lines according to preferred mime types.
- * NOTE: Conservative and idempotent; does not change fmtp params.
+ * Default SDP transformer that performs minimal, safe codec reordering.
+ *
+ * - Reorders payload types on the target m= line (audio/video) based on
+ *   preferred mime types passed in (e.g., ['audio/opus', 'audio/pcmu']).
+ * - Keeps all other payloads in their original relative order.
+ * - Preserves telephone-event, CN, and any other non-preferred payloads.
+ * - Idempotent when the order already matches preferences.
  */
 export class DefaultSdpTransformer implements SdpTransformer {
   reorderCodecs(sdp: string, kind: MediaKind, preferredMimeTypes: string[]): string {
     try {
+      if (!sdp || typeof sdp !== 'string') return sdp
       const lines = sdp.split(/\r?\n/)
-      const mimeToPt: Record<string, string[]> = {}
-      const rtpmapRe = /^a=rtpmap:(\d+)\s+([^/]+)\//i
+
+      // Build map from payload type -> mime (e.g., 111 -> audio/opus)
+      const ptToMime = new Map<string, string>()
+
+      // Identify media section and collect rtpmap mappings
+      // We only need mappings for the target kind to compute ordering.
+      let inTargetMedia = false
       for (const line of lines) {
-        const m = line.match(rtpmapRe)
-        if (m) {
-          const pt = m[1] ?? ''
-          const codec = (m[2] ?? '').toLowerCase()
-          if (!pt || !codec) continue
-          const mime = `${kind}/${codec}`.toLowerCase()
-          const list = mimeToPt[mime] ?? (mimeToPt[mime] = [])
-          list.push(pt)
+        if (line.startsWith('m=')) {
+          inTargetMedia = line.startsWith(`m=${kind}`)
+        }
+        if (!inTargetMedia) continue
+
+        // a=rtpmap:<pt> <codec>/<clock>[/channels]
+        // Example: a=rtpmap:111 opus/48000/2
+        const m = line.match(/^a=rtpmap:(\d+)\s+([^\s/]+)/i)
+        if (m && m[1] && m[2]) {
+          const pt: string = m[1]
+          const codec: string = m[2]
+          ptToMime.set(pt, `${kind.toUpperCase()}/${codec.toUpperCase()}`)
         }
       }
 
-      const mIndex = lines.findIndex((l) => l?.startsWith(`m=${kind}`))
-      if (mIndex === -1) return sdp
-      const mLine = lines[mIndex]
-      if (!mLine) return sdp
-      const parts = mLine.split(' ')
-      const header = parts.slice(0, 3) // m=<kind> <port> <proto>
-      const pts = parts.slice(3)
+      // Normalize preferred mimes to upper-case for case-insensitive matching
+      const preferredUpper = preferredMimeTypes.map((m) => m.toUpperCase())
 
-      const preferredPts: string[] = []
-      for (const mime of preferredMimeTypes.map((m) => m.toLowerCase())) {
-        const ptsFor = mimeToPt[mime]
-        if (ptsFor) {
-          for (const pt of ptsFor) {
-            if (pts.includes(pt) && !preferredPts.includes(pt)) preferredPts.push(pt)
-          }
-        }
+      // Reorder the first m=<kind> line encountered
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        if (!line || !line.startsWith(`m=${kind}`)) continue
+
+        // m=<kind> <port> <proto> <pt1> <pt2> ...
+        const parts = line.split(/\s+/)
+        if (parts.length < 4) return sdp // malformed, bail out
+
+        const header = parts.slice(0, 3).join(' ')
+        const payloads = parts.slice(3)
+
+        // Sort payloads according to preferred mime order
+        const scored = payloads.map((pt, idx) => {
+          const mime = (ptToMime.get(pt) || '').toUpperCase()
+          const score = preferredUpper.findIndex((p) => mime.startsWith(p))
+          // Unknown or non-preferred mimes get large index to keep them at the end
+          const rank = score === -1 ? Number.MAX_SAFE_INTEGER : score
+          return { pt, idx, rank }
+        })
+
+        scored.sort((a, b) => {
+          if (a.rank !== b.rank) return a.rank - b.rank
+          // Stable relative order for same-rank (non-preferred) payloads
+          return a.idx - b.idx
+        })
+
+        const reordered = scored.map((s) => s.pt)
+        lines[i] = `${header} ${reordered.join(' ')}`
+        break // Only transform the first target m= section
       }
 
-      const remaining = pts.filter((pt) => !preferredPts.includes(pt))
-      const reordered = [...header, ...preferredPts, ...remaining].join(' ')
-      const newLines = [...lines]
-      newLines[mIndex] = reordered
-      return newLines.join('\n')
-    } catch {
+      return lines.join('\n')
+    } catch (_e) {
+      // On any parsing error, return original SDP unchanged
       return sdp
     }
   }
 }
+
+export default DefaultSdpTransformer

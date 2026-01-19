@@ -27,23 +27,26 @@
 
       <div class="form-group">
         <label for="ami-url">AMI WebSocket URL</label>
-        <input
+        <InputText
           id="ami-url"
           v-model="amiUrl"
-          type="text"
           placeholder="ws://pbx.example.com:8080"
           :disabled="connecting"
+          class="w-full"
         />
         <small>amiws WebSocket proxy URL</small>
       </div>
 
-      <button class="btn btn-primary" :disabled="!amiUrl || connecting" @click="handleConnect">
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
+      <Button
+        :disabled="!amiUrl || connecting"
+        @click="handleConnect"
+        :label="connecting ? 'Connecting...' : 'Connect to AMI'"
+        severity="primary"
+      />
 
-      <div v-if="connectionError" class="error-message">
+      <Message v-if="connectionError" severity="error" class="mt-3">
         {{ connectionError }}
-      </div>
+      </Message>
 
       <div class="demo-tip">
         <strong>Tip:</strong> This demo requires Asterisk with paging/intercom configured (Page
@@ -62,7 +65,7 @@
         <div class="status-item">
           <span>Active Pages: {{ activeSessions.length }}</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
+        <Button @click="handleDisconnect" label="Disconnect" severity="secondary" size="small" />
       </div>
 
       <!-- Paging Controls -->
@@ -72,55 +75,66 @@
         <div class="form-row">
           <div class="form-group">
             <label for="target">Target Extension(s)</label>
-            <input
+            <InputText
               id="target"
               v-model="pageTarget"
-              type="text"
               placeholder="1001 or 1001,1002,1003"
               :disabled="isPaging"
+              class="w-full"
             />
             <small>Single extension or comma-separated list</small>
           </div>
 
           <div class="form-group">
             <label for="mode">Paging Mode</label>
-            <select id="mode" v-model="pageMode" :disabled="isPaging">
-              <option value="simplex">One-way (Simplex)</option>
-              <option value="duplex">Two-way (Duplex/Intercom)</option>
-            </select>
+            <Dropdown
+              id="mode"
+              v-model="pageMode"
+              :options="[
+                { label: 'One-way (Simplex)', value: 'simplex' },
+                { label: 'Two-way (Duplex/Intercom)', value: 'duplex' },
+              ]"
+              optionLabel="label"
+              optionValue="value"
+              :disabled="isPaging"
+              class="w-full"
+            />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="timeout">Timeout (seconds)</label>
-            <input
+            <InputNumber
               id="timeout"
-              v-model.number="pageTimeout"
-              type="number"
-              min="5"
-              max="120"
+              v-model="pageTimeout"
+              :min="5"
+              :max="120"
               :disabled="isPaging"
+              class="w-full"
             />
           </div>
 
           <div class="form-group">
             <label for="caller-id">Caller ID</label>
-            <input
+            <InputText
               id="caller-id"
               v-model="callerId"
-              type="text"
               placeholder="Paging System"
               :disabled="isPaging"
+              class="w-full"
             />
           </div>
         </div>
 
         <div class="action-buttons">
-          <button class="btn btn-primary" :disabled="!pageTarget || isPaging" @click="startPage">
-            {{ pageMode === 'duplex' ? 'Start Intercom' : 'Start Page' }}
-          </button>
-          <button v-if="isPaging" class="btn btn-danger" @click="stopPage">Stop Page</button>
+          <Button
+            :disabled="!pageTarget || isPaging"
+            @click="startPage"
+            :label="pageMode === 'duplex' ? 'Start Intercom' : 'Start Page'"
+            severity="primary"
+          />
+          <Button v-if="isPaging" @click="stopPage" label="Stop Page" severity="danger" />
         </div>
 
         <!-- Active Paging Sessions -->
@@ -134,7 +148,7 @@
               </span>
               <span class="session-duration">{{ formatDuration(session.startTime) }}</span>
             </div>
-            <button class="btn btn-sm btn-danger" @click="endSession(session.id)">End</button>
+            <Button @click="endSession(session.id)" label="End" severity="danger" size="small" />
           </div>
         </div>
 
@@ -162,15 +176,18 @@
               <span class="group-members">{{ group.extensions.length }} extensions</span>
             </div>
             <div class="group-actions">
-              <button class="btn btn-sm btn-primary" @click="pageGroup(group)">Page</button>
-              <button class="btn btn-sm btn-secondary" @click="intercomGroup(group)">
-                Intercom
-              </button>
+              <Button @click="pageGroup(group)" label="Page" severity="primary" size="small" />
+              <Button
+                @click="intercomGroup(group)"
+                label="Intercom"
+                severity="secondary"
+                size="small"
+              />
             </div>
           </div>
         </div>
 
-        <button class="btn btn-secondary" @click="showAddGroupModal = true">+ Add Group</button>
+        <Button @click="showAddGroupModal = true" label="+ Add Group" severity="secondary" />
       </div>
 
       <!-- Code Example -->
@@ -183,11 +200,23 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Paging Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputText for text inputs, with proper v-model binding
+ * - Using PrimeVue InputNumber for numeric timeout input with min/max constraints
+ * - Using PrimeVue Dropdown for paging mode selection to maintain consistent styling
+ * - Using PrimeVue Message for error messages with appropriate severity
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, onUnmounted } from 'vue'
 import { playgroundAmiClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 import { type PageGroup } from '../../src'
+import { Button, InputText, InputNumber, Dropdown, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -452,10 +481,8 @@ onUnmounted(() => {
   color: var(--text-color);
 }
 
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Removed custom .btn-danger class as it's no longer needed. */
 
 .btn-sm {
   padding: 0.5rem 1rem;
@@ -467,13 +494,8 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fef2f2;
-  color: #dc2626;
-  border-radius: 6px;
-}
+/* Design Decision: PrimeVue Message component handles error message styling.
+   Removed custom .error-message class as it's no longer needed. */
 
 .demo-tip {
   margin-top: 1.5rem;
@@ -510,11 +532,11 @@ onUnmounted(() => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--danger);
 }
 
 .status-dot.connected {
-  background: #22c55e;
+  background: var(--success);
 }
 
 .paging-panel,
@@ -577,13 +599,13 @@ onUnmounted(() => {
 }
 
 .session-mode.simplex {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--info-light);
+  color: var(--info);
 }
 
 .session-mode.duplex {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-light);
+  color: var(--success);
 }
 
 .history-item {

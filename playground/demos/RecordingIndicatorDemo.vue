@@ -1,7 +1,17 @@
 <script setup lang="ts">
+/**
+ * Recording Indicator Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputNumber for numeric inputs (blink interval)
+ * - Custom color inputs remain as text inputs for hex color values
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref } from 'vue'
 import { useRecordingIndicator } from '../../src/composables/useRecordingIndicator'
 import type { RecordingIndicatorState } from '../../src/types/recording-indicator.types'
+import { Button, Slider, InputText } from './shared-components'
 
 // Create indicator instance with default settings
 const indicator = useRecordingIndicator()
@@ -64,12 +74,12 @@ function setCustomState(state: RecordingIndicatorState) {
 
     <!-- Default Indicator Section -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-        Default Indicator
-      </h3>
+      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Default Indicator</h3>
 
       <!-- Indicator Display -->
-      <div class="flex items-center justify-center gap-6 mb-6 p-8 bg-gray-100 dark:bg-gray-900 rounded-lg">
+      <div
+        class="flex items-center justify-center gap-6 mb-6 p-8 bg-gray-100 dark:bg-gray-900 rounded-lg"
+      >
         <!-- Recording Dot -->
         <div class="flex flex-col items-center gap-2">
           <div
@@ -91,30 +101,10 @@ function setCustomState(state: RecordingIndicatorState) {
 
       <!-- Control Buttons -->
       <div class="flex flex-wrap gap-3 justify-center mb-6">
-        <button
-          @click="setDefaultState('recording')"
-          class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-        >
-          Record
-        </button>
-        <button
-          @click="setDefaultState('paused')"
-          class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
-        >
-          Pause
-        </button>
-        <button
-          @click="setDefaultState('stopped')"
-          class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-        >
-          Stop
-        </button>
-        <button
-          @click="indicator.reset()"
-          class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-        >
-          Reset
-        </button>
+        <Button @click="setDefaultState('recording')" label="Record" severity="danger" />
+        <Button @click="setDefaultState('paused')" label="Pause" severity="warning" />
+        <Button @click="setDefaultState('stopped')" label="Stop" severity="secondary" />
+        <Button @click="indicator.reset()" label="Reset" severity="info" />
       </div>
 
       <!-- State Information -->
@@ -148,12 +138,12 @@ function setCustomState(state: RecordingIndicatorState) {
 
     <!-- Custom Indicator Section -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-        Custom Indicator
-      </h3>
+      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Custom Indicator</h3>
 
       <!-- Indicator Display -->
-      <div class="flex items-center justify-center gap-6 mb-6 p-8 bg-gray-100 dark:bg-gray-900 rounded-lg">
+      <div
+        class="flex items-center justify-center gap-6 mb-6 p-8 bg-gray-100 dark:bg-gray-900 rounded-lg"
+      >
         <div class="flex flex-col items-center gap-2">
           <div
             :style="customIndicator.indicatorStyle.value"
@@ -172,30 +162,10 @@ function setCustomState(state: RecordingIndicatorState) {
 
       <!-- Control Buttons -->
       <div class="flex flex-wrap gap-3 justify-center mb-6">
-        <button
-          @click="setCustomState('recording')"
-          class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-        >
-          Record
-        </button>
-        <button
-          @click="setCustomState('paused')"
-          class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
-        >
-          Pause
-        </button>
-        <button
-          @click="setCustomState('stopped')"
-          class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-        >
-          Stop
-        </button>
-        <button
-          @click="customIndicator.reset()"
-          class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-        >
-          Reset
-        </button>
+        <Button @click="setCustomState('recording')" label="Record" severity="danger" />
+        <Button @click="setCustomState('paused')" label="Pause" severity="warning" />
+        <Button @click="setCustomState('stopped')" label="Stop" severity="secondary" />
+        <Button @click="customIndicator.reset()" label="Reset" severity="info" />
       </div>
 
       <!-- Customization Controls -->
@@ -207,14 +177,13 @@ function setCustomState(state: RecordingIndicatorState) {
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Blink Interval: {{ customBlinkInterval }}ms
           </label>
-          <input
-            v-model.number="customBlinkInterval"
-            type="range"
-            min="100"
-            max="2000"
-            step="100"
-            @change="updateCustomSettings"
-            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+          <Slider
+            v-model="customBlinkInterval"
+            :min="100"
+            :max="2000"
+            :step="100"
+            @update:modelValue="updateCustomSettings"
+            class="w-full"
           />
         </div>
 
@@ -231,11 +200,10 @@ function setCustomState(state: RecordingIndicatorState) {
                 @change="updateCustomSettings"
                 class="h-10 w-20 rounded cursor-pointer"
               />
-              <input
+              <InputText
                 v-model="customRecordingColor"
-                type="text"
-                @change="updateCustomSettings"
-                class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                @update:modelValue="updateCustomSettings"
+                class="flex-1"
               />
             </div>
           </div>
@@ -271,11 +239,10 @@ function setCustomState(state: RecordingIndicatorState) {
                 @change="updateCustomSettings"
                 class="h-10 w-20 rounded cursor-pointer"
               />
-              <input
+              <InputText
                 v-model="customInactiveColor"
-                type="text"
-                @change="updateCustomSettings"
-                class="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                @update:modelValue="updateCustomSettings"
+                class="flex-1"
               />
             </div>
           </div>
@@ -285,9 +252,7 @@ function setCustomState(state: RecordingIndicatorState) {
 
     <!-- Features Overview -->
     <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
-      <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">
-        Features
-      </h3>
+      <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">Features</h3>
       <ul class="space-y-2 text-blue-800 dark:text-blue-200">
         <li class="flex items-start gap-2">
           <span class="text-blue-500 mt-1">✓</span>

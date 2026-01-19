@@ -30,68 +30,77 @@
 
       <div class="form-group">
         <label for="sip-server">SIP Server</label>
-        <input
+        <InputText
           id="sip-server"
           v-model="config.server"
-          type="text"
           placeholder="wss://sip.example.com"
           :disabled="connecting"
+          class="w-full"
         />
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label for="sip-username">Username</label>
-          <input
+          <InputText
             id="sip-username"
             v-model="config.username"
-            type="text"
             placeholder="1001"
             :disabled="connecting"
+            class="w-full"
           />
         </div>
 
         <div class="form-group">
           <label for="sip-password">Password</label>
-          <input
+          <Password
             id="sip-password"
             v-model="config.password"
-            type="password"
             placeholder="Enter password"
             :disabled="connecting"
+            :feedback="false"
+            toggleMask
+            class="w-full"
           />
         </div>
       </div>
 
       <div class="form-group">
         <label for="line-count">Number of Lines</label>
-        <select id="line-count" v-model.number="lineCountConfig" :disabled="connecting">
-          <option :value="2">2 Lines</option>
-          <option :value="3">3 Lines</option>
-          <option :value="4">4 Lines</option>
-          <option :value="6">6 Lines</option>
-        </select>
+        <Dropdown
+          id="line-count"
+          v-model="lineCountConfig"
+          :options="lineCountOptions"
+          optionLabel="label"
+          optionValue="value"
+          :disabled="connecting"
+          class="w-full"
+        />
         <small>Number of simultaneous call lines to support</small>
       </div>
 
       <div class="form-group checkbox-group">
-        <label>
-          <input type="checkbox" v-model="autoHoldEnabled" :disabled="connecting" />
+        <Checkbox
+          v-model="autoHoldEnabled"
+          :disabled="connecting"
+          inputId="auto-hold"
+          :binary="true"
+        />
+        <label for="auto-hold" class="ml-2">
           Auto-hold other lines when making/answering calls
         </label>
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
         :disabled="!isConfigValid || connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect' }}
-      </button>
+        :label="connecting ? 'Connecting...' : 'Connect'"
+        severity="primary"
+      />
 
-      <div v-if="connectionError" class="error-message">
+      <Message v-if="connectionError" severity="error" :closable="false" class="mt-3">
         {{ connectionError }}
-      </div>
+      </Message>
 
       <div class="demo-tip">
         <strong>Tip:</strong> Multi-line support allows handling multiple calls simultaneously. Each
@@ -117,7 +126,7 @@
             <span>{{ incomingCallCount }}</span>
           </div>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
+        <Button @click="handleDisconnect" label="Disconnect" severity="secondary" size="small" />
       </div>
 
       <!-- Lines Grid -->
@@ -166,12 +175,18 @@
               <span class="caller-name">{{ line.remoteDisplayName || 'Unknown' }}</span>
               <span class="caller-uri">{{ line.remoteUri }}</span>
               <div class="ringing-actions">
-                <button class="btn btn-sm btn-success" @click.stop="answerCall(line.lineNumber)">
-                  Answer
-                </button>
-                <button class="btn btn-sm btn-danger" @click.stop="rejectCall(line.lineNumber)">
-                  Reject
-                </button>
+                <Button
+                  @click.stop="answerCall(line.lineNumber)"
+                  label="Answer"
+                  severity="success"
+                  size="small"
+                />
+                <Button
+                  @click.stop="rejectCall(line.lineNumber)"
+                  label="Reject"
+                  severity="danger"
+                  size="small"
+                />
               </div>
             </div>
 
@@ -187,34 +202,37 @@
           </div>
 
           <div v-if="line.status !== 'idle'" class="line-controls">
-            <button
+            <Button
               v-if="line.status === 'active' || line.status === 'held'"
-              class="btn-icon"
               :class="{ active: line.isOnHold }"
               :title="line.isOnHold ? 'Resume' : 'Hold'"
               @click.stop="toggleHoldLine(line.lineNumber)"
-            >
-              {{ line.isOnHold ? 'Resume' : 'Hold' }}
-            </button>
+              :label="line.isOnHold ? 'Resume' : 'Hold'"
+              severity="secondary"
+              size="small"
+              text
+            />
 
-            <button
+            <Button
               v-if="line.status === 'active'"
-              class="btn-icon"
               :class="{ active: line.isMuted }"
               :title="line.isMuted ? 'Unmute' : 'Mute'"
               @click.stop="toggleMuteLine(line.lineNumber)"
-            >
-              {{ line.isMuted ? 'Unmute' : 'Mute' }}
-            </button>
+              :label="line.isMuted ? 'Unmute' : 'Mute'"
+              severity="secondary"
+              size="small"
+              text
+            />
 
-            <button
+            <Button
               v-if="line.status !== 'ringing'"
-              class="btn-icon hangup"
               title="Hangup"
               @click.stop="hangupCall(line.lineNumber)"
-            >
-              End
-            </button>
+              label="End"
+              severity="danger"
+              size="small"
+              text
+            />
           </div>
         </div>
       </div>
@@ -223,53 +241,55 @@
       <div class="dial-section">
         <h3>Make Call</h3>
         <div class="dial-form">
-          <input
+          <InputText
             v-model="dialTarget"
-            type="text"
             placeholder="Enter number or SIP URI"
             :disabled="isLoading || allLinesBusy"
             @keyup.enter="handleDial"
+            class="flex-1"
           />
-          <select v-model.number="dialLine" :disabled="isLoading || availableLines.length === 0">
-            <option :value="0">Auto-select line</option>
-            <option v-for="line in availableLines" :key="line.lineNumber" :value="line.lineNumber">
-              Line {{ line.lineNumber }}
-            </option>
-          </select>
-          <button
-            class="btn btn-primary"
+          <Dropdown
+            v-model.number="dialLine"
+            :options="dialLineOptions"
+            optionLabel="label"
+            optionValue="value"
+            :disabled="isLoading || availableLines.length === 0"
+            class="flex-1"
+          />
+          <Button
             :disabled="!dialTarget || isLoading || allLinesBusy"
             @click="handleDial"
-          >
-            {{ isLoading ? 'Calling...' : 'Call' }}
-          </button>
+            :label="isLoading ? 'Calling...' : 'Call'"
+            severity="primary"
+          />
         </div>
-        <div v-if="allLinesBusy" class="warning-message">
+        <Message v-if="allLinesBusy" severity="warn" :closable="false" class="mt-3">
           All lines are busy. Hangup a call to make a new one.
-        </div>
+        </Message>
       </div>
 
       <!-- Quick Actions -->
       <div class="actions-section">
         <h3>Quick Actions</h3>
         <div class="action-buttons">
-          <button
-            class="btn btn-secondary"
+          <Button
             :disabled="activeLines.length === 0"
             @click="holdAllLines"
-          >
-            Hold All
-          </button>
-          <button class="btn btn-danger" :disabled="activeCallCount === 0" @click="hangupAll">
-            Hangup All
-          </button>
-          <button
-            class="btn btn-secondary"
+            label="Hold All"
+            severity="secondary"
+          />
+          <Button
+            :disabled="activeCallCount === 0"
+            @click="hangupAll"
+            label="Hangup All"
+            severity="danger"
+          />
+          <Button
             :disabled="heldLines.length < 2 && activeLines.length < 1"
             @click="handleSwap"
-          >
-            Swap Lines
-          </button>
+            label="Swap Lines"
+            severity="secondary"
+          />
         </div>
       </div>
 
@@ -277,30 +297,43 @@
       <div v-if="selectedLineState?.status === 'active'" class="dtmf-section">
         <h3>DTMF (Line {{ selectedLine }})</h3>
         <div class="dtmf-pad">
-          <button
+          <Button
             v-for="digit in dtmfDigits"
             :key="digit"
-            class="dtmf-btn"
             @click="handleDTMF(digit)"
-          >
-            {{ digit }}
-          </button>
+            :label="digit"
+            severity="secondary"
+            class="dtmf-btn"
+          />
         </div>
       </div>
 
       <!-- Error Display -->
-      <div v-if="error" class="error-message">
+      <Message v-if="error" severity="error" :closable="false">
         {{ error }}
-      </div>
+      </Message>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * Multi-Line Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputText for text inputs with proper v-model binding
+ * - Using PrimeVue Password for password input with proper v-model binding
+ * - Using PrimeVue Dropdown for line count selection with proper v-model binding
+ * - Using PrimeVue Checkbox for auto-hold option with proper binary binding
+ * - Using PrimeVue Message for error messages with appropriate severity
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, reactive, onUnmounted } from 'vue'
 import type { LineState, LineStatus } from '../../src/types/multiline.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Password, Dropdown, Checkbox, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -358,6 +391,14 @@ const allLinesBusy = computed(() => lines.value.every((l) => l.status !== 'idle'
 const availableLines = computed(() => lines.value.filter((l) => l.status === 'idle'))
 
 const activeLines = computed(() => lines.value.filter((l) => l.status === 'active'))
+
+const dialLineOptions = computed(() => {
+  const options = [{ label: 'Auto-select line', value: 0 }]
+  availableLines.value.forEach((line) => {
+    options.push({ label: `Line ${line.lineNumber}`, value: line.lineNumber })
+  })
+  return options
+})
 
 const heldLines = computed(() => lines.value.filter((l) => l.status === 'held'))
 

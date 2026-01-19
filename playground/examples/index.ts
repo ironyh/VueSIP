@@ -18,6 +18,7 @@ import { callMutePatternsExample } from './call-mute-patterns'
 import { connectionRecoveryExample } from './connection-recovery'
 import { sessionPersistenceExample } from './session-persistence'
 import { networkSimulatorExample } from './network-simulator'
+import { codecPolicyExample } from './codec-policy'
 import { screenSharingExample } from './screen-sharing'
 import { transcriptionExample } from './transcription'
 import { pictureInPictureExample } from './picture-in-picture'
@@ -124,6 +125,7 @@ export const utilityExamples = [
   e911Example,
   toolbarLayoutsExample,
   networkSimulatorExample,
+  codecPolicyExample,
 ]
 
 // All examples (flat list for backward compatibility)

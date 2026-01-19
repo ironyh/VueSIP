@@ -20,246 +20,327 @@
       @toggle-mute="simulation.toggleMute"
     />
 
+    <!-- Design Decision: Message component for informational note provides consistent styling. -->
     <div class="info-section">
       <p>
         Ring Groups allow multiple extensions to ring simultaneously or in sequence when a single
         number is dialed. Configure ring strategies, manage members, and monitor call distribution.
       </p>
-      <p class="note">
+      <Message severity="warn" :closable="false" class="note">
         <strong>Note:</strong> This demo simulates ring group management. In production, changes
         would be applied to your Asterisk dialplan configuration.
-      </p>
+      </Message>
     </div>
 
     <!-- Controls -->
+    <!-- Design Decision: InputText and Button components for form controls. Button severity
+         provides semantic meaning (primary for start, danger for stop, secondary for actions). -->
     <div class="controls-section">
       <div class="input-group">
-        <label>Ring Group ID</label>
-        <input v-model="newGroupId" type="text" placeholder="e.g., 600" :disabled="isMonitoring" />
+        <label for="ring-group-id">Ring Group ID</label>
+        <InputText
+          id="ring-group-id"
+          v-model="newGroupId"
+          placeholder="e.g., 600"
+          :disabled="isMonitoring"
+        />
       </div>
       <div class="action-buttons">
-        <button v-if="!isMonitoring" class="btn btn-primary" @click="handleStartMonitoring">
-          Start Monitoring
-        </button>
-        <button v-else class="btn btn-danger" @click="handleStopMonitoring">Stop Monitoring</button>
-        <button class="btn btn-secondary" :disabled="!isMonitoring" @click="handleRefresh">
-          Refresh
-        </button>
-        <button
-          class="btn btn-secondary"
-          :disabled="!isMonitoring || !newGroupId"
+        <Button
+          v-if="!isMonitoring"
+          label="Start Monitoring"
+          @click="handleStartMonitoring"
+          icon="pi pi-play"
+          severity="primary"
+        />
+        <Button
+          v-else
+          label="Stop Monitoring"
+          @click="handleStopMonitoring"
+          icon="pi pi-stop"
+          severity="danger"
+        />
+        <Button
+          label="Refresh"
+          @click="handleRefresh"
+          icon="pi pi-refresh"
+          :disabled="!isMonitoring"
+          severity="secondary"
+        />
+        <Button
+          label="Add Group"
           @click="handleAddGroup"
-        >
-          Add Group
-        </button>
+          icon="pi pi-plus"
+          :disabled="!isMonitoring || !newGroupId"
+          severity="secondary"
+        />
       </div>
     </div>
 
     <!-- Ring Groups List -->
-    <div v-if="groupList.length > 0" class="groups-section">
-      <h3>Ring Groups</h3>
-      <div class="groups-grid">
-        <div
-          v-for="group in groupList"
-          :key="group.id"
-          class="group-card"
-          :class="{ selected: selectedGroup?.id === group.id, disabled: !group.enabled }"
-          @click="selectGroup(group.id)"
-        >
-          <div class="group-header">
-            <span class="group-id">{{ group.id }}</span>
-            <span class="group-state" :class="group.state">{{ group.state }}</span>
-          </div>
-          <div class="group-name">{{ group.name }}</div>
-          <div class="group-strategy">
-            <span class="strategy-label">Strategy:</span>
-            <span class="strategy-value">{{ formatStrategy(group.strategy) }}</span>
-          </div>
-          <div class="group-members">
-            <span class="members-count">{{ group.members.length }}</span> members
-            <span class="available-count">({{ getAvailableCount(group) }} available)</span>
-          </div>
-          <div class="group-stats">
-            <span class="stat">
-              <strong>{{ group.stats.totalCalls }}</strong> calls
-            </span>
-            <span class="stat">
-              <strong>{{ group.stats.answeredCalls }}</strong> answered
-            </span>
+    <!-- Design Decision: Card component structures groups section. Group cards use clickable
+         Card components for better interaction feedback. -->
+    <Card v-if="groupList.length > 0" class="groups-section">
+      <template #title>Ring Groups</template>
+      <template #content>
+        <div class="groups-grid">
+          <div
+            v-for="group in groupList"
+            :key="group.id"
+            class="group-card"
+            :class="{ selected: selectedGroup?.id === group.id, disabled: !group.enabled }"
+            @click="selectGroup(group.id)"
+          >
+            <div class="group-header">
+              <span class="group-id">{{ group.id }}</span>
+              <Badge
+                :value="group.state"
+                :severity="
+                  group.state === 'connected'
+                    ? 'success'
+                    : group.state === 'ringing'
+                      ? 'warning'
+                      : group.state === 'disabled'
+                        ? 'danger'
+                        : 'secondary'
+                "
+              />
+            </div>
+            <div class="group-name">{{ group.name }}</div>
+            <div class="group-strategy">
+              <span class="strategy-label">Strategy:</span>
+              <span class="strategy-value">{{ formatStrategy(group.strategy) }}</span>
+            </div>
+            <div class="group-members">
+              <span class="members-count">{{ group.members.length }}</span> members
+              <span class="available-count">({{ getAvailableCount(group) }} available)</span>
+            </div>
+            <div class="group-stats">
+              <span class="stat">
+                <strong>{{ group.stats.totalCalls }}</strong> calls
+              </span>
+              <span class="stat">
+                <strong>{{ group.stats.answeredCalls }}</strong> answered
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </template>
+    </Card>
 
     <!-- Selected Group Details -->
-    <div v-if="selectedGroup" class="group-details">
-      <div class="details-header">
-        <h3>{{ selectedGroup.name }} ({{ selectedGroup.id }})</h3>
+    <!-- Design Decision: Card component structures group details. Button components with
+         appropriate severity for actions. -->
+    <Card v-if="selectedGroup" class="group-details">
+      <template #title>{{ selectedGroup.name }} ({{ selectedGroup.id }})</template>
+      <template #content>
         <div class="details-actions">
-          <button
+          <Button
             v-if="selectedGroup.enabled"
-            class="btn btn-sm btn-warning"
+            label="Disable"
             @click="handleDisableGroup"
-          >
-            Disable
-          </button>
-          <button v-else class="btn btn-sm btn-success" @click="handleEnableGroup">Enable</button>
-          <button class="btn btn-sm btn-secondary" @click="handleClearStats">Clear Stats</button>
+            icon="pi pi-pause"
+            severity="warning"
+            size="small"
+          />
+          <Button
+            v-else
+            label="Enable"
+            @click="handleEnableGroup"
+            icon="pi pi-play"
+            severity="success"
+            size="small"
+          />
+          <Button
+            label="Clear Stats"
+            @click="handleClearStats"
+            icon="pi pi-trash"
+            severity="secondary"
+            size="small"
+          />
         </div>
-      </div>
 
-      <!-- Strategy Configuration -->
-      <div class="config-section">
-        <h4>Configuration</h4>
-        <div class="config-grid">
-          <div class="config-item">
-            <label>Ring Strategy</label>
-            <select v-model="selectedStrategy" @change="handleStrategyChange">
-              <option value="ringall">Ring All</option>
-              <option value="hunt">Hunt</option>
-              <option value="memoryhunt">Memory Hunt</option>
-              <option value="random">Random</option>
-              <option value="linear">Linear</option>
-              <option value="rrmemory">Round Robin (Memory)</option>
-              <option value="rrordered">Round Robin (Ordered)</option>
-            </select>
-          </div>
-          <div class="config-item">
-            <label>Ring Timeout</label>
-            <div class="timeout-input">
-              <input
-                type="number"
-                :value="selectedGroup.ringTimeout"
-                min="5"
-                max="300"
-                @change="handleTimeoutChange"
+        <!-- Strategy Configuration -->
+        <!-- Design Decision: Dropdown component for strategy selection provides better UX.
+           InputNumber component for timeout with proper validation. -->
+        <div class="config-section">
+          <h4>Configuration</h4>
+          <div class="config-grid">
+            <div class="config-item">
+              <label for="ring-strategy">Ring Strategy</label>
+              <Dropdown
+                id="ring-strategy"
+                v-model="selectedStrategy"
+                :options="strategyOptions"
+                optionLabel="label"
+                optionValue="value"
+                @change="handleStrategyChange"
+                class="w-full"
               />
-              <span class="unit">seconds</span>
+            </div>
+            <div class="config-item">
+              <label for="ring-timeout">Ring Timeout</label>
+              <div class="timeout-input">
+                <InputNumber
+                  id="ring-timeout"
+                  :modelValue="selectedGroup.ringTimeout"
+                  :min="5"
+                  :max="300"
+                  @update:modelValue="handleTimeoutChangeNumber"
+                  suffix=" seconds"
+                  class="w-full"
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Members Section -->
-      <div class="members-section">
-        <div class="members-header">
-          <h4>Members</h4>
-          <div class="add-member-form">
-            <input v-model="newMemberExt" type="text" placeholder="Extension" />
-            <input v-model="newMemberName" type="text" placeholder="Name (optional)" />
-            <button
-              class="btn btn-sm btn-primary"
-              :disabled="!newMemberExt"
-              @click="handleAddMember"
+        <!-- Members Section -->
+        <div class="members-section">
+          <div class="members-header">
+            <h4>Members</h4>
+            <!-- Design Decision: InputText components for member form. Button component for actions. -->
+            <div class="add-member-form">
+              <InputText v-model="newMemberExt" placeholder="Extension" />
+              <InputText v-model="newMemberName" placeholder="Name (optional)" />
+              <Button
+                label="Add Member"
+                @click="handleAddMember"
+                icon="pi pi-plus"
+                :disabled="!newMemberExt"
+                severity="primary"
+                size="small"
+              />
+            </div>
+          </div>
+
+          <div v-if="selectedGroup.members.length > 0" class="members-list">
+            <div
+              v-for="member in selectedGroup.members"
+              :key="member.extension"
+              class="member-item"
+              :class="{ disabled: !member.enabled }"
             >
-              Add Member
-            </button>
+              <div class="member-info">
+                <div class="member-status" :class="member.status">
+                  <span class="status-indicator">{{ getStatusIcon(member.status) }}</span>
+                </div>
+                <div class="member-details">
+                  <span class="member-extension">{{ member.extension }}</span>
+                  <span class="member-name">{{ member.name }}</span>
+                </div>
+              </div>
+              <div class="member-stats">
+                <span class="stat answered">{{ member.callsAnswered }} answered</span>
+                <span class="stat missed">{{ member.callsMissed }} missed</span>
+              </div>
+              <div class="member-priority">
+                <label>Priority:</label>
+                <InputNumber
+                  :modelValue="member.priority"
+                  :min="1"
+                  :max="99"
+                  @update:modelValue="(val) => handlePriorityChangeNumber(member.extension, val)"
+                  class="w-full"
+                />
+              </div>
+              <div class="member-actions">
+                <!-- Design Decision: Button components with icons for member actions. Severity
+                   provides semantic meaning (danger for remove). -->
+                <Button
+                  v-if="member.enabled"
+                  icon="pi pi-pause"
+                  @click="handleDisableMember(member.extension)"
+                  severity="secondary"
+                  size="small"
+                  text
+                  :title="'Disable'"
+                />
+                <Button
+                  v-else
+                  icon="pi pi-play"
+                  @click="handleEnableMember(member.extension)"
+                  severity="secondary"
+                  size="small"
+                  text
+                  :title="'Enable'"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  @click="handleRemoveMember(member.extension)"
+                  severity="danger"
+                  size="small"
+                  text
+                  :title="'Remove'"
+                />
+              </div>
+            </div>
           </div>
+          <div v-else class="empty-members">No members in this ring group. Add members above.</div>
         </div>
 
-        <div v-if="selectedGroup.members.length > 0" class="members-list">
-          <div
-            v-for="member in selectedGroup.members"
-            :key="member.extension"
-            class="member-item"
-            :class="{ disabled: !member.enabled }"
-          >
-            <div class="member-info">
-              <div class="member-status" :class="member.status">
-                <span class="status-indicator">{{ getStatusIcon(member.status) }}</span>
+        <!-- Statistics -->
+        <div class="stats-section">
+          <h4>Statistics</h4>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">{{ selectedGroup.stats.totalCalls }}</div>
+              <div class="stat-label">Total Calls</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ selectedGroup.stats.answeredCalls }}</div>
+              <div class="stat-label">Answered</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ selectedGroup.stats.unansweredCalls }}</div>
+              <div class="stat-label">Unanswered</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ selectedGroup.stats.currentCalls }}</div>
+              <div class="stat-label">Current Calls</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">
+                {{ formatServiceLevel(selectedGroup.stats.serviceLevel) }}
               </div>
-              <div class="member-details">
-                <span class="member-extension">{{ member.extension }}</span>
-                <span class="member-name">{{ member.name }}</span>
-              </div>
+              <div class="stat-label">Service Level</div>
             </div>
-            <div class="member-stats">
-              <span class="stat answered">{{ member.callsAnswered }} answered</span>
-              <span class="stat missed">{{ member.callsMissed }} missed</span>
-            </div>
-            <div class="member-priority">
-              <label>Priority:</label>
-              <input
-                type="number"
-                :value="member.priority"
-                min="1"
-                max="99"
-                @change="(e) => handlePriorityChange(member.extension, e)"
-              />
-            </div>
-            <div class="member-actions">
-              <button
-                v-if="member.enabled"
-                class="btn-icon"
-                title="Disable"
-                @click="handleDisableMember(member.extension)"
-              >
-                Pause
-              </button>
-              <button
-                v-else
-                class="btn-icon"
-                title="Enable"
-                @click="handleEnableMember(member.extension)"
-              >
-                Play
-              </button>
-              <button
-                class="btn-icon danger"
-                title="Remove"
-                @click="handleRemoveMember(member.extension)"
-              >
-                Remove
-              </button>
+            <div class="stat-card">
+              <div class="stat-value">{{ formatLastCall(selectedGroup.stats.lastCallTime) }}</div>
+              <div class="stat-label">Last Call</div>
             </div>
           </div>
         </div>
-        <div v-else class="empty-members">No members in this ring group. Add members above.</div>
-      </div>
-
-      <!-- Statistics -->
-      <div class="stats-section">
-        <h4>Statistics</h4>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-value">{{ selectedGroup.stats.totalCalls }}</div>
-            <div class="stat-label">Total Calls</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ selectedGroup.stats.answeredCalls }}</div>
-            <div class="stat-label">Answered</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ selectedGroup.stats.unansweredCalls }}</div>
-            <div class="stat-label">Unanswered</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ selectedGroup.stats.currentCalls }}</div>
-            <div class="stat-label">Current Calls</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ formatServiceLevel(selectedGroup.stats.serviceLevel) }}</div>
-            <div class="stat-label">Service Level</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ formatLastCall(selectedGroup.stats.lastCallTime) }}</div>
-            <div class="stat-label">Last Call</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      </template>
+    </Card>
 
     <!-- Simulation Controls -->
-    <div v-if="isMonitoring && selectedGroup" class="simulation-section">
-      <h4>Simulate Activity</h4>
-      <div class="simulation-buttons">
-        <button class="btn btn-secondary" @click="simulateIncomingCall">
-          Simulate Incoming Call
-        </button>
-        <button class="btn btn-secondary" @click="simulateCallAnswer">Simulate Call Answer</button>
-        <button class="btn btn-secondary" @click="simulateCallEnd">Simulate Call End</button>
-      </div>
-    </div>
+    <!-- Design Decision: Card component structures simulation section. Button components for actions. -->
+    <Card v-if="isMonitoring && selectedGroup" class="simulation-section">
+      <template #title>Simulate Activity</template>
+      <template #content>
+        <div class="simulation-buttons">
+          <Button
+            label="Simulate Incoming Call"
+            @click="simulateIncomingCall"
+            icon="pi pi-phone"
+            severity="secondary"
+          />
+          <Button
+            label="Simulate Call Answer"
+            @click="simulateCallAnswer"
+            icon="pi pi-check"
+            severity="secondary"
+          />
+          <Button
+            label="Simulate Call End"
+            @click="simulateCallEnd"
+            icon="pi pi-times"
+            severity="secondary"
+          />
+        </div>
+      </template>
+    </Card>
 
     <!-- Empty State -->
     <div v-if="!isMonitoring" class="empty-state">
@@ -314,6 +395,18 @@ await removeMember('600', '1001')</code></pre>
 </template>
 
 <script setup lang="ts">
+/**
+ * Ring Groups Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Card components to structure sections for better visual hierarchy
+ * - InputText and InputNumber components for form inputs with proper validation states
+ * - Dropdown component for strategy selection provides better UX
+ * - Badge and Tag components for status indicators provide semantic meaning
+ * - Button components with appropriate severity provide clear visual hierarchy
+ * - Message component for notes ensures consistent styling
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, onUnmounted } from 'vue'
 import type {
   RingGroup,
@@ -323,6 +416,7 @@ import type {
 } from '../../src/types/ringgroup.types'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, InputNumber, Dropdown, Card, Badge, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -340,6 +434,17 @@ const newGroupId = ref('600')
 const newMemberExt = ref('')
 const newMemberName = ref('')
 const selectedStrategy = ref<RingStrategy>('ringall')
+
+// Strategy options for dropdown
+const strategyOptions = [
+  { label: 'Ring All', value: 'ringall' },
+  { label: 'Hunt', value: 'hunt' },
+  { label: 'Memory Hunt', value: 'memoryhunt' },
+  { label: 'Random', value: 'random' },
+  { label: 'Linear', value: 'linear' },
+  { label: 'Round Robin (Memory)', value: 'rrmemory' },
+  { label: 'Round Robin (Ordered)', value: 'rrordered' },
+] as const
 
 // Computed
 const groupList = computed(() => Array.from(ringGroups.value.values()))
@@ -479,10 +584,10 @@ function handleStrategyChange() {
   }
 }
 
-function handleTimeoutChange(event: Event) {
-  const target = event.target as HTMLInputElement
-  const value = parseInt(target.value, 10)
-  if (selectedGroup.value && value >= 5 && value <= 300) {
+// Removed unused handleTimeoutChange - replaced by handleTimeoutChangeNumber
+
+function handleTimeoutChangeNumber(value: number | null) {
+  if (selectedGroup.value && value !== null && value >= 5 && value <= 300) {
     selectedGroup.value.ringTimeout = value
     selectedGroup.value.lastUpdated = new Date()
   }
@@ -540,15 +645,14 @@ function handleDisableMember(extension: string) {
   }
 }
 
-function handlePriorityChange(extension: string, event: Event) {
-  if (!selectedGroup.value) return
+// Removed unused handlePriorityChange - replaced by handlePriorityChangeNumber
 
-  const target = event.target as HTMLInputElement
-  const priority = parseInt(target.value, 10)
+function handlePriorityChangeNumber(extension: string, value: number | null) {
+  if (!selectedGroup.value || value === null) return
 
   const member = selectedGroup.value.members.find((m) => m.extension === extension)
-  if (member && priority >= 1 && priority <= 99) {
-    member.priority = priority
+  if (member && value >= 1 && value <= 99) {
+    member.priority = value
     selectedGroup.value.members.sort((a, b) => a.priority - b.priority)
     selectedGroup.value.lastUpdated = new Date()
   }
@@ -660,13 +764,7 @@ onUnmounted(() => {
   margin-bottom: 1.5rem;
 }
 
-.note {
-  background: var(--color-warning-bg, #fff3cd);
-  padding: 0.75rem;
-  border-radius: 4px;
-  border-left: 4px solid var(--color-warning, #ffc107);
-  font-size: 0.9rem;
-}
+/* Note styling now handled by PrimeVue Message component */
 
 .controls-section {
   display: flex;
@@ -687,60 +785,14 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.input-group input {
-  padding: 0.5rem;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
-  width: 150px;
-}
+/* Input styling now handled by PrimeVue InputText component */
 
 .action-buttons {
   display: flex;
   gap: 0.5rem;
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.btn-primary {
-  background: var(--color-primary, #007bff);
-  color: white;
-}
-
-.btn-secondary {
-  background: var(--color-secondary, #6c757d);
-  color: white;
-}
-
-.btn-danger {
-  background: var(--color-danger, #dc3545);
-  color: white;
-}
-
-.btn-success {
-  background: var(--color-success, #28a745);
-  color: white;
-}
-
-.btn-warning {
-  background: var(--color-warning, #ffc107);
-  color: #212529;
-}
-
-.btn-sm {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.85rem;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+/* Button styling now handled by PrimeVue Button component */
 
 .groups-section {
   margin-bottom: 2rem;
@@ -770,8 +822,8 @@ onUnmounted(() => {
 }
 
 .group-card.selected {
-  border-color: var(--color-primary, #007bff);
-  background: var(--color-primary-bg, #e7f1ff);
+  border-color: var(--primary);
+  background: var(--surface-50);
 }
 
 .group-card.disabled {
@@ -790,26 +842,7 @@ onUnmounted(() => {
   font-size: 1.1rem;
 }
 
-.group-state {
-  font-size: 0.75rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-  background: var(--color-secondary, #6c757d);
-  color: white;
-}
-
-.group-state.ringing {
-  background: var(--color-warning, #ffc107);
-  color: #212529;
-}
-
-.group-state.connected {
-  background: var(--color-success, #28a745);
-}
-
-.group-state.disabled {
-  background: var(--color-danger, #dc3545);
-}
+/* Group state styling now handled by PrimeVue Badge component */
 
 .group-name {
   color: var(--color-text-secondary, #666);
@@ -832,7 +865,7 @@ onUnmounted(() => {
 }
 
 .available-count {
-  color: var(--color-success, #28a745);
+  color: var(--success);
 }
 
 .group-stats {
@@ -891,12 +924,7 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.config-item select,
-.config-item input {
-  padding: 0.5rem;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
-}
+/* Config item select and input styling now handled by PrimeVue Dropdown and InputNumber components */
 
 .timeout-input {
   display: flex;
@@ -935,12 +963,7 @@ onUnmounted(() => {
   gap: 0.5rem;
 }
 
-.add-member-form input {
-  padding: 0.5rem;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
-  width: 120px;
-}
+/* Add member form input styling now handled by PrimeVue InputText component */
 
 .members-list {
   display: flex;
@@ -953,7 +976,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem;
-  background: var(--color-bg-secondary, #f8f9fa);
+  background: var(--surface-50);
   border-radius: 6px;
   flex-wrap: wrap;
 }
@@ -995,11 +1018,11 @@ onUnmounted(() => {
 }
 
 .member-stats .answered {
-  color: var(--color-success, #28a745);
+  color: var(--success);
 }
 
 .member-stats .missed {
-  color: var(--color-danger, #dc3545);
+  color: var(--danger);
 }
 
 .member-priority {
@@ -1009,34 +1032,14 @@ onUnmounted(() => {
   font-size: 0.85rem;
 }
 
-.member-priority input {
-  width: 50px;
-  padding: 0.25rem;
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
-}
+/* Member priority input styling now handled by PrimeVue InputNumber component */
 
 .member-actions {
   display: flex;
   gap: 0.25rem;
 }
 
-.btn-icon {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0.25rem;
-  border-radius: 4px;
-}
-
-.btn-icon:hover {
-  background: var(--color-bg-secondary, #f8f9fa);
-}
-
-.btn-icon.danger:hover {
-  background: var(--color-danger-bg, #f8d7da);
-}
+/* Button icon styling now handled by PrimeVue Button component with text prop */
 
 .empty-members {
   text-align: center;
@@ -1055,7 +1058,7 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  background: var(--color-bg-secondary, #f8f9fa);
+  background: var(--surface-50);
   padding: 1rem;
   border-radius: 6px;
   text-align: center;
@@ -1064,7 +1067,7 @@ onUnmounted(() => {
 .stat-value {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--color-primary, #007bff);
+  color: var(--primary);
 }
 
 .stat-label {
@@ -1072,12 +1075,7 @@ onUnmounted(() => {
   color: var(--color-text-secondary, #666);
 }
 
-.simulation-section {
-  background: var(--color-bg-secondary, #f8f9fa);
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-}
+/* Simulation section styling now handled by PrimeVue Card component */
 
 .simulation-section h4 {
   margin-bottom: 0.75rem;
@@ -1102,7 +1100,7 @@ onUnmounted(() => {
 
 .code-example {
   margin-top: 2rem;
-  background: var(--color-code-bg, #1e1e1e);
+  background: var(--surface-900);
   border-radius: 8px;
   padding: 1rem;
   overflow-x: auto;
@@ -1118,7 +1116,7 @@ onUnmounted(() => {
 }
 
 .code-example code {
-  color: var(--color-code-text, #d4d4d4);
+  color: var(--text-color);
   font-family: 'Fira Code', monospace;
   font-size: 0.85rem;
   line-height: 1.6;

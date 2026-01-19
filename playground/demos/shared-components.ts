@@ -21,6 +21,7 @@ export { default as InputNumber } from 'primevue/inputnumber'
 export { default as Textarea } from 'primevue/textarea'
 export { default as RadioButton } from 'primevue/radiobutton'
 export { default as Calendar } from 'primevue/calendar'
+export { default as Slider } from 'primevue/slider'
 // Note: Select is PrimeVue v4 only - use Dropdown instead for v3
 
 // Data Display

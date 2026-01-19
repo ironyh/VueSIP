@@ -34,10 +34,15 @@
 
     <!-- Permissions Status -->
     <div v-if="!effectivePermissionsGranted" class="permissions-section">
-      <div class="status-message warning">
+      <Message severity="warn" :closable="false">
         Microphone permissions needed to access audio devices
-      </div>
-      <button class="btn btn-primary" @click="requestPermissions">Grant Microphone Access</button>
+      </Message>
+      <Button
+        @click="requestPermissions"
+        label="Grant Microphone Access"
+        severity="primary"
+        class="mt-3"
+      />
     </div>
 
     <!-- Device Selection -->
@@ -94,14 +99,14 @@
 
       <!-- Refresh Button -->
       <div class="refresh-section">
-        <button class="btn btn-secondary" @click="refresh">Refresh Devices</button>
+        <Button @click="refresh" label="Refresh Devices" severity="secondary" />
         <small>Click to detect newly connected audio devices</small>
       </div>
 
       <!-- Device Change Feedback -->
-      <div v-if="changeMessage" class="success-message">
+      <Message v-if="changeMessage" severity="success" :closable="false" class="mt-3">
         {{ changeMessage }}
-      </div>
+      </Message>
     </div>
 
     <!-- Code Example -->
@@ -137,10 +142,21 @@ watch(selectedAudioInputId, (deviceId) => {
 </template>
 
 <script setup lang="ts">
+/**
+ * Audio Devices Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue Message for status messages with appropriate severity (warning/info)
+ * - Device selection items remain custom styled to maintain the visual design pattern
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ * - Fallback hex colors in var() functions are acceptable as they're only used if custom properties aren't defined
+ */
 import { ref, computed, onMounted } from 'vue'
 import { useMediaDevices } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -360,17 +376,8 @@ onMounted(async () => {
   padding: 2rem;
 }
 
-.status-message {
-  padding: 1rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-}
-
-.status-message.warning {
-  background: var(--warning-bg, #fef3c7);
-  color: var(--warning-text, #92400e);
-}
+/* Design Decision: PrimeVue Message component handles status message styling.
+   Removed custom .status-message classes as they're no longer needed. */
 
 .devices-section {
   padding: 1.5rem;

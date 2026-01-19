@@ -2,13 +2,13 @@
   <div class="dtmf-demo">
     <div class="info-section">
       <p>
-        DTMF (Dual-Tone Multi-Frequency) tones are used to send keypad inputs during an active
-        call. This is commonly used for navigating IVR menus, entering PIN codes, or interacting
-        with automated systems.
+        DTMF (Dual-Tone Multi-Frequency) tones are used to send keypad inputs during an active call.
+        This is commonly used for navigating IVR menus, entering PIN codes, or interacting with
+        automated systems.
       </p>
       <p class="note">
-        <strong>Note:</strong> You must be in an active call to send DTMF tones. Connect to your
-        SIP server and establish a call first.
+        <strong>Note:</strong> You must be in an active call to send DTMF tones. Connect to your SIP
+        server and establish a call first.
       </p>
     </div>
 
@@ -33,27 +33,32 @@
     />
 
     <!-- Connection Status -->
-    <div v-if="!effectiveIsConnected" class="status-message info">
-      {{ isSimulationMode ? 'Enable simulation and run a scenario to test DTMF' : 'Connect to a SIP server to use DTMF features (use the Basic Call demo to connect)' }}
-    </div>
+    <Message v-if="!effectiveIsConnected" severity="info" :closable="false">
+      {{
+        isSimulationMode
+          ? 'Enable simulation and run a scenario to test DTMF'
+          : 'Connect to a SIP server to use DTMF features (use the Basic Call demo to connect)'
+      }}
+    </Message>
 
-    <div v-else-if="effectiveCallState !== 'active'" class="status-message warning">
-      {{ isSimulationMode ? 'Run the "Active Call" scenario to test DTMF tones' : 'Make or answer a call to send DTMF tones' }}
-    </div>
+    <Message v-else-if="effectiveCallState !== 'active'" severity="warn" :closable="false">
+      {{
+        isSimulationMode
+          ? 'Run the "Active Call" scenario to test DTMF tones'
+          : 'Make or answer a call to send DTMF tones'
+      }}
+    </Message>
 
     <!-- DTMF Keypad -->
     <div v-else class="dtmf-active">
       <div class="call-info">
-        <div class="info-badge">In Call: {{ effectiveRemoteDisplayName || effectiveRemoteUri || 'Unknown' }}</div>
+        <div class="info-badge">
+          In Call: {{ effectiveRemoteDisplayName || effectiveRemoteUri || 'Unknown' }}
+        </div>
       </div>
 
       <div class="dtmf-keypad">
-        <button
-          v-for="key in dialpadKeys"
-          :key="key"
-          class="dtmf-key"
-          @click="sendTone(key)"
-        >
+        <button v-for="key in dialpadKeys" :key="key" class="dtmf-key" @click="sendTone(key)">
           {{ key }}
         </button>
       </div>
@@ -65,19 +70,18 @@
       <div class="dtmf-sequence">
         <h4>Send Tone Sequence</h4>
         <div class="sequence-input">
-          <input
+          <InputText
             v-model="toneSequence"
-            type="text"
             placeholder="Enter digits (e.g., 1234#)"
             @keyup.enter="sendSequence"
+            class="flex-1"
           />
-          <button
-            class="btn btn-primary"
+          <Button
             :disabled="!toneSequence.trim() || sending"
             @click="sendSequence"
-          >
-            {{ sending ? 'Sending...' : 'Send Sequence' }}
-          </button>
+            :label="sending ? 'Sending...' : 'Send Sequence'"
+            severity="primary"
+          />
         </div>
         <small>Enter a sequence of digits (0-9, *, #) to send with a delay between each tone</small>
       </div>
@@ -106,10 +110,22 @@ for (const digit of sequence) {
 </template>
 
 <script setup lang="ts">
+/**
+ * DTMF Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - DTMF keypad buttons remain as custom styled buttons for the keypad UI pattern
+ * - Using PrimeVue Button for the "Send Sequence" action button with appropriate severity
+ * - Using PrimeVue InputText for the sequence input with proper v-model binding
+ * - Using PrimeVue Message for status messages with appropriate severity (info/warning)
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ * - Keypad buttons use custom styling to maintain the dialpad appearance
+ */
 import { ref, computed } from 'vue'
 import { useSipClient, useCallSession, useDTMF } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -120,7 +136,13 @@ const { isConnected, getClient } = useSipClient()
 
 // Get call session
 const sipClientRef = computed(() => getClient())
-const { state: realCallState, remoteUri: realRemoteUri, session, duration: realDuration, remoteDisplayName: realRemoteDisplayName } = useCallSession(sipClientRef)
+const {
+  state: realCallState,
+  remoteUri: realRemoteUri,
+  session,
+  duration: realDuration,
+  remoteDisplayName: realRemoteDisplayName,
+} = useCallSession(sipClientRef)
 
 // DTMF
 const { sendTone: sendDtmfTone, canSendDTMF } = useDTMF(session)
@@ -135,7 +157,7 @@ const effectiveCallState = computed(() =>
 )
 
 const effectiveDuration = computed(() =>
-  isSimulationMode.value ? simulation.duration.value : (realDuration.value || 0)
+  isSimulationMode.value ? simulation.duration.value : realDuration.value || 0
 )
 
 const effectiveRemoteUri = computed(() =>
@@ -150,9 +172,7 @@ const effectiveIsOnHold = computed(() =>
   isSimulationMode.value ? simulation.isOnHold.value : false
 )
 
-const effectiveIsMuted = computed(() =>
-  isSimulationMode.value ? simulation.isMuted.value : false
-)
+const effectiveIsMuted = computed(() => (isSimulationMode.value ? simulation.isMuted.value : false))
 
 const effectiveCanSendDTMF = computed(() =>
   isSimulationMode.value ? simulation.state.value === 'active' : canSendDTMF.value
@@ -209,7 +229,7 @@ const sendSequence = async () => {
       }
 
       // Wait 150ms between tones
-      await new Promise(resolve => setTimeout(resolve, 150))
+      await new Promise((resolve) => setTimeout(resolve, 150))
     }
 
     toneSequence.value = ''
@@ -230,14 +250,14 @@ const sendSequence = async () => {
 
 .info-section {
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
 
 .info-section p {
   margin: 0 0 1rem 0;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
@@ -247,28 +267,14 @@ const sendSequence = async () => {
 
 .note {
   padding: 1rem;
-  background: #eff6ff;
-  border-left: 3px solid #667eea;
+  background: var(--info-light);
+  border-left: 3px solid var(--info);
   border-radius: 4px;
   font-size: 0.875rem;
 }
 
-.status-message {
-  padding: 1rem;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 0.875rem;
-}
-
-.status-message.info {
-  background: #eff6ff;
-  color: #1e40af;
-}
-
-.status-message.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
+/* Design Decision: PrimeVue Message component handles status message styling.
+   Removed custom .status-message classes as they're no longer needed. */
 
 .dtmf-active {
   padding: 1.5rem;
@@ -282,8 +288,8 @@ const sendSequence = async () => {
 .info-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--success-light);
+  color: var(--success);
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -299,19 +305,19 @@ const sendSequence = async () => {
 
 .dtmf-key {
   aspect-ratio: 1;
-  border: 2px solid #d1d5db;
-  background: white;
+  border: 2px solid var(--border-color);
+  background: var(--surface-0);
   border-radius: 12px;
   font-size: 1.5rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
-  color: #333;
+  color: var(--text-color);
 }
 
 .dtmf-key:hover {
-  background: #f3f4f6;
-  border-color: #667eea;
+  background: var(--surface-100);
+  border-color: var(--primary);
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
@@ -319,34 +325,34 @@ const sendSequence = async () => {
 .dtmf-key:active {
   transform: translateY(0);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  background: #667eea;
-  color: white;
+  background: var(--primary);
+  color: var(--surface-0);
 }
 
 .tone-feedback {
   text-align: center;
   padding: 1rem;
-  background: #eff6ff;
+  background: var(--info-light);
   border-radius: 6px;
   margin-bottom: 1.5rem;
-  color: #1e40af;
+  color: var(--info);
 }
 
 .tone-feedback strong {
   font-size: 1.25rem;
-  color: #667eea;
+  color: var(--primary);
 }
 
 .dtmf-sequence {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
 }
 
 .dtmf-sequence h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
 }
 
 .sequence-input {
@@ -355,66 +361,33 @@ const sendSequence = async () => {
   margin-bottom: 0.5rem;
 }
 
-.sequence-input input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
-.sequence-input input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
+/* Design Decision: PrimeVue InputText component handles input styling.
+   Removed custom input styles as they're no longer needed. */
 
 .sequence-input small {
   display: block;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
+/* Design Decision: PrimeVue Button component handles all button styling.
+   Removed custom .btn classes as they're no longer needed. */
 
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--surface-900);
+  color: var(--text-color);
   padding: 1.5rem;
   border-radius: 6px;
   overflow-x: auto;

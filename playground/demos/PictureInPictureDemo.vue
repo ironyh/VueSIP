@@ -2,16 +2,14 @@
   <div class="pip-demo">
     <h2>Picture-in-Picture</h2>
     <p class="description">
-      Two PiP features: (1) <strong>Video Inset</strong> - overlay local camera on remote video within your app,
-      and (2) <strong>Browser PiP</strong> - pop video to a floating OS window while multitasking.
+      Two PiP features: (1) <strong>Video Inset</strong> - overlay local camera on remote video
+      within your app, and (2) <strong>Browser PiP</strong> - pop video to a floating OS window
+      while multitasking.
     </p>
 
     <!-- Tab Navigation -->
     <div class="tab-navigation">
-      <button
-        :class="['tab-btn', { active: activeTab === 'inset' }]"
-        @click="activeTab = 'inset'"
-      >
+      <button :class="['tab-btn', { active: activeTab === 'inset' }]" @click="activeTab = 'inset'">
         <span class="tab-icon">🎥</span>
         Video Inset Layout
       </button>
@@ -29,8 +27,8 @@
       <div class="inset-section">
         <h3>Video Call Layout with Inset</h3>
         <p class="info-text">
-          This demonstrates a typical video call layout where your local camera appears as an overlay
-          on the remote video. You can reposition, resize, swap, or hide the inset.
+          This demonstrates a typical video call layout where your local camera appears as an
+          overlay on the remote video. You can reposition, resize, swap, or hide the inset.
         </p>
 
         <!-- Main Video Container with Inset -->
@@ -46,11 +44,7 @@
           ></video>
 
           <!-- Inset Video (Local Camera) -->
-          <div
-            v-if="insetVisible"
-            :style="insetStyles"
-            class="inset-wrapper"
-          >
+          <div v-if="insetVisible" :style="insetStyles" class="inset-wrapper">
             <video
               ref="localVideoElement"
               class="inset-video"
@@ -61,15 +55,9 @@
               playsinline
             ></video>
             <div class="inset-controls">
-              <button class="inset-btn" @click="cyclePosition" title="Move position">
-                ↗️
-              </button>
-              <button class="inset-btn" @click="swapVideos" title="Swap videos">
-                🔄
-              </button>
-              <button class="inset-btn" @click="hideInset" title="Hide">
-                ✕
-              </button>
+              <button class="inset-btn" @click="cyclePosition" title="Move position">↗️</button>
+              <button class="inset-btn" @click="swapVideos" title="Swap videos">🔄</button>
+              <button class="inset-btn" @click="hideInset" title="Hide">✕</button>
             </div>
           </div>
 
@@ -85,58 +73,67 @@
           <div class="control-group">
             <label>Visibility</label>
             <div class="btn-group">
-              <button
-                :class="['btn', insetVisible ? 'btn-primary' : 'btn-outline']"
+              <Button
                 @click="showInset"
-              >
-                Show
-              </button>
-              <button
-                :class="['btn', !insetVisible ? 'btn-primary' : 'btn-outline']"
+                label="Show"
+                :severity="insetVisible ? 'primary' : 'secondary'"
+                :outlined="!insetVisible"
+              />
+              <Button
                 @click="hideInset"
-              >
-                Hide
-              </button>
+                label="Hide"
+                :severity="!insetVisible ? 'primary' : 'secondary'"
+                :outlined="insetVisible"
+              />
             </div>
           </div>
 
           <div class="control-group">
             <label>Position</label>
             <div class="btn-group">
-              <button
+              <Button
                 v-for="pos in positions"
                 :key="pos.value"
-                :class="['btn btn-sm', position === pos.value ? 'btn-primary' : 'btn-outline']"
                 @click="setPosition(pos.value)"
-              >
-                {{ pos.label }}
-              </button>
+                :label="pos.label"
+                :severity="position === pos.value ? 'primary' : 'secondary'"
+                :outlined="position !== pos.value"
+                size="small"
+              />
             </div>
           </div>
 
           <div class="control-group">
             <label>Size</label>
             <div class="btn-group">
-              <button
+              <Button
                 v-for="s in sizes"
                 :key="s.value"
-                :class="['btn btn-sm', size === s.value ? 'btn-primary' : 'btn-outline']"
                 @click="setSize(s.value)"
-              >
-                {{ s.label }}
-              </button>
+                :label="s.label"
+                :severity="size === s.value ? 'primary' : 'secondary'"
+                :outlined="size !== s.value"
+                size="small"
+              />
             </div>
           </div>
 
           <div class="control-group">
             <label>Actions</label>
             <div class="btn-group">
-              <button class="btn btn-secondary" @click="swapVideos">
-                <span>🔄</span> Swap Videos
-              </button>
-              <button class="btn btn-outline" @click="resetInset">
-                <span>↺</span> Reset
-              </button>
+              <Button
+                @click="swapVideos"
+                label="Swap Videos"
+                severity="secondary"
+                icon="pi pi-refresh"
+              />
+              <Button
+                @click="resetInset"
+                label="Reset"
+                severity="secondary"
+                outlined
+                icon="pi pi-replay"
+              />
             </div>
           </div>
         </div>
@@ -156,7 +153,9 @@
             </div>
             <div class="status-item">
               <span class="status-label">Size</span>
-              <span class="status-value">{{ size }} ({{ dimensions.width }}×{{ dimensions.height }})</span>
+              <span class="status-value"
+                >{{ size }} ({{ dimensions.width }}×{{ dimensions.height }})</span
+              >
             </div>
             <div class="status-item">
               <span class="status-label">Swapped</span>
@@ -203,7 +202,10 @@
         <span class="warning-icon">⚠️</span>
         <div>
           <strong>Picture-in-Picture Not Supported</strong>
-          <p>Your browser doesn't support the Picture-in-Picture API. Please use Chrome, Edge, or Safari.</p>
+          <p>
+            Your browser doesn't support the Picture-in-Picture API. Please use Chrome, Edge, or
+            Safari.
+          </p>
         </div>
       </div>
 
@@ -212,8 +214,10 @@
         <h3>Select a Video Stream</h3>
         <p class="info-text">
           Choose from free test streams to see Picture-in-Picture in action. These streams are
-          provided by <a href="https://test-streams.mux.dev/" target="_blank" rel="noopener">Mux</a>
-          and <a href="https://developer.apple.com" target="_blank" rel="noopener">Apple</a> for testing purposes.
+          provided by
+          <a href="https://test-streams.mux.dev/" target="_blank" rel="noopener">Mux</a> and
+          <a href="https://developer.apple.com" target="_blank" rel="noopener">Apple</a> for testing
+          purposes.
         </p>
 
         <div class="stream-grid">
@@ -253,7 +257,7 @@
             <div class="pip-message">
               <span class="pip-icon-lg">📺</span>
               <span>Video is playing in Picture-in-Picture mode</span>
-              <button class="btn btn-sm" @click="exitPiP">Bring Back</button>
+              <Button @click="exitPiP" label="Bring Back" severity="secondary" size="small" />
             </div>
           </div>
 
@@ -267,39 +271,34 @@
           <div v-if="videoError" class="error-overlay">
             <span class="error-icon">❌</span>
             <span>{{ videoError }}</span>
-            <button class="btn btn-sm" @click="retryStream">Retry</button>
+            <Button @click="retryStream" label="Retry" severity="secondary" size="small" />
           </div>
         </div>
 
         <!-- Video Controls -->
         <div class="video-controls">
-          <button
-            class="btn btn-primary"
+          <Button
             :disabled="!isPiPSupported || !isVideoReady || isPiPActive"
             @click="enterPiP"
-          >
-            <span class="btn-icon">📺</span>
-            Enter Picture-in-Picture
-          </button>
-
-          <button
-            class="btn btn-secondary"
+            label="Enter Picture-in-Picture"
+            severity="primary"
+            icon="pi pi-desktop"
+          />
+          <Button
             :disabled="!isPiPActive"
             @click="exitPiP"
-          >
-            <span class="btn-icon">⬜</span>
-            Exit Picture-in-Picture
-          </button>
-
-          <button
-            class="btn"
-            :class="isPiPActive ? 'btn-warning' : 'btn-outline'"
+            label="Exit Picture-in-Picture"
+            severity="secondary"
+            icon="pi pi-times"
+          />
+          <Button
             :disabled="!isPiPSupported || !isVideoReady"
             @click="togglePiP"
-          >
-            <span class="btn-icon">🔄</span>
-            Toggle PiP
-          </button>
+            label="Toggle PiP"
+            :severity="isPiPActive ? 'warning' : 'secondary'"
+            :outlined="!isPiPActive"
+            icon="pi pi-refresh"
+          />
         </div>
       </div>
 
@@ -409,8 +408,18 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Picture-in-Picture Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Tab buttons remain custom styled to maintain the visual design pattern
+ * - Inset control buttons remain custom styled for compact overlay controls
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, watch, onMounted } from 'vue'
 import { usePictureInPicture, useVideoInset, type InsetPosition, type InsetSize } from '../../src'
+import { Button } from './shared-components'
 
 // Active tab
 const activeTab = ref<'inset' | 'browser'>('inset')
@@ -423,8 +432,10 @@ const remoteVideoElement = ref<HTMLVideoElement | null>(null)
 const localVideoElement = ref<HTMLVideoElement | null>(null)
 
 // Test video sources (simulating local/remote)
-const remoteVideoSrc = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
-const localVideoSrc = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+const remoteVideoSrc =
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+const localVideoSrc =
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
 
 // Use the video inset composable
 const {
@@ -675,8 +686,12 @@ onMounted(() => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Inset Section */
@@ -772,8 +787,13 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Controls Panel */

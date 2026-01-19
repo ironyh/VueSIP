@@ -30,27 +30,26 @@
 
       <div class="form-group">
         <label for="ami-url">AMI WebSocket URL</label>
-        <input
+        <InputText
           id="ami-url"
           v-model="amiConfig.url"
-          type="text"
           placeholder="ws://pbx.example.com:8080"
           :disabled="connecting"
+          class="w-full"
         />
         <small>amiws WebSocket proxy URL</small>
       </div>
 
-      <button
-        class="btn btn-primary"
+      <Button
         :disabled="!amiConfig.url || connecting"
         @click="handleConnect"
-      >
-        {{ connecting ? 'Connecting...' : 'Connect to AMI' }}
-      </button>
+        :label="connecting ? 'Connecting...' : 'Connect to AMI'"
+        severity="primary"
+      />
 
-      <div v-if="connectionError" class="error-message">
+      <Message v-if="connectionError" severity="error" class="mt-3">
         {{ connectionError }}
-      </div>
+      </Message>
     </div>
 
     <!-- Connected Interface -->
@@ -67,9 +66,13 @@
         <div class="status-item">
           <span>Groups: {{ groups.length }}</span>
         </div>
-        <button class="btn btn-sm btn-secondary" @click="handleExport" title="Export contacts">
-          Export
-        </button>
+        <Button
+          @click="handleExport"
+          label="Export"
+          severity="secondary"
+          size="small"
+          title="Export contacts"
+        />
         <input
           ref="importInput"
           type="file"
@@ -77,10 +80,14 @@
           style="display: none"
           @change="handleImportFile"
         />
-        <button class="btn btn-sm btn-secondary" @click="triggerImport" title="Import contacts">
-          Import
-        </button>
-        <button class="btn btn-sm btn-secondary" @click="handleDisconnect">Disconnect</button>
+        <Button
+          @click="triggerImport"
+          label="Import"
+          severity="secondary"
+          size="small"
+          title="Import contacts"
+        />
+        <Button @click="handleDisconnect" label="Disconnect" severity="secondary" size="small" />
       </div>
 
       <!-- Main Content -->
@@ -101,19 +108,19 @@
             </button>
           </div>
           <div class="add-group">
-            <input
+            <InputText
               v-model="newGroupName"
-              type="text"
               placeholder="New group name"
               @keyup.enter="addGroup"
+              class="flex-1"
             />
-            <button
-              class="btn btn-sm btn-primary"
+            <Button
               @click="addGroup"
               :disabled="!newGroupName.trim()"
-            >
-              +
-            </button>
+              label="+"
+              severity="primary"
+              size="small"
+            />
           </div>
         </div>
 
@@ -122,9 +129,9 @@
           <!-- Search & Add -->
           <div class="toolbar">
             <div class="search-box">
-              <input v-model="searchQuery" type="text" placeholder="Search contacts..." />
+              <InputText v-model="searchQuery" placeholder="Search contacts..." class="w-full" />
             </div>
-            <button class="btn btn-primary" @click="showAddDialog">+ Add Contact</button>
+            <Button @click="showAddDialog" label="+ Add Contact" severity="primary" />
           </div>
 
           <!-- Contacts List -->
@@ -154,19 +161,27 @@
                 <span class="group-badge">{{ contact.group || 'Default' }}</span>
               </div>
               <div class="contact-actions">
-                <button class="btn btn-sm btn-icon" title="Call" @click="handleCall(contact)">
-                  Call
-                </button>
-                <button class="btn btn-sm btn-icon" title="Edit" @click="editContact(contact)">
-                  Edit
-                </button>
-                <button
-                  class="btn btn-sm btn-icon btn-danger"
-                  title="Delete"
+                <Button
+                  @click="handleCall(contact)"
+                  label="Call"
+                  severity="secondary"
+                  size="small"
+                  title="Call"
+                />
+                <Button
+                  @click="editContact(contact)"
+                  label="Edit"
+                  severity="secondary"
+                  size="small"
+                  title="Edit"
+                />
+                <Button
                   @click="confirmDelete(contact)"
-                >
-                  Delete
-                </button>
+                  label="Delete"
+                  severity="danger"
+                  size="small"
+                  title="Delete"
+                />
               </div>
             </div>
           </div>
@@ -180,48 +195,66 @@
 
           <div class="form-group">
             <label>Name *</label>
-            <input v-model="contactForm.name" type="text" placeholder="John Doe" />
+            <InputText v-model="contactForm.name" placeholder="John Doe" class="w-full" />
           </div>
 
           <div class="form-group">
             <label>Phone Number *</label>
-            <input v-model="contactForm.number" type="tel" placeholder="+1234567890" />
+            <InputText
+              v-model="contactForm.number"
+              type="tel"
+              placeholder="+1234567890"
+              class="w-full"
+            />
           </div>
 
           <div class="form-group">
             <label>Email</label>
-            <input v-model="contactForm.email" type="email" placeholder="john@example.com" />
+            <InputText
+              v-model="contactForm.email"
+              type="email"
+              placeholder="john@example.com"
+              class="w-full"
+            />
           </div>
 
           <div class="form-group">
             <label>Company</label>
-            <input v-model="contactForm.company" type="text" placeholder="Acme Corp" />
+            <InputText v-model="contactForm.company" placeholder="Acme Corp" class="w-full" />
           </div>
 
           <div class="form-group">
             <label>Group</label>
-            <select v-model="contactForm.group">
-              <option v-for="group in groups" :key="group" :value="group">
-                {{ group }}
-              </option>
-            </select>
+            <Dropdown
+              v-model="contactForm.group"
+              :options="groups"
+              placeholder="Select group"
+              class="w-full"
+            />
           </div>
 
           <div class="form-group">
             <label>Notes</label>
-            <textarea v-model="contactForm.notes" placeholder="Additional notes..."></textarea>
+            <Textarea
+              v-model="contactForm.notes"
+              placeholder="Additional notes..."
+              class="w-full"
+            />
           </div>
 
           <div class="dialog-actions">
-            <button class="btn btn-primary" :disabled="!isFormValid || saving" @click="saveContact">
-              {{ saving ? 'Saving...' : 'Save' }}
-            </button>
-            <button class="btn btn-secondary" @click="closeDialog">Cancel</button>
+            <Button
+              :disabled="!isFormValid || saving"
+              @click="saveContact"
+              :label="saving ? 'Saving...' : 'Save'"
+              severity="primary"
+            />
+            <Button @click="closeDialog" label="Cancel" severity="secondary" />
           </div>
 
-          <div v-if="formError" class="error-message">
+          <Message v-if="formError" severity="error" class="mt-3">
             {{ formError }}
-          </div>
+          </Message>
         </div>
       </div>
 
@@ -234,8 +267,8 @@
             >?
           </p>
           <div class="dialog-actions">
-            <button class="btn btn-danger" @click="handleDelete">Delete</button>
-            <button class="btn btn-secondary" @click="cancelDelete">Cancel</button>
+            <Button @click="handleDelete" label="Delete" severity="danger" />
+            <Button @click="cancelDelete" label="Cancel" severity="secondary" />
           </div>
         </div>
       </div>
@@ -244,11 +277,25 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Contacts Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputText for text inputs, with proper v-model binding
+ * - Using PrimeVue Dropdown for group selection to maintain consistent styling
+ * - Using PrimeVue Textarea for notes field with proper styling
+ * - Using PrimeVue Message for error messages with appropriate severity
+ * - Using PrimeVue Dialog for modal dialogs (add/edit contact, delete confirmation)
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ * - Badge component used for group indicators with dynamic styling
+ */
 import { ref, computed, onMounted, watch as _watch } from 'vue'
 import { useAmi, useAmiDatabase } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 import type { AmiContact } from '../../src/types/ami.types'
+import { Button, InputText, Dropdown, Textarea, Message } from './shared-components'
 
 // AMI Configuration
 const amiConfig = ref({ url: '' })
@@ -539,12 +586,12 @@ onMounted(() => {
 
 .config-panel h3 {
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--text-color);
 }
 
 .info-text {
   margin-bottom: 1.5rem;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -557,17 +604,14 @@ onMounted(() => {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-color);
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+/* Design Decision: PrimeVue components handle their own styling, but we ensure full width */
+.form-group :deep(.p-inputtext),
+.form-group :deep(.p-dropdown),
+.form-group :deep(.p-textarea) {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
 }
 
 .form-group textarea {
@@ -578,71 +622,21 @@ onMounted(() => {
 .form-group small {
   display: block;
   margin-top: 0.25rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Removed custom .btn classes as they're no longer needed. */
 .btn-sm {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
 }
-.btn-icon {
-  padding: 0.5rem;
-  min-width: 36px;
-  background: #f3f4f6;
-  color: #374151;
-}
-.btn-icon:hover {
-  background: #e5e7eb;
-}
-.btn-icon.btn-danger {
-  background: #fee2e2;
-  color: #991b1b;
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Removed custom .btn-icon classes as they're no longer needed. */
 
-.error-message {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #991b1b;
-  font-size: 0.875rem;
-}
+/* Design Decision: PrimeVue Message component handles error message styling.
+   Removed custom .error-message class as it's no longer needed. */
 
 /* Connected Interface */
 .connected-interface {
@@ -656,7 +650,7 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
   margin-bottom: 2rem;
 }
@@ -672,11 +666,11 @@ onMounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
+  background: var(--danger);
 }
 
 .status-dot.connected {
-  background: #10b981;
+  background: var(--success);
 }
 
 /* Layout */
@@ -688,8 +682,8 @@ onMounted(() => {
 
 /* Sidebar */
 .sidebar {
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-0);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1rem;
   height: fit-content;
@@ -697,7 +691,7 @@ onMounted(() => {
 
 .sidebar h4 {
   margin-bottom: 1rem;
-  color: #374151;
+  color: var(--text-color);
 }
 
 .groups-list {
@@ -712,21 +706,21 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-50);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .group-btn:hover {
-  background: #f3f4f6;
+  background: var(--surface-100);
 }
 
 .group-btn.active {
-  background: #667eea;
-  color: white;
-  border-color: #667eea;
+  background: var(--primary);
+  color: var(--surface-0);
+  border-color: var(--primary);
 }
 
 .group-btn .count {
@@ -741,13 +735,8 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.add-group input {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
+/* Design Decision: PrimeVue InputText handles input styling.
+   Removed custom .add-group input styles as they're no longer needed. */
 
 /* Main Content */
 .main-content {
@@ -764,21 +753,17 @@ onMounted(() => {
   flex: 1;
 }
 
-.search-box input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-}
+/* Design Decision: PrimeVue InputText handles search input styling.
+   Removed custom .search-box input styles as they're no longer needed. */
 
 /* Contacts List */
 .empty-state {
   padding: 3rem;
   text-align: center;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
+  background: var(--surface-50);
+  border: 1px dashed var(--border-color);
   border-radius: 8px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .empty-state p:first-child {
@@ -797,22 +782,22 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-0);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   transition: all 0.2s;
 }
 
 .contact-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.1);
 }
 
 .contact-avatar {
   width: 48px;
   height: 48px;
-  background: #667eea;
-  color: white;
+  background: var(--primary);
+  color: var(--surface-0);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -828,18 +813,18 @@ onMounted(() => {
 
 .contact-name {
   font-weight: 600;
-  color: #111827;
+  color: var(--text-color);
   margin-bottom: 0.25rem;
 }
 
 .contact-number {
-  color: #667eea;
+  color: var(--primary);
   font-size: 0.875rem;
 }
 
 .contact-email,
 .contact-company {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 
@@ -849,10 +834,10 @@ onMounted(() => {
 
 .group-badge {
   padding: 0.25rem 0.75rem;
-  background: #f3f4f6;
+  background: var(--surface-100);
   border-radius: 20px;
   font-size: 0.75rem;
-  color: #374151;
+  color: var(--text-color);
 }
 
 .contact-actions {
@@ -872,7 +857,7 @@ onMounted(() => {
 }
 
 .dialog {
-  background: white;
+  background: var(--surface-0);
   padding: 2rem;
   border-radius: 12px;
   max-width: 500px;
@@ -883,10 +868,11 @@ onMounted(() => {
 
 .dialog h3 {
   margin-bottom: 1.5rem;
+  color: var(--text-color);
 }
 
 .dialog p {
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 1rem;
 }
 
