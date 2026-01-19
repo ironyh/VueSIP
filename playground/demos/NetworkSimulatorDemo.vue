@@ -26,232 +26,321 @@
     </p>
 
     <!-- Connection Status -->
+    <!-- Design Decision: Badge component for connection status provides semantic meaning.
+         Tag component for network profile indicator. Message component for connection hints. -->
     <div class="status-section">
-      <div :class="['status-badge', connectionState]">
-        {{ connectionState.toUpperCase() }}
-      </div>
+      <Badge
+        :value="connectionState.toUpperCase()"
+        :severity="
+          connectionState === 'connected'
+            ? 'success'
+            : connectionState === 'connecting'
+              ? 'warning'
+              : 'secondary'
+        "
+      />
       <div class="network-status">
-        <span class="indicator" :style="{ backgroundColor: networkQualityColor }"></span>
-        <span>{{ activeProfile }}</span>
+        <Tag :value="activeProfile" :severity="getProfileSeverity(activeProfile)" />
       </div>
-      <div v-if="!isConnected" class="connection-hint">
+      <Message v-if="!isConnected" severity="warn" :closable="false" class="connection-hint">
         Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo
-      </div>
+      </Message>
     </div>
 
     <!-- Network Profiles -->
-    <div class="profiles-section">
-      <h3>Network Profiles</h3>
-      <div class="profiles-grid">
-        <div
-          v-for="profile in networkProfiles"
-          :key="profile.name"
-          :class="['profile-card', { active: activeProfile === profile.name }]"
-          @click="applyProfile(profile)"
-        >
-          <div class="profile-icon">
-            <span :class="['profile-indicator', getProfileClass(profile.name)]"></span>
-          </div>
-          <div class="profile-name">{{ profile.name }}</div>
-          <div class="profile-stats">
-            <div class="stat">
-              <span class="stat-label">Latency:</span>
-              <span class="stat-value">{{ profile.latency }}ms</span>
+    <!-- Design Decision: Card component structures profiles section. Profile cards use clickable
+         Card components for better interaction feedback. -->
+    <Card class="profiles-section">
+      <template #title>Network Profiles</template>
+      <template #content>
+        <div class="profiles-grid">
+          <div
+            v-for="profile in networkProfiles"
+            :key="profile.name"
+            :class="['profile-card', { active: activeProfile === profile.name }]"
+            @click="applyProfile(profile)"
+          >
+            <div class="profile-icon">
+              <span :class="['profile-indicator', getProfileClass(profile.name)]"></span>
             </div>
-            <div class="stat">
-              <span class="stat-label">Packet Loss:</span>
-              <span class="stat-value">{{ profile.packetLoss }}%</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">Jitter:</span>
-              <span class="stat-value">{{ profile.jitter }}ms</span>
+            <div class="profile-name">{{ profile.name }}</div>
+            <div class="profile-stats">
+              <div class="stat">
+                <span class="stat-label">Latency:</span>
+                <span class="stat-value">{{ profile.latency }}ms</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">Packet Loss:</span>
+                <span class="stat-value">{{ profile.packetLoss }}%</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">Jitter:</span>
+                <span class="stat-value">{{ profile.jitter }}ms</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </template>
+    </Card>
 
     <!-- Custom Network Settings -->
-    <div class="custom-settings-section">
-      <h3>Custom Network Settings</h3>
-      <div class="settings-grid">
-        <div class="setting-group">
-          <label>Latency (ms)</label>
-          <input type="range" v-model.number="customLatency" min="0" max="1000" step="10" />
-          <span class="value">{{ customLatency }}ms</span>
-          <div class="indicator-bar">
-            <div
-              class="indicator-fill latency"
-              :style="{ width: (customLatency / 1000) * 100 + '%' }"
-            ></div>
+    <!-- Design Decision: Card component structures custom settings. Slider components for range
+         inputs provide better UX with visual feedback and value display. Button component for actions. -->
+    <Card class="custom-settings-section">
+      <template #title>Custom Network Settings</template>
+      <template #content>
+        <div class="settings-grid">
+          <div class="setting-group">
+            <label for="latency-slider">Latency (ms)</label>
+            <Slider
+              id="latency-slider"
+              v-model="customLatency"
+              :min="0"
+              :max="1000"
+              :step="10"
+              class="w-full"
+            />
+            <span class="value">{{ customLatency }}ms</span>
+          </div>
+
+          <div class="setting-group">
+            <label for="packet-loss-slider">Packet Loss (%)</label>
+            <Slider
+              id="packet-loss-slider"
+              v-model="customPacketLoss"
+              :min="0"
+              :max="50"
+              :step="1"
+              class="w-full"
+            />
+            <span class="value">{{ customPacketLoss }}%</span>
+          </div>
+
+          <div class="setting-group">
+            <label for="jitter-slider">Jitter (ms)</label>
+            <Slider
+              id="jitter-slider"
+              v-model="customJitter"
+              :min="0"
+              :max="200"
+              :step="5"
+              class="w-full"
+            />
+            <span class="value">{{ customJitter }}ms</span>
+          </div>
+
+          <div class="setting-group">
+            <label for="bandwidth-slider">Bandwidth (kbps)</label>
+            <Slider
+              id="bandwidth-slider"
+              v-model="customBandwidth"
+              :min="16"
+              :max="10000"
+              :step="16"
+              class="w-full"
+            />
+            <span class="value">{{ customBandwidth }}kbps</span>
           </div>
         </div>
 
-        <div class="setting-group">
-          <label>Packet Loss (%)</label>
-          <input type="range" v-model.number="customPacketLoss" min="0" max="50" step="1" />
-          <span class="value">{{ customPacketLoss }}%</span>
-          <div class="indicator-bar">
-            <div
-              class="indicator-fill packet-loss"
-              :style="{ width: (customPacketLoss / 50) * 100 + '%' }"
-            ></div>
-          </div>
-        </div>
-
-        <div class="setting-group">
-          <label>Jitter (ms)</label>
-          <input type="range" v-model.number="customJitter" min="0" max="200" step="5" />
-          <span class="value">{{ customJitter }}ms</span>
-          <div class="indicator-bar">
-            <div
-              class="indicator-fill jitter"
-              :style="{ width: (customJitter / 200) * 100 + '%' }"
-            ></div>
-          </div>
-        </div>
-
-        <div class="setting-group">
-          <label>Bandwidth (kbps)</label>
-          <input type="range" v-model.number="customBandwidth" min="16" max="10000" step="16" />
-          <span class="value">{{ customBandwidth }}kbps</span>
-          <div class="indicator-bar">
-            <div
-              class="indicator-fill bandwidth"
-              :style="{ width: (customBandwidth / 10000) * 100 + '%' }"
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      <button @click="applyCustomSettings" class="apply-btn">Apply Custom Settings</button>
-    </div>
+        <Button
+          label="Apply Custom Settings"
+          @click="applyCustomSettings"
+          icon="pi pi-check"
+          class="w-full mt-3"
+        />
+      </template>
+    </Card>
 
     <!-- Call Section -->
-    <div v-if="isConnected" class="call-section">
-      <h3>Test Call</h3>
-      <div class="form-group">
-        <label>Target SIP URI</label>
-        <input
-          v-model="targetUri"
-          type="text"
-          placeholder="sip:target@example.com"
-          @keyup.enter="makeCall"
+    <!-- Design Decision: Card component structures call section. InputText and Button components
+         for form controls. -->
+    <Card v-if="isConnected" class="call-section">
+      <template #title>Test Call</template>
+      <template #content>
+        <div class="form-group">
+          <label for="target-uri">Target SIP URI</label>
+          <InputText
+            id="target-uri"
+            v-model="targetUri"
+            placeholder="sip:target@example.com"
+            @keyup.enter="makeCall"
+            class="w-full"
+            aria-required="true"
+          />
+        </div>
+        <Button
+          label="Make Test Call"
+          @click="makeCall"
+          :disabled="hasActiveCall"
+          icon="pi pi-phone"
+          class="w-full"
         />
-      </div>
-      <button @click="makeCall" :disabled="hasActiveCall">Make Test Call</button>
-    </div>
+      </template>
+    </Card>
 
     <!-- Active Call with Network Stats -->
-    <div v-if="hasActiveCall" class="active-call-section">
-      <h3>Active Call</h3>
+    <!-- Design Decision: Card component structures active call section with nested sections
+         for metrics, charts, and events. -->
+    <Card v-if="hasActiveCall" class="active-call-section">
+      <template #title>Active Call</template>
+      <template #content>
+        <!-- Real-time Network Metrics -->
+        <div class="metrics-section">
+          <h4>Real-time Network Metrics</h4>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon latency-icon"></div>
+              <div class="metric-value">{{ currentMetrics.latency }}ms</div>
+              <div class="metric-label">Current Latency</div>
+              <Tag
+                :value="getQualityLabel(currentMetrics.latency, 'latency')"
+                :severity="
+                  getQualityClass(currentMetrics.latency, 'latency') === 'good'
+                    ? 'success'
+                    : getQualityClass(currentMetrics.latency, 'latency') === 'fair'
+                      ? 'warning'
+                      : 'danger'
+                "
+              />
+            </div>
 
-      <!-- Real-time Network Metrics -->
-      <div class="metrics-section">
-        <h4>Real-time Network Metrics</h4>
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-icon latency-icon"></div>
-            <div class="metric-value">{{ currentMetrics.latency }}ms</div>
-            <div class="metric-label">Current Latency</div>
-            <div :class="['quality-indicator', getQualityClass(currentMetrics.latency, 'latency')]">
-              {{ getQualityLabel(currentMetrics.latency, 'latency') }}
+            <div class="metric-card">
+              <div class="metric-icon packet-loss-icon"></div>
+              <div class="metric-value">{{ currentMetrics.packetLoss.toFixed(1) }}%</div>
+              <div class="metric-label">Packet Loss</div>
+              <Tag
+                :value="getQualityLabel(currentMetrics.packetLoss, 'packetLoss')"
+                :severity="
+                  getQualityClass(currentMetrics.packetLoss, 'packetLoss') === 'good'
+                    ? 'success'
+                    : getQualityClass(currentMetrics.packetLoss, 'packetLoss') === 'fair'
+                      ? 'warning'
+                      : 'danger'
+                "
+              />
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon jitter-icon"></div>
+              <div class="metric-value">{{ currentMetrics.jitter }}ms</div>
+              <div class="metric-label">Jitter</div>
+              <Tag
+                :value="getQualityLabel(currentMetrics.jitter, 'jitter')"
+                :severity="
+                  getQualityClass(currentMetrics.jitter, 'jitter') === 'good'
+                    ? 'success'
+                    : getQualityClass(currentMetrics.jitter, 'jitter') === 'fair'
+                      ? 'warning'
+                      : 'danger'
+                "
+              />
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon quality-icon"></div>
+              <div class="metric-value">{{ currentMetrics.quality }}</div>
+              <div class="metric-label">Overall Quality</div>
+              <Tag
+                :value="currentMetrics.quality"
+                :severity="
+                  currentMetrics.quality.toLowerCase() === 'excellent' ||
+                  currentMetrics.quality.toLowerCase() === 'good'
+                    ? 'success'
+                    : currentMetrics.quality.toLowerCase() === 'fair'
+                      ? 'warning'
+                      : 'danger'
+                "
+              />
             </div>
           </div>
+        </div>
 
-          <div class="metric-card">
-            <div class="metric-icon packet-loss-icon"></div>
-            <div class="metric-value">{{ currentMetrics.packetLoss.toFixed(1) }}%</div>
-            <div class="metric-label">Packet Loss</div>
+        <!-- Historical Chart -->
+        <div class="chart-section">
+          <h4>Metrics History</h4>
+          <div class="chart">
             <div
-              :class="[
-                'quality-indicator',
-                getQualityClass(currentMetrics.packetLoss, 'packetLoss'),
-              ]"
+              v-for="(point, index) in metricsHistory"
+              :key="index"
+              class="chart-bar"
+              :style="{
+                height: (point.latency / 500) * 100 + '%',
+                backgroundColor: getLatencyColor(point.latency),
+              }"
+            ></div>
+          </div>
+          <div class="chart-legend">
+            <span>Latency over time (last {{ metricsHistory.length }} measurements)</span>
+          </div>
+        </div>
+
+        <!-- Network Events Log -->
+        <div class="events-section">
+          <h4>Network Events</h4>
+          <div class="events-list">
+            <div
+              v-for="(event, index) in networkEvents"
+              :key="index"
+              :class="['event-item', event.severity]"
             >
-              {{ getQualityLabel(currentMetrics.packetLoss, 'packetLoss') }}
-            </div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-icon jitter-icon"></div>
-            <div class="metric-value">{{ currentMetrics.jitter }}ms</div>
-            <div class="metric-label">Jitter</div>
-            <div :class="['quality-indicator', getQualityClass(currentMetrics.jitter, 'jitter')]">
-              {{ getQualityLabel(currentMetrics.jitter, 'jitter') }}
-            </div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-icon quality-icon"></div>
-            <div class="metric-value">{{ currentMetrics.quality }}</div>
-            <div class="metric-label">Overall Quality</div>
-            <div :class="['quality-score', currentMetrics.quality.toLowerCase()]">
-              {{ currentMetrics.quality }}
+              <span class="event-time">{{ event.time }}</span>
+              <span class="event-message">{{ event.message }}</span>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Historical Chart -->
-      <div class="chart-section">
-        <h4>Metrics History</h4>
-        <div class="chart">
-          <div
-            v-for="(point, index) in metricsHistory"
-            :key="index"
-            class="chart-bar"
-            :style="{
-              height: (point.latency / 500) * 100 + '%',
-              backgroundColor: getLatencyColor(point.latency),
-            }"
-          ></div>
+        <!-- Call Controls -->
+        <!-- Design Decision: Button components with appropriate severity (success for answer,
+           danger for hangup) provide clear visual hierarchy. -->
+        <div class="button-group">
+          <Button
+            v-if="callState === 'incoming'"
+            label="Answer"
+            @click="answer"
+            icon="pi pi-phone"
+            severity="success"
+          />
+          <Button label="Hang Up" @click="hangup" icon="pi pi-times" severity="danger" />
         </div>
-        <div class="chart-legend">
-          <span>Latency over time (last {{ metricsHistory.length }} measurements)</span>
-        </div>
-      </div>
-
-      <!-- Network Events Log -->
-      <div class="events-section">
-        <h4>Network Events</h4>
-        <div class="events-list">
-          <div
-            v-for="(event, index) in networkEvents"
-            :key="index"
-            :class="['event-item', event.severity]"
-          >
-            <span class="event-time">{{ event.time }}</span>
-            <span class="event-message">{{ event.message }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Call Controls -->
-      <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">Answer</button>
-        <button @click="hangup" class="danger">Hang Up</button>
-      </div>
-    </div>
+      </template>
+    </Card>
 
     <!-- Recommendations -->
-    <div v-if="recommendations.length > 0" class="recommendations-section">
-      <h3>Recommendations</h3>
-      <ul>
-        <li v-for="(rec, index) in recommendations" :key="index">
-          {{ rec }}
-        </li>
-      </ul>
-    </div>
+    <!-- Design Decision: Card component structures recommendations section. -->
+    <Card v-if="recommendations.length > 0" class="recommendations-section">
+      <template #title>Recommendations</template>
+      <template #content>
+        <ul>
+          <li v-for="(rec, index) in recommendations" :key="index">
+            {{ rec }}
+          </li>
+        </ul>
+      </template>
+    </Card>
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * Network Simulator Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Card components to structure sections for better visual hierarchy
+ * - Slider components for range inputs provide better UX with visual feedback
+ * - InputText components for text inputs with proper validation states
+ * - Badge components for status indicators provide consistent styling
+ * - Tag components for quality indicators provide semantic meaning
+ * - Message component for connection hints ensures consistent styling
+ * - Button components with appropriate severity provide semantic meaning
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useCallSession } from '../../src/composables/useCallSession'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Slider, Card, Badge, Tag, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -364,6 +453,17 @@ const getProfileClass = (profileName: string): string => {
   return mapping[profileName] || 'default'
 }
 
+// Helper for profile severity (for Tag component)
+const getProfileSeverity = (
+  profileName: string
+): 'success' | 'warning' | 'danger' | 'info' | 'secondary' => {
+  if (profileName === 'Excellent' || profileName === 'Good') return 'success'
+  if (profileName === '4G Mobile' || profileName === '3G Mobile') return 'info'
+  if (profileName === 'Poor WiFi') return 'warning'
+  if (profileName === 'Congested') return 'danger'
+  return 'secondary'
+}
+
 const activeProfile = ref('Excellent')
 const customLatency = ref(20)
 const customPacketLoss = ref(0)
@@ -392,7 +492,7 @@ const networkEvents = ref<Array<{ time: string; message: string; severity: strin
 const metricsTimer = ref<number | null>(null)
 
 // Computed
-const networkQualityColor = computed(() => {
+const _networkQualityColor = computed(() => {
   const quality = currentMetrics.value.quality.toLowerCase()
   if (quality === 'excellent') return 'var(--success)'
   if (quality === 'good') return 'var(--success)'
@@ -600,7 +700,7 @@ onUnmounted(() => {
 }
 
 .description {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 2rem;
 }
 
@@ -620,28 +720,7 @@ onUnmounted(() => {
   }
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.status-badge.connected {
-  background-color: var(--success);
-  color: var(--surface-0);
-}
-
-.status-badge.disconnected {
-  background-color: var(--text-secondary);
-  color: var(--surface-0);
-}
-
-.status-badge.connecting {
-  background-color: var(--warning);
-  color: var(--surface-0);
-}
+/* Status badge styling now handled by PrimeVue Badge component */
 
 .network-status {
   display: flex;
@@ -650,18 +729,7 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.connection-hint {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  padding: 0.5rem 0.75rem;
-  background: #fef3c7;
-  border-radius: 6px;
-  border: 1px solid #fcd34d;
-}
-
-.connection-hint strong {
-  color: #92400e;
-}
+/* Connection hint styling now handled by PrimeVue Message component */
 
 .indicator {
   width: 12px;
@@ -705,42 +773,12 @@ h4 {
   font-size: 0.875rem;
 }
 
-.form-group input {
+/* Input styling now handled by PrimeVue InputText component */
+:deep(.p-inputtext) {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
 }
 
-button {
-  padding: 0.625rem 1.25rem;
-  background-color: var(--info);
-  color: var(--surface-0);
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-button:hover:not(:disabled) {
-  background-color: var(--info-hover);
-}
-
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-button.danger {
-  background-color: var(--danger);
-}
-
-button.danger:hover:not(:disabled) {
-  background-color: var(--danger-hover);
-}
+/* Button styling now handled by PrimeVue Button component */
 
 .profiles-grid {
   display: grid;
@@ -869,9 +907,9 @@ button.danger:hover:not(:disabled) {
   font-size: 0.875rem;
 }
 
-.setting-group input[type='range'] {
+/* Range input styling now handled by PrimeVue Slider component */
+:deep(.p-slider) {
   width: 100%;
-  margin-bottom: 0.25rem;
 }
 
 .setting-group .value {
@@ -880,34 +918,7 @@ button.danger:hover:not(:disabled) {
   color: var(--info);
 }
 
-.indicator-bar {
-  height: 6px;
-  background: var(--border-color);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-top: 0.5rem;
-}
-
-.indicator-fill {
-  height: 100%;
-  transition: width 0.3s;
-}
-
-.indicator-fill.latency {
-  background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
-}
-
-.indicator-fill.packet-loss {
-  background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
-}
-
-.indicator-fill.jitter {
-  background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
-}
-
-.indicator-fill.bandwidth {
-  background: linear-gradient(90deg, var(--danger), var(--warning), var(--success));
-}
+/* Indicator bars removed - PrimeVue Slider provides visual feedback */
 
 .apply-btn {
   width: 100%;
@@ -978,56 +989,7 @@ button.danger:hover:not(:disabled) {
   margin-bottom: 0.5rem;
 }
 
-.quality-indicator {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.quality-indicator.good {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.quality-indicator.fair {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.quality-indicator.poor {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.quality-score {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.quality-score.excellent {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.quality-score.good {
-  background: #d9f99d;
-  color: #365314;
-}
-
-.quality-score.fair {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.quality-score.poor {
-  background: #fee2e2;
-  color: #991b1b;
-}
+/* Quality indicator and score styling now handled by PrimeVue Tag component */
 
 .chart-section {
   background: var(--surface-0);
@@ -1090,12 +1052,12 @@ button.danger:hover:not(:disabled) {
 
 .event-item.warning {
   border-color: var(--warning);
-  background: #fef3c7;
+  background: var(--surface-50);
 }
 
 .event-item.error {
   border-color: var(--danger);
-  background: #fee2e2;
+  background: var(--surface-50);
 }
 
 .event-time {
@@ -1115,6 +1077,6 @@ button.danger:hover:not(:disabled) {
 
 .recommendations-section li {
   margin-bottom: 0.5rem;
-  color: #4b5563;
+  color: var(--text-color);
 }
 </style>
