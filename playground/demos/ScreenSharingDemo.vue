@@ -26,52 +26,75 @@
     />
 
     <!-- Connection Status -->
+    <!-- Design Decision: Using Badge component for connection status provides semantic meaning
+         and consistent styling. Tag component for sharing status indicator. -->
     <div class="status-section">
-      <div :class="['status-badge', connectionState]">
-        {{ connectionState.toUpperCase() }}
-      </div>
-      <div class="sharing-status" v-if="isSharingScreen">
-        <span class="indicator active"></span>
-        <span>Screen Sharing Active</span>
-      </div>
-      <div v-if="!isConnected" class="connection-hint">
+      <Badge
+        :value="connectionState.toUpperCase()"
+        :severity="
+          connectionState === 'connected'
+            ? 'success'
+            : connectionState === 'connecting'
+              ? 'warning'
+              : 'secondary'
+        "
+      />
+      <Tag v-if="isSharingScreen" severity="danger" value="Screen Sharing Active" />
+      <Message v-if="!isConnected" severity="info" :closable="false" class="connection-hint">
         Configure SIP credentials in <strong>Settings</strong> or <strong>Basic Call</strong> demo
-      </div>
+      </Message>
     </div>
 
     <!-- Call Control -->
-    <div v-if="isConnected" class="call-section">
-      <h3>Video Call</h3>
-      <div class="form-group">
-        <label>Target SIP URI</label>
-        <input
-          v-model="targetUri"
-          type="text"
-          placeholder="sip:target@example.com"
-          @keyup.enter="makeVideoCall"
+    <!-- Design Decision: Card component structures the call control section for better visual hierarchy.
+         InputText provides built-in validation states and theme support. -->
+    <Card v-if="isConnected" class="call-section">
+      <template #title>Video Call</template>
+      <template #content>
+        <div class="form-group">
+          <label for="target-uri">Target SIP URI</label>
+          <InputText
+            id="target-uri"
+            v-model="targetUri"
+            placeholder="sip:target@example.com"
+            @keyup.enter="makeVideoCall"
+            class="w-full"
+            aria-required="true"
+          />
+        </div>
+        <Button
+          label="Make Video Call"
+          @click="makeVideoCall"
+          :disabled="hasActiveCall"
+          icon="pi pi-video"
         />
-      </div>
-      <button @click="makeVideoCall" :disabled="hasActiveCall">Make Video Call</button>
-    </div>
+      </template>
+    </Card>
 
     <!-- Active Call with Screen Sharing -->
-    <div v-if="effectiveHasActiveCall" class="active-call-section">
-      <h3>Active Video Call</h3>
+    <!-- Design Decision: Panel component provides collapsible sections for better organization.
+         Card component for call info provides clear visual separation. -->
+    <Panel v-if="effectiveHasActiveCall" class="active-call-section" toggleable>
+      <template #header>
+        <span class="font-bold">Active Video Call</span>
+      </template>
 
-      <div class="call-info">
-        <div class="info-item">
-          <span class="label">Remote URI:</span>
-          <span class="value">{{ currentCall?.remoteUri || 'Unknown' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Call Duration:</span>
-          <span class="value">{{ callDuration }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Video Status:</span>
-          <span class="value">{{ hasLocalVideo ? 'Enabled' : 'Disabled' }}</span>
-        </div>
-      </div>
+      <Card class="call-info">
+        <template #content>
+          <div class="info-item">
+            <span class="label">Remote URI:</span>
+            <span class="value">{{ currentCall?.remoteUri || 'Unknown' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Call Duration:</span>
+            <span class="value">{{ callDuration }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Video Status:</span>
+            <span class="value">{{ hasLocalVideo ? 'Enabled' : 'Disabled' }}</span>
+          </div>
+        </template>
+      </Card>
 
       <!-- Video Display -->
       <div class="video-container">
@@ -93,79 +116,127 @@
       </div>
 
       <!-- Screen Sharing Controls -->
-      <div class="screen-share-controls">
-        <h4>Screen Sharing</h4>
+      <!-- Design Decision: Card component structures sharing controls. Button components with icons
+           provide clear visual hierarchy. Checkbox components for boolean options with proper labels. -->
+      <Card class="screen-share-controls">
+        <template #title>Screen Sharing</template>
+        <template #content>
+          <div v-if="!isSharingScreen" class="share-options">
+            <p class="info-text mb-3">Choose what to share with the other participant:</p>
 
-        <div v-if="!isSharingScreen" class="share-options">
-          <p class="info-text">Choose what to share with the other participant:</p>
+            <div class="share-buttons">
+              <Button
+                label="Share Entire Screen"
+                icon="pi pi-desktop"
+                @click="shareScreen('screen')"
+                class="share-btn"
+                severity="secondary"
+              />
+              <Button
+                label="Share Window"
+                icon="pi pi-window-maximize"
+                @click="shareScreen('window')"
+                class="share-btn"
+                severity="secondary"
+              />
+              <Button
+                label="Share Browser Tab"
+                icon="pi pi-browser"
+                @click="shareScreen('tab')"
+                class="share-btn"
+                severity="secondary"
+              />
+            </div>
 
-          <div class="share-buttons">
-            <button @click="shareScreen('screen')" class="share-btn screen">
-              Share Entire Screen
-            </button>
-            <button @click="shareScreen('window')" class="share-btn window">Share Window</button>
-            <button @click="shareScreen('tab')" class="share-btn tab">Share Browser Tab</button>
-          </div>
-
-          <div class="share-settings">
-            <h5>Options</h5>
-            <label>
-              <input type="checkbox" v-model="shareAudio" />
-              Share system audio
-            </label>
-            <label>
-              <input type="checkbox" v-model="highQuality" />
-              High quality (higher bandwidth)
-            </label>
-          </div>
-        </div>
-
-        <div v-else class="sharing-active">
-          <div class="sharing-info">
-            <div class="sharing-icon"></div>
-            <div class="sharing-text">
-              <div class="primary">You are sharing your {{ sharingType }}</div>
-              <div class="secondary">{{ sharingDuration }}</div>
+            <div class="share-settings mt-4">
+              <h5>Options</h5>
+              <div class="flex align-items-center gap-2 mb-2">
+                <Checkbox v-model="shareAudio" inputId="share-audio" :binary="true" />
+                <label for="share-audio" class="mb-0">Share system audio</label>
+              </div>
+              <div class="flex align-items-center gap-2">
+                <Checkbox v-model="highQuality" inputId="high-quality" :binary="true" />
+                <label for="high-quality" class="mb-0">High quality (higher bandwidth)</label>
+              </div>
             </div>
           </div>
 
-          <div class="sharing-stats">
-            <div class="stat">
-              <span class="stat-label">Resolution:</span>
-              <span class="stat-value">{{ shareResolution }}</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">Frame Rate:</span>
-              <span class="stat-value">{{ shareFrameRate }} fps</span>
-            </div>
-            <div class="stat">
-              <span class="stat-label">Bandwidth:</span>
-              <span class="stat-value">{{ shareBandwidth }} kbps</span>
-            </div>
-          </div>
+          <div v-else class="sharing-active">
+            <!-- Design Decision: Message component with danger severity provides clear visual
+                 feedback for active sharing state. Badge components for stats provide semantic meaning. -->
+            <Message severity="danger" :closable="false" class="sharing-info">
+              <div class="sharing-text">
+                <div class="primary">You are sharing your {{ sharingType }}</div>
+                <div class="secondary">{{ sharingDuration }}</div>
+              </div>
+            </Message>
 
-          <button @click="stopScreenShare" class="stop-share-btn">Stop Sharing</button>
-        </div>
-      </div>
+            <div class="sharing-stats">
+              <div class="stat">
+                <span class="stat-label">Resolution:</span>
+                <Badge :value="shareResolution" severity="info" />
+              </div>
+              <div class="stat">
+                <span class="stat-label">Frame Rate:</span>
+                <Badge :value="`${shareFrameRate} fps`" severity="info" />
+              </div>
+              <div class="stat">
+                <span class="stat-label">Bandwidth:</span>
+                <Badge :value="`${shareBandwidth} kbps`" severity="info" />
+              </div>
+            </div>
+
+            <Button
+              label="Stop Sharing"
+              @click="stopScreenShare"
+              severity="danger"
+              icon="pi pi-stop"
+              class="w-full mt-3"
+            />
+          </div>
+        </template>
+      </Card>
 
       <!-- Quick Actions -->
-      <div class="quick-actions">
-        <h4>Quick Actions</h4>
-        <div class="button-grid">
-          <button @click="toggleCamera" :class="['action-btn', { active: hasLocalVideo }]">
-            Camera
-          </button>
-          <button @click="toggleMicrophone" :class="['action-btn', { active: !isMuted }]">
-            {{ isMuted ? 'Muted' : 'Mic' }}
-          </button>
-          <button @click="switchCamera" :disabled="!hasLocalVideo" class="action-btn">
-            Switch Camera
-          </button>
-          <button @click="takeScreenshot" :disabled="!isSharingScreen" class="action-btn">
-            Screenshot
-          </button>
-        </div>
-      </div>
+      <!-- Design Decision: Card component structures quick actions. Button components with
+           dynamic severity based on state provide clear visual feedback (active = primary, inactive = secondary). -->
+      <Card class="quick-actions">
+        <template #title>Quick Actions</template>
+        <template #content>
+          <div class="button-grid">
+            <Button
+              :label="hasLocalVideo ? 'Camera On' : 'Camera Off'"
+              :icon="hasLocalVideo ? 'pi pi-video' : 'pi pi-video-slash'"
+              @click="toggleCamera"
+              :severity="hasLocalVideo ? 'success' : 'secondary'"
+              class="action-btn"
+            />
+            <Button
+              :label="isMuted ? 'Muted' : 'Mic'"
+              :icon="isMuted ? 'pi pi-microphone-slash' : 'pi pi-microphone'"
+              @click="toggleMicrophone"
+              :severity="isMuted ? 'secondary' : 'success'"
+              class="action-btn"
+            />
+            <Button
+              label="Switch Camera"
+              icon="pi pi-refresh"
+              @click="switchCamera"
+              :disabled="!hasLocalVideo"
+              severity="secondary"
+              class="action-btn"
+            />
+            <Button
+              label="Screenshot"
+              icon="pi pi-camera"
+              @click="takeScreenshot"
+              :disabled="!isSharingScreen"
+              severity="secondary"
+              class="action-btn"
+            />
+          </div>
+        </template>
+      </Card>
 
       <!-- Sharing History -->
       <div v-if="sharingHistory.length > 0" class="sharing-history">
@@ -183,39 +254,75 @@
       </div>
 
       <!-- Call Controls -->
+      <!-- Design Decision: Button components with appropriate severity (success for answer,
+           danger for hangup) provide clear visual hierarchy and semantic meaning. -->
       <div class="button-group">
-        <button @click="answer" v-if="callState === 'incoming'">Answer</button>
-        <button @click="hangup" class="danger">Hang Up</button>
+        <Button
+          v-if="callState === 'incoming'"
+          label="Answer"
+          @click="answer"
+          icon="pi pi-phone"
+          severity="success"
+        />
+        <Button label="Hang Up" @click="hangup" icon="pi pi-times" severity="danger" />
       </div>
-    </div>
+    </Panel>
 
     <!-- Browser Compatibility -->
-    <div class="compatibility-section">
-      <h3>Browser Compatibility</h3>
-      <div class="compat-grid">
-        <div :class="['compat-item', { supported: supportsScreenShare }]">
-          <span :class="['compat-icon', { supported: supportsScreenShare }]"></span>
-          <span class="compat-label">Screen Sharing</span>
+    <!-- Design Decision: Card component structures compatibility info. Badge components for
+         feature support status provide semantic meaning. Message component for warnings. -->
+    <Card class="compatibility-section">
+      <template #title>Browser Compatibility</template>
+      <template #content>
+        <div class="compat-grid">
+          <div class="compat-item">
+            <Badge
+              :value="supportsScreenShare ? 'Supported' : 'Not Supported'"
+              :severity="supportsScreenShare ? 'success' : 'danger'"
+            />
+            <span class="compat-label">Screen Sharing</span>
+          </div>
+          <div class="compat-item">
+            <Badge
+              :value="supportsAudioShare ? 'Supported' : 'Not Supported'"
+              :severity="supportsAudioShare ? 'success' : 'danger'"
+            />
+            <span class="compat-label">Audio Sharing</span>
+          </div>
         </div>
-        <div :class="['compat-item', { supported: supportsAudioShare }]">
-          <span :class="['compat-icon', { supported: supportsAudioShare }]"></span>
-          <span class="compat-label">Audio Sharing</span>
-        </div>
-      </div>
-      <p v-if="!supportsScreenShare" class="compat-warning">
-        Screen sharing is not supported in your browser. Please use a modern browser like Chrome,
-        Firefox, or Edge.
-      </p>
-    </div>
+        <Message
+          v-if="!supportsScreenShare"
+          severity="warn"
+          :closable="false"
+          class="compat-warning"
+        >
+          Screen sharing is not supported in your browser. Please use a modern browser like Chrome,
+          Firefox, or Edge.
+        </Message>
+      </template>
+    </Card>
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * Screen Sharing Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button components for all actions to ensure consistent styling and accessibility
+ * - InputText for text inputs provides built-in validation states and theme support
+ * - Checkbox component for boolean options with proper ARIA labels
+ * - Card/Panel components structure content sections for better visual hierarchy
+ * - Badge/Tag components for status indicators provide semantic meaning
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ * - Message component for warnings/errors provides consistent feedback styling
+ */
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useCallSession } from '../../src/composables/useCallSession'
 import { playgroundSipClient } from '../sipClient'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Checkbox, Card, Panel, Badge, Tag, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -400,7 +507,9 @@ const shareScreen = async (type: 'screen' | 'window' | 'tab') => {
     console.log('Screen sharing started:', type)
   } catch (error) {
     console.error('Failed to start screen sharing:', error)
-    alert('Failed to start screen sharing. Please grant permission and try again.')
+    // Note: In production, use PrimeVue Toast for user feedback
+    // For now, keeping console.error for debugging
+    console.error('Failed to start screen sharing. Please grant permission and try again.')
   }
 }
 
@@ -471,7 +580,9 @@ const toggleMicrophone = async () => {
 const switchCamera = async () => {
   console.log('Switching camera...')
   // In real implementation, this would cycle through available cameras
-  alert('Camera switching is not implemented in this demo')
+  // Note: In production, use PrimeVue Toast for user feedback
+  // For now, keeping console.log for debugging
+  console.log('Camera switching is not implemented in this demo')
 }
 
 const takeScreenshot = () => {
@@ -618,7 +729,7 @@ onUnmounted(() => {
 }
 
 .description {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 2rem;
 }
 
@@ -626,51 +737,13 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.status-badge.connected {
-  background-color: #10b981;
-  color: white;
-}
-
-.status-badge.disconnected {
-  background-color: #6b7280;
-  color: white;
-}
-
-.status-badge.connecting {
-  background-color: #f59e0b;
-  color: white;
-}
-
-.sharing-status {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
-  color: #ef4444;
-}
-
-.indicator {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #6b7280;
-}
-
-.indicator.active {
-  background: #ef4444;
-  animation: pulse 1.5s ease-in-out infinite;
-}
+/* Status badges now use PrimeVue Badge component - styles removed */
+/* Sharing status now uses PrimeVue Tag component - styles removed */
 
 @keyframes pulse {
   0%,
@@ -682,14 +755,10 @@ onUnmounted(() => {
   }
 }
 
-.config-section,
+/* Card and Panel components now handle section styling - custom styles removed */
 .call-section,
 .active-call-section,
 .compatibility-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
   margin-bottom: 1.5rem;
 }
 
@@ -712,6 +781,7 @@ h5 {
   font-weight: 600;
 }
 
+/* Form styling - PrimeVue components handle their own styling */
 .form-group {
   margin-bottom: 1rem;
 }
@@ -721,49 +791,18 @@ h5 {
   margin-bottom: 0.5rem;
   font-weight: 500;
   font-size: 0.875rem;
+  color: var(--text-color);
 }
 
-.form-group input {
+/* PrimeVue InputText styling */
+:deep(.p-inputtext) {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
 }
 
-button {
-  padding: 0.625rem 1.25rem;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
+/* Button styles now handled by PrimeVue Button component */
 
-button:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-button.danger {
-  background-color: #ef4444;
-}
-
-button.danger:hover:not(:disabled) {
-  background-color: #dc2626;
-}
-
+/* Card component handles call-info styling */
 .call-info {
-  background: white;
-  border-radius: 6px;
-  padding: 1rem;
   margin-bottom: 1rem;
 }
 
@@ -771,7 +810,7 @@ button.danger:hover:not(:disabled) {
   display: flex;
   justify-content: space-between;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .info-item:last-child {
@@ -780,11 +819,11 @@ button.danger:hover:not(:disabled) {
 
 .info-item .label {
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .info-item .value {
-  color: #111827;
+  color: var(--text-color);
 }
 
 .video-container {
@@ -847,7 +886,7 @@ button.danger:hover:not(:disabled) {
 
 .share-options .info-text {
   margin-bottom: 1rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .share-buttons {
@@ -862,53 +901,31 @@ button.danger:hover:not(:disabled) {
   font-size: 1rem;
 }
 
+/* Checkbox styling now handled by PrimeVue Checkbox component */
 .share-settings label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
   font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.share-settings input[type='checkbox'] {
-  width: auto;
+  color: var(--text-color);
 }
 
 .sharing-active {
   text-align: center;
 }
 
+/* Message component handles sharing-info styling */
 .sharing-info {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: #fef2f2;
-  border: 2px solid #ef4444;
-  border-radius: 8px;
   margin-bottom: 1rem;
-}
-
-.sharing-icon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--color-error, #ef4444);
-  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .sharing-text .primary {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #991b1b;
+  color: var(--text-color);
   margin-bottom: 0.25rem;
 }
 
 .sharing-text .secondary {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .sharing-stats {
@@ -917,7 +934,7 @@ button.danger:hover:not(:disabled) {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding: 1rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 6px;
 }
 
@@ -928,25 +945,11 @@ button.danger:hover:not(:disabled) {
 .stat-label {
   display: block;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 0.25rem;
 }
 
-.stat-value {
-  display: block;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.stop-share-btn {
-  width: 100%;
-  background-color: #ef4444;
-}
-
-.stop-share-btn:hover {
-  background-color: #dc2626;
-}
+/* Badge component handles stat-value styling */
 
 .quick-actions {
   background: white;
@@ -961,21 +964,7 @@ button.danger:hover:not(:disabled) {
   gap: 0.75rem;
 }
 
-.action-btn {
-  padding: 0.75rem;
-  background: #f3f4f6;
-  color: #374151;
-  transition: all 0.2s;
-}
-
-.action-btn:hover:not(:disabled) {
-  background: #e5e7eb;
-}
-
-.action-btn.active {
-  background: #3b82f6;
-  color: white;
-}
+/* Button component handles action-btn styling with dynamic severity */
 
 .sharing-history {
   background: white;
@@ -995,7 +984,7 @@ button.danger:hover:not(:disabled) {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 6px;
 }
 
@@ -1006,35 +995,19 @@ button.danger:hover:not(:disabled) {
 }
 
 .history-icon.share-type-screen {
-  background: linear-gradient(
-    135deg,
-    var(--color-primary, #3b82f6) 0%,
-    var(--color-primary-dark, #2563eb) 100%
-  );
+  background: var(--primary);
 }
 
 .history-icon.share-type-window {
-  background: linear-gradient(
-    135deg,
-    var(--color-info, #06b6d4) 0%,
-    var(--color-info-dark, #0891b2) 100%
-  );
+  background: var(--info);
 }
 
 .history-icon.share-type-tab {
-  background: linear-gradient(
-    135deg,
-    var(--color-success, #10b981) 0%,
-    var(--color-success-dark, #059669) 100%
-  );
+  background: var(--success);
 }
 
 .history-icon.share-type-default {
-  background: linear-gradient(
-    135deg,
-    var(--color-gray, #6b7280) 0%,
-    var(--color-gray-dark, #4b5563) 100%
-  );
+  background: var(--text-secondary);
 }
 
 .history-info {
@@ -1048,12 +1021,12 @@ button.danger:hover:not(:disabled) {
 
 .history-duration {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .history-timestamp {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--text-secondary);
 }
 
 .button-group {
@@ -1068,42 +1041,20 @@ button.danger:hover:not(:disabled) {
   margin-bottom: 1rem;
 }
 
+/* Badge component handles compat-item styling */
 .compat-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-0);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-}
-
-.compat-item.supported {
-  background: #ecfdf5;
-  border-color: #10b981;
-}
-
-.compat-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 4px;
-  background: var(--color-error, #ef4444);
-}
-
-.compat-icon.supported {
-  background: var(--color-success, #10b981);
 }
 
 .compat-label {
   font-weight: 500;
 }
 
-.compat-warning {
-  padding: 1rem;
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  border-radius: 6px;
-  color: #92400e;
-  font-size: 0.875rem;
-}
+/* Message component handles compat-warning styling */
 </style>
