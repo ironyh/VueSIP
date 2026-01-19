@@ -72,21 +72,21 @@
     />
 
     <!-- Connection Status -->
-    <div v-if="!effectiveIsConnected" class="status-message info">
+    <Message v-if="!effectiveIsConnected" severity="info" :closable="false">
       {{
         isSimulationMode
           ? 'Enable simulation and run a scenario to test transfers'
           : 'Connect to a SIP server to use transfer features (use the Basic Call demo to connect)'
       }}
-    </div>
+    </Message>
 
-    <div v-else-if="effectiveCallState !== 'active'" class="status-message warning">
+    <Message v-else-if="effectiveCallState !== 'active'" severity="warn" :closable="false">
       {{
         isSimulationMode
           ? 'Run the "Active Call" or "Transfer" scenario to test transfers'
           : 'You need an active call to perform transfers'
       }}
-    </div>
+    </Message>
 
     <!-- Transfer Interface -->
     <div v-else class="transfer-interface">
@@ -155,36 +155,23 @@
         </p>
         <div class="form-group">
           <label for="blind-target">Transfer To:</label>
-          <input
+          <InputText
             id="blind-target"
             v-model="blindTransferTarget"
-            type="text"
             placeholder="sip:target@example.com or 1234"
             @keyup.enter="executeBlindTransfer"
+            class="w-full"
           />
         </div>
         <div class="form-actions">
-          <button
-            class="btn btn-primary"
+          <Button
             :disabled="!blindTransferTarget.trim() || executing"
             @click="executeBlindTransfer"
-          >
-            <svg
-              v-if="!executing"
-              class="icon-inline"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <polyline points="17 1 21 5 17 9" />
-              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-              <polyline points="7 23 3 19 7 15" />
-              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-            </svg>
-            {{ executing ? 'Transferring...' : 'Transfer Call' }}
-          </button>
-          <button class="btn btn-secondary" @click="cancelTransferForm">Cancel</button>
+            :label="executing ? 'Transferring...' : 'Transfer Call'"
+            severity="primary"
+            icon="pi pi-arrow-right"
+          />
+          <Button @click="cancelTransferForm" label="Cancel" severity="secondary" />
         </div>
       </div>
 
@@ -200,28 +187,23 @@
           </p>
           <div class="form-group">
             <label for="attended-target">Consultation Target:</label>
-            <input
+            <InputText
               id="attended-target"
               v-model="attendedTransferTarget"
-              type="text"
               placeholder="sip:target@example.com or 1234"
               @keyup.enter="initiateConsultation"
+              class="w-full"
             />
           </div>
           <div class="form-actions">
-            <button
-              class="btn btn-primary"
+            <Button
               :disabled="!attendedTransferTarget.trim() || executing"
               @click="initiateConsultation"
-            >
-              <svg v-if="!executing" class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"
-                />
-              </svg>
-              {{ executing ? 'Calling...' : 'Start Consultation' }}
-            </button>
-            <button class="btn btn-secondary" @click="cancelTransferForm">Cancel</button>
+              :label="executing ? 'Calling...' : 'Start Consultation'"
+              severity="primary"
+              icon="pi pi-phone"
+            />
+            <Button @click="cancelTransferForm" label="Cancel" severity="secondary" />
           </div>
         </div>
 
@@ -241,33 +223,20 @@
           </div>
 
           <div class="form-actions">
-            <button class="btn btn-success" :disabled="executing" @click="completeTransfer">
-              <svg
-                v-if="!executing"
-                class="icon-inline"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              {{ executing ? 'Completing...' : 'Complete Transfer' }}
-            </button>
-            <button class="btn btn-danger" :disabled="executing" @click="cancelAttendedTransfer">
-              <svg
-                v-if="!executing"
-                class="icon-inline"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-              Cancel Transfer
-            </button>
+            <Button
+              :disabled="executing"
+              @click="completeTransfer"
+              :label="executing ? 'Completing...' : 'Complete Transfer'"
+              severity="success"
+              icon="pi pi-check"
+            />
+            <Button
+              :disabled="executing"
+              @click="cancelAttendedTransfer"
+              label="Cancel Transfer"
+              severity="danger"
+              icon="pi pi-times"
+            />
           </div>
         </div>
       </div>
@@ -368,10 +337,21 @@ await cancelTransfer()</code></pre>
 </template>
 
 <script setup lang="ts">
+/**
+ * Call Transfer Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels (primary, secondary, success, danger)
+ * - Using PrimeVue InputText for transfer target inputs with proper v-model binding
+ * - Using PrimeVue Message for status messages with appropriate severity (info/warning)
+ * - Transfer type selection buttons remain custom styled to maintain the visual design pattern
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed } from 'vue'
 import { useSipClient, useCallSession, useCallControls } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -534,14 +514,14 @@ const getStatusText = (state: string): string => {
 
 .info-section {
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
 
 .info-section > p {
   margin: 0 0 1.5rem 0;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
@@ -552,48 +532,34 @@ const getStatusText = (state: string): string => {
 }
 
 .type-card {
-  background: white;
+  background: var(--surface-0);
   padding: 1.25rem;
   border-radius: 8px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
 }
 
 .type-card h4 {
   margin: 0 0 0.75rem 0;
-  color: #333;
+  color: var(--text-color);
   font-size: 1rem;
 }
 
 .type-card p {
   margin: 0;
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
-.status-message {
-  padding: 1rem;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 0.875rem;
-}
-
-.status-message.info {
-  background: #eff6ff;
-  color: #1e40af;
-}
-
-.status-message.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
+/* Design Decision: PrimeVue Message component handles status message styling.
+   Removed custom .status-message classes as they're no longer needed. */
 
 .transfer-interface {
   padding: 1.5rem;
 }
 
 .current-call-info {
-  background: #d1fae5;
+  background: var(--success-light);
   padding: 1.25rem;
   border-radius: 8px;
   margin-bottom: 2rem;
@@ -601,7 +567,7 @@ const getStatusText = (state: string): string => {
 
 .current-call-info h3 {
   margin: 0 0 1rem 0;
-  color: #065f46;
+  color: var(--success);
   font-size: 1rem;
 }
 
@@ -618,18 +584,18 @@ const getStatusText = (state: string): string => {
 }
 
 .detail-row .label {
-  color: #047857;
+  color: var(--success);
   font-weight: 500;
 }
 
 .detail-row .value {
-  color: #065f46;
+  color: var(--success);
   font-weight: 600;
 }
 
 .transfer-type-selection h3 {
   margin: 0 0 1.5rem 0;
-  color: #333;
+  color: var(--text-color);
   text-align: center;
 }
 
@@ -644,15 +610,15 @@ const getStatusText = (state: string): string => {
   flex-direction: column;
   align-items: center;
   padding: 2rem 1.5rem;
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: var(--surface-0);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .transfer-type-btn:hover {
-  border-color: #667eea;
+  border-color: var(--primary);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
@@ -661,7 +627,7 @@ const getStatusText = (state: string): string => {
   width: 48px;
   height: 48px;
   margin-bottom: 1rem;
-  color: var(--primary, #667eea);
+  color: var(--primary);
 }
 
 .icon-inline {
@@ -675,30 +641,30 @@ const getStatusText = (state: string): string => {
 .transfer-type-btn .title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
   margin-bottom: 0.5rem;
 }
 
 .transfer-type-btn .desc {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .transfer-form {
-  background: white;
+  background: var(--surface-0);
   padding: 1.5rem;
   border-radius: 8px;
-  border: 2px solid #667eea;
+  border: 2px solid var(--primary);
 }
 
 .transfer-form h3 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
 }
 
 .form-description {
   margin: 0 0 1.5rem 0;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   line-height: 1.5;
 }
@@ -711,22 +677,14 @@ const getStatusText = (state: string): string => {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-color);
   font-size: 0.875rem;
 }
 
-.form-group input {
+/* Design Decision: PrimeVue InputText component handles input styling.
+   Removed custom input styles as they're no longer needed. */
+.form-group :deep(.p-inputtext) {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .form-actions {
@@ -734,60 +692,8 @@ const getStatusText = (state: string): string => {
   gap: 0.75rem;
 }
 
-.form-actions .btn {
-  flex: 1;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #667eea;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #5568d3;
-}
-
-.btn-secondary {
-  background: #6b7280;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #4b5563;
-}
-
-.btn-success {
-  background: #10b981;
-  color: white;
-}
-
-.btn-success:hover:not(:disabled) {
-  background: #059669;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Removed custom .btn classes as they're no longer needed. */
 
 .consultation-step {
   /* Inherits transfer-form styles */
@@ -804,8 +710,8 @@ const getStatusText = (state: string): string => {
 .status-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--info-light);
+  color: var(--info);
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -820,7 +726,7 @@ const getStatusText = (state: string): string => {
 }
 
 .consultation-info {
-  background: #f9fafb;
+  background: var(--surface-50);
   padding: 1rem;
   border-radius: 6px;
   margin-bottom: 1.5rem;
@@ -837,7 +743,7 @@ const getStatusText = (state: string): string => {
 }
 
 .info-item strong {
-  color: #333;
+  color: var(--text-color);
 }
 
 .transfer-status {
@@ -851,23 +757,23 @@ const getStatusText = (state: string): string => {
 }
 
 .status-card.completed {
-  background: #d1fae5;
-  border-color: #10b981;
+  background: var(--success-light);
+  border-color: var(--success);
 }
 
 .status-card.failed {
-  background: #fee2e2;
-  border-color: #ef4444;
+  background: var(--danger-light);
+  border-color: var(--danger);
 }
 
 .status-card.canceled {
-  background: #fef3c7;
-  border-color: #f59e0b;
+  background: var(--warning-light);
+  border-color: var(--warning);
 }
 
 .status-card.in_progress {
-  background: #dbeafe;
-  border-color: #3b82f6;
+  background: var(--info-light);
+  border-color: var(--info);
 }
 
 .status-header {
@@ -897,7 +803,7 @@ const getStatusText = (state: string): string => {
 
 .status-text {
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
 }
 
 .status-error {
@@ -906,24 +812,24 @@ const getStatusText = (state: string): string => {
   background: rgba(255, 255, 255, 0.5);
   border-radius: 4px;
   font-size: 0.875rem;
-  color: #991b1b;
+  color: var(--danger);
 }
 
 .code-example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
 }
 
 .code-example h4 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text-color);
 }
 
 .code-example pre {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--surface-900);
+  color: var(--text-color);
   padding: 1.5rem;
   border-radius: 6px;
   overflow-x: auto;

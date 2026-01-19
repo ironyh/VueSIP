@@ -33,26 +33,26 @@
     />
 
     <!-- Connection Status -->
-    <div v-if="!effectiveIsConnected" class="status-message info" role="status" aria-live="polite">
+    <Message v-if="!effectiveIsConnected" severity="info" :closable="false" class="mb-4">
       {{
         isSimulationMode
           ? 'Enable simulation and run a scenario to see quality metrics'
           : 'Connect to a SIP server to view call quality metrics (use the Basic Call demo to connect)'
       }}
-    </div>
+    </Message>
 
-    <div
+    <Message
       v-else-if="effectiveCallState !== 'active'"
-      class="status-message warning"
-      role="status"
-      aria-live="polite"
+      severity="warn"
+      :closable="false"
+      class="mb-4"
     >
       {{
         isSimulationMode
           ? 'Run the "Active Call" scenario to see quality metrics'
           : 'Make or answer a call to see real-time quality metrics'
       }}
-    </div>
+    </Message>
 
     <!-- Quality Metrics -->
     <div v-else class="quality-metrics">
@@ -248,10 +248,18 @@ onUnmounted(() => {
 </template>
 
 <script setup lang="ts">
+/**
+ * Call Quality Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Message for status messages with appropriate severity levels
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -517,23 +525,8 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 }
 
-.status-message {
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
-  text-align: center;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-}
-
-.status-message.info {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--text-info);
-}
-
-.status-message.warning {
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--text-warning);
-}
+/* Design Decision: PrimeVue Message component handles status message styling.
+   Removed custom .status-message classes as they're no longer needed. */
 
 .quality-metrics {
   padding: var(--spacing-md);

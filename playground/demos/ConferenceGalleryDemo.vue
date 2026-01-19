@@ -29,15 +29,17 @@
     <div class="layout-controls">
       <h3>Layout Mode</h3>
       <div class="layout-buttons">
-        <button
+        <Button
           v-for="mode in layoutModes"
           :key="mode.id"
           :class="['layout-btn', { active: currentLayout === mode.id }]"
           @click="setLayoutMode(mode.id)"
+          :severity="currentLayout === mode.id ? 'primary' : 'secondary'"
+          outlined
         >
           <span class="layout-icon">{{ mode.icon }}</span>
           <span class="layout-name">{{ mode.name }}</span>
-        </button>
+        </Button>
       </div>
     </div>
 
@@ -61,9 +63,13 @@
       <div class="info-row">
         <span class="info-label">Moderator:</span>
         <span class="info-value">
-          <button class="toggle-moderator" @click="toggleModerator">
-            {{ isModerator ? 'Yes' : 'No' }}
-          </button>
+          <Button
+            @click="toggleModerator"
+            :label="isModerator ? 'Yes' : 'No'"
+            :severity="isModerator ? 'success' : 'secondary'"
+            size="small"
+            outlined
+          />
         </span>
       </div>
     </div>
@@ -76,10 +82,7 @@
       :style="currentLayout === 'grid' ? gridStyle : undefined"
     >
       <!-- Speaker Layout: Featured Speaker -->
-      <div
-        v-if="currentLayout === 'speaker' && focusedParticipant"
-        class="featured-speaker"
-      >
+      <div v-if="currentLayout === 'speaker' && focusedParticipant" class="featured-speaker">
         <ParticipantTile
           :participant="focusedParticipant"
           :is-active-speaker="focusedParticipant.id === activeSpeaker?.id"
@@ -94,10 +97,7 @@
       </div>
 
       <!-- Speaker Layout: Thumbnails -->
-      <div
-        v-if="currentLayout === 'speaker'"
-        class="speaker-thumbnails"
-      >
+      <div v-if="currentLayout === 'speaker'" class="speaker-thumbnails">
         <ParticipantTile
           v-for="p in otherParticipants"
           :key="p.id"
@@ -188,9 +188,7 @@
         <button @click="removeRandomParticipant" :disabled="participants.length <= 1">
           Remove Participant
         </button>
-        <button @click="simulateSpeaking">
-          Simulate Speaking
-        </button>
+        <button @click="simulateSpeaking">Simulate Speaking</button>
         <button @click="clearAllParticipants" :disabled="participants.length === 0">
           Clear All
         </button>
@@ -200,6 +198,14 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Conference Gallery Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for layout mode buttons and toggle buttons with appropriate severity
+ * - Layout buttons remain custom styled to maintain the visual design pattern
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
@@ -207,6 +213,7 @@ import { useActiveSpeaker, useGalleryLayout } from '../../src'
 import { ParticipantState, type Participant } from '../../src/types/conference.types'
 import type { GalleryLayoutMode } from '../../src/types/gallery-layout.types'
 import ParticipantTile from '../components/ParticipantTile.vue'
+import { Button } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -226,11 +233,7 @@ const layoutModes = [
 const currentLayout = ref<GalleryLayoutMode>('grid')
 
 // Active speaker detection
-const {
-  activeSpeaker,
-  isSomeoneSpeaking,
-  speakerHistory,
-} = useActiveSpeaker(participants, {
+const { activeSpeaker, isSomeoneSpeaking, speakerHistory } = useActiveSpeaker(participants, {
   threshold: 0.15,
   debounceMs: 300,
   historySize: 10,
@@ -319,8 +322,18 @@ const handleVolumeChange = (participant: Participant, volume: number) => {
 
 // Simulation helpers
 const participantNames = [
-  'Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank',
-  'Grace', 'Henry', 'Ivy', 'Jack', 'Kate', 'Leo',
+  'Alice',
+  'Bob',
+  'Charlie',
+  'Diana',
+  'Eve',
+  'Frank',
+  'Grace',
+  'Henry',
+  'Ivy',
+  'Jack',
+  'Kate',
+  'Leo',
 ]
 
 let participantIdCounter = 0
@@ -539,8 +552,15 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.2); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
 }
 
 .toggle-moderator {

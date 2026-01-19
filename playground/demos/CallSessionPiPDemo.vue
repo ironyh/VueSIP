@@ -33,16 +33,15 @@
     />
 
     <!-- PiP Browser Support Check -->
-    <div v-if="!isPiPSupported" class="warning-banner">
-      <span class="warning-icon">Warning</span>
-      <div>
+    <Message v-if="!isPiPSupported" severity="warn" :closable="false" class="mb-4">
+      <template #default>
         <strong>Picture-in-Picture Not Supported</strong>
-        <p>
+        <p class="mt-2 mb-0">
           Your browser doesn't support the Picture-in-Picture API. Please use Chrome, Edge, or
           Safari.
         </p>
-      </div>
-    </div>
+      </template>
+    </Message>
 
     <!-- Video Section -->
     <div class="video-section">
@@ -67,7 +66,7 @@
           <div class="pip-message">
             <span class="pip-icon-lg">TV</span>
             <span>Video is playing in Picture-in-Picture mode</span>
-            <button class="btn btn-sm" @click="handleExitPiP">Bring Back</button>
+            <Button @click="handleExitPiP" label="Bring Back" severity="secondary" size="small" />
           </div>
         </div>
 
@@ -83,29 +82,28 @@
 
       <!-- PiP Controls -->
       <div class="pip-controls">
-        <button
-          class="btn btn-primary"
+        <Button
           :disabled="!isPiPSupported || !isVideoReady || isPiPActive"
           @click="handleEnterPiP"
-        >
-          <span class="btn-icon">TV</span>
-          Enter Picture-in-Picture
-        </button>
-
-        <button class="btn btn-secondary" :disabled="!isPiPActive" @click="handleExitPiP">
-          <span class="btn-icon">X</span>
-          Exit Picture-in-Picture
-        </button>
-
-        <button
-          class="btn"
-          :class="isPiPActive ? 'btn-warning' : 'btn-outline'"
+          label="Enter Picture-in-Picture"
+          severity="primary"
+          icon="pi pi-desktop"
+        />
+        <Button
+          :disabled="!isPiPActive"
+          @click="handleExitPiP"
+          label="Exit Picture-in-Picture"
+          severity="secondary"
+          icon="pi pi-times"
+        />
+        <Button
           :disabled="!isPiPSupported || !isVideoReady"
           @click="handleTogglePiP"
-        >
-          <span class="btn-icon">Swap</span>
-          Toggle PiP
-        </button>
+          :label="isPiPActive ? 'Toggle PiP' : 'Toggle PiP'"
+          :severity="isPiPActive ? 'warning' : 'secondary'"
+          outlined
+          icon="pi pi-refresh"
+        />
       </div>
     </div>
 
@@ -238,10 +236,19 @@ await togglePiP() // Toggle PiP mode
 </template>
 
 <script setup lang="ts">
+/**
+ * Call Session PiP Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue Message for warning banner with appropriate severity
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, watch, onMounted } from 'vue'
 import { useSipClient, useCallSession } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -412,33 +419,8 @@ onMounted(() => {
   font-size: 0.875rem;
 }
 
-/* Warning Banner */
-.warning-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1rem;
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-}
-
-.warning-icon {
-  font-weight: 600;
-  color: #92400e;
-}
-
-.warning-banner strong {
-  display: block;
-  margin-bottom: 0.25rem;
-}
-
-.warning-banner p {
-  margin: 0;
-  color: #92400e;
-  font-size: 0.875rem;
-}
+/* Design Decision: PrimeVue Message component handles warning banner styling.
+   Removed custom .warning-banner classes as they're no longer needed. */
 
 /* Video Section */
 .video-section {

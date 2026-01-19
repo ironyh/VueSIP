@@ -15,35 +15,61 @@
           <strong>Need agent-first dialing?</strong> See the <em>AMI Click-to-Call</em> example in
           the AMI section.
         </p>
-        <button class="link-btn" @click="goAmi">Open AMI Click-to-Call</button>
+        <Button @click="goAmi" label="Open AMI Click-to-Call" severity="secondary" outlined text />
       </div>
 
       <div class="form-grid">
-        <label class="row">
-          <span>Mock Mode</span>
-          <input type="checkbox" v-model="mockMode" />
-        </label>
-        <label class="row">
-          <span>Default Number</span>
-          <input v-model="defaultNumber" type="text" placeholder="+15551234567" />
-        </label>
+        <div class="row">
+          <label for="mock-mode">Mock Mode</label>
+          <Checkbox id="mock-mode" v-model="mockMode" :binary="true" />
+        </div>
+        <div class="row">
+          <label for="default-number">Default Number</label>
+          <InputText
+            id="default-number"
+            v-model="defaultNumber"
+            placeholder="+15551234567"
+            class="w-full"
+          />
+        </div>
       </div>
 
       <details class="advanced">
         <summary>Real SIP (optional)</summary>
         <div class="form-grid">
-          <label class="row"
-            ><span>WS URI</span><input v-model="wsUri" placeholder="wss://sip.example.com"
-          /></label>
-          <label class="row"
-            ><span>SIP URI</span><input v-model="sipUri" placeholder="sip:user@example.com"
-          /></label>
-          <label class="row"
-            ><span>Password</span><input v-model="password" type="password" placeholder="secret"
-          /></label>
-          <label class="row"
-            ><span>Display Name</span><input v-model="displayName" placeholder="Agent"
-          /></label>
+          <div class="row">
+            <label for="ws-uri">WS URI</label>
+            <InputText
+              id="ws-uri"
+              v-model="wsUri"
+              placeholder="wss://sip.example.com"
+              class="w-full"
+            />
+          </div>
+          <div class="row">
+            <label for="sip-uri">SIP URI</label>
+            <InputText
+              id="sip-uri"
+              v-model="sipUri"
+              placeholder="sip:user@example.com"
+              class="w-full"
+            />
+          </div>
+          <div class="row">
+            <label for="password">Password</label>
+            <Password
+              id="password"
+              v-model="password"
+              placeholder="secret"
+              :feedback="false"
+              toggleMask
+              class="w-full"
+            />
+          </div>
+          <div class="row">
+            <label for="display-name">Display Name</label>
+            <InputText id="display-name" v-model="displayName" placeholder="Agent" class="w-full" />
+          </div>
         </div>
       </details>
     </div>
@@ -61,17 +87,34 @@
       </div>
 
       <div class="actions">
-        <button v-if="callState === 'idle'" @click="doCall">Call</button>
-        <button v-else-if="callState === 'ringing'" @click="answer">Answer</button>
-        <button v-else @click="hangup">Hang up</button>
+        <Button v-if="callState === 'idle'" @click="doCall" label="Call" severity="primary" />
+        <Button
+          v-else-if="callState === 'ringing'"
+          @click="answer"
+          label="Answer"
+          severity="success"
+        />
+        <Button v-else @click="hangup" label="Hang up" severity="danger" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+/**
+ * Click-to-Call Widget Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputText for text inputs with proper v-model binding
+ * - Using PrimeVue Password for password input with proper v-model binding
+ * - Using PrimeVue Checkbox for mock mode toggle with proper binary binding
+ * - Widget buttons remain custom styled to maintain the embedded widget appearance
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { computed, ref, watch } from 'vue'
 import { useClickToCall } from '../../src/composables/useClickToCall'
+import { Button, InputText, Password, Checkbox } from './shared-components'
 
 const mockMode = ref(true)
 const defaultNumber = ref('+15551234567')
@@ -148,14 +191,11 @@ function goAmi() {
   align-items: center;
   gap: 8px;
 }
-.row input[type='text'],
-.row input[type='password'] {
+/* Design Decision: PrimeVue InputText and Password components handle input styling.
+   Removed custom input styles as they're no longer needed. */
+.row :deep(.p-inputtext),
+.row :deep(.p-password input) {
   width: 100%;
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--vp-c-divider);
-  background: var(--vp-c-bg);
-  color: var(--vp-c-text-1);
 }
 .advanced {
   margin-top: 8px;
@@ -177,33 +217,14 @@ function goAmi() {
   color: var(--vp-c-text-3);
 }
 .status.on {
-  color: #28a745;
+  color: var(--success);
 }
 .body {
   margin-bottom: 8px;
 }
-.actions button {
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--ctc-primary);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-}
-.actions button:hover {
-  background: var(--ctc-primary-hover);
-}
-.link-btn {
-  margin-top: 8px;
-  padding: 6px 10px;
-  background: transparent;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 8px;
-  cursor: pointer;
-}
-.link-btn:hover {
-  background: var(--vp-c-bg-soft);
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Widget buttons use PrimeVue Button with appropriate severity levels.
+   Removed custom button styles as they're no longer needed. */
 @media (max-width: 900px) {
   .ctc-demo {
     grid-template-columns: 1fr;

@@ -36,40 +36,33 @@
       <div class="preview-header">
         <h3>Camera Preview</h3>
         <div class="preview-controls">
-          <button
+          <Button
             v-if="!isPreviewActive"
-            class="btn btn-primary btn-sm"
             @click="startPreview"
             :disabled="videoInputDevices.length === 0"
-          >
-            <svg
-              class="icon-inline"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M23 7l-7 5 7 5V7z" />
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-            </svg>
-            Start Preview
-          </button>
-          <button v-else class="btn btn-secondary btn-sm" @click="stopPreview">
-            <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="6" y="4" width="4" height="16" />
-              <rect x="14" y="4" width="4" height="16" />
-            </svg>
-            Stop Preview
-          </button>
-          <button
+            label="Start Preview"
+            icon="pi pi-video"
+            severity="primary"
+            size="small"
+          />
+          <Button
+            v-else
+            @click="stopPreview"
+            label="Stop Preview"
+            icon="pi pi-stop"
+            severity="secondary"
+            size="small"
+          />
+          <Button
             v-if="videoInputDevices.length > 1"
-            class="btn btn-outline btn-sm"
             :class="{ active: showMultiCameraGrid }"
             @click="toggleMultiCameraView"
             :disabled="!isPreviewActive"
-          >
-            {{ showMultiCameraGrid ? 'Single View' : 'Multi-Camera' }}
-          </button>
+            :label="showMultiCameraGrid ? 'Single View' : 'Multi-Camera'"
+            severity="secondary"
+            outlined
+            size="small"
+          />
         </div>
       </div>
 
@@ -83,15 +76,15 @@
         </div>
         <div v-if="videoInputDevices.length > 1" class="camera-switcher">
           <label>Switch Camera:</label>
-          <select v-model="previewCameraId" @change="switchPreviewCamera">
-            <option
-              v-for="device in videoInputDevices"
-              :key="device.deviceId"
-              :value="device.deviceId"
-            >
-              {{ device.label || `Camera ${device.deviceId.slice(0, 8)}` }}
-            </option>
-          </select>
+          <Dropdown
+            v-model="previewCameraId"
+            :options="videoInputDevices"
+            optionLabel="label"
+            optionValue="deviceId"
+            :placeholder="`Camera ${videoInputDevices[0]?.deviceId.slice(0, 8) || ''}`"
+            @change="switchPreviewCamera"
+            class="w-full"
+          />
         </div>
       </div>
 
@@ -136,30 +129,33 @@
           <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
         </svg>
         <p>No cameras detected. Please connect a camera or grant camera permissions.</p>
-        <button class="btn btn-primary btn-sm" @click="requestCameraPermission">
-          Request Permission
-        </button>
+        <Button
+          @click="requestCameraPermission"
+          label="Request Permission"
+          severity="primary"
+          size="small"
+        />
       </div>
 
       <!-- Camera Count Info -->
       <div v-if="videoInputDevices.length > 0" class="camera-info">
         <span class="camera-count"
-        >{{ videoInputDevices.length }} camera{{
-          videoInputDevices.length > 1 ? 's' : ''
-        }}
+          >{{ videoInputDevices.length }} camera{{
+            videoInputDevices.length > 1 ? 's' : ''
+          }}
           available</span
         >
       </div>
     </div>
 
     <!-- Connection Status -->
-    <div v-if="!isConnected" class="status-message info">
+    <Message v-if="!isConnected" severity="info" :closable="false">
       {{
         isSimulationMode
           ? 'Enable simulation and run a scenario to test video call features'
           : 'Connect to a SIP server to use video features (use the Basic Call demo to connect)'
       }}
-    </div>
+    </Message>
 
     <!-- Video Call Interface -->
     <div v-else class="video-interface">
@@ -203,29 +199,19 @@
       <div class="call-controls">
         <!-- When idle -->
         <div v-if="callState === 'idle'" class="dial-section">
-          <input
+          <InputText
             v-model="dialNumber"
-            type="text"
             placeholder="Enter SIP URI (e.g., sip:user@example.com)"
             @keyup.enter="handleMakeCall"
+            class="w-full"
           />
-          <button
-            class="btn btn-success"
+          <Button
             :disabled="!dialNumber.trim() || !isRegistered"
             @click="handleMakeCall"
-          >
-            <svg
-              class="icon-inline"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M23 7l-7 5 7 5V7z" />
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-            </svg>
-            Start Video Call
-          </button>
+            label="Start Video Call"
+            icon="pi pi-video"
+            severity="success"
+          />
         </div>
 
         <!-- When in call -->
@@ -239,96 +225,33 @@
           </div>
 
           <div class="control-buttons">
-            <button v-if="callState === 'ringing'" class="btn btn-success" @click="handleAnswer">
-              <svg
-                class="icon-inline"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              Answer
-            </button>
+            <Button
+              v-if="callState === 'ringing'"
+              @click="handleAnswer"
+              label="Answer"
+              icon="pi pi-check"
+              severity="success"
+            />
 
-            <button
-              class="btn btn-control"
+            <Button
               :class="{ active: !isMuted }"
               :title="isMuted ? 'Unmute' : 'Mute'"
               @click="handleToggleMute"
-            >
-              <svg
-                v-if="isMuted"
-                class="icon-inline"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <line x1="1" y1="1" x2="23" y2="23" />
-                <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
-                <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-              <svg
-                v-else
-                class="icon-inline"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-              {{ isMuted ? 'Unmute' : 'Mute' }}
-            </button>
+              :label="isMuted ? 'Unmute' : 'Mute'"
+              :icon="isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'"
+              severity="secondary"
+            />
 
-            <button
-              class="btn btn-control"
+            <Button
               :class="{ active: hasLocalVideoFromSession }"
               :title="hasLocalVideoFromSession ? 'Stop Video' : 'Start Video'"
               @click="handleToggleVideo"
-            >
-              <svg
-                v-if="hasLocalVideoFromSession"
-                class="icon-inline"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path d="M23 7l-7 5 7 5V7z" />
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-              </svg>
-              <svg
-                v-else
-                class="icon-inline"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <line x1="1" y1="1" x2="23" y2="23" />
-                <path
-                  d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"
-                />
-              </svg>
-              {{ hasLocalVideoFromSession ? 'Video On' : 'Video Off' }}
-            </button>
+              :label="hasLocalVideoFromSession ? 'Video On' : 'Video Off'"
+              :icon="hasLocalVideoFromSession ? 'pi pi-video' : 'pi pi-video-slash'"
+              severity="secondary"
+            />
 
-            <button class="btn btn-danger" @click="handleHangup">
-              <svg class="icon-inline" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"
-                />
-              </svg>
-              End Call
-            </button>
+            <Button @click="handleHangup" label="End Call" icon="pi pi-phone" severity="danger" />
           </div>
         </div>
       </div>
@@ -338,15 +261,16 @@
         <h4>Camera Settings</h4>
         <div class="device-selector">
           <label for="camera-select">Select Camera:</label>
-          <select id="camera-select" v-model="selectedVideoInputId" @change="handleCameraChange">
-            <option
-              v-for="device in videoInputDevices"
-              :key="device.deviceId"
-              :value="device.deviceId"
-            >
-              {{ device.label || `Camera ${device.deviceId.slice(0, 8)}` }}
-            </option>
-          </select>
+          <Dropdown
+            id="camera-select"
+            v-model="selectedVideoInputId"
+            :options="videoInputDevices"
+            optionLabel="label"
+            optionValue="deviceId"
+            placeholder="Select Camera"
+            @change="handleCameraChange"
+            class="w-full"
+          />
         </div>
       </div>
 
@@ -433,10 +357,22 @@ watch(localStream, (stream) => {
 </template>
 
 <script setup lang="ts">
+/**
+ * Video Call Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputText for dial input with proper v-model binding
+ * - Using PrimeVue Dropdown for camera selection with proper v-model binding
+ * - Using PrimeVue Message for status messages with appropriate severity
+ * - Video preview and display elements remain custom styled to maintain the visual design pattern
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSipClient, useCallSession, useMediaDevices } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+import { Button, InputText, Dropdown, Message } from './shared-components'
 
 // Simulation system
 const simulation = useSimulation()
@@ -818,7 +754,7 @@ onUnmounted(() => {
 
 .info-section {
   padding: 1.5rem;
-  background: #f9fafb;
+  background: var(--surface-50);
   border-radius: 8px;
   margin-bottom: 1.5rem;
 }
@@ -835,8 +771,8 @@ onUnmounted(() => {
 
 .note {
   padding: 1rem;
-  background: #eff6ff;
-  border-left: 3px solid #667eea;
+  background: var(--info-light);
+  border-left: 3px solid var(--primary);
   border-radius: 4px;
   font-size: 0.875rem;
 }
@@ -951,22 +887,13 @@ onUnmounted(() => {
 .camera-switcher label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-color);
 }
 
-.camera-switcher select {
-  padding: 0.5rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background: white;
+/* Design Decision: PrimeVue Dropdown component handles select styling.
+   Removed custom select styles as they're no longer needed. */
+.camera-switcher :deep(.p-dropdown) {
   min-width: 200px;
-}
-
-.camera-switcher select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .multi-camera-grid {
@@ -988,11 +915,11 @@ onUnmounted(() => {
 }
 
 .camera-tile:hover {
-  border-color: #667eea;
+  border-color: var(--primary);
 }
 
 .camera-tile.is-selected {
-  border-color: #10b981;
+  border-color: var(--success);
 }
 
 .camera-tile video {
@@ -1018,8 +945,8 @@ onUnmounted(() => {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: #10b981;
-  color: white;
+  background: var(--success);
+  color: var(--surface-0);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.7rem;

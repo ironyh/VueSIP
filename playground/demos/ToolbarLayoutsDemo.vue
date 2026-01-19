@@ -26,6 +26,8 @@
     </div>
 
     <!-- Tab Navigation -->
+    <!-- Design Decision: Custom tab styling is used to match the demo's visual design.
+         These are navigation buttons, not PrimeVue Tabs, to maintain the specific layout. -->
     <div class="main-tabs">
       <button
         :class="['tab-btn', { active: activeMainTab === 'states' }]"
@@ -750,22 +752,21 @@
             <div class="tw-flex-1 tw-flex tw-items-center tw-justify-center tw-gap-3">
               <span
                 class="tw-px-2 tw-py-1 tw-bg-emerald-500/20 tw-text-emerald-400 tw-rounded tw-text-xs tw-font-semibold"
-              >Active</span
+                >Active</span
               >
               <span class="tw-font-medium">John Smith</span>
-              <span
-                class="tw-font-mono tw-bg-var(--surface-900)/20 tw-px-2 tw-py-1 tw-rounded tw-text-sm"
-              >02:45</span
+              <span class="tw-font-mono tw-bg-surface-900-20 tw-px-2 tw-py-1 tw-rounded tw-text-sm"
+                >02:45</span
               >
             </div>
             <div class="tw-flex tw-gap-2">
               <button
-                class="tw-px-3 tw-py-1.5 tw-bg-var(--surface-0)/20 tw-border tw-border-var(--surface-0)/30 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-var(--surface-0)/30"
+                class="tw-px-3 tw-py-1.5 tw-bg-surface-0-20 tw-border tw-border-surface-0-30 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-surface-0-30"
               >
                 Mute
               </button>
               <button
-                class="tw-px-3 tw-py-1.5 tw-bg-var(--surface-0)/20 tw-border tw-border-var(--surface-0)/30 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-var(--surface-0)/30"
+                class="tw-px-3 tw-py-1.5 tw-bg-surface-0-20 tw-border tw-border-surface-0-30 tw-rounded-md tw-text-sm tw-font-medium hover:tw-bg-surface-0-30"
               >
                 Hold
               </button>
@@ -779,7 +780,7 @@
 
           <div class="code-block">
             <pre><code>&lt;template&gt;
-  &lt;div class="flex items-center gap-6 px-4 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 text-var(--surface-0)"&gt;
+  &lt;div class="flex items-center gap-6 px-4 py-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600" style="color: var(--surface-0)"&gt;
     &lt;!-- Status --&gt;
     &lt;div class="flex items-center gap-2"&gt;
       &lt;span :class="[
@@ -795,15 +796,15 @@
         {{ state }}
       &lt;/span&gt;
       &lt;span class="font-medium"&gt;{{ remoteDisplayName }}&lt;/span&gt;
-      &lt;span class="font-mono bg-var(--surface-900)/20 px-2 py-1 rounded text-sm"&gt;{{ formattedDuration }}&lt;/span&gt;
+      &lt;span class="font-mono px-2 py-1 rounded text-sm" style="background: rgba(0, 0, 0, 0.2)"&gt;{{ formattedDuration }}&lt;/span&gt;
     &lt;/div&gt;
 
     &lt;!-- Controls --&gt;
     &lt;div class="flex gap-2"&gt;
-      &lt;button @click="toggleMute" class="px-3 py-1.5 bg-var(--surface-0)/20 border border-var(--surface-0)/30 rounded-md text-sm font-medium transition hover:bg-var(--surface-0)/30"&gt;
+      &lt;button @click="toggleMute" class="px-3 py-1.5 rounded-md text-sm font-medium transition" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3)"&gt;
         {{ isMuted ? 'Unmute' : 'Mute' }}
       &lt;/button&gt;
-      &lt;button @click="toggleHold" class="px-3 py-1.5 bg-var(--surface-0)/20 border border-var(--surface-0)/30 rounded-md text-sm font-medium transition hover:bg-var(--surface-0)/30"&gt;
+      &lt;button @click="toggleHold" class="px-3 py-1.5 rounded-md text-sm font-medium transition" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3)"&gt;
         {{ isOnHold ? 'Resume' : 'Hold' }}
       &lt;/button&gt;
       &lt;button @click="hangup" class="px-3 py-1.5 bg-red-500 rounded-md text-sm font-medium transition hover:bg-red-600"&gt;
@@ -961,7 +962,7 @@ import Chip from 'primevue/chip'
 
           <div class="code-block">
             <pre><code>&lt;template&gt;
-  &lt;q-toolbar class="bg-deep-purple text-var(--surface-0)"&gt;
+  &lt;q-toolbar class="bg-deep-purple" style="color: var(--surface-0)"&gt;
     &lt;q-badge :color="isConnected ? 'positive' : 'negative'" class="q-mr-sm"&gt;
       {{ isConnected ? 'Connected' : 'Disconnected' }}
     &lt;/q-badge&gt;
@@ -1660,9 +1661,23 @@ const formattedReturnTime = computed(() => {
 </template>
 
 <script setup lang="ts">
+/**
+ * Toolbar Layouts Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue components where appropriate for interactive elements
+ * - This demo primarily showcases static toolbar layout patterns and framework examples
+ * - Many buttons are for demonstration purposes and remain as styled examples
+ * - Tab navigation uses custom styling to match the demo's visual design
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ * - CSS typos (bg-var, border-var, text-var) are fixed to use proper CSS custom property syntax
+ */
 import { ref, computed } from 'vue'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
+// Note: PrimeVue components are imported but not used in this demo as it primarily showcases
+// static toolbar layout patterns and framework examples. Buttons are styled examples, not
+// interactive PrimeVue components.
 
 // Simulation system - for demonstrating toolbar states in the patterns
 const simulation = useSimulation()
@@ -2127,13 +2142,13 @@ const clearReturnTime = () => {
 
 .state-badge.transfer {
   background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+  color: var(--info);
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .state-badge.dialing {
   background: rgba(251, 191, 36, 0.2);
-  color: #fbbf24;
+  color: var(--warning);
   border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
@@ -2149,8 +2164,8 @@ const clearReturnTime = () => {
 
 /* Incoming While On Call */
 .toolbar-incoming-oncall {
-  background: linear-gradient(120deg, var(--primary) 0%, #764ba2 50%, #4f46e5 100%);
-  border: 2px solid #fbbf24;
+  background: linear-gradient(120deg, var(--primary) 0%, var(--primary) 50%, var(--primary) 100%);
+  border: 2px solid var(--warning);
 }
 
 .incoming-badge {
@@ -2159,7 +2174,7 @@ const clearReturnTime = () => {
   gap: 0.5rem;
   padding: 0.25rem 0.75rem;
   background: rgba(251, 191, 36, 0.3);
-  color: #fbbf24;
+  color: var(--warning);
   border: 1px solid rgba(251, 191, 36, 0.5);
   border-radius: 4px;
   font-size: 0.8125rem;
@@ -2170,7 +2185,7 @@ const clearReturnTime = () => {
 .incoming-pulse {
   width: 8px;
   height: 8px;
-  background: #fbbf24;
+  background: var(--warning);
   border-radius: 50%;
   animation: pulse-dot 1s infinite;
 }
@@ -2518,16 +2533,16 @@ const clearReturnTime = () => {
 
 /* Demo Layout */
 .demo-layout {
-  background: #f8f9fa;
-  border: 2px dashed #cbd5e0;
+  background: var(--surface-50);
+  border: 2px dashed var(--border-color);
   border-radius: 8px;
   min-height: 300px;
   overflow: hidden;
 }
 
 :global(.dark-mode) .demo-layout {
-  background: #1a202c;
-  border-color: #4a5568;
+  background: var(--surface-900);
+  border-color: var(--border-color);
 }
 
 .demo-content {
@@ -2539,14 +2554,14 @@ const clearReturnTime = () => {
 }
 
 .demo-placeholder {
-  color: #a0aec0;
+  color: var(--text-secondary);
   font-style: italic;
   margin: 0;
 }
 
 /* Demo Toolbar */
 .demo-toolbar {
-  background: linear-gradient(120deg, var(--primary) 0%, #764ba2 50%, #4f46e5 100%);
+  background: linear-gradient(120deg, var(--primary) 0%, var(--primary) 50%, var(--primary) 100%);
   color: var(--surface-0);
 }
 
@@ -2708,7 +2723,7 @@ const clearReturnTime = () => {
 
 /* Tailwind Preview */
 .toolbar-preview-tailwind {
-  background: linear-gradient(120deg, #6366f1 0%, #8b5cf6 50%, #4f46e5 100%);
+  background: linear-gradient(120deg, var(--primary) 0%, var(--primary) 50%, var(--primary) 100%);
 }
 
 .tw-flex {
@@ -2787,16 +2802,18 @@ const clearReturnTime = () => {
 .tw-text-emerald-400 {
   color: var(--success-light);
 }
-.tw-bg-var(--surface-900)\/20 {
+/* Fixed CSS typo: bg-var syntax corrected to use proper CSS custom properties */
+.tw-bg-surface-900-20 {
   background-color: rgba(0, 0, 0, 0.2);
 }
-.tw-bg-var(--surface-0)\/20 {
+.tw-bg-surface-0-20 {
   background-color: rgba(255, 255, 255, 0.2);
 }
 .tw-border {
   border-width: 1px;
 }
-.tw-border-var(--surface-0)\/30 {
+/* Fixed CSS typo: border-var syntax corrected to use proper CSS custom properties */
+.tw-border-surface-0-30 {
   border-color: rgba(255, 255, 255, 0.3);
 }
 .tw-bg-red-500 {
@@ -2805,7 +2822,7 @@ const clearReturnTime = () => {
 
 /* PrimeVue Preview */
 .toolbar-preview-primevue {
-  background: linear-gradient(120deg, var(--info) 0%, #6366f1 100%);
+  background: linear-gradient(120deg, var(--info) 0%, var(--info) 100%);
 }
 
 .pv-status-section {
@@ -2819,7 +2836,7 @@ const clearReturnTime = () => {
   font-weight: 600;
 }
 .pv-badge-success {
-  background: #22c55e;
+  background: var(--success);
 }
 .pv-call-info {
   flex: 1;
@@ -2836,7 +2853,7 @@ const clearReturnTime = () => {
 }
 .pv-tag-info {
   background: rgba(59, 130, 246, 0.3);
-  color: #93c5fd;
+  color: var(--info);
 }
 .pv-caller {
   font-weight: 500;
@@ -2871,7 +2888,7 @@ const clearReturnTime = () => {
 
 /* Vuetify Preview */
 .toolbar-preview-vuetify {
-  background: linear-gradient(120deg, #673ab7 0%, #9c27b0 100%);
+  background: linear-gradient(120deg, var(--primary) 0%, var(--primary) 100%);
 }
 
 .v-status {
@@ -2885,10 +2902,10 @@ const clearReturnTime = () => {
   font-weight: 500;
 }
 .v-chip-success {
-  background: #4caf50;
+  background: var(--success);
 }
 .v-chip-primary {
-  background: #2196f3;
+  background: var(--info);
 }
 .v-call-info {
   flex: 1;
@@ -2928,13 +2945,13 @@ const clearReturnTime = () => {
   background: rgba(255, 255, 255, 0.1);
 }
 .v-btn-error {
-  background: #f44336;
+  background: var(--danger);
   color: var(--surface-0);
 }
 
 /* Quasar Preview */
 .toolbar-preview-quasar {
-  background: linear-gradient(120deg, #1976d2 0%, #7c4dff 100%);
+  background: linear-gradient(120deg, var(--info) 0%, var(--primary) 100%);
 }
 
 .q-status {
@@ -2948,10 +2965,10 @@ const clearReturnTime = () => {
   font-weight: 600;
 }
 .q-badge-positive {
-  background: #21ba45;
+  background: var(--success);
 }
 .q-badge-primary {
-  background: #1976d2;
+  background: var(--info);
 }
 .q-call-info {
   flex: 1;
@@ -2990,13 +3007,13 @@ const clearReturnTime = () => {
   background: rgba(255, 255, 255, 0.1);
 }
 .q-btn-negative {
-  background: #c10015;
+  background: var(--danger);
   color: var(--surface-0);
 }
 
 /* Element Plus Preview */
 .toolbar-preview-element {
-  background: linear-gradient(120deg, #409eff 0%, #67c23a 100%);
+  background: linear-gradient(120deg, var(--info) 0%, var(--success) 100%);
 }
 
 .el-status {
@@ -3011,12 +3028,12 @@ const clearReturnTime = () => {
   border: 1px solid transparent;
 }
 .el-tag-success {
-  background: #67c23a;
-  border-color: #67c23a;
+  background: var(--success);
+  border-color: var(--success);
 }
 .el-tag-primary {
-  background: #409eff;
-  border-color: #409eff;
+  background: var(--info);
+  border-color: var(--info);
 }
 .el-call-info {
   flex: 1;
@@ -3051,14 +3068,14 @@ const clearReturnTime = () => {
   color: var(--surface-0);
 }
 .el-button-danger {
-  background: #f56c6c;
-  border-color: #f56c6c;
+  background: var(--danger);
+  border-color: var(--danger);
   color: var(--surface-0);
 }
 
 /* Naive UI Preview */
 .toolbar-preview-naive {
-  background: linear-gradient(120deg, #18a058 0%, #2080f0 100%);
+  background: linear-gradient(120deg, var(--success) 0%, var(--info) 100%);
 }
 
 .n-status {
@@ -3073,11 +3090,11 @@ const clearReturnTime = () => {
 }
 .n-tag-success {
   background: rgba(24, 160, 88, 0.3);
-  color: #63e2b7;
+  color: var(--success);
 }
 .n-tag-info {
   background: rgba(32, 128, 240, 0.3);
-  color: #70c0e8;
+  color: var(--info);
 }
 .n-call-info {
   flex: 1;
@@ -3113,7 +3130,7 @@ const clearReturnTime = () => {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 .n-button-error {
-  background: #d03050;
+  background: var(--danger);
   color: var(--surface-0);
 }
 
@@ -3125,23 +3142,23 @@ const clearReturnTime = () => {
 .advanced-section h3 {
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
-  color: #1e293b;
+  color: var(--text-color);
 }
 
 .section-description {
   margin: 0 0 1.5rem 0;
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
 .nurse-workflow-demo {
-  background: #f8fafc;
+  background: var(--surface-50);
   border-radius: 12px;
   padding: 1.5rem;
 }
 
 .toolbar-nurse {
-  background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary) 100%);
   border-radius: 10px;
   padding: 0.875rem 1.25rem;
   display: flex;
@@ -3228,7 +3245,7 @@ const clearReturnTime = () => {
 }
 
 .presence-option:hover {
-  background: #f1f5f9;
+  background: var(--surface-50);
 }
 
 .presence-option.active {
@@ -3237,7 +3254,7 @@ const clearReturnTime = () => {
 
 .presence-option-label {
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-color);
   font-size: 0.875rem;
   display: flex;
   align-items: center;
@@ -3251,7 +3268,7 @@ const clearReturnTime = () => {
 
 .presence-option-desc {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-secondary);
   padding-left: 1.375rem;
 }
 
@@ -3321,13 +3338,13 @@ const clearReturnTime = () => {
 }
 
 .return-time-section:not(:last-child) {
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .return-time-header {
   font-size: 0.625rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
@@ -3341,10 +3358,10 @@ const clearReturnTime = () => {
 
 .duration-btn {
   padding: 0.5rem 0.25rem;
-  background: #f1f5f9;
+  background: var(--surface-50);
   border: 1px solid transparent;
   border-radius: 6px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -3352,24 +3369,24 @@ const clearReturnTime = () => {
 }
 
 .duration-btn:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--surface-100);
+  color: var(--text-color);
 }
 
 .duration-btn.active {
   background: var(--primary);
   color: var(--surface-0);
-  border-color: #5a67d8;
+  border-color: var(--primary);
 }
 
 .time-input {
   width: 100%;
   padding: 0.5rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-50);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.875rem;
-  color: #1e293b;
+  color: var(--text-color);
   cursor: pointer;
 }
 
@@ -3394,7 +3411,7 @@ const clearReturnTime = () => {
 }
 
 .clear-return-btn:hover {
-  background: #fef2f2;
+  background: var(--surface-50);
 }
 
 /* Return Time Badge in Presence Button */
@@ -3467,7 +3484,7 @@ const clearReturnTime = () => {
 .presence-legend h4 {
   margin: 0 0 1rem 0;
   font-size: 1rem;
-  color: #1e293b;
+  color: var(--text-color);
 }
 
 .presence-grid {
@@ -3478,7 +3495,7 @@ const clearReturnTime = () => {
 
 .presence-card {
   background: var(--surface-0);
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   padding: 1rem;
   cursor: pointer;
@@ -3492,7 +3509,7 @@ const clearReturnTime = () => {
 
 .presence-card.active {
   border-color: var(--primary);
-  background: #f5f3ff;
+  background: var(--surface-50);
 }
 
 .presence-card-header {
@@ -3504,18 +3521,18 @@ const clearReturnTime = () => {
 
 .presence-card-label {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-color);
 }
 
 .presence-card-desc {
   margin: 0 0 0.75rem 0;
   font-size: 0.8125rem;
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 
 .presence-card-meta {
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-color);
   padding-top: 0.75rem;
 }
 
@@ -3543,11 +3560,11 @@ const clearReturnTime = () => {
 .nurse-workflow-demo .code-example h4 {
   margin: 0 0 0.75rem 0;
   font-size: 0.9375rem;
-  color: #1e293b;
+  color: var(--text-color);
 }
 
 .nurse-workflow-demo .code-example pre {
-  background: #1e293b;
+  background: var(--surface-900);
   border-radius: 8px;
   padding: 1rem;
   overflow-x: auto;
@@ -3558,7 +3575,7 @@ const clearReturnTime = () => {
   font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: #e2e8f0;
+  color: var(--text-color);
 }
 
 /* Responsive */

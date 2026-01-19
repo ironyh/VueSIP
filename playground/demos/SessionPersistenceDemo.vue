@@ -7,8 +7,8 @@
         session data.
       </p>
       <p class="note">
-        <strong>Note:</strong> Sessions expire after 5 minutes by default. The saved session info
-        is displayed below when a session is stored.
+        <strong>Note:</strong> Sessions expire after 5 minutes by default. The saved session info is
+        displayed below when a session is stored.
       </p>
     </div>
 
@@ -18,48 +18,44 @@
       <div class="form-grid">
         <div class="form-group">
           <label for="sessionId">Session ID *</label>
-          <input
+          <InputText
             id="sessionId"
             v-model="formData.sessionId"
-            type="text"
             placeholder="e.g., session-abc-123"
-            class="form-input"
+            class="w-full"
           />
         </div>
         <div class="form-group">
           <label for="remoteUri">Remote URI</label>
-          <input
+          <InputText
             id="remoteUri"
             v-model="formData.remoteUri"
-            type="text"
             placeholder="e.g., sip:bob@example.com"
-            class="form-input"
+            class="w-full"
           />
         </div>
         <div class="form-group">
           <label for="callDirection">Call Direction</label>
-          <select id="callDirection" v-model="formData.callDirection" class="form-select">
-            <option value="outbound">Outbound</option>
-            <option value="inbound">Inbound</option>
-          </select>
+          <Dropdown
+            id="callDirection"
+            v-model="formData.callDirection"
+            :options="directionOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+          />
         </div>
         <div class="form-group">
-          <label class="checkbox-label">
-            <input v-model="formData.holdState" type="checkbox" />
-            On Hold
-          </label>
+          <Checkbox v-model="formData.holdState" :binary="true" inputId="hold-state" />
+          <label for="hold-state" class="ml-2">On Hold</label>
         </div>
         <div class="form-group">
           <label>Mute State</label>
           <div class="checkbox-group">
-            <label class="checkbox-label">
-              <input v-model="formData.muteAudio" type="checkbox" />
-              Mute Audio
-            </label>
-            <label class="checkbox-label">
-              <input v-model="formData.muteVideo" type="checkbox" />
-              Mute Video
-            </label>
+            <Checkbox v-model="formData.muteAudio" :binary="true" inputId="mute-audio" />
+            <label for="mute-audio" class="ml-2">Mute Audio</label>
+            <Checkbox v-model="formData.muteVideo" :binary="true" inputId="mute-video" />
+            <label for="mute-video" class="ml-2">Mute Video</label>
           </div>
         </div>
       </div>
@@ -67,23 +63,24 @@
 
     <!-- Action Buttons -->
     <div class="actions-card">
-      <button
-        class="btn btn-primary"
+      <Button
         :disabled="!formData.sessionId || isLoading"
         @click="handleSave"
-      >
-        {{ isLoading ? 'Saving...' : 'Save Session' }}
-      </button>
-      <button class="btn btn-secondary" :disabled="isLoading" @click="handleLoad">
-        {{ isLoading ? 'Loading...' : 'Load Session' }}
-      </button>
-      <button
-        class="btn btn-danger"
+        :label="isLoading ? 'Saving...' : 'Save Session'"
+        severity="primary"
+      />
+      <Button
+        :disabled="isLoading"
+        @click="handleLoad"
+        :label="isLoading ? 'Loading...' : 'Load Session'"
+        severity="secondary"
+      />
+      <Button
         :disabled="!hasSavedSession || isLoading"
         @click="handleClear"
-      >
-        {{ isLoading ? 'Clearing...' : 'Clear Session' }}
-      </button>
+        :label="isLoading ? 'Clearing...' : 'Clear Session'"
+        severity="danger"
+      />
     </div>
 
     <!-- Status Display -->
@@ -159,7 +156,11 @@
           <span class="detail-value">
             <span v-if="lastLoadedSession.muteState.audio" class="media-badge">Audio Muted</span>
             <span v-if="lastLoadedSession.muteState.video" class="media-badge">Video Muted</span>
-            <span v-if="!lastLoadedSession.muteState.audio && !lastLoadedSession.muteState.video" class="media-badge">Not Muted</span>
+            <span
+              v-if="!lastLoadedSession.muteState.audio && !lastLoadedSession.muteState.video"
+              class="media-badge"
+              >Not Muted</span
+            >
           </span>
         </div>
         <div class="detail-row">
@@ -170,10 +171,9 @@
     </div>
 
     <!-- Error Display -->
-    <div v-if="error" class="error-display" role="alert">
-      <div class="error-icon">⚠️</div>
-      <div class="error-message">{{ error.message }}</div>
-    </div>
+    <Message v-if="error" severity="error" :closable="false" class="mt-3">
+      {{ error.message }}
+    </Message>
 
     <!-- Event Log -->
     <div class="log-card">
@@ -185,7 +185,13 @@
         </div>
         <div v-if="eventLog.length === 0" class="log-empty">No events yet</div>
       </div>
-      <button v-if="eventLog.length > 0" class="btn btn-text" @click="clearLog">Clear Log</button>
+      <Button
+        v-if="eventLog.length > 0"
+        @click="clearLog"
+        label="Clear Log"
+        severity="secondary"
+        text
+      />
     </div>
 
     <!-- Code Example -->
@@ -234,15 +240,34 @@ onMounted(async () => {
 </template>
 
 <script setup lang="ts">
+/**
+ * Session Persistence Demo - PrimeVue Migration
+ *
+ * Design Decisions:
+ * - Using PrimeVue Button for all interactive buttons with appropriate severity levels
+ * - Using PrimeVue InputText for text inputs with proper v-model binding
+ * - Using PrimeVue Dropdown for select inputs with proper v-model binding
+ * - Using PrimeVue Checkbox for checkbox inputs with proper binary binding
+ * - Using PrimeVue Message for error displays with appropriate severity
+ * - All colors use CSS custom properties for theme compatibility (light/dark mode)
+ */
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useSessionPersistence } from '../../src'
 import type { PersistedSessionState } from '../../src/types/session-persistence.types'
+import { Button, InputText, Dropdown, Checkbox, Message } from './shared-components'
 
 // Session persistence composable
-const { saveSession, loadSession, clearSession, hasSavedSession, isLoading, error, savedSessionInfo } =
-  useSessionPersistence({
-    maxAge: 300000, // 5 minutes
-  })
+const {
+  saveSession,
+  loadSession,
+  clearSession,
+  hasSavedSession,
+  isLoading,
+  error,
+  savedSessionInfo,
+} = useSessionPersistence({
+  maxAge: 300000, // 5 minutes
+})
 
 // Form data
 const formData = ref({
@@ -253,6 +278,12 @@ const formData = ref({
   muteAudio: false,
   muteVideo: false,
 })
+
+// Dropdown options
+const directionOptions = [
+  { label: 'Outbound', value: 'outbound' },
+  { label: 'Inbound', value: 'inbound' },
+]
 
 // Last loaded session
 const lastLoadedSession = ref<PersistedSessionState | null>(null)
@@ -460,22 +491,11 @@ onUnmounted(() => {
   color: var(--text-secondary);
 }
 
-.form-input,
-.form-select {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid var(--surface-border);
-  border-radius: var(--radius-md);
-  background: var(--surface-ground);
-  color: var(--text-primary);
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-}
-
-.form-input:focus,
-.form-select:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+/* Design Decision: PrimeVue InputText and Dropdown components handle input/select styling.
+   Removed custom form-input and form-select styles as they're no longer needed. */
+.form-group :deep(.p-inputtext),
+.form-group :deep(.p-dropdown) {
+  width: 100%;
 }
 
 .checkbox-group {
@@ -499,61 +519,8 @@ onUnmounted(() => {
   margin-bottom: var(--spacing-lg);
 }
 
-.btn {
-  flex: 1;
-  padding: var(--spacing-md) var(--spacing-lg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-dark);
-}
-
-.btn-secondary {
-  background: var(--surface-ground);
-  color: var(--text-primary);
-  border: 2px solid var(--surface-border);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--surface-card);
-  border-color: var(--primary);
-}
-
-.btn-danger {
-  background: var(--danger);
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.btn-text {
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  padding: var(--spacing-xs) var(--spacing-sm);
-}
-
-.btn-text:hover {
-  color: var(--text-primary);
-}
+/* Design Decision: PrimeVue Button components handle all button styling.
+   Removed custom .btn classes as they're no longer needed. */
 
 /* Status Card */
 .status-card {
@@ -687,26 +654,8 @@ onUnmounted(() => {
 }
 
 /* Error Display */
-.error-display {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: rgba(239, 68, 68, 0.1);
-  border: 2px solid var(--danger);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--spacing-lg);
-}
-
-.error-icon {
-  font-size: 1.5rem;
-}
-
-.error-message {
-  flex: 1;
-  color: var(--danger);
-  font-size: 0.875rem;
-}
+/* Design Decision: PrimeVue Message component handles error display styling.
+   Removed custom .error-display classes as they're no longer needed. */
 
 /* Log Card */
 .log-card {
