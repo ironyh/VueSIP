@@ -117,6 +117,7 @@
           <div class="search-box">
             <input
               v-model="searchQuery"
+              data-testid="playground-search-input"
               type="search"
               :placeholder="
                 activeCategory === 'all'
@@ -146,10 +147,11 @@
           </div>
 
           <!-- Example List -->
-          <ul class="example-list">
+          <ul class="example-list" data-testid="example-list">
             <li
               v-for="example in filteredExamples"
               :key="example.id"
+              :data-testid="`example-item-${example.id}`"
               :class="{ active: currentExample === example.id }"
               @click="selectExample(example.id)"
             >
@@ -200,7 +202,7 @@
         <!-- Example Header -->
         <div class="example-header">
           <div class="example-title-row">
-            <h2>{{ activeExample.title }}</h2>
+            <h2 data-testid="active-example-title">{{ activeExample.title }}</h2>
             <button
               @click="copyShareLink"
               class="share-link-btn"
@@ -258,7 +260,7 @@
         <!-- Tab Content -->
         <div class="tab-content">
           <!-- Live Demo Tab -->
-          <div v-show="activeTab === 'demo'" class="demo-container">
+          <div v-show="activeTab === 'demo'" class="demo-container" data-testid="demo-container">
             <KeepAlive>
               <component
                 v-if="activeExample?.component"

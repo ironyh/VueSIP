@@ -40,16 +40,6 @@ const GLOBAL_TEST_IGNORE = [
 
   // CI-specific issues - pass locally but fail in CI
   /accessibility\.spec\.ts/, // CI timing issues with axe-core (24 tests pass locally)
-
-  // Playground demo specs
-  // These target the interactive PlaygroundApp and are currently experimental / not maintained
-  // as part of the core E2E gate. They tend to be brittle (UI copy/structure changes).
-  /-demo\.spec\.ts$/,
-
-  // PrimeVue-migration settings specs
-  // These were drafted against an older settings UI contract and need a rewrite.
-  /settings-ui\.spec\.ts$/,
-  /settings-persistence\.spec\.ts$/,
 ]
 
 /**
@@ -179,6 +169,7 @@ export default defineConfig({
         /app-functionality\.spec\.ts/, // CI mock SIP infrastructure issues
         /app-functionality-ci\.spec\.ts/, // WebKit has app loading issues in CI
         /accessibility-ci\.spec\.ts/, // WebKit has app loading issues in CI
+        /playground-demos-ci\.spec\.ts/, // Keep CI smoke suite on desktop browsers only
         /av-quality\.spec\.ts/, // CI mock SIP infrastructure issues
         /basic-call-flow\.spec\.ts/, // CI mock SIP infrastructure issues
         /call-hold\.spec\.ts/, // CI mock SIP infrastructure issues
@@ -198,6 +189,7 @@ export default defineConfig({
       // mockSipServer fixture doesn't work reliably in CI environments
       testIgnore: [
         ...GLOBAL_TEST_IGNORE,
+        /playground-demos-ci\.spec\.ts/, // Keep CI smoke suite on desktop browsers only
         /performance\.spec\.ts/, // Mobile perf baselines differ; noisy regression signal
         /network-conditions\.spec\.ts/, // Needs stable media mocking; flaky on mobile
         /visual-regression\.spec\.ts/,
@@ -226,6 +218,7 @@ export default defineConfig({
         /app-functionality\.spec\.ts/, // CI mock SIP infrastructure issues
         /app-functionality-ci\.spec\.ts/, // WebKit has app loading issues in CI
         /accessibility-ci\.spec\.ts/, // WebKit has app loading issues in CI
+        /playground-demos-ci\.spec\.ts/, // Keep CI smoke suite on desktop browsers only
         /av-quality\.spec\.ts/, // CI mock SIP infrastructure issues
         /basic-call-flow\.spec\.ts/, // CI mock SIP infrastructure issues
         /call-hold\.spec\.ts/, // CI mock SIP infrastructure issues
