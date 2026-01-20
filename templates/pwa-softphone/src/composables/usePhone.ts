@@ -82,12 +82,22 @@ export function usePhone() {
 
   // Phone methods
   async function configure(config: PhoneConfig) {
+    const debugEnabled = (() => {
+      try {
+        const params = new URLSearchParams(window.location.search)
+        return params.get('debug') === '1'
+      } catch {
+        return false
+      }
+    })()
+
     currentConfig.value = config
     updateConfig({
       uri: config.uri,
       sipUri: config.sipUri,
       password: config.password,
       displayName: config.displayName || 'VueSIP User',
+      debug: debugEnabled,
 
       // Without a STUN/TURN server, browsers typically only gather host candidates
       // (private LAN IPs), which makes WebRTC media fail for most users on the public
