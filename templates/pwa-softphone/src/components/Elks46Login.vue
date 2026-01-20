@@ -5,7 +5,21 @@ import { use46ElksApi, type Elks46Number } from 'vuesip'
 const STORAGE_KEY = 'vuesip_46elks_credentials'
 
 const emit = defineEmits<{
-  connect: [config: { uri: string; sipUri: string; password: string; displayName?: string }]
+  connect: [
+    config: {
+      providerId: '46elks'
+      uri: string
+      sipUri: string
+      password: string
+      displayName?: string
+      providerMeta: {
+        apiUsername: string
+        apiPassword: string
+        callerIdNumber: string
+        webrtcNumber: string
+      }
+    },
+  ]
   back: []
 }>()
 
@@ -106,11 +120,19 @@ async function handleNumberSelect(event: Event) {
 // Use selected credentials to connect
 function handleConnect() {
   const creds = getCredentials()
-  if (creds) {
+  const selected = selectedNumber.value
+  if (creds && selected?.number) {
     emit('connect', {
+      providerId: '46elks',
       uri: 'wss://voip.46elks.com/w1/websocket',
       sipUri: `sip:${creds.phoneNumber}@voip.46elks.com`,
       password: creds.secret,
+      providerMeta: {
+        apiUsername: apiUsername.value,
+        apiPassword: apiPassword.value,
+        callerIdNumber: selected.number,
+        webrtcNumber: `+${creds.phoneNumber}`,
+      },
     })
   }
 }

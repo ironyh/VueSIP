@@ -32,6 +32,13 @@ watch(
   () => phone.callState.value,
   (newState) => {
     if (newState === 'ringing' && phone.direction.value === 'incoming') {
+      if (phone.shouldAutoAnswerIncoming.value) {
+        // 46elks REST-originate flow: the outbound call is bridged via an incoming
+        // call to our WebRTC client; answer automatically.
+        void handleAnswer()
+        return
+      }
+
       showIncomingModal.value = true
       // Show push notification if app is in background
       if (document.hidden && pushPermissionGranted.value) {
@@ -100,10 +107,17 @@ async function handleEndCall() {
 }
 
 async function handleConnect(config: {
+  providerId: '46elks' | 'telnyx' | 'custom'
   uri: string
   sipUri: string
   password: string
   displayName?: string
+  providerMeta?: {
+    apiUsername: string
+    apiPassword: string
+    callerIdNumber: string
+    webrtcNumber: string
+  }
 }) {
   try {
     statusMessage.value = ''

@@ -12,7 +12,29 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  connect: [config: { uri: string; sipUri: string; password: string; displayName?: string }]
+  connect: [
+    config:
+      | {
+          providerId: '46elks'
+          uri: string
+          sipUri: string
+          password: string
+          displayName?: string
+          providerMeta: {
+            apiUsername: string
+            apiPassword: string
+            callerIdNumber: string
+            webrtcNumber: string
+          }
+        }
+      | {
+          providerId: 'telnyx' | 'custom'
+          uri: string
+          sipUri: string
+          password: string
+          displayName?: string
+        },
+  ]
 }>()
 
 // Current view state
@@ -56,13 +78,17 @@ function handleBack() {
 }
 
 // Forward connect events from provider components
-function handleConnect(config: {
-  uri: string
-  sipUri: string
-  password: string
-  displayName?: string
-}) {
-  emit('connect', config)
+function handleConnect(config: any) {
+  // 46elks login already includes providerId + providerMeta
+  if (config && typeof config === 'object' && 'providerId' in config) {
+    emit('connect', config)
+    return
+  }
+
+  emit('connect', {
+    providerId: selectedProvider.value as Exclude<ProviderId, null>,
+    ...config,
+  } as any)
 }
 
 // Custom PBX form handling
@@ -84,6 +110,7 @@ function handleCustomSubmit() {
   )
 
   emit('connect', {
+    providerId: 'custom',
     uri: wsServer.value,
     sipUri: sipUri.value,
     password: password.value,

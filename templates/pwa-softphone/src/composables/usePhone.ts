@@ -12,10 +12,17 @@ import {
 } from 'vuesip'
 
 export interface PhoneConfig {
+  providerId: '46elks' | 'telnyx' | 'custom'
   uri: string
   sipUri: string
   password: string
   displayName?: string
+  providerMeta?: {
+    apiUsername: string
+    apiPassword: string
+    callerIdNumber: string
+    webrtcNumber: string
+  }
 }
 
 export function usePhone() {
@@ -23,6 +30,11 @@ export function usePhone() {
   const isConfigured = ref(false)
   const currentConfig = ref<PhoneConfig | null>(null)
   const isSpeakerOn = ref(false)
+
+  // 46elks REST-originate flow: after triggering the call via API, 46elks will place an
+  // incoming call to our WebRTC client, which we should auto-answer.
+  const autoAnswerIncomingUntil = ref(0)
+  const shouldAutoAnswerIncoming = computed(() => Date.now() < autoAnswerIncomingUntil.value)
 
   // SIP Client
   const sipClient = useSipClient()
@@ -109,6 +121,74 @@ export function usePhone() {
     isConfigured.value = true
   }
 
+  function createBasicAuthHeader(username: string, password: string): string {
+    const encoded = btoa(`${username}:${password}`)
+    return `Basic ${encoded}`
+  }
+
+  function normalizePhoneNumberFor46Elks(input: string): string {
+    let userPart = input.trim()
+    if (!userPart) return userPart
+
+    // Convert 00-prefixed E.164 to +
+    if (/^\d+$/.test(userPart) && userPart.startsWith('00')) {
+      userPart = `+${userPart.slice(2)}`
+    }
+
+    // Accept Swedish local numbers (leading 0) and convert to +46...
+    if (/^\d+$/.test(userPart) && userPart.startsWith('0')) {
+      userPart = `+46${userPart.slice(1)}`
+    }
+
+    // If it is now a plain number without +, treat it as invalid for PSTN.
+    if (!userPart.startsWith('+')) {
+      throw new Error('Enter a phone number in E.164 format (e.g. +46701234567)')
+    }
+
+    return userPart
+  }
+
+  async function start46ElksOutboundCall(phoneNumber: string): Promise<void> {
+    const meta = currentConfig.value?.providerMeta
+    if (!meta) {
+      throw new Error('46elks API credentials are required for outgoing calls')
+    }
+
+    // This follows 46elks documentation:
+    // 1) Use the REST API to initiate a call to the WebRTC number
+    // 2) When the WebRTC number answers, connect the PSTN destination
+    const voiceStart = {
+      connect: phoneNumber,
+      callerid: meta.callerIdNumber,
+    }
+
+    const body = new URLSearchParams({
+      from: meta.callerIdNumber,
+      to: meta.webrtcNumber,
+      voice_start: JSON.stringify(voiceStart),
+    })
+
+    const res = await fetch('/api/46elks/a1/calls', {
+      method: 'POST',
+      headers: {
+        Authorization: createBasicAuthHeader(meta.apiUsername, meta.apiPassword),
+        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body,
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(
+        `46elks call setup failed (${res.status} ${res.statusText})${text ? `: ${text}` : ''}`
+      )
+    }
+
+    // Auto-answer the incoming bridge call from 46elks.
+    autoAnswerIncomingUntil.value = Date.now() + 30_000
+  }
+
   async function connectPhone() {
     if (!isConfigured.value) {
       throw new Error('Phone not configured. Call configure() first.')
@@ -138,33 +218,21 @@ export function usePhone() {
       return trimmed
     }
 
-    let userPart = trimmed
-
-    // Provider-friendly normalization:
-    // - Convert 00-prefixed E.164 to +
-    // - For 46elks destinations, accept Swedish local numbers (leading 0) and convert to +46...
-    if (/^\d+$/.test(userPart)) {
-      if (userPart.startsWith('00')) {
-        userPart = `+${userPart.slice(2)}`
-      } else if (domain.includes('46elks.com') && userPart.startsWith('0')) {
-        userPart = `+46${userPart.slice(1)}`
-      }
-    }
-
-    let sipTarget = buildSipUri(userPart, domain)
-
-    // Some SIP providers route phone-number targets differently depending on `user=phone`.
-    // 46elks' WebRTC demo behaves like a PSTN dial; add this hint for E.164-style targets.
-    if (domain.includes('46elks.com') && (userPart.startsWith('+') || /^\d+$/.test(userPart))) {
-      if (!sipTarget.includes(';user=phone')) {
-        sipTarget = `${sipTarget};user=phone`
-      }
-    }
-
-    return sipTarget
+    return buildSipUri(trimmed, domain)
   }
 
   async function call(target: string) {
+    const domain = extractSipDomain(currentConfig.value?.sipUri ?? '')
+    const is46Elks = currentConfig.value?.providerId === '46elks' || domain?.includes('46elks.com')
+
+    // For 46elks, follow the documented flow: use the REST API to originate the call and
+    // bridge the PSTN destination after the WebRTC client answers.
+    if (is46Elks && !(target.trim().startsWith('sip:') || target.trim().startsWith('sips:'))) {
+      const phoneNumber = normalizePhoneNumberFor46Elks(target)
+      await start46ElksOutboundCall(phoneNumber)
+      return
+    }
+
     await makeCall(normalizeCallTarget(target))
   }
 
@@ -173,6 +241,8 @@ export function usePhone() {
   }
 
   async function answerCall() {
+    // If we auto-answered a 46elks bridge call, clear the window.
+    autoAnswerIncomingUntil.value = 0
     await answer()
   }
 
@@ -230,6 +300,7 @@ export function usePhone() {
     remoteDisplayName,
     duration,
     direction,
+    shouldAutoAnswerIncoming,
 
     // Media devices
     audioInputDevices,
