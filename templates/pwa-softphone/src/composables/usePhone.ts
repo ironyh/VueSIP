@@ -151,7 +151,17 @@ export function usePhone() {
       }
     }
 
-    return buildSipUri(userPart, domain)
+    let sipTarget = buildSipUri(userPart, domain)
+
+    // Some SIP providers route phone-number targets differently depending on `user=phone`.
+    // 46elks' WebRTC demo behaves like a PSTN dial; add this hint for E.164-style targets.
+    if (domain.includes('46elks.com') && (userPart.startsWith('+') || /^\d+$/.test(userPart))) {
+      if (!sipTarget.includes(';user=phone')) {
+        sipTarget = `${sipTarget};user=phone`
+      }
+    }
+
+    return sipTarget
   }
 
   async function call(target: string) {
