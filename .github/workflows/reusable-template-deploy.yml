@@ -73,10 +73,9 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 20
           command: >-
-            pnpm exec wrangler pages deploy
+            cd ${{ inputs.template_dir }} && pnpm exec wrangler pages deploy
             ${{ inputs.deploy_subdir }}
             --project-name=${{ inputs.project_name }}
             --branch=main
             --commit-dirty=true
-        working-directory: ${{ inputs.template_dir }}
 
