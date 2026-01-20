@@ -45,10 +45,7 @@ test.describe('Performance - Page Load Metrics', () => {
     }
   })
 
-  test('should have Time to Interactive (TTI) within a reasonable dev bound', async ({
-    page,
-    browserName,
-  }) => {
+  test('should have Time to Interactive (TTI) under 3.5 seconds', async ({ page, browserName }) => {
     // Skip in WebKit (JsSIP Proxy incompatibility) and CI (requires SIP client to be visible)
     test.skip(
       browserName === 'webkit' || !!process.env.CI,
@@ -68,9 +65,8 @@ test.describe('Performance - Page Load Metrics', () => {
 
     const tti = Date.now() - startTime
 
-    // Dev builds (Vite + HMR) and CI runners can be significantly slower and noisy.
-    // Keep this as a smoke check to catch extreme regressions (e.g. broken hydration / infinite work).
-    const ttiThreshold = process.env.CI ? 5000 : 10000
+    // CI environments with parallel tests may have higher TTI due to resource contention
+    const ttiThreshold = process.env.CI ? 5000 : 3500
     expect(tti).toBeLessThan(ttiThreshold)
   })
 

@@ -40,28 +40,13 @@ const GLOBAL_TEST_IGNORE = [
 
   // CI-specific issues - pass locally but fail in CI
   /accessibility\.spec\.ts/, // CI timing issues with axe-core (24 tests pass locally)
-
-  // Playground demo specs
-  // These target the interactive PlaygroundApp and are currently experimental / not maintained
-  // as part of the core E2E gate. They tend to be brittle (UI copy/structure changes).
-  /-demo\.spec\.ts$/,
-
-  // PrimeVue-migration settings specs
-  // These were drafted against an older settings UI contract and need a rewrite.
-  /settings-ui\.spec\.ts$/,
-  /settings-persistence\.spec\.ts$/,
 ]
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
-// CI suite: keep E2E stable + maintainable.
-// Only run CI-tagged specs in CI; run full suite locally.
-const CI_TEST_MATCH = process.env.CI ? ['**/*-ci.spec.ts'] : undefined
-
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: CI_TEST_MATCH,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -74,8 +59,7 @@ export default defineConfig({
   testIgnore: GLOBAL_TEST_IGNORE,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    // Never keep a report server running after failures (breaks CI / automation)
-    ['html', { open: 'never' }],
+    ['html'],
     ['./tests/e2e/reporters/custom-reporter.ts'],
     ['json', { outputFile: 'test-results/results.json' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
@@ -136,7 +120,7 @@ export default defineConfig({
         /visual-regression\.spec\.ts/, // Uses test.describe.skip() internally
         /error-scenarios\.spec\.ts/, // CI mock SIP infrastructure issues
         /app-functionality\.spec\.ts/, // CI mock SIP infrastructure issues
-        // app-functionality-ci.spec.ts is part of the CI smoke suite
+        /app-functionality-ci\.spec\.ts/, // CI app loading issues - Vue components don't render in time
         /av-quality\.spec\.ts/, // CI mock SIP infrastructure issues
         /basic-call-flow\.spec\.ts/, // CI mock SIP infrastructure issues
         /call-hold\.spec\.ts/, // CI mock SIP infrastructure issues
@@ -156,7 +140,7 @@ export default defineConfig({
         /visual-regression\.spec\.ts/,
         /error-scenarios\.spec\.ts/, // CI mock SIP infrastructure issues
         /app-functionality\.spec\.ts/, // CI mock SIP infrastructure issues
-        // app-functionality-ci.spec.ts is part of the CI smoke suite
+        /app-functionality-ci\.spec\.ts/, // CI app loading issues - Vue components don't render in time
         /av-quality\.spec\.ts/, // CI mock SIP infrastructure issues
         /basic-call-flow\.spec\.ts/, // CI mock SIP infrastructure issues
         /call-hold\.spec\.ts/, // CI mock SIP infrastructure issues
@@ -186,7 +170,6 @@ export default defineConfig({
         /incoming-call\.spec\.ts/, // CI mock SIP infrastructure issues
         /dtmf\.spec\.ts/, // CI mock SIP infrastructure issues
         /performance\.spec\.ts/, // JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
-        /network-conditions\.spec\.ts/, // Media/network emulation not reliable in WebKit
       ],
     },
 
@@ -198,13 +181,11 @@ export default defineConfig({
       // mockSipServer fixture doesn't work reliably in CI environments
       testIgnore: [
         ...GLOBAL_TEST_IGNORE,
-        /performance\.spec\.ts/, // Mobile perf baselines differ; noisy regression signal
-        /network-conditions\.spec\.ts/, // Needs stable media mocking; flaky on mobile
         /visual-regression\.spec\.ts/,
         /error-scenarios\.spec\.ts/, // CI mock SIP infrastructure issues
         /app-functionality\.spec\.ts/, // CI mock SIP infrastructure issues
-        // app-functionality-ci.spec.ts is part of the CI smoke suite
-        // accessibility-ci.spec.ts is part of the CI smoke suite
+        /app-functionality-ci\.spec\.ts/, // Mobile browsers have app loading issues in CI
+        /accessibility-ci\.spec\.ts/, // Mobile browsers have app loading issues in CI
         /av-quality\.spec\.ts/, // CI mock SIP infrastructure issues
         /basic-call-flow\.spec\.ts/, // CI mock SIP infrastructure issues
         /call-hold\.spec\.ts/, // CI mock SIP infrastructure issues
@@ -233,7 +214,6 @@ export default defineConfig({
         /incoming-call\.spec\.ts/, // CI mock SIP infrastructure issues
         /dtmf\.spec\.ts/, // CI mock SIP infrastructure issues
         /performance\.spec\.ts/, // JsSIP Proxy incompatibility (see WEBKIT_KNOWN_ISSUES.md)
-        /network-conditions\.spec\.ts/, // Media/network emulation not reliable in WebKit
       ],
     },
   ],
