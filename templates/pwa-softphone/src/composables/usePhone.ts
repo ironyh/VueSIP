@@ -2,7 +2,14 @@
  * Phone Composable - Wraps VueSip APIs for PWA softphone functionality
  */
 import { ref, computed } from 'vue'
-import { useSipClient, useCallSession, useMediaDevices, useCallHistory } from 'vuesip'
+import {
+  useSipClient,
+  useCallSession,
+  useMediaDevices,
+  useCallHistory,
+  buildSipUri,
+  extractSipDomain,
+} from 'vuesip'
 
 export interface PhoneConfig {
   uri: string
@@ -99,8 +106,39 @@ export function usePhone() {
     currentConfig.value = null
   }
 
+  function normalizeCallTarget(target: string): string {
+    const trimmed = target.trim()
+    if (!trimmed) return trimmed
+
+    // If already a SIP URI, just use it.
+    if (trimmed.startsWith('sip:') || trimmed.startsWith('sips:')) {
+      return trimmed
+    }
+
+    const domain = extractSipDomain(currentConfig.value?.sipUri ?? '')
+    if (!domain) {
+      // Let the underlying validator throw a clearer error if we can't infer the domain.
+      return trimmed
+    }
+
+    let userPart = trimmed
+
+    // Provider-friendly normalization:
+    // - Convert 00-prefixed E.164 to +
+    // - For 46elks destinations, accept Swedish local numbers (leading 0) and convert to +46...
+    if (/^\d+$/.test(userPart)) {
+      if (userPart.startsWith('00')) {
+        userPart = `+${userPart.slice(2)}`
+      } else if (domain.includes('46elks.com') && userPart.startsWith('0')) {
+        userPart = `+46${userPart.slice(1)}`
+      }
+    }
+
+    return buildSipUri(userPart, domain)
+  }
+
   async function call(target: string) {
-    await makeCall(target)
+    await makeCall(normalizeCallTarget(target))
   }
 
   async function endCall() {
