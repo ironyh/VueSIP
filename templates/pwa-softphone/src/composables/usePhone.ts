@@ -88,6 +88,13 @@ export function usePhone() {
       sipUri: config.sipUri,
       password: config.password,
       displayName: config.displayName || 'VueSIP User',
+
+      // Without a STUN/TURN server, browsers typically only gather host candidates
+      // (private LAN IPs), which makes WebRTC media fail for most users on the public
+      // internet. The 46elks WebRTC demo uses STUN; mirror that here.
+      rtcConfiguration: {
+        iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
+      },
     })
     isConfigured.value = true
   }
