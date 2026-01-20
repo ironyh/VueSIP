@@ -452,13 +452,19 @@ const activeExample = computed(() => {
   return examples.find((ex) => ex.id === currentExample.value) || examples[0]
 })
 
+const scrollToTop = () => {
+  // Avoid smooth scrolling during automation (it slows tests and can create timing flake)
+  const behavior = navigator.webdriver ? 'auto' : 'smooth'
+  window.scrollTo({ top: 0, behavior })
+}
+
 // Methods
 const selectExample = (id: string) => {
   currentExample.value = id
   activeTab.value = 'demo'
   updateHashRoute()
   // Scroll to top of main content area
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  scrollToTop()
 }
 
 const selectCategory = (category: ExampleCategory | 'all') => {
@@ -675,7 +681,7 @@ const handleHashChange = () => {
   currentExample.value = example
   activeTab.value = tab
   // Scroll to top when navigating via browser history
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  scrollToTop()
 }
 
 // Initialize theme from localStorage or system preference

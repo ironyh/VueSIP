@@ -19,14 +19,19 @@ test.describe('Playground Demo Navigation - CI', () => {
   })
 
   test('should switch between key demos via sidebar', async ({ page }) => {
+    // These demos were migrated to PrimeVue and historically lacked E2E coverage.
+    // Keep assertions minimal: route updates, demo container mounts, no generic error state.
     const demoIds = [
-      'settings',
-      'contacts',
-      'agent-login',
-      'ring-groups',
-      'e911',
-      'recording-management',
-      'multi-line',
+      'click-to-call',
+      'call-history',
+      'video-call',
+      'conference-call',
+      'network-simulator',
+      'screen-sharing',
+      'call-waiting',
+      'toolbar-layouts',
+      'paging',
+      'feature-codes',
     ]
 
     for (const id of demoIds) {
