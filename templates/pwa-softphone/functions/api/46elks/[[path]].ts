@@ -8,6 +8,10 @@
 export const onRequest = async (context: any) => {
   const { request, params } = context
 
+  if (request.method === 'OPTIONS') {
+    return onRequestOptions()
+  }
+
   // Get the path segments after /api/46elks/
   const pathSegments = params.path as string[]
   const apiPath = pathSegments ? pathSegments.join('/') : ''
@@ -17,21 +21,33 @@ export const onRequest = async (context: any) => {
     return new Response('Not Found', { status: 404 })
   }
 
-  const targetUrl = `https://api.46elks.com/${apiPath}`
+  const incomingUrl = new URL(request.url)
+  const targetUrl = new URL(`https://api.46elks.com/${apiPath}`)
+  targetUrl.search = incomingUrl.search
 
-  // Forward the Authorization header if present
+  // Forward auth and request content type (needed for form POSTs)
   const headers = new Headers()
   const auth = request.headers.get('Authorization')
   if (auth) {
     headers.set('Authorization', auth)
   }
+  const contentType = request.headers.get('Content-Type')
+  if (contentType) {
+    headers.set('Content-Type', contentType)
+  }
   headers.set('Accept', 'application/json')
 
   try {
-    const response = await fetch(targetUrl, {
+    const init: RequestInit = {
       method: request.method,
       headers,
-    })
+    }
+
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      init.body = await request.arrayBuffer()
+    }
+
+    const response = await fetch(targetUrl.toString(), init)
 
     // Create response with CORS headers
     const responseHeaders = new Headers(response.headers)
