@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && vite build && node scripts/copy-functions.mjs",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit"
   },
