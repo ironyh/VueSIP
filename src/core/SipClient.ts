@@ -2460,13 +2460,18 @@ export class SipClient {
       this.config = JSON.parse(JSON.stringify(this.config)) as SipClientConfig
     }
 
+    const rtcConfiguration = options?.rtcConfiguration ?? this.config.rtcConfiguration
+
     // Build call options
+    // JsSIP primarily expects `pcConfig` for RTCPeerConnection configuration.
+    // We also keep `rtcConfiguration` for backward compatibility with our own public API.
     const callOptions: JsSIPCallOptions = {
       mediaConstraints: options?.mediaConstraints || {
         audio: options?.audio !== false,
         video: options?.video === true,
       },
-      rtcConfiguration: options?.rtcConfiguration,
+      rtcConfiguration,
+      pcConfig: rtcConfiguration,
       extraHeaders: options?.extraHeaders || [],
       anonymous: options?.anonymous,
       sessionTimersExpires: options?.sessionTimersExpires || 90,

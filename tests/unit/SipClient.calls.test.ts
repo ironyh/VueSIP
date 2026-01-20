@@ -137,6 +137,26 @@ describe('SipClient - Call Management', () => {
         target,
         expect.objectContaining({
           rtcConfiguration,
+          pcConfig: rtcConfiguration,
+        })
+      )
+    })
+
+    it('should use config.rtcConfiguration by default when making calls', async () => {
+      // Update client config to include a default RTC configuration
+      const defaultRtcConfiguration = {
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      }
+      sipClient.updateConfig({ rtcConfiguration: defaultRtcConfiguration as any })
+
+      const target = 'sip:2000@example.com'
+      await sipClient.call(target)
+
+      expect(mockUA.call).toHaveBeenCalledWith(
+        target,
+        expect.objectContaining({
+          rtcConfiguration: defaultRtcConfiguration,
+          pcConfig: defaultRtcConfiguration,
         })
       )
     })

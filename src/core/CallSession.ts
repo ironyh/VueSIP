@@ -306,6 +306,8 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       // RTC configuration
       if (options?.rtcConfiguration) {
         answerOptions.rtcConfiguration = options.rtcConfiguration
+        // JsSIP uses `pcConfig` as the RTCPeerConnection configuration key.
+        answerOptions.pcConfig = options.rtcConfiguration
       }
 
       // Extra headers
