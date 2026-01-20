@@ -11,7 +11,7 @@ test.describe('Settings Persistence', () => {
     await page.goto('/')
   })
 
-  test.describe('Settings Persistence Across Reloads', () => {
+  describe('Settings Persistence Across Reloads', () => {
     test('should persist SIP settings after page reload', async ({ page }) => {
       // Open settings and configure
       await page.click('[data-testid="settings-button"]')
@@ -99,7 +99,7 @@ test.describe('Settings Persistence', () => {
     })
   })
 
-  test.describe('Settings Migration', () => {
+  describe('Settings Migration', () => {
     test('should migrate v1 settings to v2', async ({ page }) => {
       // Inject old version settings into localStorage
       await page.evaluate(() => {
@@ -163,7 +163,7 @@ test.describe('Settings Persistence', () => {
     })
   })
 
-  test.describe('localStorage Quota Handling', () => {
+  describe('localStorage Quota Handling', () => {
     test('should handle quota exceeded error', async ({ page }) => {
       // Fill localStorage to near capacity
       await page.evaluate(() => {
@@ -211,7 +211,7 @@ test.describe('Settings Persistence', () => {
     })
   })
 
-  test.describe('Cross-Tab Synchronization', () => {
+  describe('Cross-Tab Synchronization', () => {
     test('should sync settings across tabs', async ({ browser }) => {
       const context = await browser.newContext()
       const page1 = await context.newPage()
@@ -267,7 +267,7 @@ test.describe('Settings Persistence', () => {
     })
   })
 
-  test.describe('Settings Backup and Restore', () => {
+  describe('Settings Backup and Restore', () => {
     test('should create backup before saving', async ({ page }) => {
       await page.click('[data-testid="settings-button"]')
       await page.fill('[data-testid="sip-server-input"]', 'sip.backup1.com')
@@ -301,7 +301,7 @@ test.describe('Settings Persistence', () => {
     })
   })
 
-  test.describe('Data Integrity Validation', () => {
+  describe('Data Integrity Validation', () => {
     test('should detect corrupted settings', async ({ page }) => {
       await page.evaluate(() => {
         localStorage.setItem('vueSipSettings', '{corrupt data}')
@@ -337,7 +337,7 @@ test.describe('Settings Persistence', () => {
     })
   })
 
-  test.describe('Settings Clear and Reset', () => {
+  describe('Settings Clear and Reset', () => {
     test('should clear all settings', async ({ page }) => {
       await page.click('[data-testid="settings-button"]')
       await page.fill('[data-testid="sip-server-input"]', 'sip.clear.com')
@@ -366,7 +366,7 @@ test.describe('Settings Persistence', () => {
     })
   })
 
-  test.describe('Performance', () => {
+  describe('Performance', () => {
     test('should load settings quickly', async ({ page }) => {
       const startTime = Date.now()
 
