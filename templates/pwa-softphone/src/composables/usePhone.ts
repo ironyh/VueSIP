@@ -1,7 +1,7 @@
 /**
  * Phone Composable - Wraps VueSip APIs for PWA softphone functionality
  */
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   useSipClient,
   useCallSession,
@@ -31,10 +31,38 @@ export function usePhone() {
   const currentConfig = ref<PhoneConfig | null>(null)
   const isSpeakerOn = ref(false)
 
+  type OutboundBridgeStage = 'requesting' | 'ringing-webrtc' | 'bridging' | 'connected'
+  const outboundBridge = ref<null | {
+    providerId: '46elks'
+    destinationNumber: string
+    stage: OutboundBridgeStage
+  }>(null)
+
   // 46elks REST-originate flow: after triggering the call via API, 46elks will place an
   // incoming call to our WebRTC client, which we should auto-answer.
   const autoAnswerIncomingUntil = ref(0)
   const shouldAutoAnswerIncoming = computed(() => Date.now() < autoAnswerIncomingUntil.value)
+
+  const callStatusLine1 = computed(() => {
+    if (outboundBridge.value) {
+      return `Calling ${outboundBridge.value.destinationNumber}`
+    }
+
+    if (callState.value === 'calling') return 'Calling'
+    if (callState.value === 'held') return 'On Hold'
+    return ''
+  })
+
+  const callStatusLine2 = computed(() => {
+    const bridge = outboundBridge.value
+    if (!bridge) return ''
+
+    if (bridge.stage === 'requesting') return '46elks: initiating bridge call'
+    if (bridge.stage === 'ringing-webrtc') return '46elks: calling your WebRTC line'
+    if (bridge.stage === 'bridging') return '46elks: connecting destination'
+    if (bridge.stage === 'connected') return '46elks: connected'
+    return ''
+  })
 
   // SIP Client
   const sipClient = useSipClient()
@@ -185,6 +213,12 @@ export function usePhone() {
       )
     }
 
+    outboundBridge.value = {
+      providerId: '46elks',
+      destinationNumber: phoneNumber,
+      stage: 'ringing-webrtc',
+    }
+
     // Auto-answer the incoming bridge call from 46elks.
     autoAnswerIncomingUntil.value = Date.now() + 30_000
   }
@@ -229,6 +263,13 @@ export function usePhone() {
     // bridge the PSTN destination after the WebRTC client answers.
     if (is46Elks && !(target.trim().startsWith('sip:') || target.trim().startsWith('sips:'))) {
       const phoneNumber = normalizePhoneNumberFor46Elks(target)
+
+      outboundBridge.value = {
+        providerId: '46elks',
+        destinationNumber: phoneNumber,
+        stage: 'requesting',
+      }
+
       await start46ElksOutboundCall(phoneNumber)
       return
     }
@@ -243,8 +284,29 @@ export function usePhone() {
   async function answerCall() {
     // If we auto-answered a 46elks bridge call, clear the window.
     autoAnswerIncomingUntil.value = 0
+
+    if (outboundBridge.value) {
+      outboundBridge.value = { ...outboundBridge.value, stage: 'bridging' }
+    }
+
     await answer()
   }
+
+  watch(
+    [callState, direction],
+    ([state, dir]) => {
+      if (!outboundBridge.value) return
+
+      if (state === 'ringing' && dir === 'incoming') {
+        outboundBridge.value = { ...outboundBridge.value, stage: 'ringing-webrtc' }
+      } else if (state === 'active') {
+        outboundBridge.value = { ...outboundBridge.value, stage: 'connected' }
+      } else if (state === 'idle') {
+        outboundBridge.value = null
+      }
+    },
+    { flush: 'sync' }
+  )
 
   async function rejectCall() {
     await reject()
@@ -301,6 +363,8 @@ export function usePhone() {
     duration,
     direction,
     shouldAutoAnswerIncoming,
+    callStatusLine1,
+    callStatusLine2,
 
     // Media devices
     audioInputDevices,

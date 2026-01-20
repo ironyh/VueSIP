@@ -9,6 +9,8 @@ const props = defineProps<{
   remoteDisplayName?: string | null
   remoteUri?: string | null
   duration: number
+  statusLine1?: string
+  statusLine2?: string
 }>()
 
 const emit = defineEmits<{
@@ -66,7 +68,10 @@ function handleDtmf(digit: string) {
         {{ remoteUri }}
       </p>
       <p class="call-status">
-        {{ statusText || formattedDuration }}
+        {{ props.statusLine1 || statusText || formattedDuration }}
+      </p>
+      <p v-if="props.statusLine2" class="call-status secondary">
+        {{ props.statusLine2 }}
       </p>
     </div>
 
@@ -224,6 +229,19 @@ function handleDtmf(digit: string) {
   font-family: 'SF Mono', Monaco, monospace;
   color: var(--text-secondary);
   margin: 1rem 0 0;
+}
+
+.call-status.secondary {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+  color: var(--text-tertiary);
 }
 
 /* DTMF Pad */
