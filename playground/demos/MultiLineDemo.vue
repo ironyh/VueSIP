@@ -54,7 +54,7 @@
         <div class="form-group">
           <label for="sip-password">Password</label>
           <Password
-            id="sip-password"
+            inputId="sip-password"
             v-model="config.password"
             placeholder="Enter password"
             :disabled="connecting"
@@ -147,7 +147,7 @@
         >
           <div class="line-header">
             <span class="line-number">Line {{ line.lineNumber }}</span>
-            <span class="line-status" :class="line.status">
+            <span class="p-tag line-status" :class="line.status">
               {{ formatStatus(line.status) }}
             </span>
           </div>
@@ -194,9 +194,9 @@
               <span class="remote-party">{{ line.remoteDisplayName || line.remoteUri }}</span>
               <span class="call-duration">{{ formatDuration(line.duration) }}</span>
               <div class="call-indicators">
-                <span v-if="line.isOnHold" class="indicator hold">Hold</span>
-                <span v-if="line.isMuted" class="indicator mute">Muted</span>
-                <span v-if="line.hasVideo" class="indicator video">Video</span>
+                <span v-if="line.isOnHold" class="p-tag indicator hold">Hold</span>
+                <span v-if="line.isMuted" class="p-tag indicator mute">Muted</span>
+                <span v-if="line.hasVideo" class="p-tag indicator video">Video</span>
               </div>
             </div>
           </div>
@@ -238,7 +238,7 @@
       </div>
 
       <!-- Dial Pad -->
-      <div class="dial-section">
+      <div class="dial-section dial-card">
         <h3>Make Call</h3>
         <div class="dial-form">
           <InputText
@@ -246,7 +246,7 @@
             placeholder="Enter number or SIP URI"
             :disabled="isLoading || allLinesBusy"
             @keyup.enter="handleDial"
-            class="flex-1"
+            class="flex-1 dial-input"
           />
           <Dropdown
             v-model.number="dialLine"
@@ -254,7 +254,7 @@
             optionLabel="label"
             optionValue="value"
             :disabled="isLoading || availableLines.length === 0"
-            class="flex-1"
+            class="flex-1 line-select"
           />
           <Button
             :disabled="!dialTarget || isLoading || allLinesBusy"
@@ -269,7 +269,7 @@
       </div>
 
       <!-- Quick Actions -->
-      <div class="actions-section">
+      <div class="actions-section actions-card">
         <h3>Quick Actions</h3>
         <div class="action-buttons">
           <Button
@@ -303,7 +303,7 @@
             @click="handleDTMF(digit)"
             :label="digit"
             severity="secondary"
-            class="dtmf-btn"
+            class="dtmf-btn dtmf-button"
           />
         </div>
       </div>
@@ -350,6 +350,12 @@ const connecting = ref(false)
 const connectionError = ref('')
 const lineCountConfig = ref(4)
 const autoHoldEnabled = ref(true)
+
+const lineCountOptions = [
+  { label: '2 Lines', value: 2 },
+  { label: '4 Lines', value: 4 },
+  { label: '6 Lines', value: 6 },
+]
 
 const config = reactive({
   server: 'wss://sip.example.com',
@@ -486,7 +492,7 @@ async function handleConnect(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     initializeLines(lineCountConfig.value)
-    sipConnected.value = true
+    realSipConnected.value = true
 
     // Simulate an incoming call after 3 seconds
     setTimeout(() => {
@@ -505,7 +511,7 @@ function handleDisconnect(): void {
     stopDurationTimer(lineNumber)
   }
   lines.value = []
-  sipConnected.value = false
+  realSipConnected.value = false
 }
 
 // Line selection

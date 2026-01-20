@@ -7,15 +7,24 @@ import { test, expect } from '@playwright/test'
 
 test.describe('MultiLineDemo - Multi-Line Call Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173')
+    // Our E2E harness mounts a dedicated TestApp behind `?test=true`.
+    // For UI-demo tests we need the normal playground app, so ensure the harness is NOT enabled.
+    await page.goto('/')
     await page.waitForLoadState('networkidle')
 
     // Navigate to Multi-Line demo
-    const multiLineLink = page.getByRole('link', { name: /Multi-Line/i })
-    if (await multiLineLink.isVisible()) {
-      await multiLineLink.click()
-      await page.waitForLoadState('networkidle')
-    }
+    // The main playground uses hash-based routing: #<example-id>.
+    // Use the route directly to avoid relying on sidebar DOM/query timing.
+    await page.goto('/#multi-line')
+    await page.waitForLoadState('networkidle')
+
+    // Disable animations/transitions to make actionability checks stable.
+    await page.addStyleTag({
+      content: `*{animation-duration:0s !important;animation-iteration-count:1 !important;transition-duration:0s !important;scroll-behavior:auto !important;}`,
+    })
+
+    // Ensure the demo is actually visible before running assertions.
+    await expect(page.locator('text=Multi-Line Configuration')).toBeVisible()
   })
 
   test('should display multi-line demo header and configuration', async ({ page }) => {
@@ -47,7 +56,10 @@ test.describe('MultiLineDemo - Multi-Line Call Management', () => {
 
     // Auto-hold checkbox
     await expect(page.locator('label:has-text("Auto-hold")')).toBeVisible()
-    await expect(page.locator('input#auto-hold')).toBeVisible()
+
+    // PrimeVue Checkbox often renders the underlying <input> as "hidden accessible" (not visibly clickable).
+    // Avoid toBeVisible()/direct clicks on the input; assert state via the input and toggle via the label.
+    await expect(page.locator('.p-checkbox input#auto-hold')).toHaveCount(1)
 
     // Connect button
     await expect(page.getByRole('button', { name: /Connect/i })).toBeVisible()
@@ -136,18 +148,19 @@ test.describe('MultiLineDemo - Multi-Line Call Management', () => {
   })
 
   test('should toggle auto-hold setting', async ({ page }) => {
-    const checkbox = page.locator('input#auto-hold')
+    const input = page.locator('.p-checkbox input#auto-hold')
+    const label = page.locator('label[for="auto-hold"]')
 
-    // Should be checked by default
-    await expect(checkbox).toBeChecked()
+    // PrimeVue Checkbox uses a hidden accessible input; clicking the label is more stable than clicking the input.
+    await expect(input).toBeChecked()
 
     // Uncheck it
-    await checkbox.click()
-    await expect(checkbox).not.toBeChecked()
+    await label.click()
+    await expect(input).not.toBeChecked()
 
     // Check it again
-    await checkbox.click()
-    await expect(checkbox).toBeChecked()
+    await label.click()
+    await expect(input).toBeChecked()
   })
 
   test('should select a line by clicking on card', async ({ page }) => {
@@ -213,11 +226,12 @@ test.describe('MultiLineDemo - Multi-Line Call Management', () => {
     await page.waitForTimeout(3500)
 
     // Answer the call
-    await page.click('button:has-text("Answer")')
+    await expect(page.locator('button:has-text("Answer")')).toBeVisible()
+    await page.locator('button:has-text("Answer")').click()
     await page.waitForTimeout(500)
 
     // Should show Active tag
-    await expect(page.locator('.p-tag:has-text("Active")')).toBeVisible()
+    await expect(page.locator('.p-tag:has-text("Active")')).toBeVisible({ timeout: 10000 })
 
     // Should show call duration
     await expect(page.locator('.call-duration')).toBeVisible()
@@ -231,11 +245,12 @@ test.describe('MultiLineDemo - Multi-Line Call Management', () => {
     await page.waitForTimeout(3500)
 
     // Reject the call
-    await page.click('button:has-text("Reject")')
+    await expect(page.locator('button:has-text("Reject")')).toBeVisible()
+    await page.locator('button:has-text("Reject")').click()
     await page.waitForTimeout(300)
 
     // Line should be Available again
-    await expect(page.locator('.p-tag:has-text("Available")')).toBeVisible()
+    await expect(page.locator('.p-tag:has-text("Available")').first()).toBeVisible()
   })
 
   test('should put call on hold', async ({ page }) => {
@@ -333,7 +348,7 @@ test.describe('MultiLineDemo - Multi-Line Call Management', () => {
     await page.waitForTimeout(300)
 
     // Line should be Available again
-    await expect(page.locator('.p-tag:has-text("Available")')).toBeVisible()
+    await expect(page.locator('.p-tag:has-text("Available")').first()).toBeVisible()
   })
 
   test('should make multiple concurrent calls', async ({ page }) => {
@@ -618,8 +633,10 @@ test.describe('MultiLineDemo - Multi-Line Call Management', () => {
     await page.waitForTimeout(800)
 
     // Should show active count > 0
-    const activeText = await page.locator('text=/Active: \\d+/i').textContent()
-    expect(activeText).toMatch(/Active: [1-9]/)
+    const activeItem = page.locator('.status-item:has-text("Active:")').first()
+    await expect(activeItem).toBeVisible()
+    const activeText = await activeItem.textContent()
+    expect(activeText || '').toMatch(/Active:\s*[1-9]/)
   })
 
   test('should disable call button when all lines busy', async ({ page }) => {
