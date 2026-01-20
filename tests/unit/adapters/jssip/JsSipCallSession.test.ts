@@ -5,7 +5,7 @@
  * and basic call control methods (answer, reject, terminate).
  */
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
 import { JsSipCallSession } from '@/adapters/jssip/JsSipCallSession'
 import { CallDirection, CallState } from '@/types/call.types'
 import type { RTCSession } from 'jssip'
@@ -1927,6 +1927,73 @@ describe('JsSipCallSession', () => {
 
       expect(remoteStreamHandler).not.toHaveBeenCalled()
       expect(callSession.remoteStream).toBeNull()
+    })
+  })
+
+  // ==========================================================================
+  // Codec Policy Integration
+  // ==========================================================================
+
+  describe('codec policy integration', () => {
+    const originalSender = (globalThis as any).RTCRtpSender
+    const originalTransceiver = (globalThis as any).RTCRtpTransceiver
+
+    beforeEach(() => {
+      mockSession = createMockRTCSession('outgoing')
+    })
+
+    afterEach(() => {
+      ;(globalThis as any).RTCRtpSender = originalSender
+      ;(globalThis as any).RTCRtpTransceiver = originalTransceiver
+    })
+
+    it('should reorder audio payload types in SDP when preferTransceiverApi is false', () => {
+      // Provide local capabilities so useCodecs can build preferred mime type list
+      ;(globalThis as any).RTCRtpSender = {
+        getCapabilities: vi.fn().mockImplementation((kind: string) => {
+          if (kind === 'audio') {
+            return {
+              codecs: [
+                { mimeType: 'audio/opus' },
+                { mimeType: 'audio/PCMA' },
+                { mimeType: 'audio/PCMU' },
+              ],
+            }
+          }
+          return { codecs: [] }
+        }),
+      }
+
+      // In this test we want SDP fallback, so setCodecPreferences doesn't matter.
+      ;(globalThis as any).RTCRtpTransceiver = function () {} as any
+
+      callSession = new JsSipCallSession(mockSession as unknown as RTCSession, {
+        preferTransceiverApi: false,
+        audio: [
+          { id: 'pcma', priority: 100 },
+          { id: 'opus', priority: 50 },
+          { id: 'pcmu', priority: 10 },
+        ],
+      })
+
+      const inputSdp = [
+        'v=0',
+        'o=- 0 0 IN IP4 127.0.0.1',
+        's=-',
+        't=0 0',
+        'm=audio 9 UDP/TLS/RTP/SAVPF 111 8 0 101',
+        'a=rtpmap:111 opus/48000/2',
+        'a=rtpmap:8 PCMA/8000',
+        'a=rtpmap:0 PCMU/8000',
+        'a=rtpmap:101 telephone-event/8000',
+        '',
+      ].join('\n')
+
+      const payload = { sdp: inputSdp, type: 'offer' as const }
+      mockSession.__triggerEvent('sdp', payload)
+
+      // Expect PCMA (8) to be first.
+      expect(payload.sdp).toContain('m=audio 9 UDP/TLS/RTP/SAVPF 8 111 0 101')
     })
   })
 

@@ -514,6 +514,9 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
 
       // Apply codec preferences via transceivers when available
       try {
+        // If the user disables the transceiver API, we rely on SDP fallback instead.
+        if (this._codecPolicy?.preferTransceiverApi === false) return
+
         const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : []
         if (transceivers && transceivers.length > 0) {
           const codecs = useCodecs(this._codecPolicy)
@@ -537,11 +540,22 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
       'sdp',
       (data: { originator?: string; type?: 'offer' | 'answer'; sdp: string }) => {
         try {
-          if (this._codecPolicy && this._codecPolicy.preferTransceiverApi === false && data?.sdp) {
-            // Reorder both audio and video m-lines conservatively
+          if (!data?.sdp) return
+          if (!this._codecPolicy) return
+
+          const preferTransceiverApi = this._codecPolicy.preferTransceiverApi !== false
+          const canSetCodecPrefs =
+            typeof (globalThis as any).RTCRtpTransceiver !== 'undefined' &&
+            typeof ((globalThis as any).RTCRtpTransceiver?.prototype as any)
+              ?.setCodecPreferences === 'function'
+
+          // Use SDP fallback when transceiver API is disabled by policy, or when the environment
+          // doesn't support setCodecPreferences.
+          if (!preferTransceiverApi || !canSetCodecPrefs) {
+            const codecs = useCodecs(this._codecPolicy, this._sdpTransformer)
             let sdp = data.sdp
-            sdp = this._sdpTransformer.reorderCodecs(sdp, 'audio', [])
-            sdp = this._sdpTransformer.reorderCodecs(sdp, 'video', [])
+            sdp = codecs.transformSdp(sdp, 'audio')
+            sdp = codecs.transformSdp(sdp, 'video')
             data.sdp = sdp
           }
         } catch {
