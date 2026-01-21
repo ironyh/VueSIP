@@ -50,6 +50,7 @@ const enabledNumbers = ref<Record<string, boolean>>({})
 const numberLabels = ref<Record<string, string>>({})
 
 const appOrigin = ref('')
+const appBase = ref('/')
 const copyStatus = ref<string | null>(null)
 
 // Form validation
@@ -63,6 +64,14 @@ onMounted(() => {
     appOrigin.value = window.location.origin
   } catch {
     appOrigin.value = ''
+  }
+
+  try {
+    const base = String(import.meta.env.BASE_URL || '/').trim()
+    const normalized = base.startsWith('/') ? base : `/${base}`
+    appBase.value = normalized.endsWith('/') ? normalized : `${normalized}/`
+  } catch {
+    appBase.value = '/'
   }
 
   try {
@@ -99,20 +108,24 @@ onMounted(() => {
   }
 })
 
-const inboundConnectTarget = computed(() => selectedNumber.value?.number || '')
+function normalizeConnectTarget(target: string): string {
+  const raw = String(target ?? '').trim()
+  if (!raw) return ''
+  return raw.startsWith('+') ? raw : `+${raw}`
+}
 
-const voiceStartJson = computed(() => {
-  const target = inboundConnectTarget.value
-  if (!target) return ''
-  return JSON.stringify({ connect: target })
-})
+function voiceStartJsonFor(target: string): string {
+  const connect = normalizeConnectTarget(target)
+  if (!connect) return ''
+  return JSON.stringify({ connect })
+}
 
-const voiceStartUrl = computed(() => {
-  const target = inboundConnectTarget.value
+function voiceStartUrlFor(target: string): string {
+  const connect = normalizeConnectTarget(target)
   const origin = appOrigin.value
-  if (!target || !origin) return ''
-  return `${origin}/elks/calls?connect=${encodeURIComponent(target)}`
-})
+  if (!connect || !origin) return ''
+  return `${origin}${appBase.value}elks/calls?connect=${encodeURIComponent(connect)}`
+}
 
 async function copyText(label: string, value: string) {
   const text = String(value ?? '').trim()
@@ -408,45 +421,49 @@ function handleReset() {
             call action directly, or point to a webhook URL.
           </p>
 
-          <div v-if="inboundConnectTarget" class="voice-start">
-            <p class="hint">
-              Destination (your WebRTC number): <strong>{{ inboundConnectTarget }}</strong>
-            </p>
+          <div v-if="numbers.length" class="voice-start">
+            <div v-for="num in numbers" :key="num.id" class="voice-start-row">
+              <p class="hint">
+                Number: <strong>{{ num.number }}</strong>
+                <span v-if="num.name">({{ num.name }})</span>
+              </p>
 
-            <div class="voice-start-row">
               <div class="voice-start-title">Option 1 (recommended): paste JSON</div>
               <div class="voice-start-controls">
-                <input class="voice-start-input" :value="voiceStartJson" readonly />
-                <button type="button" class="copy-btn" @click="copyText('JSON', voiceStartJson)">
+                <input class="voice-start-input" :value="voiceStartJsonFor(num.number)" readonly />
+                <button
+                  type="button"
+                  class="copy-btn"
+                  @click="copyText('JSON', voiceStartJsonFor(num.number))"
+                >
                   Copy
                 </button>
               </div>
-              <p class="hint">
-                In 46elks: Numbers -> select number -> set <code>voice_start</code> to the JSON.
-              </p>
-            </div>
 
-            <div class="voice-start-row" v-if="voiceStartUrl">
-              <div class="voice-start-title">Option 2: webhook URL</div>
-              <div class="voice-start-controls">
-                <input class="voice-start-input" :value="voiceStartUrl" readonly />
-                <button type="button" class="copy-btn" @click="copyText('URL', voiceStartUrl)">
+              <div v-if="voiceStartUrlFor(num.number)" class="voice-start-title">
+                Option 2: webhook URL
+              </div>
+              <div v-if="voiceStartUrlFor(num.number)" class="voice-start-controls">
+                <input class="voice-start-input" :value="voiceStartUrlFor(num.number)" readonly />
+                <button
+                  type="button"
+                  class="copy-btn"
+                  @click="copyText('URL', voiceStartUrlFor(num.number))"
+                >
                   Copy
                 </button>
               </div>
-              <p class="hint">
-                This works when the softphone is deployed with the 46elks webhook endpoint at
-                <code>/elks/calls</code>.
-              </p>
             </div>
 
-            <p v-if="copyStatus" class="hint copied">{{ copyStatus }}</p>
+            <p class="hint">
+              In 46elks: Numbers -> select number -> set <code>voice_start</code> to the JSON or URL
+              above.
+            </p>
+
+            <p class="hint" v-if="copyStatus">{{ copyStatus }}</p>
           </div>
 
-          <p v-else class="hint">
-            Select a phone number first. We will generate the <code>voice_start</code> values for
-            you.
-          </p>
+          <p v-else class="hint">No numbers loaded yet. Fetch phone numbers first.</p>
         </div>
 
         <div class="form-group">

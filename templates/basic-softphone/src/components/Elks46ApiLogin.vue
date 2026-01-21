@@ -31,6 +31,9 @@ const {
 const apiUsername = ref('')
 const apiPassword = ref('')
 const rememberCredentials = ref(false)
+const appOrigin = ref('')
+const appBase = ref('/')
+const copyStatus = ref<string | null>(null)
 
 // Form validation
 const isLoginFormValid = computed(
@@ -41,6 +44,20 @@ const isLoginFormValid = computed(
 const savedPhoneNumber = ref<string | null>(null)
 // Load saved credentials on mount
 onMounted(() => {
+  try {
+    appOrigin.value = window.location.origin
+  } catch {
+    appOrigin.value = ''
+  }
+
+  try {
+    const base = String(import.meta.env.BASE_URL || '/').trim()
+    const normalized = base.startsWith('/') ? base : `/${base}`
+    appBase.value = normalized.endsWith('/') ? normalized : `${normalized}/`
+  } catch {
+    appBase.value = '/'
+  }
+
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
@@ -64,10 +81,45 @@ function saveCredentials(phoneNumber?: string) {
         username: apiUsername.value,
         password: apiPassword.value,
         phoneNumber: phoneNumber || savedPhoneNumber.value,
-        phoneNumber: phoneNumber || savedPhoneNumber.value,
       })
     )
   }
+}
+
+function normalizeConnectTarget(target: string): string {
+  const raw = String(target ?? '').trim()
+  if (!raw) return ''
+  return raw.startsWith('+') ? raw : `+${raw}`
+}
+
+function voiceStartJsonFor(target: string): string {
+  const connect = normalizeConnectTarget(target)
+  if (!connect) return ''
+  return JSON.stringify({ connect })
+}
+
+function voiceStartUrlFor(target: string): string {
+  const connect = normalizeConnectTarget(target)
+  if (!connect || !appOrigin.value) return ''
+  return `${appOrigin.value}${appBase.value}elks/calls?connect=${encodeURIComponent(connect)}`
+}
+
+async function copyText(label: string, value: string) {
+  const text = String(value ?? '').trim()
+  if (!text) return
+
+  try {
+    await navigator.clipboard.writeText(text)
+    copyStatus.value = `${label} copied`
+  } catch {
+    // Fallback: use prompt which still allows copy
+    window.prompt(`Copy ${label}:`, text)
+    copyStatus.value = `${label} ready to copy`
+  }
+
+  window.setTimeout(() => {
+    if (copyStatus.value?.startsWith(label)) copyStatus.value = null
+  }, 2500)
 }
 
 // Watch for number selection and save it
@@ -120,7 +172,6 @@ function handleReset() {
   apiUsername.value = ''
   apiPassword.value = ''
   rememberCredentials.value = false
-  savedPhoneNumber.value = null
   savedPhoneNumber.value = null
   clearSavedCredentials()
 }
@@ -228,6 +279,53 @@ function handleReset() {
         </Dropdown>
       </div>
 
+      <div class="voice-start" v-if="numbers.length">
+        <h4>Incoming calls (voice_start)</h4>
+        <p class="api-login-description">
+          In 46elks: Numbers -&gt; select number -&gt; set <code>voice_start</code> to either the
+          JSON call action, or the webhook URL.
+        </p>
+
+        <div class="voice-start-list">
+          <div v-for="num in numbers" :key="num.id" class="voice-start-row">
+            <div class="voice-start-number">
+              <strong>{{ num.number }}</strong>
+              <span v-if="num.name" class="number-name">({{ num.name }})</span>
+            </div>
+
+            <div class="voice-start-field">
+              <InputText
+                :model-value="voiceStartJsonFor(num.number)"
+                readonly
+                class="w-full monospace"
+              />
+              <Button
+                label="Copy JSON"
+                icon="pi pi-copy"
+                class="p-button-sm"
+                @click="copyText('JSON', voiceStartJsonFor(num.number))"
+              />
+            </div>
+
+            <div class="voice-start-field" v-if="voiceStartUrlFor(num.number)">
+              <InputText
+                :model-value="voiceStartUrlFor(num.number)"
+                readonly
+                class="w-full monospace"
+              />
+              <Button
+                label="Copy URL"
+                icon="pi pi-copy"
+                class="p-button-sm p-button-secondary"
+                @click="copyText('URL', voiceStartUrlFor(num.number))"
+              />
+            </div>
+          </div>
+        </div>
+
+        <small v-if="copyStatus" class="copy-status">{{ copyStatus }}</small>
+      </div>
+
       <Message v-if="error" severity="warn" :closable="false">
         {{ error }}
       </Message>
@@ -333,6 +431,60 @@ function handleReset() {
   display: flex;
   gap: 8px;
   margin-top: 16px;
+}
+
+.voice-start {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--surface-200);
+  border-radius: 8px;
+  background: var(--surface-50);
+}
+
+.voice-start h4 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+}
+
+.voice-start-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.voice-start-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--surface-200);
+  border-radius: 8px;
+  background: var(--surface-0);
+}
+
+.voice-start-number {
+  font-size: 0.875rem;
+}
+
+.voice-start-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.monospace :deep(input) {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.8rem;
+}
+
+.copy-status {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-color-secondary);
 }
 
 .flex-1 {

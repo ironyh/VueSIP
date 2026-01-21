@@ -22,6 +22,7 @@ const savedCredentials = ref<{ username: string; password: string; phoneNumber?:
 )
 
 const appOrigin = ref('')
+const appBase = ref('/')
 const copyStatus = ref<string | null>(null)
 
 const { isLoading, error, isAuthenticated, numbers, authenticate, clear } = use46ElksApi()
@@ -78,6 +79,14 @@ onMounted(() => {
   } catch {
     appOrigin.value = ''
   }
+
+  try {
+    const base = String(import.meta.env.BASE_URL || '/').trim()
+    const normalized = base.startsWith('/') ? base : `/${base}`
+    appBase.value = normalized.endsWith('/') ? normalized : `${normalized}/`
+  } catch {
+    appBase.value = '/'
+  }
   loadCredentials()
   loadPrefs()
 })
@@ -98,7 +107,7 @@ const voiceStartUrl = computed(() => {
   const target = inboundConnectTarget.value
   const origin = appOrigin.value
   if (!target || !origin) return ''
-  return `${origin}/elks/calls?connect=${encodeURIComponent(target)}`
+  return `${origin}${appBase.value}elks/calls?connect=${encodeURIComponent(target)}`
 })
 
 async function copyText(label: string, value: string) {

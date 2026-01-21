@@ -61,7 +61,6 @@ function saveCredentials(credentialId?: string) {
       JSON.stringify({
         key: apiKey.value,
         credentialId: credentialId || savedCredentialId.value,
-        credentialId: credentialId || savedCredentialId.value,
       })
     )
   }
@@ -116,7 +115,6 @@ function handleReset() {
   clear()
   apiKey.value = ''
   rememberCredentials.value = false
-  savedCredentialId.value = null
   savedCredentialId.value = null
   clearSavedCredentials()
 }
