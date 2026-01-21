@@ -5,6 +5,7 @@ import CallScreen from './components/CallScreen.vue'
 import IncomingCall from './components/IncomingCall.vue'
 import Settings from './components/Settings.vue'
 import Elks46OutboundSettings from './components/Elks46OutboundSettings.vue'
+import TranscriptionSettingsSection from './components/TranscriptionSettingsSection.vue'
 import { usePhone } from './composables/usePhone'
 import { usePushNotifications } from './composables/usePushNotifications'
 import { usePwaInstall } from './composables/usePwaInstall'
@@ -293,6 +294,8 @@ onUnmounted(async () => {
               :is-connected="phone.isConnected.value"
               @updated="phone.refresh46ElksOutboundPreferences"
             />
+
+            <TranscriptionSettingsSection />
 
             <div v-if="phone.accounts.value.length > 0" class="settings-section">
               <h3>Accounts</h3>
