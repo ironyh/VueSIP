@@ -1,12 +1,64 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+
+const props = defineProps<{
+  outboundLabel?: string
+  canCycleOutbound?: boolean
+}>()
 
 const emit = defineEmits<{
   call: [number: string]
   digit: [digit: string]
+  cycleOutbound: [direction: 'prev' | 'next']
 }>()
 
 const phoneNumber = ref('')
+const hasNumber = computed(() => !!phoneNumber.value)
+
+const swipeStartX = ref<number | null>(null)
+const swipePointerId = ref<number | null>(null)
+
+function handleCycle(direction: 'prev' | 'next') {
+  emit('cycleOutbound', direction)
+  if (navigator.vibrate) {
+    navigator.vibrate(15)
+  }
+}
+
+function handleCallSwipePointerDown(e: PointerEvent) {
+  if (!props.canCycleOutbound) return
+  swipeStartX.value = e.clientX
+  swipePointerId.value = e.pointerId
+
+  try {
+    ;(e.currentTarget as HTMLElement | null)?.setPointerCapture(e.pointerId)
+  } catch {
+    // ignore
+  }
+}
+
+function handleCallSwipePointerUp(e: PointerEvent) {
+  const startX = swipeStartX.value
+  const pointerId = swipePointerId.value
+  swipeStartX.value = null
+  swipePointerId.value = null
+
+  if (!props.canCycleOutbound || startX === null || pointerId !== e.pointerId) {
+    // Not a swipe: if we have a number, treat as call.
+    if (hasNumber.value) handleCall()
+    return
+  }
+
+  const dx = e.clientX - startX
+  const threshold = 40
+
+  if (Math.abs(dx) >= threshold) {
+    handleCycle(dx > 0 ? 'next' : 'prev')
+    return
+  }
+
+  if (hasNumber.value) handleCall()
+}
 
 const dialpadKeys = [
   { digit: '1', letters: '' },
@@ -98,18 +150,20 @@ function handleClear() {
           />
         </svg>
       </button>
-      <button
-        class="action-btn call"
-        :disabled="!phoneNumber"
-        @click="handleCall"
-        aria-label="Call"
+      <div
+        class="call-swipe"
+        @pointerdown="handleCallSwipePointerDown"
+        @pointerup="handleCallSwipePointerUp"
       >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path
-            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-          />
-        </svg>
-      </button>
+        <button class="action-btn call" :disabled="!hasNumber" aria-label="Call">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+            />
+          </svg>
+        </button>
+        <div v-if="props.outboundLabel" class="outbound-label">{{ props.outboundLabel }}</div>
+      </div>
     </div>
   </div>
 </template>
@@ -220,6 +274,23 @@ function handleClear() {
   justify-content: center;
   gap: 2rem;
   padding: 0.5rem;
+}
+
+.call-swipe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.outbound-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  max-width: 180px;
+  text-align: center;
+  line-height: 1.1;
 }
 
 .action-btn {

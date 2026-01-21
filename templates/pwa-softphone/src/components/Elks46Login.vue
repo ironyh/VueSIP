@@ -3,6 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { use46ElksApi, type Elks46Number } from 'vuesip'
 
 const STORAGE_KEY = 'vuesip_46elks_credentials'
+const ENABLED_NUMBERS_KEY = 'vuesip_46elks_enabled_numbers'
+const OUTBOUND_NUMBER_KEY = 'vuesip_46elks_outbound_number'
 
 const emit = defineEmits<{
   connect: [
@@ -16,6 +18,7 @@ const emit = defineEmits<{
         apiUsername: string
         apiPassword: string
         callerIdNumber: string
+        callerIdNumbers?: string[]
         webrtcNumber: string
       }
     },
@@ -41,6 +44,7 @@ const apiUsername = ref('')
 const apiPassword = ref('')
 const rememberCredentials = ref(false)
 const savedPhoneNumber = ref<string | null>(null)
+const enabledNumbers = ref<Record<string, boolean>>({})
 
 // Form validation
 const isLoginFormValid = computed(
@@ -61,7 +65,29 @@ onMounted(() => {
   } catch {
     // Ignore parse errors
   }
+
+  try {
+    const raw = localStorage.getItem(ENABLED_NUMBERS_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Record<string, boolean>
+      if (parsed && typeof parsed === 'object') enabledNumbers.value = parsed
+    }
+  } catch {
+    // ignore
+  }
 })
+
+watch(
+  enabledNumbers,
+  (next) => {
+    try {
+      localStorage.setItem(ENABLED_NUMBERS_KEY, JSON.stringify(next))
+    } catch {
+      // ignore
+    }
+  },
+  { deep: true }
+)
 
 // Save credentials to localStorage
 function saveCredentials(phoneNumber?: string) {
@@ -87,6 +113,13 @@ watch(selectedNumber, (num) => {
 
 // Auto-select saved number after authentication
 watch(numbers, async (nums) => {
+  // Seed enable-map for any new numbers (default enabled).
+  for (const n of nums) {
+    if (!(n.number in enabledNumbers.value)) {
+      enabledNumbers.value[n.number] = true
+    }
+  }
+
   if (savedPhoneNumber.value && nums.length > 0 && !selectedNumber.value) {
     const savedNum = nums.find((n) => n.number === savedPhoneNumber.value)
     if (savedNum) {
@@ -94,6 +127,10 @@ watch(numbers, async (nums) => {
     }
   }
 })
+
+const enabledCallerIdNumbers = computed(() =>
+  numbers.value.map((n) => n.number).filter((num) => enabledNumbers.value[num])
+)
 
 // Clear saved credentials
 function clearSavedCredentials() {
@@ -122,6 +159,30 @@ function handleConnect() {
   const creds = getCredentials()
   const selected = selectedNumber.value
   if (creds && selected?.number) {
+    const enabledList = enabledCallerIdNumbers.value
+    if (enabledList.length === 0) {
+      return
+    }
+
+    const lastOutbound = (() => {
+      try {
+        return localStorage.getItem(OUTBOUND_NUMBER_KEY)
+      } catch {
+        return null
+      }
+    })()
+
+    const initialCallerIdNumber =
+      (lastOutbound && enabledList.includes(lastOutbound) && lastOutbound) ||
+      (enabledList.includes(selected.number) && selected.number) ||
+      enabledList[0]
+
+    try {
+      localStorage.setItem(OUTBOUND_NUMBER_KEY, initialCallerIdNumber)
+    } catch {
+      // ignore
+    }
+
     emit('connect', {
       providerId: '46elks',
       uri: 'wss://voip.46elks.com/w1/websocket',
@@ -130,7 +191,8 @@ function handleConnect() {
       providerMeta: {
         apiUsername: apiUsername.value,
         apiPassword: apiPassword.value,
-        callerIdNumber: selected.number,
+        callerIdNumber: initialCallerIdNumber,
+        callerIdNumbers: enabledList,
         webrtcNumber: `+${creds.phoneNumber}`,
       },
     })
@@ -256,6 +318,20 @@ function handleReset() {
           </select>
         </div>
 
+        <div class="form-group">
+          <label>Outbound Caller IDs</label>
+          <p class="hint">
+            Enable the numbers you want in the swipe list (swipe Call button left/right).
+          </p>
+          <div class="numbers-list">
+            <label v-for="num in numbers" :key="num.id" class="number-toggle">
+              <input v-model="enabledNumbers[num.number]" type="checkbox" />
+              <span class="number">{{ num.number }}</span>
+              <span v-if="num.name" class="name">{{ num.name }}</span>
+            </label>
+          </div>
+        </div>
+
         <p v-if="error" class="error-message warning">{{ error }}</p>
 
         <p v-else-if="selectedNumber && secret" class="success-message">
@@ -371,6 +447,45 @@ function handleReset() {
   font-size: 1rem;
   color: var(--text-primary);
   transition: all 0.2s;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.numbers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.number-toggle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.number-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+
+.number-toggle .number {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.number-toggle .name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .form-group input::placeholder {

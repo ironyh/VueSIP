@@ -22,6 +22,7 @@ export interface PhoneConfig {
     apiUsername: string
     apiPassword: string
     callerIdNumber: string
+    callerIdNumbers?: string[]
     webrtcNumber: string
   }
 
@@ -57,6 +58,39 @@ export function usePhone() {
   // incoming call to our WebRTC client, which we should auto-answer.
   const autoAnswerIncomingUntil = ref(0)
   const shouldAutoAnswerIncoming = computed(() => Date.now() < autoAnswerIncomingUntil.value)
+
+  // Outbound identity (46elks caller-id) selection
+  const outboundCallerIds = ref<string[]>([])
+  const selectedOutboundCallerId = ref<string>('')
+  const OUTBOUND_NUMBER_KEY = 'vuesip_46elks_outbound_number'
+
+  function setSelectedOutboundCallerId(next: string) {
+    selectedOutboundCallerId.value = next
+    try {
+      localStorage.setItem(OUTBOUND_NUMBER_KEY, next)
+    } catch {
+      // ignore
+    }
+  }
+
+  function cycleOutboundCallerId(direction: 'prev' | 'next') {
+    const list = outboundCallerIds.value
+    if (list.length <= 1) return
+
+    const current = selectedOutboundCallerId.value
+    const idx = list.indexOf(current)
+    const start = idx >= 0 ? idx : 0
+    const delta = direction === 'next' ? 1 : -1
+    const nextIdx = (start + delta + list.length) % list.length
+    setSelectedOutboundCallerId(list[nextIdx])
+  }
+
+  const is46Elks = computed(() => currentConfig.value?.providerId === '46elks')
+  const canCycleOutbound = computed(() => is46Elks.value && outboundCallerIds.value.length > 1)
+  const outboundLabel = computed(() => {
+    if (!is46Elks.value) return ''
+    return selectedOutboundCallerId.value || currentConfig.value?.providerMeta?.callerIdNumber || ''
+  })
 
   const callStatusLine1 = computed(() => {
     if (outboundBridge.value) {
@@ -205,6 +239,33 @@ export function usePhone() {
 
     currentConfig.value = config
 
+    // Setup 46elks outbound caller ID list for swipe switching
+    if (config.providerId === '46elks' && config.providerMeta?.callerIdNumber) {
+      outboundCallerIds.value =
+        config.providerMeta.callerIdNumbers && config.providerMeta.callerIdNumbers.length > 0
+          ? [...config.providerMeta.callerIdNumbers]
+          : [config.providerMeta.callerIdNumber]
+
+      const stored = (() => {
+        try {
+          return localStorage.getItem(OUTBOUND_NUMBER_KEY)
+        } catch {
+          return null
+        }
+      })()
+
+      const initial =
+        (stored && outboundCallerIds.value.includes(stored) && stored) ||
+        (outboundCallerIds.value.includes(config.providerMeta.callerIdNumber) &&
+          config.providerMeta.callerIdNumber) ||
+        outboundCallerIds.value[0]
+
+      setSelectedOutboundCallerId(initial)
+    } else {
+      outboundCallerIds.value = []
+      selectedOutboundCallerId.value = ''
+    }
+
     if (config.mode === 'multi') {
       connectionMode.value = 'multi'
       outboundBridge.value = null
@@ -305,16 +366,18 @@ export function usePhone() {
       throw new Error('46elks API credentials are required for outgoing calls')
     }
 
+    const callerIdNumber = selectedOutboundCallerId.value || meta.callerIdNumber
+
     // This follows 46elks documentation:
     // 1) Use the REST API to initiate a call to the WebRTC number
     // 2) When the WebRTC number answers, connect the PSTN destination
     const voiceStart = {
       connect: phoneNumber,
-      callerid: meta.callerIdNumber,
+      callerid: callerIdNumber,
     }
 
     const body = new URLSearchParams({
-      from: meta.callerIdNumber,
+      from: callerIdNumber,
       to: meta.webrtcNumber,
       voice_start: JSON.stringify(voiceStart),
     })
@@ -583,6 +646,11 @@ export function usePhone() {
     accounts,
     outboundAccountId,
     setOutboundAccount,
+
+    // Outbound identity
+    canCycleOutbound,
+    outboundLabel,
+    cycleOutbound: cycleOutboundCallerId,
 
     // Media devices
     audioInputDevices,

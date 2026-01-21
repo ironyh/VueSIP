@@ -233,7 +233,14 @@ onUnmounted(async () => {
       <div v-else-if="!showCallScreen" class="phone-interface">
         <!-- Tab Content -->
         <div class="tab-content">
-          <DialPad v-if="activeTab === 'dialpad'" @call="handleCall" @digit="handleDTMF" />
+          <DialPad
+            v-if="activeTab === 'dialpad'"
+            :outbound-label="phone.outboundLabel.value"
+            :can-cycle-outbound="phone.canCycleOutbound.value"
+            @cycle-outbound="phone.cycleOutbound"
+            @call="handleCall"
+            @digit="handleDTMF"
+          />
 
           <div v-else-if="activeTab === 'history'" class="history-view">
             <div v-if="phone.historyEntries.value.length === 0" class="empty-state">
