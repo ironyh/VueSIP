@@ -198,13 +198,27 @@ function handleClear() {
         @pointerdown="handleCallSwipePointerDown"
         @pointerup="handleCallSwipePointerUp"
       >
-        <button class="action-btn call" :disabled="!hasNumber" aria-label="Call">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-            />
-          </svg>
-        </button>
+        <div class="call-button-wrap">
+          <div v-if="props.canCycleOutbound" class="cycle-hint left" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </div>
+
+          <button class="action-btn call" :disabled="!hasNumber" aria-label="Call">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+              />
+            </svg>
+          </button>
+
+          <div v-if="props.canCycleOutbound" class="cycle-hint right" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </div>
+        </div>
         <div
           v-if="props.outboundPrimary"
           class="outbound-label"
@@ -339,6 +353,51 @@ function handleClear() {
   gap: 0.35rem;
   touch-action: pan-y;
   user-select: none;
+}
+
+.call-button-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cycle-hint {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  color: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+  animation: nudge 2.4s ease-in-out infinite;
+}
+
+.cycle-hint.left {
+  left: -26px;
+}
+
+.cycle-hint.right {
+  right: -26px;
+  animation-delay: 0.3s;
+}
+
+.cycle-hint svg {
+  width: 22px;
+  height: 22px;
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translateY(-50%) translateX(0);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translateY(-50%) translateX(2px);
+  }
 }
 
 .outbound-label {
