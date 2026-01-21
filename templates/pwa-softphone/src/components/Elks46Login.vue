@@ -361,18 +361,31 @@ function handleReset() {
         <div class="form-group">
           <label>Outbound Caller IDs</label>
           <p class="hint">
-            Enable the numbers you want in the swipe list (swipe Call button left/right).
+            Pick which outgoing lines are available on the dialpad. Add a name so you don’t have to
+            remember the number. Swipe the Call button left/right to switch.
           </p>
           <div class="numbers-list">
-            <label v-for="num in numbers" :key="num.id" class="number-toggle">
+            <div class="numbers-header">
+              <span class="numbers-header-col">Use</span>
+              <span class="numbers-header-col">Line Name</span>
+            </div>
+
+            <label v-for="num in numbers" :key="num.id" class="number-row">
               <input v-model="enabledNumbers[num.number]" type="checkbox" />
-              <span class="number">{{ num.number }}</span>
-              <input
-                v-model="numberLabels[num.number]"
-                class="label-input"
-                type="text"
-                placeholder="Label (optional)"
-              />
+
+              <div class="number-meta">
+                <input
+                  v-model="numberLabels[num.number]"
+                  class="label-input"
+                  type="text"
+                  placeholder="Line name (e.g. Sales)"
+                />
+
+                <div class="number-caption">
+                  <span class="number">{{ num.number }}</span>
+                  <span v-if="num.name" class="provider-name">{{ num.name }}</span>
+                </div>
+              </div>
             </label>
           </div>
         </div>
@@ -507,30 +520,70 @@ function handleReset() {
   padding: 0.25rem 0;
 }
 
-.number-toggle {
-  display: flex;
-  align-items: baseline;
+.numbers-header {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  padding: 0 0.75rem;
+  color: var(--text-tertiary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.numbers-header-col {
+  padding: 0.15rem 0;
+}
+
+.number-row {
+  display: grid;
+  grid-template-columns: 28px 1fr;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  align-items: start;
+  padding: 0.6rem 0.75rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
 }
 
-.number-toggle input {
+.number-row input[type='checkbox'] {
   width: 18px;
   height: 18px;
+  margin-top: 0.2rem;
   accent-color: var(--color-primary);
 }
 
-.number-toggle .number {
-  font-weight: 600;
+.number-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.label-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   color: var(--text-primary);
 }
 
-.number-toggle .name {
-  font-size: 0.75rem;
+.number-caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.number-caption .number {
+  font-weight: 600;
   color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.provider-name {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
 }
 
 .form-group input::placeholder {
