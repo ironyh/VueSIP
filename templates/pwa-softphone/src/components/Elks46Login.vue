@@ -49,6 +49,9 @@ const savedPhoneNumber = ref<string | null>(null)
 const enabledNumbers = ref<Record<string, boolean>>({})
 const numberLabels = ref<Record<string, string>>({})
 
+const appOrigin = ref('')
+const copyStatus = ref<string | null>(null)
+
 // Form validation
 const isLoginFormValid = computed(
   () => apiUsername.value.trim().length > 0 && apiPassword.value.trim().length > 0
@@ -56,6 +59,12 @@ const isLoginFormValid = computed(
 
 // Load saved credentials on mount
 onMounted(() => {
+  try {
+    appOrigin.value = window.location.origin
+  } catch {
+    appOrigin.value = ''
+  }
+
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
@@ -89,6 +98,39 @@ onMounted(() => {
     // ignore
   }
 })
+
+const inboundConnectTarget = computed(() => selectedNumber.value?.number || '')
+
+const voiceStartJson = computed(() => {
+  const target = inboundConnectTarget.value
+  if (!target) return ''
+  return JSON.stringify({ connect: target })
+})
+
+const voiceStartUrl = computed(() => {
+  const target = inboundConnectTarget.value
+  const origin = appOrigin.value
+  if (!target || !origin) return ''
+  return `${origin}/elks/calls?connect=${encodeURIComponent(target)}`
+})
+
+async function copyText(label: string, value: string) {
+  const text = String(value ?? '').trim()
+  if (!text) return
+
+  try {
+    await navigator.clipboard.writeText(text)
+    copyStatus.value = `${label} copied`
+  } catch {
+    // Fallback: use prompt which still allows copy
+    window.prompt(`Copy ${label}:`, text)
+    copyStatus.value = `${label} ready to copy`
+  }
+
+  window.setTimeout(() => {
+    if (copyStatus.value?.startsWith(label)) copyStatus.value = null
+  }, 2500)
+}
 
 watch(
   enabledNumbers,
@@ -359,6 +401,55 @@ function handleReset() {
         </div>
 
         <div class="form-group">
+          <label>Incoming calls (voice_start)</label>
+          <p class="hint">
+            To make your 46elks numbers ring in this softphone, each number must have a
+            <code>voice_start</code> configured in the 46elks dashboard. You can either paste a JSON
+            call action directly, or point to a webhook URL.
+          </p>
+
+          <div v-if="inboundConnectTarget" class="voice-start">
+            <p class="hint">
+              Destination (your WebRTC number): <strong>{{ inboundConnectTarget }}</strong>
+            </p>
+
+            <div class="voice-start-row">
+              <div class="voice-start-title">Option 1 (recommended): paste JSON</div>
+              <div class="voice-start-controls">
+                <input class="voice-start-input" :value="voiceStartJson" readonly />
+                <button type="button" class="copy-btn" @click="copyText('JSON', voiceStartJson)">
+                  Copy
+                </button>
+              </div>
+              <p class="hint">
+                In 46elks: Numbers -> select number -> set <code>voice_start</code> to the JSON.
+              </p>
+            </div>
+
+            <div class="voice-start-row" v-if="voiceStartUrl">
+              <div class="voice-start-title">Option 2: webhook URL</div>
+              <div class="voice-start-controls">
+                <input class="voice-start-input" :value="voiceStartUrl" readonly />
+                <button type="button" class="copy-btn" @click="copyText('URL', voiceStartUrl)">
+                  Copy
+                </button>
+              </div>
+              <p class="hint">
+                This works when the softphone is deployed with the 46elks webhook endpoint at
+                <code>/elks/calls</code>.
+              </p>
+            </div>
+
+            <p v-if="copyStatus" class="hint copied">{{ copyStatus }}</p>
+          </div>
+
+          <p v-else class="hint">
+            Select a phone number first. We will generate the <code>voice_start</code> values for
+            you.
+          </p>
+        </div>
+
+        <div class="form-group">
           <label>Outbound Caller IDs</label>
           <p class="hint">
             Pick which outgoing lines are available on the dialpad. Add a name so you don’t have to
@@ -511,6 +602,67 @@ function handleReset() {
   margin: 0;
   font-size: 0.75rem;
   color: var(--text-tertiary);
+}
+
+.voice-start {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.voice-start-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.voice-start-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.voice-start-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.voice-start-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.8rem;
+}
+
+.copy-btn {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  border-color: var(--color-primary);
+}
+
+.copied {
+  color: var(--text-secondary);
 }
 
 .numbers-list {

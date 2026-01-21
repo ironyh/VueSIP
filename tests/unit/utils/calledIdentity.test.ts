@@ -3,6 +3,50 @@ import { describe, expect, it } from 'vitest'
 import { extractCalledIdentity } from '../../../src/utils/calledIdentity'
 
 describe('calledIdentity extraction', () => {
+  it('extracts dialed/target for a typical 46elks direct INVITE (Request-URI + To)', () => {
+    const request = {
+      ruri: 'sip:46700000000@voip.46elks.com',
+      headers: {
+        To: '<sip:46700000000@voip.46elks.com>',
+      },
+    } as any
+
+    const res = extractCalledIdentity(request)
+
+    expect(res.target?.raw).toBe('46700000000')
+    expect(res.dialed?.raw).toBe('46700000000')
+  })
+
+  it('prefers P-Called-Party-ID for dialed when present (Telnyx-like)', () => {
+    const request = {
+      ruri: 'sip:+15551234@sip.telnyx.com',
+      headers: {
+        To: '<sip:1001@sip.telnyx.com>',
+        'P-Called-Party-ID': '<sip:+15551234@sip.telnyx.com>',
+      },
+    } as any
+
+    const res = extractCalledIdentity(request)
+
+    expect(res.target?.raw).toBe('+15551234')
+    expect(res.dialed?.raw).toBe('+15551234')
+  })
+
+  it('keeps target as extension when PBX rewrites INVITE but preserves dialed DID (FreePBX-like)', () => {
+    const request = {
+      ruri: 'sip:1001@pbx.example.com',
+      headers: {
+        To: '<sip:1001@pbx.example.com>',
+        'P-Called-Party-ID': '<sip:+15550000@pbx.example.com>',
+      },
+    } as any
+
+    const res = extractCalledIdentity(request)
+
+    expect(res.target?.raw).toBe('1001')
+    expect(res.dialed?.raw).toBe('+15550000')
+  })
+
   it('prefers lowest History-Info index for dialed', () => {
     const request = {
       headers: {

@@ -17,7 +17,12 @@ const NUMBER_LABELS_KEY = 'vuesip_46elks_number_labels'
 const enabledNumbers = ref<Record<string, boolean>>({})
 const numberLabels = ref<Record<string, string>>({})
 
-const savedCredentials = ref<{ username: string; password: string } | null>(null)
+const savedCredentials = ref<{ username: string; password: string; phoneNumber?: string } | null>(
+  null
+)
+
+const appOrigin = ref('')
+const copyStatus = ref<string | null>(null)
 
 const { isLoading, error, isAuthenticated, numbers, authenticate, clear } = use46ElksApi()
 
@@ -25,9 +30,13 @@ const loadCredentials = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return
-    const parsed = JSON.parse(raw) as { username?: string; password?: string }
+    const parsed = JSON.parse(raw) as { username?: string; password?: string; phoneNumber?: string }
     if (parsed?.username && parsed?.password) {
-      savedCredentials.value = { username: parsed.username, password: parsed.password }
+      savedCredentials.value = {
+        username: parsed.username,
+        password: parsed.password,
+        phoneNumber: parsed.phoneNumber,
+      }
     }
   } catch {
     // ignore
@@ -64,9 +73,50 @@ function persistPrefs() {
 }
 
 onMounted(() => {
+  try {
+    appOrigin.value = window.location.origin
+  } catch {
+    appOrigin.value = ''
+  }
   loadCredentials()
   loadPrefs()
 })
+
+const inboundConnectTarget = computed(() => {
+  const raw = String(savedCredentials.value?.phoneNumber || '').trim()
+  if (!raw) return ''
+  return raw.startsWith('+') ? raw : `+${raw}`
+})
+
+const voiceStartJson = computed(() => {
+  const target = inboundConnectTarget.value
+  if (!target) return ''
+  return JSON.stringify({ connect: target })
+})
+
+const voiceStartUrl = computed(() => {
+  const target = inboundConnectTarget.value
+  const origin = appOrigin.value
+  if (!target || !origin) return ''
+  return `${origin}/elks/calls?connect=${encodeURIComponent(target)}`
+})
+
+async function copyText(label: string, value: string) {
+  const text = String(value ?? '').trim()
+  if (!text) return
+
+  try {
+    await navigator.clipboard.writeText(text)
+    copyStatus.value = `${label} copied`
+  } catch {
+    window.prompt(`Copy ${label}:`, text)
+    copyStatus.value = `${label} ready to copy`
+  }
+
+  window.setTimeout(() => {
+    if (copyStatus.value?.startsWith(label)) copyStatus.value = null
+  }, 2500)
+}
 
 watch(
   enabledNumbers,
@@ -123,6 +173,40 @@ function displayNameForNumber(num: string): string {
       remember numbers.
     </p>
 
+    <div v-if="inboundConnectTarget" class="info">
+      <div class="info-title">Incoming calls (voice_start)</div>
+      <p class="hint">
+        To make your 46elks numbers ring in this browser, configure <code>voice_start</code> for
+        each number in the 46elks dashboard.
+      </p>
+
+      <p class="hint">
+        Destination (your WebRTC number): <strong>{{ inboundConnectTarget }}</strong>
+      </p>
+
+      <div class="voice-start-row">
+        <div class="voice-start-title">Option 1 (recommended): paste JSON</div>
+        <div class="voice-start-controls">
+          <input class="voice-start-input" :value="voiceStartJson" readonly />
+          <button type="button" class="copy-btn" @click="copyText('JSON', voiceStartJson)">
+            Copy
+          </button>
+        </div>
+      </div>
+
+      <div v-if="voiceStartUrl" class="voice-start-row">
+        <div class="voice-start-title">Option 2: webhook URL</div>
+        <div class="voice-start-controls">
+          <input class="voice-start-input" :value="voiceStartUrl" readonly />
+          <button type="button" class="copy-btn" @click="copyText('URL', voiceStartUrl)">
+            Copy
+          </button>
+        </div>
+      </div>
+
+      <p v-if="copyStatus" class="hint">{{ copyStatus }}</p>
+    </div>
+
     <div v-if="!savedCredentials" class="info">
       Save your 46elks credentials during login ("Remember credentials") to refresh your numbers
       here.
@@ -178,6 +262,58 @@ function displayNameForNumber(num: string): string {
   color: var(--text-secondary);
   font-size: 0.875rem;
   margin: 0.5rem 0 1rem;
+}
+
+.info-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--text-primary);
+}
+
+.voice-start-row {
+  margin-top: 0.6rem;
+}
+
+.voice-start-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.voice-start-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.voice-start-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.8rem;
+}
+
+.copy-btn {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  border-color: var(--color-primary);
 }
 
 .error {
