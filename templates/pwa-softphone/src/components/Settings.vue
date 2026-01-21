@@ -3,39 +3,16 @@ import { ref, computed, onMounted } from 'vue'
 import ProviderSelector from './ProviderSelector.vue'
 import Elks46Login from './Elks46Login.vue'
 import TelnyxLogin from './TelnyxLogin.vue'
+import MultiAccountSettings from './MultiAccountSettings.vue'
 
-type ProviderId = '46elks' | 'telnyx' | 'custom'
+type ProviderId = '46elks' | 'telnyx' | 'custom' | 'advanced'
 
 defineProps<{
   isConnecting: boolean
   errorMessage?: string
 }>()
 
-const emit = defineEmits<{
-  connect: [
-    config:
-      | {
-          providerId: '46elks'
-          uri: string
-          sipUri: string
-          password: string
-          displayName?: string
-          providerMeta: {
-            apiUsername: string
-            apiPassword: string
-            callerIdNumber: string
-            webrtcNumber: string
-          }
-        }
-      | {
-          providerId: 'telnyx' | 'custom'
-          uri: string
-          sipUri: string
-          password: string
-          displayName?: string
-        },
-  ]
-}>()
+const emit = defineEmits<{ connect: [config: any] }>()
 
 // Current view state
 const selectedProvider = ref<ProviderId | null>(null)
@@ -152,6 +129,15 @@ function handleCustomSubmit() {
     <!-- Telnyx Login -->
     <TelnyxLogin
       v-else-if="selectedProvider === 'telnyx'"
+      :is-connecting="isConnecting"
+      :error-message="errorMessage"
+      @connect="handleConnect"
+      @back="handleBack"
+    />
+
+    <!-- Advanced Multi-Account -->
+    <MultiAccountSettings
+      v-else-if="selectedProvider === 'advanced'"
       :is-connecting="isConnecting"
       :error-message="errorMessage"
       @connect="handleConnect"

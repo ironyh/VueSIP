@@ -4,6 +4,7 @@
 import { ref, computed, watch } from 'vue'
 import {
   useSipClient,
+  useMultiSipClient,
   useCallSession,
   useMediaDevices,
   useCallHistory,
@@ -12,10 +13,10 @@ import {
 } from 'vuesip'
 
 export interface PhoneConfig {
-  providerId: '46elks' | 'telnyx' | 'custom'
-  uri: string
-  sipUri: string
-  password: string
+  providerId?: '46elks' | 'telnyx' | 'custom'
+  uri?: string
+  sipUri?: string
+  password?: string
   displayName?: string
   providerMeta?: {
     apiUsername: string
@@ -23,12 +24,26 @@ export interface PhoneConfig {
     callerIdNumber: string
     webrtcNumber: string
   }
+
+  // Advanced multi-account mode
+  mode?: 'multi'
+  accounts?: Array<{
+    id: string
+    name: string
+    uri: string
+    sipUri: string
+    password: string
+    displayName?: string
+    enabled: boolean
+  }>
+  outboundAccountId?: string | null
 }
 
 export function usePhone() {
   // Connection state
   const isConfigured = ref(false)
   const currentConfig = ref<PhoneConfig | null>(null)
+  const connectionMode = ref<'single' | 'multi'>('single')
   const isSpeakerOn = ref(false)
 
   type OutboundBridgeStage = 'requesting' | 'ringing-webrtc' | 'bridging' | 'connected'
@@ -82,28 +97,68 @@ export function usePhone() {
 
   // Call Session
   const callSession = useCallSession(clientRef)
-  const {
-    session,
-    makeCall,
-    hangup,
-    answer,
-    reject,
-    hold,
-    unhold,
-    mute,
-    unmute,
-    toggleHold,
-    toggleMute,
-    sendDTMF,
-    state: callState,
-    isActive,
-    isOnHold,
-    isMuted,
-    remoteUri,
-    remoteDisplayName,
-    duration,
-    direction,
-  } = callSession
+
+  // Multi-account support (advanced)
+  const multiSipClient = useMultiSipClient()
+
+  const multiIncomingAccountId = computed(
+    () => multiSipClient.incomingCalls.value[0]?.accountId ?? null
+  )
+
+  const multiIncomingCallSession = computed(() => {
+    const id = multiIncomingAccountId.value
+    if (!id) return null
+    return multiSipClient.accounts.value.get(id)?.callSession ?? null
+  })
+
+  const multiActiveCallSession = computed(
+    () => multiSipClient.activeAccount.value?.callSession ?? null
+  )
+
+  const effectiveCallSession = computed(() => {
+    if (connectionMode.value === 'single') return callSession
+    return multiIncomingCallSession.value ?? multiActiveCallSession.value
+  })
+
+  const session = computed(() => effectiveCallSession.value?.session.value ?? null)
+  const callState = computed(() => effectiveCallSession.value?.state.value ?? 'idle')
+  const isActive = computed(() => effectiveCallSession.value?.isActive.value ?? false)
+  const isOnHold = computed(() => effectiveCallSession.value?.isOnHold.value ?? false)
+  const isMuted = computed(() => effectiveCallSession.value?.isMuted.value ?? false)
+  const remoteUri = computed(() => effectiveCallSession.value?.remoteUri.value ?? null)
+  const remoteDisplayName = computed(
+    () => effectiveCallSession.value?.remoteDisplayName.value ?? null
+  )
+  const duration = computed(() => effectiveCallSession.value?.duration.value ?? 0)
+  const direction = computed(() => effectiveCallSession.value?.direction.value ?? null)
+
+  async function hold() {
+    await effectiveCallSession.value?.hold?.()
+  }
+
+  async function unhold() {
+    await effectiveCallSession.value?.unhold?.()
+  }
+
+  async function toggleHold() {
+    await effectiveCallSession.value?.toggleHold?.()
+  }
+
+  function mute() {
+    effectiveCallSession.value?.mute?.()
+  }
+
+  function unmute() {
+    effectiveCallSession.value?.unmute?.()
+  }
+
+  function toggleMute() {
+    effectiveCallSession.value?.toggleMute?.()
+  }
+
+  async function sendDTMF(tone: string) {
+    await effectiveCallSession.value?.sendDTMF?.(tone)
+  }
 
   const calledLine = computed(() => {
     const s = session.value as any
@@ -149,6 +204,57 @@ export function usePhone() {
     })()
 
     currentConfig.value = config
+
+    if (config.mode === 'multi') {
+      connectionMode.value = 'multi'
+      outboundBridge.value = null
+      autoAnswerIncomingUntil.value = 0
+
+      const accounts = (config.accounts ?? []).filter((a) => a.enabled)
+      if (accounts.length === 0) {
+        throw new Error('Add at least one enabled SIP account')
+      }
+
+      // Clear any existing registered accounts
+      for (const [id] of multiSipClient.accounts.value) {
+        await multiSipClient.removeAccount(id)
+      }
+
+      for (const a of accounts) {
+        await multiSipClient.addAccount({
+          id: a.id,
+          name: a.name,
+          sip: {
+            uri: a.uri,
+            sipUri: a.sipUri,
+            password: a.password,
+            displayName: a.displayName || a.name,
+            debug: debugEnabled,
+            rtcConfiguration: {
+              iceServers: [
+                {
+                  urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'],
+                },
+              ],
+            },
+          },
+          outboundCapable: true,
+        })
+      }
+
+      if (config.outboundAccountId && multiSipClient.accounts.value.has(config.outboundAccountId)) {
+        multiSipClient.setOutboundAccount(config.outboundAccountId)
+      }
+
+      isConfigured.value = true
+      return
+    }
+
+    connectionMode.value = 'single'
+    if (!config.uri || !config.sipUri || !config.password) {
+      throw new Error('Missing SIP configuration')
+    }
+
     updateConfig({
       uri: config.uri,
       sipUri: config.sipUri,
@@ -244,12 +350,24 @@ export function usePhone() {
     if (!isConfigured.value) {
       throw new Error('Phone not configured. Call configure() first.')
     }
-    await connect()
+
+    if (connectionMode.value === 'multi') {
+      await multiSipClient.connectAll()
+    } else {
+      await connect()
+    }
     await enumerateDevices()
   }
 
   async function disconnectPhone() {
-    await disconnect()
+    if (connectionMode.value === 'multi') {
+      await multiSipClient.disconnectAll()
+      for (const [id] of multiSipClient.accounts.value) {
+        await multiSipClient.removeAccount(id)
+      }
+    } else {
+      await disconnect()
+    }
     isConfigured.value = false
     currentConfig.value = null
   }
@@ -272,7 +390,49 @@ export function usePhone() {
     return buildSipUri(trimmed, domain)
   }
 
+  async function makeCall(target: string) {
+    if (connectionMode.value === 'multi') {
+      await multiSipClient.makeCall(target)
+      return
+    }
+    await callSession.makeCall(target)
+  }
+
+  async function hangup() {
+    if (connectionMode.value === 'multi') {
+      await multiSipClient.hangup()
+      return
+    }
+    await callSession.hangup()
+  }
+
+  async function answer() {
+    if (connectionMode.value === 'multi') {
+      const incomingId = multiIncomingAccountId.value
+      if (!incomingId) throw new Error('No incoming call to answer')
+      await multiSipClient.answerCall(incomingId)
+      return
+    }
+    await callSession.answer()
+  }
+
+  async function reject() {
+    if (connectionMode.value === 'multi') {
+      const incomingId = multiIncomingAccountId.value
+      if (!incomingId) return
+      await multiSipClient.rejectCall(incomingId)
+      return
+    }
+    await callSession.reject()
+  }
+
   async function call(target: string) {
+    if (connectionMode.value === 'multi') {
+      // useMultiSipClient will build proper SIP URIs per-account when needed.
+      await makeCall(target.trim())
+      return
+    }
+
     const domain = extractSipDomain(currentConfig.value?.sipUri ?? '')
     const is46Elks = currentConfig.value?.providerId === '46elks' || domain?.includes('46elks.com')
 
@@ -341,6 +501,41 @@ export function usePhone() {
   // Get recent calls for display
   const historyEntries = computed(() => getRecentCalls(50))
 
+  const effectiveIsConnected = computed(() => {
+    if (connectionMode.value === 'multi') {
+      return multiSipClient.stats.value.connectedAccounts > 0
+    }
+    return isConnected.value
+  })
+
+  const effectiveIsRegistered = computed(() => {
+    if (connectionMode.value === 'multi') {
+      return multiSipClient.stats.value.registeredAccounts > 0
+    }
+    return isRegistered.value
+  })
+
+  const effectiveIsConnecting = computed(() => {
+    if (connectionMode.value === 'multi') {
+      return (multiSipClient.accountList.value as any[]).some((a: any) => a.isConnecting)
+    }
+    return isConnecting.value
+  })
+
+  const effectiveSipError = computed(() => {
+    if (connectionMode.value === 'multi') {
+      const first = (multiSipClient.accountList.value as any[]).find((a: any) => a.error)
+      return first?.error ? new Error(first.error) : null
+    }
+    return sipError.value
+  })
+
+  const accounts = computed(() => multiSipClient.accountList.value)
+  const outboundAccountId = computed(() => multiSipClient.outboundAccountId.value)
+  function setOutboundAccount(id: string) {
+    multiSipClient.setOutboundAccount(id)
+  }
+
   return {
     // Configuration
     configure,
@@ -350,10 +545,10 @@ export function usePhone() {
     // Connection
     connectPhone,
     disconnectPhone,
-    isConnected,
-    isRegistered,
-    isConnecting,
-    sipError,
+    isConnected: effectiveIsConnected,
+    isRegistered: effectiveIsRegistered,
+    isConnecting: effectiveIsConnecting,
+    sipError: effectiveSipError,
 
     // Call controls
     call,
@@ -383,6 +578,11 @@ export function usePhone() {
     callStatusLine1,
     callStatusLine2,
     calledLine,
+
+    // Multi-account
+    accounts,
+    outboundAccountId,
+    setOutboundAccount,
 
     // Media devices
     audioInputDevices,

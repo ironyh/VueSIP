@@ -111,19 +111,7 @@ async function handleEndCall() {
   }
 }
 
-async function handleConnect(config: {
-  providerId: '46elks' | 'telnyx' | 'custom'
-  uri: string
-  sipUri: string
-  password: string
-  displayName?: string
-  providerMeta?: {
-    apiUsername: string
-    apiPassword: string
-    callerIdNumber: string
-    webrtcNumber: string
-  }
-}) {
+async function handleConnect(config: any) {
   try {
     statusMessage.value = ''
     await phone.configure(config)
@@ -290,6 +278,21 @@ onUnmounted(async () => {
           </div>
 
           <div v-else-if="activeTab === 'settings'" class="settings-view">
+            <div v-if="phone.accounts.value.length > 0" class="settings-section">
+              <h3>Accounts</h3>
+              <div class="setting-item">
+                <label>Outbound Account</label>
+                <select
+                  :value="phone.outboundAccountId.value || ''"
+                  @change="(e) => phone.setOutboundAccount((e.target as HTMLSelectElement).value)"
+                >
+                  <option v-for="acc in phone.accounts.value" :key="acc.id" :value="acc.id">
+                    {{ acc.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
             <div class="settings-section">
               <h3>Audio Devices</h3>
 

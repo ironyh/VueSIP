@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-type ProviderId = '46elks' | 'telnyx' | 'custom'
+type ProviderId = '46elks' | 'telnyx' | 'custom' | 'advanced'
 
 interface Provider {
   id: ProviderId
@@ -28,6 +28,12 @@ const providers: Provider[] = [
     name: 'Custom PBX',
     description: 'Manual SIP configuration',
     icon: '🔧',
+  },
+  {
+    id: 'advanced',
+    name: 'Advanced',
+    description: 'Multi-account mode',
+    icon: '🧰',
   },
 ]
 
