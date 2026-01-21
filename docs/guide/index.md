@@ -60,6 +60,20 @@ Handle incoming calls with proper notification, queueing, and answering logic.
 
 ---
 
+### [Multi-DID Routing](/guide/multi-did)
+
+Extract and display the called number / line identity (DID) across providers and PBX setups.
+
+**What you'll learn:**
+
+- How called-number identity is preserved in SIP
+- Which headers to expect across providers
+- Configuring `calledIdentity` presets and precedence
+
+**Recommended for:** Multi-DID trunks, PBX integrations, multi-account UIs
+
+---
+
 ### [Call Controls](/guide/call-controls)
 
 Implement essential call control features like hold, mute, transfer, and DTMF.
