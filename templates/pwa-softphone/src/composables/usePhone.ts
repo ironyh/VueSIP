@@ -85,12 +85,53 @@ export function usePhone() {
     setSelectedOutboundCallerId(list[nextIdx])
   }
 
+  function cycleOutboundAccount(direction: 'prev' | 'next') {
+    const list = (multiSipClient.accountList.value as any[]).map((a) => ({
+      id: a.id as string,
+      name: a.name as string,
+    }))
+    if (list.length <= 1) return
+
+    const current = multiSipClient.outboundAccountId.value
+    const idx = list.findIndex((a) => a.id === current)
+    const start = idx >= 0 ? idx : 0
+    const delta = direction === 'next' ? 1 : -1
+    const nextIdx = (start + delta + list.length) % list.length
+    multiSipClient.setOutboundAccount(list[nextIdx].id)
+  }
+
   const is46Elks = computed(() => currentConfig.value?.providerId === '46elks')
-  const canCycleOutbound = computed(() => is46Elks.value && outboundCallerIds.value.length > 1)
-  const outboundLabel = computed(() => {
-    if (!is46Elks.value) return ''
-    return selectedOutboundCallerId.value || currentConfig.value?.providerMeta?.callerIdNumber || ''
+  const canCycleOutbound = computed(() => {
+    if (connectionMode.value === 'multi') {
+      return (multiSipClient.accountList.value as any[]).length > 1
+    }
+    return is46Elks.value && outboundCallerIds.value.length > 1
   })
+
+  const outboundLabel = computed(() => {
+    if (connectionMode.value === 'multi') {
+      const id = multiSipClient.outboundAccountId.value
+      const account = (multiSipClient.accountList.value as any[]).find((a: any) => a.id === id)
+      const name = account?.name || id
+      return name ? `Account: ${name}` : ''
+    }
+
+    if (!is46Elks.value) return ''
+    const num =
+      selectedOutboundCallerId.value || currentConfig.value?.providerMeta?.callerIdNumber || ''
+    return num ? `From: ${num}` : ''
+  })
+
+  function cycleOutbound(direction: 'prev' | 'next') {
+    if (!canCycleOutbound.value) return
+    if (connectionMode.value === 'multi') {
+      cycleOutboundAccount(direction)
+      return
+    }
+    if (is46Elks.value) {
+      cycleOutboundCallerId(direction)
+    }
+  }
 
   const callStatusLine1 = computed(() => {
     if (outboundBridge.value) {
@@ -650,7 +691,7 @@ export function usePhone() {
     // Outbound identity
     canCycleOutbound,
     outboundLabel,
-    cycleOutbound: cycleOutboundCallerId,
+    cycleOutbound,
 
     // Media devices
     audioInputDevices,
