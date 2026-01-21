@@ -43,7 +43,12 @@ watch(
       // Show push notification if app is in background
       if (document.hidden && pushPermissionGranted.value) {
         showNotification('Incoming Call', {
-          body: phone.remoteDisplayName.value || phone.remoteUri.value || 'Unknown Caller',
+          body: [
+            phone.remoteDisplayName.value || phone.remoteUri.value || 'Unknown Caller',
+            phone.calledLine.value ? `Line: ${phone.calledLine.value}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n'),
           tag: 'incoming-call',
           requireInteraction: true,
         })
@@ -190,6 +195,7 @@ onUnmounted(async () => {
           :duration="phone.duration.value"
           :status-line1="phone.callStatusLine1.value"
           :status-line2="phone.callStatusLine2.value"
+          :called-line="phone.calledLine.value"
           @end-call="handleEndCall"
           @toggle-hold="phone.toggleHold"
           @toggle-mute="phone.toggleMute"
@@ -204,6 +210,7 @@ onUnmounted(async () => {
           v-if="showIncomingModal"
           :caller-name="phone.remoteDisplayName.value || 'Unknown'"
           :caller-number="phone.remoteUri.value || ''"
+          :called-line="phone.calledLine.value"
           @answer="handleAnswer"
           @reject="handleReject"
         />

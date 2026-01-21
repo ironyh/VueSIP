@@ -83,6 +83,7 @@ export function usePhone() {
   // Call Session
   const callSession = useCallSession(clientRef)
   const {
+    session,
     makeCall,
     hangup,
     answer,
@@ -103,6 +104,22 @@ export function usePhone() {
     duration,
     direction,
   } = callSession
+
+  const calledLine = computed(() => {
+    const s = session.value as any
+    if (!s) return ''
+    return (
+      s.calledNumberDialed?.raw ||
+      s.calledNumberTarget?.raw ||
+      s.calledIdentity?.dialed?.raw ||
+      s.calledIdentity?.target?.raw ||
+      s.data?.calledNumberDialed?.raw ||
+      s.data?.calledNumberTarget?.raw ||
+      s.data?.calledIdentity?.dialed?.raw ||
+      s.data?.calledIdentity?.target?.raw ||
+      ''
+    )
+  })
 
   // Media Devices
   const mediaDevices = useMediaDevices()
@@ -365,6 +382,7 @@ export function usePhone() {
     shouldAutoAnswerIncoming,
     callStatusLine1,
     callStatusLine2,
+    calledLine,
 
     // Media devices
     audioInputDevices,

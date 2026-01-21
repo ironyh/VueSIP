@@ -11,6 +11,7 @@ const props = defineProps<{
   duration: number
   statusLine1?: string
   statusLine2?: string
+  calledLine?: string
 }>()
 
 const emit = defineEmits<{
@@ -73,6 +74,7 @@ function handleDtmf(digit: string) {
       <p v-if="props.statusLine2" class="call-status secondary">
         {{ props.statusLine2 }}
       </p>
+      <p v-if="props.calledLine" class="call-status secondary">Line: {{ props.calledLine }}</p>
     </div>
 
     <!-- DTMF Keypad -->

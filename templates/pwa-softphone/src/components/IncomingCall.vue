@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted } from 'vue'
 const props = defineProps<{
   callerName: string
   callerNumber: string
+  calledLine?: string
 }>()
 
 const emit = defineEmits<{
@@ -49,6 +50,7 @@ onUnmounted(() => {
         </div>
         <h2 class="caller-name">{{ callerName }}</h2>
         <p v-if="callerNumber" class="caller-number">{{ callerNumber }}</p>
+        <p v-if="calledLine" class="called-line">Line: {{ calledLine }}</p>
         <p class="call-label">Incoming call</p>
       </div>
 
@@ -166,6 +168,12 @@ onUnmounted(() => {
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.7);
   margin: 0.5rem 0 0;
+}
+
+.called-line {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0.35rem 0 0;
 }
 
 .call-label {

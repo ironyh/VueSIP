@@ -136,10 +136,13 @@ export function usePushNotifications() {
    */
   async function showIncomingCallNotification(
     callerName: string,
-    callerNumber?: string
+    callerNumber?: string,
+    calledLine?: string
   ): Promise<void> {
     await showNotification('Incoming Call', {
-      body: callerNumber ? `${callerName}\n${callerNumber}` : callerName,
+      body: [callerName, callerNumber, calledLine ? `Line: ${calledLine}` : '']
+        .filter(Boolean)
+        .join('\n'),
       tag: 'incoming-call',
       requireInteraction: true,
       vibrate: [200, 100, 200, 100, 200],
@@ -151,6 +154,7 @@ export function usePushNotifications() {
         type: 'incoming-call',
         callerName,
         callerNumber,
+        calledLine,
       },
     })
   }
