@@ -2,7 +2,9 @@
 import { computed, ref } from 'vue'
 
 const props = defineProps<{
-  outboundLabel?: string
+  outboundPrimary?: string
+  outboundSecondary?: string
+  outboundTitle?: string
   canCycleOutbound?: boolean
 }>()
 
@@ -17,6 +19,47 @@ const hasNumber = computed(() => !!phoneNumber.value)
 
 const swipeStartX = ref<number | null>(null)
 const swipePointerId = ref<number | null>(null)
+
+const revealSecondary = ref(false)
+let revealTimer: number | null = null
+let pressTimer: number | null = null
+
+function clearRevealTimer() {
+  if (revealTimer !== null) {
+    window.clearTimeout(revealTimer)
+    revealTimer = null
+  }
+}
+
+function clearPressTimer() {
+  if (pressTimer !== null) {
+    window.clearTimeout(pressTimer)
+    pressTimer = null
+  }
+}
+
+function startRevealSecondary() {
+  if (!props.outboundSecondary) return
+  revealSecondary.value = true
+  clearRevealTimer()
+  revealTimer = window.setTimeout(() => {
+    revealSecondary.value = false
+    revealTimer = null
+  }, 2500)
+}
+
+function handleOutboundPointerDown() {
+  if (!props.outboundSecondary) return
+  clearPressTimer()
+  pressTimer = window.setTimeout(() => {
+    startRevealSecondary()
+    pressTimer = null
+  }, 450)
+}
+
+function handleOutboundPointerUp() {
+  clearPressTimer()
+}
 
 function handleCycle(direction: 'prev' | 'next') {
   emit('cycleOutbound', direction)
@@ -162,7 +205,20 @@ function handleClear() {
             />
           </svg>
         </button>
-        <div v-if="props.outboundLabel" class="outbound-label">{{ props.outboundLabel }}</div>
+        <div
+          v-if="props.outboundPrimary"
+          class="outbound-label"
+          :title="props.outboundTitle || props.outboundSecondary || props.outboundPrimary"
+          @pointerdown="handleOutboundPointerDown"
+          @pointerup="handleOutboundPointerUp"
+          @pointercancel="handleOutboundPointerUp"
+          @contextmenu.prevent
+        >
+          <div class="outbound-primary">{{ props.outboundPrimary }}</div>
+          <div v-if="props.outboundSecondary && revealSecondary" class="outbound-secondary">
+            {{ props.outboundSecondary }}
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -291,6 +347,16 @@ function handleClear() {
   max-width: 180px;
   text-align: center;
   line-height: 1.1;
+}
+
+.outbound-primary {
+  color: var(--text-secondary);
+}
+
+.outbound-secondary {
+  margin-top: 2px;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
 }
 
 .action-btn {

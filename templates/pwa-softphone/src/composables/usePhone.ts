@@ -112,7 +112,7 @@ export function usePhone() {
     return is46Elks.value && outboundCallerIds.value.length > 1
   })
 
-  const outboundLabel = computed(() => {
+  const outboundPrimary = computed(() => {
     if (connectionMode.value === 'multi') {
       const id = multiSipClient.outboundAccountId.value
       const account = (multiSipClient.accountList.value as any[]).find((a: any) => a.id === id)
@@ -125,7 +125,28 @@ export function usePhone() {
       selectedOutboundCallerId.value || currentConfig.value?.providerMeta?.callerIdNumber || ''
     if (!num) return ''
     const label = callerIdNumberLabels.value[num]
-    return label ? `From: ${label} (${num})` : `From: ${num}`
+    return label ? `From: ${label}` : `From: ${num}`
+  })
+
+  const outboundSecondary = computed(() => {
+    if (connectionMode.value === 'multi') return ''
+    if (!is46Elks.value) return ''
+    const num =
+      selectedOutboundCallerId.value || currentConfig.value?.providerMeta?.callerIdNumber || ''
+    if (!num) return ''
+    const label = callerIdNumberLabels.value[num]
+    return label ? num : ''
+  })
+
+  const outboundTitle = computed(() => {
+    if (connectionMode.value === 'multi') {
+      const id = multiSipClient.outboundAccountId.value
+      return id ? `Outbound account: ${id}` : ''
+    }
+    if (!is46Elks.value) return ''
+    const num =
+      selectedOutboundCallerId.value || currentConfig.value?.providerMeta?.callerIdNumber || ''
+    return num || ''
   })
 
   function refresh46ElksOutboundPreferences(): void {
@@ -761,7 +782,9 @@ export function usePhone() {
 
     // Outbound identity
     canCycleOutbound,
-    outboundLabel,
+    outboundPrimary,
+    outboundSecondary,
+    outboundTitle,
     cycleOutbound,
     refresh46ElksOutboundPreferences,
 

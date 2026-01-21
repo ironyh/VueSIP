@@ -236,7 +236,9 @@ onUnmounted(async () => {
         <div class="tab-content">
           <DialPad
             v-if="activeTab === 'dialpad'"
-            :outbound-label="phone.outboundLabel.value"
+            :outbound-primary="phone.outboundPrimary.value"
+            :outbound-secondary="phone.outboundSecondary.value"
+            :outbound-title="phone.outboundTitle.value"
             :can-cycle-outbound="phone.canCycleOutbound.value"
             @cycle-outbound="phone.cycleOutbound"
             @call="handleCall"
