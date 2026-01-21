@@ -155,6 +155,15 @@ export interface SipClientConfig {
   debug?: boolean
 
   /**
+   * Called identity extraction (multi-DID / multi-line inbound)
+   *
+   * Controls how VueSip derives the "called number" / "line identity" from inbound INVITEs.
+   * Designed to work across direct-to-provider and PBX scenarios by extracting multiple
+   * candidates and then selecting `dialed` (originally called) vs `target` (current target).
+   */
+  calledIdentity?: CalledIdentityConfig
+
+  /**
    * Codec policy configuration (preview)
    * Controls preferred codecs and negotiation strategy.
    */
@@ -168,6 +177,109 @@ export interface SipClientConfig {
     error: (...args: unknown[]) => void
   }
 }
+
+// ==========================================================================
+// Called Identity (Multi-DID / Multi-Line)
+// ==========================================================================
+
+/**
+ * Candidate sources VueSip can extract called identity from.
+ *
+ * Notes:
+ * - `request-uri` is the SIP Request-URI user part.
+ * - `to` is the To header URI user part.
+ * - `p-called-party-id`, `history-info`, and `diversion` are common PBX/provider headers
+ *   that preserve original called DID through forwarding/retargeting.
+ */
+export type CalledIdentitySource =
+  | 'request-uri'
+  | 'to'
+  | 'p-called-party-id'
+  | 'history-info'
+  | 'diversion'
+  | 'x-header'
+
+/** Built-in preset names for common environments. */
+export type CalledIdentityPreset = 'default' | 'freepbx_pjsip'
+
+/** How a custom header should be treated by selection logic. */
+export type CalledIdentityHeaderRole = 'dialed' | 'target' | 'candidate'
+
+/**
+ * Normalization options.
+ *
+ * This intentionally stays lightweight: keep `raw` always, and optionally compute
+ * a normalized value for matching/routing.
+ */
+export interface CalledIdentityNormalizationConfig {
+  /** Enable normalization (default: true). */
+  enabled?: boolean
+  /** Preserve a leading '+' if present in input (default: true). */
+  keepPlus?: boolean
+  /** Strip visual separators (spaces, dashes, parentheses) (default: true). */
+  stripSeparators?: boolean
+  /** Optional default country for future E.164 normalization. */
+  defaultCountry?: string
+}
+
+/**
+ * Configuration for extracting a "called number" / line identity from inbound calls.
+ *
+ * The extraction engine should:
+ * 1) collect candidates from multiple sources
+ * 2) compute `dialed` and `target` by precedence rules
+ * 3) store both raw + normalized forms for transparency and easy debugging
+ */
+export interface CalledIdentityConfig {
+  /** Optional preset that seeds defaults. Explicit fields override preset values. */
+  preset?: CalledIdentityPreset | (string & {})
+
+  /** Selection order for the current routing target (default: request-uri -> to -> p-called-party-id). */
+  targetPrecedence?: readonly CalledIdentitySource[]
+
+  /** Selection order for the originally dialed DID/line (default: p-called-party-id -> history-info -> diversion -> to -> request-uri). */
+  dialedPrecedence?: readonly CalledIdentitySource[]
+
+  /**
+   * Map of custom headers to treat as dialed/target/candidate.
+   * Header names should be provided in canonical SIP form (case-insensitive in parsing).
+   */
+  customHeaderMap?: Readonly<Record<string, CalledIdentityHeaderRole>>
+
+  /** Optional precedence for custom headers when multiple are present. */
+  customHeaderPrecedence?: readonly string[]
+
+  /** Normalization behavior for derived values. */
+  normalization?: CalledIdentityNormalizationConfig
+}
+
+/** Preset configurations (all overrideable). */
+export const CALLED_IDENTITY_PRESETS = {
+  default: {
+    preset: 'default',
+    targetPrecedence: ['request-uri', 'to', 'p-called-party-id'],
+    dialedPrecedence: ['p-called-party-id', 'history-info', 'diversion', 'to', 'request-uri'],
+    normalization: {
+      enabled: true,
+      keepPlus: true,
+      stripSeparators: true,
+    },
+  },
+  // PBX leg often rewrites Request-URI/To to an extension; favor "originally called" headers.
+  freepbx_pjsip: {
+    preset: 'freepbx_pjsip',
+    targetPrecedence: ['request-uri', 'to', 'p-called-party-id'],
+    dialedPrecedence: ['p-called-party-id', 'history-info', 'diversion', 'to', 'request-uri'],
+    normalization: {
+      enabled: true,
+      keepPlus: true,
+      stripSeparators: true,
+    },
+  },
+} as const satisfies Record<string, CalledIdentityConfig>
+
+/** Default called identity config used when nothing is specified. */
+export const DEFAULT_CALLED_IDENTITY_CONFIG: CalledIdentityConfig = CALLED_IDENTITY_PRESETS.default
 
 /**
  * Validation result for configuration
