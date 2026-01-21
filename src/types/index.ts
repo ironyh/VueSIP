@@ -7,6 +7,9 @@
 // Config types
 export * from './config.types'
 
+// Called identity (multi-DID)
+export * from './called-identity.types'
+
 // SIP types
 export * from './sip.types'
 

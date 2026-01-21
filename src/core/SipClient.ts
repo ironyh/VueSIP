@@ -77,6 +77,7 @@ import type {
   PresenceUnsubscribeEvent,
 } from '@/types/events.types'
 import { createLogger } from '@/utils/logger'
+import { extractCalledIdentity } from '../utils/calledIdentity'
 import { SipEventNames } from '@/types/event-names'
 import { validateSipConfig } from '@/utils/validators'
 import { USER_AGENT } from '@/utils/constants'
@@ -815,12 +816,23 @@ export class SipClient {
       if (event.originator === 'remote') {
         logger.info('Incoming call', { callId })
 
+        const calledIdentity = extractCalledIdentity(
+          event.request as SipRequest | undefined,
+          this.config.calledIdentity
+        )
+
         // Create CallSession instance for incoming call
         const callSession = createCallSession(
           rtcSession,
           CallDirection.Incoming,
           this.config.sipUri,
-          this.eventBus
+          this.eventBus,
+          {
+            calledIdentity,
+            calledNumberCandidates: calledIdentity.candidates,
+            calledNumberDialed: calledIdentity.dialed,
+            calledNumberTarget: calledIdentity.target,
+          }
         )
 
         // Store CallSession instance (not JsSIP session)

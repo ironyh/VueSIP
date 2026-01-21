@@ -236,6 +236,18 @@ export interface CallSession {
   timing: CallTimingInfo
   /** Termination cause (if terminated) */
   terminationCause?: TerminationCause
+
+  /** Called identity extraction for multi-DID / multi-line inbound */
+  calledIdentity?: import('./called-identity.types').CalledIdentityExtraction
+
+  /** Flattened candidates list for called-number/line identity */
+  calledNumberCandidates?: import('./called-identity.types').CalledIdentityCandidate[]
+
+  /** Flattened "dialed" selection (originally called) */
+  calledNumberDialed?: import('./called-identity.types').CalledIdentityResolved
+
+  /** Flattened "target" selection (current target) */
+  calledNumberTarget?: import('./called-identity.types').CalledIdentityResolved
   /** Custom data */
   data?: Record<string, unknown>
   /** Hold the call (SIP re-INVITE with sendonly) */

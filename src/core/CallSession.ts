@@ -18,6 +18,7 @@ import type {
   TerminationCause,
   CallSession as ICallSession,
 } from '@/types/call.types'
+import type { CalledIdentityExtraction } from '@/types/called-identity.types'
 // JsSIP types available in @/types/jssip.types for future type improvements
 import { createLogger } from '@/utils/logger'
 import { EventEmitter } from '@/utils/EventEmitter'
@@ -232,6 +233,22 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     return { ...this._data }
   }
 
+  get calledIdentity(): CalledIdentityExtraction | undefined {
+    return this._data?.calledIdentity as CalledIdentityExtraction | undefined
+  }
+
+  get calledNumberCandidates(): CalledIdentityExtraction['candidates'] | undefined {
+    return this._data?.calledNumberCandidates as CalledIdentityExtraction['candidates'] | undefined
+  }
+
+  get calledNumberDialed(): CalledIdentityExtraction['dialed'] | undefined {
+    return this._data?.calledNumberDialed as CalledIdentityExtraction['dialed'] | undefined
+  }
+
+  get calledNumberTarget(): CalledIdentityExtraction['target'] | undefined {
+    return this._data?.calledNumberTarget as CalledIdentityExtraction['target'] | undefined
+  }
+
   /**
    * Get the underlying RTCPeerConnection
    * Used for accessing RTP senders/receivers for features like DTMF and mute
@@ -259,6 +276,10 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       hasLocalVideo: this._hasLocalVideo,
       timing: this.timing,
       terminationCause: this._terminationCause,
+      calledIdentity: this.calledIdentity,
+      calledNumberCandidates: this.calledNumberCandidates,
+      calledNumberDialed: this.calledNumberDialed,
+      calledNumberTarget: this.calledNumberTarget,
       data: { ...this._data },
     }
   }
