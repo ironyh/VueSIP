@@ -4,6 +4,7 @@ import DialPad from './components/DialPad.vue'
 import CallScreen from './components/CallScreen.vue'
 import IncomingCall from './components/IncomingCall.vue'
 import Settings from './components/Settings.vue'
+import Elks46OutboundSettings from './components/Elks46OutboundSettings.vue'
 import { usePhone } from './composables/usePhone'
 import { usePushNotifications } from './composables/usePushNotifications'
 import { usePwaInstall } from './composables/usePwaInstall'
@@ -285,6 +286,12 @@ onUnmounted(async () => {
           </div>
 
           <div v-else-if="activeTab === 'settings'" class="settings-view">
+            <Elks46OutboundSettings
+              v-if="phone.currentConfig.value?.providerId === '46elks'"
+              :is-connected="phone.isConnected.value"
+              @updated="phone.refresh46ElksOutboundPreferences"
+            />
+
             <div v-if="phone.accounts.value.length > 0" class="settings-section">
               <h3>Accounts</h3>
               <div class="setting-item">

@@ -23,6 +23,7 @@ export interface PhoneConfig {
     apiPassword: string
     callerIdNumber: string
     callerIdNumbers?: string[]
+    callerIdNumberLabels?: Record<string, string>
     webrtcNumber: string
   }
 
@@ -63,6 +64,9 @@ export function usePhone() {
   const outboundCallerIds = ref<string[]>([])
   const selectedOutboundCallerId = ref<string>('')
   const OUTBOUND_NUMBER_KEY = 'vuesip_46elks_outbound_number'
+  const ENABLED_NUMBERS_KEY = 'vuesip_46elks_enabled_numbers'
+  const NUMBER_LABELS_KEY = 'vuesip_46elks_number_labels'
+  const callerIdNumberLabels = ref<Record<string, string>>({})
 
   function setSelectedOutboundCallerId(next: string) {
     selectedOutboundCallerId.value = next
@@ -119,8 +123,69 @@ export function usePhone() {
     if (!is46Elks.value) return ''
     const num =
       selectedOutboundCallerId.value || currentConfig.value?.providerMeta?.callerIdNumber || ''
-    return num ? `From: ${num}` : ''
+    if (!num) return ''
+    const label = callerIdNumberLabels.value[num]
+    return label ? `From: ${label} (${num})` : `From: ${num}`
   })
+
+  function refresh46ElksOutboundPreferences(): void {
+    if (currentConfig.value?.providerId !== '46elks') return
+
+    const known = new Set<string>()
+
+    // Seed from config
+    const cfg = currentConfig.value.providerMeta
+    if (cfg?.callerIdNumber) known.add(cfg.callerIdNumber)
+    for (const n of cfg?.callerIdNumbers ?? []) known.add(n)
+
+    // Seed from localStorage
+    let enabledMap: Record<string, boolean> = {}
+    let labelsMap: Record<string, string> = {}
+    try {
+      const raw = localStorage.getItem(ENABLED_NUMBERS_KEY)
+      if (raw) enabledMap = JSON.parse(raw) as Record<string, boolean>
+    } catch {
+      // ignore
+    }
+    try {
+      const raw = localStorage.getItem(NUMBER_LABELS_KEY)
+      if (raw) labelsMap = JSON.parse(raw) as Record<string, string>
+    } catch {
+      // ignore
+    }
+
+    for (const n of Object.keys(enabledMap)) known.add(n)
+    for (const n of Object.keys(labelsMap)) known.add(n)
+
+    const all = Array.from(known)
+    const enabled = all.filter((n) => enabledMap[n] !== false)
+
+    outboundCallerIds.value = enabled
+
+    // Keep labels trimmed
+    const trimmed: Record<string, string> = {}
+    for (const [num, label] of Object.entries(labelsMap)) {
+      const v = String(label ?? '').trim()
+      if (v) trimmed[num] = v
+    }
+    callerIdNumberLabels.value = trimmed
+
+    // Ensure selection remains valid
+    if (enabled.length > 0) {
+      const current = selectedOutboundCallerId.value
+      if (!current || !enabled.includes(current)) {
+        setSelectedOutboundCallerId(enabled[0])
+      }
+    } else {
+      selectedOutboundCallerId.value = ''
+    }
+
+    // Mirror into config for transparency
+    if (currentConfig.value.providerMeta) {
+      currentConfig.value.providerMeta.callerIdNumbers = enabled
+      currentConfig.value.providerMeta.callerIdNumberLabels = trimmed
+    }
+  }
 
   function cycleOutbound(direction: 'prev' | 'next') {
     if (!canCycleOutbound.value) return
@@ -282,6 +347,8 @@ export function usePhone() {
 
     // Setup 46elks outbound caller ID list for swipe switching
     if (config.providerId === '46elks' && config.providerMeta?.callerIdNumber) {
+      callerIdNumberLabels.value = { ...(config.providerMeta.callerIdNumberLabels ?? {}) }
+
       outboundCallerIds.value =
         config.providerMeta.callerIdNumbers && config.providerMeta.callerIdNumbers.length > 0
           ? [...config.providerMeta.callerIdNumbers]
@@ -302,9 +369,13 @@ export function usePhone() {
         outboundCallerIds.value[0]
 
       setSelectedOutboundCallerId(initial)
+
+      // Apply any edits made in settings since last login
+      refresh46ElksOutboundPreferences()
     } else {
       outboundCallerIds.value = []
       selectedOutboundCallerId.value = ''
+      callerIdNumberLabels.value = {}
     }
 
     if (config.mode === 'multi') {
@@ -692,6 +763,7 @@ export function usePhone() {
     canCycleOutbound,
     outboundLabel,
     cycleOutbound,
+    refresh46ElksOutboundPreferences,
 
     // Media devices
     audioInputDevices,

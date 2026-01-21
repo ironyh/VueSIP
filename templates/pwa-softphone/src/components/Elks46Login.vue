@@ -5,6 +5,7 @@ import { use46ElksApi, type Elks46Number } from 'vuesip'
 const STORAGE_KEY = 'vuesip_46elks_credentials'
 const ENABLED_NUMBERS_KEY = 'vuesip_46elks_enabled_numbers'
 const OUTBOUND_NUMBER_KEY = 'vuesip_46elks_outbound_number'
+const NUMBER_LABELS_KEY = 'vuesip_46elks_number_labels'
 
 const emit = defineEmits<{
   connect: [
@@ -19,6 +20,7 @@ const emit = defineEmits<{
         apiPassword: string
         callerIdNumber: string
         callerIdNumbers?: string[]
+        callerIdNumberLabels?: Record<string, string>
         webrtcNumber: string
       }
     },
@@ -45,6 +47,7 @@ const apiPassword = ref('')
 const rememberCredentials = ref(false)
 const savedPhoneNumber = ref<string | null>(null)
 const enabledNumbers = ref<Record<string, boolean>>({})
+const numberLabels = ref<Record<string, string>>({})
 
 // Form validation
 const isLoginFormValid = computed(
@@ -75,6 +78,16 @@ onMounted(() => {
   } catch {
     // ignore
   }
+
+  try {
+    const raw = localStorage.getItem(NUMBER_LABELS_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Record<string, string>
+      if (parsed && typeof parsed === 'object') numberLabels.value = parsed
+    }
+  } catch {
+    // ignore
+  }
 })
 
 watch(
@@ -82,6 +95,18 @@ watch(
   (next) => {
     try {
       localStorage.setItem(ENABLED_NUMBERS_KEY, JSON.stringify(next))
+    } catch {
+      // ignore
+    }
+  },
+  { deep: true }
+)
+
+watch(
+  numberLabels,
+  (next) => {
+    try {
+      localStorage.setItem(NUMBER_LABELS_KEY, JSON.stringify(next))
     } catch {
       // ignore
     }
@@ -118,6 +143,11 @@ watch(numbers, async (nums) => {
     if (!(n.number in enabledNumbers.value)) {
       enabledNumbers.value[n.number] = true
     }
+
+    // Seed labels from provider names (user can override)
+    if (!(n.number in numberLabels.value) && n.name) {
+      numberLabels.value[n.number] = n.name
+    }
   }
 
   if (savedPhoneNumber.value && nums.length > 0 && !selectedNumber.value) {
@@ -131,6 +161,15 @@ watch(numbers, async (nums) => {
 const enabledCallerIdNumbers = computed(() =>
   numbers.value.map((n) => n.number).filter((num) => enabledNumbers.value[num])
 )
+
+const callerIdNumberLabels = computed(() => {
+  const out: Record<string, string> = {}
+  for (const [num, label] of Object.entries(numberLabels.value)) {
+    const v = String(label ?? '').trim()
+    if (v) out[num] = v
+  }
+  return out
+})
 
 // Clear saved credentials
 function clearSavedCredentials() {
@@ -193,6 +232,7 @@ function handleConnect() {
         apiPassword: apiPassword.value,
         callerIdNumber: initialCallerIdNumber,
         callerIdNumbers: enabledList,
+        callerIdNumberLabels: callerIdNumberLabels.value,
         webrtcNumber: `+${creds.phoneNumber}`,
       },
     })
@@ -327,7 +367,12 @@ function handleReset() {
             <label v-for="num in numbers" :key="num.id" class="number-toggle">
               <input v-model="enabledNumbers[num.number]" type="checkbox" />
               <span class="number">{{ num.number }}</span>
-              <span v-if="num.name" class="name">{{ num.name }}</span>
+              <input
+                v-model="numberLabels[num.number]"
+                class="label-input"
+                type="text"
+                placeholder="Label (optional)"
+              />
             </label>
           </div>
         </div>
