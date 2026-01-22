@@ -1,19 +1,136 @@
 <script setup lang="ts">
-import { computed, ref, provide } from 'vue'
-import { useTranscription } from 'vuesip'
+import { computed, ref, provide, onMounted, watch } from 'vue'
+import { useTranscription, providerRegistry, WhisperProvider } from 'vuesip'
 import { useTranscriptPersistence } from '../composables/useTranscriptPersistence'
 import { useCallRecording } from '../composables/useCallRecording'
 
-const provider = ref<'web-speech'>('web-speech')
-const language = ref('en-US')
+// Load persisted settings from localStorage
+const STORAGE_KEY = 'vuesip-transcription-settings'
+
+function loadSettings() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (e) {
+    console.warn('Failed to load transcription settings:', e)
+  }
+  return {
+    provider: 'web-speech',
+    language: 'en-US',
+    whisperUrl: 'ws://localhost:8765/transcribe',
+    whisperModel: 'base',
+  }
+}
+
+function saveSettings(settings: any) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+  } catch (e) {
+    console.warn('Failed to save transcription settings:', e)
+  }
+}
+
+const savedSettings = loadSettings()
+const provider = ref<'web-speech' | 'whisper'>(savedSettings.provider)
+const language = ref(savedSettings.language)
+const whisperUrl = ref(savedSettings.whisperUrl)
+const whisperModel = ref<'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3'>(
+  savedSettings.whisperModel || 'base'
+)
+const providerError = ref<string | null>(null)
+const showWhisperSettings = ref(savedSettings.provider === 'whisper')
+
+// Register Whisper provider on mount
+onMounted(() => {
+  if (!providerRegistry.has('whisper')) {
+    providerRegistry.register('whisper', () => new WhisperProvider())
+  }
+})
 
 const transcription = useTranscription({
   provider: provider.value,
-  language: language.value,
+  language: provider.value === 'whisper' ? 'en' : language.value,
 })
 
-const { isTranscribing, transcript, currentUtterance, error, start, stop, exportTranscript } =
-  transcription
+const {
+  isTranscribing,
+  transcript,
+  currentUtterance,
+  error,
+  start,
+  stop,
+  exportTranscript,
+  switchProvider,
+  provider: currentProvider,
+} = transcription
+
+// Watch for provider changes and update hint text
+const providerHint = computed(() => {
+  if (provider.value === 'whisper') {
+    return 'Using Whisper server for transcription. Requires a running Whisper WebSocket server.'
+  }
+  return 'This uses your browser's speech recognition. It is best-effort and may require microphone permission.'
+})
+
+// Watch provider selection and show/hide Whisper settings
+watch(provider, (newProvider) => {
+  showWhisperSettings.value = newProvider === 'whisper'
+  saveSettings({
+    provider: newProvider,
+    language: language.value,
+    whisperUrl: whisperUrl.value,
+    whisperModel: whisperModel.value,
+  })
+})
+
+// Watch language changes
+watch(language, () => {
+  saveSettings({
+    provider: provider.value,
+    language: language.value,
+    whisperUrl: whisperUrl.value,
+    whisperModel: whisperModel.value,
+  })
+})
+
+// Watch Whisper settings
+watch([whisperUrl, whisperModel], () => {
+  saveSettings({
+    provider: provider.value,
+    language: language.value,
+    whisperUrl: whisperUrl.value,
+    whisperModel: whisperModel.value,
+  })
+})
+
+// Apply provider switch
+async function applyProviderChange() {
+  if (isTranscribing.value) {
+    // Stop current transcription before switching
+    stop()
+  }
+
+  providerError.value = null
+
+  try {
+    if (provider.value === 'whisper') {
+      await switchProvider('whisper', {
+        serverUrl: whisperUrl.value,
+        model: whisperModel.value,
+        language: 'en', // Whisper uses ISO language codes
+      })
+    } else {
+      await switchProvider('web-speech', {
+        language: language.value,
+      })
+    }
+  } catch (err) {
+    providerError.value = err instanceof Error ? err.message : 'Failed to switch provider'
+    console.error('Provider switch error:', err)
+  }
+}
 
 // Provide transcription instance so App.vue can access it for persistence
 provide('transcription', transcription)
@@ -46,9 +163,17 @@ async function toggleTranscription() {
     return
   }
 
-  // Recreate with current config by reloading page is heavy; keep this simple.
-  // For now, language/provider changes apply on next start.
-  await start()
+  // Apply provider changes if needed before starting
+  if (currentProvider.value !== provider.value) {
+    await applyProviderChange()
+  }
+
+  try {
+    await start()
+  } catch (err) {
+    providerError.value = err instanceof Error ? err.message : 'Failed to start transcription'
+    console.error('Start transcription error:', err)
+  }
 }
 
 function downloadTxt() {
@@ -67,24 +192,59 @@ function downloadTxt() {
   <section class="settings-section">
     <h3>Transcription (beta)</h3>
 
-    <p class="hint">
-      This uses your browser's speech recognition. It is best-effort and may require microphone
-      permission.
-    </p>
+    <p class="hint">{{ providerHint }}</p>
 
     <div class="setting-item">
+      <label>Provider</label>
+      <select v-model="provider" :disabled="isTranscribing" @change="applyProviderChange">
+        <option value="web-speech">Web Speech API</option>
+        <option value="whisper">Whisper Server</option>
+      </select>
+    </div>
+
+    <!-- Whisper Settings (shown when Whisper is selected) -->
+    <div v-if="showWhisperSettings" class="whisper-settings">
+      <div class="setting-item">
+        <label for="whisper-url">Server URL</label>
+        <input
+          id="whisper-url"
+          v-model="whisperUrl"
+          type="text"
+          placeholder="ws://localhost:8765/transcribe"
+          :disabled="isTranscribing"
+          class="whisper-input"
+        />
+      </div>
+
+      <div class="setting-item">
+        <label for="whisper-model">Model</label>
+        <select
+          id="whisper-model"
+          v-model="whisperModel"
+          :disabled="isTranscribing"
+          @change="applyProviderChange"
+        >
+          <option value="tiny">Tiny (fastest, least accurate)</option>
+          <option value="base">Base (balanced)</option>
+          <option value="small">Small</option>
+          <option value="medium">Medium</option>
+          <option value="large">Large (most accurate, slowest)</option>
+          <option value="large-v2">Large v2</option>
+          <option value="large-v3">Large v3</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Language selector (only for Web Speech API) -->
+    <div v-if="provider === 'web-speech'" class="setting-item">
       <label>Language</label>
       <select v-model="language" :disabled="isTranscribing">
         <option value="en-US">English (US)</option>
         <option value="en-GB">English (UK)</option>
         <option value="sv-SE">Swedish</option>
-      </select>
-    </div>
-
-    <div class="setting-item">
-      <label>Provider</label>
-      <select v-model="provider" disabled>
-        <option value="web-speech">Web Speech API</option>
+        <option value="es-ES">Spanish</option>
+        <option value="fr-FR">French</option>
+        <option value="de-DE">German</option>
       </select>
     </div>
 
@@ -132,7 +292,9 @@ function downloadTxt() {
       </button>
     </div>
 
-    <p v-if="error" class="error">{{ error.message }}</p>
+    <p v-if="error || providerError" class="error">
+      {{ error?.message || providerError }}
+    </p>
 
     <div v-if="isTranscribing || transcript.length > 0" class="preview">
       <div class="preview-title">Live</div>
@@ -209,7 +371,8 @@ function downloadTxt() {
   transform: translateX(24px);
 }
 
-.setting-item select {
+.setting-item select,
+.setting-item input {
   flex: 1;
   max-width: 200px;
   padding: 0.5rem;
@@ -217,6 +380,35 @@ function downloadTxt() {
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.setting-item input {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+}
+
+.whisper-settings {
+  margin: 0.5rem 0;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.whisper-settings .setting-item {
+  border-bottom: none;
+  padding: 0.5rem 0;
+}
+
+.whisper-settings .setting-item:last-child {
+  padding-bottom: 0;
+}
+
+.whisper-input {
+  width: 100%;
+  max-width: 100%;
 }
 
 .btn {
