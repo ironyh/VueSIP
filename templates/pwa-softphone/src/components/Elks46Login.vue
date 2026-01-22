@@ -473,6 +473,21 @@ function handleReset() {
             Pick which outgoing lines are available on the dialpad. Add a name so you don’t have to
             remember the number. Swipe the Call button left/right to switch.
           </p>
+
+          <div v-if="outboundNumberOptions.length" class="form-group">
+            <label for="outbound-number">Default outgoing number</label>
+            <select
+              id="outbound-number"
+              :value="outboundNumber"
+              :disabled="isLoading"
+              @change="persistOutboundNumber(($event.target as HTMLSelectElement).value)"
+            >
+              <option v-for="o in outboundNumberOptions" :key="o.value" :value="o.value">
+                {{ o.label }}
+              </option>
+            </select>
+          </div>
+
           <div class="numbers-list">
             <div class="numbers-header">
               <span class="numbers-header-col">Use</span>
