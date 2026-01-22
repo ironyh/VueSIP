@@ -78,3 +78,17 @@ export * from './mwi.types'
 
 // Originate types (AMI)
 export * from './originate.types'
+
+// Dial strategy types
+export * from './dialStrategy.types'
+
+// Re-export 46elks types for convenience
+export type {
+  Elks46Number,
+  Elks46ApiCredentials,
+  Elks46Call,
+  Elks46CallDirection,
+  Elks46CallState,
+  Elks46CallLeg,
+  FetchCallsOptions,
+} from '../providers/services/elks46ApiService'

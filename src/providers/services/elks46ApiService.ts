@@ -303,3 +303,99 @@ export async function fetchAllCalls(
 
   return allCalls
 }
+
+// ============================================================================
+// REST Originate API
+// ============================================================================
+
+/**
+ * Options for originating a call via 46elks REST API
+ */
+export interface Elks46OriginateOptions {
+  /** API credentials */
+  credentials: Elks46ApiCredentials
+  /** Caller ID number to use for outbound call */
+  callerId: string
+  /** WebRTC number (your 46elks number) to bridge the call to */
+  webrtcNumber: string
+  /** Destination phone number (E.164 format) */
+  destination: string
+}
+
+/**
+ * Response from originate call
+ */
+export interface Elks46OriginateResponse {
+  /** Call ID */
+  id: string
+  /** Call direction (always 'outgoing') */
+  direction: 'outgoing'
+  /** From number */
+  from: string
+  /** To number */
+  to: string
+  /** Call state */
+  state: string
+}
+
+/**
+ * Originate a call via 46elks REST API
+ *
+ * This is used for outbound PSTN calls when 46elks requires REST API originate
+ * instead of direct SIP INVITE. The flow is:
+ * 1. Call this function to originate the call
+ * 2. 46elks calls your WebRTC number (webrtcNumber)
+ * 3. WebRTC client auto-answers
+ * 4. 46elks bridges to the destination number
+ *
+ * @param options - Originate options
+ * @returns Call ID and details
+ * @throws Error if API call fails
+ *
+ * @example
+ * ```ts
+ * const result = await originateCall({
+ *   credentials: { username: 'u1234...', password: 'secret' },
+ *   callerId: '+46700000000',
+ *   webrtcNumber: '+46700000000',
+ *   destination: '+46700123456',
+ * })
+ * // result.id = 'cx12345...'
+ * ```
+ */
+export async function originateCall(
+  options: Elks46OriginateOptions
+): Promise<Elks46OriginateResponse> {
+  const { credentials, callerId, webrtcNumber, destination } = options
+
+  const voiceStart = {
+    connect: destination,
+    callerid: callerId,
+  }
+
+  const body = new URLSearchParams({
+    from: callerId,
+    to: webrtcNumber,
+    voice_start: JSON.stringify(voiceStart),
+  })
+
+  const response = await fetch(`${API_BASE}/calls`, {
+    method: 'POST',
+    headers: {
+      Authorization: createAuthHeader(credentials),
+      Accept: 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body,
+  })
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(
+      `46elks originate failed (${response.status} ${response.statusText})${text ? `: ${text}` : ''}`
+    )
+  }
+
+  const data = (await response.json()) as Elks46OriginateResponse
+  return data
+}

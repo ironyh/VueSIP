@@ -299,6 +299,17 @@ export type { UseAgentMetricsOptions, UseAgentMetricsReturn } from './useAgentMe
 export { useTelnyxApi, type UseTelnyxApiReturn } from './useTelnyxApi'
 export { use46ElksApi, type Use46ElksApiReturn } from './use46ElksApi'
 
+// Dial strategy composable
+export { useDialStrategy, type UseDialStrategyReturn } from './useDialStrategy'
+export type {
+  DialStrategy,
+  DialStrategyConfig,
+  DialResult,
+  SipInviteOptions,
+  RestOriginateOptions,
+  DialStrategyType,
+} from '../types/dialStrategy.types'
+
 // Re-export provider service types
 export type {
   Elks46Number,
