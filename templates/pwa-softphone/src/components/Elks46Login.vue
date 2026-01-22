@@ -457,8 +457,7 @@ function handleReset() {
             </div>
 
             <p class="hint">
-              In 46elks: Numbers -> select number -> set <code>voice_start</code> to the JSON or URL
-              above.
+              In 46elks: Numbers -> select number -> set <code>voice_start</code> to the URL above.
             </p>
 
             <p class="hint" v-if="copyStatus">{{ copyStatus }}</p>
