@@ -431,47 +431,18 @@ function handleReset() {
         </div>
 
         <div class="form-group">
-          <label>Incoming calls (voice_start)</label>
-          <p class="hint">
-            46elks uses <code>voice_start</code> for incoming calls (not <code>sms_url</code>). Set
-            <code>voice_start</code> for each number to the callback URL below.
-          </p>
-
-          <div v-if="numbers.length" class="voice-start">
-            <div v-for="num in numbers" :key="num.id" class="voice-start-row">
-              <p class="hint">
-                Number: <strong>{{ num.number }}</strong>
-                <span v-if="num.name">({{ num.name }})</span>
-              </p>
-
-              <div class="voice-start-controls" v-if="voiceStartUrlFor(num.number)">
-                <input class="voice-start-input" :value="voiceStartUrlFor(num.number)" readonly />
-                <button
-                  type="button"
-                  class="copy-btn"
-                  @click="copyText('ELK Callback URL', voiceStartUrlFor(num.number))"
-                >
-                  Copy ELK Callback URL
-                </button>
-              </div>
-            </div>
-
-            <p class="hint">
-              In 46elks: Numbers -> select number -> set <code>voice_start</code> to the URL above.
-            </p>
-
-            <p class="hint" v-if="copyStatus">{{ copyStatus }}</p>
-          </div>
-
-          <p v-else class="hint">No numbers loaded yet. Fetch phone numbers first.</p>
-        </div>
-
-        <div class="form-group">
           <label>Outbound Caller IDs</label>
           <p class="hint">
             Pick which outgoing lines are available on the dialpad. Add a name so you don’t have to
             remember the number. Swipe the Call button left/right to switch.
           </p>
+
+          <p class="hint">
+            Incoming calls: in 46elks set <code>voice_start</code> (not <code>sms_url</code>) to the
+            callback URL shown next to each line.
+          </p>
+
+          <p class="hint" v-if="copyStatus">{{ copyStatus }}</p>
 
           <div v-if="outboundNumberOptions.length" class="form-group">
             <label for="outbound-number">Default outgoing number</label>
@@ -507,6 +478,17 @@ function handleReset() {
                 <div class="number-caption">
                   <span class="number">{{ num.number }}</span>
                   <span v-if="num.name" class="provider-name">{{ num.name }}</span>
+                </div>
+
+                <div class="voice-start-controls" v-if="voiceStartUrlFor(num.number)">
+                  <input class="voice-start-input" :value="voiceStartUrlFor(num.number)" readonly />
+                  <button
+                    type="button"
+                    class="copy-btn"
+                    @click="copyText('ELK Callback URL', voiceStartUrlFor(num.number))"
+                  >
+                    Copy ELK Callback URL
+                  </button>
                 </div>
               </div>
             </label>
@@ -634,28 +616,6 @@ function handleReset() {
   margin: 0;
   font-size: 0.75rem;
   color: var(--text-tertiary);
-}
-
-.voice-start {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-}
-
-.voice-start-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.voice-start-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
 }
 
 .voice-start-controls {

@@ -217,26 +217,9 @@ function displayNameForNumber(num: string): string {
     <div v-if="numbers.length" class="info">
       <div class="info-title">Incoming calls (voice_start)</div>
       <p class="hint">
-        46elks uses <code>voice_start</code> for incoming calls (not <code>sms_url</code>). Set
-        <code>voice_start</code> for each number to the callback URL below.
+        For each 46elks number, set <code>voice_start</code> to the callback URL shown next to the
+        line below.
       </p>
-
-      <div v-for="n in numbers" :key="n.id" class="voice-start-row">
-        <div class="voice-start-title">
-          <strong>{{ n.number }}</strong
-          ><span v-if="n.name"> ({{ n.name }})</span>
-        </div>
-        <div v-if="voiceStartUrlFor(n.number)" class="voice-start-controls">
-          <input class="voice-start-input" :value="voiceStartUrlFor(n.number)" readonly />
-          <button
-            type="button"
-            class="copy-btn"
-            @click="copyText('ELK Callback URL', voiceStartUrlFor(n.number))"
-          >
-            Copy ELK Callback URL
-          </button>
-        </div>
-      </div>
 
       <p v-if="copyStatus" class="hint">{{ copyStatus }}</p>
     </div>
@@ -273,16 +256,30 @@ function displayNameForNumber(num: string): string {
     <p v-if="error" class="error">{{ error }}</p>
 
     <div class="numbers">
-      <label v-for="num in knownNumbers" :key="num" class="number-row">
-        <input v-model="enabledNumbers[num]" type="checkbox" />
-        <span class="number">{{ num }}</span>
+      <div v-for="num in knownNumbers" :key="num" class="number-row">
+        <label class="row-head">
+          <input v-model="enabledNumbers[num]" type="checkbox" />
+          <span class="number">{{ num }}</span>
+        </label>
+
         <input
           v-model="numberLabels[num]"
           class="label"
           type="text"
-          :placeholder="displayNameForNumber(num) || 'Label'"
+          :placeholder="displayNameForNumber(num) || 'Line name'"
         />
-      </label>
+
+        <div v-if="voiceStartUrlFor(num)" class="voice-start-controls">
+          <input class="voice-start-input" :value="voiceStartUrlFor(num)" readonly />
+          <button
+            type="button"
+            class="copy-btn"
+            @click="copyText('ELK Callback URL', voiceStartUrlFor(num))"
+          >
+            Copy ELK Callback URL
+          </button>
+        </div>
+      </div>
     </div>
 
     <p v-if="props.isConnected" class="hint">
@@ -419,16 +416,21 @@ function displayNameForNumber(num: string): string {
 
 .number-row {
   display: grid;
-  grid-template-columns: 18px 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 0.5rem;
-  align-items: center;
   padding: 0.5rem 0.75rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
 }
 
-.number-row input[type='checkbox'] {
+.row-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.row-head input[type='checkbox'] {
   width: 18px;
   height: 18px;
   accent-color: var(--color-primary);
@@ -450,11 +452,8 @@ function displayNameForNumber(num: string): string {
 }
 
 @media (max-width: 420px) {
-  .number-row {
-    grid-template-columns: 18px 1fr;
-  }
-  .label {
-    grid-column: 1 / -1;
+  .voice-start-controls {
+    grid-template-columns: 1fr;
   }
 }
 </style>
