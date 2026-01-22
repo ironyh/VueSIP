@@ -28,7 +28,13 @@ function saveSettings(settings: any) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
   } catch (e) {
-    console.warn('Failed to save transcription settings:', e)
+    const error = e instanceof Error ? e.message : String(e)
+    if (error.includes('QuotaExceeded') || error.includes('quota')) {
+      providerError.value = 'Storage quota exceeded. Settings not saved.'
+    } else {
+      console.warn('Failed to save transcription settings:', e)
+      providerError.value = 'Failed to save settings. Changes may be lost on page reload.'
+    }
   }
 }
 
@@ -41,6 +47,11 @@ const whisperModel = ref<'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large
 )
 const providerError = ref<string | null>(null)
 const showWhisperSettings = ref(savedSettings.provider === 'whisper')
+const isSwitchingProvider = ref(false)
+const isStarting = ref(false)
+
+// Check browser compatibility
+const isWebSocketSupported = typeof WebSocket !== 'undefined'
 
 // Register Whisper provider on mount
 onMounted(() => {
@@ -105,14 +116,49 @@ watch([whisperUrl, whisperModel], () => {
   })
 })
 
+// Validate Whisper URL format
+function isValidWebSocketUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'ws:' || parsed.protocol === 'wss:'
+  } catch {
+    return false
+  }
+}
+
 // Apply provider switch
 async function applyProviderChange() {
+  // Prevent concurrent switches
+  if (isSwitchingProvider.value) {
+    return
+  }
+
+  // Validate Whisper URL if switching to Whisper
+  if (provider.value === 'whisper') {
+    if (!isValidWebSocketUrl(whisperUrl.value)) {
+      providerError.value = 'Invalid WebSocket URL. Must start with ws:// or wss://'
+      return
+    }
+  }
+
+  // Check browser support for Whisper
+  if (provider.value === 'whisper' && !isWebSocketSupported) {
+    providerError.value = 'WebSocket is not supported in this browser. Please use Web Speech API.'
+    provider.value = 'web-speech' // Revert selection
+    return
+  }
+
+  isSwitchingProvider.value = true
+
   if (isTranscribing.value) {
     // Stop current transcription before switching
     stop()
   }
 
+  // Clear all error states
   providerError.value = null
+  // Note: transcription.error is a ComputedRef, so we can't directly clear it
+  // It will be cleared when the provider successfully switches
 
   try {
     if (provider.value === 'whisper') {
@@ -129,6 +175,10 @@ async function applyProviderChange() {
   } catch (err) {
     providerError.value = err instanceof Error ? err.message : 'Failed to switch provider'
     console.error('Provider switch error:', err)
+    // Optionally revert provider on failure (commented out to let user see error)
+    // provider.value = currentProvider.value
+  } finally {
+    isSwitchingProvider.value = false
   }
 }
 
@@ -163,16 +213,31 @@ async function toggleTranscription() {
     return
   }
 
-  // Apply provider changes if needed before starting
-  if (currentProvider.value !== provider.value) {
-    await applyProviderChange()
+  // Prevent concurrent start calls
+  if (isStarting.value) {
+    return
   }
 
+  isStarting.value = true
+
   try {
+    // Apply provider changes if needed before starting
+    if (currentProvider.value !== provider.value) {
+      await applyProviderChange()
+      // If provider switch failed, don't start transcription
+      if (providerError.value) {
+        return
+      }
+    }
+
     await start()
+    // Clear errors on successful start
+    providerError.value = null
   } catch (err) {
     providerError.value = err instanceof Error ? err.message : 'Failed to start transcription'
     console.error('Start transcription error:', err)
+  } finally {
+    isStarting.value = false
   }
 }
 
@@ -196,10 +261,17 @@ function downloadTxt() {
 
     <div class="setting-item">
       <label>Provider</label>
-      <select v-model="provider" :disabled="isTranscribing" @change="applyProviderChange">
+      <select
+        v-model="provider"
+        :disabled="isTranscribing || isSwitchingProvider"
+        @change="applyProviderChange"
+      >
         <option value="web-speech">Web Speech API</option>
-        <option value="whisper">Whisper Server</option>
+        <option value="whisper" :disabled="!isWebSocketSupported">
+          Whisper Server{{ !isWebSocketSupported ? ' (not supported)' : '' }}
+        </option>
       </select>
+      <span v-if="isSwitchingProvider" class="switching-indicator">Switching...</span>
     </div>
 
     <!-- Whisper Settings (shown when Whisper is selected) -->
@@ -248,8 +320,14 @@ function downloadTxt() {
       </select>
     </div>
 
-    <button class="btn" type="button" @click="toggleTranscription">
-      {{ isTranscribing ? 'Stop transcription' : 'Start transcription' }}
+    <button
+      class="btn"
+      type="button"
+      :disabled="isStarting || isSwitchingProvider"
+      @click="toggleTranscription"
+    >
+      <span v-if="isStarting">Starting...</span>
+      <span v-else>{{ isTranscribing ? 'Stop transcription' : 'Start transcription' }}</span>
     </button>
 
     <button v-if="transcript.length > 0" class="btn secondary" type="button" @click="downloadTxt">
@@ -409,6 +487,18 @@ function downloadTxt() {
 .whisper-input {
   width: 100%;
   max-width: 100%;
+}
+
+.switching-indicator {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-left: 0.5rem;
+  font-style: italic;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn {
