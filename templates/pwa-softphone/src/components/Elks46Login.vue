@@ -266,12 +266,11 @@ async function handleLogin() {
   }
 }
 
-// Handle number selection
-async function handleNumberSelect(event: Event) {
-  const target = event.target as HTMLSelectElement
-  const num = numbers.value.find((n) => n.id === target.value)
-  if (num) {
-    await selectNumber(num as Elks46Number)
+// Handle number selection from radio button
+async function handleNumberSelectFromRadio(num: { id: string; number: string }) {
+  const fullNumber = numbers.value.find((n) => n.id === num.id) as Elks46Number | undefined
+  if (fullNumber) {
+    await selectNumber(fullNumber)
   }
 }
 
@@ -415,102 +414,90 @@ function handleReset() {
       </div>
 
       <div class="number-form">
-        <div class="form-group">
-          <label for="phone-number">Phone Number</label>
+        <p class="hint">
+          Configure each 46elks number below. Select the radio button to choose which number to use
+          for the SIP connection. Enable lines for outbound caller ID. Copy the voice_start callback
+          URL for each line to 46elks dashboard for incoming calls.
+        </p>
+
+        <p class="hint" v-if="copyStatus">{{ copyStatus }}</p>
+
+        <div v-if="outboundNumberOptions.length" class="form-group">
+          <label for="outbound-number">Default outgoing number</label>
           <select
-            id="phone-number"
-            :value="selectedNumber?.id || ''"
+            id="outbound-number"
+            :value="outboundNumber"
             :disabled="isLoading"
-            @change="handleNumberSelect"
+            @change="persistOutboundNumber(($event.target as HTMLSelectElement).value)"
           >
-            <option value="" disabled>Select a phone number</option>
-            <option v-for="num in numbers" :key="num.id" :value="num.id">
-              {{ num.number }}{{ num.name ? ` (${num.name})` : '' }}
+            <option v-for="o in outboundNumberOptions" :key="o.value" :value="o.value">
+              {{ o.label }}
             </option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label>Outbound Caller IDs</label>
-          <p class="hint">
-            Pick which outgoing lines are available on the dialpad. Add a name so you don’t have to
-            remember the number. Swipe the Call button left/right to switch.
-          </p>
-
-          <p class="hint">
-            Incoming calls: in 46elks set <code>voice_start</code> (not <code>sms_url</code>) to the
-            callback URL shown next to each line.
-          </p>
-
-          <p class="hint" v-if="copyStatus">{{ copyStatus }}</p>
-
-          <div v-if="outboundNumberOptions.length" class="form-group">
-            <label for="outbound-number">Default outgoing number</label>
-            <select
-              id="outbound-number"
-              :value="outboundNumber"
-              :disabled="isLoading"
-              @change="persistOutboundNumber(($event.target as HTMLSelectElement).value)"
-            >
-              <option v-for="o in outboundNumberOptions" :key="o.value" :value="o.value">
-                {{ o.label }}
-              </option>
-            </select>
+        <div class="numbers-list">
+          <div class="numbers-header">
+            <span class="numbers-header-col" style="width: 28px"></span>
+            <span class="numbers-header-col" style="width: 28px">Use</span>
+            <span class="numbers-header-col">Number & Line Name</span>
+            <span class="numbers-header-col">Callback URL</span>
           </div>
 
-          <div class="numbers-list">
-            <div class="numbers-header">
-              <span class="numbers-header-col">Use</span>
-              <span class="numbers-header-col">Line Name</span>
+          <div v-for="num in numbers" :key="num.id" class="number-row">
+            <input
+              :checked="selectedNumber?.id === num.id"
+              type="radio"
+              name="sip-connection"
+              class="sip-radio"
+              @change="handleNumberSelectFromRadio(num)"
+            />
+
+            <input v-model="enabledNumbers[num.number]" type="checkbox" />
+
+            <div class="number-meta">
+              <input
+                v-model="numberLabels[num.number]"
+                class="label-input"
+                type="text"
+                placeholder="Line name (e.g. Sales)"
+              />
+
+              <div class="number-caption">
+                <span class="number">{{ num.number }}</span>
+                <span v-if="num.name" class="provider-name">{{ num.name }}</span>
+              </div>
             </div>
 
-            <label v-for="num in numbers" :key="num.id" class="number-row">
-              <input v-model="enabledNumbers[num.number]" type="checkbox" />
-
-              <div class="number-meta">
-                <input
-                  v-model="numberLabels[num.number]"
-                  class="label-input"
-                  type="text"
-                  placeholder="Line name (e.g. Sales)"
-                />
-
-                <div class="number-caption">
-                  <span class="number">{{ num.number }}</span>
-                  <span v-if="num.name" class="provider-name">{{ num.name }}</span>
-                </div>
-
-                <div class="voice-start-controls" v-if="voiceStartUrlFor(num.number)">
-                  <input class="voice-start-input" :value="voiceStartUrlFor(num.number)" readonly />
-                  <button
-                    type="button"
-                    class="copy-btn"
-                    @click="copyText('ELK Callback URL', voiceStartUrlFor(num.number))"
-                  >
-                    Copy ELK Callback URL
-                  </button>
-                </div>
-              </div>
-            </label>
+            <div class="voice-start-controls">
+              <input class="voice-start-input" :value="voiceStartUrlFor(num.number)" readonly />
+              <button
+                type="button"
+                class="copy-btn"
+                @click="copyText('ELK Callback URL', voiceStartUrlFor(num.number))"
+              >
+                Copy URL
+              </button>
+            </div>
           </div>
         </div>
+      </div>
 
-        <p v-if="error" class="error-message warning">{{ error }}</p>
+      <p v-if="error" class="error-message warning">{{ error }}</p>
 
-        <p v-else-if="selectedNumber && secret" class="success-message">
-          WebRTC credentials found! Ready to connect.
-        </p>
+      <p v-else-if="selectedNumber && secret" class="success-message">
+        WebRTC credentials found! Ready to connect.
+      </p>
 
-        <div class="button-group">
-          <button
-            type="button"
-            class="submit-btn"
-            :disabled="!selectedNumber || !secret || isLoading"
-            @click="handleConnect"
-          >
-            <span>Connect</span>
-          </button>
-        </div>
+      <div class="button-group">
+        <button
+          type="button"
+          class="submit-btn"
+          :disabled="!selectedNumber || !secret || isLoading"
+          @click="handleConnect"
+        >
+          <span>Connect</span>
+        </button>
       </div>
     </template>
   </div>
@@ -666,7 +653,7 @@ function handleReset() {
 
 .numbers-header {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 28px 28px 1fr 1fr;
   align-items: center;
   padding: 0 0.75rem;
   color: var(--text-tertiary);
@@ -681,19 +668,26 @@ function handleReset() {
 
 .number-row {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 28px 28px 1fr 1fr;
   gap: 0.5rem;
-  align-items: start;
+  align-items: center;
   padding: 0.6rem 0.75rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
 }
 
+.number-row input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
 .number-row input[type='checkbox'] {
   width: 18px;
   height: 18px;
-  margin-top: 0.2rem;
+  cursor: pointer;
   accent-color: var(--color-primary);
 }
 
@@ -838,5 +832,26 @@ function handleReset() {
   display: flex;
   gap: 0.5rem;
   margin-top: auto;
+}
+
+@media (max-width: 600px) {
+  .numbers-header,
+  .number-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .number-row {
+    align-items: start;
+  }
+
+  .number-row input[type='radio'],
+  .number-row input[type='checkbox'] {
+    margin-top: 0.2rem;
+  }
+
+  .voice-start-controls {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
