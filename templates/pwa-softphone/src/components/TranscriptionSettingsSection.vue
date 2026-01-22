@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, provide, onMounted, watch } from 'vue'
+import { computed, ref, provide, onMounted, onUnmounted, watch } from 'vue'
 import { useTranscription, providerRegistry, WhisperProvider } from 'vuesip'
 import { useTranscriptPersistence } from '../composables/useTranscriptPersistence'
 import { useCallRecording } from '../composables/useCallRecording'
@@ -49,6 +49,12 @@ const providerError = ref<string | null>(null)
 const showWhisperSettings = ref(savedSettings.provider === 'whisper')
 const isSwitchingProvider = ref(false)
 const isStarting = ref(false)
+const connectionTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+const previousProvider = ref<'web-speech' | 'whisper'>(savedSettings.provider)
+
+// Connection status for Whisper
+type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+const whisperConnectionStatus = ref<ConnectionStatus>('disconnected')
 
 // Check browser compatibility
 const isWebSocketSupported = typeof WebSocket !== 'undefined'
@@ -57,6 +63,13 @@ const isWebSocketSupported = typeof WebSocket !== 'undefined'
 onMounted(() => {
   if (!providerRegistry.has('whisper')) {
     providerRegistry.register('whisper', () => new WhisperProvider())
+  }
+})
+
+// Cleanup timeout on unmount
+onUnmounted(() => {
+  if (connectionTimeout.value) {
+    clearTimeout(connectionTimeout.value)
   }
 })
 
@@ -106,8 +119,14 @@ watch(language, () => {
   })
 })
 
-// Watch Whisper settings
-watch([whisperUrl, whisperModel], () => {
+// Watch Whisper settings - warn if changing during active transcription
+watch([whisperUrl, whisperModel], ([newUrl, newModel], [oldUrl, oldModel]) => {
+  if (isTranscribing.value && provider.value === 'whisper') {
+    if (newUrl !== oldUrl || newModel !== oldModel) {
+      providerError.value =
+        'Settings changed. Stop transcription and restart to apply new Whisper server URL or model.'
+    }
+  }
   saveSettings({
     provider: provider.value,
     language: language.value,
@@ -137,6 +156,7 @@ async function applyProviderChange() {
   if (provider.value === 'whisper') {
     if (!isValidWebSocketUrl(whisperUrl.value)) {
       providerError.value = 'Invalid WebSocket URL. Must start with ws:// or wss://'
+      whisperConnectionStatus.value = 'error'
       return
     }
   }
@@ -145,10 +165,12 @@ async function applyProviderChange() {
   if (provider.value === 'whisper' && !isWebSocketSupported) {
     providerError.value = 'WebSocket is not supported in this browser. Please use Web Speech API.'
     provider.value = 'web-speech' // Revert selection
+    whisperConnectionStatus.value = 'error'
     return
   }
 
   isSwitchingProvider.value = true
+  previousProvider.value = currentProvider.value as 'web-speech' | 'whisper'
 
   if (isTranscribing.value) {
     // Stop current transcription before switching
@@ -157,8 +179,21 @@ async function applyProviderChange() {
 
   // Clear all error states
   providerError.value = null
-  // Note: transcription.error is a ComputedRef, so we can't directly clear it
-  // It will be cleared when the provider successfully switches
+  whisperConnectionStatus.value = provider.value === 'whisper' ? 'connecting' : 'disconnected'
+
+  // Set up connection timeout feedback (10s for Whisper)
+  if (provider.value === 'whisper' && connectionTimeout.value) {
+    clearTimeout(connectionTimeout.value)
+  }
+
+  if (provider.value === 'whisper') {
+    connectionTimeout.value = setTimeout(() => {
+      if (whisperConnectionStatus.value === 'connecting') {
+        whisperConnectionStatus.value = 'error'
+        providerError.value = `Connection timeout. Whisper server at ${whisperUrl.value} did not respond within 10 seconds.`
+      }
+    }, 10000)
+  }
 
   try {
     if (provider.value === 'whisper') {
@@ -167,16 +202,62 @@ async function applyProviderChange() {
         model: whisperModel.value,
         language: 'en', // Whisper uses ISO language codes
       })
+      whisperConnectionStatus.value = 'connected'
+      if (connectionTimeout.value) {
+        clearTimeout(connectionTimeout.value)
+        connectionTimeout.value = null
+      }
     } else {
       await switchProvider('web-speech', {
         language: language.value,
       })
+      whisperConnectionStatus.value = 'disconnected'
+      if (connectionTimeout.value) {
+        clearTimeout(connectionTimeout.value)
+        connectionTimeout.value = null
+      }
     }
   } catch (err) {
-    providerError.value = err instanceof Error ? err.message : 'Failed to switch provider'
+    const errorMessage = err instanceof Error ? err.message : 'Failed to switch provider'
+    providerError.value = errorMessage
+
+    // Automatic fallback to Web Speech if Whisper fails
+    if (provider.value === 'whisper') {
+      whisperConnectionStatus.value = 'error'
+      providerError.value = `${errorMessage}. Falling back to Web Speech API.`
+
+      // Revert to Web Speech
+      provider.value = 'web-speech'
+      try {
+        await switchProvider('web-speech', {
+          language: language.value,
+        })
+        whisperConnectionStatus.value = 'disconnected'
+      } catch (fallbackErr) {
+        providerError.value = `Failed to switch provider and fallback failed: ${errorMessage}`
+        console.error('Provider switch and fallback error:', fallbackErr)
+      }
+    } else {
+      // If Web Speech fails, revert to previous provider
+      provider.value = previousProvider.value
+      try {
+        if (previousProvider.value === 'whisper') {
+          await switchProvider('whisper', {
+            serverUrl: whisperUrl.value,
+            model: whisperModel.value,
+            language: 'en',
+          })
+        } else {
+          await switchProvider('web-speech', {
+            language: language.value,
+          })
+        }
+      } catch (revertErr) {
+        console.error('Provider revert error:', revertErr)
+      }
+    }
+
     console.error('Provider switch error:', err)
-    // Optionally revert provider on failure (commented out to let user see error)
-    // provider.value = currentProvider.value
   } finally {
     isSwitchingProvider.value = false
   }
@@ -210,6 +291,7 @@ const transcriptText = computed(() => {
 async function toggleTranscription() {
   if (isTranscribing.value) {
     await stop()
+    whisperConnectionStatus.value = 'disconnected'
     return
   }
 
@@ -225,21 +307,64 @@ async function toggleTranscription() {
     if (currentProvider.value !== provider.value) {
       await applyProviderChange()
       // If provider switch failed, don't start transcription
-      if (providerError.value) {
+      if (providerError.value && provider.value === 'whisper') {
         return
       }
     }
 
+    // Set connection status for Whisper
+    if (provider.value === 'whisper') {
+      whisperConnectionStatus.value = 'connecting'
+    }
+
     await start()
+
+    // Update connection status on successful start
+    if (provider.value === 'whisper') {
+      whisperConnectionStatus.value = 'connected'
+    }
+
     // Clear errors on successful start
     providerError.value = null
   } catch (err) {
-    providerError.value = err instanceof Error ? err.message : 'Failed to start transcription'
+    const errorMessage = err instanceof Error ? err.message : 'Failed to start transcription'
+    providerError.value = errorMessage
+
+    if (provider.value === 'whisper') {
+      whisperConnectionStatus.value = 'error'
+
+      // Automatic fallback to Web Speech if Whisper start fails
+      providerError.value = `${errorMessage}. Falling back to Web Speech API.`
+      provider.value = 'web-speech'
+
+      try {
+        await applyProviderChange()
+        await start()
+        whisperConnectionStatus.value = 'disconnected'
+      } catch (fallbackErr) {
+        providerError.value = `Failed to start transcription and fallback failed: ${errorMessage}`
+        console.error('Start transcription and fallback error:', fallbackErr)
+      }
+    }
+
     console.error('Start transcription error:', err)
   } finally {
     isStarting.value = false
   }
 }
+
+// Watch for transcription errors to update connection status
+watch(error, (newError) => {
+  if (newError && provider.value === 'whisper' && isTranscribing.value) {
+    // Check if error is connection-related
+    const errorMsg = newError.message.toLowerCase()
+    if (errorMsg.includes('timeout') || errorMsg.includes('connection') || errorMsg.includes('websocket')) {
+      whisperConnectionStatus.value = 'error'
+    }
+  } else if (!newError && provider.value === 'whisper' && isTranscribing.value) {
+    whisperConnectionStatus.value = 'connected'
+  }
+})
 
 function downloadTxt() {
   const txt = exportTranscript('txt')
@@ -276,6 +401,32 @@ function downloadTxt() {
 
     <!-- Whisper Settings (shown when Whisper is selected) -->
     <div v-if="showWhisperSettings" class="whisper-settings">
+      <!-- Connection Status Indicator -->
+      <div v-if="provider === 'whisper'" class="connection-status">
+        <span
+          class="status-indicator"
+          :class="{
+            'status-connecting': whisperConnectionStatus === 'connecting',
+            'status-connected': whisperConnectionStatus === 'connected',
+            'status-error': whisperConnectionStatus === 'error',
+            'status-disconnected': whisperConnectionStatus === 'disconnected',
+          }"
+        >
+          <span class="status-dot"></span>
+          <span class="status-text">
+            {{
+              whisperConnectionStatus === 'connecting'
+                ? 'Connecting...'
+                : whisperConnectionStatus === 'connected'
+                  ? 'Connected'
+                  : whisperConnectionStatus === 'error'
+                    ? 'Connection Error'
+                    : 'Disconnected'
+            }}
+          </span>
+        </span>
+      </div>
+
       <div class="setting-item">
         <label for="whisper-url">Server URL</label>
         <input
@@ -283,7 +434,7 @@ function downloadTxt() {
           v-model="whisperUrl"
           type="text"
           placeholder="ws://localhost:8765/transcribe"
-          :disabled="isTranscribing"
+          :disabled="isTranscribing || isSwitchingProvider"
           class="whisper-input"
         />
       </div>
@@ -293,7 +444,7 @@ function downloadTxt() {
         <select
           id="whisper-model"
           v-model="whisperModel"
-          :disabled="isTranscribing"
+          :disabled="isTranscribing || isSwitchingProvider"
           @change="applyProviderChange"
         >
           <option value="tiny">Tiny (fastest, least accurate)</option>
@@ -499,6 +650,60 @@ function downloadTxt() {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.connection-status {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  transition: background 0.2s;
+}
+
+.status-connecting .status-dot {
+  background: var(--color-warning, #ffa500);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-connected .status-dot {
+  background: var(--color-success, #10b981);
+}
+
+.status-error .status-dot {
+  background: var(--color-error);
+}
+
+.status-disconnected .status-dot {
+  background: var(--text-tertiary);
+}
+
+.status-text {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .btn {
