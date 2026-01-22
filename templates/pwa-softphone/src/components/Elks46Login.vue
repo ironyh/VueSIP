@@ -437,47 +437,62 @@ function handleReset() {
         </div>
 
         <div class="numbers-list">
-          <div class="numbers-header">
-            <span class="numbers-header-col" style="width: 28px"></span>
-            <span class="numbers-header-col" style="width: 28px">Use</span>
-            <span class="numbers-header-col">Number & Line Name</span>
-            <span class="numbers-header-col">Callback URL</span>
-          </div>
+          <div
+            v-for="num in numbers"
+            :key="num.id"
+            :class="['number-card', { 'number-card--active': selectedNumber?.id === num.id }]"
+          >
+            <div class="number-card-main">
+              <label class="radio-group">
+                <input
+                  :checked="selectedNumber?.id === num.id"
+                  type="radio"
+                  name="sip-connection"
+                  @change="handleNumberSelectFromRadio(num)"
+                />
+                <span class="radio-indicator"></span>
+              </label>
 
-          <div v-for="num in numbers" :key="num.id" class="number-row">
-            <input
-              :checked="selectedNumber?.id === num.id"
-              type="radio"
-              name="sip-connection"
-              class="sip-radio"
-              @change="handleNumberSelectFromRadio(num)"
-            />
+              <div class="number-info">
+                <input
+                  v-model="numberLabels[num.number]"
+                  class="label-input"
+                  type="text"
+                  placeholder="Line name (e.g. Sales)"
+                />
 
-            <input v-model="enabledNumbers[num.number]" type="checkbox" />
-
-            <div class="number-meta">
-              <input
-                v-model="numberLabels[num.number]"
-                class="label-input"
-                type="text"
-                placeholder="Line name (e.g. Sales)"
-              />
-
-              <div class="number-caption">
-                <span class="number">{{ num.number }}</span>
-                <span v-if="num.name" class="provider-name">{{ num.name }}</span>
+                <div class="number-caption">
+                  <span class="number">{{ num.number }}</span>
+                  <span v-if="num.name" class="provider-name">{{ num.name }}</span>
+                </div>
               </div>
+
+              <label class="checkbox-group">
+                <input v-model="enabledNumbers[num.number]" type="checkbox" />
+                <span class="checkbox-label">Enabled</span>
+              </label>
             </div>
 
-            <div class="voice-start-controls">
-              <input class="voice-start-input" :value="voiceStartUrlFor(num.number)" readonly />
-              <button
-                type="button"
-                class="copy-btn"
-                @click="copyText('ELK Callback URL', voiceStartUrlFor(num.number))"
-              >
-                Copy URL
-              </button>
+            <div class="number-card-callback">
+              <div class="voice-start-controls">
+                <input
+                  class="voice-start-input"
+                  :value="voiceStartUrlFor(num.number)"
+                  readonly
+                  placeholder="Callback URL"
+                />
+                <button
+                  type="button"
+                  class="copy-btn"
+                  :title="'Copy callback URL for ' + num.number"
+                  @click="copyText('ELK Callback URL', voiceStartUrlFor(num.number))"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -626,18 +641,27 @@ function handleReset() {
 }
 
 .copy-btn {
-  padding: 0.6rem 0.75rem;
+  padding: 0.65rem 0.75rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   cursor: pointer;
-  font-size: 0.85rem;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .copy-btn:hover {
   border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.copy-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .copied {
@@ -647,54 +671,134 @@ function handleReset() {
 .numbers-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
+  gap: 1rem;
+  padding: 0.5rem 0;
 }
 
-.numbers-header {
-  display: grid;
-  grid-template-columns: 28px 28px 1fr 1fr;
-  align-items: center;
-  padding: 0 0.75rem;
-  color: var(--text-tertiary);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.numbers-header-col {
-  padding: 0.15rem 0;
-}
-
-.number-row {
-  display: grid;
-  grid-template-columns: 28px 28px 1fr 1fr;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.6rem 0.75rem;
+.number-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.number-row input[type='radio'] {
-  width: 18px;
-  height: 18px;
+.number-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.number-card--active {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(79, 70, 229, 0.04) 100%);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.number-card-main {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 0.75rem;
+}
+
+.number-card-callback {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.radio-group {
+  display: flex;
+  align-items: start;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding-top: 0.3rem;
+}
+
+.radio-group input[type='radio'] {
+  width: 20px;
+  height: 20px;
   cursor: pointer;
   accent-color: var(--color-primary);
+  opacity: 0;
+  position: absolute;
 }
 
-.number-row input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--color-primary);
+.radio-indicator {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--bg-primary);
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.number-meta {
+.radio-group input[type='radio']:checked + .radio-indicator {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.radio-group input[type='radio']:checked + .radio-indicator::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+}
+
+.number-info {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.number-caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.number-caption .number {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.provider-name {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding-top: 0.3rem;
+  cursor: pointer;
+}
+
+.checkbox-group input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.checkbox-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .label-input {
@@ -704,24 +808,34 @@ function handleReset() {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   color: var(--text-primary);
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.number-caption {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: baseline;
+.label-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-.number-caption .number {
-  font-weight: 600;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
+.voice-start-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.provider-name {
-  font-size: 0.75rem;
+.voice-start-input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   color: var(--text-tertiary);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.8rem;
 }
 
 .form-group input::placeholder {
@@ -835,19 +949,26 @@ function handleReset() {
 }
 
 @media (max-width: 600px) {
-  .numbers-header,
-  .number-row {
+  .number-card-main {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
 
-  .number-row {
-    align-items: start;
+  .number-info {
+    order: 0;
   }
 
-  .number-row input[type='radio'],
-  .number-row input[type='checkbox'] {
-    margin-top: 0.2rem;
+  .radio-group {
+    order: -1;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .checkbox-group {
+    order: -1;
   }
 
   .voice-start-controls {
