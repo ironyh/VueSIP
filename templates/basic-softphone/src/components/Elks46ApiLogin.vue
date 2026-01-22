@@ -92,12 +92,6 @@ function normalizeConnectTarget(target: string): string {
   return raw.startsWith('+') ? raw : `+${raw}`
 }
 
-function voiceStartJsonFor(target: string): string {
-  const connect = normalizeConnectTarget(target)
-  if (!connect) return ''
-  return JSON.stringify({ connect })
-}
-
 function voiceStartUrlFor(target: string): string {
   const connect = normalizeConnectTarget(target)
   if (!connect || !appOrigin.value) return ''
@@ -282,8 +276,8 @@ function handleReset() {
       <div class="voice-start" v-if="numbers.length">
         <h4>Incoming calls (voice_start)</h4>
         <p class="api-login-description">
-          In 46elks: Numbers -&gt; select number -&gt; set <code>voice_start</code> to either the
-          JSON call action, or the webhook URL.
+          46elks uses <code>voice_start</code> for incoming calls (not <code>sms_url</code>). Set
+          <code>voice_start</code> for each number to the callback URL below.
         </p>
 
         <div class="voice-start-list">
@@ -293,20 +287,6 @@ function handleReset() {
               <span v-if="num.name" class="number-name">({{ num.name }})</span>
             </div>
 
-            <div class="voice-start-field">
-              <InputText
-                :model-value="voiceStartJsonFor(num.number)"
-                readonly
-                class="w-full monospace"
-              />
-              <Button
-                label="Copy JSON"
-                icon="pi pi-copy"
-                class="p-button-sm"
-                @click="copyText('JSON', voiceStartJsonFor(num.number))"
-              />
-            </div>
-
             <div class="voice-start-field" v-if="voiceStartUrlFor(num.number)">
               <InputText
                 :model-value="voiceStartUrlFor(num.number)"
@@ -314,10 +294,10 @@ function handleReset() {
                 class="w-full monospace"
               />
               <Button
-                label="Copy URL"
+                label="Copy ELK Callback URL"
                 icon="pi pi-copy"
-                class="p-button-sm p-button-secondary"
-                @click="copyText('URL', voiceStartUrlFor(num.number))"
+                class="p-button-sm"
+                @click="copyText('ELK Callback URL', voiceStartUrlFor(num.number))"
               />
             </div>
           </div>

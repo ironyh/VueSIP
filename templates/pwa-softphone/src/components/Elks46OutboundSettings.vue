@@ -12,10 +12,12 @@ const emit = defineEmits<{
 
 const STORAGE_KEY = 'vuesip_46elks_credentials'
 const ENABLED_NUMBERS_KEY = 'vuesip_46elks_enabled_numbers'
+const OUTBOUND_NUMBER_KEY = 'vuesip_46elks_outbound_number'
 const NUMBER_LABELS_KEY = 'vuesip_46elks_number_labels'
 
 const enabledNumbers = ref<Record<string, boolean>>({})
 const numberLabels = ref<Record<string, string>>({})
+const outboundNumber = ref<string>('')
 
 const savedCredentials = ref<{ username: string; password: string; phoneNumber?: string } | null>(
   null
@@ -89,26 +91,26 @@ onMounted(() => {
   }
   loadCredentials()
   loadPrefs()
+
+  try {
+    outboundNumber.value = String(localStorage.getItem(OUTBOUND_NUMBER_KEY) || '')
+  } catch {
+    outboundNumber.value = ''
+  }
 })
 
-const inboundConnectTarget = computed(() => {
-  const raw = String(savedCredentials.value?.phoneNumber || '').trim()
+function normalizeConnectTarget(target: string): string {
+  const raw = String(target ?? '').trim()
   if (!raw) return ''
   return raw.startsWith('+') ? raw : `+${raw}`
-})
+}
 
-const voiceStartJson = computed(() => {
-  const target = inboundConnectTarget.value
-  if (!target) return ''
-  return JSON.stringify({ connect: target })
-})
-
-const voiceStartUrl = computed(() => {
-  const target = inboundConnectTarget.value
+function voiceStartUrlFor(target: string): string {
+  const connect = normalizeConnectTarget(target)
   const origin = appOrigin.value
-  if (!target || !origin) return ''
-  return `${origin}${appBase.value}elks/calls?connect=${encodeURIComponent(target)}`
-})
+  if (!connect || !origin) return ''
+  return `${origin}${appBase.value}elks/calls?connect=${encodeURIComponent(connect)}`
+}
 
 async function copyText(label: string, value: string) {
   const text = String(value ?? '').trim()
@@ -151,6 +153,36 @@ const knownNumbers = computed(() => {
   return Array.from(set).sort()
 })
 
+const enabledCallerIdNumbers = computed(() =>
+  knownNumbers.value.filter((num) => enabledNumbers.value[num])
+)
+
+const outboundNumberOptions = computed(() =>
+  enabledCallerIdNumbers.value.map((num) => ({
+    value: num,
+    label: numberLabels.value[num]?.trim() || displayNameForNumber(num) || num,
+  }))
+)
+
+function persistOutboundNumber(value: string) {
+  outboundNumber.value = value
+  try {
+    localStorage.setItem(OUTBOUND_NUMBER_KEY, value)
+  } catch {
+    // ignore
+  }
+}
+
+watch(
+  enabledCallerIdNumbers,
+  (list) => {
+    if (list.length === 0) return
+    if (outboundNumber.value && list.includes(outboundNumber.value)) return
+    persistOutboundNumber(list[0])
+  },
+  { immediate: true }
+)
+
 async function refreshFrom46Elks() {
   if (!savedCredentials.value) return
   const ok = await authenticate(savedCredentials.value.username, savedCredentials.value.password)
@@ -182,33 +214,26 @@ function displayNameForNumber(num: string): string {
       remember numbers.
     </p>
 
-    <div v-if="inboundConnectTarget" class="info">
+    <div v-if="numbers.length" class="info">
       <div class="info-title">Incoming calls (voice_start)</div>
       <p class="hint">
-        To make your 46elks numbers ring in this browser, configure <code>voice_start</code> for
-        each number in the 46elks dashboard.
+        46elks uses <code>voice_start</code> for incoming calls (not <code>sms_url</code>). Set
+        <code>voice_start</code> for each number to the callback URL below.
       </p>
 
-      <p class="hint">
-        Destination (your WebRTC number): <strong>{{ inboundConnectTarget }}</strong>
-      </p>
-
-      <div class="voice-start-row">
-        <div class="voice-start-title">Option 1 (recommended): paste JSON</div>
-        <div class="voice-start-controls">
-          <input class="voice-start-input" :value="voiceStartJson" readonly />
-          <button type="button" class="copy-btn" @click="copyText('JSON', voiceStartJson)">
-            Copy
-          </button>
+      <div v-for="n in numbers" :key="n.id" class="voice-start-row">
+        <div class="voice-start-title">
+          <strong>{{ n.number }}</strong
+          ><span v-if="n.name"> ({{ n.name }})</span>
         </div>
-      </div>
-
-      <div v-if="voiceStartUrl" class="voice-start-row">
-        <div class="voice-start-title">Option 2: webhook URL</div>
-        <div class="voice-start-controls">
-          <input class="voice-start-input" :value="voiceStartUrl" readonly />
-          <button type="button" class="copy-btn" @click="copyText('URL', voiceStartUrl)">
-            Copy
+        <div v-if="voiceStartUrlFor(n.number)" class="voice-start-controls">
+          <input class="voice-start-input" :value="voiceStartUrlFor(n.number)" readonly />
+          <button
+            type="button"
+            class="copy-btn"
+            @click="copyText('ELK Callback URL', voiceStartUrlFor(n.number))"
+          >
+            Copy ELK Callback URL
           </button>
         </div>
       </div>
@@ -230,6 +255,20 @@ function displayNameForNumber(num: string): string {
     >
       {{ isLoading ? 'Refreshing...' : 'Refresh numbers from 46elks' }}
     </button>
+
+    <div v-if="outboundNumberOptions.length" class="form-row">
+      <label class="form-label" for="outbound-number">Default outgoing number</label>
+      <select
+        id="outbound-number"
+        class="select"
+        :value="outboundNumber"
+        @change="persistOutboundNumber(($event.target as HTMLSelectElement).value)"
+      >
+        <option v-for="o in outboundNumberOptions" :key="o.value" :value="o.value">
+          {{ o.label }}
+        </option>
+      </select>
+    </div>
 
     <p v-if="error" class="error">{{ error }}</p>
 
@@ -295,6 +334,27 @@ function displayNameForNumber(num: string): string {
   grid-template-columns: 1fr auto;
   gap: 0.5rem;
   align-items: center;
+}
+
+.form-row {
+  margin: 0.75rem 0;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
 }
 
 .voice-start-input {
