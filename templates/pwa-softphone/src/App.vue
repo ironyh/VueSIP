@@ -35,6 +35,7 @@ const showIncomingModal = ref(false)
 const statusMessage = ref('')
 const selectedCallId = ref<string | null>(null)
 const showCallDetail = ref(false)
+const historySearchQuery = ref('')
 
 // Persistence
 const transcriptPersistence = useTranscriptPersistence()
@@ -42,8 +43,101 @@ const callRecording = useCallRecording()
 const currentCallId = ref<string | null>(null)
 
 // Get transcription instance from TranscriptionSettingsSection via inject
-import { inject } from 'vue'
 const transcription = inject<ReturnType<typeof useTranscription>>('transcription', null)
+
+// Filtered history with search (metadata only for now - transcript search can be async enhancement)
+const filteredHistory = computed(() => {
+  const entries = phone.historyEntries.value
+  const query = historySearchQuery.value.toLowerCase().trim()
+
+  if (!query) return entries
+
+  // Search through call metadata
+  return entries.filter((entry) => {
+    const remoteUri = entry.remoteUri?.toLowerCase() || ''
+    const remoteName = entry.remoteDisplayName?.toLowerCase() || ''
+    const localUri = entry.localUri?.toLowerCase() || ''
+    const direction = entry.direction?.toLowerCase() || ''
+    const dateStr = new Date(entry.startTime).toLocaleString().toLowerCase()
+
+    return (
+      remoteUri.includes(query) ||
+      remoteName.includes(query) ||
+      localUri.includes(query) ||
+      direction.includes(query) ||
+      dateStr.includes(query)
+    )
+  })
+})
+
+// Async transcript search (enhancement - searches saved transcripts)
+const transcriptSearchResults = ref<Set<string>>(new Set())
+const isSearchingTranscripts = ref(false)
+let transcriptSearchTimeout: ReturnType<typeof setTimeout> | null = null
+
+watch(historySearchQuery, async (query) => {
+  // Clear previous timeout
+  if (transcriptSearchTimeout) {
+    clearTimeout(transcriptSearchTimeout)
+  }
+
+  if (!query.trim() || !transcriptPersistence.persistenceEnabled.value) {
+    transcriptSearchResults.value.clear()
+    isSearchingTranscripts.value = false
+    return
+  }
+
+  // Debounce transcript search (search metadata immediately, transcripts after delay)
+  transcriptSearchTimeout = setTimeout(async () => {
+    isSearchingTranscripts.value = true
+    const results = new Set<string>()
+    const queryLower = query.toLowerCase()
+
+    try {
+      // Check all history entries for matching transcripts
+      for (const entry of phone.historyEntries.value) {
+        const transcript = await transcriptPersistence.getTranscript(entry.id)
+        if (transcript) {
+          const transcriptText = transcript
+            .map((e) => e.text)
+            .join(' ')
+            .toLowerCase()
+          if (transcriptText.includes(queryLower)) {
+            results.add(entry.id)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error searching transcripts:', error)
+    } finally {
+      transcriptSearchResults.value = results
+      isSearchingTranscripts.value = false
+    }
+  }, 300)
+})
+
+// Combined filtered history (metadata + transcript matches)
+const finalFilteredHistory = computed(() => {
+  const metadataMatches = filteredHistory.value
+  const query = historySearchQuery.value.toLowerCase().trim()
+
+  if (!query) return metadataMatches
+
+  // If transcript search found matches, include those even if they didn't match metadata
+  if (transcriptSearchResults.value.size > 0) {
+    const transcriptMatches = phone.historyEntries.value.filter((entry) =>
+      transcriptSearchResults.value.has(entry.id)
+    )
+    // Combine and deduplicate
+    const combined = [...metadataMatches, ...transcriptMatches]
+    const unique = combined.filter(
+      (entry, index, self) => index === self.findIndex((e) => e.id === entry.id)
+    )
+    return unique
+  }
+
+  return metadataMatches
+})
 
 // Check for incoming calls
 watch(
@@ -315,6 +409,36 @@ onUnmounted(async () => {
           />
 
           <div v-else-if="activeTab === 'history' && !showCallDetail" class="history-view">
+            <!-- Search Bar -->
+            <div class="history-search">
+              <svg
+                class="search-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                v-model="historySearchQuery"
+                type="text"
+                placeholder="Search calls..."
+                class="search-input"
+              />
+              <button
+                v-if="historySearchQuery"
+                class="clear-search-btn"
+                @click="historySearchQuery = ''"
+                aria-label="Clear search"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
             <div v-if="phone.historyEntries.value.length === 0" class="empty-state">
               <svg
                 class="icon"
@@ -327,9 +451,29 @@ onUnmounted(async () => {
               </svg>
               <p>No recent calls</p>
             </div>
+            <div v-else-if="finalFilteredHistory.length === 0" class="empty-state">
+              <svg
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <p>No calls match "{{ historySearchQuery }}"</p>
+              <p v-if="isSearchingTranscripts" class="searching-hint">Searching transcripts...</p>
+            </div>
+            <div
+              v-if="isSearchingTranscripts && finalFilteredHistory.length > 0"
+              class="search-status"
+            >
+              <span class="search-status-text">Searching transcripts...</span>
+            </div>
             <ul v-else class="history-list">
               <li
-                v-for="entry in phone.historyEntries.value"
+                v-for="entry in finalFilteredHistory"
                 :key="entry.id"
                 class="history-item"
                 @click="handleHistoryClick(entry.id, entry.remoteUri)"
@@ -671,6 +815,90 @@ function formatDuration(seconds: number): string {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.history-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+}
+
+.search-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.clear-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.clear-search-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.clear-search-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.search-status {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+}
+
+.search-status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-status-text::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--text-secondary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
 .empty-state {
