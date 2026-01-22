@@ -150,6 +150,10 @@ export default defineConfig({
         // Whisper provider requires WebSocket connection to external Whisper server
         // Unit tests cover the provider interface via registry tests
         '**/whisper.ts',
+
+        // Provider API composables depend on network/browser runtime and are validated
+        // via template smoke builds + integration tests rather than unit coverage.
+        '**/use46ElksApi.ts',
       ],
 
       // Coverage thresholds
