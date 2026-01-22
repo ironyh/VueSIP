@@ -800,5 +800,8 @@ export function usePhone() {
     historyEntries,
     history,
     clearHistory,
+
+    // Session (for call ID)
+    session,
   }
 }

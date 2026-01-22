@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watch } from 'vue'
+import { ref, computed, onUnmounted, watch, inject } from 'vue'
 import DialPad from './components/DialPad.vue'
 import CallScreen from './components/CallScreen.vue'
 import IncomingCall from './components/IncomingCall.vue'
 import Settings from './components/Settings.vue'
 import Elks46OutboundSettings from './components/Elks46OutboundSettings.vue'
 import TranscriptionSettingsSection from './components/TranscriptionSettingsSection.vue'
+import CallDetailView from './components/CallDetailView.vue'
 import { usePhone } from './composables/usePhone'
 import { usePushNotifications } from './composables/usePushNotifications'
 import { usePwaInstall } from './composables/usePwaInstall'
+import { useTranscription } from 'vuesip'
+import { useTranscriptPersistence } from './composables/useTranscriptPersistence'
+import { useCallRecording } from './composables/useCallRecording'
 
 // Phone composable
 const phone = usePhone()
@@ -29,6 +33,17 @@ const activeTab = ref<'dialpad' | 'history' | 'settings'>('dialpad')
 const settingsSubTab = ref<'general' | 'transcription'>('general')
 const showIncomingModal = ref(false)
 const statusMessage = ref('')
+const selectedCallId = ref<string | null>(null)
+const showCallDetail = ref(false)
+
+// Persistence
+const transcriptPersistence = useTranscriptPersistence()
+const callRecording = useCallRecording()
+const currentCallId = ref<string | null>(null)
+
+// Get transcription instance from TranscriptionSettingsSection via inject
+import { inject } from 'vue'
+const transcription = inject<ReturnType<typeof useTranscription>>('transcription', null)
 
 // Check for incoming calls
 watch(
@@ -58,6 +73,46 @@ watch(
       }
     } else if (newState === 'idle' || newState === 'active') {
       showIncomingModal.value = false
+    }
+  }
+)
+
+// Track call ID and manage recording/transcription persistence
+watch(
+  () => phone.callState.value,
+  async (newState, oldState) => {
+    // When call becomes active, capture call ID and start recording if enabled
+    if (newState === 'active' && oldState !== 'active') {
+      const session = phone.session?.value as any
+      currentCallId.value = session?.id || null
+
+      // Start recording if persistence is enabled
+      // Note: We need to get the combined audio stream from the call session
+      // For now, recording is manual - user starts it in settings
+      // TODO: Auto-start recording when persistence enabled and call becomes active
+    }
+
+    // When call ends, save transcript and recording
+    if ((newState === 'idle' || newState === 'ended') && oldState === 'active') {
+      const callId = currentCallId.value
+      if (callId) {
+        // Save transcript if persistence enabled and transcription instance is available
+        if (
+          transcription &&
+          transcriptPersistence.persistenceEnabled.value &&
+          transcription.transcript.value.length > 0
+        ) {
+          await transcriptPersistence.saveTranscript(callId, transcription.transcript.value)
+        }
+
+        // Stop and save recording if active
+        if (callRecording.isRecording.value) {
+          await callRecording.stopRecording()
+        }
+
+        // Clear current call ID
+        currentCallId.value = null
+      }
     }
   }
 )
@@ -112,6 +167,18 @@ async function handleEndCall() {
   } catch (err) {
     statusMessage.value = err instanceof Error ? err.message : 'Failed to end call'
   }
+}
+
+function handleHistoryClick(callId: string, remoteUri: string) {
+  // Check if user wants to view details (long press or click on info icon)
+  // For now, single click shows detail view
+  selectedCallId.value = callId
+  showCallDetail.value = true
+}
+
+function handleBackFromDetail() {
+  showCallDetail.value = false
+  selectedCallId.value = null
 }
 
 async function handleConnect(config: any) {
@@ -247,7 +314,7 @@ onUnmounted(async () => {
             @digit="handleDTMF"
           />
 
-          <div v-else-if="activeTab === 'history'" class="history-view">
+          <div v-else-if="activeTab === 'history' && !showCallDetail" class="history-view">
             <div v-if="phone.historyEntries.value.length === 0" class="empty-state">
               <svg
                 class="icon"
@@ -265,7 +332,7 @@ onUnmounted(async () => {
                 v-for="entry in phone.historyEntries.value"
                 :key="entry.id"
                 class="history-item"
-                @click="handleCall(entry.remoteUri)"
+                @click="handleHistoryClick(entry.id, entry.remoteUri)"
               >
                 <div class="history-icon" :class="entry.direction">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -288,6 +355,13 @@ onUnmounted(async () => {
               Clear History
             </button>
           </div>
+
+          <!-- Call Detail View -->
+          <CallDetailView
+            v-else-if="activeTab === 'history' && showCallDetail && selectedCallId"
+            :call-id="selectedCallId"
+            @back="handleBackFromDetail"
+          />
 
           <div v-else-if="activeTab === 'settings'" class="settings-view">
             <!-- Settings Sub-Tabs -->
