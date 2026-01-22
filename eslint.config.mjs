@@ -91,7 +91,8 @@ const vueBaseRules = {
   'vue/require-default-prop': 'off',
   'vue/require-explicit-emits': 'error',
   'vue/no-unused-vars': 'error',
-  'vue/html-indent': ['error', 2],
+  // Formatting is enforced by Prettier; keep ESLint focused on correctness.
+  'vue/html-indent': 'off',
   'vue/max-attributes-per-line': 'off',
   'vue/singleline-html-element-content-newline': 'off',
   'vue/html-self-closing': [

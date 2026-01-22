@@ -84,6 +84,77 @@ import { USER_AGENT } from '@/utils/constants'
 
 const logger = createLogger('SipClient')
 
+type AnyRecord = Record<string, unknown>
+
+function normalizeHeaderName(name: string): string {
+  return name.trim().toLowerCase()
+}
+
+function getHeaderValuesForDebug(request: unknown, headerName: string): string[] {
+  if (!request) return []
+  const reqAny = request as AnyRecord
+
+  const getter = reqAny.getHeader
+  if (typeof getter === 'function') {
+    try {
+      const v = (getter as (name: string) => string | undefined)(headerName)
+      return typeof v === 'string' && v.trim() ? [v] : []
+    } catch {
+      // ignore
+    }
+  }
+
+  const headers = reqAny.headers
+  if (!headers || typeof headers !== 'object') return []
+
+  const headersObj = headers as AnyRecord
+  const target = normalizeHeaderName(headerName)
+  for (const [key, value] of Object.entries(headersObj)) {
+    if (normalizeHeaderName(key) !== target) continue
+
+    if (typeof value === 'string' && value.trim()) return [value]
+
+    if (Array.isArray(value)) {
+      const out: string[] = []
+      for (const item of value) {
+        if (typeof item === 'string' && item.trim()) {
+          out.push(item)
+          continue
+        }
+        const rec = item as AnyRecord
+        const raw = rec?.raw ?? rec?.value ?? rec?.parsed
+        if (typeof raw === 'string' && raw.trim()) out.push(raw)
+      }
+      return out
+    }
+  }
+
+  return []
+}
+
+function getCalledIdentityHeaderSnapshot(
+  request: SipRequest | undefined,
+  customHeaders: string[]
+): {
+  requestUri?: unknown
+  headers: Record<string, string[]>
+} {
+  const reqAny = request as AnyRecord | undefined
+
+  const headerNames = ['To', 'P-Called-Party-ID', 'History-Info', 'Diversion', ...customHeaders]
+
+  const headers: Record<string, string[]> = {}
+  for (const name of headerNames) {
+    const values = getHeaderValuesForDebug(request, name)
+    if (values.length > 0) headers[name] = values
+  }
+
+  return {
+    requestUri: reqAny?.ruri,
+    headers,
+  }
+}
+
 const isTestEnvironment = (): boolean => {
   if (typeof window === 'undefined') {
     return false
@@ -820,6 +891,19 @@ export class SipClient {
           event.request as SipRequest | undefined,
           this.config.calledIdentity
         )
+
+        if (this.config.debug) {
+          const customHeaders = Object.keys(this.config.calledIdentity?.customHeaderMap ?? {})
+          const snapshot = getCalledIdentityHeaderSnapshot(
+            event.request as SipRequest | undefined,
+            customHeaders
+          )
+          logger.debug('Incoming called identity snapshot', {
+            callId,
+            ...snapshot,
+            extracted: calledIdentity,
+          })
+        }
 
         // Create CallSession instance for incoming call
         const callSession = createCallSession(

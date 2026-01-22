@@ -30,6 +30,10 @@ describe('useAmiAgentLogin', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
+    // Use a deterministic wall-clock to avoid time-of-day flakiness
+    // (some logic depends on current hour/minute and day-of-week).
+    // Use local-time Date constructor to avoid TZ-dependent parsing.
+    vi.setSystemTime(new Date(2026, 0, 22, 12, 0, 0))
     mockClient = createMockAmiClient()
 
     // Mock queueAdd
@@ -75,12 +79,18 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should have empty queues initially', () => {
-      const { loggedInQueues } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { loggedInQueues } = useAmiAgentLogin(
+        mockClient as unknown as AmiClient,
+        defaultOptions
+      )
       expect(loggedInQueues.value).toHaveLength(0)
     })
 
     it('should have zero session duration initially', () => {
-      const { sessionDurationFormatted } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { sessionDurationFormatted } = useAmiAgentLogin(
+        mockClient as unknown as AmiClient,
+        defaultOptions
+      )
       expect(sessionDurationFormatted.value).toBe('00:00:00')
     })
 
@@ -140,19 +150,16 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should throw if no queues specified and no default queues', async () => {
-      const { login } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        { ...defaultOptions, defaultQueues: [] }
-      )
+      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        defaultQueues: [],
+      })
 
       await expect(login({ queues: [] })).rejects.toThrow('No queues specified for login')
     })
 
     it('should use custom penalties', async () => {
-      const { login } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
 
       await login({
         queues: ['sales', 'support'],
@@ -183,10 +190,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should update status to logged_in after login', async () => {
-      const { login, status } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, status } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
 
       expect(status.value).toBe('logged_out')
 
@@ -197,10 +201,10 @@ describe('useAmiAgentLogin', () => {
 
     it('should call onStatusChange callback', async () => {
       const onStatusChange = vi.fn()
-      const { login } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        { ...defaultOptions, onStatusChange }
-      )
+      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        onStatusChange,
+      })
 
       await login({ queues: ['sales'] })
 
@@ -209,10 +213,10 @@ describe('useAmiAgentLogin', () => {
 
     it('should call onQueueChange callback', async () => {
       const onQueueChange = vi.fn()
-      const { login } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        { ...defaultOptions, onQueueChange }
-      )
+      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        onQueueChange,
+      })
 
       await login({ queues: ['sales'] })
 
@@ -285,10 +289,10 @@ describe('useAmiAgentLogin', () => {
 
     it('should call onQueueChange callback', async () => {
       const onQueueChange = vi.fn()
-      const { login, logout } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        { ...defaultOptions, onQueueChange }
-      )
+      const { login, logout } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        onQueueChange,
+      })
 
       await login({ queues: ['sales'] })
       onQueueChange.mockClear()
@@ -332,8 +336,8 @@ describe('useAmiAgentLogin', () => {
 
       expect(mockClient.queuePause).toHaveBeenCalledTimes(1)
       expect(mockClient.queuePause).toHaveBeenCalledWith('sales', 'PJSIP/1001', true, 'Break')
-      expect(session.value.queues.find(q => q.queue === 'sales')?.isPaused).toBe(true)
-      expect(session.value.queues.find(q => q.queue === 'support')?.isPaused).toBe(false)
+      expect(session.value.queues.find((q) => q.queue === 'sales')?.isPaused).toBe(true)
+      expect(session.value.queues.find((q) => q.queue === 'support')?.isPaused).toBe(false)
     })
 
     it('should update status to paused', async () => {
@@ -453,16 +457,17 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should use custom penalty when logging in', async () => {
-      const { toggleQueue } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { toggleQueue } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
 
       await toggleQueue('sales', 5)
 
-      expect(mockClient.queueAdd).toHaveBeenCalledWith('sales', 'PJSIP/1001', expect.objectContaining({
-        penalty: 5,
-      }))
+      expect(mockClient.queueAdd).toHaveBeenCalledWith(
+        'sales',
+        'PJSIP/1001',
+        expect.objectContaining({
+          penalty: 5,
+        })
+      )
     })
   })
 
@@ -483,7 +488,7 @@ describe('useAmiAgentLogin', () => {
       await setPenalty('sales', 10)
 
       expect(mockClient.queuePenalty).toHaveBeenCalledWith('sales', 'PJSIP/1001', 10)
-      expect(session.value.queues.find(q => q.queue === 'sales')?.penalty).toBe(10)
+      expect(session.value.queues.find((q) => q.queue === 'sales')?.penalty).toBe(10)
     })
   })
 
@@ -516,7 +521,7 @@ describe('useAmiAgentLogin', () => {
 
       expect(mockClient.getQueueStatus).toHaveBeenCalled()
       expect(loggedInQueues.value).toContain('sales')
-      expect(session.value.queues.find(q => q.queue === 'sales')?.callsTaken).toBe(5)
+      expect(session.value.queues.find((q) => q.queue === 'sales')?.callsTaken).toBe(5)
     })
 
     it('should handle empty queue status', async () => {
@@ -640,20 +645,23 @@ describe('useAmiAgentLogin', () => {
   describe('event handling', () => {
     it('should handle QueueMemberAdded event', async () => {
       const onQueueChange = vi.fn()
-      const { loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        { ...defaultOptions, onQueueChange }
-      )
+      const { loggedInQueues } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        onQueueChange,
+      })
 
       // Simulate QueueMemberAdded event
-      mockClient._triggerEvent('queueMemberAdded', createAmiEvent('QueueMemberAdded', {
-        Queue: 'sales',
-        Interface: 'PJSIP/1001',
-        MemberName: 'Test Agent',
-        Penalty: '0',
-        CallsTaken: '0',
-        Paused: '0',
-      }))
+      mockClient._triggerEvent(
+        'queueMemberAdded',
+        createAmiEvent('QueueMemberAdded', {
+          Queue: 'sales',
+          Interface: 'PJSIP/1001',
+          MemberName: 'Test Agent',
+          Penalty: '0',
+          CallsTaken: '0',
+          Paused: '0',
+        })
+      )
       await nextTick()
 
       expect(loggedInQueues.value).toContain('sales')
@@ -662,20 +670,23 @@ describe('useAmiAgentLogin', () => {
 
     it('should handle QueueMemberRemoved event', async () => {
       const onQueueChange = vi.fn()
-      const { login, loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        { ...defaultOptions, onQueueChange }
-      )
+      const { login, loggedInQueues } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        onQueueChange,
+      })
 
       await login({ queues: ['sales'] })
       onQueueChange.mockClear()
 
       // Simulate QueueMemberRemoved event
-      mockClient._triggerEvent('queueMemberRemoved', createAmiEvent('QueueMemberRemoved', {
-        Queue: 'sales',
-        Interface: 'PJSIP/1001',
-        MemberName: 'Test Agent',
-      }))
+      mockClient._triggerEvent(
+        'queueMemberRemoved',
+        createAmiEvent('QueueMemberRemoved', {
+          Queue: 'sales',
+          Interface: 'PJSIP/1001',
+          MemberName: 'Test Agent',
+        })
+      )
       await nextTick()
 
       expect(loggedInQueues.value).not.toContain('sales')
@@ -691,12 +702,15 @@ describe('useAmiAgentLogin', () => {
       await login({ queues: ['sales'] })
 
       // Simulate QueueMemberPause event
-      mockClient._triggerEvent('queueMemberPause', createAmiEvent('QueueMemberPause', {
-        Queue: 'sales',
-        Interface: 'PJSIP/1001',
-        Paused: '1',
-        PausedReason: 'Lunch',
-      }))
+      mockClient._triggerEvent(
+        'queueMemberPause',
+        createAmiEvent('QueueMemberPause', {
+          Queue: 'sales',
+          Interface: 'PJSIP/1001',
+          Paused: '1',
+          PausedReason: 'Lunch',
+        })
+      )
       await nextTick()
 
       expect(isPaused.value).toBe(true)
@@ -710,11 +724,14 @@ describe('useAmiAgentLogin', () => {
       )
 
       // Simulate event for different interface
-      mockClient._triggerEvent('queueMemberAdded', createAmiEvent('QueueMemberAdded', {
-        Queue: 'sales',
-        Interface: 'PJSIP/9999', // Different interface
-        MemberName: 'Other Agent',
-      }))
+      mockClient._triggerEvent(
+        'queueMemberAdded',
+        createAmiEvent('QueueMemberAdded', {
+          Queue: 'sales',
+          Interface: 'PJSIP/9999', // Different interface
+          MemberName: 'Other Agent',
+        })
+      )
       await nextTick()
 
       expect(loggedInQueues.value).not.toContain('sales')
@@ -723,42 +740,94 @@ describe('useAmiAgentLogin', () => {
 
   describe('shift management', () => {
     it('should initialize with shift configuration', () => {
-      const { session, isOnShift } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        {
-          ...defaultOptions,
-          shift: {
-            startHour: 0,
-            startMinute: 0,
-            endHour: 23,
-            endMinute: 59,
-            daysOfWeek: [0, 1, 2, 3, 4, 5, 6], // All days
-          },
-        }
-      )
+      const { session, isOnShift } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        shift: {
+          startHour: 0,
+          startMinute: 0,
+          endHour: 23,
+          endMinute: 59,
+          daysOfWeek: [0, 1, 2, 3, 4, 5, 6], // All days
+        },
+      })
 
       expect(session.value.shiftStart).toBeInstanceOf(Date)
       expect(session.value.shiftEnd).toBeInstanceOf(Date)
       expect(isOnShift.value).toBe(true)
     })
 
-    it('should be off shift when day not included', () => {
-      const now = new Date()
-      const notToday = (now.getDay() + 1) % 7 // Tomorrow's day index
+    it('treats end minute as inclusive (prevents 23:59 boundary flake)', () => {
+      vi.setSystemTime(new Date(2026, 0, 21, 23, 59, 30))
 
-      const { isOnShift } = useAmiAgentLogin(
+      const { isOnShift } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        shift: {
+          startHour: 0,
+          startMinute: 0,
+          endHour: 23,
+          endMinute: 59,
+          daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        },
+      })
+
+      expect(isOnShift.value).toBe(true)
+    })
+
+    it('handles overnight shifts (end time is next day)', () => {
+      // Wed Jan 21 2026
+      vi.setSystemTime(new Date(2026, 0, 21, 23, 30, 0))
+
+      const { session, isOnShift } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        shift: {
+          startHour: 23,
+          startMinute: 0,
+          endHour: 1,
+          endMinute: 0,
+          // Include both the start day and the next day since the shift crosses midnight.
+          daysOfWeek: [3, 4],
+        },
+      })
+
+      expect(isOnShift.value).toBe(true)
+      expect(session.value.shiftStart).toBeInstanceOf(Date)
+      expect(session.value.shiftEnd).toBeInstanceOf(Date)
+      expect(session.value.shiftEnd!.getTime()).toBeGreaterThan(session.value.shiftStart!.getTime())
+
+      // Thu Jan 22 2026
+      vi.setSystemTime(new Date(2026, 0, 22, 0, 30, 0))
+
+      const { isOnShift: isOnShiftAfterMidnight } = useAmiAgentLogin(
         mockClient as unknown as AmiClient,
         {
           ...defaultOptions,
           shift: {
-            startHour: 0,
+            startHour: 23,
             startMinute: 0,
-            endHour: 23,
-            endMinute: 59,
-            daysOfWeek: [notToday], // Only a different day
+            endHour: 1,
+            endMinute: 0,
+            daysOfWeek: [3, 4],
           },
         }
       )
+
+      expect(isOnShiftAfterMidnight.value).toBe(true)
+    })
+
+    it('should be off shift when day not included', () => {
+      const now = new Date()
+      const notToday = (now.getDay() + 1) % 7 // Tomorrow's day index
+
+      const { isOnShift } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        ...defaultOptions,
+        shift: {
+          startHour: 0,
+          startMinute: 0,
+          endHour: 23,
+          endMinute: 59,
+          daysOfWeek: [notToday], // Only a different day
+        },
+      })
 
       expect(isOnShift.value).toBe(false)
     })
@@ -812,33 +881,31 @@ describe('useAmiAgentLogin', () => {
 
   describe('input validation', () => {
     it('should throw on invalid agentId', () => {
-      expect(() => useAmiAgentLogin(mockClient as unknown as AmiClient, {
-        ...defaultOptions,
-        agentId: '',
-      })).toThrow('Invalid agentId')
+      expect(() =>
+        useAmiAgentLogin(mockClient as unknown as AmiClient, {
+          ...defaultOptions,
+          agentId: '',
+        })
+      ).toThrow('Invalid agentId')
     })
 
     it('should throw on invalid interface', () => {
-      expect(() => useAmiAgentLogin(mockClient as unknown as AmiClient, {
-        ...defaultOptions,
-        interface: 'invalid<script>',
-      })).toThrow('Invalid interface')
+      expect(() =>
+        useAmiAgentLogin(mockClient as unknown as AmiClient, {
+          ...defaultOptions,
+          interface: 'invalid<script>',
+        })
+      ).toThrow('Invalid interface')
     })
 
     it('should reject invalid queue names on login', async () => {
-      const { login } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
 
       await expect(login({ queues: ['sales<script>'] })).rejects.toThrow('Invalid queue name')
     })
 
     it('should reject queue names with special characters', async () => {
-      const { login } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
 
       await expect(login({ queues: ['valid', 'in valid'] })).rejects.toThrow('Invalid queue name')
     })
@@ -852,7 +919,7 @@ describe('useAmiAgentLogin', () => {
       await login({ queues: ['sales'], penalties: { sales: 9999 } })
 
       // Should be clamped to 1000
-      expect(session.value.queues.find(q => q.queue === 'sales')?.penalty).toBe(1000)
+      expect(session.value.queues.find((q) => q.queue === 'sales')?.penalty).toBe(1000)
     })
 
     it('should clamp negative penalty values to 0', async () => {
@@ -863,7 +930,7 @@ describe('useAmiAgentLogin', () => {
 
       await login({ queues: ['sales'], penalties: { sales: -5 } })
 
-      expect(session.value.queues.find(q => q.queue === 'sales')?.penalty).toBe(0)
+      expect(session.value.queues.find((q) => q.queue === 'sales')?.penalty).toBe(0)
     })
 
     it('should reject invalid queue name in setPenalty', async () => {

@@ -108,5 +108,10 @@ calledIdentity: {
 
 ## Debugging Tips
 
+- Enable `debug: true` when connecting so JsSIP debug logs are available.
+- With `debug: true`, `SipClient` also logs an `Incoming called identity snapshot` object on every inbound INVITE. This includes:
+  - `requestUri` (raw Request-URI)
+  - `headers` (values for `To`, `P-Called-Party-ID`, `History-Info`, `Diversion`, plus any `customHeaderMap` headers)
+  - `extracted` (`candidates`, `dialed`, `target`)
 - Log `session.calledNumberCandidates` when validating a new provider.
 - If your PBX/proxy rewrites the INVITE, focus first on `P-Called-Party-ID`, `History-Info`, and `Diversion`.

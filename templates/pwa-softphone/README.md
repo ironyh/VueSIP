@@ -201,6 +201,20 @@ After deploying, map your subdomain (e.g., `softphone.vuesip.com`) to the Pages 
 
 ## Troubleshooting
 
+### 46elks Incoming Calls (voice_start)
+
+46elks requires each inbound number to have `voice_start` configured.
+
+If you are deploying this template to `softphone.vuesip.com`, you can point a 46elks number's `voice_start` to the included Pages Function:
+
+```text
+https://softphone.vuesip.com/elks/calls?connect=+4600XXXXXX
+```
+
+This returns a simple call action JSON `{ "connect": "+4600XXXXXX" }`.
+
+Tip: you can re-use the same endpoint for multiple inbound numbers by changing only the `connect` query parameter.
+
 ### PWA Install Prompt Not Showing
 
 - Ensure you're serving over HTTPS (or localhost for development)

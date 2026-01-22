@@ -182,6 +182,23 @@ dtls_auto_generate_cert = yes
 
 ## Troubleshooting
 
+### 46elks Incoming Calls (voice_start)
+
+46elks requires each inbound number to have `voice_start` configured.
+
+This template ships with a Cloudflare Pages Function at `functions/elks/calls.ts`, so you can set
+`voice_start` to a URL like:
+
+```text
+https://your-softphone.example.com/elks/calls?connect=+46001234567
+```
+
+Or paste a JSON call action directly:
+
+```json
+{ "connect": "+46001234567" }
+```
+
 ### Connection Issues
 
 1. **WebSocket fails to connect:**
