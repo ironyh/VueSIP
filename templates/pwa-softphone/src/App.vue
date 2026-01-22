@@ -26,6 +26,7 @@ const { canInstall, promptInstall, isInstalled } = usePwaInstall()
 
 // UI state
 const activeTab = ref<'dialpad' | 'history' | 'settings'>('dialpad')
+const settingsSubTab = ref<'general' | 'transcription'>('general')
 const showIncomingModal = ref(false)
 const statusMessage = ref('')
 
@@ -289,89 +290,113 @@ onUnmounted(async () => {
           </div>
 
           <div v-else-if="activeTab === 'settings'" class="settings-view">
-            <Elks46OutboundSettings
-              v-if="phone.currentConfig.value?.providerId === '46elks'"
-              :is-connected="phone.isConnected.value"
-              @updated="phone.refresh46ElksOutboundPreferences"
-            />
-
-            <TranscriptionSettingsSection />
-
-            <div v-if="phone.accounts.value.length > 0" class="settings-section">
-              <h3>Accounts</h3>
-              <div class="setting-item">
-                <label>Outbound Account</label>
-                <select
-                  :value="phone.outboundAccountId.value || ''"
-                  @change="(e) => phone.setOutboundAccount((e.target as HTMLSelectElement).value)"
-                >
-                  <option v-for="acc in phone.accounts.value" :key="acc.id" :value="acc.id">
-                    {{ acc.name }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <div class="settings-section">
-              <h3>Audio Devices</h3>
-
-              <div class="setting-item">
-                <label>Microphone</label>
-                <select
-                  :value="phone.selectedAudioInputId.value"
-                  @change="(e) => phone.selectAudioInput((e.target as HTMLSelectElement).value)"
-                >
-                  <option
-                    v-for="device in phone.audioInputDevices.value"
-                    :key="device.deviceId"
-                    :value="device.deviceId"
-                  >
-                    {{ device.label || 'Microphone ' + device.deviceId.slice(0, 8) }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="setting-item">
-                <label>Speaker</label>
-                <select
-                  :value="phone.selectedAudioOutputId.value"
-                  @change="(e) => phone.selectAudioOutput((e.target as HTMLSelectElement).value)"
-                >
-                  <option
-                    v-for="device in phone.audioOutputDevices.value"
-                    :key="device.deviceId"
-                    :value="device.deviceId"
-                  >
-                    {{ device.label || 'Speaker ' + device.deviceId.slice(0, 8) }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <div class="settings-section">
-              <h3>Notifications</h3>
-              <div class="setting-item">
-                <span>Push Notifications</span>
-                <span class="badge" :class="{ active: pushPermissionGranted }">
-                  {{ pushPermissionGranted ? 'Enabled' : 'Disabled' }}
-                </span>
-              </div>
-            </div>
-
-            <button class="disconnect-btn" @click="handleDisconnect">
-              <svg
-                class="icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
+            <!-- Settings Sub-Tabs -->
+            <div class="settings-tabs">
+              <button
+                class="settings-tab"
+                :class="{ active: settingsSubTab === 'general' }"
+                @click="settingsSubTab = 'general'"
               >
-                <path
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              Disconnect
-            </button>
+                General
+              </button>
+              <button
+                class="settings-tab"
+                :class="{ active: settingsSubTab === 'transcription' }"
+                @click="settingsSubTab = 'transcription'"
+              >
+                Transcription
+              </button>
+            </div>
+
+            <!-- General Settings -->
+            <div v-if="settingsSubTab === 'general'" class="settings-content">
+              <Elks46OutboundSettings
+                v-if="phone.currentConfig.value?.providerId === '46elks'"
+                :is-connected="phone.isConnected.value"
+                @updated="phone.refresh46ElksOutboundPreferences"
+              />
+
+              <div v-if="phone.accounts.value.length > 0" class="settings-section">
+                <h3>Accounts</h3>
+                <div class="setting-item">
+                  <label>Outbound Account</label>
+                  <select
+                    :value="phone.outboundAccountId.value || ''"
+                    @change="(e) => phone.setOutboundAccount((e.target as HTMLSelectElement).value)"
+                  >
+                    <option v-for="acc in phone.accounts.value" :key="acc.id" :value="acc.id">
+                      {{ acc.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Audio Devices</h3>
+
+                <div class="setting-item">
+                  <label>Microphone</label>
+                  <select
+                    :value="phone.selectedAudioInputId.value"
+                    @change="(e) => phone.selectAudioInput((e.target as HTMLSelectElement).value)"
+                  >
+                    <option
+                      v-for="device in phone.audioInputDevices.value"
+                      :key="device.deviceId"
+                      :value="device.deviceId"
+                    >
+                      {{ device.label || 'Microphone ' + device.deviceId.slice(0, 8) }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="setting-item">
+                  <label>Speaker</label>
+                  <select
+                    :value="phone.selectedAudioOutputId.value"
+                    @change="(e) => phone.selectAudioOutput((e.target as HTMLSelectElement).value)"
+                  >
+                    <option
+                      v-for="device in phone.audioOutputDevices.value"
+                      :key="device.deviceId"
+                      :value="device.deviceId"
+                    >
+                      {{ device.label || 'Speaker ' + device.deviceId.slice(0, 8) }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Notifications</h3>
+                <div class="setting-item">
+                  <span>Push Notifications</span>
+                  <span class="badge" :class="{ active: pushPermissionGranted }">
+                    {{ pushPermissionGranted ? 'Enabled' : 'Disabled' }}
+                  </span>
+                </div>
+              </div>
+
+              <button class="disconnect-btn" @click="handleDisconnect">
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                Disconnect
+              </button>
+            </div>
+
+            <!-- Transcription Settings -->
+            <div v-else-if="settingsSubTab === 'transcription'" class="settings-content">
+              <TranscriptionSettingsSection />
+            </div>
           </div>
         </div>
 
@@ -672,6 +697,46 @@ function formatDuration(seconds: number): string {
 
 /* Settings View */
 .settings-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.settings-tab {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.settings-tab:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.settings-tab.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
