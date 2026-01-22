@@ -11,7 +11,7 @@ import { withSetup } from '../../utils/test-helpers'
 
 // Mock SIP client
 vi.mock('@/core/SipClient', () => ({
-  createSipClient: () => ({} as any),
+  createSipClient: () => ({}) as any,
 }))
 
 // Mock logger
@@ -168,20 +168,19 @@ describe('useDialStrategy', () => {
         strategy: 'sip-invite',
       })
 
-      const dialPromise = new Promise<void>((resolve) => {
-        ;(mockSipClient as any).makeCall = vi
-          .fn()
-          .mockImplementation(() => new Promise((r) => setTimeout(() => r('mock-call-id'), 100)))
-          )
-        resolve()
-      })
+      let callStarted = false
+
+      ;(mockSipClient as any).makeCall = vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            callStarted = true
+            setTimeout(() => resolve('mock-call-id'), 100)
+          })
+      )
 
       await result.dial('sip:+46700123456@example.com')
 
-      expect(result.isDialing.value).toBe(true)
-
-      await dialPromise
-
+      expect(callStarted).toBe(true)
       expect(result.isDialing.value).toBe(false)
       unmount()
     })
@@ -277,6 +276,67 @@ describe('useDialStrategy', () => {
       expect(result.isDialing.value).toBe(false)
       expect(result.lastResult.value).toBe(null)
       expect(result.error.value).toBe(null)
+      unmount()
+    })
+  })
+
+  describe('46elks REST Originate Strategy - Integration', () => {
+    it('should detect 46elks provider and select rest-originate', () => {
+      const sipClientRef = ref<SipClient>(mockSipClient)
+      const { result, unmount } = withSetup(() => useDialStrategy(sipClientRef))
+
+      result.configure({
+        providerId: '46elks',
+        autoDetect: true,
+      })
+
+      expect(result.strategy.value).toBe('rest-originate')
+      unmount()
+    })
+
+    it('should accept rest-originate options without throwing', async () => {
+      const sipClientRef = ref<SipClient>(mockSipClient)
+      const { result, unmount } = withSetup(() => useDialStrategy(sipClientRef))
+
+      result.configure({
+        providerId: '46elks',
+        autoDetect: true,
+      })
+
+      const restOptions = {
+        apiUsername: 'u1234567890abcdef',
+        apiPassword: 'test-password',
+        callerId: '+46700000000',
+        webrtcNumber: '+46700000000',
+        destination: '+46700123456',
+      }
+
+      const dialPromise = result.dial('', restOptions)
+
+      expect(dialPromise).toBeInstanceOf(Promise)
+      unmount()
+    })
+
+    it('should not call SIP makeCall when using 46elks strategy', async () => {
+      const sipClientRef = ref<SipClient>(mockSipClient)
+      const { result, unmount } = withSetup(() => useDialStrategy(sipClientRef))
+
+      result.configure({
+        providerId: '46elks',
+        autoDetect: true,
+      })
+
+      const restOptions = {
+        apiUsername: 'u1234567890abcdef',
+        apiPassword: 'test-password',
+        callerId: '+46700000000',
+        webrtcNumber: '+46700000000',
+        destination: '+46700123456',
+      }
+
+      await result.dial('', restOptions)
+
+      expect(mockSipClient.makeCall).not.toHaveBeenCalled()
       unmount()
     })
   })
