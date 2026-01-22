@@ -28,7 +28,9 @@ Master the essential functionality for building calling applications.
 
 ### [Making Calls](/guide/making-calls)
 
-Learn how to initiate outgoing calls with full control over call options, media streams, and call lifecycle.
+Learn how to initiate and manage outgoing calls in VueSip. This guide covers everything from basic call setup to advanced error handling and call quality monitoring, helping you build robust voice and video calling features in your Vue application.
+
+> See also: If you want a compact, embeddable dialer widget, check out our [Click-to-Call Guide](/guide/click-to-call) and [Click-to-Call Example](/examples/click-to-call).
 
 **What you'll learn:**
 
@@ -40,6 +42,22 @@ Learn how to initiate outgoing calls with full control over call options, media 
 - Custom SIP headers
 
 **Recommended for:** All VueSip developers
+
+---
+
+### [Provider-Specific Outbound Calling](/guide/provider-outbound-calling)
+
+Learn how to handle outbound calls with different SIP providers, including standards-based SIP INVITE and provider-specific REST originate (e.g., 46elks). This guide covers dial strategy selection, 46elks REST originate implementation, security best practices for API credentials and callbacks, and troubleshooting.
+
+**What you'll learn:**
+
+- Understanding SIP INVITE vs REST originate strategies
+- 46elks REST originate flow and configuration
+- Using dial strategy composable for automatic provider detection
+- Security best practices for API credentials and callback webhooks
+- Troubleshooting common outbound calling issues
+
+**Recommended for:** All developers working with provider-specific calling requirements, especially those integrating 46elks or similar providers.
 
 ---
 
