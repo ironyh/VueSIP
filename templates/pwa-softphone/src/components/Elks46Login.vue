@@ -48,6 +48,7 @@ const rememberCredentials = ref(false)
 const savedPhoneNumber = ref<string | null>(null)
 const enabledNumbers = ref<Record<string, boolean>>({})
 const numberLabels = ref<Record<string, string>>({})
+const outboundNumber = ref<string>('')
 
 const appOrigin = ref('')
 const appBase = ref('/')
@@ -88,6 +89,12 @@ onMounted(() => {
   }
 
   try {
+    outboundNumber.value = String(localStorage.getItem(OUTBOUND_NUMBER_KEY) || '')
+  } catch {
+    outboundNumber.value = ''
+  }
+
+  try {
     const raw = localStorage.getItem(ENABLED_NUMBERS_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Record<string, boolean>
@@ -112,12 +119,6 @@ function normalizeConnectTarget(target: string): string {
   const raw = String(target ?? '').trim()
   if (!raw) return ''
   return raw.startsWith('+') ? raw : `+${raw}`
-}
-
-function voiceStartJsonFor(target: string): string {
-  const connect = normalizeConnectTarget(target)
-  if (!connect) return ''
-  return JSON.stringify({ connect })
 }
 
 function voiceStartUrlFor(target: string): string {
@@ -217,6 +218,32 @@ const enabledCallerIdNumbers = computed(() =>
   numbers.value.map((n) => n.number).filter((num) => enabledNumbers.value[num])
 )
 
+const outboundNumberOptions = computed(() =>
+  enabledCallerIdNumbers.value.map((num) => ({
+    value: num,
+    label: numberLabels.value[num]?.trim() || num,
+  }))
+)
+
+function persistOutboundNumber(value: string) {
+  outboundNumber.value = value
+  try {
+    localStorage.setItem(OUTBOUND_NUMBER_KEY, value)
+  } catch {
+    // ignore
+  }
+}
+
+watch(
+  enabledCallerIdNumbers,
+  (list) => {
+    if (list.length === 0) return
+    if (outboundNumber.value && list.includes(outboundNumber.value)) return
+    persistOutboundNumber(list[0])
+  },
+  { immediate: true }
+)
+
 const callerIdNumberLabels = computed(() => {
   const out: Record<string, string> = {}
   for (const [num, label] of Object.entries(numberLabels.value)) {
@@ -258,24 +285,14 @@ function handleConnect() {
       return
     }
 
-    const lastOutbound = (() => {
-      try {
-        return localStorage.getItem(OUTBOUND_NUMBER_KEY)
-      } catch {
-        return null
-      }
-    })()
-
     const initialCallerIdNumber =
-      (lastOutbound && enabledList.includes(lastOutbound) && lastOutbound) ||
+      (outboundNumber.value &&
+        enabledList.includes(outboundNumber.value) &&
+        outboundNumber.value) ||
       (enabledList.includes(selected.number) && selected.number) ||
       enabledList[0]
 
-    try {
-      localStorage.setItem(OUTBOUND_NUMBER_KEY, initialCallerIdNumber)
-    } catch {
-      // ignore
-    }
+    persistOutboundNumber(initialCallerIdNumber)
 
     emit('connect', {
       providerId: '46elks',
@@ -416,9 +433,8 @@ function handleReset() {
         <div class="form-group">
           <label>Incoming calls (voice_start)</label>
           <p class="hint">
-            To make your 46elks numbers ring in this softphone, each number must have a
-            <code>voice_start</code> configured in the 46elks dashboard. You can either paste a JSON
-            call action directly, or point to a webhook URL.
+            46elks uses <code>voice_start</code> for incoming calls (not <code>sms_url</code>). Set
+            <code>voice_start</code> for each number to the callback URL below.
           </p>
 
           <div v-if="numbers.length" class="voice-start">
@@ -428,29 +444,14 @@ function handleReset() {
                 <span v-if="num.name">({{ num.name }})</span>
               </p>
 
-              <div class="voice-start-title">Option 1 (recommended): paste JSON</div>
-              <div class="voice-start-controls">
-                <input class="voice-start-input" :value="voiceStartJsonFor(num.number)" readonly />
-                <button
-                  type="button"
-                  class="copy-btn"
-                  @click="copyText('JSON', voiceStartJsonFor(num.number))"
-                >
-                  Copy
-                </button>
-              </div>
-
-              <div v-if="voiceStartUrlFor(num.number)" class="voice-start-title">
-                Option 2: webhook URL
-              </div>
-              <div v-if="voiceStartUrlFor(num.number)" class="voice-start-controls">
+              <div class="voice-start-controls" v-if="voiceStartUrlFor(num.number)">
                 <input class="voice-start-input" :value="voiceStartUrlFor(num.number)" readonly />
                 <button
                   type="button"
                   class="copy-btn"
-                  @click="copyText('URL', voiceStartUrlFor(num.number))"
+                  @click="copyText('ELK Callback URL', voiceStartUrlFor(num.number))"
                 >
-                  Copy
+                  Copy ELK Callback URL
                 </button>
               </div>
             </div>
