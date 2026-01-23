@@ -2,9 +2,8 @@
  * Call recording composable for PWA softphone
  * Wraps useLocalRecording and links recordings to call history by call ID
  */
-import { ref, computed, watch } from 'vue'
+import { ref } from 'vue'
 import { useLocalRecording } from 'vuesip'
-import type { CallHistoryEntry } from 'vuesip'
 
 const DB_NAME = 'vuesip-call-recordings'
 const DB_VERSION = 1

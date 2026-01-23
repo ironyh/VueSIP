@@ -101,6 +101,8 @@ export class WebSpeechProvider implements TranscriptionProvider {
   private language = 'en-US'
   private currentSourceId = ''
   private isRunning = false
+  private restartAttempts = 0
+  private restartTimeout: ReturnType<typeof setTimeout> | null = null
 
   private interimCallbacks: Array<(text: string, sourceId: string) => void> = []
   private finalCallbacks: Array<(result: TranscriptResult, sourceId: string) => void> = []
@@ -139,6 +141,9 @@ export class WebSpeechProvider implements TranscriptionProvider {
     if (!this.recognition) return
 
     this.recognition.onresult = (event: SpeechRecognitionResultEvent) => {
+      // Reset backoff on successful recognition
+      this.restartAttempts = 0
+
       const result = event.results[event.resultIndex]
       if (!result) return
 
@@ -168,12 +173,27 @@ export class WebSpeechProvider implements TranscriptionProvider {
     this.recognition.onend = () => {
       // Restart if still supposed to be running (handles Chrome's auto-stop)
       if (this.isRunning && this.recognition) {
-        logger.debug('Restarting speech recognition')
-        try {
-          this.recognition.start()
-        } catch {
-          // Ignore if already started
+        const maxAttempts = 10
+        if (this.restartAttempts >= maxAttempts) {
+          const error = new Error('Speech recognition restart limit reached')
+          this.errorCallbacks.forEach((cb) => cb(error))
+          logger.error('Max restart attempts reached', { attempts: this.restartAttempts })
+          return
         }
+
+        const delay = Math.min(300 * Math.pow(2, this.restartAttempts), 30000)
+        this.restartAttempts++
+
+        logger.debug('Restarting speech recognition', { attempt: this.restartAttempts, delay })
+
+        this.restartTimeout = setTimeout(() => {
+          if (!this.isRunning || !this.recognition) return
+          try {
+            this.recognition.start()
+          } catch {
+            // Ignore if already started
+          }
+        }, delay)
       }
     }
   }
@@ -203,6 +223,11 @@ export class WebSpeechProvider implements TranscriptionProvider {
    */
   stopStream(): void {
     this.isRunning = false
+    if (this.restartTimeout) {
+      clearTimeout(this.restartTimeout)
+      this.restartTimeout = null
+    }
+    this.restartAttempts = 0
     if (this.recognition) {
       this.recognition.stop()
       logger.info('Stopped transcription')
@@ -211,23 +236,35 @@ export class WebSpeechProvider implements TranscriptionProvider {
 
   /**
    * Register interim result callback
+   * @returns Unsubscribe function
    */
-  onInterim(callback: (text: string, sourceId: string) => void): void {
+  onInterim(callback: (text: string, sourceId: string) => void): () => void {
     this.interimCallbacks.push(callback)
+    return () => {
+      this.interimCallbacks = this.interimCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   /**
    * Register final result callback
+   * @returns Unsubscribe function
    */
-  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): void {
+  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): () => void {
     this.finalCallbacks.push(callback)
+    return () => {
+      this.finalCallbacks = this.finalCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   /**
    * Register error callback
+   * @returns Unsubscribe function
    */
-  onError(callback: (error: Error) => void): void {
+  onError(callback: (error: Error) => void): () => void {
     this.errorCallbacks.push(callback)
+    return () => {
+      this.errorCallbacks = this.errorCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   /**
@@ -235,6 +272,11 @@ export class WebSpeechProvider implements TranscriptionProvider {
    */
   dispose(): void {
     this.isRunning = false
+    if (this.restartTimeout) {
+      clearTimeout(this.restartTimeout)
+      this.restartTimeout = null
+    }
+    this.restartAttempts = 0
     if (this.recognition) {
       this.recognition.abort()
       this.recognition = null

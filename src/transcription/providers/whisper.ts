@@ -533,23 +533,35 @@ export class WhisperProvider implements TranscriptionProvider {
 
   /**
    * Register interim result callback
+   * @returns Unsubscribe function
    */
-  onInterim(callback: (text: string, sourceId: string) => void): void {
+  onInterim(callback: (text: string, sourceId: string) => void): () => void {
     this.interimCallbacks.push(callback)
+    return () => {
+      this.interimCallbacks = this.interimCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   /**
    * Register final result callback
+   * @returns Unsubscribe function
    */
-  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): void {
+  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): () => void {
     this.finalCallbacks.push(callback)
+    return () => {
+      this.finalCallbacks = this.finalCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   /**
    * Register error callback
+   * @returns Unsubscribe function
    */
-  onError(callback: (error: Error) => void): void {
+  onError(callback: (error: Error) => void): () => void {
     this.errorCallbacks.push(callback)
+    return () => {
+      this.errorCallbacks = this.errorCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   /**
