@@ -118,22 +118,25 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
 
   /**
    * Validate RestOriginateOptions
+   * Note: providerId may be added by the caller, so we check it separately
    */
   function validateRestOriginateOptions(
     options: unknown,
-    providerId: string
+    expectedProviderId: string
   ): options is RestOriginateOptions {
     if (!options || typeof options !== 'object') {
       return false
     }
     const opts = options as Partial<RestOriginateOptions>
+    // providerId may be added by the caller, so we check it matches if present
+    const hasValidProviderId = !opts.providerId || opts.providerId === expectedProviderId
     return (
       !!opts.apiUsername &&
       !!opts.apiPassword &&
       !!opts.callerId &&
       !!opts.webrtcNumber &&
       !!opts.destination &&
-      opts.providerId === providerId
+      hasValidProviderId
     )
   }
 
@@ -195,8 +198,9 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
 
   /**
    * Strategy registry - extensible pattern for adding new strategies
+   * More specific strategies must come first
    */
-  const strategyRegistry: DialStrategy[] = [sipInviteStrategy, elksRestOriginateStrategy]
+  const strategyRegistry: DialStrategy[] = [elksRestOriginateStrategy, sipInviteStrategy]
 
   /**
    * Available strategies (indexed by type for fast lookup)
@@ -302,13 +306,26 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
             error: 'Invalid REST originate options. Missing required fields.',
           }
         }
-      } else {
-        // For SIP INVITE, build options from target
-        strategyOptions = {
-          target,
-          extraHeaders: (options as SipInviteOptions)?.extraHeaders,
-        } as SipInviteOptions
+
+        // For REST originate, target is not used (destination comes from options)
+        // Call strategy directly with options
+        const result = await currentStrategy.dial(strategyOptions)
+        lastResult.value = result
+
+        if (!result.success) {
+          error.value = result.error || 'Dial failed'
+        } else {
+          error.value = null
+        }
+
+        return result
       }
+
+      // For SIP INVITE, build options from target
+      strategyOptions = {
+        target,
+        extraHeaders: (options as SipInviteOptions)?.extraHeaders,
+      } as SipInviteOptions
 
       const result = await currentStrategy.dial(strategyOptions)
       lastResult.value = result
