@@ -632,6 +632,8 @@ export const metadata = {
  * const srt = exportTranscript('srt')
  * ```
  */
+// Import transcription module to ensure provider auto-registration runs
+import './transcription'
 export * from './transcription'
 
 // ============================================================================

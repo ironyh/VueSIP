@@ -24,11 +24,23 @@ import type {
   IProviderRegistry,
   RedactionConfig,
 } from '@/types/transcription.types'
-import { providerRegistry as defaultProviderRegistry } from '@/transcription/providers'
+// Import providers module to ensure auto-registration runs
+import '@/transcription/providers'
+import {
+  providerRegistry as defaultProviderRegistry,
+  WebSpeechProvider,
+} from '@/transcription/providers'
 import { KeywordDetector } from '@/transcription/features/keyword-detector'
 import { PIIRedactor } from '@/transcription/features/pii-redactor'
 import { TranscriptExporter } from '@/transcription/features/transcript-exporter'
 import { createLogger } from '@/utils/logger'
+
+/**
+ * Ensure web-speech provider is registered (fallback if auto-registration didn't run)
+ */
+if (!defaultProviderRegistry.has('web-speech')) {
+  defaultProviderRegistry.register('web-speech', () => new WebSpeechProvider())
+}
 
 /**
  * Default factory functions for creating feature module instances
