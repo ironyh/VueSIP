@@ -95,7 +95,7 @@ const providerHint = computed(() => {
   if (provider.value === 'whisper') {
     return 'Using Whisper server for transcription. Requires a running Whisper WebSocket server.'
   }
-  return 'This uses your browser's speech recognition. It is best-effort and may require microphone permission.'
+  return "This uses your browser's speech recognition. It is best-effort and may require microphone permission."
 })
 
 // Watch provider selection and show/hide Whisper settings
@@ -358,7 +358,11 @@ watch(error, (newError) => {
   if (newError && provider.value === 'whisper' && isTranscribing.value) {
     // Check if error is connection-related
     const errorMsg = newError.message.toLowerCase()
-    if (errorMsg.includes('timeout') || errorMsg.includes('connection') || errorMsg.includes('websocket')) {
+    if (
+      errorMsg.includes('timeout') ||
+      errorMsg.includes('connection') ||
+      errorMsg.includes('websocket')
+    ) {
       whisperConnectionStatus.value = 'error'
     }
   } else if (!newError && provider.value === 'whisper' && isTranscribing.value) {
