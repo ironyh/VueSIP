@@ -329,7 +329,7 @@ export class WhisperProvider implements TranscriptionProvider {
       return
     }
 
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts)
+    const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), 30000)
     this.reconnectAttempts++
 
     logger.info('Attempting reconnect', {
