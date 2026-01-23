@@ -4,8 +4,7 @@ import DialPad from './components/DialPad.vue'
 import CallScreen from './components/CallScreen.vue'
 import IncomingCall from './components/IncomingCall.vue'
 import Settings from './components/Settings.vue'
-import Elks46OutboundSettings from './components/Elks46OutboundSettings.vue'
-import TranscriptionSettingsSection from './components/TranscriptionSettingsSection.vue'
+import SettingsMenu from './components/SettingsMenu.vue'
 import CallDetailView from './components/CallDetailView.vue'
 import { usePhone } from './composables/usePhone'
 import { usePushNotifications } from './composables/usePushNotifications'
@@ -30,7 +29,6 @@ const { canInstall, promptInstall, isInstalled } = usePwaInstall()
 
 // UI state
 const activeTab = ref<'dialpad' | 'history' | 'settings'>('dialpad')
-const settingsSubTab = ref<'general' | 'transcription'>('general')
 const showIncomingModal = ref(false)
 const statusMessage = ref('')
 const selectedCallId = ref<string | null>(null)
@@ -508,113 +506,22 @@ onUnmounted(async () => {
           />
 
           <div v-else-if="activeTab === 'settings'" class="settings-view">
-            <!-- Settings Sub-Tabs -->
-            <div class="settings-tabs">
-              <button
-                class="settings-tab"
-                :class="{ active: settingsSubTab === 'general' }"
-                @click="settingsSubTab = 'general'"
-              >
-                General
-              </button>
-              <button
-                class="settings-tab"
-                :class="{ active: settingsSubTab === 'transcription' }"
-                @click="settingsSubTab = 'transcription'"
-              >
-                Transcription
-              </button>
-            </div>
-
-            <!-- General Settings -->
-            <div v-if="settingsSubTab === 'general'" class="settings-content">
-              <Elks46OutboundSettings
-                v-if="phone.currentConfig.value?.providerId === '46elks'"
-                :is-connected="phone.isConnected.value"
-                @updated="phone.refresh46ElksOutboundPreferences"
-              />
-
-              <div v-if="phone.accounts.value.length > 0" class="settings-section">
-                <h3>Accounts</h3>
-                <div class="setting-item">
-                  <label>Outbound Account</label>
-                  <select
-                    :value="phone.outboundAccountId.value || ''"
-                    @change="(e) => phone.setOutboundAccount((e.target as HTMLSelectElement).value)"
-                  >
-                    <option v-for="acc in phone.accounts.value" :key="acc.id" :value="acc.id">
-                      {{ acc.name }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="settings-section">
-                <h3>Audio Devices</h3>
-
-                <div class="setting-item">
-                  <label>Microphone</label>
-                  <select
-                    :value="phone.selectedAudioInputId.value"
-                    @change="(e) => phone.selectAudioInput((e.target as HTMLSelectElement).value)"
-                  >
-                    <option
-                      v-for="device in phone.audioInputDevices.value"
-                      :key="device.deviceId"
-                      :value="device.deviceId"
-                    >
-                      {{ device.label || 'Microphone ' + device.deviceId.slice(0, 8) }}
-                    </option>
-                  </select>
-                </div>
-
-                <div class="setting-item">
-                  <label>Speaker</label>
-                  <select
-                    :value="phone.selectedAudioOutputId.value"
-                    @change="(e) => phone.selectAudioOutput((e.target as HTMLSelectElement).value)"
-                  >
-                    <option
-                      v-for="device in phone.audioOutputDevices.value"
-                      :key="device.deviceId"
-                      :value="device.deviceId"
-                    >
-                      {{ device.label || 'Speaker ' + device.deviceId.slice(0, 8) }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="settings-section">
-                <h3>Notifications</h3>
-                <div class="setting-item">
-                  <span>Push Notifications</span>
-                  <span class="badge" :class="{ active: pushPermissionGranted }">
-                    {{ pushPermissionGranted ? 'Enabled' : 'Disabled' }}
-                  </span>
-                </div>
-              </div>
-
-              <button class="disconnect-btn" @click="handleDisconnect">
-                <svg
-                  class="icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-                Disconnect
-              </button>
-            </div>
-
-            <!-- Transcription Settings -->
-            <div v-else-if="settingsSubTab === 'transcription'" class="settings-content">
-              <TranscriptionSettingsSection />
-            </div>
+            <SettingsMenu
+              :is-connected="phone.isConnected.value"
+              :accounts="phone.accounts.value"
+              :outbound-account-id="phone.outboundAccountId.value"
+              :audio-input-devices="phone.audioInputDevices.value"
+              :audio-output-devices="phone.audioOutputDevices.value"
+              :selected-audio-input-id="phone.selectedAudioInputId.value"
+              :selected-audio-output-id="phone.selectedAudioOutputId.value"
+              :push-permission-granted="pushPermissionGranted"
+              :current-provider-id="phone.currentConfig.value?.providerId"
+              @disconnect="handleDisconnect"
+              :on-set-outbound-account="(id) => phone.setOutboundAccount(id)"
+              :on-select-audio-input="(id) => phone.selectAudioInput(id)"
+              :on-select-audio-output="(id) => phone.selectAudioOutput(id)"
+              :on-refresh46-elks-preferences="phone.refresh46ElksOutboundPreferences"
+            />
           </div>
         </div>
 
