@@ -159,12 +159,21 @@ function createMockProvider(): TranscriptionProvider {
     stopStream: vi.fn(),
     onInterim: vi.fn((cb) => {
       interimCallback = cb
+      return () => {
+        interimCallback = undefined
+      }
     }),
     onFinal: vi.fn((cb) => {
       finalCallback = cb
+      return () => {
+        finalCallback = undefined
+      }
     }),
     onError: vi.fn((cb) => {
       errorCallback = cb
+      return () => {
+        errorCallback = undefined
+      }
     }),
     // Test helpers to trigger callbacks
     _emitInterim: (text: string, sourceId: string) => interimCallback?.(text, sourceId),

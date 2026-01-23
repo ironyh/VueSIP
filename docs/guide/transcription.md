@@ -453,16 +453,25 @@ class MyCustomProvider implements TranscriptionProvider {
     // Stop transcription
   }
 
-  onInterim(callback: (text: string, sourceId: string) => void): void {
-    // Register interim result callback
+  onInterim(callback: (text: string, sourceId: string) => void): () => void {
+    this.interimCallbacks.push(callback)
+    return () => {
+      this.interimCallbacks = this.interimCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
-  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): void {
-    // Register final result callback
+  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): () => void {
+    this.finalCallbacks.push(callback)
+    return () => {
+      this.finalCallbacks = this.finalCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
-  onError(callback: (error: Error) => void): void {
-    // Register error callback
+  onError(callback: (error: Error) => void): () => void {
+    this.errorCallbacks.push(callback)
+    return () => {
+      this.errorCallbacks = this.errorCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   dispose(): void {
