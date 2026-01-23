@@ -9,7 +9,7 @@
  * @module composables/useDialStrategy
  */
 
-import { ref, type Ref, type DeepReadonly } from 'vue'
+import { ref, type Ref, type DeepReadonly, onUnmounted } from 'vue'
 import type { SipClient } from '../core/SipClient'
 import {
   type DialStrategy,
@@ -117,6 +117,27 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
   }
 
   /**
+   * Validate RestOriginateOptions
+   */
+  function validateRestOriginateOptions(
+    options: unknown,
+    providerId: string
+  ): options is RestOriginateOptions {
+    if (!options || typeof options !== 'object') {
+      return false
+    }
+    const opts = options as Partial<RestOriginateOptions>
+    return (
+      !!opts.apiUsername &&
+      !!opts.apiPassword &&
+      !!opts.callerId &&
+      !!opts.webrtcNumber &&
+      !!opts.destination &&
+      opts.providerId === providerId
+    )
+  }
+
+  /**
    * Create 46elks REST originate strategy
    */
   const elksRestOriginateStrategy: DialStrategy = {
@@ -124,7 +145,30 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
     requiresRestApi: true,
     canHandle: (providerId: string) => providerId === '46elks',
     dial: async (options: unknown): Promise<DialResult> => {
-      const opts = options as RestOriginateOptions
+      // Type guard validation
+      if (!options || typeof options !== 'object') {
+        return {
+          success: false,
+          error: 'Invalid options: must be an object',
+        }
+      }
+
+      const opts = options as Partial<RestOriginateOptions>
+
+      // Validate required fields
+      if (!opts.apiUsername || !opts.apiPassword) {
+        return {
+          success: false,
+          error: 'Missing API credentials (apiUsername, apiPassword)',
+        }
+      }
+
+      if (!opts.callerId || !opts.webrtcNumber || !opts.destination) {
+        return {
+          success: false,
+          error: 'Missing required fields (callerId, webrtcNumber, destination)',
+        }
+      }
 
       try {
         const result = await originate46ElksCall({
@@ -150,7 +194,12 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
   }
 
   /**
-   * Available strategies
+   * Strategy registry - extensible pattern for adding new strategies
+   */
+  const strategyRegistry: DialStrategy[] = [sipInviteStrategy, elksRestOriginateStrategy]
+
+  /**
+   * Available strategies (indexed by type for fast lookup)
    */
   const strategies: Record<DialStrategyType, DialStrategy> = {
     'sip-invite': sipInviteStrategy,
@@ -158,26 +207,39 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
   }
 
   /**
-   * Get strategy for provider ID
+   * Get strategy for provider ID using registry pattern
+   * Checks all registered strategies to find the best match
    */
   function getStrategyForProvider(providerId: string): DialStrategyType {
-    if (elksRestOriginateStrategy.canHandle(providerId)) {
-      return 'rest-originate'
+    // Find first strategy that can handle this provider
+    const matchingStrategy = strategyRegistry.find((s) => s.canHandle(providerId))
+    if (matchingStrategy) {
+      return matchingStrategy.type
     }
+    // Default to SIP INVITE if no match
     return 'sip-invite'
   }
 
   /**
    * Configure dial strategy
    *
-   * @param config - Strategy configuration
+   * @param configInput - Strategy configuration
+   * @throws Error if trying to configure during active dialing
    */
   function configure(configInput: DialStrategyConfig): void {
+    if (isDialing.value) {
+      throw new Error('Cannot change dial strategy while dialing is in progress')
+    }
+
     config.value = configInput
 
     if (configInput.autoDetect) {
       strategy.value = getStrategyForProvider(configInput.providerId)
     } else {
+      // Validate that the strategy exists
+      if (!strategies[configInput.strategy]) {
+        throw new Error(`Unknown dial strategy: ${configInput.strategy}`)
+      }
       strategy.value = configInput.strategy
     }
   }
@@ -193,7 +255,14 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
     if (!config.value) {
       return {
         success: false,
-        error: 'Dial strategy not configured',
+        error: 'Dial strategy not configured. Call configure() first.',
+      }
+    }
+
+    if (isDialing.value) {
+      return {
+        success: false,
+        error: 'Dial already in progress',
       }
     }
 
@@ -204,25 +273,53 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
     try {
       const currentStrategy = strategies[strategy.value]
 
-      if (strategy.value === 'rest-originate' && config.value.providerId === '46elks') {
-        const restOptions: RestOriginateOptions = options as RestOriginateOptions
-        const result = await currentStrategy.dial(restOptions)
-        lastResult.value = result
-        if (!result.success) {
-          error.value = result.error || 'Dial failed'
-        }
-        return result
+      if (!currentStrategy) {
+        throw new Error(`Strategy '${strategy.value}' not found`)
       }
 
-      const sipOptions: SipInviteOptions = {
-        target,
-        extraHeaders: (options as SipInviteOptions)?.extraHeaders,
+      // Build options based on strategy type
+      let strategyOptions: unknown
+
+      if (strategy.value === 'rest-originate') {
+        // For REST originate, merge options with providerId from config
+        if (!options || typeof options !== 'object') {
+          return {
+            success: false,
+            error: 'REST originate requires options object with API credentials',
+          }
+        }
+
+        const restOpts = options as Partial<RestOriginateOptions>
+        strategyOptions = {
+          ...restOpts,
+          providerId: config.value.providerId,
+        } as RestOriginateOptions
+
+        // Validate options
+        if (!validateRestOriginateOptions(strategyOptions, config.value.providerId)) {
+          return {
+            success: false,
+            error: 'Invalid REST originate options. Missing required fields.',
+          }
+        }
+      } else {
+        // For SIP INVITE, build options from target
+        strategyOptions = {
+          target,
+          extraHeaders: (options as SipInviteOptions)?.extraHeaders,
+        } as SipInviteOptions
       }
-      const result = await currentStrategy.dial(sipOptions)
+
+      const result = await currentStrategy.dial(strategyOptions)
       lastResult.value = result
+
       if (!result.success) {
         error.value = result.error || 'Dial failed'
+      } else {
+        // Clear error on success
+        error.value = null
       }
+
       return result
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Dial failed'
@@ -241,10 +338,22 @@ export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrate
    * Reset dial state
    */
   function reset(): void {
+    if (isDialing.value) {
+      // Don't reset during active dialing
+      return
+    }
     isDialing.value = false
     lastResult.value = null
     error.value = null
   }
+
+  // Cleanup on unmount
+  onUnmounted(() => {
+    // Reset state but don't interrupt active dialing
+    if (!isDialing.value) {
+      reset()
+    }
+  })
 
   return {
     strategy: strategy as DeepReadonly<Ref<DialStrategyType>>,

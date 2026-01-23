@@ -8,6 +8,7 @@ import {
   useCallSession,
   useMediaDevices,
   useCallHistory,
+  useDialStrategy,
   buildSipUri,
   extractSipDomain,
 } from 'vuesip'
@@ -253,8 +254,11 @@ export function usePhone() {
     getClient,
   } = sipClient
 
-  // Get client ref for call session
+  // Get client ref for call session and dial strategy
   const clientRef = computed(() => getClient())
+
+  // Dial Strategy (for provider-aware outbound calling)
+  const dialStrategy = useDialStrategy(clientRef)
 
   // Call Session
   const callSession = useCallSession(clientRef)
@@ -440,6 +444,13 @@ export function usePhone() {
         multiSipClient.setOutboundAccount(config.outboundAccountId)
       }
 
+      // Configure dial strategy for multi-account mode (defaults to SIP INVITE)
+      dialStrategy.configure({
+        providerId: 'custom',
+        strategy: 'sip-invite',
+        autoDetect: false,
+      })
+
       isConfigured.value = true
       return
     }
@@ -463,12 +474,18 @@ export function usePhone() {
         iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
       },
     })
-    isConfigured.value = true
-  }
 
-  function createBasicAuthHeader(username: string, password: string): string {
-    const encoded = btoa(`${username}:${password}`)
-    return `Basic ${encoded}`
+    // Configure dial strategy based on provider
+    const domain = extractSipDomain(config.sipUri ?? '')
+    const providerId = config.providerId || (domain?.includes('46elks.com') ? '46elks' : 'custom')
+
+    dialStrategy.configure({
+      providerId,
+      strategy: 'auto', // Auto-detect based on provider
+      autoDetect: true,
+    })
+
+    isConfigured.value = true
   }
 
   function normalizePhoneNumberFor46Elks(input: string): string {
@@ -493,53 +510,65 @@ export function usePhone() {
     return userPart
   }
 
-  async function start46ElksOutboundCall(phoneNumber: string): Promise<void> {
+  /**
+   * Start outbound call using dial strategy
+   * Handles both SIP INVITE and REST originate strategies
+   */
+  async function startOutboundCall(phoneNumber: string): Promise<void> {
     const meta = currentConfig.value?.providerMeta
-    if (!meta) {
-      throw new Error('46elks API credentials are required for outgoing calls')
+    const providerId = currentConfig.value?.providerId || 'custom'
+    const domain = extractSipDomain(currentConfig.value?.sipUri ?? '')
+    const is46Elks = providerId === '46elks' || domain?.includes('46elks.com')
+
+    // Use dial strategy for REST originate (46elks)
+    if (is46Elks && dialStrategy.strategy.value === 'rest-originate') {
+      if (!meta) {
+        throw new Error('46elks API credentials are required for outgoing calls')
+      }
+
+      const callerIdNumber = selectedOutboundCallerId.value || meta.callerIdNumber
+
+      // Set bridge state before dialing
+      outboundBridge.value = {
+        providerId: '46elks',
+        destinationNumber: phoneNumber,
+        stage: 'requesting',
+      }
+
+      try {
+        const result = await dialStrategy.dial(phoneNumber, {
+          providerId: '46elks',
+          apiUsername: meta.apiUsername,
+          apiPassword: meta.apiPassword,
+          callerId: callerIdNumber,
+          webrtcNumber: meta.webrtcNumber,
+          destination: phoneNumber,
+        })
+
+        if (!result.success) {
+          outboundBridge.value = null
+          const errorMsg = result.error || dialStrategy.error.value || 'Failed to originate call'
+          throw new Error(errorMsg)
+        }
+
+        // Update bridge state - 46elks will call our WebRTC number
+        outboundBridge.value = {
+          providerId: '46elks',
+          destinationNumber: phoneNumber,
+          stage: 'ringing-webrtc',
+        }
+
+        // Auto-answer the incoming bridge call from 46elks
+        autoAnswerIncomingUntil.value = Date.now() + 30_000
+      } catch (err) {
+        outboundBridge.value = null
+        const errorMsg = err instanceof Error ? err.message : 'Failed to start outbound call'
+        throw new Error(errorMsg)
+      }
+    } else {
+      // Use standard SIP INVITE for other providers
+      await makeCall(normalizeCallTarget(phoneNumber))
     }
-
-    const callerIdNumber = selectedOutboundCallerId.value || meta.callerIdNumber
-
-    // This follows 46elks documentation:
-    // 1) Use the REST API to initiate a call to the WebRTC number
-    // 2) When the WebRTC number answers, connect the PSTN destination
-    const voiceStart = {
-      connect: phoneNumber,
-      callerid: callerIdNumber,
-    }
-
-    const body = new URLSearchParams({
-      from: callerIdNumber,
-      to: meta.webrtcNumber,
-      voice_start: JSON.stringify(voiceStart),
-    })
-
-    const res = await fetch('/api/46elks/a1/calls', {
-      method: 'POST',
-      headers: {
-        Authorization: createBasicAuthHeader(meta.apiUsername, meta.apiPassword),
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body,
-    })
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(
-        `46elks call setup failed (${res.status} ${res.statusText})${text ? `: ${text}` : ''}`
-      )
-    }
-
-    outboundBridge.value = {
-      providerId: '46elks',
-      destinationNumber: phoneNumber,
-      stage: 'ringing-webrtc',
-    }
-
-    // Auto-answer the incoming bridge call from 46elks.
-    autoAnswerIncomingUntil.value = Date.now() + 30_000
   }
 
   async function connectPhone() {
@@ -564,8 +593,14 @@ export function usePhone() {
     } else {
       await disconnect()
     }
+
+    // Reset dial strategy
+    dialStrategy.reset()
+
     isConfigured.value = false
     currentConfig.value = null
+    outboundBridge.value = null
+    autoAnswerIncomingUntil.value = 0
   }
 
   function normalizeCallTarget(target: string): string {
@@ -629,25 +664,28 @@ export function usePhone() {
       return
     }
 
-    const domain = extractSipDomain(currentConfig.value?.sipUri ?? '')
-    const is46Elks = currentConfig.value?.providerId === '46elks' || domain?.includes('46elks.com')
+    const trimmedTarget = target.trim()
 
-    // For 46elks, follow the documented flow: use the REST API to originate the call and
-    // bridge the PSTN destination after the WebRTC client answers.
-    if (is46Elks && !(target.trim().startsWith('sip:') || target.trim().startsWith('sips:'))) {
-      const phoneNumber = normalizePhoneNumberFor46Elks(target)
-
-      outboundBridge.value = {
-        providerId: '46elks',
-        destinationNumber: phoneNumber,
-        stage: 'requesting',
-      }
-
-      await start46ElksOutboundCall(phoneNumber)
+    // If it's already a SIP URI, use standard SIP INVITE
+    if (trimmedTarget.startsWith('sip:') || trimmedTarget.startsWith('sips:')) {
+      await makeCall(normalizeCallTarget(trimmedTarget))
       return
     }
 
-    await makeCall(normalizeCallTarget(target))
+    // For phone numbers, check if we should use REST originate
+    const domain = extractSipDomain(currentConfig.value?.sipUri ?? '')
+    const providerId = currentConfig.value?.providerId || 'custom'
+    const is46Elks = providerId === '46elks' || domain?.includes('46elks.com')
+
+    if (is46Elks && dialStrategy.strategy.value === 'rest-originate') {
+      // Use dial strategy for 46elks REST originate
+      const phoneNumber = normalizePhoneNumberFor46Elks(trimmedTarget)
+      await startOutboundCall(phoneNumber)
+      return
+    }
+
+    // Default: use standard SIP INVITE
+    await makeCall(normalizeCallTarget(trimmedTarget))
   }
 
   async function endCall() {
