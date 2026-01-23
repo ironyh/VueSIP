@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
+import type { MediaDevice } from 'vuesip'
 import Elks46OutboundSettings from './Elks46OutboundSettings.vue'
 import TranscriptionSettingsSection from './TranscriptionSettingsSection.vue'
 
@@ -33,8 +34,8 @@ const props = defineProps<{
   isConnected: boolean
   accounts: Array<{ id: string; name: string }>
   outboundAccountId: string | null
-  audioInputDevices: readonly MediaDeviceInfo[]
-  audioOutputDevices: readonly MediaDeviceInfo[]
+  audioInputDevices: readonly MediaDevice[]
+  audioOutputDevices: readonly MediaDevice[]
   selectedAudioInputId: string | null
   selectedAudioOutputId: string | null
   pushPermissionGranted: boolean
