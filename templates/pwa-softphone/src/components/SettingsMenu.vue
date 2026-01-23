@@ -33,8 +33,8 @@ const props = defineProps<{
   isConnected: boolean
   accounts: Array<{ id: string; name: string }>
   outboundAccountId: string | null
-  audioInputDevices: MediaDeviceInfo[]
-  audioOutputDevices: MediaDeviceInfo[]
+  audioInputDevices: readonly MediaDeviceInfo[]
+  audioOutputDevices: readonly MediaDeviceInfo[]
   selectedAudioInputId: string | null
   selectedAudioOutputId: string | null
   pushPermissionGranted: boolean
