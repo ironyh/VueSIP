@@ -95,7 +95,7 @@ const providerHint = computed(() => {
   if (provider.value === 'whisper') {
     return 'Using Whisper server for transcription. Requires a running Whisper WebSocket server.'
   }
-  return 'This uses your browser's speech recognition. It is best-effort and may require microphone permission.'
+  return "This uses your browser's speech recognition. It is best-effort and may require microphone permission."
 })
 
 // Watch provider selection and show/hide Whisper settings
@@ -358,7 +358,11 @@ watch(error, (newError) => {
   if (newError && provider.value === 'whisper' && isTranscribing.value) {
     // Check if error is connection-related
     const errorMsg = newError.message.toLowerCase()
-    if (errorMsg.includes('timeout') || errorMsg.includes('connection') || errorMsg.includes('websocket')) {
+    if (
+      errorMsg.includes('timeout') ||
+      errorMsg.includes('connection') ||
+      errorMsg.includes('websocket')
+    ) {
       whisperConnectionStatus.value = 'error'
     }
   } else if (!newError && provider.value === 'whisper' && isTranscribing.value) {
@@ -379,194 +383,297 @@ function downloadTxt() {
 </script>
 
 <template>
-  <section class="settings-section">
-    <h3>Transcription (beta)</h3>
+  <div class="transcription-settings">
+    <!-- Configuration Section -->
+    <div class="settings-section">
+      <h3 class="section-header">
+        <span class="section-icon">⚙️</span>
+        <span>Configuration</span>
+      </h3>
 
-    <p class="hint">{{ providerHint }}</p>
+      <div class="section-content">
+        <p class="hint">{{ providerHint }}</p>
 
-    <div class="setting-item">
-      <label>Provider</label>
-      <select
-        v-model="provider"
-        :disabled="isTranscribing || isSwitchingProvider"
-        @change="applyProviderChange"
-      >
-        <option value="web-speech">Web Speech API</option>
-        <option value="whisper" :disabled="!isWebSocketSupported">
-          Whisper Server{{ !isWebSocketSupported ? ' (not supported)' : '' }}
-        </option>
-      </select>
-      <span v-if="isSwitchingProvider" class="switching-indicator">Switching...</span>
+        <div class="setting-item">
+          <div class="setting-info">
+            <label>Provider</label>
+            <p class="setting-hint">Choose your transcription service</p>
+          </div>
+          <div class="setting-control-group">
+            <select
+              v-model="provider"
+              :disabled="isTranscribing || isSwitchingProvider"
+              @change="applyProviderChange"
+              class="setting-control"
+            >
+              <option value="web-speech">Web Speech API</option>
+              <option value="whisper" :disabled="!isWebSocketSupported">
+                Whisper Server{{ !isWebSocketSupported ? ' (not supported)' : '' }}
+              </option>
+            </select>
+            <span v-if="isSwitchingProvider" class="switching-indicator">Switching...</span>
+          </div>
+        </div>
+
+        <!-- Whisper Settings (shown when Whisper is selected) -->
+        <div v-if="showWhisperSettings" class="whisper-settings">
+          <!-- Connection Status Indicator -->
+          <div v-if="provider === 'whisper'" class="connection-status">
+            <span
+              class="status-indicator"
+              :class="{
+                'status-connecting': whisperConnectionStatus === 'connecting',
+                'status-connected': whisperConnectionStatus === 'connected',
+                'status-error': whisperConnectionStatus === 'error',
+                'status-disconnected': whisperConnectionStatus === 'disconnected',
+              }"
+            >
+              <span class="status-dot"></span>
+              <span class="status-text">
+                {{
+                  whisperConnectionStatus === 'connecting'
+                    ? 'Connecting...'
+                    : whisperConnectionStatus === 'connected'
+                      ? 'Connected'
+                      : whisperConnectionStatus === 'error'
+                        ? 'Connection Error'
+                        : 'Disconnected'
+                }}
+              </span>
+            </span>
+          </div>
+
+          <div class="setting-item">
+            <label for="whisper-url">Server URL</label>
+            <input
+              id="whisper-url"
+              v-model="whisperUrl"
+              type="text"
+              placeholder="ws://localhost:8765/transcribe"
+              :disabled="isTranscribing || isSwitchingProvider"
+              class="whisper-input"
+            />
+          </div>
+
+          <div class="setting-item">
+            <label for="whisper-model">Model</label>
+            <select
+              id="whisper-model"
+              v-model="whisperModel"
+              :disabled="isTranscribing || isSwitchingProvider"
+              @change="applyProviderChange"
+            >
+              <option value="tiny">Tiny (fastest, least accurate)</option>
+              <option value="base">Base (balanced)</option>
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large (most accurate, slowest)</option>
+              <option value="large-v2">Large v2</option>
+              <option value="large-v3">Large v3</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Language selector (only for Web Speech API) -->
+        <div v-if="provider === 'web-speech'" class="setting-item">
+          <div class="setting-info">
+            <label>Language</label>
+            <p class="setting-hint">Select the language for transcription</p>
+          </div>
+          <select v-model="language" :disabled="isTranscribing" class="setting-control">
+            <option value="en-US">English (US)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="sv-SE">Swedish</option>
+            <option value="es-ES">Spanish</option>
+            <option value="fr-FR">French</option>
+            <option value="de-DE">German</option>
+          </select>
+        </div>
+      </div>
     </div>
 
-    <!-- Whisper Settings (shown when Whisper is selected) -->
-    <div v-if="showWhisperSettings" class="whisper-settings">
-      <!-- Connection Status Indicator -->
-      <div v-if="provider === 'whisper'" class="connection-status">
-        <span
-          class="status-indicator"
-          :class="{
-            'status-connecting': whisperConnectionStatus === 'connecting',
-            'status-connected': whisperConnectionStatus === 'connected',
-            'status-error': whisperConnectionStatus === 'error',
-            'status-disconnected': whisperConnectionStatus === 'disconnected',
-          }"
+    <!-- Storage Settings -->
+    <div class="settings-section">
+      <h3 class="section-header">
+        <span class="section-icon">💾</span>
+        <span>Storage</span>
+      </h3>
+
+      <div class="section-content">
+        <div class="setting-item">
+          <div class="setting-info">
+            <label for="transcript-persistence-toggle">Save Transcripts</label>
+            <p class="setting-hint">
+              Automatically save transcripts to your device when calls end. Transcripts are linked
+              to call history.
+            </p>
+          </div>
+          <button
+            id="transcript-persistence-toggle"
+            class="toggle-btn"
+            :class="{ active: persistenceEnabled }"
+            @click="togglePersistence"
+          >
+            <span class="toggle-slider"></span>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label for="recording-persistence-toggle">Save Recordings</label>
+            <p class="setting-hint">
+              Automatically save call recordings to your device when calls end. Recordings are
+              linked to call history.
+            </p>
+          </div>
+          <button
+            id="recording-persistence-toggle"
+            class="toggle-btn"
+            :class="{ active: recordingPersistenceEnabled }"
+            @click="toggleRecordingPersistence"
+          >
+            <span class="toggle-slider"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Transcription Controls -->
+    <div class="settings-section">
+      <h3 class="section-header">
+        <span class="section-icon">🎙️</span>
+        <span>Live Transcription</span>
+      </h3>
+
+      <div class="section-content">
+        <button
+          class="btn btn-primary"
+          type="button"
+          :disabled="isStarting || isSwitchingProvider"
+          @click="toggleTranscription"
         >
-          <span class="status-dot"></span>
-          <span class="status-text">
-            {{
-              whisperConnectionStatus === 'connecting'
-                ? 'Connecting...'
-                : whisperConnectionStatus === 'connected'
-                  ? 'Connected'
-                  : whisperConnectionStatus === 'error'
-                    ? 'Connection Error'
-                    : 'Disconnected'
-            }}
-          </span>
-        </span>
-      </div>
+          <span v-if="isStarting">Starting...</span>
+          <span v-else>{{ isTranscribing ? 'Stop transcription' : 'Start transcription' }}</span>
+        </button>
 
-      <div class="setting-item">
-        <label for="whisper-url">Server URL</label>
-        <input
-          id="whisper-url"
-          v-model="whisperUrl"
-          type="text"
-          placeholder="ws://localhost:8765/transcribe"
-          :disabled="isTranscribing || isSwitchingProvider"
-          class="whisper-input"
-        />
-      </div>
-
-      <div class="setting-item">
-        <label for="whisper-model">Model</label>
-        <select
-          id="whisper-model"
-          v-model="whisperModel"
-          :disabled="isTranscribing || isSwitchingProvider"
-          @change="applyProviderChange"
+        <button
+          v-if="transcript.length > 0"
+          class="btn btn-secondary"
+          type="button"
+          @click="downloadTxt"
         >
-          <option value="tiny">Tiny (fastest, least accurate)</option>
-          <option value="base">Base (balanced)</option>
-          <option value="small">Small</option>
-          <option value="medium">Medium</option>
-          <option value="large">Large (most accurate, slowest)</option>
-          <option value="large-v2">Large v2</option>
-          <option value="large-v3">Large v3</option>
-        </select>
-      </div>
-    </div>
+          Download transcript (.txt)
+        </button>
 
-    <!-- Language selector (only for Web Speech API) -->
-    <div v-if="provider === 'web-speech'" class="setting-item">
-      <label>Language</label>
-      <select v-model="language" :disabled="isTranscribing">
-        <option value="en-US">English (US)</option>
-        <option value="en-GB">English (UK)</option>
-        <option value="sv-SE">Swedish</option>
-        <option value="es-ES">Spanish</option>
-        <option value="fr-FR">French</option>
-        <option value="de-DE">German</option>
-      </select>
-    </div>
-
-    <button
-      class="btn"
-      type="button"
-      :disabled="isStarting || isSwitchingProvider"
-      @click="toggleTranscription"
-    >
-      <span v-if="isStarting">Starting...</span>
-      <span v-else>{{ isTranscribing ? 'Stop transcription' : 'Start transcription' }}</span>
-    </button>
-
-    <button v-if="transcript.length > 0" class="btn secondary" type="button" @click="downloadTxt">
-      Download transcript (.txt)
-    </button>
-
-    <div class="setting-item">
-      <div class="setting-info">
-        <label for="transcript-persistence-toggle">Save Transcripts</label>
-        <p class="setting-description">
-          Automatically save transcripts to your device when calls end. Transcripts are linked to
-          call history.
+        <p v-if="error || providerError" class="error">
+          {{ error?.message || providerError }}
         </p>
       </div>
-      <button
-        id="transcript-persistence-toggle"
-        class="toggle-btn"
-        :class="{ active: persistenceEnabled }"
-        @click="togglePersistence"
-      >
-        <span class="toggle-slider"></span>
-      </button>
     </div>
 
-    <div class="setting-item">
-      <div class="setting-info">
-        <label for="recording-persistence-toggle">Save Recordings</label>
-        <p class="setting-description">
-          Automatically save call recordings to your device when calls end. Recordings are linked to
-          call history.
-        </p>
+    <!-- Live Preview -->
+    <div v-if="isTranscribing || transcript.length > 0" class="settings-section preview-section">
+      <h3 class="section-header">
+        <span class="section-icon">📄</span>
+        <span>Live Preview</span>
+      </h3>
+
+      <div class="section-content">
+        <div class="preview">
+          <div v-if="currentUtterance" class="interim">
+            <span class="interim-label">Speaking:</span>
+            {{ currentUtterance }}
+          </div>
+          <pre v-if="transcript.length > 0" class="transcript">{{ transcriptText }}</pre>
+          <div v-else class="empty-preview">Transcript will appear here...</div>
+        </div>
       </div>
-      <button
-        id="recording-persistence-toggle"
-        class="toggle-btn"
-        :class="{ active: recordingPersistenceEnabled }"
-        @click="toggleRecordingPersistence"
-      >
-        <span class="toggle-slider"></span>
-      </button>
     </div>
-
-    <p v-if="error || providerError" class="error">
-      {{ error?.message || providerError }}
-    </p>
-
-    <div v-if="isTranscribing || transcript.length > 0" class="preview">
-      <div class="preview-title">Live</div>
-      <div v-if="currentUtterance" class="interim">{{ currentUtterance }}</div>
-      <pre class="transcript">{{ transcriptText }}</pre>
-    </div>
-  </section>
+  </div>
 </template>
 
 <style scoped>
+.transcription-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.settings-section {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  margin: 0;
+}
+
+.section-icon {
+  font-size: 1rem;
+}
+
+.section-content {
+  padding: 0.75rem;
+}
+
 .hint {
-  margin: 0.25rem 0 0.75rem;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
   font-size: 0.75rem;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 .setting-item {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border-color);
+  padding: 0.875rem 0;
+  gap: 1rem;
 }
 
-.setting-item label {
-  font-weight: 500;
+.setting-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
 }
 
 .setting-info {
   flex: 1;
-  margin-right: 1rem;
+  min-width: 0;
 }
 
 .setting-info label {
   display: block;
+  font-weight: 500;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
-.setting-description {
+.setting-hint {
   font-size: 0.75rem;
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.4;
+}
+
+.setting-control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .toggle-btn {
@@ -600,16 +707,32 @@ function downloadTxt() {
   transform: translateX(24px);
 }
 
-.setting-item select,
-.setting-item input {
-  flex: 1;
+.setting-control {
+  min-width: 150px;
   max-width: 200px;
-  padding: 0.5rem;
+  padding: 0.5rem 0.75rem;
   background: var(--bg-tertiary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.setting-control:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.setting-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.setting-control:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .setting-item input {
@@ -708,17 +831,36 @@ function downloadTxt() {
 
 .btn {
   width: 100%;
-  margin-top: 0.75rem;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn.secondary {
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-secondary {
   background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-tertiary);
 }
 
 .error {
@@ -727,26 +869,38 @@ function downloadTxt() {
   font-size: 0.875rem;
 }
 
-.preview {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+.preview-section {
   background: var(--bg-primary);
+  border: 1px solid var(--border-color);
 }
 
-.preview-title {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
+.preview {
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .interim {
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   color: var(--text-secondary);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.interim-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: 0.5rem;
+}
+
+.empty-preview {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
+  font-style: italic;
 }
 
 .transcript {

@@ -24,9 +24,9 @@ function createMockProvider(name: string): TranscriptionProvider {
     dispose: vi.fn(),
     startStream: vi.fn(),
     stopStream: vi.fn(),
-    onInterim: vi.fn(),
-    onFinal: vi.fn(),
-    onError: vi.fn(),
+    onInterim: vi.fn().mockReturnValue(() => {}),
+    onFinal: vi.fn().mockReturnValue(() => {}),
+    onError: vi.fn().mockReturnValue(() => {}),
   }
 }
 

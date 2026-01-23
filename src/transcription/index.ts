@@ -3,6 +3,9 @@
  * @packageDocumentation
  */
 
+// Import providers module to trigger auto-registration side effects
+import './providers'
+
 // Re-export providers
 export {
   ProviderRegistry,

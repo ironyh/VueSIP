@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useCallHistory } from 'vuesip'
+import type { TranscriptEntry } from 'vuesip'
 import { useTranscriptPersistence } from '../composables/useTranscriptPersistence'
 import { useCallRecording } from '../composables/useCallRecording'
 
@@ -17,7 +18,7 @@ const transcriptPersistence = useTranscriptPersistence()
 const callRecording = useCallRecording()
 
 // State
-const transcript = ref<any[] | null>(null)
+const transcript = ref<TranscriptEntry[] | null>(null)
 const recordingUrl = ref<string | null>(null)
 const loading = ref(true)
 
@@ -41,7 +42,13 @@ onMounted(async () => {
     console.error('Failed to load call data:', error)
   } finally {
     loading.value = false
-  })
+  }
+})
+
+onBeforeUnmount(() => {
+  if (recordingUrl.value) {
+    URL.revokeObjectURL(recordingUrl.value)
+  }
 })
 
 // Export transcript

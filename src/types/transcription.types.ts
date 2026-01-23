@@ -159,12 +159,12 @@ export interface TranscriptionProvider {
   /** Stop transcribing */
   stopStream(): void
 
-  /** Register callback for interim results */
-  onInterim(callback: (text: string, sourceId: string) => void): void
-  /** Register callback for final results */
-  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): void
-  /** Register callback for errors */
-  onError(callback: (error: Error) => void): void
+  /** Register callback for interim results. Returns unsubscribe function. */
+  onInterim(callback: (text: string, sourceId: string) => void): () => void
+  /** Register callback for final results. Returns unsubscribe function. */
+  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): () => void
+  /** Register callback for errors. Returns unsubscribe function. */
+  onError(callback: (error: Error) => void): () => void
 
   /** Detect language from audio sample (optional) */
   detectLanguage?(audio: AudioBuffer): Promise<string>

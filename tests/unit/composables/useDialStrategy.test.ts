@@ -24,6 +24,17 @@ vi.mock('@/utils/logger', () => ({
   }),
 }))
 
+// Mock 46elks API service
+vi.mock('@/providers/services/elks46ApiService', () => ({
+  originateCall: vi.fn().mockResolvedValue({
+    id: 'mock-call-id-46elks',
+    direction: 'outgoing',
+    from: '+46700000000',
+    to: '+46700123456',
+    state: 'ringing',
+  }),
+}))
+
 describe('useDialStrategy', () => {
   let mockSipClient: SipClient
 
