@@ -226,12 +226,12 @@ export interface TranscriptionProvider {
   /** Stop transcribing */
   stopStream(): void
 
-  /** Register callback for interim results */
-  onInterim(callback: (text: string, sourceId: string) => void): void
-  /** Register callback for final results */
-  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): void
-  /** Register callback for errors */
-  onError(callback: (error: Error) => void): void
+  /** Register callback for interim results. Returns unsubscribe function. */
+  onInterim(callback: (text: string, sourceId: string) => void): () => void
+  /** Register callback for final results. Returns unsubscribe function. */
+  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): () => void
+  /** Register callback for errors. Returns unsubscribe function. */
+  onError(callback: (error: Error) => void): () => void
 
   /** Detect language from audio sample (optional) */
   detectLanguage?(audio: AudioBuffer): Promise<string>
@@ -520,9 +520,9 @@ function createMockProvider(name: string): TranscriptionProvider {
     dispose: vi.fn(),
     startStream: vi.fn(),
     stopStream: vi.fn(),
-    onInterim: vi.fn(),
-    onFinal: vi.fn(),
-    onError: vi.fn(),
+    onInterim: vi.fn().mockReturnValue(() => {}),
+    onFinal: vi.fn().mockReturnValue(() => {}),
+    onError: vi.fn().mockReturnValue(() => {}),
   }
 }
 
@@ -1145,23 +1145,35 @@ export class WebSpeechProvider implements TranscriptionProvider {
 
   /**
    * Register interim result callback
+   * @returns Unsubscribe function
    */
-  onInterim(callback: (text: string, sourceId: string) => void): void {
+  onInterim(callback: (text: string, sourceId: string) => void): () => void {
     this.interimCallbacks.push(callback)
+    return () => {
+      this.interimCallbacks = this.interimCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   /**
    * Register final result callback
+   * @returns Unsubscribe function
    */
-  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): void {
+  onFinal(callback: (result: TranscriptResult, sourceId: string) => void): () => void {
     this.finalCallbacks.push(callback)
+    return () => {
+      this.finalCallbacks = this.finalCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   /**
    * Register error callback
+   * @returns Unsubscribe function
    */
-  onError(callback: (error: Error) => void): void {
+  onError(callback: (error: Error) => void): () => void {
     this.errorCallbacks.push(callback)
+    return () => {
+      this.errorCallbacks = this.errorCallbacks.filter((cb) => cb !== callback)
+    }
   }
 
   /**
@@ -2462,9 +2474,24 @@ function createMockProvider(): TranscriptionProvider {
     dispose: vi.fn(),
     startStream: vi.fn(),
     stopStream: vi.fn(),
-    onInterim: vi.fn((cb) => interimCallbacks.push(cb)),
-    onFinal: vi.fn((cb) => finalCallbacks.push(cb)),
-    onError: vi.fn((cb) => errorCallbacks.push(cb)),
+    onInterim: vi.fn((cb) => {
+      interimCallbacks.push(cb)
+      return () => {
+        interimCallbacks = interimCallbacks.filter((c) => c !== cb)
+      }
+    }),
+    onFinal: vi.fn((cb) => {
+      finalCallbacks.push(cb)
+      return () => {
+        finalCallbacks = finalCallbacks.filter((c) => c !== cb)
+      }
+    }),
+    onError: vi.fn((cb) => {
+      errorCallbacks.push(cb)
+      return () => {
+        errorCallbacks = errorCallbacks.filter((c) => c !== cb)
+      }
+    }),
     // Test helpers
     _emitInterim: (text: string, sourceId: string) => {
       interimCallbacks.forEach((cb) => cb(text, sourceId))
