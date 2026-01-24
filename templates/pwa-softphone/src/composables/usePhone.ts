@@ -9,6 +9,11 @@ import {
   useMediaDevices,
   useCallHistory,
   useDialStrategy,
+  useNotifications,
+  useConnectionHealthBar,
+  useGracefulDegradation,
+  useCallWaiting,
+  useAudioDeviceSwitch,
   buildSipUri,
   extractSipDomain,
 } from 'vuesip'
@@ -349,13 +354,61 @@ export function usePhone() {
     selectedAudioInputId,
     selectedAudioOutputId,
     enumerateDevices,
-    selectAudioInput,
-    selectAudioOutput,
+    selectAudioInput: baseSelectAudioInput,
+    selectAudioOutput: baseSelectAudioOutput,
   } = mediaDevices
 
   // Call History - history is automatically updated by the call store
   const callHistory = useCallHistory()
   const { history, clearHistory, getRecentCalls } = callHistory
+
+  // ============================================================================
+  // Conflict Resolution Composables
+  // ============================================================================
+
+  const notifications = useNotifications()
+
+  const connectionHealth = useConnectionHealthBar({
+    notifications,
+  })
+
+  const degradation = useGracefulDegradation({
+    healthBar: connectionHealth,
+    callSession,
+    notifications,
+  })
+
+  const callWaiting = useCallWaiting(
+    computed(() => callSession.session.value),
+    clientRef
+  )
+
+  const audioSwitch = useAudioDeviceSwitch(
+    computed(() => callSession.session.value),
+    mediaDevices as any
+  )
+
+  async function selectAudioInput(deviceId: string) {
+    baseSelectAudioInput(deviceId)
+    if (callSession.session.value) {
+      try {
+        await audioSwitch.switchMicrophone(deviceId)
+      } catch {
+        // Best-effort: device preference is saved even if mid-call switch fails
+      }
+    }
+  }
+
+  async function selectAudioOutput(deviceId: string) {
+    baseSelectAudioOutput(deviceId)
+    if (callSession.session.value) {
+      try {
+        await audioSwitch.switchSpeaker(deviceId)
+      } catch {
+        // Best-effort: device preference is saved even if mid-call switch fails
+      }
+    }
+  }
 
   // Phone methods
   async function configure(config: PhoneConfig) {
@@ -719,6 +772,19 @@ export function usePhone() {
     { flush: 'sync' }
   )
 
+  watch(
+    [callState, direction, isActive],
+    ([state, dir, active]) => {
+      if (state === 'ringing' && dir === 'incoming' && active) {
+        const currentSession = callSession.session.value
+        if (currentSession) {
+          callWaiting.addIncomingCall(currentSession)
+        }
+      }
+    },
+    { flush: 'sync' }
+  )
+
   async function rejectCall() {
     await reject()
   }
@@ -841,5 +907,12 @@ export function usePhone() {
 
     // Session (for call ID)
     session,
+
+    // Conflict resolution
+    notifications,
+    connectionHealth,
+    degradation,
+    callWaiting,
+    audioSwitch,
   }
 }
