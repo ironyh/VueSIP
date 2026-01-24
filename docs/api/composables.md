@@ -28,6 +28,14 @@ Complete reference for all VueSip composables providing reactive SIP functionali
 - [Call Quality Composables](#call-quality-composables)
   - [useCallQualityScore](#usecallqualityscore)
   - [useNetworkQualityIndicator](#usenetworkqualityindicator)
+- [Conflict Resolution Composables](#conflict-resolution-composables)
+  - [useTransportRecovery](#usetransportrecovery)
+  - [useCallWaiting](#usecallwaiting)
+  - [useAudioDeviceSwitch](#useaudiodeviceswitch)
+  - [useNotifications](#usenotifications)
+  - [useConnectionHealthBar](#useconnectionhealthbar)
+  - [useCredentialExpiry](#usecredentialexpiry)
+  - [useGracefulDegradation](#usegracefuldegradation)
 - [AMI Integration Composables](#ami-integration-composables)
   - [useAmiConfBridge](#useamiconfbridge)
   - [useAmiPjsip](#useamipjsip)
@@ -2798,6 +2806,467 @@ await updateMWI('1001', 3) // 3 new messages
 if (hasMessages('1001')) {
   console.log('Voicemail waiting!')
 }
+```
+
+---
+
+## Conflict Resolution Composables
+
+Composables for handling connection conflicts, transport recovery, call waiting, and graceful degradation of service during network instability.
+
+### useTransportRecovery
+
+Composable that coordinates WebSocket reconnection with SIP re-registration.
+
+**Source:** [`src/composables/useTransportRecovery.ts`](../../src/composables/useTransportRecovery.ts)
+
+#### Signature
+
+```typescript
+function useTransportRecovery(
+  transportManager: TransportManager,
+  sipClient: Ref<SipClient | null>,
+  options: TransportRecoveryOptions = {}
+): UseTransportRecoveryReturn
+```
+
+#### Parameters
+
+| Parameter                     | Type                      | Default | Description                                                           |
+| ----------------------------- | ------------------------- | ------- | --------------------------------------------------------------------- |
+| `transportManager`            | `TransportManager`        | -       | TransportManager instance to listen for connection events             |
+| `sipClient`                   | `Ref<SipClient \| null>`  | -       | Ref to SipClient instance for triggering re-registration              |
+| `options.stabilizationDelay`  | `number`                  | `1500`  | Delay after transport connects before triggering re-registration (ms) |
+| `options.maxRecoveryAttempts` | `number`                  | `5`     | Maximum recovery attempts before giving up                            |
+| `options.onRecoveryStart`     | `() => void`              | -       | Called when recovery process starts                                   |
+| `options.onRecovered`         | `() => void`              | -       | Called when recovery succeeds (re-registration complete)              |
+| `options.onRecoveryFailed`    | `(error: string) => void` | -       | Called when recovery fails after all attempts                         |
+
+#### Returns: `UseTransportRecoveryReturn`
+
+##### Reactive State
+
+| Property           | Type                                    | Description                                               |
+| ------------------ | --------------------------------------- | --------------------------------------------------------- |
+| `connectionState`  | `ComputedRef<ConnectionState>`          | Current connection state from transport                   |
+| `isRecovering`     | `ComputedRef<boolean>`                  | Whether a recovery is currently in progress               |
+| `lastRecoveryTime` | `Ref<Date \| null>`                     | Timestamp of last successful recovery                     |
+| `recoveryAttempts` | `Ref<number>`                           | Number of attempts in the current recovery cycle          |
+| `lastError`        | `Ref<string \| null>`                   | Last recovery error message                               |
+| `metrics`          | `ComputedRef<TransportRecoveryMetrics>` | Recovery metrics (total attempts, total recoveries, etc.) |
+
+##### Methods
+
+| Method            | Signature             | Description                         |
+| ----------------- | --------------------- | ----------------------------------- |
+| `triggerRecovery` | `() => Promise<void>` | Manually trigger a recovery attempt |
+| `reset`           | `() => void`          | Reset recovery state                |
+
+#### Usage Example
+
+```typescript
+import { useTransportRecovery } from 'vuesip'
+
+const { isRecovering, connectionState, lastRecoveryTime } = useTransportRecovery(
+  transportManager,
+  sipClient,
+  {
+    stabilizationDelay: 1500,
+    onRecovered: () => console.log('SIP re-registered after reconnect'),
+    onRecoveryFailed: (err) => console.error('Recovery failed:', err),
+  }
+)
+
+// Check if recovering
+if (isRecovering.value) {
+  console.log('Attempting to restore SIP registration...')
+}
+```
+
+---
+
+### useCallWaiting
+
+Manages a queue of incoming calls while a call is active, providing coordination for accept (hold current + answer waiting), reject, and swap operations.
+
+**Source:** [`src/composables/useCallWaiting.ts`](../../src/composables/useCallWaiting.ts)
+
+#### Signature
+
+```typescript
+function useCallWaiting(
+  currentSession: Ref<CallSession | null>,
+  sipClient: Ref<SipClient | null>,
+  options: CallWaitingOptions = {}
+): UseCallWaitingReturn
+```
+
+#### Parameters
+
+| Parameter                 | Type                       | Default | Description                              |
+| ------------------------- | -------------------------- | ------- | ---------------------------------------- |
+| `currentSession`          | `Ref<CallSession \| null>` | -       | Ref to the currently active call session |
+| `sipClient`               | `Ref<SipClient \| null>`   | -       | Ref to the SIP client instance           |
+| `options.maxWaitingCalls` | `number`                   | `5`     | Maximum number of waiting calls          |
+| `options.autoRejectAfter` | `number`                   | `0`     | Auto-reject timeout in ms (0 = never)    |
+| `options.playWaitingTone` | `boolean`                  | `true`  | Play a waiting tone notification         |
+
+#### Returns: `UseCallWaitingReturn`
+
+##### Reactive State
+
+| Property           | Type                   | Description                                |
+| ------------------ | ---------------------- | ------------------------------------------ |
+| `waitingCalls`     | `Ref<WaitingCall[]>`   | List of waiting calls                      |
+| `hasWaitingCall`   | `ComputedRef<boolean>` | Whether there is at least one waiting call |
+| `waitingCallCount` | `ComputedRef<number>`  | Number of waiting calls                    |
+
+##### Methods
+
+| Method             | Signature                           | Description                                          |
+| ------------------ | ----------------------------------- | ---------------------------------------------------- |
+| `addIncomingCall`  | `(session: CallSession) => void`    | Add an incoming call to the waiting queue            |
+| `acceptWaiting`    | `(callId: string) => Promise<void>` | Accept a waiting call (hold current, answer waiting) |
+| `rejectWaiting`    | `(callId: string) => Promise<void>` | Reject a specific waiting call                       |
+| `rejectAllWaiting` | `() => Promise<void>`               | Reject all waiting calls                             |
+| `swapCalls`        | `() => Promise<void>`               | Swap between active and most recent held call        |
+
+#### Usage Example
+
+```typescript
+import { useCallWaiting } from 'vuesip'
+
+const { waitingCalls, hasWaitingCall, addIncomingCall, acceptWaiting, swapCalls } = useCallWaiting(
+  currentSession,
+  sipClient,
+  {
+    maxWaitingCalls: 3,
+    autoRejectAfter: 30000,
+  }
+)
+
+// Accept the waiting call (holds current, answers waiting)
+if (hasWaitingCall.value) {
+  await acceptWaiting(waitingCalls.value[0].callId)
+}
+
+// Swap between active and held call
+await swapCalls()
+```
+
+---
+
+### useAudioDeviceSwitch
+
+Handles switching audio input/output devices during an active WebRTC call by renegotiating media tracks.
+
+**Source:** [`src/composables/useAudioDeviceSwitch.ts`](../../src/composables/useAudioDeviceSwitch.ts)
+
+#### Signature
+
+```typescript
+function useAudioDeviceSwitch(
+  callSession: Ref<CallSession | null>,
+  audioDevices: UseAudioDevicesReturn,
+  options: AudioDeviceSwitchOptions = {}
+): UseAudioDeviceSwitchReturn
+```
+
+#### Parameters
+
+| Parameter               | Type                            | Default | Description                                      |
+| ----------------------- | ------------------------------- | ------- | ------------------------------------------------ |
+| `callSession`           | `Ref<CallSession \| null>`      | -       | Active call session reference                    |
+| `audioDevices`          | `UseAudioDevicesReturn`         | -       | Return object from useAudioDevices composable    |
+| `options.audioElement`  | `Ref<HTMLAudioElement \| null>` | -       | HTMLAudioElement for remote audio playback       |
+| `options.switchTimeout` | `number`                        | `5000`  | Timeout for switch operations in ms              |
+| `options.autoFallback`  | `boolean`                       | `true`  | Auto-fallback to default device on disconnection |
+
+#### Returns: `UseAudioDeviceSwitchReturn`
+
+##### Reactive State
+
+| Property              | Type                               | Description                               |
+| --------------------- | ---------------------------------- | ----------------------------------------- |
+| `isSwitching`         | `Readonly<Ref<boolean>>`           | Whether a switch operation is in progress |
+| `lastSwitchError`     | `Readonly<Ref<Error \| null>>`     | Last switch error                         |
+| `currentInputDevice`  | `ComputedRef<AudioDevice \| null>` | Currently active input device             |
+| `currentOutputDevice` | `ComputedRef<AudioDevice \| null>` | Currently active output device            |
+
+##### Methods
+
+| Method                     | Signature                                | Description                        |
+| -------------------------- | ---------------------------------------- | ---------------------------------- |
+| `switchMicrophone`         | `(deviceId: string) => Promise<void>`    | Switch to a different microphone   |
+| `switchSpeaker`            | `(deviceId: string) => Promise<void>`    | Switch to a different speaker      |
+| `handleDeviceDisconnected` | `(device: AudioDevice) => Promise<void>` | Handle manual device disconnection |
+
+#### Usage Example
+
+```typescript
+import { useAudioDeviceSwitch, useAudioDevices } from 'vuesip'
+
+const audioDevices = useAudioDevices()
+const { switchMicrophone, isSwitching } = useAudioDeviceSwitch(session, audioDevices)
+
+// Switch microphone
+await switchMicrophone('new-device-id')
+```
+
+---
+
+### useNotifications
+
+Provides a reactive notification queue with auto-dismiss, priority ordering, and action buttons for surfacing errors and recovery status.
+
+**Source:** [`src/composables/useNotifications.ts`](../../src/composables/useNotifications.ts)
+
+#### Signature
+
+```typescript
+function useNotifications(options: NotificationOptions = {}): UseNotificationsReturn
+```
+
+#### Parameters
+
+| Parameter                  | Type                   | Default       | Description                                      |
+| -------------------------- | ---------------------- | ------------- | ------------------------------------------------ |
+| `options.maxNotifications` | `number`               | `10`          | Maximum number of notifications to keep in queue |
+| `options.defaultDuration`  | `number`               | `5000`        | Default auto-dismiss duration in ms              |
+| `options.position`         | `NotificationPosition` | `'top-right'` | Display position hint for UI layer               |
+
+#### Returns: `UseNotificationsReturn`
+
+##### Reactive State
+
+| Property           | Type                                | Description                                             |
+| ------------------ | ----------------------------------- | ------------------------------------------------------- |
+| `notifications`    | `ComputedRef<Notification[]>`       | Reactive list of active notifications (priority-sorted) |
+| `hasNotifications` | `ComputedRef<boolean>`              | Whether there are any notifications                     |
+| `unreadCount`      | `ComputedRef<number>`               | Count of unread notifications                           |
+| `position`         | `ComputedRef<NotificationPosition>` | Configured position                                     |
+
+##### Methods
+
+| Method        | Signature                                                                 | Description                          |
+| ------------- | ------------------------------------------------------------------------- | ------------------------------------ |
+| `notify`      | `(options: NotifyOptions) => string`                                      | Add a notification, returns its ID   |
+| `dismiss`     | `(id: string) => void`                                                    | Remove a specific notification by ID |
+| `dismissAll`  | `() => void`                                                              | Remove all notifications             |
+| `markRead`    | `(id: string) => void`                                                    | Mark a notification as read          |
+| `markAllRead` | `() => void`                                                              | Mark all notifications as read       |
+| `info`        | `(title: string, message: string, action?: NotificationAction) => string` | Shortcut: info notification          |
+| `success`     | `(title: string, message: string, action?: NotificationAction) => string` | Shortcut: success notification       |
+| `warning`     | `(title: string, message: string, action?: NotificationAction) => string` | Shortcut: warning notification       |
+| `error`       | `(title: string, message: string, action?: NotificationAction) => string` | Shortcut: error notification         |
+| `recovery`    | `(title: string, message: string, action?: NotificationAction) => string` | Shortcut: recovery notification      |
+
+#### Usage Example
+
+```typescript
+import { useNotifications } from 'vuesip'
+
+const { notify, error, recovery } = useNotifications()
+
+// Add a notification
+const id = notify({
+  type: 'warning',
+  title: 'Low quality',
+  message: 'Call quality degraded',
+})
+
+// Use shortcuts
+error('Call Failed', 'Unable to connect to remote party')
+recovery('Reconnecting', 'Attempting to restore connection...')
+```
+
+---
+
+### useConnectionHealthBar
+
+Aggregates transport, registration, network quality, and ICE health into a single reactive connection health indicator.
+
+**Source:** [`src/composables/useConnectionHealthBar.ts`](../../src/composables/useConnectionHealthBar.ts)
+
+#### Signature
+
+```typescript
+function useConnectionHealthBar(
+  options: ConnectionHealthBarOptions = {}
+): UseConnectionHealthBarReturn
+```
+
+#### Parameters
+
+| Parameter                    | Type                               | Default | Description                          |
+| ---------------------------- | ---------------------------------- | ------- | ------------------------------------ |
+| `options.networkQuality`     | `UseNetworkQualityIndicatorReturn` | -       | Network quality indicator instance   |
+| `options.connectionRecovery` | `UseConnectionRecoveryReturn`      | -       | Connection recovery instance         |
+| `options.transportRecovery`  | `UseTransportRecoveryReturn`       | -       | Transport recovery instance          |
+| `options.registration`       | `UseSipRegistrationReturn`         | -       | SIP registration instance            |
+| `options.notifications`      | `UseNotificationsReturn`           | -       | Notifications instance               |
+| `options.debounceMs`         | `number`                           | `1000`  | Debounce interval for health updates |
+
+#### Returns: `UseConnectionHealthBarReturn`
+
+##### Reactive State
+
+| Property      | Type                         | Description                                                           |
+| ------------- | ---------------------------- | --------------------------------------------------------------------- |
+| `healthLevel` | `ComputedRef<HealthLevel>`   | Current health level (excellent, good, fair, poor, critical, offline) |
+| `statusText`  | `ComputedRef<string>`        | Human-readable status text                                            |
+| `color`       | `ComputedRef<string>`        | Suggested CSS color for the health level                              |
+| `icon`        | `ComputedRef<string>`        | Suggested icon name for the health level                              |
+| `isHealthy`   | `ComputedRef<boolean>`       | Whether the connection is considered healthy                          |
+| `details`     | `ComputedRef<HealthDetails>` | Detailed health metrics for each component                            |
+
+#### Usage Example
+
+```typescript
+import { useConnectionHealthBar } from 'vuesip'
+
+const { healthLevel, statusText, isHealthy } = useConnectionHealthBar({
+  networkQuality,
+  registration,
+  notifications,
+})
+
+if (!isHealthy.value) {
+  console.warn(`Connection issue: ${statusText.value} (${healthLevel.value})`)
+}
+```
+
+---
+
+### useCredentialExpiry
+
+Detects SIP credential expiration by monitoring registration failures and provides re-authentication flow hooks.
+
+**Source:** [`src/composables/useCredentialExpiry.ts`](../../src/composables/useCredentialExpiry.ts)
+
+#### Signature
+
+```typescript
+function useCredentialExpiry(options: CredentialExpiryOptions): UseCredentialExpiryReturn
+```
+
+#### Parameters
+
+| Parameter                      | Type                                 | Default      | Description                                     |
+| ------------------------------ | ------------------------------------ | ------------ | ----------------------------------------------- |
+| `options.registration`         | `UseSipRegistrationReturn`           | -            | Registration composable instance to watch       |
+| `options.notifications`        | `UseNotificationsReturn`             | -            | Notifications composable for alerting the user  |
+| `options.authErrorCodes`       | `number[]`                           | `[401, 403]` | SIP error codes that indicate credential issues |
+| `options.warningThreshold`     | `number`                             | `60`         | Time before expiry to warn user in seconds      |
+| `options.onAuthRequired`       | `() => void \| Promise<void>`        | -            | Callback when re-auth is needed                 |
+| `options.onRefreshCredentials` | `() => Promise<Credentials \| null>` | -            | Callback to perform credential refresh          |
+
+#### Returns: `UseCredentialExpiryReturn`
+
+##### Reactive State
+
+| Property           | Type                            | Description                                                              |
+| ------------------ | ------------------------------- | ------------------------------------------------------------------------ |
+| `credentialStatus` | `ComputedRef<CredentialStatus>` | Current credential health status (valid, expiring, expired, auth-failed) |
+| `isAuthRequired`   | `Ref<boolean>`                  | Whether re-authentication is required                                    |
+| `lastAuthError`    | `Ref<string \| null>`           | Last authentication error message                                        |
+| `authFailureCount` | `Ref<number>`                   | Number of consecutive auth failures                                      |
+| `canAutoRefresh`   | `ComputedRef<boolean>`          | Whether auto-refresh is available                                        |
+
+##### Methods
+
+| Method                | Signature                | Description                                    |
+| --------------------- | ------------------------ | ---------------------------------------------- |
+| `refreshCredentials`  | `() => Promise<boolean>` | Attempt to refresh credentials and re-register |
+| `dismissAuthRequired` | `() => void`             | Dismiss the auth-required state                |
+| `resetState`          | `() => void`             | Reset all error state                          |
+
+#### Usage Example
+
+```typescript
+import { useCredentialExpiry } from 'vuesip'
+
+const { credentialStatus, isAuthRequired, refreshCredentials } = useCredentialExpiry({
+  registration,
+  notifications,
+  onAuthRequired: () => showLoginModal(),
+  onRefreshCredentials: async () => {
+    const token = await myAuthService.refreshToken()
+    return token ? { username: token.user, password: token.sipPassword } : null
+  },
+})
+
+// Trigger manual refresh
+if (isAuthRequired.value) {
+  await refreshCredentials()
+}
+```
+
+---
+
+### useGracefulDegradation
+
+Automatically adjusts call quality settings when network quality degrades, providing progressive degradation and recovery.
+
+**Source:** [`src/composables/useGracefulDegradation.ts`](../../src/composables/useGracefulDegradation.ts)
+
+#### Signature
+
+```typescript
+function useGracefulDegradation(
+  options: GracefulDegradationOptions = {}
+): UseGracefulDegradationReturn
+```
+
+#### Parameters
+
+| Parameter                    | Type                             | Default | Description                            |
+| ---------------------------- | -------------------------------- | ------- | -------------------------------------- |
+| `options.healthBar`          | `UseConnectionHealthBarReturn`   | -       | Connection health bar instance         |
+| `options.callSession`        | `UseCallSessionReturn`           | -       | Call session instance                  |
+| `options.notifications`      | `UseNotificationsReturn`         | -       | Notifications instance                 |
+| `options.autoDegrade`        | `boolean`                        | `true`  | Enable automatic degradation           |
+| `options.autoRecover`        | `boolean`                        | `true`  | Enable automatic recovery              |
+| `options.stabilizationDelay` | `number`                         | `3000`  | Delay before applying degradation (ms) |
+| `options.thresholds`         | `Partial<DegradationThresholds>` | -       | Custom health level thresholds         |
+
+#### Returns: `UseGracefulDegradationReturn`
+
+##### Reactive State
+
+| Property            | Type                            | Description                             |
+| ------------------- | ------------------------------- | --------------------------------------- |
+| `degradationLevel`  | `ComputedRef<DegradationLevel>` | Current degradation level (0-3)         |
+| `isDegraded`        | `ComputedRef<boolean>`          | Whether any degradation is active       |
+| `activeAdaptations` | `ComputedRef<string[]>`         | List of active adaptation identifiers   |
+| `canRecover`        | `ComputedRef<boolean>`          | Whether network quality allows recovery |
+| `isAutoMode`        | `ComputedRef<boolean>`          | Whether automatic mode is enabled       |
+
+##### Methods
+
+| Method                 | Signature                           | Description                        |
+| ---------------------- | ----------------------------------- | ---------------------------------- |
+| `applyDegradation`     | `(level: DegradationLevel) => void` | Manually apply a degradation level |
+| `recover`              | `() => void`                        | Manually recover one level         |
+| `recoverFull`          | `() => void`                        | Manually recover to level 0        |
+| `setAutoMode`          | `(enabled: boolean) => void`        | Enable/disable automatic mode      |
+| `getAdaptationHistory` | `() => AdaptationHistoryEntry[]`    | Get history of adaptations         |
+
+#### Usage Example
+
+```typescript
+import { useGracefulDegradation } from 'vuesip'
+
+const { degradationLevel, isDegraded, activeAdaptations } = useGracefulDegradation({
+  healthBar,
+  callSession,
+  notifications,
+})
+
+// Monitor adaptations
+watch(activeAdaptations, (list) => {
+  console.log('Active adaptations:', list.join(', '))
+})
 ```
 
 ---
