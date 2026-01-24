@@ -5,13 +5,18 @@ A production-ready Progressive Web App (PWA) softphone template built with Vue 3
 ## Features
 
 - **PWA Support**: Installable on mobile and desktop devices
-- **Push Notifications**: Receive incoming call notifications even when the app is in background
+- **Push Notifications**: Receive incoming call notifications even when app is in background
 - **Offline Capable**: Service worker caches assets for offline use
 - **Mobile-First Design**: Touch-friendly UI optimized for mobile devices
 - **Dark Mode**: Modern dark theme with beautiful gradients
 - **Full Call Controls**: Mute, hold, speaker toggle, and DTMF keypad
-- **Call History**: View and redial recent calls
+- **Call History**: View and redial recent calls with transcript search
 - **Device Selection**: Choose microphone and speaker devices
+- **Provider Support**: 46elks, Telnyx, and custom SIP servers
+- **Multi-Account Support**: Manage multiple SIP accounts simultaneously
+- **Call Recording**: Local audio recording with IndexedDB persistence
+- **Real-Time Transcription**: Speech-to-text during calls with Whisper provider
+- **Call Detail View**: View detailed call information including transcripts
 
 ## Quick Start
 
@@ -55,34 +60,82 @@ pwa-softphone/
 │   └── sw.js            # Service worker
 ├── src/
 │   ├── components/
-│   │   ├── DialPad.vue      # Dial pad with DTMF
-│   │   ├── CallScreen.vue   # Active call UI
-│   │   ├── IncomingCall.vue # Incoming call overlay
-│   │   └── Settings.vue     # SIP configuration form
+│   │   ├── DialPad.vue               # Dial pad with DTMF
+│   │   ├── CallScreen.vue            # Active call UI
+│   │   ├── IncomingCall.vue          # Incoming call overlay
+│   │   ├── Settings.vue              # SIP configuration form
+│   │   ├── SettingsMenu.vue          # Settings navigation
+│   │   ├── CallDetailView.vue         # Call detail with transcript
+│   │   ├── Elks46Login.vue          # 46elks API login
+│   │   ├── Elks46OutboundSettings.vue  # 46elks caller ID settings
+│   │   ├── TelnyxLogin.vue          # Telnyx login
+│   │   └── TranscriptionSettingsSection.vue  # Transcription configuration
 │   ├── composables/
-│   │   ├── usePhone.ts           # VueSIP phone wrapper
-│   │   ├── usePushNotifications.ts # Push notification handling
-│   │   └── usePwaInstall.ts      # PWA install prompt
+│   │   ├── usePhone.ts                    # VueSIP phone wrapper with multi-account
+│   │   ├── usePushNotifications.ts      # Push notification handling
+│   │   ├── usePwaInstall.ts             # PWA install prompt
+│   │   ├── useCallRecording.ts          # Recording with persistence
+│   │   ├── useTranscriptPersistence.ts  # Transcript storage in IndexedDB
+│   │   └── usePwaInstall.ts             # PWA install prompt
 │   ├── styles/
-│   │   └── main.css         # Global styles
-│   ├── App.vue              # Main app component
-│   └── main.ts              # App entry point
+│   │   └── main.css                     # Global styles with CSS variables
+│   ├── App.vue                          # Main app component with tabs
+│   └── main.ts                          # App entry point
+```
+
+pwa-softphone/
+├── public/
+│ ├── icons/ # PWA icons
+│ │ ├── icon-192.png
+│ │ └── icon-512.png
+│ └── sw.js # Service worker
+├── src/
+│ ├── components/
+│ │ ├── DialPad.vue # Dial pad with DTMF
+│ │ ├── CallScreen.vue # Active call UI
+│ │ ├── IncomingCall.vue # Incoming call overlay
+│ │ └── Settings.vue # SIP configuration form
+│ ├── composables/
+│ │ ├── usePhone.ts # VueSIP phone wrapper
+│ │ ├── usePushNotifications.ts # Push notification handling
+│ │ └── usePwaInstall.ts # PWA install prompt
+│ ├── styles/
+│ │ └── main.css # Global styles
+│ ├── App.vue # Main app component
+│ └── main.ts # App entry point
 ├── index.html
-├── vite.config.ts           # Vite + PWA plugin config
+├── vite.config.ts # Vite + PWA plugin config
 ├── tsconfig.json
 └── package.json
-```
+
+````
 
 ## Configuration
 
-### SIP Server
+### SIP Server Configuration
 
-Enter your SIP credentials in the Settings screen:
+The softphone supports multiple configuration modes:
 
+#### Single Account Mode (Default)
+Enter SIP credentials in the Settings screen:
+
+- **Provider**: Choose from 46elks, Telnyx, or custom SIP server
 - **WebSocket Server**: Your SIP server's WebSocket URL (e.g., `wss://sip.example.com:8089/ws`)
 - **SIP URI**: Your SIP address (e.g., `sip:1001@sip.example.com`)
 - **Password**: Your SIP password
 - **Display Name**: Optional display name for caller ID
+
+#### 46elks API Login
+- **API Username**: Your 46elks API username
+- **API Password**: Your 46elks API token
+- **Outbound Number**: Choose which number to use as caller ID (support for multiple numbers)
+- **WebRTC Number**: Your 46elks WebRTC SIP endpoint
+
+#### Multi-Account Mode
+Manage multiple SIP accounts simultaneously with automatic failover:
+- Add unlimited SIP accounts
+- Set outbound account per call
+- View connection status for each account
 
 ### PWA Manifest
 
@@ -97,7 +150,7 @@ VitePWA({
     // ...
   },
 })
-```
+````
 
 ### Icons
 
@@ -181,23 +234,7 @@ npm i -g wrangler
 wrangler pages deploy dist
 ```
 
-Or deploy to a specific Pages project:
-
-```bash
-# From repo root
-pnpm build
-
-cd templates/pwa-softphone
-pnpm build
-
-# Create project once (safe if it already exists)
-wrangler pages project create vuesip-pwa-softphone --production-branch=main
-
-# Deploy the dist/ folder
-wrangler pages deploy dist --project-name=vuesip-pwa-softphone
-```
-
-After deploying, map your subdomain (e.g., `softphone.vuesip.com`) to the Pages project in Cloudflare Pages → Custom Domains.
+Note: If using 46elks or need server-side push notifications, you may need to configure additional server-side components.
 
 ## Troubleshooting
 
@@ -205,15 +242,9 @@ After deploying, map your subdomain (e.g., `softphone.vuesip.com`) to the Pages 
 
 46elks requires each inbound number to have `voice_start` configured.
 
-If you are deploying this template to `softphone.vuesip.com`, you can point a 46elks number's `voice_start` to the included Pages Function:
+When the app receives an incoming call from 46elks, it auto-answers the bridge call to complete the connection.
 
-```text
-https://softphone.vuesip.com/elks/calls?connect=+4600XXXXXX
-```
-
-This returns a simple call action JSON `{ "connect": "+4600XXXXXX" }`.
-
-Tip: you can re-use the same endpoint for multiple inbound numbers by changing only the `connect` query parameter.
+For production deployment, you may want to set up a 46elks voice_start endpoint that bridges to your WebRTC softphone.
 
 ### PWA Install Prompt Not Showing
 

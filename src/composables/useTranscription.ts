@@ -25,7 +25,6 @@ import type {
   RedactionConfig,
 } from '@/types/transcription.types'
 // Import providers module to ensure auto-registration runs
-import '@/transcription/providers'
 import {
   providerRegistry as defaultProviderRegistry,
   WebSpeechProvider,
@@ -142,6 +141,10 @@ export function useTranscription(options: TranscriptionOptions = {}): UseTranscr
 
   // Provider instance
   let provider: TranscriptionProvider | null = null
+  // Unsubscribe functions for provider callbacks
+  let unsubscribeInterim: (() => void) | null = null
+  let unsubscribeFinal: (() => void) | null = null
+  let unsubscribeError: (() => void) | null = null
 
   // Event callbacks
   const transcriptCallbacks: Array<(entry: TranscriptEntry) => void> = []
@@ -180,15 +183,29 @@ export function useTranscription(options: TranscriptionOptions = {}): UseTranscr
         ...options.providerOptions,
       })
 
-      // Setup event handlers
-      provider.onInterim((text, sourceId) => {
+      // Unsubscribe from previous provider callbacks if any
+      if (unsubscribeInterim) {
+        unsubscribeInterim()
+        unsubscribeInterim = null
+      }
+      if (unsubscribeFinal) {
+        unsubscribeFinal()
+        unsubscribeFinal = null
+      }
+      if (unsubscribeError) {
+        unsubscribeError()
+        unsubscribeError = null
+      }
+
+      // Setup event handlers and store unsubscribe functions
+      unsubscribeInterim = provider.onInterim((text, sourceId) => {
         const speakerType = getSpeakerType(sourceId)
         if (isSourceEnabled(speakerType)) {
           currentUtterance.value = text
         }
       })
 
-      provider.onFinal((result, sourceId) => {
+      unsubscribeFinal = provider.onFinal((result, sourceId) => {
         const speakerType = getSpeakerType(sourceId)
         if (!isSourceEnabled(speakerType)) {
           return
@@ -228,7 +245,7 @@ export function useTranscription(options: TranscriptionOptions = {}): UseTranscr
         logger.debug('Transcript entry added', { id: entry.id, speaker: entry.speaker })
       })
 
-      provider.onError((err) => {
+      unsubscribeError = provider.onError((err) => {
         error.value = err
         options.onError?.(err)
         logger.error('Provider error', { error: err.message })
@@ -258,6 +275,20 @@ export function useTranscription(options: TranscriptionOptions = {}): UseTranscr
    * Stop transcription
    */
   function stop(): void {
+    // Unsubscribe from provider callbacks to prevent accumulation
+    if (unsubscribeInterim) {
+      unsubscribeInterim()
+      unsubscribeInterim = null
+    }
+    if (unsubscribeFinal) {
+      unsubscribeFinal()
+      unsubscribeFinal = null
+    }
+    if (unsubscribeError) {
+      unsubscribeError()
+      unsubscribeError = null
+    }
+
     if (provider) {
       provider.stopStream()
     }

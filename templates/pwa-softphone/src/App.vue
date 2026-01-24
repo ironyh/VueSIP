@@ -185,7 +185,7 @@ watch(
     }
 
     // When call ends, save transcript and recording
-    if ((newState === 'idle' || newState === 'ended') && oldState === 'active') {
+    if ((newState === 'idle' || newState === 'terminated') && oldState === 'active') {
       const callId = currentCallId.value
       if (callId) {
         // Save transcript if persistence enabled and transcription instance is available
@@ -261,7 +261,7 @@ async function handleEndCall() {
   }
 }
 
-function handleHistoryClick(callId: string, remoteUri: string) {
+function handleHistoryClick(callId: string) {
   // Check if user wants to view details (long press or click on info icon)
   // For now, single click shows detail view
   selectedCallId.value = callId
@@ -474,7 +474,7 @@ onUnmounted(async () => {
                 v-for="entry in finalFilteredHistory"
                 :key="entry.id"
                 class="history-item"
-                @click="handleHistoryClick(entry.id, entry.remoteUri)"
+                @click="handleHistoryClick(entry.id)"
               >
                 <div class="history-icon" :class="entry.direction">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

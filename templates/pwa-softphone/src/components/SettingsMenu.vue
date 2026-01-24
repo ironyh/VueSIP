@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import type { MediaDevice } from 'vuesip'
 import Elks46OutboundSettings from './Elks46OutboundSettings.vue'
 import TranscriptionSettingsSection from './TranscriptionSettingsSection.vue'
@@ -53,11 +53,6 @@ const emit = defineEmits<{
 
 const activeCategory = ref<SettingsCategory>('account')
 
-// Scrollable categories for mobile
-const scrollableCategories = computed(() => {
-  return categories
-})
-
 // Audio testing
 const isTestingMic = ref(false)
 const isTestingSpeaker = ref(false)
@@ -102,6 +97,7 @@ async function testSpeaker() {
     // Stop test
     if (speakerTestAudio) {
       speakerTestAudio.pause()
+      speakerTestAudio.src = ''
       speakerTestAudio = null
     }
     isTestingSpeaker.value = false
@@ -110,26 +106,45 @@ async function testSpeaker() {
 
   try {
     isTestingSpeaker.value = true
-    // Create a test tone
+    // Generate a test tone and play through selected device
     const audioContext = new AudioContext()
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
-    const destination = audioContext.destination
+    const mediaStreamDestination = audioContext.createMediaStreamDestination()
 
     oscillator.connect(gainNode)
-    gainNode.connect(destination)
+    gainNode.connect(mediaStreamDestination)
 
     oscillator.frequency.value = 440 // A4 note
     gainNode.gain.value = 0.1
 
+    // Create HTMLAudioElement to support setSinkId for device selection
+    speakerTestAudio = new Audio()
+    if (props.selectedAudioOutputId && 'setSinkId' in speakerTestAudio) {
+      await (speakerTestAudio as any).setSinkId(props.selectedAudioOutputId)
+    }
+
+    speakerTestAudio.srcObject = mediaStreamDestination.stream
     oscillator.start()
+    await speakerTestAudio.play()
     oscillator.stop(audioContext.currentTime + 0.5)
 
     setTimeout(() => {
+      if (speakerTestAudio) {
+        speakerTestAudio.pause()
+        speakerTestAudio.src = ''
+        speakerTestAudio = null
+      }
+      audioContext.close()
       isTestingSpeaker.value = false
     }, 500)
   } catch (error) {
     console.error('Speaker test failed:', error)
+    if (speakerTestAudio) {
+      speakerTestAudio.pause()
+      speakerTestAudio.src = ''
+      speakerTestAudio = null
+    }
     isTestingSpeaker.value = false
   }
 }
@@ -146,6 +161,7 @@ onUnmounted(() => {
   }
   if (speakerTestAudio) {
     speakerTestAudio.pause()
+    speakerTestAudio.src = ''
     speakerTestAudio = null
   }
 })
@@ -157,7 +173,7 @@ onUnmounted(() => {
     <div class="category-nav">
       <div class="category-nav-scroll">
         <button
-          v-for="category in scrollableCategories"
+          v-for="category in categories"
           :key="category.id"
           class="category-btn"
           :class="{ active: activeCategory === category.id }"

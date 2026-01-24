@@ -181,6 +181,12 @@ export class WebSpeechProvider implements TranscriptionProvider {
           return
         }
 
+        // Clear any existing restart timeout to prevent multiple pending restarts
+        if (this.restartTimeout) {
+          clearTimeout(this.restartTimeout)
+          this.restartTimeout = null
+        }
+
         const delay = Math.min(300 * Math.pow(2, this.restartAttempts), 30000)
         this.restartAttempts++
 

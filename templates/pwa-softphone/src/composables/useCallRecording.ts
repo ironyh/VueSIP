@@ -4,6 +4,7 @@
  */
 import { ref } from 'vue'
 import { useLocalRecording } from 'vuesip'
+import type { LocalRecordingData } from 'vuesip'
 
 const DB_NAME = 'vuesip-call-recordings'
 const DB_VERSION = 1
@@ -14,7 +15,7 @@ interface RecordingMetadata {
   startTime: number
   endTime?: number
   duration: number
-  blob: Blob
+  blobData: ArrayBuffer
   mimeType: string
   size: number
 }
@@ -73,34 +74,35 @@ export function useCallRecording() {
   }
 
   // Stop recording and save if persistence enabled
-  async function stopRecording(): Promise<Blob | null> {
+  async function stopRecording(): Promise<LocalRecordingData | null> {
     if (!currentCallId.value) return null
 
-    const blob = await recording.stop()
-    if (!blob) return null
+    const recordingData = await recording.stop()
+    if (!recordingData) return null
 
-    if (persistenceEnabled.value && blob) {
-      await saveRecording(currentCallId.value, blob)
+    if (persistenceEnabled.value && recordingData) {
+      await saveRecording(currentCallId.value, recordingData)
     }
 
     currentCallId.value = null
-    return blob
+    return recordingData
   }
 
   // Save recording to IndexedDB
-  async function saveRecording(callId: string, blob: Blob): Promise<void> {
+  async function saveRecording(callId: string, data: LocalRecordingData): Promise<void> {
     try {
       const database = await openDatabase()
       const now = Date.now()
 
+      const buffer = await data.blob.arrayBuffer()
       const metadata: RecordingMetadata = {
         callId,
         startTime: now,
         endTime: now,
-        duration: 0, // Will be calculated from blob if needed
-        blob,
-        mimeType: blob.type || 'audio/webm',
-        size: blob.size,
+        duration: data.duration / 1000, // Convert ms to seconds
+        blobData: buffer,
+        mimeType: data.mimeType,
+        size: data.blob.size,
       }
 
       return new Promise((resolve, reject) => {

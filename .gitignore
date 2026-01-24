@@ -88,6 +88,9 @@ claudedocs/
 .claude-flow/
 .mcp.json
 
+# Beads local daemon logs
+.beads/daemon-*.log.gz
+
 # Build artifacts
 dist-playground/
 docs/.vitepress/cache/

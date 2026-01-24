@@ -481,8 +481,8 @@ export function usePhone() {
 
     dialStrategy.configure({
       providerId,
-      strategy: 'auto', // Auto-detect based on provider
-      autoDetect: true,
+      strategy: 'sip-invite', // Use standard SIP INVITE for custom providers
+      autoDetect: false,
     })
 
     isConfigured.value = true
