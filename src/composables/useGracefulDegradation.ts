@@ -171,9 +171,11 @@ export function useGracefulDegradation(
             if (!params.encodings || params.encodings.length === 0) {
               params.encodings = [{}]
             }
-            const encoding = params.encodings[0]!
-            encoding.maxBitrate = 250000
-            encoding.maxFramerate = DEGRADATION_CONSTANTS.VIDEO.MILD_MAX_FRAMERATE
+            const encoding = params.encodings[0]
+            if (encoding) {
+              encoding.maxBitrate = 250000
+              encoding.maxFramerate = DEGRADATION_CONSTANTS.VIDEO.MILD_MAX_FRAMERATE
+            }
             videoSender.setParameters(params).catch((err) => {
               logger.warn('Failed to set video parameters for mild degradation', err)
             })
@@ -212,8 +214,10 @@ export function useGracefulDegradation(
             if (!params.encodings || params.encodings.length === 0) {
               params.encodings = [{}]
             }
-            const encoding = params.encodings[0]!
-            encoding.maxBitrate = DEGRADATION_CONSTANTS.AUDIO_BITRATE.REDUCED
+            const encoding = params.encodings[0]
+            if (encoding) {
+              encoding.maxBitrate = DEGRADATION_CONSTANTS.AUDIO_BITRATE.REDUCED
+            }
             audioSender.setParameters(params).catch((err) => {
               logger.warn('Failed to set audio parameters for severe degradation', err)
             })
@@ -240,8 +244,8 @@ export function useGracefulDegradation(
           const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video')
           if (videoSender) {
             const params = videoSender.getParameters()
-            if (params.encodings && params.encodings.length > 0) {
-              const encoding = params.encodings[0]!
+            const encoding = params.encodings?.[0]
+            if (encoding) {
               delete encoding.maxBitrate
               delete encoding.maxFramerate
               videoSender.setParameters(params).catch((err) => {
@@ -278,8 +282,8 @@ export function useGracefulDegradation(
           const audioSender = pc.getSenders().find((s) => s.track?.kind === 'audio')
           if (audioSender) {
             const params = audioSender.getParameters()
-            if (params.encodings && params.encodings.length > 0) {
-              const encoding = params.encodings[0]!
+            const encoding = params.encodings?.[0]
+            if (encoding) {
               delete encoding.maxBitrate
               audioSender.setParameters(params).catch((err) => {
                 logger.warn('Failed to revert audio parameters', err)
