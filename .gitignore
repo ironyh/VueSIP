@@ -95,6 +95,9 @@ claudedocs/
 dist-playground/
 docs/.vitepress/cache/
 
+# PWA dev service worker (generated)
+**/dev-dist/
+
 
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt
