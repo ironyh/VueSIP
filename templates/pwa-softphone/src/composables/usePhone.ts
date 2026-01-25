@@ -534,8 +534,8 @@ export function usePhone() {
 
     dialStrategy.configure({
       providerId,
-      strategy: 'sip-invite', // Use standard SIP INVITE for custom providers
-      autoDetect: false,
+      strategy: providerId === '46elks' ? 'rest-originate' : 'sip-invite',
+      autoDetect: providerId === '46elks',
     })
 
     isConfigured.value = true

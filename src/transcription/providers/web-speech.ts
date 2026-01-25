@@ -196,8 +196,9 @@ export class WebSpeechProvider implements TranscriptionProvider {
           if (!this.isRunning || !this.recognition) return
           try {
             this.recognition.start()
+            this.restartAttempts = 0
           } catch {
-            // Ignore if already started
+            // Already started or failed - backoff will continue
           }
         }, delay)
       }
