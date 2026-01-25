@@ -287,12 +287,13 @@ export function useCallWaiting(
         }
       }
 
-      // Answer the waiting call
       const waitingExt = waitingCall.session as ExtendedCallSession
-      if (waitingExt.unhold) {
-        // If the waiting session was somehow held, unhold it
+      if (waitingExt.answer) {
         log.debug(`Answering waiting call ${callId}`)
-        await waitingExt.unhold()
+        await waitingExt.answer()
+        currentSession.value = waitingCall.session
+      } else {
+        log.warn('Waiting session does not support answer()')
       }
 
       log.info(`Accepted waiting call ${callId}`)

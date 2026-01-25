@@ -76,6 +76,8 @@ export interface ExtendedCallSession extends CallSession {
    * Hang up the call
    */
   hangup?(): Promise<void>
+
+  answer?(): Promise<void>
 }
 
 /**
