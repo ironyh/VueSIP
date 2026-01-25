@@ -163,7 +163,7 @@ export function useGracefulDegradation(
     const session = callSession.session.value
     if (session && callSession.hasLocalVideo.value) {
       try {
-        const pc = (session as unknown as { peerConnection?: RTCPeerConnection }).peerConnection
+        const pc = session.connection
         if (pc) {
           const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video')
           if (videoSender) {
@@ -204,7 +204,7 @@ export function useGracefulDegradation(
     const session = callSession.session.value
     if (session) {
       try {
-        const pc = (session as unknown as { peerConnection?: RTCPeerConnection }).peerConnection
+        const pc = session.connection
         if (pc) {
           const audioSender = pc.getSenders().find((s) => s.track?.kind === 'audio')
           if (audioSender) {
@@ -235,7 +235,7 @@ export function useGracefulDegradation(
     const session = callSession.session.value
     if (session && callSession.hasLocalVideo.value) {
       try {
-        const pc = (session as unknown as { peerConnection?: RTCPeerConnection }).peerConnection
+        const pc = session.connection
         if (pc) {
           const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video')
           if (videoSender) {
@@ -273,7 +273,7 @@ export function useGracefulDegradation(
     const session = callSession.session.value
     if (session) {
       try {
-        const pc = (session as unknown as { peerConnection?: RTCPeerConnection }).peerConnection
+        const pc = session.connection
         if (pc) {
           const audioSender = pc.getSenders().find((s) => s.track?.kind === 'audio')
           if (audioSender) {
