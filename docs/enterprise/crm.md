@@ -32,6 +32,22 @@ await crm.logCall({
 })
 ```
 
+## Usage Example: Screen Pop + Auto Log
+
+```ts
+crm.onScreenPop((contact) => {
+  router.push({ name: 'contact', params: { id: contact.id } })
+})
+
+crm.onConnectionChange((connected) => {
+  statusBadge.value = connected ? 'CRM connected' : 'CRM offline'
+})
+
+crm.onError((error) => {
+  notifyOps('CRM error', { code: error.code, message: error.message })
+})
+```
+
 ## Lookup & Cache
 
 ```ts
@@ -43,6 +59,29 @@ if (contact) {
 
 // Clear cache if needed
 crm.clearCache()
+```
+
+## Usage Example: Webhook Adapter for Internal CRM
+
+```ts
+import { useCRM, WebhookAdapter } from '@vuesip/enterprise/crm'
+
+const crm = useCRM({ autoLookup: true, cacheContacts: true })
+
+const adapter = new WebhookAdapter({
+  baseUrl: 'https://crm.internal.example.com',
+  authType: 'api-key',
+  apiKey: 'your-api-key',
+  apiKeyHeader: 'X-CRM-Key',
+  endpoints: {
+    lookupByPhone: { method: 'GET', url: '/contacts/lookup?phone={phone}' },
+    logCall: { method: 'POST', url: '/calls' },
+    createActivity: { method: 'POST', url: '/activities' },
+  },
+})
+
+crm.setAdapter(adapter)
+await crm.connect()
 ```
 
 ## Screen Pop

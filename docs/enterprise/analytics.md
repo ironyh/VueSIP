@@ -40,6 +40,55 @@ analytics.recordCall({
 await analytics.refresh()
 ```
 
+## Usage Example: Live KPI Dashboard
+
+```ts
+import { computed, onMounted, watch } from 'vue'
+import { useCallAnalytics } from '@vuesip/enterprise/analytics'
+
+const analytics = useCallAnalytics({
+  enableRealtime: true,
+  refreshInterval: 15000,
+  serviceLevelThreshold: 20,
+})
+
+const kpis = computed(() => ({
+  serviceLevel: analytics.metrics.value.serviceLevelPercent,
+  avgHandleTime: analytics.metrics.value.averageHandleTime,
+  abandonRate:
+    analytics.metrics.value.abandonedCalls / Math.max(analytics.metrics.value.totalCalls, 1),
+}))
+
+const callVolumeSeries = computed(() =>
+  analytics.callVolume.value.map((point) => ({
+    x: point.timestamp,
+    y: point.value,
+  }))
+)
+
+onMounted(() => analytics.refresh())
+
+watch(analytics.metrics, (next) => {
+  if (next.serviceLevelPercent < 85) {
+    notifyOps('Service level risk', { serviceLevel: next.serviceLevelPercent })
+  }
+})
+```
+
+## Usage Example: Shift Report Export
+
+```ts
+const report = analytics.generateReport({
+  title: 'Support Shift A',
+  includeAgents: true,
+  includeQueues: true,
+  includeSentiment: true,
+  includeTimeSeries: true,
+})
+
+downloadText(report, 'vuesip-shift-report.txt')
+```
+
 ## Metrics
 
 - Total/Completed/Missed/Abandoned

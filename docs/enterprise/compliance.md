@@ -26,6 +26,41 @@ const compliance = useCompliance({
 const { pciMode, consentManager, auditLog, dataRetention, gdpr } = compliance
 ```
 
+## Usage Example: PCI-Safe Card Entry Flow
+
+```ts
+const compliance = useCompliance({
+  regulations: ['PCI-DSS'],
+  consentRequired: true,
+  auditEnabled: true,
+  retentionDays: 365,
+  pciMode: {
+    pauseRecordingOnCard: true,
+    secureInputEnabled: true,
+  },
+})
+
+const { pciMode, consentManager, auditLog } = compliance
+
+const callId = 'call-123'
+await consentManager.requestConsent('recording', 'verbal')
+auditLog.log('consent_recorded', 'call', { callId })
+
+const stopListening = pciMode.onCardDetected((detection) => {
+  if (detection.detected) {
+    pciMode.activate()
+    pciMode.pauseRecording()
+    auditLog.log('pci_recording_paused', 'call', {
+      callId,
+      maskedNumber: detection.maskedNumber,
+    })
+  }
+})
+
+// When done:
+// stopListening()
+```
+
 ## PCI-DSS Handling
 
 ```ts
@@ -67,30 +102,21 @@ const exportBundle = await gdpr.exportUserData('user-123')
 await gdpr.deleteUserData('user-123')
 ```
 
+## Usage Example: GDPR Export + Audit Trail
+
+```ts
+const exportBundle = await gdpr.exportUserData('user-123')
+auditLog.log('gdpr_export', 'user', { userId: 'user-123' })
+
+const redacted = gdpr.anonymizeData(exportBundle.personalData)
+auditLog.log('gdpr_anonymize', 'user', { userId: 'user-123' })
+```
+
 ## Compliance Status
 
 ```ts
 const { isValid, violations } = compliance.validateCompliance()
 if (!isValid) {
   console.warn('Compliance issues:', violations)
-}
-```
-
-```ts
-const c = useCompliance({
-  detectors: ['email', 'card', 'account'],
-  action: 'mask', // or 'block'
-  maskChar: '•',
-})
-```
-
-## Audit
-
-For auditable flows, capture minimal metadata only (type, offsets), never raw PII:
-
-```ts
-const res = c.scanText('ssn 999-12-3456')
-if (c.hasPII(res)) {
-  auditLogger.log({ types: res.types, count: res.matches.length })
 }
 ```

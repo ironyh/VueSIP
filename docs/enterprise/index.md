@@ -30,6 +30,14 @@ import { useCompliance } from '@vuesip/enterprise/compliance'
 import { useCRM } from '@vuesip/enterprise/crm'
 ```
 
+## Usage Examples
+
+See the module guides for end-to-end examples:
+
+- [Analytics](./analytics.md)
+- [Compliance](./compliance.md)
+- [CRM](./crm.md)
+
 ## When to use
 
 - Call centers that need real-time dashboards and KPIs
