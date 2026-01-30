@@ -5,15 +5,31 @@ Lightweight CRM helpers to sync contacts, look up callers, log activities, and t
 ## Quick Start
 
 ```ts
-import { useCRM } from '@vuesip/enterprise/crm'
+import { useCRM, SalesforceAdapter } from '@vuesip/enterprise/crm'
 
 const crm = useCRM({ autoLookup: true, cacheContacts: true })
 
-// Upsert basic contact
-await crm.upsertContact({ id: 'abc', name: 'Alice', phone: '+15551234567' })
+// Configure an adapter
+const adapter = new SalesforceAdapter({
+  instanceUrl: 'https://example.salesforce.com',
+  accessToken: 'your-access-token',
+})
+crm.setAdapter(adapter)
+await crm.connect()
+
+// Lookup by phone
+const contact = await crm.lookupContact('+1 (555) 123-4567')
 
 // Log a call
-await crm.logActivity({ contactId: 'abc', type: 'call', notes: 'Follow-up needed' })
+await crm.logCall({
+  contactId: contact?.id,
+  direction: 'inbound',
+  startTime: new Date(),
+  duration: 180,
+  status: 'completed',
+  phoneNumber: '+15551234567',
+  notes: 'Follow-up needed',
+})
 ```
 
 ## Lookup & Cache
@@ -22,7 +38,7 @@ await crm.logActivity({ contactId: 'abc', type: 'call', notes: 'Follow-up needed
 // Normalize and cache by phone number
 const contact = await crm.lookupContact('+1 (555) 123-4567')
 if (contact) {
-  console.log('Known caller:', contact.name)
+  console.log('Known caller:', contact.firstName, contact.lastName)
 }
 
 // Clear cache if needed
@@ -35,6 +51,18 @@ crm.clearCache()
 crm.onScreenPop((contact) => {
   // Navigate your UI to contact details
   router.push({ name: 'contact', params: { id: contact.id } })
+})
+```
+
+## Activities and Follow-ups
+
+```ts
+await crm.createFollowUp({
+  contactId: contact?.id ?? 'unknown',
+  type: 'task',
+  subject: 'Schedule demo',
+  status: 'pending',
+  dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
 })
 ```
 

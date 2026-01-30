@@ -512,14 +512,17 @@ describe('useCRM composable', () => {
 
 describe('SalesforceAdapter', () => {
   let mockFetch: ReturnType<typeof vi.fn>
+  let originalFetch: typeof global.fetch
 
   beforeEach(() => {
+    originalFetch = global.fetch
     mockFetch = vi.fn()
     global.fetch = mockFetch
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    global.fetch = originalFetch
   })
 
   it('should initialize with config', () => {
@@ -622,14 +625,17 @@ describe('SalesforceAdapter', () => {
 
 describe('HubSpotAdapter', () => {
   let mockFetch: ReturnType<typeof vi.fn>
+  let originalFetch: typeof global.fetch
 
   beforeEach(() => {
+    originalFetch = global.fetch
     mockFetch = vi.fn()
     global.fetch = mockFetch
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    global.fetch = originalFetch
   })
 
   it('should initialize with config', () => {
@@ -680,14 +686,17 @@ describe('HubSpotAdapter', () => {
 
 describe('WebhookAdapter', () => {
   let mockFetch: ReturnType<typeof vi.fn>
+  let originalFetch: typeof global.fetch
 
   beforeEach(() => {
+    originalFetch = global.fetch
     mockFetch = vi.fn()
     global.fetch = mockFetch
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    global.fetch = originalFetch
   })
 
   it('should initialize with config', () => {

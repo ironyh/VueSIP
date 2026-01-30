@@ -1,34 +1,80 @@
 # Compliance
 
-Compliance helpers for PII detection, masking, and policy checks.
+Compliance helpers for PCI-DSS, HIPAA, and GDPR workflows: consent tracking, audit logging, data retention, and PCI-safe call handling.
 
 ## Quick Start
 
 ```ts
 import { useCompliance } from '@vuesip/enterprise/compliance'
 
-const c = useCompliance()
+const compliance = useCompliance({
+  regulations: ['PCI-DSS', 'GDPR'],
+  consentRequired: true,
+  auditEnabled: true,
+  retentionDays: 365,
+  pciMode: {
+    pauseRecordingOnCard: true,
+    secureInputEnabled: true,
+  },
+  gdprMode: {
+    consentTracking: true,
+    rightToErasure: true,
+    dataPortability: true,
+  },
+})
 
-// Scan incoming transcript or message
-const res = c.scanText('Account number 1234-5678-90; email alice@example.com')
-if (c.hasPII(res)) {
-  // Mask content before storing/logging
-  const masked = c.mask(res)
-  console.log(masked.text)
+const { pciMode, consentManager, auditLog, dataRetention, gdpr } = compliance
+```
+
+## PCI-DSS Handling
+
+```ts
+// Detect and mask card data in free-form text
+const detection = compliance.detectCreditCard('Card 4111 1111 1111 1111 exp 12/29')
+if (detection.detected) {
+  pciMode.activate()
+  pciMode.pauseRecording()
+}
+
+const masked = compliance.maskSensitiveData('Card 4111 1111 1111 1111 exp 12/29')
+```
+
+## Consent Tracking
+
+```ts
+const consent = await consentManager.requestConsent('recording', 'verbal')
+if (!consent.granted) {
+  // Handle opt-out
 }
 ```
 
-## Batch Scanning
+## Audit Logging and Retention
 
 ```ts
-const lines = ['Card 4111 1111 1111 1111 exp 12/29', 'Contact alice@example.com to reset']
-const results = lines.map((t) => c.scanText(t))
-const anyPii = results.some((r) => c.hasPII(r))
+auditLog.log('recording_started', 'call', { callId: 'call-123' })
+
+dataRetention.addPolicy({
+  dataType: 'recording',
+  retentionDays: 90,
+  action: 'archive',
+})
 ```
 
-## Policies
+## GDPR Utilities
 
-You can configure which detectors and actions to apply (e.g., block vs mask):
+```ts
+const exportBundle = await gdpr.exportUserData('user-123')
+await gdpr.deleteUserData('user-123')
+```
+
+## Compliance Status
+
+```ts
+const { isValid, violations } = compliance.validateCompliance()
+if (!isValid) {
+  console.warn('Compliance issues:', violations)
+}
+```
 
 ```ts
 const c = useCompliance({

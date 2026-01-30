@@ -4,7 +4,7 @@ name: Enterprise PR Coverage Gate
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
     paths:
       - 'packages/enterprise/**'
       - '.github/workflows/enterprise-coverage.yml'
