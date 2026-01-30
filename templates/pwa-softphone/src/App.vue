@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watch, inject } from 'vue'
+import { ref, computed, onUnmounted, onMounted, watch, inject } from 'vue'
 import DialPad from './components/DialPad.vue'
 import CallScreen from './components/CallScreen.vue'
 import IncomingCall from './components/IncomingCall.vue'
@@ -299,6 +299,46 @@ async function handleDisconnect() {
 onUnmounted(async () => {
   if (phone.isConnected.value) {
     await phone.disconnectPhone()
+  }
+})
+
+// Handle notification deep links (Phase 3 - SW notification actions)
+// URL params: ?notifAction=answer|decline|open&callId=<id>
+onMounted(() => {
+  const params = new URLSearchParams(window.location.search)
+  const notifAction = params.get('notifAction')
+  const callId = params.get('callId')
+
+  if (notifAction) {
+    console.debug('[VueSIP] Processing notification action:', { notifAction, callId })
+
+    // Clear the URL params to prevent re-processing on refresh
+    const url = new URL(window.location.href)
+    url.searchParams.delete('notifAction')
+    url.searchParams.delete('callId')
+    window.history.replaceState({}, '', url.toString())
+
+    // Process the action
+    if (notifAction === 'answer') {
+      // If there's an incoming call, answer it
+      if (phone.callState.value === 'ringing' && phone.direction.value === 'incoming') {
+        handleAnswer()
+      } else {
+        console.warn('[VueSIP] Answer action but no ringing incoming call')
+      }
+    } else if (notifAction === 'decline') {
+      // If there's an incoming call, reject it
+      if (phone.callState.value === 'ringing' && phone.direction.value === 'incoming') {
+        handleReject()
+      } else {
+        console.warn('[VueSIP] Decline action but no ringing incoming call')
+      }
+    } else if (notifAction === 'open') {
+      // Just opened from notification click - show incoming modal if call is ringing
+      if (phone.callState.value === 'ringing' && phone.direction.value === 'incoming') {
+        showIncomingModal.value = true
+      }
+    }
   }
 })
 </script>
