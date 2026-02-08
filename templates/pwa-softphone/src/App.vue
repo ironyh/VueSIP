@@ -6,12 +6,15 @@ import IncomingCall from './components/IncomingCall.vue'
 import Settings from './components/Settings.vue'
 import SettingsMenu from './components/SettingsMenu.vue'
 import CallDetailView from './components/CallDetailView.vue'
+import Contacts from './components/Contacts.vue'
 import { usePhone } from './composables/usePhone'
 import { usePushNotifications } from './composables/usePushNotifications'
 import { usePwaInstall } from './composables/usePwaInstall'
 import { useTranscription } from 'vuesip'
 import { useTranscriptPersistence } from './composables/useTranscriptPersistence'
 import { useCallRecording } from './composables/useCallRecording'
+import { useContacts } from './composables/useContacts'
+import type { Contact } from './composables/useContacts'
 
 // Phone composable
 const phone = usePhone()
@@ -39,6 +42,11 @@ const historySearchQuery = ref('')
 const transcriptPersistence = useTranscriptPersistence()
 const callRecording = useCallRecording()
 const currentCallId = ref<string | null>(null)
+
+// Contacts
+const { incrementCallCount, getContactByNumber, favorites } = useContacts()
+const showContacts = ref(false)
+const contactsInitialNumber = ref('')
 
 // Get transcription instance from TranscriptionSettingsSection via inject
 const transcription = inject<ReturnType<typeof useTranscription>>('transcription', null)
@@ -295,6 +303,38 @@ async function handleDisconnect() {
   }
 }
 
+// Contacts handlers
+function openContacts(initialNumber = '') {
+  contactsInitialNumber.value = initialNumber
+  showContacts.value = true
+}
+
+function handleContactSelect(contact: Contact) {
+  // Set the dialpad number to the contact's number
+  phone.dialNumber.value = contact.number
+  showContacts.value = false
+  activeTab.value = 'dialpad'
+}
+
+function handleContactCall(number: string) {
+  showContacts.value = false
+  handleCall(number)
+}
+
+// Track calls for contact call counts
+watch(
+  () => phone.callState.value,
+  (newState, oldState) => {
+    // When call ends, increment the call count for the contact
+    if (oldState === 'active' && newState === 'idle') {
+      const remoteNumber = phone.remoteIdentity.value?.replace(/[^\d+]/g, '')
+      if (remoteNumber) {
+        incrementCallCount(remoteNumber)
+      }
+    }
+  }
+)
+
 // Cleanup
 onUnmounted(async () => {
   if (phone.isConnected.value) {
@@ -444,6 +484,7 @@ onMounted(() => {
             @cycle-outbound="phone.cycleOutbound"
             @call="handleCall"
             @digit="handleDTMF"
+            @open-contacts="openContacts"
           />
 
           <div v-else-if="activeTab === 'history' && !showCallDetail" class="history-view">
@@ -616,6 +657,15 @@ onMounted(() => {
         {{ statusMessage }}
       </div>
     </main>
+
+    <!-- Contacts Overlay -->
+    <Contacts
+      :visible="showContacts"
+      :initial-number="contactsInitialNumber"
+      @select="handleContactSelect"
+      @call="handleContactCall"
+      @close="showContacts = false"
+    />
   </div>
 </template>
 
