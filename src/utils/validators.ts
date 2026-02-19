@@ -8,7 +8,15 @@
  */
 
 import type { SipClientConfig, MediaConfiguration, ValidationResult } from '../types/config.types'
-import { SIP_URI_REGEX, E164_PHONE_REGEX, WEBSOCKET_URL_REGEX, VALIDATION } from './constants'
+import {
+  SIP_URI_REGEX,
+  E164_PHONE_REGEX,
+  WEBSOCKET_URL_REGEX,
+  VALIDATION,
+  DTMF_TONES,
+} from './constants'
+
+const VALID_DTMF_SET = new Set<string>(DTMF_TONES)
 
 /**
  * Result of a simple validation operation (for helper validators)
@@ -497,27 +505,9 @@ export function validateDtmfTone(tone: string): SimpleValidationResult {
     }
   }
 
-  const validTones = [
-    '0',
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-    '*',
-    '#',
-    'A',
-    'B',
-    'C',
-    'D',
-  ]
   const upperTone = tone.toUpperCase()
 
-  if (!validTones.includes(upperTone)) {
+  if (!VALID_DTMF_SET.has(upperTone)) {
     return {
       valid: false,
       error: 'Invalid DTMF tone. Valid tones: 0-9, *, #, A-D',
