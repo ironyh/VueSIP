@@ -101,6 +101,10 @@ tests/e2e/
 
 > **Note:** Tests requiring `mockSipServer` fixture run locally but are excluded from CI due to WebSocket injection limitations. All 91 tests pass locally with `pnpm test:e2e`.
 
+### E2E test mode
+
+E2E test mode is determined by `src/testing/e2eHarness.ts`. Playwright/integration tests set `window.__sipEventBridge` and `window.__emitSipEvent` so the app can be driven and asserted on; the harness exposes `isE2EMode()`, `getE2EEmit()`, and `getEventBridge()` for use by SipClient and composables.
+
 ## Running Tests
 
 ### By Browser

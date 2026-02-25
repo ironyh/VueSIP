@@ -26,6 +26,7 @@ import { registrationStore } from '@/stores/registrationStore'
 import type { SipClientConfig, ValidationResult } from '@/types/config.types'
 import { ConnectionState, RegistrationState } from '@/types/sip.types'
 import { createLogger } from '@/utils/logger'
+import { getE2EEmit, getEventBridge, setListenersReady } from '@/testing/e2eHarness'
 
 const logger = createLogger('useSipClient')
 
@@ -186,29 +187,19 @@ export function useSipClient(
     connectionTimeout = 30000,
   } = options ?? {}
 
-  // DIAGNOSTIC LOGGING: Track EventBus instance being used
-  console.log('[useSipClient] EventBus initialization:', {
+  const bridge = getEventBridge()
+  logger.debug('[useSipClient] EventBus initialization:', {
     receivedOptions: options,
     extractedEventBus: _eventBus,
-    isEventBridgeFromWindow:
-      typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined' &&
-      _eventBus === (window as unknown as Record<string, unknown>).__sipEventBridge,
+    isEventBridgeFromWindow: !!bridge && _eventBus === bridge,
     willCreateNew: !_eventBus,
   })
 
-  // Priority: 1) passed eventBus, 2) window.__sipEventBridge (E2E tests), 3) new instance
-  // CRITICAL: Must check window.__sipEventBridge first, as App.vue may pass undefined options
-  // when EventBridge isn't available at initial render, but it exists later
-  const eventBus: EventBus =
-    (_eventBus as EventBus) ??
-    (typeof window !== 'undefined'
-      ? ((window as unknown as Record<string, unknown>).__sipEventBridge as EventBus)
-      : undefined) ??
-    new EventBus()
+  // Priority: 1) passed eventBus, 2) E2E EventBridge (getEventBridge()), 3) new instance
+  const eventBus: EventBus = (_eventBus as EventBus) ?? bridge ?? new EventBus()
 
-  // Log which EventBus instance we're actually using
-  console.log('[useSipClient] Using EventBus instance:', {
-    isSame: eventBus === (window as unknown as Record<string, unknown>).__sipEventBridge,
+  logger.debug('[useSipClient] Using EventBus instance:', {
+    isSame: eventBus === bridge,
     eventBusType: eventBus.constructor.name,
     hasOnMethod: typeof eventBus.on === 'function',
     hasEmitMethod: typeof eventBus.emit === 'function',
@@ -307,28 +298,29 @@ export function useSipClient(
     const listeners: Array<{ event: string; id: string }> = []
 
     // Connection events
-    console.log('[useSipClient] Registering listener for sip:connected on EventBus:', {
+    logger.debug('[useSipClient] Registering listener for sip:connected on EventBus:', {
       eventBusInstance: eventBus,
-      isSameAsWindowBridge:
-        eventBus === (window as unknown as Record<string, unknown>).__sipEventBridge,
+      isSameAsWindowBridge: eventBus === getEventBridge(),
     })
 
-    console.log('[DIAGNOSTIC 3/3] useSipClient: Registering "sip:connected" listener...')
+    logger.debug('[DIAGNOSTIC 3/3] useSipClient: Registering "sip:connected" listener...')
     listeners.push({
       event: SipEventNames.Connected,
       id: eventBus.on(SipEventNames.Connected, () => {
-        console.log('[DIAGNOSTIC 3/3] useSipClient: ✅ "sip:connected" event RECEIVED by listener!')
+        logger.debug(
+          '[DIAGNOSTIC 3/3] useSipClient: ✅ "sip:connected" event RECEIVED by listener!'
+        )
         logger.debug('SIP client connected')
         error.value = null
         // Update reactive state
-        console.log(
+        logger.debug(
           '[DIAGNOSTIC 3/3] useSipClient: Updating _isConnected.value from',
           _isConnected.value,
           'to true'
         )
         _connectionState.value = ConnectionState.Connected
         _isConnected.value = true
-        console.log(
+        logger.debug(
           '[DIAGNOSTIC 3/3] useSipClient: State updated! _isConnected.value =',
           _isConnected.value
         )
@@ -338,7 +330,7 @@ export function useSipClient(
         })
       }),
     })
-    console.log('[DIAGNOSTIC 3/3] useSipClient: "sip:connected" listener registered successfully')
+    logger.debug('[DIAGNOSTIC 3/3] useSipClient: "sip:connected" listener registered successfully')
 
     listeners.push({
       event: SipEventNames.Disconnected,
@@ -364,17 +356,12 @@ export function useSipClient(
           registrationStore.setRegistered(payload.uri, payload.expires)
         }
 
-        // Emit to EventBridge for E2E tests
-        if (typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function') {
-          console.log('[useSipClient] Emitting registration:registered to EventBridge')
-          ;(
-            (window as unknown as Record<string, unknown>).__emitSipEvent as (
-              event: string,
-              data?: unknown
-            ) => void
-          )('registration:registered')
+        const emitE2E = getE2EEmit()
+        if (emitE2E) {
+          logger.debug('[useSipClient] Emitting registration:registered to EventBridge')
+          emitE2E('registration:registered')
         } else {
-          console.log('[useSipClient] __emitSipEvent not available')
+          logger.debug('[useSipClient] __emitSipEvent not available')
         }
       }),
     })
@@ -406,11 +393,9 @@ export function useSipClient(
       }),
     })
 
-    // LISTENER-READY SIGNAL: Signal to E2E tests that all event listeners are registered
-    // This prevents the race condition where MockWebSocket fires events before listeners exist
-    console.log('[useSipClient] All event listeners registered! Setting __sipListenersReady = true')
-    ;(window as unknown as Record<string, unknown>).__sipListenersReady = true
-    console.log('[useSipClient] __sipListenersReady signal set successfully')
+    // Signal to E2E tests that all event listeners are registered (avoids race with MockWebSocket)
+    setListenersReady()
+    logger.debug('[useSipClient] __sipListenersReady signal set (when E2E)')
 
     // Return cleanup function
     return () => {
@@ -495,9 +480,9 @@ export function useSipClient(
         )
       })
 
-      console.log('[useSipClient] Waiting for start() to complete...')
+      logger.debug('[useSipClient] Waiting for start() to complete...')
       await Promise.race([connectPromise, timeoutPromise])
-      console.log('[useSipClient] start() completed successfully')
+      logger.debug('[useSipClient] start() completed successfully')
 
       // Clear the timeout if connect resolved first to avoid stray timers
       if (timeoutId) {
@@ -508,7 +493,7 @@ export function useSipClient(
       // Manually sync state after connection (in case events don't fire immediately)
       // First, perform an immediate sync; if already connected, skip polling to avoid timer reliance
       if (sipClient.value) {
-        console.log('[useSipClient] Manual sync - BEFORE:', {
+        logger.debug('[useSipClient] Manual sync - BEFORE:', {
           _connectionState: _connectionState.value,
           _isConnected: _isConnected.value,
           sipClientConnectionState: sipClient.value.connectionState,
@@ -518,7 +503,7 @@ export function useSipClient(
         _connectionState.value = sipClient.value.connectionState
         _isConnected.value = sipClient.value.isConnected
 
-        console.log('[useSipClient] Manual sync - AFTER:', {
+        logger.debug('[useSipClient] Manual sync - AFTER:', {
           _connectionState: _connectionState.value,
           _isConnected: _isConnected.value,
         })
