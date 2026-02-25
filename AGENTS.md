@@ -40,3 +40,32 @@ bd sync               # Sync with git
 - If push fails, resolve and retry until it succeeds
 
 Use 'bd' for task tracking
+
+## Cursor Cloud specific instructions
+
+### Project overview
+
+VueSIP is a headless Vue.js component library for SIP/VoIP applications (pnpm monorepo). No external databases or services are required for development — the playground and tests use mocked SIP servers.
+
+### Key commands
+
+All standard dev commands are in `package.json` scripts. Quick reference:
+
+| Task                    | Command                                               |
+| ----------------------- | ----------------------------------------------------- |
+| Dev server (playground) | `pnpm dev` (serves on `:5173`)                        |
+| Lint                    | `pnpm lint`                                           |
+| Unit tests              | `pnpm test:unit` (193 files, ~5900 tests)             |
+| Integration tests       | `pnpm test:integration` (11 files, 255 tests)         |
+| E2E tests (Chromium)    | `pnpm test:e2e:chromium` (54 tests; auto-starts Vite) |
+| Build library           | `pnpm build`                                          |
+| Type check              | `pnpm typecheck`                                      |
+| Docs dev server         | `pnpm docs:dev`                                       |
+
+### Non-obvious caveats
+
+- **E2E tests require Playwright Chromium**: Run `pnpm exec playwright install --with-deps chromium` once after `pnpm install` if browsers are missing. The update script handles this.
+- **Build before typecheck**: `pnpm typecheck` uses `tsconfig.json` which may reference `dist/` output. Run `pnpm build` first if typecheck reports missing declarations.
+- **E2E tests auto-start dev server**: `pnpm test:e2e` / `pnpm test:e2e:chromium` start their own Vite server; you do NOT need to run `pnpm dev` separately for E2E.
+- **lint-staged + husky**: Pre-commit hook runs `lint-staged` (ESLint + Prettier on staged `.ts`/`.vue` files). This is already configured via `.husky/pre-commit`.
+- **pnpm workspace**: `examples/*` and `templates/*` are workspace packages, but the core library development only needs the root `pnpm install`.
