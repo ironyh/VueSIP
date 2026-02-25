@@ -212,7 +212,7 @@ export function useSipE911(
 
   // Internal state
   const stats = ref<E911Stats>(createEmptyStats())
-  const eventListenerIds: string[] = []
+  const eventListenerIds: Array<{ event: string; id: string }> = []
 
   // Computed
   const locationList = computed(() => Array.from(locations.value.values()))
@@ -642,7 +642,11 @@ This is an automated E911 notification. Please verify the situation and provide 
       }
     })
 
-    eventListenerIds.push(newSessionId, callEndedId, incomingCallId)
+    eventListenerIds.push(
+      { event: 'sip:new_session', id: newSessionId },
+      { event: 'sip:call:ended', id: callEndedId },
+      { event: 'sip:new_session', id: incomingCallId }
+    )
   }
 
   /**
@@ -650,10 +654,7 @@ This is an automated E911 notification. Please verify the situation and provide 
    */
   function removeEventListeners(): void {
     if (!eventBus) return
-    for (const id of eventListenerIds) {
-      eventBus.off('sip:new_session', id)
-      eventBus.off('sip:call:ended', id)
-    }
+    eventListenerIds.forEach(({ event, id }) => eventBus.off(event, id))
     eventListenerIds.length = 0
   }
 

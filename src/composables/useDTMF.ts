@@ -1,8 +1,9 @@
 /**
- * DTMF Composable
+ * High-level DTMF composable (CallSession-bound).
  *
- * Provides DTMF (Dual-Tone Multi-Frequency) tone sending functionality for
- * active call sessions with support for tone sequences and queue management.
+ * Use this when you have a CallSession and need queue management, send statistics,
+ * and callbacks (onToneSent, onComplete, onError). For a minimal, session-agnostic
+ * API (e.g. raw RTCSession or any DtmfSessionSource), use {@link useSipDtmf} instead.
  *
  * @module composables/useDTMF
  */
@@ -91,12 +92,10 @@ export interface UseDTMFReturn {
 }
 
 /**
- * DTMF Composable
+ * DTMF tone sending with queue management, statistics, and callbacks.
+ * Requires CallSession. For a minimal API without queue/CallSession, use useSipDtmf.
  *
- * Manages DTMF tone sending for active call sessions with queue management,
- * tone sequences, and flexible configuration.
- *
- * @param session - Call session instance
+ * @param session - Call session instance (Ref<CallSession | null>)
  * @returns DTMF state and methods
  *
  * @example

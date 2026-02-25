@@ -49,7 +49,7 @@ Complete reference for all VueSip composables providing reactive SIP functionali
 
 ### useSipClient
 
-Provides a Vue composable interface for managing SIP client connections, registration, and configuration with reactive state management.
+Manages SIP client connection, disconnect, and configuration. Exposes simple `register()` / `unregister()` with no automatic refresh or expiry tracking. For expiry, retries, and auto-refresh use **useSipRegistration** with a client ref from `getClient()`.
 
 **Source:** [`src/composables/useSipClient.ts`](../../src/composables/useSipClient.ts)
 
@@ -139,7 +139,7 @@ if (isConnected.value && isRegistered.value) {
 
 ### useSipRegistration
 
-Provides reactive SIP registration state management with automatic refresh, retry logic, and expiry tracking.
+Use when you need registration expiry, retry logic, and automatic re-registration. Pass a `Ref<SipClient | null>` (e.g. `computed(() => useSipClient().getClient())`). For simple register/unregister only, `useSipClient().register()` is sufficient.
 
 **Source:** [`src/composables/useSipRegistration.ts`](../../src/composables/useSipRegistration.ts)
 
@@ -415,9 +415,16 @@ const success = await testAudioInput()
 
 ---
 
+### DTMF: useSipDtmf vs useDTMF
+
+- **useSipDtmf** – Low-level, session-agnostic: pass any `Ref<DtmfSessionSource | null>` (e.g. JsSIP RTCSession or object with `connection` / `sessionDescriptionHandler.peerConnection`). Use when you only need `sendDtmf(digit)` and `sendDtmfSequence(digits, interval?, signal?)` without queue or CallSession.
+- **useDTMF** – High-level, CallSession-bound: pass `Ref<CallSession | null>`. Use when you need queue management, statistics (`tonesSentCount`, `lastSentTone`), and callbacks (`onToneSent`, `onComplete`, `onError`).
+
+---
+
 ### useDTMF
 
-Provides DTMF (Dual-Tone Multi-Frequency) tone sending functionality for active call sessions with support for tone sequences and queue management.
+Provides DTMF (Dual-Tone Multi-Frequency) tone sending for active call sessions with tone sequences, queue management, and callbacks. For a minimal session-agnostic API, use `useSipDtmf` instead.
 
 **Source:** [`src/composables/useDTMF.ts`](../../src/composables/useDTMF.ts)
 
@@ -481,6 +488,22 @@ await sendToneSequence('1234#', {
 // Queue tones
 queueToneSequence('5678')
 await processQueue()
+```
+
+---
+
+### useSipDtmf
+
+Low-level DTMF composable: accepts any session-like source (`DtmfSessionSource`) and provides `sendDtmf(digit)` and `sendDtmfSequence(digits, interval?, signal?)` with no queue or CallSession dependency. Prefer **useDTMF** when you have a `CallSession` and need queue management and callbacks.
+
+**Source:** [`src/composables/useSipDtmf.ts`](../../src/composables/useSipDtmf.ts)
+
+```typescript
+import { useSipDtmf } from 'vuesip'
+
+const { sendDtmf, sendDtmfSequence } = useSipDtmf(sessionRef)
+await sendDtmf('1')
+await sendDtmfSequence('1234#', 160, abortSignal)
 ```
 
 ---

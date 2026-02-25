@@ -1,7 +1,10 @@
 /**
- * DTMF (Dual-Tone Multi-Frequency) composable for sending DTMF tones during calls
+ * Low-level DTMF composable (session-agnostic).
  *
- * Uses the call session's RTCPeerConnection when available (CallSession.connection).
+ * Use this when you have a session-like object that exposes an RTCPeerConnection
+ * (e.g. JsSIP RTCSession, or any DtmfSessionSource) and need to send DTMF without
+ * queue management or CallSession-specific state. For CallSession-based apps with
+ * queue, callbacks, and statistics, use {@link useDTMF} instead.
  *
  * @module composables/useSipDtmf
  */
@@ -26,9 +29,12 @@ export interface UseSipDtmfReturn {
 }
 
 /**
- * Composable for sending DTMF tones during an active call
- * @param currentSession - Reference to call session or RTCSession (connection or sessionDescriptionHandler.peerConnection)
- * @returns Object with sendDtmf and sendDtmfSequence methods
+ * Send DTMF tones using any session source that exposes an RTCPeerConnection.
+ * Lightweight API: no queue, no CallSession dependency. Prefer useDTMF when using
+ * CallSession and you need queue management, callbacks, or send statistics.
+ *
+ * @param currentSession - Ref to a session-like object (connection or sessionDescriptionHandler.peerConnection)
+ * @returns sendDtmf and sendDtmfSequence
  */
 export function useSipDtmf(currentSession: Ref<DtmfSessionSource | null>): UseSipDtmfReturn {
   // Concurrent operation guard to prevent overlapping DTMF sequences
