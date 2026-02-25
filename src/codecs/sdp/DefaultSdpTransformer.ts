@@ -3,6 +3,8 @@ import type { MediaKind, SdpTransformer } from '../types'
 /**
  * Default SDP transformer that performs minimal, safe codec reordering.
  *
+ * @experimental Part of the codecs preview API; may change in future releases.
+ *
  * - Reorders payload types on the target m= line (audio/video) based on
  *   preferred mime types passed in (e.g., ['audio/opus', 'audio/pcmu']).
  * - Keeps all other payloads in their original relative order.
