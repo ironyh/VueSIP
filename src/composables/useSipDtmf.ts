@@ -1,18 +1,24 @@
 /**
  * DTMF (Dual-Tone Multi-Frequency) composable for sending DTMF tones during calls
  *
- * Note: This uses JsSIP's RTCSession type internally. Since JsSIP doesn't export
- * proper TypeScript types, we use 'any' for the session parameter.
+ * Uses the call session's RTCPeerConnection when available (CallSession.connection).
  *
  * @module composables/useSipDtmf
  */
 import { ref, type Ref } from 'vue'
-import type { SessionDescriptionHandler, RTCRtpSenderWithDTMF } from '@/types/media.types'
+import type { RTCRtpSenderWithDTMF } from '@/types/media.types'
 import { abortableSleep, throwIfAborted } from '@/utils/abortController'
 import { createLogger } from '@/utils/logger'
 import { ErrorSeverity, logErrorWithContext, createOperationTimer } from '@/utils/errorContext'
 
 const log = createLogger('useSipDtmf')
+
+/** Session-like type that exposes RTCPeerConnection for DTMF (CallSession or JsSIP RTCSession shape) */
+export interface DtmfSessionSource {
+  connection?: RTCPeerConnection
+  sessionDescriptionHandler?: { peerConnection?: RTCPeerConnection }
+  state?: string
+}
 
 export interface UseSipDtmfReturn {
   sendDtmf: (digit: string) => Promise<void>
@@ -21,11 +27,10 @@ export interface UseSipDtmfReturn {
 
 /**
  * Composable for sending DTMF tones during an active call
- * @param currentSession - Reference to the current JsSIP RTCSession (typed as any due to lack of JsSIP types)
+ * @param currentSession - Reference to call session or RTCSession (connection or sessionDescriptionHandler.peerConnection)
  * @returns Object with sendDtmf and sendDtmfSequence methods
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useSipDtmf(currentSession: Ref<any | null>): UseSipDtmfReturn {
+export function useSipDtmf(currentSession: Ref<DtmfSessionSource | null>): UseSipDtmfReturn {
   // Concurrent operation guard to prevent overlapping DTMF sequences
   const isOperationInProgress = ref(false)
 
@@ -42,9 +47,10 @@ export function useSipDtmf(currentSession: Ref<any | null>): UseSipDtmfReturn {
     const timer = createOperationTimer()
 
     try {
-      // Send DTMF via RTP if available
-      const sdh = currentSession.value.sessionDescriptionHandler as SessionDescriptionHandler
-      const pc = sdh?.peerConnection
+      // Prefer CallSession.connection; fallback to legacy sessionDescriptionHandler.peerConnection
+      const pc =
+        currentSession.value.connection ??
+        currentSession.value.sessionDescriptionHandler?.peerConnection
       if (pc) {
         const senders = pc.getSenders()
         const audioSender = senders.find((sender: RTCRtpSender) => sender.track?.kind === 'audio')

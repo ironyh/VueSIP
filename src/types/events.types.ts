@@ -7,7 +7,12 @@ import type { CallEvent } from './call.types'
 import type { RegistrationEvent, ConnectionEvent } from './sip.types'
 import type { MediaStreamEvent, MediaTrackEvent, MediaDeviceChangeEvent } from './media.types'
 import type { ConferenceStateInterface, Participant } from './conference.types'
-import type { PresencePublishOptions, PresenceSubscriptionOptions } from './presence.types'
+import type {
+  PresencePublishOptions,
+  PresenceSubscriptionOptions,
+  DialogStatus,
+} from './presence.types'
+import type { SipEventName } from './event-names'
 
 /**
  * SIP Response helper interface
@@ -39,6 +44,8 @@ export interface SipSession {
   direction?: 'incoming' | 'outgoing'
   status?: string
   connection?: RTCPeerConnection
+  /** Remote party identity (JsSIP session) */
+  remoteIdentity?: { uri?: { user?: string }; display_name?: string }
   [key: string]: unknown
 }
 
@@ -239,6 +246,14 @@ export interface EventMap {
   'sip:new_session': SipNewSessionEvent
   'sip:new_message': SipNewMessageEvent
   'sip:event': SipGenericEvent
+  'sip:call:ended': SipCallEndedEvent
+  'sip:call:failed': SipCallFailedEvent
+
+  // Dialog/BLF events
+  'sip:dialog:notify': DialogNotifyEvent
+  'sip:dialog:subscribe': DialogSubscribeEvent
+  'sip:dialog:unsubscribe': DialogUnsubscribeEvent
+  'sip:dialog:refreshed': DialogRefreshedEvent
 
   // Conference events
   'sip:conference:created': ConferenceCreatedEvent
@@ -275,6 +290,14 @@ export interface EventMap {
   // Generic event fallback
   [key: string]: BaseEvent
 }
+
+/**
+ * Typed payload map for SIP events (subset of EventMap for sip:* and dialog events).
+ * Use this type when you need to ensure event names and payloads are aligned.
+ * New SIP events should add an entry to EventMap (and to SipEventNames in event-names.ts)
+ * so EventBus stays typed.
+ */
+export type SipEventPayloadMap = Pick<EventMap, SipEventName>
 
 /**
  * Error event
@@ -389,6 +412,99 @@ export interface SipGenericEvent extends BaseEvent {
   event: SipEventObject
   /** Request object */
   request: SipRequest
+}
+
+/**
+ * SIP Call Ended event (emitted when a call session ends)
+ */
+export interface SipCallEndedEvent extends BaseEvent {
+  type: 'sip:call:ended'
+  /** Call ID */
+  callId: string
+  /** Underlying session reference */
+  session?: unknown
+  /** Termination cause */
+  cause?: string
+  /** Originator of the BYE */
+  originator?: string
+}
+
+/**
+ * SIP Call Failed event (emitted when a call fails)
+ */
+export interface SipCallFailedEvent extends BaseEvent {
+  type: 'sip:call:failed'
+  /** Call ID */
+  callId: string
+  /** Underlying session reference */
+  session?: unknown
+  /** Failure cause */
+  cause?: string
+}
+
+/**
+ * Dialog NOTIFY payload (BLF dialog state notification)
+ */
+export interface DialogNotifyPayload {
+  /** Extension/dialog URI */
+  uri: string
+  /** Current dialog status */
+  status: DialogStatus
+}
+
+/**
+ * Dialog SUBSCRIBE response payload
+ */
+export interface DialogSubscribePayload {
+  /** Target URI */
+  uri: string
+  /** Subscription ID */
+  subscriptionId: string
+  /** Expiry in seconds */
+  expires?: number
+}
+
+/**
+ * Dialog UNSUBSCRIBE / REFRESH payload
+ */
+export interface DialogUnsubscribePayload {
+  /** Target URI */
+  uri: string
+}
+
+/**
+ * Dialog NOTIFY event (BLF state notification)
+ */
+export interface DialogNotifyEvent extends BaseEvent {
+  type: 'sip:dialog:notify'
+  uri: string
+  status: DialogStatus
+}
+
+/**
+ * Dialog SUBSCRIBE response event
+ */
+export interface DialogSubscribeEvent extends BaseEvent {
+  type: 'sip:dialog:subscribe'
+  uri: string
+  subscriptionId: string
+  expires?: number
+}
+
+/**
+ * Dialog UNSUBSCRIBE event
+ */
+export interface DialogUnsubscribeEvent extends BaseEvent {
+  type: 'sip:dialog:unsubscribe'
+  uri: string
+}
+
+/**
+ * Dialog REFRESH event
+ */
+export interface DialogRefreshedEvent extends BaseEvent {
+  type: 'sip:dialog:refreshed'
+  uri: string
 }
 
 /**

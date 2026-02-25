@@ -46,6 +46,11 @@ import { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
 import { ConnectionState, RegistrationState } from '@/types/sip.types'
 import { SipEventNames } from '@/types/event-names'
+import type {
+  SipDisconnectedEvent,
+  SipRegisteredEvent,
+  SipRegistrationFailedEvent,
+} from '@/types/events.types'
 import { createLogger } from '@/utils/logger'
 import { validateSipConfig } from '@/utils/validators'
 
@@ -297,14 +302,13 @@ export const SipClientProvider = defineComponent({
 
       const disconnectedId = eventBus.value.on(
         SipEventNames.Disconnected,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (data?: any) => {
+        (data: SipDisconnectedEvent) => {
           logger.info('SIP client disconnected', data)
           connectionState.value = ConnectionState.Disconnected
           registrationState.value = RegistrationState.Unregistered
           isReady.value = false
 
-          const errorObj = data?.error ? new Error(data.error) : undefined
+          const errorObj = data?.error ? new Error(String(data.error)) : undefined
           emit('disconnected', errorObj)
         }
       )
@@ -317,14 +321,16 @@ export const SipClientProvider = defineComponent({
       eventListenerIds.value.push(connectingId)
 
       // Registration events
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const registeredId = eventBus.value.on(SipEventNames.Registered, (data: any) => {
-        logger.info('SIP client registered', data)
-        registrationState.value = RegistrationState.Registered
-        isReady.value = true
-        emit('registered', data.uri)
-        emit('ready')
-      })
+      const registeredId = eventBus.value.on(
+        SipEventNames.Registered,
+        (data: SipRegisteredEvent) => {
+          logger.info('SIP client registered', data)
+          registrationState.value = RegistrationState.Registered
+          isReady.value = true
+          emit('registered', data.uri)
+          emit('ready')
+        }
+      )
       eventListenerIds.value.push(registeredId)
 
       const unregisteredId = eventBus.value.on(SipEventNames.Unregistered, () => {
@@ -342,11 +348,10 @@ export const SipClientProvider = defineComponent({
 
       const registrationFailedId = eventBus.value.on(
         SipEventNames.RegistrationFailed,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (data: any) => {
+        (data: SipRegistrationFailedEvent) => {
           logger.error('SIP registration failed', data)
           registrationState.value = RegistrationState.Unregistered
-          const errorObj = new Error(`Registration failed: ${data.cause}`)
+          const errorObj = new Error(`Registration failed: ${data.cause ?? 'unknown'}`)
           error.value = errorObj
           emit('error', errorObj)
         }

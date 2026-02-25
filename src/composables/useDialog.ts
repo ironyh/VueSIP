@@ -23,6 +23,12 @@ import {
 import { createLogger } from '../utils/logger'
 import { SipEventNames } from '@/types/event-names'
 import { validateSipUri } from '../utils/validators'
+import type {
+  DialogNotifyEvent,
+  DialogSubscribeEvent,
+  DialogUnsubscribeEvent,
+  DialogRefreshedEvent,
+} from '@/types/events.types'
 
 const log = createLogger('useDialog')
 
@@ -131,8 +137,7 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
   /**
    * Handle dialog notification from SipClient
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SipClient event data structure varies
-  const handleDialogNotify = (data: any): void => {
+  const handleDialogNotify = (data: DialogNotifyEvent): void => {
     const { uri, status } = data
 
     if (!uri || !status) return
@@ -164,22 +169,19 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
     const client = sipClient.value
     if (!client) return
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Accessing internal eventBus property requires type assertion
-    const eventBus = (client as any).eventBus || (client as any).getEventBus?.()
+    const eventBus = client.eventBus
     if (!eventBus) {
       log.warn('EventBus not available on SipClient')
       return
     }
 
     // Listen for dialog NOTIFY events
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Event handler receives varied data structure
-    const notifyHandler = (data: any) => handleDialogNotify(data)
+    const notifyHandler = (data: DialogNotifyEvent) => handleDialogNotify(data)
     eventBus.on(SipEventNames.DialogNotify, notifyHandler)
     cleanupFunctions.push(() => eventBus.off(SipEventNames.DialogNotify, notifyHandler))
 
     // Listen for subscription events
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Event handler receives varied data structure
-    const subscribeHandler = (data: any) => {
+    const subscribeHandler = (data: DialogSubscribeEvent) => {
       const { uri, subscriptionId, expires } = data
       if (uri && subscriptionId) {
         const sub: DialogSubscription = {
@@ -202,8 +204,7 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
     cleanupFunctions.push(() => eventBus.off(SipEventNames.DialogSubscribe, subscribeHandler))
 
     // Listen for unsubscribe events
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Event handler receives varied data structure
-    const unsubscribeHandler = (data: any) => {
+    const unsubscribeHandler = (data: DialogUnsubscribeEvent) => {
       const { uri } = data
       if (uri) {
         const sub = subscriptions.value.get(uri)
@@ -221,8 +222,7 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
     cleanupFunctions.push(() => eventBus.off(SipEventNames.DialogUnsubscribe, unsubscribeHandler))
 
     // Listen for refresh events
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Event handler receives varied data structure
-    const refreshHandler = (data: any) => {
+    const refreshHandler = (data: DialogRefreshedEvent) => {
       const { uri } = data
       const sub = subscriptions.value.get(uri)
       if (sub) {

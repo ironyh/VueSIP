@@ -79,7 +79,10 @@ const logger = createLogger('useSipE911')
  */
 function sanitizeInput(input: string): string {
   if (!input || typeof input !== 'string') return ''
-  return input.replace(/[<>'";&|`$\\]/g, '').trim().slice(0, 255)
+  return input
+    .replace(/[<>'";&|`$\\]/g, '')
+    .trim()
+    .slice(0, 255)
 }
 
 /**
@@ -107,7 +110,10 @@ function sanitizeEmail(email: string | undefined): string | undefined {
 function sanitizePhone(phone: string | undefined): string | undefined {
   if (!phone || typeof phone !== 'string') return undefined
   // Keep only digits, +, -, (, ), and spaces
-  return phone.replace(/[^0-9+\-() ]/g, '').trim().slice(0, 20)
+  return phone
+    .replace(/[^0-9+\-() ]/g, '')
+    .trim()
+    .slice(0, 20)
 }
 
 /**
@@ -181,7 +187,15 @@ export function useSipE911(
   eventBus?: EventBus | null,
   options: UseSipE911Options = {}
 ): UseSipE911Return {
-  const { autoStart = false, onEmergencyCall, onCallEnded, onNotificationSent, onCallbackDetected, onEvent, onError } = options
+  const {
+    autoStart = false,
+    onEmergencyCall,
+    onCallEnded,
+    onNotificationSent,
+    onCallbackDetected,
+    onEvent,
+    onError,
+  } = options
 
   // State
   const config = ref<E911Config>({
@@ -249,7 +263,12 @@ export function useSipE911(
   /**
    * Emit an E911 event
    */
-  function emitEvent(type: E911EventType, call?: E911Call, notification?: E911Notification, data?: Record<string, unknown>): void {
+  function emitEvent(
+    type: E911EventType,
+    call?: E911Call,
+    notification?: E911Notification,
+    data?: Record<string, unknown>
+  ): void {
     const event: E911Event = {
       type,
       call,
@@ -499,10 +518,10 @@ This is an automated E911 notification. Please verify the situation and provide 
       call.duration = Math.round((call.endTime.getTime() - call.answerTime.getTime()) / 1000)
 
       // Update average duration (avoid division by zero)
-      const totalDuration = stats.value.avgCallDuration * (stats.value.totalCalls - 1) + call.duration
-      stats.value.avgCallDuration = stats.value.totalCalls > 0
-        ? totalDuration / stats.value.totalCalls
-        : call.duration
+      const totalDuration =
+        stats.value.avgCallDuration * (stats.value.totalCalls - 1) + call.duration
+      stats.value.avgCallDuration =
+        stats.value.totalCalls > 0 ? totalDuration / stats.value.totalCalls : call.duration
     }
 
     activeCalls.value.delete(channel)
@@ -571,8 +590,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     if (!eventBus) return
 
     // Listen for new outgoing sessions to check for emergency calls
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:new_session, event structure varies
-    const newSessionId = eventBus.on('sip:new_session' as any, (event: any) => {
+    const newSessionId = eventBus.on('sip:new_session', (event) => {
       const session = event?.session
       if (!session || session.direction !== 'outgoing') return
 
@@ -598,8 +616,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     })
 
     // Listen for call state changes
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:call:ended, event structure varies
-    const callEndedId = eventBus.on('sip:call:ended' as any, (event: any) => {
+    const callEndedId = eventBus.on('sip:call:ended', (event) => {
       const callId = event?.callId
       if (callId) {
         // Find the call by channel in activeCalls
@@ -613,8 +630,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     })
 
     // Listen for incoming calls (potential PSAP callbacks)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include all events, event structure varies
-    const incomingCallId = eventBus.on('sip:new_session' as any, (event: any) => {
+    const incomingCallId = eventBus.on('sip:new_session', (event) => {
       const session = event?.session
       if (!session || session.direction !== 'incoming') return
 
@@ -635,11 +651,8 @@ This is an automated E911 notification. Please verify the situation and provide 
   function removeEventListeners(): void {
     if (!eventBus) return
     for (const id of eventListenerIds) {
-      // Use a generic string event to remove by ID
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include all events
-      eventBus.off('sip:new_session' as any, id)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include all events
-      eventBus.off('sip:call:ended' as any, id)
+      eventBus.off('sip:new_session', id)
+      eventBus.off('sip:call:ended', id)
     }
     eventListenerIds.length = 0
   }
@@ -821,7 +834,9 @@ This is an automated E911 notification. Please verify the situation and provide 
   /**
    * Add notification recipient
    */
-  function addRecipient(recipientData: Omit<E911NotificationRecipient, 'id'>): E911NotificationRecipient {
+  function addRecipient(
+    recipientData: Omit<E911NotificationRecipient, 'id'>
+  ): E911NotificationRecipient {
     const recipient: E911NotificationRecipient = {
       ...recipientData,
       id: generateId(),
@@ -842,7 +857,10 @@ This is an automated E911 notification. Please verify the situation and provide 
   /**
    * Update notification recipient
    */
-  function updateRecipient(recipientId: string, updates: Partial<E911NotificationRecipient>): boolean {
+  function updateRecipient(
+    recipientId: string,
+    updates: Partial<E911NotificationRecipient>
+  ): boolean {
     const index = config.value.recipients.findIndex((r) => r.id === recipientId)
     if (index === -1) return false
 
@@ -977,7 +995,12 @@ This is an automated E911 notification. Please verify the situation and provide 
     // Helper to escape CSV fields properly
     const escapeCSV = (value: string): string => {
       // If field contains comma, newline, or double quote, wrap in quotes and escape internal quotes
-      if (value.includes(',') || value.includes('\n') || value.includes('\r') || value.includes('"')) {
+      if (
+        value.includes(',') ||
+        value.includes('\n') ||
+        value.includes('\r') ||
+        value.includes('"')
+      ) {
         return `"${value.replace(/"/g, '""')}"`
       }
       return value
@@ -1003,9 +1026,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     const cutoff = olderThan.getTime()
     const before = complianceLogs.value.length
 
-    complianceLogs.value = complianceLogs.value.filter(
-      (log) => log.timestamp.getTime() > cutoff
-    )
+    complianceLogs.value = complianceLogs.value.filter((log) => log.timestamp.getTime() > cutoff)
 
     const removed = before - complianceLogs.value.length
 
@@ -1078,9 +1099,7 @@ This is an automated E911 notification. Please verify the situation and provide 
 
     const unverifiedLocations = locationList.value.filter((loc) => !loc.isVerified)
     if (unverifiedLocations.length > 0) {
-      issues.push(
-        `RAY BAUM's Act: ${unverifiedLocations.length} location(s) not verified`
-      )
+      issues.push(`RAY BAUM's Act: ${unverifiedLocations.length} location(s) not verified`)
     }
 
     if (!config.value.defaultCallbackNumber) {
