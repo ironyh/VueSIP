@@ -116,6 +116,7 @@
     "docs:api": "typedoc && node scripts/fix-typedoc-vue-blocks.js",
     "docs:api:watch": "typedoc --watch",
     "docs:all": "pnpm run docs:api && pnpm run docs:build",
+    "check:exports": "node scripts/check-exports.mjs",
     "typecheck": "tsc --noEmit",
     "smoke:template:minimal": "node scripts/smoke-template-build.mjs templates/minimal",
     "type-check": "vue-tsc --noEmit",
