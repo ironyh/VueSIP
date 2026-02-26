@@ -98,18 +98,6 @@ export interface UseSipClientReturn {
   disconnect: () => Promise<void>
 
   /**
-   * Register with SIP server
-   * @throws {Error} If not connected or registration fails
-   */
-  register: () => Promise<void>
-
-  /**
-   * Unregister from SIP server
-   * @throws {Error} If not registered or unregistration fails
-   */
-  unregister: () => Promise<void>
-
-  /**
    * Update SIP client configuration
    * Requires disconnect and reconnect to take effect
    * @param config - Partial configuration to update
@@ -139,16 +127,17 @@ export interface UseSipClientReturn {
 /**
  * SIP Client Composable
  *
- * Handles connect/disconnect, configuration, and simple register/unregister.
+ * Handles connect/disconnect and configuration. For register/unregister/refresh
+ * use useSipRegistration(computed(() => getClient())).
  * No automatic registration refresh or expiry tracking. For expiry, retries,
  * and auto-refresh use {@link useSipRegistration} with a client ref from getClient().
  *
  * @example
  * ```ts
- * const { isConnected, connect, disconnect, register, getClient } = useSipClient(config)
+ * const { isConnected, connect, disconnect, getClient } = useSipClient(config)
  * await connect()
- * await register()
- * // Optional: use useSipRegistration(computed(() => getClient())) for auto-refresh
+ * const registration = useSipRegistration(computed(() => getClient()))
+ * await registration.register()
  * ```
  *
  * @param initialConfig - Optional initial SIP client configuration
@@ -506,56 +495,6 @@ export function useSipClient(
   /**
    * Register with SIP server
    */
-  async function register(): Promise<void> {
-    try {
-      if (!sipClient.value) {
-        throw new Error('SIP client not started. Call connect() first.')
-      }
-
-      error.value = null
-      logger.info('Registering with SIP server')
-
-      const config = configStore.sipConfig
-      if (config?.sipUri) {
-        registrationStore.setRegistering(config.sipUri)
-      }
-
-      await sipClient.value.register()
-
-      logger.info('Registration successful')
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Registration failed'
-      logger.error('Failed to register', err)
-      error.value = err instanceof Error ? err : new Error(errorMsg)
-      registrationStore.setRegistrationFailed(errorMsg)
-      throw err
-    }
-  }
-
-  /**
-   * Unregister from SIP server
-   */
-  async function unregister(): Promise<void> {
-    try {
-      if (!sipClient.value) {
-        throw new Error('SIP client not started')
-      }
-
-      error.value = null
-      logger.info('Unregistering from SIP server')
-
-      registrationStore.setUnregistering()
-      await sipClient.value.unregister()
-
-      logger.info('Unregistration successful')
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unregistration failed'
-      logger.error('Failed to unregister', err)
-      error.value = err instanceof Error ? err : new Error(errorMsg)
-      throw err
-    }
-  }
-
   /**
    * Update SIP client configuration
    */
@@ -712,8 +651,6 @@ export function useSipClient(
     // Methods
     connect,
     disconnect,
-    register,
-    unregister,
     updateConfig,
     reconnect,
     getClient,

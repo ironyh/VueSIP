@@ -29,6 +29,7 @@ export {
   type UseDTMFReturn,
   type DTMFSequenceOptions,
   type DTMFSendResult,
+  type DtmfSessionSource,
 } from './useDTMF'
 
 // Advanced composables
@@ -82,7 +83,6 @@ export { useSipAutoAnswer } from './useSipAutoAnswer'
 export { useSipE911 } from './useSipE911'
 export { useSipSecondLine } from './useSipSecondLine'
 // useSipConnection requires sip.js library - not exported until dual-library support is added
-export { useSipDtmf } from './useSipDtmf'
 
 // Call quality composables
 export { useCallQualityScore } from './useCallQualityScore'

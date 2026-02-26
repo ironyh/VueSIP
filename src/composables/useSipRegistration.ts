@@ -102,9 +102,9 @@ export interface RegistrationStatistics {
 /**
  * SIP Registration Composable
  *
- * Use when you need registration expiry tracking, retry logic, and automatic
- * re-registration before expiry. Pass a SipClient ref (e.g. from useSipClient().getClient()).
- * For simple register/unregister without auto-refresh, useSipClient().register() is enough.
+ * Use for all SIP registration: register, unregister, refresh. Pass a SipClient ref
+ * (e.g. computed(() => useSipClient().getClient())). This is the only composable that
+ * should perform register/unregister; useSipClient no longer exposes those methods.
  *
  * @param sipClient - Ref to SipClient (e.g. computed(() => useSipClient().getClient()))
  * @param options - Registration options (expires, maxRetries, autoRefresh)

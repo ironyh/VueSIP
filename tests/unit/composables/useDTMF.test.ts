@@ -740,8 +740,7 @@ describe('useDTMF - Phase 6.11 Queue Limit Enforcement', () => {
       const sessionRef = ref<CallSession>(mockSession)
       const { sendToneSequence } = useDTMF(sessionRef)
 
-      await sendToneSequence('')
-
+      await expect(sendToneSequence('')).rejects.toThrow('Empty DTMF sequence')
       expect(mockSession.sendDTMF).not.toHaveBeenCalled()
     })
 

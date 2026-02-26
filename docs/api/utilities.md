@@ -53,6 +53,16 @@ This document provides a comprehensive reference for all utility functions avail
   - [setLogLevel](#setloglevel)
   - [getLogLevel](#getloglevel)
   - [setLogHandler](#setloghandler)
+- [E911 Utilities](#e911-utilities)
+  - [sanitizeInput](#sanitizeinput)
+  - [sanitizeEmail](#sanitizeemail)
+  - [sanitizePhone](#sanitizephone)
+  - [sanitizeUrl](#sanitizeurl)
+  - [isValidExtension](#isvalidextension)
+  - [generateE911Id](#generatee911id)
+  - [createDefaultE911Config](#createdefaulte911config)
+  - [createEmptyE911Stats](#createemptye911stats)
+  - [formatE911Location](#formate911location)
 - [Constants](#constants)
   - [Library Information](#library-information)
   - [SIP Configuration Defaults](#sip-configuration-defaults)
@@ -1640,6 +1650,35 @@ setLogHandler((level, namespace, message, ...args) => {
 
 // Reset to default console logging
 setLogHandler(undefined)
+```
+
+---
+
+## E911 Utilities
+
+Helpers for E911 emergency call handling: sanitization, validation, formatting, and default config/stats. Used by `useSipE911`; import from `@/utils/e911` or `vuesip/utils` when reusing in tests or custom flows.
+
+**Source:** [src/utils/e911.ts](../../src/utils/e911.ts)
+
+| Function                  | Signature                                             | Description                             |
+| ------------------------- | ----------------------------------------------------- | --------------------------------------- |
+| `sanitizeInput`           | `(input: string) => string`                           | Strip dangerous chars, trim, max 255    |
+| `sanitizeEmail`           | `(email: string \| undefined) => string \| undefined` | Trim, max 254, safe chars only          |
+| `sanitizePhone`           | `(phone: string \| undefined) => string \| undefined` | Digits, +, -, (), space; max 20         |
+| `sanitizeUrl`             | `(url: string \| undefined) => string \| undefined`   | http(s) only, max 2048                  |
+| `isValidExtension`        | `(ext: string) => boolean`                            | Regex: alphanumeric, \_\*#-, 1–32 chars |
+| `generateE911Id`          | `() => string`                                        | Unique ID for calls/locations/logs      |
+| `createDefaultE911Config` | `() => E911Config`                                    | Default E911 config object              |
+| `createEmptyE911Stats`    | `() => E911Stats`                                     | Empty E911 stats object                 |
+| `formatE911Location`      | `(location: E911Location) => string`                  | Civic + geo to readable string          |
+
+```typescript
+import {
+  sanitizeInput,
+  isValidExtension,
+  formatE911Location,
+  createDefaultE911Config,
+} from '@/utils/e911'
 ```
 
 ---

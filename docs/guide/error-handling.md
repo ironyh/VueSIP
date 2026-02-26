@@ -2043,10 +2043,10 @@ async function saveRecordingWithCheck(recording: RecordingData) {
 **Solutions:**
 
 ```typescript
-import { useSipDtmf } from 'vuesip'
+import { useDTMF } from 'vuesip'
 import { validateDtmfTone } from 'vuesip'
 
-const { sendDTMF, isSending } = useSipDtmf()
+const { sendTone, isSending } = useDTMF(sessionRef)
 
 /**
  * Send DTMF tone with validation

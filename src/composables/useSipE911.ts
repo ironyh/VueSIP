@@ -3,7 +3,8 @@
  *
  * Vue composable for E911 emergency call detection, location management,
  * admin notification, and compliance logging. Supports Kari's Law and
- * RAY BAUM's Act requirements.
+ * RAY BAUM's Act requirements. Sanitization, validation and location
+ * formatting are provided by `@/utils/e911`.
  *
  * @module composables/useSipE911
  *
@@ -71,108 +72,19 @@ import type {
   UseSipE911Return,
 } from '@/types/e911.types'
 import { createLogger } from '@/utils/logger'
+import {
+  sanitizeInput,
+  sanitizeEmail,
+  sanitizePhone,
+  sanitizeUrl,
+  isValidExtension,
+  generateE911Id,
+  createDefaultE911Config,
+  createEmptyE911Stats,
+  formatE911Location,
+} from '@/utils/e911'
 
 const logger = createLogger('useSipE911')
-
-/**
- * Sanitize string input to prevent XSS
- */
-function sanitizeInput(input: string): string {
-  if (!input || typeof input !== 'string') return ''
-  return input
-    .replace(/[<>'";&|`$\\]/g, '')
-    .trim()
-    .slice(0, 255)
-}
-
-/**
- * Validate extension format
- */
-function isValidExtension(ext: string): boolean {
-  if (!ext || typeof ext !== 'string') return false
-  return /^[a-zA-Z0-9_*#-]{1,32}$/.test(ext)
-}
-
-/**
- * Sanitize email address
- */
-function sanitizeEmail(email: string | undefined): string | undefined {
-  if (!email || typeof email !== 'string') return undefined
-  // Basic email validation and sanitization
-  const trimmed = email.trim().slice(0, 254)
-  // Remove any potentially dangerous characters but keep valid email chars
-  return trimmed.replace(/[<>'";&|`$\\]/g, '')
-}
-
-/**
- * Sanitize phone number
- */
-function sanitizePhone(phone: string | undefined): string | undefined {
-  if (!phone || typeof phone !== 'string') return undefined
-  // Keep only digits, +, -, (, ), and spaces
-  return phone
-    .replace(/[^0-9+\-() ]/g, '')
-    .trim()
-    .slice(0, 20)
-}
-
-/**
- * Sanitize URL
- */
-function sanitizeUrl(url: string | undefined): string | undefined {
-  if (!url || typeof url !== 'string') return undefined
-  const trimmed = url.trim().slice(0, 2048)
-  // Only allow http/https URLs
-  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-    return undefined
-  }
-  // Remove any potentially dangerous characters
-  return trimmed.replace(/[<>'";&|`$\\]/g, '')
-}
-
-/**
- * Generate unique ID
- */
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-}
-
-/**
- * Create default E911 configuration
- */
-function createDefaultConfig(): E911Config {
-  return {
-    enabled: true,
-    emergencyNumbers: ['911'],
-    testNumbers: ['933'],
-    defaultCallbackNumber: '',
-    recipients: [],
-    recordCalls: true,
-    directDialing: true,
-    onSiteNotification: true,
-    dispatchableLocationRequired: true,
-    autoAnswerCallback: false,
-    notificationDelay: 0,
-    complianceLogging: true,
-    lastUpdated: new Date(),
-  }
-}
-
-/**
- * Create empty E911 stats
- */
-function createEmptyStats(): E911Stats {
-  return {
-    totalCalls: 0,
-    testCalls: 0,
-    callsWithLocation: 0,
-    notificationsSent: 0,
-    notificationsDelivered: 0,
-    callbacksReceived: 0,
-    avgCallDuration: 0,
-    avgNotificationTime: 0,
-  }
-}
 
 /**
  * E911 Emergency Call Handling Composable
@@ -199,7 +111,7 @@ export function useSipE911(
 
   // State
   const config = ref<E911Config>({
-    ...createDefaultConfig(),
+    ...createDefaultE911Config(),
     ...options.config,
   })
   const locations = ref<Map<string, E911Location>>(new Map())
@@ -211,7 +123,7 @@ export function useSipE911(
   const error = ref<string | null>(null)
 
   // Internal state
-  const stats = ref<E911Stats>(createEmptyStats())
+  const stats = ref<E911Stats>(createEmptyE911Stats())
   const eventListenerIds: Array<{ event: string; id: string }> = []
 
   // Computed
@@ -240,7 +152,7 @@ export function useSipE911(
     if (!config.value.complianceLogging) return
 
     const log: E911ComplianceLog = {
-      id: generateId(),
+      id: generateE911Id(),
       callId,
       event,
       description,
@@ -302,7 +214,7 @@ export function useSipE911(
     call: E911Call
   ): Promise<E911Notification> {
     const notification: E911Notification = {
-      id: generateId(),
+      id: generateE911Id(),
       callId: call.id,
       type: recipient.notificationTypes[0] || 'email',
       recipient,
@@ -357,7 +269,7 @@ export function useSipE911(
     let locationStr = 'LOCATION UNKNOWN'
 
     if (location) {
-      locationStr = formatLocation(location)
+      locationStr = formatE911Location(location)
     }
 
     return `EMERGENCY 911 CALL ALERT
@@ -371,41 +283,6 @@ Location:
 ${locationStr}
 
 This is an automated E911 notification. Please verify the situation and provide assistance if needed.`
-  }
-
-  /**
-   * Format location for display
-   */
-  function formatLocation(location: E911Location): string {
-    const parts: string[] = []
-
-    if (location.civic) {
-      const addr = location.civic
-      let street = ''
-
-      if (addr.houseNumber) street += addr.houseNumber
-      if (addr.houseNumberSuffix) street += addr.houseNumberSuffix
-      if (addr.preDirectional) street += ` ${addr.preDirectional}`
-      if (addr.streetName) street += ` ${addr.streetName}`
-      if (addr.streetSuffix) street += ` ${addr.streetSuffix}`
-      if (addr.postDirectional) street += ` ${addr.postDirectional}`
-
-      if (street) parts.push(street.trim())
-      if (addr.additionalInfo) parts.push(addr.additionalInfo)
-      if (addr.buildingName) parts.push(addr.buildingName)
-      if (addr.floor) parts.push(`Floor ${addr.floor}`)
-      if (addr.room) parts.push(`Room ${addr.room}`)
-      if (addr.city) parts.push(addr.city)
-      if (addr.state) parts.push(addr.state)
-      if (addr.postalCode) parts.push(addr.postalCode)
-      if (addr.country) parts.push(addr.country)
-    }
-
-    if (location.geo) {
-      parts.push(`GPS: ${location.geo.latitude.toFixed(6)}, ${location.geo.longitude.toFixed(6)}`)
-    }
-
-    return parts.join('\n') || location.name
   }
 
   /**
@@ -424,7 +301,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     const location = getLocationForExtension(callerExtension)
 
     const call: E911Call = {
-      id: generateId(),
+      id: generateE911Id(),
       channel: sanitizeInput(channel),
       callerExtension: sanitizeInput(callerExtension),
       callerIdNum: sanitizeInput(callerIdNum),
@@ -602,7 +479,7 @@ This is an automated E911 notification. Please verify the situation and provide 
 
       if (isEmergency || isTest) {
         // Get caller info from the client config
-        const channel = event.callId || `call-${generateId()}`
+        const channel = event.callId || `call-${generateE911Id()}`
         const clientConfig = client.value?.getConfig?.()
         const sipUri = clientConfig?.sipUri || ''
         // Extract extension from sipUri (e.g., 'sip:1001@domain.com' -> '1001')
@@ -635,7 +512,7 @@ This is an automated E911 notification. Please verify the situation and provide 
       if (!session || session.direction !== 'incoming') return
 
       const callerIdNum = session.remoteIdentity?.uri?.user || ''
-      const channel = event.callId || `call-${generateId()}`
+      const channel = event.callId || `call-${generateE911Id()}`
 
       if (callerIdNum && channel) {
         handleIncomingCall(channel, callerIdNum)
@@ -707,7 +584,7 @@ This is an automated E911 notification. Please verify the situation and provide 
   function addLocation(locationData: Omit<E911Location, 'id' | 'lastUpdated'>): E911Location {
     const location: E911Location = {
       ...locationData,
-      id: generateId(),
+      id: generateE911Id(),
       name: sanitizeInput(locationData.name),
       lastUpdated: new Date(),
     }
@@ -840,7 +717,7 @@ This is an automated E911 notification. Please verify the situation and provide 
   ): E911NotificationRecipient {
     const recipient: E911NotificationRecipient = {
       ...recipientData,
-      id: generateId(),
+      id: generateE911Id(),
       name: sanitizeInput(recipientData.name),
       email: sanitizeEmail(recipientData.email),
       phone: sanitizePhone(recipientData.phone),
@@ -921,7 +798,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     }
 
     const testCall: E911Call = {
-      id: generateId(),
+      id: generateE911Id(),
       channel: 'test',
       callerExtension: 'TEST',
       callerIdNum: 'TEST',
@@ -1173,7 +1050,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     exportLogs,
     clearOldLogs,
     initiateTestCall,
-    formatLocation,
+    formatE911Location,
     checkCompliance,
   }
 }

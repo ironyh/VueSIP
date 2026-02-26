@@ -3,8 +3,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { createApp, nextTick } from 'vue'
+import { createApp, nextTick, computed } from 'vue'
 import { useSipClient } from '@/composables/useSipClient'
+import { useSipRegistration } from '@/composables/useSipRegistration'
 import { SipClient } from '@/core/SipClient'
 import { EventBus } from '@/core/EventBus'
 import { configStore } from '@/stores/configStore'
@@ -117,6 +118,7 @@ describe('useSipClient', () => {
         emitEvent('sip:unregistered', {})
       }),
       updateConfig: vi.fn(),
+      getConfig: vi.fn().mockReturnValue({ uri: 'sip:test@example.com' }),
       destroy: vi.fn(),
       getState: vi.fn().mockImplementation(() => ({
         connectionState: mockState.connectionState,
@@ -391,114 +393,6 @@ describe('useSipClient', () => {
       await disconnect()
 
       expect(registrationStore.state).toBe(RegistrationState.Unregistered)
-
-      unmount()
-    })
-  })
-
-  describe('register()', () => {
-    it('should register with SIP server successfully', async () => {
-      const { result, unmount } = withSetup(() => useSipClient(testConfig))
-      const { connect, register } = result
-
-      await connect()
-      await register()
-
-      expect(mockSipClient.register).toHaveBeenCalled()
-
-      unmount()
-    })
-
-    it('should throw error if not connected', async () => {
-      const { result, unmount } = withSetup(() => useSipClient())
-      const { register } = result
-
-      await expect(register()).rejects.toThrow('SIP client not started')
-
-      unmount()
-    })
-
-    it('should handle registration failure', async () => {
-      const registrationError = new Error('Registration failed')
-      mockSipClient.register.mockRejectedValueOnce(registrationError)
-
-      const { result, unmount } = withSetup(() => useSipClient(testConfig))
-      const { connect, register, error } = result
-
-      await connect()
-      await expect(register()).rejects.toThrow('Registration failed')
-      expect(error.value).toBe(registrationError)
-
-      unmount()
-    })
-
-    it('should update registration store during registration', async () => {
-      const { result, unmount } = withSetup(() => useSipClient(testConfig))
-      const { connect, register } = result
-
-      await connect()
-
-      // Start registration
-      const registerPromise = register()
-
-      // Should be in registering state
-      expect(registrationStore.state).toBe(RegistrationState.Registering)
-
-      await registerPromise
-
-      unmount()
-    })
-  })
-
-  describe('unregister()', () => {
-    it('should unregister from SIP server successfully', async () => {
-      const { result, unmount } = withSetup(() => useSipClient(testConfig))
-      const { connect, unregister } = result
-
-      await connect()
-      await unregister()
-
-      expect(mockSipClient.unregister).toHaveBeenCalled()
-
-      unmount()
-    })
-
-    it('should throw error if not started', async () => {
-      const { result, unmount } = withSetup(() => useSipClient())
-      const { unregister } = result
-
-      await expect(unregister()).rejects.toThrow('SIP client not started')
-
-      unmount()
-    })
-
-    it('should handle unregistration failure', async () => {
-      const unregistrationError = new Error('Unregistration failed')
-      mockSipClient.unregister.mockRejectedValueOnce(unregistrationError)
-
-      const { result, unmount } = withSetup(() => useSipClient(testConfig))
-      const { connect, unregister, error } = result
-
-      await connect()
-      await expect(unregister()).rejects.toThrow('Unregistration failed')
-      expect(error.value).toBe(unregistrationError)
-
-      unmount()
-    })
-
-    it('should update registration store during unregistration', async () => {
-      const { result, unmount } = withSetup(() => useSipClient(testConfig))
-      const { connect, unregister } = result
-
-      await connect()
-
-      // Start unregistration
-      const unregisterPromise = unregister()
-
-      // Should be in unregistering state
-      expect(registrationStore.state).toBe(RegistrationState.Unregistering)
-
-      await unregisterPromise
 
       unmount()
     })
@@ -843,14 +737,15 @@ describe('useSipClient', () => {
 
     it('should update isRegistered reactively', async () => {
       const { result, unmount } = withSetup(() => useSipClient(testConfig))
-      const { connect, register, isRegistered } = result
+      const { connect, getClient, isRegistered } = result
+      const registration = useSipRegistration(computed(() => getClient()))
 
       // Initially not registered
       expect(isRegistered.value).toBe(false)
 
-      // Connect and register
+      // Connect and register via useSipRegistration
       await connect()
-      await register()
+      await registration.register()
       await nextTick()
 
       // Should now be registered

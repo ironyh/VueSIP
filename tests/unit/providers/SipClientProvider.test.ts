@@ -67,6 +67,12 @@ vi.mock('@/core/EventBus', () => ({
 }))
 
 // Mock validators
+vi.mock('@/composables/useSipRegistration', () => ({
+  useSipRegistration: (clientRef: any) => ({
+    register: vi.fn().mockImplementation(() => clientRef.value?.register() ?? Promise.resolve()),
+  }),
+}))
+
 vi.mock('@/utils/validators', () => ({
   validateSipConfig: vi.fn().mockReturnValue({
     valid: true,
@@ -478,10 +484,10 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
     it('should auto-register after connecting when autoRegister is true', async () => {
       const mockEventBus = {
         on: vi.fn((event: string, handler: any) => {
-          // Simulate connected event
           if (event === 'sip:connected') {
             setTimeout(() => handler(), 0)
           }
+          return `id-${event}`
         }),
         once: vi.fn(),
         off: vi.fn(),
@@ -490,6 +496,7 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
 
       const mockClient = {
         config: mockConfig,
+        getConfig: vi.fn().mockReturnValue({ uri: mockConfig.sipUri }),
         start: vi.fn().mockResolvedValue(undefined),
         stop: vi.fn().mockResolvedValue(undefined),
         register: vi.fn().mockResolvedValue(undefined),

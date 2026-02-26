@@ -26,3 +26,9 @@ export * from './storageQuota'
 
 // Re-export environment utilities
 export * from './env'
+
+// Re-export E911 utilities
+export * from './e911'
+
+// Re-export DTMF utilities
+export * from './dtmf'

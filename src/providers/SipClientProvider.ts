@@ -53,6 +53,7 @@ import type {
 } from '@/types/events.types'
 import { createLogger } from '@/utils/logger'
 import { validateSipConfig } from '@/utils/validators'
+import { useSipRegistration } from '@/composables/useSipRegistration'
 
 const logger = createLogger('SipClientProvider')
 
@@ -213,6 +214,7 @@ export const SipClientProvider = defineComponent({
 
     // SIP client instance
     const client = ref<SipClient | null>(null)
+    const { register } = useSipRegistration(client)
 
     // Reactive state
     const connectionState = ref<ConnectionState>(ConnectionState.Disconnected)
@@ -286,7 +288,7 @@ export const SipClientProvider = defineComponent({
 
         // Auto-register if enabled
         if (props.autoRegister && client.value) {
-          client.value.register().catch((err) => {
+          register().catch((err) => {
             logger.error('Auto-registration failed', err)
             const errorObj = err instanceof Error ? err : new Error(String(err))
             error.value = errorObj

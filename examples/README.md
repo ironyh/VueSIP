@@ -50,7 +50,7 @@ const config = {
   server: 'sip.example.com',
   username: '1000',
   password: 'secret',
-  displayName: 'My Name'
+  displayName: 'My Name',
 }
 
 const { isConnected, isRegistered, connect, disconnect } = useSipConnection(config)
@@ -120,19 +120,19 @@ const reject = async () => {
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { useSipDtmf } from 'vuesip'
+import { useDTMF } from 'vuesip'
 
 const currentSession = ref(null) // Set this to your active session
-const { sendDtmf, sendDtmfSequence } = useSipDtmf(currentSession)
+const { sendTone, sendToneSequence } = useDTMF(currentSession)
 
 // Send single digit
 const sendDigit = async (digit) => {
-  await sendDtmf(digit)
+  await sendTone(digit)
 }
 
 // Send multiple digits
 const sendNumber = async () => {
-  await sendDtmfSequence('1234')
+  await sendToneSequence('1234')
 }
 </script>
 ```
@@ -149,7 +149,7 @@ const {
   selectedInputDevice,
   selectedOutputDevice,
   setInputDevice,
-  setOutputDevice
+  setOutputDevice,
 } = useAudioDevices()
 
 // Change microphone

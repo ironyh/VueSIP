@@ -11,6 +11,7 @@ Complete reference for all VueSip composables providing reactive SIP functionali
   - [useMediaDevices](#usemediadevices)
   - [useDTMF](#usedtmf)
 - [Advanced Composables](#advanced-composables)
+  - [useSipE911](#usesipe911)
   - [useCallHistory](#usecallhistory)
   - [useCallControls](#usecallcontrols)
   - [usePresence](#usepresence)
@@ -49,7 +50,7 @@ Complete reference for all VueSip composables providing reactive SIP functionali
 
 ### useSipClient
 
-Manages SIP client connection, disconnect, and configuration. Exposes simple `register()` / `unregister()` with no automatic refresh or expiry tracking. For expiry, retries, and auto-refresh use **useSipRegistration** with a client ref from `getClient()`.
+Manages SIP client connection, disconnect, and configuration. Registration (register/unregister/refresh) is done only via **useSipRegistration**(computed(() => getClient())); useSipClient no longer exposes register or unregister.
 
 **Source:** [`src/composables/useSipClient.ts`](../../src/composables/useSipClient.ts)
 
@@ -101,8 +102,6 @@ function useSipClient(
 | -------------- | -------------------------------------------------------- | ---------------------------------------------- |
 | `connect`      | `() => Promise<void>`                                    | Start the SIP client and connect to server     |
 | `disconnect`   | `() => Promise<void>`                                    | Disconnect from SIP server and stop the client |
-| `register`     | `() => Promise<void>`                                    | Register with SIP server                       |
-| `unregister`   | `() => Promise<void>`                                    | Unregister from SIP server                     |
 | `updateConfig` | `(config: Partial<SipClientConfig>) => ValidationResult` | Update SIP client configuration                |
 | `reconnect`    | `() => Promise<void>`                                    | Reconnect to SIP server                        |
 | `getClient`    | `() => SipClient \| null`                                | Get the underlying SIP client instance         |
@@ -113,7 +112,7 @@ function useSipClient(
 ```typescript
 import { useSipClient } from '@/composables/useSipClient'
 
-const { isConnected, isRegistered, connect, disconnect, register } = useSipClient(
+const { isConnected, isRegistered, connect, disconnect, getClient } = useSipClient(
   {
     uri: 'sip:alice@domain.com',
     password: 'secret',
@@ -125,9 +124,8 @@ const { isConnected, isRegistered, connect, disconnect, register } = useSipClien
   }
 )
 
-// Connect and register
+// Connect; for registration use useSipRegistration(computed(() => getClient()))
 await connect()
-await register()
 
 // Check status
 if (isConnected.value && isRegistered.value) {
@@ -139,7 +137,7 @@ if (isConnected.value && isRegistered.value) {
 
 ### useSipRegistration
 
-Use when you need registration expiry, retry logic, and automatic re-registration. Pass a `Ref<SipClient | null>` (e.g. `computed(() => useSipClient().getClient())`). For simple register/unregister only, `useSipClient().register()` is sufficient.
+Use for all SIP registration (register, unregister, refresh). Pass a `Ref<SipClient | null>` (e.g. `computed(() => useSipClient().getClient())`). This is the only composable that performs register/unregister.
 
 **Source:** [`src/composables/useSipRegistration.ts`](../../src/composables/useSipRegistration.ts)
 
@@ -415,30 +413,23 @@ const success = await testAudioInput()
 
 ---
 
-### DTMF: useSipDtmf vs useDTMF
-
-- **useSipDtmf** – Low-level, session-agnostic: pass any `Ref<DtmfSessionSource | null>` (e.g. JsSIP RTCSession or object with `connection` / `sessionDescriptionHandler.peerConnection`). Use when you only need `sendDtmf(digit)` and `sendDtmfSequence(digits, interval?, signal?)` without queue or CallSession.
-- **useDTMF** – High-level, CallSession-bound: pass `Ref<CallSession | null>`. Use when you need queue management, statistics (`tonesSentCount`, `lastSentTone`), and callbacks (`onToneSent`, `onComplete`, `onError`).
-
----
-
 ### useDTMF
 
-Provides DTMF (Dual-Tone Multi-Frequency) tone sending for active call sessions with tone sequences, queue management, and callbacks. For a minimal session-agnostic API, use `useSipDtmf` instead.
+Single DTMF composable: accepts either a `CallSession` or a `DtmfSessionSource` (e.g. JsSIP RTCSession or any object with `connection` or `sessionDescriptionHandler.peerConnection`). When session is CallSession, uses `session.sendDTMF()`; when DtmfSessionSource, uses low-level `insertDTMF` on the peer connection. Queue, statistics, and callbacks are always exposed; optional `signal` in sequence options supports AbortController.
 
 **Source:** [`src/composables/useDTMF.ts`](../../src/composables/useDTMF.ts)
 
 #### Signature
 
 ```typescript
-function useDTMF(session: Ref<CallSession | null>): UseDTMFReturn
+function useDTMF(session: Ref<CallSession | DtmfSessionSource | null>): UseDTMFReturn
 ```
 
 #### Parameters
 
-| Parameter | Type                       | Description           |
-| --------- | -------------------------- | --------------------- |
-| `session` | `Ref<CallSession \| null>` | Call session instance |
+| Parameter | Type                                            | Description                                      |
+| --------- | ----------------------------------------------- | ------------------------------------------------ |
+| `session` | `Ref<CallSession \| DtmfSessionSource \| null>` | Call session or session-like source with peer PC |
 
 #### Returns: `UseDTMFReturn`
 
@@ -478,10 +469,11 @@ const { sendTone, sendToneSequence, isSending, queuedTones, queueToneSequence, p
 // Send single tone
 await sendTone('1')
 
-// Send sequence
+// Send sequence (optionally with AbortSignal)
 await sendToneSequence('1234#', {
   duration: 100,
   interToneGap: 70,
+  signal: abortController?.signal,
   onToneSent: (tone) => console.log(`Sent: ${tone}`),
 })
 
@@ -492,23 +484,53 @@ await processQueue()
 
 ---
 
-### useSipDtmf
+## Advanced Composables
 
-Low-level DTMF composable: accepts any session-like source (`DtmfSessionSource`) and provides `sendDtmf(digit)` and `sendDtmfSequence(digits, interval?, signal?)` with no queue or CallSession dependency. Prefer **useDTMF** when you have a `CallSession` and need queue management and callbacks.
+### useSipE911
 
-**Source:** [`src/composables/useSipDtmf.ts`](../../src/composables/useSipDtmf.ts)
+E911 emergency call detection, location management, admin notification, and compliance logging (Kari's Law, RAY BAUM's Act). Sanitization, validation and location formatting are provided by `@/utils/e911` for reuse.
+
+**Source:** [`src/composables/useSipE911.ts`](../../src/composables/useSipE911.ts)
+
+#### Signature
 
 ```typescript
-import { useSipDtmf } from 'vuesip'
+function useSipE911(
+  client: Ref<SipClient | null>,
+  eventBus?: EventBus | null,
+  options?: UseSipE911Options
+): UseSipE911Return
+```
 
-const { sendDtmf, sendDtmfSequence } = useSipDtmf(sessionRef)
-await sendDtmf('1')
-await sendDtmfSequence('1234#', 160, abortSignal)
+#### Parameters
+
+| Parameter  | Type                           | Description                                                   |
+| ---------- | ------------------------------ | ------------------------------------------------------------- |
+| `client`   | `Ref<SipClient \| null>`       | SIP client ref                                                |
+| `eventBus` | `EventBus \| null` (optional)  | Event bus for SIP events                                      |
+| `options`  | `UseSipE911Options` (optional) | Config, callbacks (onEmergencyCall, onNotificationSent, etc.) |
+
+#### Returns: `UseSipE911Return`
+
+State: `config`, `locations`, `activeCalls`, `callHistory`, `complianceLogs`, `isMonitoring`, `isLoading`, `error`.  
+Computed: `locationList`, `defaultLocation`, `activeCallList`, `hasActiveEmergency`, `stats`, `recipients`.  
+Methods: `startMonitoring`, `stopMonitoring`, `updateConfig`, `addLocation`, `updateLocation`, `removeLocation`, `setDefaultLocation`, `getLocation`, `getLocationForExtension`, `verifyLocation`, `addRecipient`, `updateRecipient`, `removeRecipient`, `sendTestNotification`, `getCall`, `getCallsInRange`, `getLogs`, `exportLogs`, `clearOldLogs`, `initiateTestCall`, `formatE911Location`, `checkCompliance`.
+
+#### Usage Example
+
+```typescript
+import { useSipClient, useSipE911 } from 'vuesip'
+
+const { getClient, getEventBus } = useSipClient(config)
+const e911 = useSipE911(computed(() => getClient()), getEventBus(), {
+  config: { defaultCallbackNumber: '+15551234567', onSiteNotification: true },
+  onEmergencyCall: (call) => console.log('Emergency:', call.callerExtension),
+})
+e911.startMonitoring()
+e911.addLocation({ name: 'Main Office', type: 'civic', extensions: ['1001'], isDefault: true, isVerified: false, civic: { ... } })
 ```
 
 ---
-
-## Advanced Composables
 
 ### useCallHistory
 

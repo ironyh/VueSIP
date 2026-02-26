@@ -569,8 +569,8 @@ export interface UseSipE911Return {
   /** Initiate test call (to 933 or configured test number) */
   initiateTestCall: (extension: string) => Promise<boolean>
 
-  /** Format location for display */
-  formatLocation: (location: E911Location) => string
+  /** Format location for display (same as formatE911Location from @/utils/e911) */
+  formatE911Location: (location: E911Location) => string
 
   /** Check E911 compliance status */
   checkCompliance: () => {
