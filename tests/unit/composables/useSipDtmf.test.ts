@@ -157,7 +157,7 @@ describe('useDTMF (DtmfSessionSource) - AbortController Integration', () => {
       expect(mockDtmfSender.insertDTMF).not.toHaveBeenCalled()
     })
 
-    it.skip('should prevent concurrent sendToneSequence calls', async () => {
+    it('should prevent concurrent sendToneSequence calls', async () => {
       const sessionRef = ref(mockSession)
       const { sendToneSequence } = useDTMF(sessionRef)
 

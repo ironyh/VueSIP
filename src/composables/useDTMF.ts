@@ -160,6 +160,8 @@ export function useDTMF(session: Ref<CallSession | DtmfSessionSource | null>): U
 
   // Cancellation flag
   let isCancelled = false
+  // True while sendToneSequence is running; sendTone must not clear isSending when true (concurrent guard)
+  let sequenceInProgress = false
 
   // ============================================================================
   // Computed Values
@@ -257,7 +259,9 @@ export function useDTMF(session: Ref<CallSession | DtmfSessionSource | null>): U
 
       throw err
     } finally {
-      isSending.value = false
+      if (!sequenceInProgress) {
+        isSending.value = false
+      }
     }
   }
 
@@ -301,6 +305,7 @@ export function useDTMF(session: Ref<CallSession | DtmfSessionSource | null>): U
     }
     isSending.value = true
     isCancelled = false
+    sequenceInProgress = true
 
     try {
       log.info(`Sending DTMF sequence: ${tones} (${tones.length} tones)`)
@@ -360,6 +365,7 @@ export function useDTMF(session: Ref<CallSession | DtmfSessionSource | null>): U
       log.error('DTMF sequence failed:', error)
       throw error
     } finally {
+      sequenceInProgress = false
       isSending.value = false
       isCancelled = false
     }
