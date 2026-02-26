@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, toRef } from 'vue'
 import type { MediaDevice } from 'vuesip'
 import Elks46OutboundSettings from './Elks46OutboundSettings.vue'
 import TranscriptionSettingsSection from './TranscriptionSettingsSection.vue'
+import { useAudioDeviceTest } from '../composables/useAudioDeviceTest'
 
 type SettingsCategory =
   | 'account'
@@ -58,141 +59,15 @@ const scrollableCategories = computed(() => {
   return categories
 })
 
-// Audio testing
-const isTestingMic = ref(false)
-const isTestingSpeaker = ref(false)
-const micTestStream = ref<MediaStream | null>(null)
-const speakerTestAudio = ref<HTMLAudioElement | null>(null)
-const speakerTestAudioContext = ref<AudioContext | null>(null)
-
-async function testMicrophone() {
-  if (isTestingMic.value) {
-    // Stop test
-    if (micTestStream.value) {
-      micTestStream.value.getTracks().forEach((track) => track.stop())
-      micTestStream.value = null
-    }
-    isTestingMic.value = false
-    return
-  }
-
-  try {
-    isTestingMic.value = true
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        deviceId: props.selectedAudioInputId ? { exact: props.selectedAudioInputId } : undefined,
-      },
-    })
-    micTestStream.value = stream
-    // Visual feedback - could add waveform visualization here
-    setTimeout(() => {
-      if (micTestStream.value) {
-        micTestStream.value.getTracks().forEach((track) => track.stop())
-        micTestStream.value = null
-      }
-      isTestingMic.value = false
-    }, 3000)
-  } catch (error) {
-    console.error('Microphone test failed:', error)
-    if (micTestStream.value) {
-      micTestStream.value.getTracks().forEach((track) => track.stop())
-      micTestStream.value = null
-    }
-    isTestingMic.value = false
-  }
-}
-
-async function testSpeaker() {
-  if (isTestingSpeaker.value) {
-    // Stop test
-    if (speakerTestAudio.value) {
-      speakerTestAudio.value.pause()
-      speakerTestAudio.value.src = ''
-      speakerTestAudio.value = null
-    }
-    if (speakerTestAudioContext.value) {
-      speakerTestAudioContext.value.close()
-      speakerTestAudioContext.value = null
-    }
-    isTestingSpeaker.value = false
-    return
-  }
-
-  try {
-    isTestingSpeaker.value = true
-    // Generate a test tone and play through selected device
-    const audioContext = new AudioContext()
-    speakerTestAudioContext.value = audioContext
-    const oscillator = audioContext.createOscillator()
-    const gainNode = audioContext.createGain()
-    const mediaStreamDestination = audioContext.createMediaStreamDestination()
-
-    oscillator.connect(gainNode)
-    gainNode.connect(mediaStreamDestination)
-
-    oscillator.frequency.value = 440 // A4 note
-    gainNode.gain.value = 0.1
-
-    // Create HTMLAudioElement to support setSinkId for device selection
-    speakerTestAudio.value = new Audio()
-    if (props.selectedAudioOutputId && 'setSinkId' in speakerTestAudio.value) {
-      await (
-        speakerTestAudio.value as HTMLAudioElement & { setSinkId(id: string): Promise<void> }
-      ).setSinkId(props.selectedAudioOutputId)
-    }
-
-    speakerTestAudio.value.srcObject = mediaStreamDestination.stream
-    oscillator.start()
-    await speakerTestAudio.value.play()
-    oscillator.stop(audioContext.currentTime + 0.5)
-
-    setTimeout(() => {
-      if (speakerTestAudio.value) {
-        speakerTestAudio.value.pause()
-        speakerTestAudio.value.src = ''
-        speakerTestAudio.value = null
-      }
-      if (speakerTestAudioContext.value) {
-        speakerTestAudioContext.value.close()
-        speakerTestAudioContext.value = null
-      }
-      isTestingSpeaker.value = false
-    }, 500)
-  } catch (error) {
-    console.error('Speaker test failed:', error)
-    if (speakerTestAudio.value) {
-      speakerTestAudio.value.pause()
-      speakerTestAudio.value.src = ''
-      speakerTestAudio.value = null
-    }
-    if (speakerTestAudioContext.value) {
-      speakerTestAudioContext.value.close()
-      speakerTestAudioContext.value = null
-    }
-    isTestingSpeaker.value = false
-  }
-}
+// Audio device testing (composable handles cleanup on unmount)
+const { isTestingMic, isTestingSpeaker, testMicrophone, testSpeaker } = useAudioDeviceTest(
+  toRef(props, 'selectedAudioInputId'),
+  toRef(props, 'selectedAudioOutputId')
+)
 
 function handleDisconnect() {
   emit('disconnect')
 }
-
-// Cleanup audio test streams on unmount
-onUnmounted(() => {
-  if (micTestStream.value) {
-    micTestStream.value.getTracks().forEach((track) => track.stop())
-    micTestStream.value = null
-  }
-  if (speakerTestAudio.value) {
-    speakerTestAudio.value.pause()
-    speakerTestAudio.value.src = ''
-    speakerTestAudio.value = null
-  }
-  if (speakerTestAudioContext.value) {
-    speakerTestAudioContext.value.close()
-    speakerTestAudioContext.value = null
-  }
-})
 </script>
 
 <template>

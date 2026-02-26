@@ -6,6 +6,15 @@
 import type { BaseEvent } from './events.types'
 
 /**
+ * HTMLAudioElement with setSinkId (output device selection).
+ * setSinkId is in the spec but missing from some TS libs; use this type where you need it.
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/setSinkId
+ */
+export type AudioElementWithSinkId = HTMLAudioElement & {
+  setSinkId(sinkId: string): Promise<void>
+}
+
+/**
  * Media device kind
  */
 export enum MediaDeviceKind {
