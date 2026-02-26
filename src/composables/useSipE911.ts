@@ -74,9 +74,6 @@ import type {
 import { createLogger } from '@/utils/logger'
 import {
   sanitizeInput,
-  sanitizeEmail,
-  sanitizePhone,
-  sanitizeUrl,
   isValidExtension,
   generateE911Id,
   createDefaultE911Config,
@@ -84,6 +81,8 @@ import {
   formatE911Location,
 } from '@/utils/e911'
 import { useE911Locations } from './useE911Locations'
+import { useE911Recipients } from './useE911Recipients'
+import { useE911Compliance } from './useE911Compliance'
 
 const logger = createLogger('useSipE911')
 
@@ -127,9 +126,34 @@ export function useSipE911(
     getLocationForExtension: getLocationForExtensionInternal,
   } = useE911Locations()
 
+  const {
+    recipients: recipientsRef,
+    addRecipient: addRecipientInternal,
+    updateRecipient: updateRecipientInternal,
+    removeRecipient: removeRecipientInternal,
+    setRecipients,
+  } = useE911Recipients(config.value.recipients)
+
+  watch(
+    recipientsRef,
+    (r) => {
+      config.value.recipients = r
+      config.value.lastUpdated = new Date()
+    },
+    { deep: true }
+  )
+
+  const complianceLoggingRef = computed(() => config.value.complianceLogging)
+  const {
+    complianceLogs,
+    addLog,
+    getLogs: getLogsInternal,
+    exportLogs: exportLogsInternal,
+    clearOldLogs: clearOldLogsInternal,
+  } = useE911Compliance(complianceLoggingRef)
+
   const activeCalls = ref<Map<string, E911Call>>(new Map())
   const callHistory = ref<E911Call[]>([])
-  const complianceLogs = ref<E911ComplianceLog[]>([])
   const isMonitoring = ref(false)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -143,42 +167,9 @@ export function useSipE911(
 
   const hasActiveEmergency = computed(() => activeCalls.value.size > 0)
 
-  const recipients = computed(() => config.value.recipients.filter((r) => r.enabled))
+  const recipients = computed(() => recipientsRef.value.filter((r) => r.enabled))
 
   const computedStats = computed(() => stats.value)
-
-  /**
-   * Add compliance log entry
-   */
-  function addLog(
-    event: E911ComplianceLog['event'],
-    description: string,
-    severity: E911ComplianceLog['severity'] = 'info',
-    callId?: string,
-    details?: Record<string, unknown>
-  ): void {
-    if (!config.value.complianceLogging) return
-
-    const log: E911ComplianceLog = {
-      id: generateE911Id(),
-      callId,
-      event,
-      description,
-      actor: 'system',
-      timestamp: new Date(),
-      details,
-      severity,
-    }
-
-    complianceLogs.value.unshift(log)
-
-    // Keep only last 1000 logs
-    if (complianceLogs.value.length > 1000) {
-      complianceLogs.value = complianceLogs.value.slice(0, 1000)
-    }
-
-    logger.debug('Compliance log:', log)
-  }
 
   /**
    * Emit an E911 event
@@ -567,12 +558,12 @@ This is an automated E911 notification. Please verify the situation and provide 
    * Update E911 configuration
    */
   function updateConfig(updates: Partial<E911Config>): void {
+    if (updates.recipients !== undefined) setRecipients(updates.recipients)
     config.value = {
       ...config.value,
       ...updates,
       lastUpdated: new Date(),
     }
-
     addLog('config_changed', 'E911 configuration updated', 'info', undefined, updates)
 
     emitEvent('config_changed', undefined, undefined, updates)
@@ -675,26 +666,20 @@ This is an automated E911 notification. Please verify the situation and provide 
     }
   }
 
+  function syncRecipientsToConfig(): void {
+    config.value.recipients = recipientsRef.value
+    config.value.lastUpdated = new Date()
+  }
+
   /**
    * Add notification recipient
    */
   function addRecipient(
     recipientData: Omit<E911NotificationRecipient, 'id'>
   ): E911NotificationRecipient {
-    const recipient: E911NotificationRecipient = {
-      ...recipientData,
-      id: generateE911Id(),
-      name: sanitizeInput(recipientData.name),
-      email: sanitizeEmail(recipientData.email),
-      phone: sanitizePhone(recipientData.phone),
-      webhookUrl: sanitizeUrl(recipientData.webhookUrl),
-    }
-
-    config.value.recipients.push(recipient)
-    config.value.lastUpdated = new Date()
-
+    const recipient = addRecipientInternal(recipientData)
+    syncRecipientsToConfig()
     addLog('config_changed', `Notification recipient added: ${recipient.name}`, 'info')
-
     return recipient
   }
 
@@ -705,52 +690,23 @@ This is an automated E911 notification. Please verify the situation and provide 
     recipientId: string,
     updates: Partial<E911NotificationRecipient>
   ): boolean {
-    const index = config.value.recipients.findIndex((r) => r.id === recipientId)
-    if (index === -1) return false
-
-    const existingRecipient = config.value.recipients[index]
-    if (!existingRecipient) return false
-
-    // Sanitize any sensitive fields being updated
-    const sanitizedUpdates: Partial<E911NotificationRecipient> = { ...updates }
-    if (updates.name !== undefined) {
-      sanitizedUpdates.name = sanitizeInput(updates.name)
-    }
-    if (updates.email !== undefined) {
-      sanitizedUpdates.email = sanitizeEmail(updates.email)
-    }
-    if (updates.phone !== undefined) {
-      sanitizedUpdates.phone = sanitizePhone(updates.phone)
-    }
-    if (updates.webhookUrl !== undefined) {
-      sanitizedUpdates.webhookUrl = sanitizeUrl(updates.webhookUrl)
-    }
-
-    config.value.recipients[index] = {
-      ...existingRecipient,
-      ...sanitizedUpdates,
-    } as E911NotificationRecipient
-    config.value.lastUpdated = new Date()
-
-    return true
+    const ok = updateRecipientInternal(recipientId, updates)
+    if (ok) syncRecipientsToConfig()
+    return ok
   }
 
   /**
    * Remove notification recipient
    */
   function removeRecipient(recipientId: string): boolean {
-    const index = config.value.recipients.findIndex((r) => r.id === recipientId)
-    if (index === -1) return false
-
-    const recipient = config.value.recipients[index]
-    if (!recipient) return false
-
-    config.value.recipients.splice(index, 1)
-    config.value.lastUpdated = new Date()
-
-    addLog('config_changed', `Notification recipient removed: ${recipient.name}`, 'info')
-
-    return true
+    const recipient = recipientsRef.value.find((r) => r.id === recipientId)
+    const ok = removeRecipientInternal(recipientId)
+    if (ok) {
+      syncRecipientsToConfig()
+      if (recipient)
+        addLog('config_changed', `Notification recipient removed: ${recipient.name}`, 'info')
+    }
+    return ok
   }
 
   /**
@@ -819,65 +775,22 @@ This is an automated E911 notification. Please verify the situation and provide 
    * Get compliance logs
    */
   function getLogs(limit?: number): E911ComplianceLog[] {
-    if (limit) {
-      return complianceLogs.value.slice(0, limit)
-    }
-    return complianceLogs.value
+    return getLogsInternal(limit)
   }
 
   /**
    * Export compliance logs
    */
   function exportLogs(format: 'json' | 'csv'): string {
-    if (format === 'json') {
-      return JSON.stringify(complianceLogs.value, null, 2)
-    }
-
-    // CSV format - properly escape all fields
-    const headers = ['id', 'callId', 'event', 'description', 'actor', 'timestamp', 'severity']
-
-    // Helper to escape CSV fields properly
-    const escapeCSV = (value: string): string => {
-      // If field contains comma, newline, or double quote, wrap in quotes and escape internal quotes
-      if (
-        value.includes(',') ||
-        value.includes('\n') ||
-        value.includes('\r') ||
-        value.includes('"')
-      ) {
-        return `"${value.replace(/"/g, '""')}"`
-      }
-      return value
-    }
-
-    const rows = complianceLogs.value.map((log) => [
-      escapeCSV(log.id),
-      escapeCSV(log.callId || ''),
-      escapeCSV(log.event),
-      escapeCSV(log.description),
-      escapeCSV(log.actor),
-      escapeCSV(log.timestamp.toISOString()),
-      escapeCSV(log.severity),
-    ])
-
-    return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+    return exportLogsInternal(format)
   }
 
   /**
    * Clear old compliance logs
    */
   function clearOldLogs(olderThan: Date): number {
-    const cutoff = olderThan.getTime()
-    const before = complianceLogs.value.length
-
-    complianceLogs.value = complianceLogs.value.filter((log) => log.timestamp.getTime() > cutoff)
-
-    const removed = before - complianceLogs.value.length
-
-    if (removed > 0) {
-      addLog('config_changed', `Cleared ${removed} old compliance logs`, 'info')
-    }
-
+    const removed = clearOldLogsInternal(olderThan)
+    if (removed > 0) addLog('config_changed', `Cleared ${removed} old compliance logs`, 'info')
     return removed
   }
 

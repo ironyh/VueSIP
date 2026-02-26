@@ -25,7 +25,12 @@ export interface TransportRecoveryOptions {
   stabilizationDelay?: number
   /** Maximum recovery attempts before giving up */
   maxRecoveryAttempts?: number
-  /** Register function (e.g. from useSipRegistration). If omitted, sipClient.value.register() is used. */
+  /**
+   * Register function for re-registration after transport recovery.
+   * **Recommended:** Pass `register` from `useSipRegistration(computed(() => sipClient))` so
+   * registration is the single source of truth (state, retries, expiry). If omitted,
+   * `sipClient.value.register()` is used as a fallback.
+   */
   register?: () => Promise<void>
   /** Called when recovery process starts */
   onRecoveryStart?: () => void

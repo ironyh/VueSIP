@@ -207,6 +207,21 @@ Implement comprehensive call history tracking with filtering, search, export, an
 
 ---
 
+### [E911 Emergency Call Handling](/guide/e911)
+
+Detect emergency calls, manage dispatchable locations, notify on-site personnel, and keep compliance logs (Kari's Law, RAY BAUM's Act).
+
+**What you'll learn:**
+
+- When and how to use `useSipE911`
+- Setting up monitoring, locations, and notification recipients
+- Compliance logging and export
+- Reusing helpers from `@/utils/e911`
+
+**Recommended for:** Enterprise, compliance, and emergency-services integrations
+
+---
+
 ## Quality & Reliability
 
 Ensure your application is production-ready with these essential guides.

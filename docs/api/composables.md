@@ -417,6 +417,8 @@ const success = await testAudioInput()
 
 Single DTMF composable: accepts either a `CallSession` or a `DtmfSessionSource` (e.g. JsSIP RTCSession or any object with `connection` or `sessionDescriptionHandler.peerConnection`). When session is CallSession, uses `session.sendDTMF()`; when DtmfSessionSource, uses low-level `insertDTMF` on the peer connection. Queue, statistics, and callbacks are always exposed; optional `signal` in sequence options supports AbortController.
 
+**Concurrent `sendToneSequence` behaviour:** Only one sequence can run at a time. While a sequence is in progress, `isSending` is `true`. If you call `sendToneSequence` again before the first completes, it **rejects** with `Error('DTMF sequence already in progress')`. Use `isSending` to disable the UI or queue input until the current sequence finishes (or use `stopSending()` to cancel).
+
 **Source:** [`src/composables/useDTMF.ts`](../../src/composables/useDTMF.ts)
 
 #### Signature
@@ -435,15 +437,15 @@ function useDTMF(session: Ref<CallSession | DtmfSessionSource | null>): UseDTMFR
 
 ##### Reactive State
 
-| Property         | Type                          | Description               |
-| ---------------- | ----------------------------- | ------------------------- |
-| `isSending`      | `Ref<boolean>`                | Is currently sending DTMF |
-| `queuedTones`    | `Ref<string[]>`               | Queued tones              |
-| `lastSentTone`   | `Ref<string \| null>`         | Last sent tone            |
-| `lastResult`     | `Ref<DTMFSendResult \| null>` | Last send result          |
-| `tonesSentCount` | `Ref<number>`                 | Total tones sent          |
-| `queueSize`      | `ComputedRef<number>`         | Queue size                |
-| `isQueueEmpty`   | `ComputedRef<boolean>`        | Is queue empty            |
+| Property         | Type                          | Description                                                                                                                       |
+| ---------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `isSending`      | `Ref<boolean>`                | `true` while a `sendToneSequence` (or queue processing) is in progress; a second `sendToneSequence` call while `true` will reject |
+| `queuedTones`    | `Ref<string[]>`               | Queued tones                                                                                                                      |
+| `lastSentTone`   | `Ref<string \| null>`         | Last sent tone                                                                                                                    |
+| `lastResult`     | `Ref<DTMFSendResult \| null>` | Last send result                                                                                                                  |
+| `tonesSentCount` | `Ref<number>`                 | Total tones sent                                                                                                                  |
+| `queueSize`      | `ComputedRef<number>`         | Queue size                                                                                                                        |
+| `isQueueEmpty`   | `ComputedRef<boolean>`        | Is queue empty                                                                                                                    |
 
 ##### Methods
 
@@ -2877,15 +2879,16 @@ function useTransportRecovery(
 
 #### Parameters
 
-| Parameter                     | Type                      | Default | Description                                                           |
-| ----------------------------- | ------------------------- | ------- | --------------------------------------------------------------------- |
-| `transportManager`            | `TransportManager`        | -       | TransportManager instance to listen for connection events             |
-| `sipClient`                   | `Ref<SipClient \| null>`  | -       | Ref to SipClient instance for triggering re-registration              |
-| `options.stabilizationDelay`  | `number`                  | `1500`  | Delay after transport connects before triggering re-registration (ms) |
-| `options.maxRecoveryAttempts` | `number`                  | `5`     | Maximum recovery attempts before giving up                            |
-| `options.onRecoveryStart`     | `() => void`              | -       | Called when recovery process starts                                   |
-| `options.onRecovered`         | `() => void`              | -       | Called when recovery succeeds (re-registration complete)              |
-| `options.onRecoveryFailed`    | `(error: string) => void` | -       | Called when recovery fails after all attempts                         |
+| Parameter                     | Type                      | Default | Description                                                                                                                                |
+| ----------------------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `transportManager`            | `TransportManager`        | -       | TransportManager instance to listen for connection events                                                                                  |
+| `sipClient`                   | `Ref<SipClient \| null>`  | -       | Ref to SipClient instance for triggering re-registration                                                                                   |
+| `options.register`            | `() => Promise<void>`     | -       | **Recommended.** Pass `register` from `useSipRegistration` for a single source of truth; if omitted, `sipClient.value.register()` is used. |
+| `options.stabilizationDelay`  | `number`                  | `1500`  | Delay after transport connects before triggering re-registration (ms)                                                                      |
+| `options.maxRecoveryAttempts` | `number`                  | `5`     | Maximum recovery attempts before giving up                                                                                                 |
+| `options.onRecoveryStart`     | `() => void`              | -       | Called when recovery process starts                                                                                                        |
+| `options.onRecovered`         | `() => void`              | -       | Called when recovery succeeds (re-registration complete)                                                                                   |
+| `options.onRecoveryFailed`    | `(error: string) => void` | -       | Called when recovery fails after all attempts                                                                                              |
 
 #### Returns: `UseTransportRecoveryReturn`
 
@@ -2909,23 +2912,25 @@ function useTransportRecovery(
 
 #### Usage Example
 
+Passing `register` from `useSipRegistration` is recommended so re-registration uses the same logic and state as normal registration:
+
 ```typescript
-import { useTransportRecovery } from 'vuesip'
+import { useTransportRecovery, useSipRegistration } from 'vuesip'
+import { ref } from 'vue'
+
+const sipClient = ref(null) // or from useSipClient().getClient()
+const { register } = useSipRegistration(sipClient)
 
 const { isRecovering, connectionState, lastRecoveryTime } = useTransportRecovery(
   transportManager,
   sipClient,
   {
+    register, // recommended: single source of truth for registration
     stabilizationDelay: 1500,
     onRecovered: () => console.log('SIP re-registered after reconnect'),
     onRecoveryFailed: (err) => console.error('Recovery failed:', err),
   }
 )
-
-// Check if recovering
-if (isRecovering.value) {
-  console.log('Attempting to restore SIP registration...')
-}
 ```
 
 ---

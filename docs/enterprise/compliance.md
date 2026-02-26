@@ -120,3 +120,12 @@ if (!isValid) {
   console.warn('Compliance issues:', violations)
 }
 ```
+
+## E911 Compliance (Kari's Law / RAY BAUM's Act)
+
+For emergency call compliance (dispatchable location, on-site notification, and audit logs), use the core E911 composable and utilities:
+
+- **Composable:** [`useSipE911`](/api/composables#usesipe911) — emergency call detection, location management, admin notification, and compliance logging. See the [E911 guide](/guide/e911) for setup, monitoring, locations, and recipients.
+- **Utilities:** [E911 helpers](/api/utilities#e911-helpers) in `@/utils/e911` (or `vuesip/utils`) — sanitization, validation, formatting, and default config for reuse in custom flows or tests.
+
+Enable `config.complianceLogging` and use `complianceLogs`, `getLogs()`, and `exportLogs()` from `useSipE911` for audit trails; use `checkCompliance()` to validate config and locations.

@@ -20,12 +20,13 @@ vi.mock('@/utils/logger', () => ({
   }),
 }))
 
-// Mock SipClient
+// Mock SipClient (getConfig so useSipRegistration chain can use config.uri when unmocked)
 vi.mock('@/core/SipClient', () => ({
-  SipClient: vi.fn(function (config, eventBus) {
+  SipClient: vi.fn(function (config: any, eventBus: any) {
     return {
       config,
       eventBus,
+      getConfig: vi.fn(() => ({ ...config, uri: config?.sipUri ?? config?.uri })),
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
       register: vi.fn().mockResolvedValue(undefined),
@@ -66,11 +67,19 @@ vi.mock('@/core/EventBus', () => ({
   }),
 }))
 
-// Mock validators
+// Mock useSipRegistration: we keep this mock to isolate provider behavior (connect → register
+// call) without pulling in registration store, retry logic, and getConfig. The full composable
+// chain is tested in useSipRegistration.test.ts. This mock mirrors real usage (getConfig then
+// register) so the provider is tested with a client that supports both.
 vi.mock('@/composables/useSipRegistration', () => ({
-  useSipRegistration: (clientRef: any) => ({
-    register: vi.fn().mockImplementation(() => clientRef.value?.register() ?? Promise.resolve()),
-  }),
+  useSipRegistration: (clientRef: any) => {
+    const register = vi.fn().mockImplementation(async () => {
+      const c = clientRef.value
+      if (c?.getConfig) c.getConfig()
+      return c?.register?.() ?? Promise.resolve()
+    })
+    return { register }
+  },
 }))
 
 vi.mock('@/utils/validators', () => ({
@@ -530,7 +539,8 @@ describe('SipClientProvider - Phase 7.1 Implementation', () => {
         description: 'register to be called',
       })
 
-      // Should call register after connection
+      // Provider uses useSipRegistration(client); composable uses getConfig().uri then register()
+      expect(mockClient.getConfig).toHaveBeenCalled()
       expect(mockClient.register).toHaveBeenCalled()
     })
 

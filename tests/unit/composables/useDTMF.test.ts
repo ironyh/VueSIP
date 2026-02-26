@@ -497,6 +497,20 @@ describe('useDTMF - Phase 6.11 Queue Limit Enforcement', () => {
       expect(isSending.value).toBe(false)
     })
 
+    it('should reject second sendToneSequence when first is in progress (CallSession path)', async () => {
+      const sessionRef = ref<CallSession>(mockSession)
+      const { sendToneSequence } = useDTMF(sessionRef)
+
+      // Keep first sequence in progress: sendDTMF returns a promise that resolves after a delay
+      mockSession.sendDTMF = vi.fn(() => new Promise((resolve) => setTimeout(resolve, 100)))
+
+      const firstPromise = sendToneSequence('12')
+      const secondPromise = sendToneSequence('34')
+
+      await expect(secondPromise).rejects.toThrow('DTMF sequence already in progress')
+      await firstPromise
+    })
+
     it('should not call onComplete if cancelled', async () => {
       const sessionRef = ref<CallSession>(mockSession)
       const { sendToneSequence, stopSending } = useDTMF(sessionRef)
