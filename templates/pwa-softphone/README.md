@@ -47,7 +47,7 @@ The app will be available at `http://localhost:3002`
 pnpm build
 ```
 
-The built files will be in the `dist/` directory.
+The built files will be in the `dist/` directory. Before deploying, see **[Production hardening checklist](docs/PRODUCTION.md)** for security, performance, testing, and accessibility.
 
 ## Project Structure
 

@@ -70,6 +70,18 @@ export default defineConfig({
       vuesip: resolve(__dirname, '../../dist/vuesip.js'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Split VueSIP into its own chunk for better caching (library updates less often than app)
+          if (id.includes('vuesip') || id.includes('dist/vuesip')) return 'vuesip'
+          return undefined
+        },
+      },
+    },
+    chunkSizeWarningLimit: 700, // VueSIP library is large; app chunk stays smaller
+  },
   server: {
     port: 3002,
     host: true,

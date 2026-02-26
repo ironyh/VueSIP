@@ -31,29 +31,26 @@ import { useSipClient, LocalStorageAdapter, generateEncryptionKey } from 'vuesip
 async function initializeSecureClient() {
   const { connect, register } = useSipClient({
     // 1. Transport Security - Always use WSS (WebSocket Secure)
-    uri: 'wss://sip.example.com:7443',  // ✓ Encrypted WebSocket connection
+    uri: 'wss://sip.example.com:7443', // ✓ Encrypted WebSocket connection
 
     // 2. Authentication - Use your SIP credentials
-    sipUri: 'sip:1000@example.com',      // Your SIP identity
-    password: 'your-secure-password',    // Or use HA1 hash (see Authentication section)
+    sipUri: 'sip:1000@example.com', // Your SIP identity
+    password: 'your-secure-password', // Or use HA1 hash (see Authentication section)
 
     // 3. Media Security - DTLS-SRTP configuration with secure TURN
     rtcConfiguration: {
       // Option A: Use VueSip's convenient stunServers/turnServers helpers
-      stunServers: [
-        'stun:stun.l.google.com:19302',
-        'stun:stun1.l.google.com:19302'
-      ],
+      stunServers: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'],
       turnServers: [
         {
-          urls: ['turns:turn.example.com:5349'],  // ✓ TURN over TLS
+          urls: ['turns:turn.example.com:5349'], // ✓ TURN over TLS
           username: 'turnuser',
           credential: 'turnpass',
-          credentialType: 'password'
-        }
+          credentialType: 'password',
+        },
       ],
-      iceTransportPolicy: 'relay'  // ✓ Force traffic through TURN (highest security)
-    }
+      iceTransportPolicy: 'relay', // ✓ Force traffic through TURN (highest security)
+    },
   })
 
   // Connect and register
@@ -121,6 +118,7 @@ This section explains how to secure the SIP signaling channel—the connection t
 **What is WSS?** WebSocket Secure (WSS) is the encrypted version of the WebSocket protocol. It uses TLS (Transport Layer Security) to encrypt all data transmitted between your browser and the SIP server, similar to how HTTPS protects web traffic.
 
 **Why use WSS?** SIP messages contain sensitive information including:
+
 - Authentication credentials (during registration)
 - Call details (who's calling whom)
 - Session descriptions (IP addresses, media capabilities)
@@ -134,9 +132,9 @@ Always use WebSocket Secure (WSS) in production environments to prevent this inf
 import { useSipClient } from 'vuesip'
 
 const { connect } = useSipClient({
-  uri: 'wss://sip.example.com:7443',  // 🔒 WSS protocol = encrypted connection
-  sipUri: 'sip:1000@example.com',     // Your SIP identity
-  password: 'your-password'            // Sent securely over encrypted channel
+  uri: 'wss://sip.example.com:7443', // 🔒 WSS protocol = encrypted connection
+  sipUri: 'sip:1000@example.com', // Your SIP identity
+  password: 'your-password', // Sent securely over encrypted channel
 })
 ```
 
@@ -145,9 +143,9 @@ const { connect } = useSipClient({
 ```typescript
 // Only use ws:// for local development/testing on localhost
 const { connect } = useSipClient({
-  uri: 'ws://localhost:8088',          // ⚠️ Unencrypted - anyone on network can see traffic!
+  uri: 'ws://localhost:8088', // ⚠️ Unencrypted - anyone on network can see traffic!
   sipUri: 'sip:1000@example.com',
-  password: 'your-password'            // ⚠️ Password exposed in cleartext!
+  password: 'your-password', // ⚠️ Password exposed in cleartext!
 })
 ```
 
@@ -174,18 +172,21 @@ if (config.uri.startsWith('ws://') && process.env.NODE_ENV === 'production') {
 **Certificate Requirements:**
 
 ✅ **Use certificates from trusted Certificate Authorities (CAs)**
-   - Let's Encrypt (free, automated)
-   - DigiCert, Sectigo, etc. (commercial options)
+
+- Let's Encrypt (free, automated)
+- DigiCert, Sectigo, etc. (commercial options)
 
 ❌ **Avoid self-signed certificates in production**
-   - Browsers will show security warnings
-   - Man-in-the-middle attacks become easier
-   - Only use for internal development/testing
+
+- Browsers will show security warnings
+- Man-in-the-middle attacks become easier
+- Only use for internal development/testing
 
 📝 **Certificate Maintenance:**
-   - Monitor certificate expiration dates (most expire after 90 days for Let's Encrypt)
-   - Set up automated renewal
-   - Test certificate renewal process in staging first
+
+- Monitor certificate expiration dates (most expire after 90 days for Let's Encrypt)
+- Set up automated renewal
+- Test certificate renewal process in staging first
 
 ### Transport Security Best Practices
 
@@ -246,15 +247,15 @@ const rtcConfiguration = {
     {
       // TURN server relays traffic when direct connections aren't possible
       urls: ['turn:turn.example.com:3478'],
-      username: 'your-username',              // Credentials for TURN server
-      credential: 'your-credential',          // Usually time-limited tokens
-      credentialType: 'password'              // Type of credential being used
-    }
+      username: 'your-username', // Credentials for TURN server
+      credential: 'your-credential', // Usually time-limited tokens
+      credentialType: 'password', // Type of credential being used
+    },
   ],
-  iceTransportPolicy: 'all',    // 'all' = try direct first, use relay if needed
-                                 // 'relay' = force all traffic through TURN (more secure, higher latency)
-  bundlePolicy: 'balanced',      // Bundle audio/video on same connection for efficiency
-  rtcpMuxPolicy: 'require'       // Multiplex RTP and RTCP on same port (required by WebRTC)
+  iceTransportPolicy: 'all', // 'all' = try direct first, use relay if needed
+  // 'relay' = force all traffic through TURN (more secure, higher latency)
+  bundlePolicy: 'balanced', // Bundle audio/video on same connection for efficiency
+  rtcpMuxPolicy: 'require', // Multiplex RTP and RTCP on same port (required by WebRTC)
 }
 ```
 
@@ -286,30 +287,30 @@ const { connect } = useSipClient({
   rtcConfiguration: {
     // STUN servers help discover public IP addresses (needed for NAT traversal)
     stunServers: [
-      'stun:stun.l.google.com:19302',      // Google's public STUN server
-      'stun:stun1.l.google.com:19302'      // Backup STUN server for redundancy
+      'stun:stun.l.google.com:19302', // Google's public STUN server
+      'stun:stun1.l.google.com:19302', // Backup STUN server for redundancy
     ],
 
     // TURN servers relay media when direct connections fail (needed in restrictive networks)
     turnServers: [
       {
-        urls: ['turn:turn.example.com:3478'],      // Standard TURN (UDP/TCP)
-        username: 'turn-user',                      // Usually time-limited credentials
-        credential: 'turn-password',                // Generated by your TURN server
-        credentialType: 'password'
+        urls: ['turn:turn.example.com:3478'], // Standard TURN (UDP/TCP)
+        username: 'turn-user', // Usually time-limited credentials
+        credential: 'turn-password', // Generated by your TURN server
+        credentialType: 'password',
       },
       {
-        urls: ['turns:turn.example.com:5349'],     // 🔒 TURN over TLS (more secure)
+        urls: ['turns:turn.example.com:5349'], // 🔒 TURN over TLS (more secure)
         username: 'turn-user',
         credential: 'turn-password',
-        credentialType: 'password'
-      }
+        credentialType: 'password',
+      },
     ],
 
     // Control how connections are established
-    iceTransportPolicy: 'all'  // 'all' = try direct, fallback to relay
-                                // 'relay' = always use TURN (maximum privacy, higher latency)
-  }
+    iceTransportPolicy: 'all', // 'all' = try direct, fallback to relay
+    // 'relay' = always use TURN (maximum privacy, higher latency)
+  },
 })
 ```
 
@@ -321,10 +322,10 @@ const { connect } = useSipClient({
 
 The ICE transport policy controls how WebRTC establishes connections:
 
-| Policy | Security Level | Performance | How It Works | Best For |
-|--------|---------------|-------------|--------------|----------|
-| `all` (default) | Good | Best | Tries direct peer-to-peer first, uses TURN relay only if needed | Normal operations, most users |
-| `relay` | Maximum | Lower latency | Forces all traffic through your TURN server, no direct connections | High-security environments, enterprise |
+| Policy          | Security Level | Performance   | How It Works                                                       | Best For                               |
+| --------------- | -------------- | ------------- | ------------------------------------------------------------------ | -------------------------------------- |
+| `all` (default) | Good           | Best          | Tries direct peer-to-peer first, uses TURN relay only if needed    | Normal operations, most users          |
+| `relay`         | Maximum        | Lower latency | Forces all traffic through your TURN server, no direct connections | High-security environments, enterprise |
 
 **When to Use `relay` (Maximum Security):**
 
@@ -344,12 +345,14 @@ rtcConfiguration: {
 ```
 
 ✅ **Use `relay` when:**
+
 - Handling sensitive calls (legal, medical, financial)
 - Corporate policy requires traffic monitoring
 - Must prevent IP address disclosure
 - Need to route all traffic through your infrastructure
 
 ❌ **Avoid `relay` when:**
+
 - Latency is critical (gaming, live translation)
 - TURN bandwidth costs are prohibitive
 - Most users have good direct connectivity
@@ -415,31 +418,31 @@ import { LocalStorageAdapter, generateEncryptionKey } from 'vuesip'
 
 // Create an encrypted storage adapter with password-based encryption
 // The encryption password should be derived from user credentials or stored securely
-const encryptionPassword = 'user-master-password'  // In production: derive from user password
+const encryptionPassword = 'user-master-password' // In production: derive from user password
 
 const encryptedStorage = new LocalStorageAdapter(
   {
-    prefix: 'vuesip',                  // Namespace for storage keys
-    version: '1',                      // Version for migration support
+    prefix: 'vuesip', // Namespace for storage keys
+    version: '1', // Version for migration support
     encryption: {
-      enabled: true,                   // Enable AES-GCM encryption
-      iterations: 100000               // PBKDF2 iterations (minimum recommended: 100,000)
-    }
+      enabled: true, // Enable AES-GCM encryption
+      iterations: 100000, // PBKDF2 iterations (minimum recommended: 100,000)
+    },
   },
-  encryptionPassword                   // Password used for key derivation
+  encryptionPassword // Password used for key derivation
 )
 
 // Use the encrypted storage to persist application data securely
 await encryptedStorage.set('userPreferences', {
   theme: 'dark',
   notifications: true,
-  displayName: 'John Doe'
+  displayName: 'John Doe',
 })
 
 // Retrieve encrypted data
 const result = await encryptedStorage.get('userPreferences')
 if (result.success) {
-  console.log('Retrieved:', result.data)  // Automatically decrypted
+  console.log('Retrieved:', result.data) // Automatically decrypted
 }
 ```
 
@@ -455,10 +458,10 @@ if (result.success) {
 import { generateEncryptionKey } from 'vuesip'
 
 // Generate a cryptographically secure random key
-const encryptionKey = generateEncryptionKey(32)  // 32 bytes = 256 bits
+const encryptionKey = generateEncryptionKey(32) // 32 bytes = 256 bits
 
 // ✅ GOOD: Store in memory (clears when app closes)
-sessionStorage.setItem('encKey', encryptionKey)  // Available only in current tab
+sessionStorage.setItem('encKey', encryptionKey) // Available only in current tab
 
 // ❌ BAD: Never store encryption keys in plain text!
 // localStorage.setItem('encKey', encryptionKey)  // ⚠️ Defeats the purpose of encryption!
@@ -490,12 +493,12 @@ const encryptionKey = await hashPassword(userPassword)
 
 Different storage adapters offer different tradeoffs between security, persistence, and convenience:
 
-| Adapter | Persistence | Scope | Security Level | Use Case |
-|---------|-------------|-------|----------------|----------|
-| **SessionStorage** | Until tab closes | Current tab only | High | Temporary sessions, kiosks |
-| **LocalStorage** | Permanent | All tabs in origin | Medium (with encryption) | Remember credentials |
-| **IndexedDB** | Permanent | All tabs in origin | Medium (with encryption) | Large datasets, offline mode |
-| **Memory (default)** | None | Current component | Highest | Maximum security, no persistence |
+| Adapter              | Persistence      | Scope              | Security Level           | Use Case                         |
+| -------------------- | ---------------- | ------------------ | ------------------------ | -------------------------------- |
+| **SessionStorage**   | Until tab closes | Current tab only   | High                     | Temporary sessions, kiosks       |
+| **LocalStorage**     | Permanent        | All tabs in origin | Medium (with encryption) | Remember credentials             |
+| **IndexedDB**        | Permanent        | All tabs in origin | Medium (with encryption) | Large datasets, offline mode     |
+| **Memory (default)** | None             | Current component  | Highest                  | Maximum security, no persistence |
 
 **Example 1: Session Storage (Security-First Approach)**
 
@@ -504,14 +507,17 @@ import { SessionStorageAdapter } from 'vuesip'
 
 // Data automatically deleted when browser tab closes
 // Best for: Public computers, shared devices, maximum security
-const sessionStorage = new SessionStorageAdapter({
-  prefix: 'vuesip',
-  version: '1',
-  encryption: {
-    enabled: true,
-    iterations: 100000
-  }
-}, 'session-password')
+const sessionStorage = new SessionStorageAdapter(
+  {
+    prefix: 'vuesip',
+    version: '1',
+    encryption: {
+      enabled: true,
+      iterations: 100000,
+    },
+  },
+  'session-password'
+)
 
 // Use session storage for temporary data
 await sessionStorage.set('callHistory', recentCalls)
@@ -533,8 +539,8 @@ const indexedDBStorage = new IndexedDBAdapter(
     databaseName: 'vuesip-db',
     encryption: {
       enabled: true,
-      iterations: 100000
-    }
+      iterations: 100000,
+    },
   },
   'user-encryption-password'
 )
@@ -582,6 +588,7 @@ SIP Digest Authentication (based on HTTP Digest) is a challenge-response mechani
 4. **Server:** Calculates the same thing and compares. If they match, authentication succeeds!
 
 **Why It's Secure:**
+
 - Password never transmitted (only a hash)
 - Nonce prevents replay attacks (old responses won't work)
 - Different hash for each authentication attempt
@@ -594,11 +601,11 @@ const { connect } = useSipClient({
   sipUri: 'sip:1000@example.com',
 
   // VueSip automatically handles digest authentication
-  password: 'your-password',              // Password used to calculate digest response
+  password: 'your-password', // Password used to calculate digest response
 
   // Optional parameters (usually auto-configured)
-  authorizationUsername: '1000',         // Username for auth (defaults to sipUri user part)
-  realm: 'asterisk'                      // Authentication realm (usually provided by server)
+  authorizationUsername: '1000', // Username for auth (defaults to sipUri user part)
+  realm: 'asterisk', // Authentication realm (usually provided by server)
 })
 ```
 
@@ -611,6 +618,7 @@ const { connect } = useSipClient({
 HA1 (Hash A1) is a pre-computed hash used in SIP Digest authentication. Instead of storing the actual password, you can store this hash and use it directly for authentication.
 
 **HA1 Formula:**
+
 ```
 HA1 = MD5(username:realm:password)
 ```
@@ -618,12 +626,14 @@ HA1 = MD5(username:realm:password)
 **Why Use HA1?**
 
 ✅ **Advantages:**
+
 - **Password never stored** - Your application only has the HA1 hash, not the actual password
 - **Reduced exposure** - If your database is compromised, attackers get hashes, not passwords
 - **Same security** - Works identically with SIP Digest authentication
 - **Compatible** - All SIP servers support digest authentication with HA1
 
 ❌ **Limitations:**
+
 - Realm-specific (different realm = different HA1)
 - Not as strong as modern password hashing (bcrypt, argon2)
 - Still vulnerable if attacker has realm name
@@ -636,15 +646,15 @@ HA1 = MD5(username:realm:password)
 const username = '1000'
 const realm = 'asterisk'
 const password = 'secret123'
-const ha1 = MD5(`${username}:${realm}:${password}`)  // Example: 'b5f2a7c3d9e...'
+const ha1 = MD5(`${username}:${realm}:${password}`) // Example: 'b5f2a7c3d9e...'
 
 // Step 2: Use HA1 in client configuration (instead of password)
 const { connect } = useSipClient({
   uri: 'wss://sip.example.com:7443',
   sipUri: 'sip:1000@example.com',
 
-  ha1: ha1,              // 🔑 Use pre-computed HA1 hash
-  realm: 'asterisk'      // ⚠️ Must match the realm used to compute HA1
+  ha1: ha1, // 🔑 Use pre-computed HA1 hash
+  realm: 'asterisk', // ⚠️ Must match the realm used to compute HA1
 
   // Note: Don't provide 'password' when using 'ha1'
 })
@@ -662,7 +672,7 @@ async function registerUser(username: string, password: string, realm: string) {
   await database.users.create({
     username,
     realm,
-    ha1  // ✅ Only store the hash
+    ha1, // ✅ Only store the hash
   })
 
   return ha1
@@ -679,8 +689,8 @@ async function loginUser(username: string) {
   const { connect } = useSipClient({
     uri: 'wss://sip.example.com:7443',
     sipUri: `sip:${username}@example.com`,
-    ha1,        // Use pre-computed hash
-    realm       // Must match
+    ha1, // Use pre-computed hash
+    realm, // Must match
   })
 
   await connect()
@@ -714,6 +724,7 @@ User input is the primary attack vector for web applications. This section expla
 **Why Input Validation Matters:**
 
 Without validation, malicious users could:
+
 - Inject malicious SIP headers
 - Cause application crashes with malformed data
 - Bypass security checks
@@ -739,7 +750,7 @@ if (result.valid) {
   console.log('Valid SIP URI:', result.normalized)
   // Output: sip:1000@example.com
 
-  await makeCall(result.normalized)  // Use normalized version
+  await makeCall(result.normalized) // Use normalized version
 } else {
   // ❌ Invalid - show error to user
   console.error('Invalid SIP URI:', result.error)
@@ -748,6 +759,7 @@ if (result.valid) {
 ```
 
 **Validation Rules:**
+
 - ✅ Must start with `sip:` or `sips:` (secure SIP)
 - ✅ Must include user part (before @) and domain part (after @)
 - ✅ Port must be between 1-65535 if specified
@@ -755,18 +767,20 @@ if (result.valid) {
 - ✅ Special characters properly encoded
 
 **Valid Examples:**
+
 ```typescript
-validateSipUri('sip:1000@example.com')           // ✅ Basic format
-validateSipUri('sip:user@example.com:5060')      // ✅ With port
-validateSipUri('sips:secure@example.com')        // ✅ Secure SIP
-validateSipUri('sip:john.doe@sip.example.com')   // ✅ With subdomain
+validateSipUri('sip:1000@example.com') // ✅ Basic format
+validateSipUri('sip:user@example.com:5060') // ✅ With port
+validateSipUri('sips:secure@example.com') // ✅ Secure SIP
+validateSipUri('sip:john.doe@sip.example.com') // ✅ With subdomain
 ```
 
 **Invalid Examples:**
+
 ```typescript
-validateSipUri('1000@example.com')               // ❌ Missing sip: scheme
-validateSipUri('sip:1000')                       // ❌ Missing domain
-validateSipUri('http://example.com')             // ❌ Wrong protocol
+validateSipUri('1000@example.com') // ❌ Missing sip: scheme
+validateSipUri('sip:1000') // ❌ Missing domain
+validateSipUri('http://example.com') // ❌ Wrong protocol
 ```
 
 ### Phone Number Validation
@@ -795,6 +809,7 @@ if (result.valid) {
 ```
 
 **E.164 Format Rules:**
+
 - ✅ Must start with `+` (plus sign indicates international format)
 - ✅ Followed by country code (1-3 digits, e.g., +1 for US/Canada)
 - ✅ Followed by national number
@@ -802,17 +817,19 @@ if (result.valid) {
 - ✅ Only digits after the +, no spaces or separators
 
 **Valid Examples:**
+
 ```typescript
-validatePhoneNumber('+14155551234')     // ✅ US number
-validatePhoneNumber('+442071234567')    // ✅ UK number
-validatePhoneNumber('+81312345678')     // ✅ Japan number
+validatePhoneNumber('+14155551234') // ✅ US number
+validatePhoneNumber('+442071234567') // ✅ UK number
+validatePhoneNumber('+81312345678') // ✅ Japan number
 ```
 
 **Invalid Examples:**
+
 ```typescript
-validatePhoneNumber('4155551234')       // ❌ Missing + and country code
-validatePhoneNumber('+1-415-555-1234')  // ❌ Contains separators
-validatePhoneNumber('(415) 555-1234')   // ❌ Not E.164 format
+validatePhoneNumber('4155551234') // ❌ Missing + and country code
+validatePhoneNumber('+1-415-555-1234') // ❌ Contains separators
+validatePhoneNumber('(415) 555-1234') // ❌ Not E.164 format
 ```
 
 ### WebSocket URL Validation
@@ -832,7 +849,7 @@ if (result.valid) {
 
   // Safe to use for connection
   const { connect } = useSipClient({
-    uri: result.normalized,  // Use validated URL
+    uri: result.normalized, // Use validated URL
     // ... rest of config
   })
 } else {
@@ -842,17 +859,19 @@ if (result.valid) {
 ```
 
 **Validation Rules:**
+
 - ✅ Must use `ws://` or `wss://` protocol
 - ✅ Must include valid hostname (domain or IP)
 - ✅ Port is optional (defaults: 80 for ws, 443 for wss)
 - ✅ Path and query parameters allowed
 
 **Valid Examples:**
+
 ```typescript
-validateWebSocketUrl('wss://sip.example.com')              // ✅ Basic WSS
-validateWebSocketUrl('wss://sip.example.com:7443')         // ✅ With port
-validateWebSocketUrl('ws://localhost:8088')                // ✅ Local development
-validateWebSocketUrl('wss://sip.example.com/path')         // ✅ With path
+validateWebSocketUrl('wss://sip.example.com') // ✅ Basic WSS
+validateWebSocketUrl('wss://sip.example.com:7443') // ✅ With port
+validateWebSocketUrl('ws://localhost:8088') // ✅ Local development
+validateWebSocketUrl('wss://sip.example.com/path') // ✅ With path
 ```
 
 ### DTMF Tone Validation
@@ -865,14 +884,14 @@ import { validateDtmfTone, validateDtmfSequence } from 'vuesip'
 // Validate single tone
 const tone = validateDtmfTone('1')
 if (tone.valid) {
-  await sendDTMF(tone.normalized)  // Send: '1'
+  await sendDTMF(tone.normalized) // Send: '1'
 }
 
 // Validate entire sequence (e.g., PIN code or menu navigation)
 const sequence = validateDtmfSequence('1234*#')
 if (sequence.valid) {
   // ✅ Valid sequence - send all tones
-  await sendDTMF(sequence.normalized)  // Send: '1234*#'
+  await sendDTMF(sequence.normalized) // Send: '1234*#'
 } else {
   // ❌ Invalid - contains unsupported characters
   showErrorMessage('Invalid DTMF sequence')
@@ -880,24 +899,26 @@ if (sequence.valid) {
 ```
 
 **Valid DTMF Tones:**
+
 - `0-9` - Standard digit keys
 - `*` - Star key (often "back" or "cancel")
 - `#` - Pound/hash key (often "confirm" or "send")
 - `A-D` - Extended keys (rarely used, mainly in military/specialized systems)
 
 **Common Use Cases:**
+
 ```typescript
 // IVR menu navigation
-await sendDTMF('1')           // "Press 1 for sales"
+await sendDTMF('1') // "Press 1 for sales"
 
 // PIN code entry
-await sendDTMF('9876')        // Enter 4-digit PIN
+await sendDTMF('9876') // Enter 4-digit PIN
 
 // Conference controls
-await sendDTMF('*6')          // Mute/unmute in conference
+await sendDTMF('*6') // Mute/unmute in conference
 
 // Voicemail access
-await sendDTMF('*97')         // Access voicemail system
+await sendDTMF('*97') // Access voicemail system
 ```
 
 ### Configuration Validation
@@ -911,7 +932,7 @@ import { validateSipConfig } from 'vuesip'
 const config = {
   uri: 'wss://sip.example.com:7443',
   sipUri: 'sip:1000@example.com',
-  password: 'secret123'
+  password: 'secret123',
 }
 
 // Validate before connecting
@@ -926,7 +947,7 @@ if (!validation.valid) {
   // - "password or ha1 is required"
 
   // Show errors to user or developer
-  validation.errors.forEach(error => {
+  validation.errors.forEach((error) => {
     showErrorMessage(error)
   })
 
@@ -949,6 +970,7 @@ await connect()
 ```
 
 **What Gets Validated:**
+
 - URI format and protocol
 - SIP URI format
 - Authentication credentials (password or HA1)
@@ -1061,7 +1083,7 @@ Use this comprehensive checklist to audit your VueSip application's security pos
 
 ### 🌐 Application Security
 
-- [ ] **Implement CSP** - Set Content-Security-Policy headers to prevent XSS
+- [ ] **Implement CSP** - Set Content-Security-Policy headers to prevent XSS (the PWA softphone template includes a CSP meta tag; see `templates/pwa-softphone/docs/PRODUCTION.md`)
 - [ ] **Use HTTPS everywhere** - Serve application over HTTPS, not HTTP
 - [ ] **Configure CORS properly** - Restrict origins that can access your API
 - [ ] **Keep dependencies updated** - Regularly run `npm audit` and update packages
@@ -1087,13 +1109,14 @@ Even experienced developers make these mistakes. Learn from common security pitf
 ```typescript
 // ❌ BAD - Anyone on the network can intercept this traffic!
 const { connect } = useSipClient({
-  uri: 'ws://sip.example.com:8088',  // Unencrypted connection
+  uri: 'ws://sip.example.com:8088', // Unencrypted connection
   sipUri: 'sip:1000@example.com',
-  password: 'secret'                 // Password visible in network traffic!
+  password: 'secret', // Password visible in network traffic!
 })
 ```
 
 **Why It's Dangerous:**
+
 - All SIP messages transmitted in plaintext
 - Passwords visible to anyone on the network (WiFi, ISP, etc.)
 - Call details, participants, and metadata exposed
@@ -1104,9 +1127,9 @@ const { connect } = useSipClient({
 ```typescript
 // ✅ GOOD - TLS-encrypted connection
 const { connect } = useSipClient({
-  uri: 'wss://sip.example.com:7443',  // Encrypted with TLS
+  uri: 'wss://sip.example.com:7443', // Encrypted with TLS
   sipUri: 'sip:1000@example.com',
-  password: 'secret'                  // Protected by TLS encryption
+  password: 'secret', // Protected by TLS encryption
 })
 ```
 
@@ -1123,11 +1146,12 @@ const { connect } = useSipClient({
 const { connect } = useSipClient({
   uri: 'wss://sip.example.com:7443',
   sipUri: 'sip:1000@example.com',
-  password: 'hardcoded-password-123'  // This will be in git commits!
+  password: 'hardcoded-password-123', // This will be in git commits!
 })
 ```
 
 **Why It's Dangerous:**
+
 - Credentials committed to version control (git)
 - Visible to anyone with repository access
 - Exposed in build artifacts
@@ -1139,9 +1163,9 @@ const { connect } = useSipClient({
 ```typescript
 // ✅ GOOD - Credentials from environment variables
 const { connect } = useSipClient({
-  uri: import.meta.env.VITE_SIP_URI,        // From .env file (not committed)
-  sipUri: userInputSipUri.value,            // From user input
-  password: userInputPassword.value         // From user input
+  uri: import.meta.env.VITE_SIP_URI, // From .env file (not committed)
+  sipUri: userInputSipUri.value, // From user input
+  password: userInputPassword.value, // From user input
 })
 ```
 
@@ -1170,10 +1194,11 @@ const sipServerUri = import.meta.env.VITE_SIP_URI
 localStorage.setItem('sipPassword', 'my-password')
 
 // Later...
-const password = localStorage.getItem('sipPassword')  // Plaintext!
+const password = localStorage.getItem('sipPassword') // Plaintext!
 ```
 
 **Why It's Dangerous:**
+
 - localStorage is unencrypted plain text
 - Readable by any JavaScript on the same origin
 - Visible in browser dev tools
@@ -1187,7 +1212,7 @@ const password = localStorage.getItem('sipPassword')  // Plaintext!
 import { LocalStorageAdapter, hashPassword } from 'vuesip'
 
 // Derive encryption password from user credentials (never store the password itself!)
-const userPassword = getUserPassword()  // From login form
+const userPassword = getUserPassword() // From login form
 const encryptionPassword = await hashPassword(userPassword)
 
 // Create encrypted storage adapter
@@ -1196,9 +1221,9 @@ const storage = new LocalStorageAdapter(
     prefix: 'vuesip',
     version: '1',
     encryption: {
-      enabled: true,           // Enable AES-GCM encryption
-      iterations: 100000       // Strong PBKDF2 key derivation
-    }
+      enabled: true, // Enable AES-GCM encryption
+      iterations: 100000, // Strong PBKDF2 key derivation
+    },
   },
   encryptionPassword
 )
@@ -1206,7 +1231,7 @@ const storage = new LocalStorageAdapter(
 // Store credentials securely
 await storage.set('sipCredentials', {
   sipUri: 'sip:1000@example.com',
-  password: 'user-password'  // Encrypted before storage
+  password: 'user-password', // Encrypted before storage
 })
 
 // Later, retrieve credentials (automatically decrypted)
@@ -1215,7 +1240,7 @@ if (result.success && result.data) {
   const { connect } = useSipClient({
     uri: 'wss://sip.example.com:7443',
     sipUri: result.data.sipUri,
-    password: result.data.password
+    password: result.data.password,
   })
 }
 ```
@@ -1230,11 +1255,12 @@ if (result.success && result.data) {
 
 ```typescript
 // ❌ BAD - Using user input directly without validation!
-const sipUri = userInput.value  // Could be: "; DROP TABLE users; --"
-await makeCall(sipUri)          // Potential injection or crash!
+const sipUri = userInput.value // Could be: "; DROP TABLE users; --"
+await makeCall(sipUri) // Potential injection or crash!
 ```
 
 **Why It's Dangerous:**
+
 - Malformed input causes crashes
 - Potential for injection attacks
 - Unexpected behavior
@@ -1259,6 +1285,7 @@ if (result.valid) {
 ```
 
 **Benefits:**
+
 - Catches errors early with clear messages
 - Prevents injection attacks
 - Normalizes input (lowercase domains, etc.)
@@ -1272,17 +1299,18 @@ if (result.valid) {
 
 ```typescript
 // ❌ BAD - Credentials exposed in logs!
-console.log('Connecting with password:', password)    // Visible in console!
-console.log('User config:', config)                   // May contain secrets!
+console.log('Connecting with password:', password) // Visible in console!
+console.log('User config:', config) // May contain secrets!
 
 // Logs sent to analytics
 analytics.track('login', {
-  password: password,        // ❌ Exposed to analytics service!
-  ha1: ha1
+  password: password, // ❌ Exposed to analytics service!
+  ha1: ha1,
 })
 ```
 
 **Why It's Dangerous:**
+
 - Credentials visible in browser console
 - Exposed in log aggregation services (Datadog, Sentry)
 - Sent to analytics platforms
@@ -1296,16 +1324,16 @@ analytics.track('login', {
 // ✅ GOOD - Redact sensitive data before logging
 const sanitizedConfig = {
   ...config,
-  password: '***REDACTED***',      // Hide password
-  ha1: '***REDACTED***',           // Hide HA1
-  encryptionKey: '***REDACTED***'  // Hide encryption key
+  password: '***REDACTED***', // Hide password
+  ha1: '***REDACTED***', // Hide HA1
+  encryptionKey: '***REDACTED***', // Hide encryption key
 }
-console.log('User config:', sanitizedConfig)  // Safe to log
+console.log('User config:', sanitizedConfig) // Safe to log
 
 // Analytics without sensitive data
 analytics.track('login', {
-  username: config.authorizationUsername,  // ✅ Safe to log
-  uri: config.uri.replace(/:[^:]+$/, ''),  // ✅ URI without credentials
+  username: config.authorizationUsername, // ✅ Safe to log
+  uri: config.uri.replace(/:[^:]+$/, ''), // ✅ URI without credentials
   // Don't include password, ha1, or keys!
 })
 ```
@@ -1336,18 +1364,22 @@ console.log('Config:', sanitizeConfig(config))
 These external resources provide in-depth information about the security technologies used in VueSip.
 
 ### Web Crypto API
+
 - [MDN - Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API) - Complete API reference for browser cryptography
 - [Subtle Crypto](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto) - Low-level cryptographic operations
 
 ### WebRTC Security
+
 - [WebRTC Security Architecture (RFC 8827)](https://www.rfc-editor.org/rfc/rfc8827) - Official WebRTC security specification
 - [DTLS-SRTP (RFC 5764)](https://www.rfc-editor.org/rfc/rfc5764) - Technical specification for media encryption
 
 ### SIP Security
+
 - [SIP Authentication (RFC 3261)](https://www.rfc-editor.org/rfc/rfc3261#section-22) - SIP specification, authentication section
 - [SIP Security Mechanisms (RFC 3329)](https://www.rfc-editor.org/rfc/rfc3329) - Advanced SIP security features
 
 ### OWASP Resources
+
 - [OWASP Top Ten](https://owasp.org/www-project-top-ten/) - Most critical web security risks
 - [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/) - Practical security guidance
 
