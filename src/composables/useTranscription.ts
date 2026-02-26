@@ -25,6 +25,7 @@ import type {
   RedactionConfig,
 } from '@/types/transcription.types'
 // Import providers module to ensure auto-registration runs
+import '@/transcription/providers'
 import {
   providerRegistry as defaultProviderRegistry,
   WebSpeechProvider,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import type { MediaDevice } from 'vuesip'
 import Elks46OutboundSettings from './Elks46OutboundSettings.vue'
 import TranscriptionSettingsSection from './TranscriptionSettingsSection.vue'
@@ -52,6 +52,11 @@ const emit = defineEmits<{
 }>()
 
 const activeCategory = ref<SettingsCategory>('account')
+
+// Scrollable categories for mobile
+const scrollableCategories = computed(() => {
+  return categories
+})
 
 // Audio testing
 const isTestingMic = ref(false)
@@ -131,7 +136,9 @@ async function testSpeaker() {
     // Create HTMLAudioElement to support setSinkId for device selection
     speakerTestAudio.value = new Audio()
     if (props.selectedAudioOutputId && 'setSinkId' in speakerTestAudio.value) {
-      await (speakerTestAudio.value as any).setSinkId(props.selectedAudioOutputId)
+      await (
+        speakerTestAudio.value as HTMLAudioElement & { setSinkId(id: string): Promise<void> }
+      ).setSinkId(props.selectedAudioOutputId)
     }
 
     speakerTestAudio.value.srcObject = mediaStreamDestination.stream
@@ -194,7 +201,7 @@ onUnmounted(() => {
     <div class="category-nav">
       <div class="category-nav-scroll">
         <button
-          v-for="category in categories"
+          v-for="category in scrollableCategories"
           :key="category.id"
           class="category-btn"
           :class="{ active: activeCategory === category.id }"
