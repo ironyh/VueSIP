@@ -83,6 +83,7 @@ import {
   createEmptyE911Stats,
   formatE911Location,
 } from '@/utils/e911'
+import { useE911Locations } from './useE911Locations'
 
 const logger = createLogger('useSipE911')
 
@@ -114,7 +115,18 @@ export function useSipE911(
     ...createDefaultE911Config(),
     ...options.config,
   })
-  const locations = ref<Map<string, E911Location>>(new Map())
+  const {
+    locations,
+    locationList,
+    defaultLocation,
+    addLocation: addLocationInternal,
+    updateLocation: updateLocationInternal,
+    removeLocation: removeLocationInternal,
+    setDefaultLocation: setDefaultLocationInternal,
+    getLocation: getLocationInternal,
+    getLocationForExtension: getLocationForExtensionInternal,
+  } = useE911Locations()
+
   const activeCalls = ref<Map<string, E911Call>>(new Map())
   const callHistory = ref<E911Call[]>([])
   const complianceLogs = ref<E911ComplianceLog[]>([])
@@ -127,10 +139,6 @@ export function useSipE911(
   const eventListenerIds: Array<{ event: string; id: string }> = []
 
   // Computed
-  const locationList = computed(() => Array.from(locations.value.values()))
-
-  const defaultLocation = computed(() => locationList.value.find((loc) => loc.isDefault) || null)
-
   const activeCallList = computed(() => Array.from(activeCalls.value.values()))
 
   const hasActiveEmergency = computed(() => activeCalls.value.size > 0)
@@ -195,15 +203,7 @@ export function useSipE911(
    * Get location for an extension
    */
   function getLocationForExtension(extension: string): E911Location | null {
-    if (!isValidExtension(extension)) return null
-
-    for (const location of locations.value.values()) {
-      if (location.extensions.includes(extension)) {
-        return location
-      }
-    }
-
-    return defaultLocation.value
+    return getLocationForExtensionInternal(extension)
   }
 
   /**
@@ -582,21 +582,7 @@ This is an automated E911 notification. Please verify the situation and provide 
    * Add a location
    */
   function addLocation(locationData: Omit<E911Location, 'id' | 'lastUpdated'>): E911Location {
-    const location: E911Location = {
-      ...locationData,
-      id: generateE911Id(),
-      name: sanitizeInput(locationData.name),
-      lastUpdated: new Date(),
-    }
-
-    // If this is set as default, clear other defaults
-    if (location.isDefault) {
-      for (const loc of locations.value.values()) {
-        loc.isDefault = false
-      }
-    }
-
-    locations.value.set(location.id, location)
+    const location = addLocationInternal(locationData)
 
     addLog('location_updated', `Location added: ${location.name}`, 'info', undefined, {
       locationId: location.id,
@@ -611,76 +597,54 @@ This is an automated E911 notification. Please verify the situation and provide 
    * Update a location
    */
   function updateLocation(locationId: string, updates: Partial<E911Location>): boolean {
-    const location = locations.value.get(locationId)
-    if (!location) return false
-
-    // If setting as default, clear other defaults
-    if (updates.isDefault) {
-      for (const loc of locations.value.values()) {
-        if (loc.id !== locationId) {
-          loc.isDefault = false
-        }
-      }
+    const location = getLocationInternal(locationId)
+    const ok = updateLocationInternal(locationId, updates)
+    if (ok && location) {
+      addLog('location_updated', `Location updated: ${location.name}`, 'info', undefined, {
+        locationId,
+      })
     }
-
-    // Sanitize name if provided
-    const sanitizedUpdates = updates.name
-      ? { ...updates, name: sanitizeInput(updates.name) }
-      : updates
-
-    Object.assign(location, sanitizedUpdates, { lastUpdated: new Date() })
-
-    addLog('location_updated', `Location updated: ${location.name}`, 'info', undefined, {
-      locationId,
-    })
-
-    return true
+    return ok
   }
 
   /**
    * Remove a location
    */
   function removeLocation(locationId: string): boolean {
-    const location = locations.value.get(locationId)
-    if (!location) return false
-
-    locations.value.delete(locationId)
-
-    addLog('location_updated', `Location removed: ${location.name}`, 'info', undefined, {
-      locationId,
-    })
-
-    return true
+    const location = getLocationInternal(locationId)
+    const ok = removeLocationInternal(locationId)
+    if (ok && location) {
+      addLog('location_updated', `Location removed: ${location.name}`, 'info', undefined, {
+        locationId,
+      })
+    }
+    return ok
   }
 
   /**
    * Set default location
    */
   function setDefaultLocation(locationId: string): boolean {
-    const location = locations.value.get(locationId)
-    if (!location) return false
-
-    for (const loc of locations.value.values()) {
-      loc.isDefault = loc.id === locationId
+    const location = getLocationInternal(locationId)
+    const ok = setDefaultLocationInternal(locationId)
+    if (ok && location) {
+      addLog('location_updated', `Default location set: ${location.name}`, 'info')
     }
-
-    addLog('location_updated', `Default location set: ${location.name}`, 'info')
-
-    return true
+    return ok
   }
 
   /**
    * Get location by ID
    */
   function getLocation(locationId: string): E911Location | null {
-    return locations.value.get(locationId) || null
+    return getLocationInternal(locationId)
   }
 
   /**
    * Verify/validate a location
    */
   async function verifyLocation(locationId: string): Promise<boolean> {
-    const location = locations.value.get(locationId)
+    const location = getLocationInternal(locationId)
     if (!location) return false
 
     isLoading.value = true
@@ -690,9 +654,11 @@ This is an automated E911 notification. Please verify the situation and provide 
       // For now, we simulate verification
       await new Promise((resolve) => setTimeout(resolve, 500))
 
-      location.isVerified = true
-      location.verifiedAt = new Date()
-      location.lastUpdated = new Date()
+      updateLocationInternal(locationId, {
+        isVerified: true,
+        verifiedAt: new Date(),
+        lastUpdated: new Date(),
+      })
 
       addLog('location_verified', `Location verified: ${location.name}`, 'info', undefined, {
         locationId,
