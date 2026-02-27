@@ -214,7 +214,7 @@ export const SipClientProvider = defineComponent({
 
     // SIP client instance
     const client = ref<SipClient | null>(null)
-    const { register } = useSipRegistration(client)
+    const { register } = useSipRegistration(client as Ref<SipClient | null>)
 
     // Reactive state
     const connectionState = ref<ConnectionState>(ConnectionState.Disconnected)
