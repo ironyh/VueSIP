@@ -1,5 +1,5 @@
 <template>
-  <div class="connection-manager">
+  <div class="connection-manager" data-testid="connection-manager-panel">
     <!-- Header with Add Button -->
     <div class="manager-header">
       <h3>
