@@ -102,31 +102,23 @@ export interface RegistrationStatistics {
 /**
  * SIP Registration Composable
  *
- * Manages SIP registration lifecycle with reactive state, automatic refresh,
- * and retry logic. Integrates with registrationStore and SipClient.
+ * Use for all SIP registration: register, unregister, refresh. Pass a SipClient ref
+ * (e.g. computed(() => useSipClient().getClient())). This is the only composable that
+ * should perform register/unregister; useSipClient no longer exposes those methods.
  *
- * @param sipClient - SIP client instance
- * @param options - Registration options
+ * @param sipClient - Ref to SipClient (e.g. computed(() => useSipClient().getClient()))
+ * @param options - Registration options (expires, maxRetries, autoRefresh)
  * @returns Registration state and methods
  *
  * @example
  * ```typescript
- * const { isRegistered, register, unregister } = useSipRegistration(sipClient, {
+ * const sip = useSipClient(config)
+ * const registration = useSipRegistration(computed(() => sip.getClient()), {
  *   expires: 600,
  *   maxRetries: 3,
  *   autoRefresh: true
  * })
- *
- * // Register
- * await register()
- *
- * // Check status
- * if (isRegistered.value) {
- *   console.log('Successfully registered')
- * }
- *
- * // Unregister
- * await unregister()
+ * await registration.register()
  * ```
  */
 export function useSipRegistration(

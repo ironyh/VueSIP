@@ -10,6 +10,20 @@ import type { EventBus } from '@/core/EventBus'
 import type { SipClientConfig } from '@/types/config.types'
 import { ConnectionState, RegistrationState } from '@/types/sip.types'
 
+// Mock logger so we can assert on SipClient debug/error (Stream A: logging goes through logger, not console)
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
+}))
+vi.mock('@/utils/logger', () => ({
+  createLogger: () => mockLogger,
+  setLogLevel: vi.fn(),
+}))
+
 // Enable automatic mocking using __mocks__/jssip.ts
 vi.mock('jssip')
 
@@ -19,14 +33,12 @@ import { mockUA, resetMockJsSip } from 'jssip'
 describe('SipClient - E2E Test Mode', () => {
   let eventBus: EventBus
   let config: SipClientConfig
-  let consoleSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     // Reset all mocks and handlers using shared helper
     resetMockJsSip()
-
-    // Setup console spy to verify E2E logging
-    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    mockLogger.debug.mockClear()
+    mockLogger.error.mockClear()
 
     eventBus = createEventBus()
     config = {
@@ -37,7 +49,6 @@ describe('SipClient - E2E Test Mode', () => {
   })
 
   afterEach(() => {
-    consoleSpy.mockRestore()
     // Clean up window globals
     delete (window as any).__emitSipEvent
     delete (window as any).__sipEventBridge
@@ -51,8 +62,8 @@ describe('SipClient - E2E Test Mode', () => {
       const sipClient = new SipClient(config, eventBus)
       await sipClient.start()
 
-      // Should log E2E detection
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[E2E TEST MODE]'))
+      // Should log E2E detection (Stream A: via logger.debug)
+      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('[E2E TEST MODE]'))
 
       // Should skip JsSIP connection
       expect(mockUA.start).not.toHaveBeenCalled()
@@ -71,7 +82,7 @@ describe('SipClient - E2E Test Mode', () => {
       const sipClient = new SipClient(config, eventBus)
       await sipClient.start()
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[E2E TEST MODE]'))
+      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('[E2E TEST MODE]'))
 
       await sipClient.stop()
     })
@@ -137,7 +148,7 @@ describe('SipClient - E2E Test Mode', () => {
       await sipClient.start()
 
       expect(eventBridgeOn).toHaveBeenCalledWith('sip:newRTCSession', expect.any(Function))
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         expect.stringContaining('Setting up incoming call listener')
       )
 
@@ -227,8 +238,8 @@ describe('SipClient - E2E Test Mode', () => {
 
         incomingCallHandler(mockIncomingCallEvent)
 
-        // Should handle the E2E incoming call - check for the call session creation log
-        expect(consoleSpy).toHaveBeenCalledWith(
+        // Should handle the E2E incoming call - check for the call session creation log (Stream A: via logger.debug)
+        expect(mockLogger.debug).toHaveBeenCalledWith(
           expect.stringContaining('[E2E TEST] Incoming call session created'),
           expect.any(String)
         )
@@ -283,12 +294,11 @@ describe('SipClient - E2E Test Mode', () => {
       const sipClient = new SipClient(config, eventBus)
       await sipClient.start()
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         '[SipClient] E2E detection in start():',
         expect.objectContaining({
-          hasEmitSipEvent: true,
-          hasEventBridge: true,
-          typeofEmitSipEvent: 'function',
+          isE2E: true,
+          hasBridge: true,
         })
       )
 
@@ -299,7 +309,9 @@ describe('SipClient - E2E Test Mode', () => {
       const sipClient = new SipClient(config, eventBus)
       await sipClient.start()
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Skipping JsSIP connection'))
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        expect.stringContaining('Skipping JsSIP connection')
+      )
 
       await sipClient.stop()
     })

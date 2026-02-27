@@ -36,8 +36,8 @@ import type {
   JsSIPCallOptions,
   JsSIPResponse,
   PresenceSubscriptionState,
-  E2EEmitFunction,
 } from '@/types/jssip.types'
+import { isE2EMode, getE2EEmit, getEventBridge } from '@/testing/e2eHarness'
 import {
   RegistrationState,
   ConnectionState,
@@ -160,17 +160,6 @@ const isTestEnvironment = (): boolean => {
     return false
   }
   return window.location?.search?.includes('test=true') ?? false
-}
-
-const isE2EMode = (): boolean => {
-  if (typeof window === 'undefined') {
-    return false
-  }
-  const hasEmitSipEvent =
-    typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-  const hasEventBridge =
-    typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined'
-  return hasEmitSipEvent || hasEventBridge
 }
 
 /**
@@ -351,21 +340,15 @@ export class SipClient {
         throw new Error(`Invalid SIP configuration: ${validation.errors?.join(', ')}`)
       }
 
-      // Check if running in E2E test environment
-      const hasEmitSipEvent =
-        typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-      const hasEventBridge =
-        typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined'
-
-      console.log('[SipClient] E2E detection in start():', {
-        hasEmitSipEvent,
-        hasEventBridge,
-        typeofEmitSipEvent: typeof (window as unknown as Record<string, unknown>).__emitSipEvent,
-        typeofEventBridge: typeof (window as unknown as Record<string, unknown>).__sipEventBridge,
+      // E2E mode: use harness for detection and EventBridge access
+      logger.debug('[SipClient] E2E detection in start():', {
+        isE2E: isE2EMode(),
+        hasEmit: !!getE2EEmit(),
+        hasBridge: !!getEventBridge(),
       })
 
-      if (hasEmitSipEvent) {
-        console.log(
+      if (isE2EMode()) {
+        logger.debug(
           '[SipClient] [E2E TEST MODE] Skipping JsSIP connection; simulating success immediately'
         )
 
@@ -379,27 +362,21 @@ export class SipClient {
           transport: this.config.uri,
         } satisfies SipConnectedEvent)
 
-        // Emit to EventBridge
-        console.log('[SipClient] [E2E TEST] Emitting connection:connected to EventBridge')
-        ;((window as unknown as Record<string, unknown>).__emitSipEvent as E2EEmitFunction)(
-          'connection:connected',
-          {}
-        )
+        const emitE2E = getE2EEmit()
+        if (emitE2E) {
+          logger.debug('[SipClient] [E2E TEST] Emitting connection:connected to EventBridge')
+          emitE2E('connection:connected', {})
+        }
 
         logger.info('SIP client started successfully (E2E test mode)')
 
-        // Set up E2E incoming call listener
-        // Listen on EventBridge for simulated incoming calls
-        const eventBridge = (window as unknown as Record<string, unknown>).__sipEventBridge as
-          | {
-              on?: (event: string, handler: (data: unknown) => void) => void
-            }
-          | undefined
+        // Set up E2E incoming call listener on EventBridge
+        const eventBridge = getEventBridge()
         if (eventBridge && typeof eventBridge.on === 'function') {
-          console.log('[SipClient] [E2E TEST] Setting up incoming call listener on EventBridge')
+          logger.debug('[SipClient] [E2E TEST] Setting up incoming call listener on EventBridge')
           eventBridge.on('sip:newRTCSession', (e: unknown) => {
             const event = e as { originator?: string; direction?: string }
-            console.log('[SipClient] [E2E TEST] Received sip:newRTCSession event:', event)
+            logger.debug('[SipClient] [E2E TEST] Received sip:newRTCSession event:', event)
             if (event.originator === 'remote' && event.direction === 'incoming') {
               this.handleE2EIncomingCall(event)
             }
@@ -566,22 +543,14 @@ export class SipClient {
    * Register with SIP server
    */
   async register(): Promise<void> {
-    // Check if running in E2E test environment first
-    // Playwright E2E tests inject __emitSipEvent, Vitest unit tests don't
-    const hasEmitSipEvent =
-      typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-    const hasEventBridge =
-      typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined'
-
-    console.log('[SipClient] E2E detection in register():', {
-      hasEmitSipEvent,
-      hasEventBridge,
-      typeofEmitSipEvent: typeof (window as unknown as Record<string, unknown>).__emitSipEvent,
-      typeofEventBridge: typeof (window as unknown as Record<string, unknown>).__sipEventBridge,
+    logger.debug('[SipClient] E2E detection in register():', {
+      isE2E: isE2EMode(),
+      hasEmit: !!getE2EEmit(),
+      hasBridge: !!getEventBridge(),
     })
 
     // In E2E mode, skip the UA check since we don't create a real JsSIP UA
-    if (!hasEmitSipEvent) {
+    if (!isE2EMode()) {
       if (!this.ua) {
         throw new Error('SIP client is not started')
       }
@@ -599,8 +568,8 @@ export class SipClient {
     logger.info('Registering with SIP server')
     this.updateRegistrationState(RegistrationState.Registering)
 
-    if (hasEmitSipEvent) {
-      console.log(
+    if (isE2EMode()) {
+      logger.debug(
         '[SipClient] [E2E TEST MODE] Skipping JsSIP registration; simulating success immediately'
       )
       logger.warn('[E2E TEST MODE] Skipping JsSIP registration; simulating success immediately')
@@ -619,17 +588,16 @@ export class SipClient {
         expires: this.config.registrationOptions?.expires ?? 600,
       } satisfies SipRegisteredEvent)
 
-      // Directly emit to EventBridge for E2E tests
-      console.log('[SipClient] [E2E TEST] Emitting registration:registered to EventBridge')
-      ;((window as unknown as Record<string, unknown>).__emitSipEvent as E2EEmitFunction)(
-        'registration:registered',
-        {}
-      )
+      const emitE2E = getE2EEmit()
+      if (emitE2E) {
+        logger.debug('[SipClient] [E2E TEST] Emitting registration:registered to EventBridge')
+        emitE2E('registration:registered', {})
+      }
 
       return Promise.resolve()
-    } else {
-      console.log('[SipClient] NOT in E2E mode, proceeding with normal JsSIP registration')
     }
+
+    logger.debug('[SipClient] NOT in E2E mode, proceeding with normal JsSIP registration')
 
     return new Promise((resolve, reject) => {
       if (!this.ua) {
@@ -1032,7 +1000,7 @@ export class SipClient {
         (window.location?.search?.includes('test=true') ||
           (window as unknown as Record<string, unknown>).__PLAYWRIGHT_TEST__)
       const defaultTimeout = isTestEnv ? 2000 : 10000
-      console.log(
+      logger.debug(
         `[SipClient] waitForConnection timeout: isTestEnv=${isTestEnv}, timeout=${this.config.wsOptions?.connectionTimeout ?? defaultTimeout}ms`
       )
       const timeout = setTimeout(() => {
@@ -1065,15 +1033,15 @@ export class SipClient {
    * Update connection state and emit events
    */
   private updateConnectionState(state: ConnectionState): void {
-    console.log(
+    logger.debug(
       `[SipClient] updateConnectionState called with: ${state}, current: ${this.state.connectionState}`
     )
     if (this.state.connectionState !== state) {
       this.state.connectionState = state
-      console.log(`[SipClient] Connection state CHANGED to: ${state}`)
+      logger.debug(`[SipClient] Connection state CHANGED to: ${state}`)
       logger.debug(`Connection state changed: ${state}`)
     } else {
-      console.log(`[SipClient] Connection state already: ${state}, no change`)
+      logger.debug(`[SipClient] Connection state already: ${state}, no change`)
     }
   }
 
@@ -1081,31 +1049,31 @@ export class SipClient {
    * Emit sip:connected event (internal helper)
    */
   private emitConnectedEvent(transport?: string): void {
-    console.log('[SipClient] emitConnectedEvent called, updating state and emitting event')
+    logger.debug('[SipClient] emitConnectedEvent called, updating state and emitting event')
     this.updateConnectionState(ConnectionState.Connected)
-    console.log('[SipClient] Emitting sip:connected event on event bus')
+    logger.debug('[SipClient] Emitting sip:connected event on event bus')
     this.eventBus.emitSync('sip:connected', {
       type: 'sip:connected',
       timestamp: new Date(),
       transport: transport ?? this.config.uri,
     } satisfies SipConnectedEvent)
-    console.log('[SipClient] sip:connected event emitted successfully')
+    logger.debug('[SipClient] sip:connected event emitted successfully')
   }
 
   /**
    * Ensure connected state/event is emitted exactly once
    */
   private ensureConnectedEvent(transport?: string, source = 'fallback'): void {
-    console.log(
+    logger.debug(
       `[SipClient] ensureConnectedEvent called (source: ${source}), current state: ${this.state.connectionState}`
     )
     if (this.state.connectionState === ConnectionState.Connected) {
-      console.log(`[SipClient] Connected state already set, skipping (source: ${source})`)
+      logger.debug(`[SipClient] Connected state already set, skipping (source: ${source})`)
       logger.debug(`Connected state already set (source: ${source})`)
       return
     }
 
-    console.log(`[SipClient] Forcing connected state via ${source}`)
+    logger.debug(`[SipClient] Forcing connected state via ${source}`)
     logger.debug(`Forcing connected state via ${source}`)
     this.emitConnectedEvent(transport)
   }
@@ -2281,40 +2249,33 @@ export class SipClient {
    * @returns Promise resolving to CallSession instance
    */
   async call(target: string, options?: CallOptions): Promise<CallSessionClass> {
-    console.log('[SipClient] call() method INVOKED with target:', target)
-    console.log('[SipClient] call() - ua exists:', !!this.ua)
-    console.log('[SipClient] call() - isConnected:', this.isConnected)
+    logger.debug('[SipClient] call() method INVOKED with target:', target)
+    logger.debug('[SipClient] call() - ua exists:', !!this.ua)
+    logger.debug('[SipClient] call() - isConnected:', this.isConnected)
 
-    // Check if running in E2E test environment FIRST (before ua check)
-    const hasEmitSipEvent =
-      typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-    const hasEventBridge =
-      typeof (window as unknown as Record<string, unknown>).__sipEventBridge !== 'undefined'
-
-    console.log('[SipClient] E2E detection in call():', {
-      hasEmitSipEvent,
-      hasEventBridge,
-      typeofEmitSipEvent: typeof (window as unknown as Record<string, unknown>).__emitSipEvent,
+    // E2E mode: skip UA check (no real JsSIP UA)
+    logger.debug('[SipClient] E2E detection in call():', {
+      isE2E: isE2EMode(),
+      hasEmit: !!getE2EEmit(),
     })
 
-    // In E2E mode, skip the UA check since we don't create a real JsSIP UA
-    if (!hasEmitSipEvent) {
+    if (!isE2EMode()) {
       if (!this.ua) {
-        console.log('[SipClient] call() throwing: SIP client is not started')
+        logger.debug('[SipClient] call() throwing: SIP client is not started')
         throw new Error('SIP client is not started')
       }
 
       if (!this.isConnected) {
-        console.log('[SipClient] call() throwing: Not connected to SIP server')
+        logger.debug('[SipClient] call() throwing: Not connected to SIP server')
         throw new Error('Not connected to SIP server')
       }
     }
 
     logger.info('Making call to', target)
-    console.log('[SipClient] call() - passed all checks, proceeding...')
+    logger.debug('[SipClient] call() - passed all checks, proceeding...')
 
-    if (hasEmitSipEvent) {
-      console.log('[SipClient] [E2E TEST MODE] Skipping JsSIP call; simulating call immediately')
+    if (isE2EMode()) {
+      logger.debug('[SipClient] [E2E TEST MODE] Skipping JsSIP call; simulating call immediately')
       logger.warn('[E2E TEST MODE] Skipping JsSIP call; simulating call immediately')
 
       // Create a mock RTCSession-like object for test environment
@@ -2327,20 +2288,20 @@ export class SipClient {
 
       const emitMockEvent = (event: string, ...args: unknown[]) => {
         const listenerCount = mockEventListeners.get(event)?.size ?? 0
-        console.log(`[MockRTCSession] Emitting event: ${event}, listeners: ${listenerCount}`)
+        logger.debug(`[MockRTCSession] Emitting event: ${event}, listeners: ${listenerCount}`)
         if (listenerCount === 0) {
-          console.log(`[MockRTCSession] WARNING: No listeners for event '${event}'`)
-          console.log(
+          logger.debug(`[MockRTCSession] WARNING: No listeners for event '${event}'`)
+          logger.debug(
             `[MockRTCSession] Registered events: ${Array.from(mockEventListeners.keys()).join(', ')}`
           )
         }
         mockEventListeners.get(event)?.forEach((listener) => {
-          console.log(`[MockRTCSession] Calling listener for ${event}`)
+          logger.debug(`[MockRTCSession] Calling listener for ${event}`)
           try {
             listener(...args)
-            console.log(`[MockRTCSession] Listener for ${event} completed successfully`)
+            logger.debug(`[MockRTCSession] Listener for ${event} completed successfully`)
           } catch (err) {
-            console.error(`[MockRTCSession] Listener for ${event} threw error:`, err)
+            logger.error(`[MockRTCSession] Listener for ${event} threw error:`, err)
           }
         })
       }
@@ -2356,7 +2317,7 @@ export class SipClient {
         isEnded: () => mockIsEnded,
         isInProgress: () => !mockIsEnded && !mockIsEstablished,
         terminate: () => {
-          console.log('[MockRTCSession] terminate() called')
+          logger.debug('[MockRTCSession] terminate() called')
           mockIsEnded = true
           // Emit 'ended' event like JsSIP does
           setTimeout(() => {
@@ -2365,16 +2326,9 @@ export class SipClient {
               message: null,
               cause: 'Terminated',
             })
-            // Also emit to EventBridge for E2E tests
-            if (
-              typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-            ) {
-              ;(
-                (window as unknown as Record<string, unknown>).__emitSipEvent as (
-                  event: string,
-                  data?: Record<string, unknown>
-                ) => void
-              )('call:ended', {
+            const emitE2E = getE2EEmit()
+            if (emitE2E) {
+              emitE2E('call:ended', {
                 callId,
                 cause: 'Terminated',
               })
@@ -2382,7 +2336,7 @@ export class SipClient {
           }, 20)
         },
         answer: () => {
-          console.log('[MockRTCSession] answer() called')
+          logger.debug('[MockRTCSession] answer() called')
           mockIsEstablished = true
           setTimeout(() => {
             emitMockEvent('accepted', { originator: 'local' })
@@ -2392,65 +2346,45 @@ export class SipClient {
           }, 20)
         },
         sendDTMF: (tone: string) => {
-          console.log('[MockRTCSession] sendDTMF() called with tone:', tone)
+          logger.debug('[MockRTCSession] sendDTMF() called with tone:', tone)
           // DTMF is handled by CallSession which emits events
         },
         mute: () => {
-          console.log('[MockRTCSession] mute() called')
+          logger.debug('[MockRTCSession] mute() called')
         },
         unmute: () => {
-          console.log('[MockRTCSession] unmute() called')
+          logger.debug('[MockRTCSession] unmute() called')
         },
         hold: () => {
-          console.log('[MockRTCSession] hold() called')
+          logger.debug('[MockRTCSession] hold() called')
           _mockIsHeld = true
           setTimeout(() => {
             emitMockEvent('hold', { originator: 'local' })
-            // Also emit to EventBridge for E2E tests
-            if (
-              typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-            ) {
-              ;(
-                (window as unknown as Record<string, unknown>).__emitSipEvent as (
-                  event: string,
-                  data?: Record<string, unknown>
-                ) => void
-              )('call:held', { callId })
-            }
+            const emitE2E = getE2EEmit()
+            if (emitE2E) emitE2E('call:held', { callId })
           }, 20)
         },
         unhold: () => {
-          console.log('[MockRTCSession] unhold() called')
+          logger.debug('[MockRTCSession] unhold() called')
           _mockIsHeld = false
-          setTimeout(() => {
-            emitMockEvent('unhold', { originator: 'local' })
-            // Also emit to EventBridge for E2E tests
-            if (
-              typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function'
-            ) {
-              ;(
-                (window as unknown as Record<string, unknown>).__emitSipEvent as (
-                  event: string,
-                  data?: Record<string, unknown>
-                ) => void
-              )('call:unheld', { callId })
-            }
-          }, 20)
+          const emitE2E = getE2EEmit()
+          if (emitE2E) emitE2E('call:unheld', { callId })
+          setTimeout(() => emitMockEvent('unhold', { originator: 'local' }), 20)
         },
         renegotiate: () => {
-          console.log('[MockRTCSession] renegotiate() called')
+          logger.debug('[MockRTCSession] renegotiate() called')
         },
         connection: null,
         // Event emitter methods required by CallSession
         on: (event: string, listener: (...args: unknown[]) => void) => {
-          console.log(`[MockRTCSession] .on('${event}') - registering listener`)
+          logger.debug(`[MockRTCSession] .on('${event}') - registering listener`)
           if (!mockEventListeners.has(event)) {
             mockEventListeners.set(event, new Set())
           }
           const listeners = mockEventListeners.get(event)
           if (listeners) {
             listeners.add(listener)
-            console.log(`[MockRTCSession] Total listeners for '${event}': ${listeners.size}`)
+            logger.debug(`[MockRTCSession] Total listeners for '${event}': ${listeners.size}`)
           }
         },
         off: (event: string, listener: (...args: unknown[]) => void) => {
@@ -2476,60 +2410,46 @@ export class SipClient {
 
       logger.info('Mock call initiated in test environment', { callId, target })
 
-      // Emit call:initiating immediately
-      console.log('[SipClient] [E2E TEST] Emitting call:initiating event to EventBridge')
-      ;(
-        (window as unknown as Record<string, unknown>).__emitSipEvent as (
-          event: string,
-          data?: Record<string, unknown>
-        ) => void
-      )('call:initiating', {
-        callId,
-        direction: 'outgoing',
-        remoteUri: target,
-      })
-
-      // Simulate call progression with very short delays
-      setTimeout(() => {
-        console.log('[SipClient] [E2E TEST] Emitting call:ringing event to EventBridge')
-        ;(
-          (window as unknown as Record<string, unknown>).__emitSipEvent as (
-            event: string,
-            data?: Record<string, unknown>
-          ) => void
-        )('call:ringing', {
+      const emitE2E = getE2EEmit()
+      if (emitE2E) {
+        logger.debug('[SipClient] [E2E TEST] Emitting call:initiating event to EventBridge')
+        emitE2E('call:initiating', {
           callId,
           direction: 'outgoing',
           remoteUri: target,
         })
-        // Also emit 'progress' on RTCSession for ringing state
+      }
+
+      // Simulate call progression with very short delays
+      setTimeout(() => {
+        if (emitE2E) {
+          logger.debug('[SipClient] [E2E TEST] Emitting call:ringing event to EventBridge')
+          emitE2E('call:ringing', {
+            callId,
+            direction: 'outgoing',
+            remoteUri: target,
+          })
+        }
         emitMockEvent('progress', { originator: 'remote' })
 
         setTimeout(() => {
-          // Emit RTCSession events to update CallSession internal state FIRST
-          // This ensures the composable state is updated before EventBridge
           mockIsEstablished = true
-          console.log('[SipClient] [E2E TEST] Emitting RTCSession accepted event')
+          logger.debug('[SipClient] [E2E TEST] Emitting RTCSession accepted event')
           emitMockEvent('accepted', { originator: 'remote' })
 
-          // Small delay then emit confirmed to transition to 'active' state
           setTimeout(() => {
-            console.log('[SipClient] [E2E TEST] Emitting RTCSession confirmed event')
+            logger.debug('[SipClient] [E2E TEST] Emitting RTCSession confirmed event')
             emitMockEvent('confirmed', {})
 
-            // Now emit to EventBridge AFTER the internal state is updated
             setTimeout(() => {
-              console.log('[SipClient] [E2E TEST] Emitting call:answered event to EventBridge')
-              ;(
-                (window as unknown as Record<string, unknown>).__emitSipEvent as (
-                  event: string,
-                  data?: Record<string, unknown>
-                ) => void
-              )('call:answered', {
-                callId,
-                direction: 'outgoing',
-                remoteUri: target,
-              })
+              if (emitE2E) {
+                logger.debug('[SipClient] [E2E TEST] Emitting call:answered event to EventBridge')
+                emitE2E('call:answered', {
+                  callId,
+                  direction: 'outgoing',
+                  remoteUri: target,
+                })
+              }
             }, 10)
           }, 20)
         }, 50)
@@ -2537,7 +2457,7 @@ export class SipClient {
 
       return callSession
     } else {
-      console.log('[SipClient] NOT in E2E mode, proceeding with normal JsSIP call')
+      logger.debug('[SipClient] NOT in E2E mode, proceeding with normal JsSIP call')
     }
 
     // Ensure config is always a plain object (not a Vue proxy) before JsSIP accesses it
@@ -2659,62 +2579,30 @@ export class SipClient {
 
         logger.info('Mock call initiated in test environment', { callId, target })
 
-        // Directly emit events to EventBridge for test environment
-        console.log('[SipClient] About to check for __emitSipEvent')
-        console.log(
-          '[SipClient] typeof __emitSipEvent:',
-          typeof (window as unknown as Record<string, unknown>).__emitSipEvent
-        )
-        console.log(
-          '[SipClient] __emitSipEvent value:',
-          (window as unknown as Record<string, unknown>).__emitSipEvent
-        )
-
-        // Emit immediately synchronously so EventBridge gets the events right away
-        if (typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function') {
-          console.log('[SipClient] Emitting call:initiating event to EventBridge')
-          // Emit call:initiating immediately
-          ;(
-            (window as unknown as Record<string, unknown>).__emitSipEvent as (
-              event: string,
-              data?: Record<string, unknown>
-            ) => void
-          )('call:initiating', {
+        const emitE2E = getE2EEmit()
+        if (emitE2E) {
+          logger.debug('[SipClient] Emitting call:initiating event to EventBridge')
+          emitE2E('call:initiating', {
             callId,
             direction: 'outgoing',
             remoteUri: target,
           })
-
-          // Simulate call progression with very short delays
           setTimeout(() => {
-            console.log('[SipClient] Emitting call:ringing event to EventBridge')
-            ;(
-              (window as unknown as Record<string, unknown>).__emitSipEvent as (
-                event: string,
-                data?: Record<string, unknown>
-              ) => void
-            )('call:ringing', {
+            logger.debug('[SipClient] Emitting call:ringing event to EventBridge')
+            emitE2E('call:ringing', {
               callId,
               direction: 'outgoing',
               remoteUri: target,
             })
-
             setTimeout(() => {
-              console.log('[SipClient] Emitting call:answered event to EventBridge')
-              ;(
-                (window as unknown as Record<string, unknown>).__emitSipEvent as (
-                  event: string,
-                  data?: Record<string, unknown>
-                ) => void
-              )('call:answered', {
+              logger.debug('[SipClient] Emitting call:answered event to EventBridge')
+              emitE2E('call:answered', {
                 callId,
                 direction: 'outgoing',
                 remoteUri: target,
               })
             }, 50)
           }, 50)
-        } else {
-          console.error('[SipClient] __emitSipEvent is NOT a function!')
         }
 
         return callSession
@@ -2938,7 +2826,7 @@ export class SipClient {
    * Creates a mock RTCSession for testing incoming calls without JsSIP
    */
   private handleE2EIncomingCall(event: Record<string, unknown>): void {
-    console.log('[SipClient] [E2E TEST] Handling incoming call:', event)
+    logger.debug('[SipClient] [E2E TEST] Handling incoming call:', event)
 
     const callId = (typeof event.callId === 'string' ? event.callId : null) || this.generateCallId()
     const remoteUri =
@@ -2951,9 +2839,9 @@ export class SipClient {
     void _mockIsHeld
 
     const emitMockEvent = (eventName: string, ...args: unknown[]) => {
-      console.log(`[MockRTCSession:Incoming] Emitting event: ${eventName}`)
+      logger.debug(`[MockRTCSession:Incoming] Emitting event: ${eventName}`)
       mockEventListeners.get(eventName)?.forEach((listener) => {
-        console.log(`[MockRTCSession:Incoming] Calling listener for ${eventName}`)
+        logger.debug(`[MockRTCSession:Incoming] Calling listener for ${eventName}`)
         listener(...args)
       })
     }
@@ -2976,25 +2864,18 @@ export class SipClient {
 
       // Answer the incoming call
       answer: (options?: Record<string, unknown>) => {
-        console.log('[MockRTCSession:Incoming] answer() called', options)
+        logger.debug('[MockRTCSession:Incoming] answer() called', options)
         setTimeout(() => {
           emitMockEvent('accepted', { originator: 'local' })
           emitMockEvent('confirmed', { originator: 'local' })
-          // Also emit to EventBridge
-          if (typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function') {
-            ;(
-              (window as unknown as Record<string, unknown>).__emitSipEvent as (
-                event: string,
-                data?: Record<string, unknown>
-              ) => void
-            )('call:confirmed', { callId })
-          }
+          const emitE2E = getE2EEmit()
+          if (emitE2E) emitE2E('call:confirmed', { callId })
         }, 50)
       },
 
       // Reject the incoming call
       terminate: (options?: { cause?: string }) => {
-        console.log('[MockRTCSession:Incoming] terminate() called', options)
+        logger.debug('[MockRTCSession:Incoming] terminate() called', options)
         mockIsEnded = true
         setTimeout(() => {
           emitMockEvent('ended', { cause: options?.cause || 'Terminated', originator: 'local' })
@@ -3003,19 +2884,19 @@ export class SipClient {
 
       // Hold/unhold
       hold: () => {
-        console.log('[MockRTCSession:Incoming] hold() called')
+        logger.debug('[MockRTCSession:Incoming] hold() called')
         _mockIsHeld = true
         setTimeout(() => emitMockEvent('hold', { originator: 'local' }), 20)
       },
       unhold: () => {
-        console.log('[MockRTCSession:Incoming] unhold() called')
+        logger.debug('[MockRTCSession:Incoming] unhold() called')
         _mockIsHeld = false
         setTimeout(() => emitMockEvent('unhold', { originator: 'local' }), 20)
       },
 
       // Mute/unmute
-      mute: () => console.log('[MockRTCSession:Incoming] mute() called'),
-      unmute: () => console.log('[MockRTCSession:Incoming] unmute() called'),
+      mute: () => logger.debug('[MockRTCSession:Incoming] mute() called'),
+      unmute: () => logger.debug('[MockRTCSession:Incoming] unmute() called'),
 
       // Event handling
       on: (eventName: string, listener: (...args: unknown[]) => void) => {
@@ -3026,7 +2907,7 @@ export class SipClient {
         if (listeners) {
           listeners.add(listener)
         }
-        console.log(`[MockRTCSession:Incoming] Registered listener for: ${eventName}`)
+        logger.debug(`[MockRTCSession:Incoming] Registered listener for: ${eventName}`)
       },
       off: (eventName: string, listener: (...args: unknown[]) => void) => {
         mockEventListeners.get(eventName)?.delete(listener)
@@ -3047,8 +2928,8 @@ export class SipClient {
       removeAllListeners: () => mockEventListeners.clear(),
 
       // Other methods
-      sendDTMF: (digit: string) => console.log(`[MockRTCSession:Incoming] sendDTMF: ${digit}`),
-      renegotiate: () => console.log('[MockRTCSession:Incoming] renegotiate() called'),
+      sendDTMF: (digit: string) => logger.debug(`[MockRTCSession:Incoming] sendDTMF: ${digit}`),
+      renegotiate: () => logger.debug('[MockRTCSession:Incoming] renegotiate() called'),
       connection: null,
     }
 
@@ -3073,21 +2954,16 @@ export class SipClient {
       callId,
     } as import('@/types/events.types').SipNewSessionEvent)
 
-    // Also emit to EventBridge for tests
-    if (typeof (window as unknown as Record<string, unknown>).__emitSipEvent === 'function') {
-      ;(
-        (window as unknown as Record<string, unknown>).__emitSipEvent as (
-          event: string,
-          data?: Record<string, unknown>
-        ) => void
-      )('call:incoming', {
+    const emitE2E = getE2EEmit()
+    if (emitE2E) {
+      emitE2E('call:incoming', {
         callId,
         remoteUri,
         direction: 'incoming',
       })
     }
 
-    console.log('[SipClient] [E2E TEST] Incoming call session created:', callId)
+    logger.debug('[SipClient] [E2E TEST] Incoming call session created:', callId)
   }
 
   // ============================================================================

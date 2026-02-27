@@ -30,6 +30,13 @@ function sortByPolicy(
   return [...caps].sort((a, b) => score(b) - score(a))
 }
 
+/**
+ * Composable for codec capability inspection and preference (audio/video).
+ *
+ * @experimental This API is preview and may change in future releases.
+ * @param initialPolicy - Optional codec policy (e.g. prefer Opus/VP8).
+ * @param transformer - Optional SDP transformer for fallback when transceiver API is unavailable.
+ */
 export function useCodecs(initialPolicy?: CodecPolicy, transformer?: SdpTransformer) {
   const policy = ref<CodecPolicy>(initialPolicy ?? DefaultCodecPolicy)
 

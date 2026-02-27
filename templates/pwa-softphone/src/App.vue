@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watch, inject } from 'vue'
+import { ref, computed, onUnmounted, onMounted, watch, inject } from 'vue'
 import DialPad from './components/DialPad.vue'
 import CallScreen from './components/CallScreen.vue'
 import IncomingCall from './components/IncomingCall.vue'
 import Settings from './components/Settings.vue'
 import SettingsMenu from './components/SettingsMenu.vue'
 import CallDetailView from './components/CallDetailView.vue'
+import Contacts from './components/Contacts.vue'
 import { usePhone } from './composables/usePhone'
 import { usePushNotifications } from './composables/usePushNotifications'
 import { usePwaInstall } from './composables/usePwaInstall'
 import { useTranscription } from 'vuesip'
 import { useTranscriptPersistence } from './composables/useTranscriptPersistence'
 import { useCallRecording } from './composables/useCallRecording'
+import { useContacts } from './composables/useContacts'
+import type { Contact } from './composables/useContacts'
 
 // Phone composable
 const phone = usePhone()
@@ -39,6 +42,11 @@ const historySearchQuery = ref('')
 const transcriptPersistence = useTranscriptPersistence()
 const callRecording = useCallRecording()
 const currentCallId = ref<string | null>(null)
+
+// Contacts
+const { incrementCallCount, getContactByNumber, favorites } = useContacts()
+const showContacts = ref(false)
+const contactsInitialNumber = ref('')
 
 // Get transcription instance from TranscriptionSettingsSection via inject
 const transcription = inject<ReturnType<typeof useTranscription>>('transcription', null)
@@ -185,7 +193,7 @@ watch(
     }
 
     // When call ends, save transcript and recording
-    if ((newState === 'idle' || newState === 'ended') && oldState === 'active') {
+    if ((newState === 'idle' || newState === 'terminated') && oldState === 'active') {
       const callId = currentCallId.value
       if (callId) {
         // Save transcript if persistence enabled and transcription instance is available
@@ -261,7 +269,7 @@ async function handleEndCall() {
   }
 }
 
-function handleHistoryClick(callId: string, remoteUri: string) {
+function handleHistoryClick(callId: string) {
   // Check if user wants to view details (long press or click on info icon)
   // For now, single click shows detail view
   selectedCallId.value = callId
@@ -295,10 +303,82 @@ async function handleDisconnect() {
   }
 }
 
+// Contacts handlers
+function openContacts(initialNumber = '') {
+  contactsInitialNumber.value = initialNumber
+  showContacts.value = true
+}
+
+function handleContactSelect(contact: Contact) {
+  // Set the dialpad number to the contact's number
+  phone.dialNumber.value = contact.number
+  showContacts.value = false
+  activeTab.value = 'dialpad'
+}
+
+function handleContactCall(number: string) {
+  showContacts.value = false
+  handleCall(number)
+}
+
+// Track calls for contact call counts
+watch(
+  () => phone.callState.value,
+  (newState, oldState) => {
+    // When call ends, increment the call count for the contact
+    if (oldState === 'active' && newState === 'idle') {
+      const remoteNumber = phone.remoteIdentity.value?.replace(/[^\d+]/g, '')
+      if (remoteNumber) {
+        incrementCallCount(remoteNumber)
+      }
+    }
+  }
+)
+
 // Cleanup
 onUnmounted(async () => {
   if (phone.isConnected.value) {
     await phone.disconnectPhone()
+  }
+})
+
+// Handle notification deep links (Phase 3 - SW notification actions)
+// URL params: ?notifAction=answer|decline|open&callId=<id>
+onMounted(() => {
+  const params = new URLSearchParams(window.location.search)
+  const notifAction = params.get('notifAction')
+  const callId = params.get('callId')
+
+  if (notifAction) {
+    console.debug('[VueSIP] Processing notification action:', { notifAction, callId })
+
+    // Clear the URL params to prevent re-processing on refresh
+    const url = new URL(window.location.href)
+    url.searchParams.delete('notifAction')
+    url.searchParams.delete('callId')
+    window.history.replaceState({}, '', url.toString())
+
+    // Process the action
+    if (notifAction === 'answer') {
+      // If there's an incoming call, answer it
+      if (phone.callState.value === 'ringing' && phone.direction.value === 'incoming') {
+        handleAnswer()
+      } else {
+        console.warn('[VueSIP] Answer action but no ringing incoming call')
+      }
+    } else if (notifAction === 'decline') {
+      // If there's an incoming call, reject it
+      if (phone.callState.value === 'ringing' && phone.direction.value === 'incoming') {
+        handleReject()
+      } else {
+        console.warn('[VueSIP] Decline action but no ringing incoming call')
+      }
+    } else if (notifAction === 'open') {
+      // Just opened from notification click - show incoming modal if call is ringing
+      if (phone.callState.value === 'ringing' && phone.direction.value === 'incoming') {
+        showIncomingModal.value = true
+      }
+    }
   }
 })
 </script>
@@ -404,6 +484,7 @@ onUnmounted(async () => {
             @cycle-outbound="phone.cycleOutbound"
             @call="handleCall"
             @digit="handleDTMF"
+            @open-contacts="openContacts"
           />
 
           <div v-else-if="activeTab === 'history' && !showCallDetail" class="history-view">
@@ -474,7 +555,7 @@ onUnmounted(async () => {
                 v-for="entry in finalFilteredHistory"
                 :key="entry.id"
                 class="history-item"
-                @click="handleHistoryClick(entry.id, entry.remoteUri)"
+                @click="handleHistoryClick(entry.id)"
               >
                 <div class="history-icon" :class="entry.direction">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -576,6 +657,15 @@ onUnmounted(async () => {
         {{ statusMessage }}
       </div>
     </main>
+
+    <!-- Contacts Overlay -->
+    <Contacts
+      :visible="showContacts"
+      :initial-number="contactsInitialNumber"
+      @select="handleContactSelect"
+      @call="handleContactCall"
+      @close="showContacts = false"
+    />
   </div>
 </template>
 

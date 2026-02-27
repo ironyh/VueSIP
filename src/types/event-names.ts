@@ -10,6 +10,8 @@ export const SipEventNames = {
   NewSession: 'sip:new_session',
   NewMessage: 'sip:new_message',
   Generic: 'sip:event',
+  CallEnded: 'sip:call:ended',
+  CallFailed: 'sip:call:failed',
   // Conference
   ConferenceCreated: 'sip:conference:created',
   ConferenceJoined: 'sip:conference:joined',

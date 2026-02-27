@@ -11,7 +11,7 @@ VueSip provides **60+ composables** for building professional SIP interfaces wit
 ## Features
 
 - **Headless Architecture** - Complete separation of logic and UI
-- **Full SIP Support** - WebRTC calling with JsSIP or SIP.js adapters
+- **Full SIP Support** - WebRTC calling via adapter (JsSIP implemented; SIP.js planned)
 - **Video Calling** - One-on-one and conference video support
 - **Call Quality Monitoring** - Real-time WebRTC stats and quality scoring
 - **Call Center Features** - Queues, agents, supervisors, and statistics
@@ -257,6 +257,8 @@ Visit `http://localhost:5173` to explore demos organized by category:
 
 ## All Composables by Category
 
+**Preview / experimental:** The following are marked as preview and may change: **Codecs** (`useCodecs`). See the [Codecs ADR](docs/adr/0001-codecs-architecture.md) for details.
+
 ### SIP Core
 
 - `useSipClient` - SIP connection and registration
@@ -371,7 +373,7 @@ Requires WebRTC and modern JavaScript support.
 
 ## Architecture
 
-VueSip follows the **headless component pattern**:
+SIP is accessed via an adapter (JsSIP implemented; SIP.js planned). VueSip follows the **headless component pattern**:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -381,7 +383,7 @@ VueSip follows the **headless component pattern**:
 ├─────────────────────────────────────────────┤
 │     VueSip Composables (Business Logic)     │
 ├─────────────────────────────────────────────┤
-│  Adapters (JsSIP, SIP.js, or Custom)        │
+│  Adapters (JsSIP in progress, SIP.js planned) │
 ├─────────────────────────────────────────────┤
 │           SIP Server (Asterisk, etc.)       │
 └─────────────────────────────────────────────┘
@@ -424,7 +426,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 Built with:
 
 - [Vue 3](https://vuejs.org/) - The Progressive JavaScript Framework
-- [JsSIP](https://jssip.net/) / [SIP.js](https://sipjs.com/) - SIP library adapters
+- [JsSIP](https://jssip.net/) / [SIP.js](https://sipjs.com/) - SIP adapters (JsSIP in progress, SIP.js planned)
 - [TypeScript](https://www.typescriptlang.org/) - Type safety
 - [Vite](https://vitejs.dev/) - Next generation frontend tooling
 - [Vitest](https://vitest.dev/) - Testing framework

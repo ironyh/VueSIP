@@ -7,7 +7,16 @@
  * @module analytics/useCallAnalytics
  */
 
-import { ref, computed, watch, onUnmounted, shallowRef, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  getCurrentScope,
+  onScopeDispose,
+  shallowRef,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type {
   CallMetrics,
   AgentMetrics,
@@ -814,11 +823,13 @@ export function useCallAnalytics(config?: AnalyticsConfig): UseCallAnalyticsRetu
     }, refreshInterval)
   }
 
-  onUnmounted(() => {
-    if (refreshTimer) {
-      clearInterval(refreshTimer)
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (refreshTimer) {
+        clearInterval(refreshTimer)
+      }
+    })
+  }
 
   // ============================================
   // Watch for time range changes

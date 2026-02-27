@@ -254,6 +254,8 @@ export interface CallSession {
   hold?: () => void
   /** Resume the call (SIP re-INVITE with sendrecv) */
   unhold?: () => void
+  /** Underlying RTCPeerConnection (for RTP sender/receiver access) */
+  connection?: RTCPeerConnection
 }
 
 /**

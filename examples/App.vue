@@ -188,7 +188,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useSipClient, useCallSession, useSipDtmf, useAudioDevices } from '../src'
+import { useSipClient, useCallSession, useDTMF, useAudioDevices } from '../src'
 import type { SipConfig } from '../src'
 import Dialpad from '../src/components/Dialpad.vue'
 import CallControls from '../src/components/CallControls.vue'
@@ -262,7 +262,7 @@ const {
 
 // DTMF
 const currentSessionRef = ref(null)
-const { sendDtmf } = useSipDtmf(currentSessionRef)
+const { sendTone } = useDTMF(currentSessionRef)
 
 // Audio Devices
 const {
@@ -326,7 +326,7 @@ const handleEnd = async () => {
 const handleDtmf = async (digit: string) => {
   if (isInCall.value) {
     try {
-      await sendDtmf(digit)
+      await sendTone(digit)
     } catch (err) {
       console.error('DTMF failed:', err)
     }

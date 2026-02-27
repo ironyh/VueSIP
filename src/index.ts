@@ -374,7 +374,8 @@ export * from './storage'
 /**
  * Codec capability inspection and preference APIs (preview).
  *
- * Includes `useCodecs` composable and a minimal SDP transformer for
+ * @experimental This API is preview and may change in future releases.
+ * @remarks Includes `useCodecs` composable and a minimal SDP transformer for
  * reordering audio/video codecs as a fallback when transceiver API
  * is unavailable.
  */

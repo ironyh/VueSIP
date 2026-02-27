@@ -861,8 +861,8 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
    * Setup JsSIP RTCSession event handlers
    */
   private setupEventHandlers(): void {
-    console.log(`[CallSession] setupEventHandlers() called for ${this._id}`)
-    console.log(`[CallSession] rtcSession.on type: ${typeof this.rtcSession?.on}`)
+    logger.debug(`setupEventHandlers() called for ${this._id}`)
+    logger.debug(`rtcSession.on type: ${typeof this.rtcSession?.on}`)
 
     // Progress event (provisional responses: 100, 180, 183)
     this.rtcSession.on('progress', (e: any) => {
@@ -901,12 +901,12 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
     // Confirmed event (ACK sent/received)
     this.rtcSession.on('confirmed', (_e: any) => {
-      console.log(`[CallSession] CONFIRMED EVENT RECEIVED for ${this._id}`)
+      logger.debug(`CONFIRMED EVENT RECEIVED for ${this._id}`)
       logger.info(`Call confirmed: ${this._id}`)
 
-      console.log(`[CallSession] About to updateState to 'active', current state: ${this._state}`)
+      logger.debug(`About to updateState to 'active', current state: ${this._state}`)
       this.updateState('active' as CallState)
-      console.log(`[CallSession] State after updateState: ${this._state}`)
+      logger.debug(`State after updateState: ${this._state}`)
 
       this.emitCallEvent('call:confirmed')
     })

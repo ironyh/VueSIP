@@ -12,6 +12,7 @@ const emit = defineEmits<{
   call: [number: string]
   digit: [digit: string]
   cycleOutbound: [direction: 'prev' | 'next']
+  openContacts: []
 }>()
 
 const phoneNumber = ref('')
@@ -158,11 +159,26 @@ function handleClear() {
         placeholder="Enter number"
         @keyup.enter="handleCall"
       />
-      <button v-if="phoneNumber" class="clear-btn" @click="handleClear" aria-label="Clear">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      <div class="display-actions">
+        <button
+          class="contacts-btn"
+          @click="emit('openContacts')"
+          title="Contacts"
+          aria-label="Open Contacts"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </button>
+        <button v-if="phoneNumber" class="clear-btn" @click="handleClear" aria-label="Clear">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Dialpad Keys -->
@@ -253,6 +269,12 @@ function handleClear() {
   padding: 0 0.5rem;
 }
 
+.display-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .phone-input {
   flex: 1;
   text-align: center;
@@ -270,22 +292,36 @@ function handleClear() {
   font-weight: 400;
 }
 
+.contacts-btn,
 .clear-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
+  border-radius: 10px;
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
 }
 
+.contacts-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.clear-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.contacts-btn svg,
 .clear-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 .keys {

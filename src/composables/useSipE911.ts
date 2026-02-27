@@ -3,7 +3,8 @@
  *
  * Vue composable for E911 emergency call detection, location management,
  * admin notification, and compliance logging. Supports Kari's Law and
- * RAY BAUM's Act requirements.
+ * RAY BAUM's Act requirements. Sanitization, validation and location
+ * formatting are provided by `@/utils/e911`.
  *
  * @module composables/useSipE911
  *
@@ -71,102 +72,19 @@ import type {
   UseSipE911Return,
 } from '@/types/e911.types'
 import { createLogger } from '@/utils/logger'
+import {
+  sanitizeInput,
+  isValidExtension,
+  generateE911Id,
+  createDefaultE911Config,
+  createEmptyE911Stats,
+  formatE911Location,
+} from '@/utils/e911'
+import { useE911Locations } from './useE911Locations'
+import { useE911Recipients } from './useE911Recipients'
+import { useE911Compliance } from './useE911Compliance'
 
 const logger = createLogger('useSipE911')
-
-/**
- * Sanitize string input to prevent XSS
- */
-function sanitizeInput(input: string): string {
-  if (!input || typeof input !== 'string') return ''
-  return input.replace(/[<>'";&|`$\\]/g, '').trim().slice(0, 255)
-}
-
-/**
- * Validate extension format
- */
-function isValidExtension(ext: string): boolean {
-  if (!ext || typeof ext !== 'string') return false
-  return /^[a-zA-Z0-9_*#-]{1,32}$/.test(ext)
-}
-
-/**
- * Sanitize email address
- */
-function sanitizeEmail(email: string | undefined): string | undefined {
-  if (!email || typeof email !== 'string') return undefined
-  // Basic email validation and sanitization
-  const trimmed = email.trim().slice(0, 254)
-  // Remove any potentially dangerous characters but keep valid email chars
-  return trimmed.replace(/[<>'";&|`$\\]/g, '')
-}
-
-/**
- * Sanitize phone number
- */
-function sanitizePhone(phone: string | undefined): string | undefined {
-  if (!phone || typeof phone !== 'string') return undefined
-  // Keep only digits, +, -, (, ), and spaces
-  return phone.replace(/[^0-9+\-() ]/g, '').trim().slice(0, 20)
-}
-
-/**
- * Sanitize URL
- */
-function sanitizeUrl(url: string | undefined): string | undefined {
-  if (!url || typeof url !== 'string') return undefined
-  const trimmed = url.trim().slice(0, 2048)
-  // Only allow http/https URLs
-  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-    return undefined
-  }
-  // Remove any potentially dangerous characters
-  return trimmed.replace(/[<>'";&|`$\\]/g, '')
-}
-
-/**
- * Generate unique ID
- */
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-}
-
-/**
- * Create default E911 configuration
- */
-function createDefaultConfig(): E911Config {
-  return {
-    enabled: true,
-    emergencyNumbers: ['911'],
-    testNumbers: ['933'],
-    defaultCallbackNumber: '',
-    recipients: [],
-    recordCalls: true,
-    directDialing: true,
-    onSiteNotification: true,
-    dispatchableLocationRequired: true,
-    autoAnswerCallback: false,
-    notificationDelay: 0,
-    complianceLogging: true,
-    lastUpdated: new Date(),
-  }
-}
-
-/**
- * Create empty E911 stats
- */
-function createEmptyStats(): E911Stats {
-  return {
-    totalCalls: 0,
-    testCalls: 0,
-    callsWithLocation: 0,
-    notificationsSent: 0,
-    notificationsDelivered: 0,
-    callbacksReceived: 0,
-    avgCallDuration: 0,
-    avgNotificationTime: 0,
-  }
-}
 
 /**
  * E911 Emergency Call Handling Composable
@@ -181,75 +99,87 @@ export function useSipE911(
   eventBus?: EventBus | null,
   options: UseSipE911Options = {}
 ): UseSipE911Return {
-  const { autoStart = false, onEmergencyCall, onCallEnded, onNotificationSent, onCallbackDetected, onEvent, onError } = options
+  const {
+    autoStart = false,
+    onEmergencyCall,
+    onCallEnded,
+    onNotificationSent,
+    onCallbackDetected,
+    onEvent,
+    onError,
+  } = options
 
   // State
   const config = ref<E911Config>({
-    ...createDefaultConfig(),
+    ...createDefaultE911Config(),
     ...options.config,
   })
-  const locations = ref<Map<string, E911Location>>(new Map())
+  const {
+    locations,
+    locationList,
+    defaultLocation,
+    addLocation: addLocationInternal,
+    updateLocation: updateLocationInternal,
+    removeLocation: removeLocationInternal,
+    setDefaultLocation: setDefaultLocationInternal,
+    getLocation: getLocationInternal,
+    getLocationForExtension: getLocationForExtensionInternal,
+  } = useE911Locations()
+
+  const {
+    recipients: recipientsRef,
+    addRecipient: addRecipientInternal,
+    updateRecipient: updateRecipientInternal,
+    removeRecipient: removeRecipientInternal,
+    setRecipients,
+  } = useE911Recipients(config.value.recipients)
+
+  watch(
+    recipientsRef,
+    (r) => {
+      config.value.recipients = r
+      config.value.lastUpdated = new Date()
+    },
+    { deep: true }
+  )
+
+  const complianceLoggingRef = computed(() => config.value.complianceLogging)
+  const {
+    complianceLogs,
+    addLog,
+    getLogs: getLogsInternal,
+    exportLogs: exportLogsInternal,
+    clearOldLogs: clearOldLogsInternal,
+  } = useE911Compliance(complianceLoggingRef)
+
   const activeCalls = ref<Map<string, E911Call>>(new Map())
   const callHistory = ref<E911Call[]>([])
-  const complianceLogs = ref<E911ComplianceLog[]>([])
   const isMonitoring = ref(false)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
   // Internal state
-  const stats = ref<E911Stats>(createEmptyStats())
-  const eventListenerIds: string[] = []
+  const stats = ref<E911Stats>(createEmptyE911Stats())
+  const eventListenerIds: Array<{ event: string; id: string }> = []
 
   // Computed
-  const locationList = computed(() => Array.from(locations.value.values()))
-
-  const defaultLocation = computed(() => locationList.value.find((loc) => loc.isDefault) || null)
-
   const activeCallList = computed(() => Array.from(activeCalls.value.values()))
 
   const hasActiveEmergency = computed(() => activeCalls.value.size > 0)
 
-  const recipients = computed(() => config.value.recipients.filter((r) => r.enabled))
+  const recipients = computed(() => recipientsRef.value.filter((r) => r.enabled))
 
   const computedStats = computed(() => stats.value)
 
   /**
-   * Add compliance log entry
-   */
-  function addLog(
-    event: E911ComplianceLog['event'],
-    description: string,
-    severity: E911ComplianceLog['severity'] = 'info',
-    callId?: string,
-    details?: Record<string, unknown>
-  ): void {
-    if (!config.value.complianceLogging) return
-
-    const log: E911ComplianceLog = {
-      id: generateId(),
-      callId,
-      event,
-      description,
-      actor: 'system',
-      timestamp: new Date(),
-      details,
-      severity,
-    }
-
-    complianceLogs.value.unshift(log)
-
-    // Keep only last 1000 logs
-    if (complianceLogs.value.length > 1000) {
-      complianceLogs.value = complianceLogs.value.slice(0, 1000)
-    }
-
-    logger.debug('Compliance log:', log)
-  }
-
-  /**
    * Emit an E911 event
    */
-  function emitEvent(type: E911EventType, call?: E911Call, notification?: E911Notification, data?: Record<string, unknown>): void {
+  function emitEvent(
+    type: E911EventType,
+    call?: E911Call,
+    notification?: E911Notification,
+    data?: Record<string, unknown>
+  ): void {
     const event: E911Event = {
       type,
       call,
@@ -264,15 +194,7 @@ export function useSipE911(
    * Get location for an extension
    */
   function getLocationForExtension(extension: string): E911Location | null {
-    if (!isValidExtension(extension)) return null
-
-    for (const location of locations.value.values()) {
-      if (location.extensions.includes(extension)) {
-        return location
-      }
-    }
-
-    return defaultLocation.value
+    return getLocationForExtensionInternal(extension)
   }
 
   /**
@@ -283,7 +205,7 @@ export function useSipE911(
     call: E911Call
   ): Promise<E911Notification> {
     const notification: E911Notification = {
-      id: generateId(),
+      id: generateE911Id(),
       callId: call.id,
       type: recipient.notificationTypes[0] || 'email',
       recipient,
@@ -338,7 +260,7 @@ export function useSipE911(
     let locationStr = 'LOCATION UNKNOWN'
 
     if (location) {
-      locationStr = formatLocation(location)
+      locationStr = formatE911Location(location)
     }
 
     return `EMERGENCY 911 CALL ALERT
@@ -352,41 +274,6 @@ Location:
 ${locationStr}
 
 This is an automated E911 notification. Please verify the situation and provide assistance if needed.`
-  }
-
-  /**
-   * Format location for display
-   */
-  function formatLocation(location: E911Location): string {
-    const parts: string[] = []
-
-    if (location.civic) {
-      const addr = location.civic
-      let street = ''
-
-      if (addr.houseNumber) street += addr.houseNumber
-      if (addr.houseNumberSuffix) street += addr.houseNumberSuffix
-      if (addr.preDirectional) street += ` ${addr.preDirectional}`
-      if (addr.streetName) street += ` ${addr.streetName}`
-      if (addr.streetSuffix) street += ` ${addr.streetSuffix}`
-      if (addr.postDirectional) street += ` ${addr.postDirectional}`
-
-      if (street) parts.push(street.trim())
-      if (addr.additionalInfo) parts.push(addr.additionalInfo)
-      if (addr.buildingName) parts.push(addr.buildingName)
-      if (addr.floor) parts.push(`Floor ${addr.floor}`)
-      if (addr.room) parts.push(`Room ${addr.room}`)
-      if (addr.city) parts.push(addr.city)
-      if (addr.state) parts.push(addr.state)
-      if (addr.postalCode) parts.push(addr.postalCode)
-      if (addr.country) parts.push(addr.country)
-    }
-
-    if (location.geo) {
-      parts.push(`GPS: ${location.geo.latitude.toFixed(6)}, ${location.geo.longitude.toFixed(6)}`)
-    }
-
-    return parts.join('\n') || location.name
   }
 
   /**
@@ -405,7 +292,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     const location = getLocationForExtension(callerExtension)
 
     const call: E911Call = {
-      id: generateId(),
+      id: generateE911Id(),
       channel: sanitizeInput(channel),
       callerExtension: sanitizeInput(callerExtension),
       callerIdNum: sanitizeInput(callerIdNum),
@@ -499,10 +386,10 @@ This is an automated E911 notification. Please verify the situation and provide 
       call.duration = Math.round((call.endTime.getTime() - call.answerTime.getTime()) / 1000)
 
       // Update average duration (avoid division by zero)
-      const totalDuration = stats.value.avgCallDuration * (stats.value.totalCalls - 1) + call.duration
-      stats.value.avgCallDuration = stats.value.totalCalls > 0
-        ? totalDuration / stats.value.totalCalls
-        : call.duration
+      const totalDuration =
+        stats.value.avgCallDuration * (stats.value.totalCalls - 1) + call.duration
+      stats.value.avgCallDuration =
+        stats.value.totalCalls > 0 ? totalDuration / stats.value.totalCalls : call.duration
     }
 
     activeCalls.value.delete(channel)
@@ -571,8 +458,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     if (!eventBus) return
 
     // Listen for new outgoing sessions to check for emergency calls
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:new_session, event structure varies
-    const newSessionId = eventBus.on('sip:new_session' as any, (event: any) => {
+    const newSessionId = eventBus.on('sip:new_session', (event) => {
       const session = event?.session
       if (!session || session.direction !== 'outgoing') return
 
@@ -584,7 +470,7 @@ This is an automated E911 notification. Please verify the situation and provide 
 
       if (isEmergency || isTest) {
         // Get caller info from the client config
-        const channel = event.callId || `call-${generateId()}`
+        const channel = event.callId || `call-${generateE911Id()}`
         const clientConfig = client.value?.getConfig?.()
         const sipUri = clientConfig?.sipUri || ''
         // Extract extension from sipUri (e.g., 'sip:1001@domain.com' -> '1001')
@@ -598,8 +484,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     })
 
     // Listen for call state changes
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:call:ended, event structure varies
-    const callEndedId = eventBus.on('sip:call:ended' as any, (event: any) => {
+    const callEndedId = eventBus.on('sip:call:ended', (event) => {
       const callId = event?.callId
       if (callId) {
         // Find the call by channel in activeCalls
@@ -613,20 +498,23 @@ This is an automated E911 notification. Please verify the situation and provide 
     })
 
     // Listen for incoming calls (potential PSAP callbacks)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include all events, event structure varies
-    const incomingCallId = eventBus.on('sip:new_session' as any, (event: any) => {
+    const incomingCallId = eventBus.on('sip:new_session', (event) => {
       const session = event?.session
       if (!session || session.direction !== 'incoming') return
 
       const callerIdNum = session.remoteIdentity?.uri?.user || ''
-      const channel = event.callId || `call-${generateId()}`
+      const channel = event.callId || `call-${generateE911Id()}`
 
       if (callerIdNum && channel) {
         handleIncomingCall(channel, callerIdNum)
       }
     })
 
-    eventListenerIds.push(newSessionId, callEndedId, incomingCallId)
+    eventListenerIds.push(
+      { event: 'sip:new_session', id: newSessionId },
+      { event: 'sip:call:ended', id: callEndedId },
+      { event: 'sip:new_session', id: incomingCallId }
+    )
   }
 
   /**
@@ -634,13 +522,7 @@ This is an automated E911 notification. Please verify the situation and provide 
    */
   function removeEventListeners(): void {
     if (!eventBus) return
-    for (const id of eventListenerIds) {
-      // Use a generic string event to remove by ID
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include all events
-      eventBus.off('sip:new_session' as any, id)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include all events
-      eventBus.off('sip:call:ended' as any, id)
-    }
+    eventListenerIds.forEach(({ event, id }) => eventBus.off(event, id))
     eventListenerIds.length = 0
   }
 
@@ -676,12 +558,12 @@ This is an automated E911 notification. Please verify the situation and provide 
    * Update E911 configuration
    */
   function updateConfig(updates: Partial<E911Config>): void {
+    if (updates.recipients !== undefined) setRecipients(updates.recipients)
     config.value = {
       ...config.value,
       ...updates,
       lastUpdated: new Date(),
     }
-
     addLog('config_changed', 'E911 configuration updated', 'info', undefined, updates)
 
     emitEvent('config_changed', undefined, undefined, updates)
@@ -691,21 +573,7 @@ This is an automated E911 notification. Please verify the situation and provide 
    * Add a location
    */
   function addLocation(locationData: Omit<E911Location, 'id' | 'lastUpdated'>): E911Location {
-    const location: E911Location = {
-      ...locationData,
-      id: generateId(),
-      name: sanitizeInput(locationData.name),
-      lastUpdated: new Date(),
-    }
-
-    // If this is set as default, clear other defaults
-    if (location.isDefault) {
-      for (const loc of locations.value.values()) {
-        loc.isDefault = false
-      }
-    }
-
-    locations.value.set(location.id, location)
+    const location = addLocationInternal(locationData)
 
     addLog('location_updated', `Location added: ${location.name}`, 'info', undefined, {
       locationId: location.id,
@@ -720,76 +588,54 @@ This is an automated E911 notification. Please verify the situation and provide 
    * Update a location
    */
   function updateLocation(locationId: string, updates: Partial<E911Location>): boolean {
-    const location = locations.value.get(locationId)
-    if (!location) return false
-
-    // If setting as default, clear other defaults
-    if (updates.isDefault) {
-      for (const loc of locations.value.values()) {
-        if (loc.id !== locationId) {
-          loc.isDefault = false
-        }
-      }
+    const location = getLocationInternal(locationId)
+    const ok = updateLocationInternal(locationId, updates)
+    if (ok && location) {
+      addLog('location_updated', `Location updated: ${location.name}`, 'info', undefined, {
+        locationId,
+      })
     }
-
-    // Sanitize name if provided
-    const sanitizedUpdates = updates.name
-      ? { ...updates, name: sanitizeInput(updates.name) }
-      : updates
-
-    Object.assign(location, sanitizedUpdates, { lastUpdated: new Date() })
-
-    addLog('location_updated', `Location updated: ${location.name}`, 'info', undefined, {
-      locationId,
-    })
-
-    return true
+    return ok
   }
 
   /**
    * Remove a location
    */
   function removeLocation(locationId: string): boolean {
-    const location = locations.value.get(locationId)
-    if (!location) return false
-
-    locations.value.delete(locationId)
-
-    addLog('location_updated', `Location removed: ${location.name}`, 'info', undefined, {
-      locationId,
-    })
-
-    return true
+    const location = getLocationInternal(locationId)
+    const ok = removeLocationInternal(locationId)
+    if (ok && location) {
+      addLog('location_updated', `Location removed: ${location.name}`, 'info', undefined, {
+        locationId,
+      })
+    }
+    return ok
   }
 
   /**
    * Set default location
    */
   function setDefaultLocation(locationId: string): boolean {
-    const location = locations.value.get(locationId)
-    if (!location) return false
-
-    for (const loc of locations.value.values()) {
-      loc.isDefault = loc.id === locationId
+    const location = getLocationInternal(locationId)
+    const ok = setDefaultLocationInternal(locationId)
+    if (ok && location) {
+      addLog('location_updated', `Default location set: ${location.name}`, 'info')
     }
-
-    addLog('location_updated', `Default location set: ${location.name}`, 'info')
-
-    return true
+    return ok
   }
 
   /**
    * Get location by ID
    */
   function getLocation(locationId: string): E911Location | null {
-    return locations.value.get(locationId) || null
+    return getLocationInternal(locationId)
   }
 
   /**
    * Verify/validate a location
    */
   async function verifyLocation(locationId: string): Promise<boolean> {
-    const location = locations.value.get(locationId)
+    const location = getLocationInternal(locationId)
     if (!location) return false
 
     isLoading.value = true
@@ -799,9 +645,11 @@ This is an automated E911 notification. Please verify the situation and provide 
       // For now, we simulate verification
       await new Promise((resolve) => setTimeout(resolve, 500))
 
-      location.isVerified = true
-      location.verifiedAt = new Date()
-      location.lastUpdated = new Date()
+      updateLocationInternal(locationId, {
+        isVerified: true,
+        verifiedAt: new Date(),
+        lastUpdated: new Date(),
+      })
 
       addLog('location_verified', `Location verified: ${location.name}`, 'info', undefined, {
         locationId,
@@ -818,77 +666,47 @@ This is an automated E911 notification. Please verify the situation and provide 
     }
   }
 
+  function syncRecipientsToConfig(): void {
+    config.value.recipients = recipientsRef.value
+    config.value.lastUpdated = new Date()
+  }
+
   /**
    * Add notification recipient
    */
-  function addRecipient(recipientData: Omit<E911NotificationRecipient, 'id'>): E911NotificationRecipient {
-    const recipient: E911NotificationRecipient = {
-      ...recipientData,
-      id: generateId(),
-      name: sanitizeInput(recipientData.name),
-      email: sanitizeEmail(recipientData.email),
-      phone: sanitizePhone(recipientData.phone),
-      webhookUrl: sanitizeUrl(recipientData.webhookUrl),
-    }
-
-    config.value.recipients.push(recipient)
-    config.value.lastUpdated = new Date()
-
+  function addRecipient(
+    recipientData: Omit<E911NotificationRecipient, 'id'>
+  ): E911NotificationRecipient {
+    const recipient = addRecipientInternal(recipientData)
+    syncRecipientsToConfig()
     addLog('config_changed', `Notification recipient added: ${recipient.name}`, 'info')
-
     return recipient
   }
 
   /**
    * Update notification recipient
    */
-  function updateRecipient(recipientId: string, updates: Partial<E911NotificationRecipient>): boolean {
-    const index = config.value.recipients.findIndex((r) => r.id === recipientId)
-    if (index === -1) return false
-
-    const existingRecipient = config.value.recipients[index]
-    if (!existingRecipient) return false
-
-    // Sanitize any sensitive fields being updated
-    const sanitizedUpdates: Partial<E911NotificationRecipient> = { ...updates }
-    if (updates.name !== undefined) {
-      sanitizedUpdates.name = sanitizeInput(updates.name)
-    }
-    if (updates.email !== undefined) {
-      sanitizedUpdates.email = sanitizeEmail(updates.email)
-    }
-    if (updates.phone !== undefined) {
-      sanitizedUpdates.phone = sanitizePhone(updates.phone)
-    }
-    if (updates.webhookUrl !== undefined) {
-      sanitizedUpdates.webhookUrl = sanitizeUrl(updates.webhookUrl)
-    }
-
-    config.value.recipients[index] = {
-      ...existingRecipient,
-      ...sanitizedUpdates,
-    } as E911NotificationRecipient
-    config.value.lastUpdated = new Date()
-
-    return true
+  function updateRecipient(
+    recipientId: string,
+    updates: Partial<E911NotificationRecipient>
+  ): boolean {
+    const ok = updateRecipientInternal(recipientId, updates)
+    if (ok) syncRecipientsToConfig()
+    return ok
   }
 
   /**
    * Remove notification recipient
    */
   function removeRecipient(recipientId: string): boolean {
-    const index = config.value.recipients.findIndex((r) => r.id === recipientId)
-    if (index === -1) return false
-
-    const recipient = config.value.recipients[index]
-    if (!recipient) return false
-
-    config.value.recipients.splice(index, 1)
-    config.value.lastUpdated = new Date()
-
-    addLog('config_changed', `Notification recipient removed: ${recipient.name}`, 'info')
-
-    return true
+    const recipient = recipientsRef.value.find((r) => r.id === recipientId)
+    const ok = removeRecipientInternal(recipientId)
+    if (ok) {
+      syncRecipientsToConfig()
+      if (recipient)
+        addLog('config_changed', `Notification recipient removed: ${recipient.name}`, 'info')
+    }
+    return ok
   }
 
   /**
@@ -902,7 +720,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     }
 
     const testCall: E911Call = {
-      id: generateId(),
+      id: generateE911Id(),
       channel: 'test',
       callerExtension: 'TEST',
       callerIdNum: 'TEST',
@@ -957,62 +775,22 @@ This is an automated E911 notification. Please verify the situation and provide 
    * Get compliance logs
    */
   function getLogs(limit?: number): E911ComplianceLog[] {
-    if (limit) {
-      return complianceLogs.value.slice(0, limit)
-    }
-    return complianceLogs.value
+    return getLogsInternal(limit)
   }
 
   /**
    * Export compliance logs
    */
   function exportLogs(format: 'json' | 'csv'): string {
-    if (format === 'json') {
-      return JSON.stringify(complianceLogs.value, null, 2)
-    }
-
-    // CSV format - properly escape all fields
-    const headers = ['id', 'callId', 'event', 'description', 'actor', 'timestamp', 'severity']
-
-    // Helper to escape CSV fields properly
-    const escapeCSV = (value: string): string => {
-      // If field contains comma, newline, or double quote, wrap in quotes and escape internal quotes
-      if (value.includes(',') || value.includes('\n') || value.includes('\r') || value.includes('"')) {
-        return `"${value.replace(/"/g, '""')}"`
-      }
-      return value
-    }
-
-    const rows = complianceLogs.value.map((log) => [
-      escapeCSV(log.id),
-      escapeCSV(log.callId || ''),
-      escapeCSV(log.event),
-      escapeCSV(log.description),
-      escapeCSV(log.actor),
-      escapeCSV(log.timestamp.toISOString()),
-      escapeCSV(log.severity),
-    ])
-
-    return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+    return exportLogsInternal(format)
   }
 
   /**
    * Clear old compliance logs
    */
   function clearOldLogs(olderThan: Date): number {
-    const cutoff = olderThan.getTime()
-    const before = complianceLogs.value.length
-
-    complianceLogs.value = complianceLogs.value.filter(
-      (log) => log.timestamp.getTime() > cutoff
-    )
-
-    const removed = before - complianceLogs.value.length
-
-    if (removed > 0) {
-      addLog('config_changed', `Cleared ${removed} old compliance logs`, 'info')
-    }
-
+    const removed = clearOldLogsInternal(olderThan)
+    if (removed > 0) addLog('config_changed', `Cleared ${removed} old compliance logs`, 'info')
     return removed
   }
 
@@ -1078,9 +856,7 @@ This is an automated E911 notification. Please verify the situation and provide 
 
     const unverifiedLocations = locationList.value.filter((loc) => !loc.isVerified)
     if (unverifiedLocations.length > 0) {
-      issues.push(
-        `RAY BAUM's Act: ${unverifiedLocations.length} location(s) not verified`
-      )
+      issues.push(`RAY BAUM's Act: ${unverifiedLocations.length} location(s) not verified`)
     }
 
     if (!config.value.defaultCallbackNumber) {
@@ -1153,7 +929,7 @@ This is an automated E911 notification. Please verify the situation and provide 
     exportLogs,
     clearOldLogs,
     initiateTestCall,
-    formatLocation,
+    formatE911Location,
     checkCompliance,
   }
 }

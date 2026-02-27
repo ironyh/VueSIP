@@ -40,6 +40,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Import custom notification click handler
+        importScripts: ['sw-notification-handler.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -67,6 +69,18 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
       vuesip: resolve(__dirname, '../../dist/vuesip.js'),
     },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Split VueSIP into its own chunk for better caching (library updates less often than app)
+          if (id.includes('vuesip') || id.includes('dist/vuesip')) return 'vuesip'
+          return undefined
+        },
+      },
+    },
+    chunkSizeWarningLimit: 700, // VueSIP library is large; app chunk stays smaller
   },
   server: {
     port: 3002,

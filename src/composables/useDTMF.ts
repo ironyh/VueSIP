@@ -1,8 +1,10 @@
 /**
- * DTMF Composable
+ * DTMF composable: single API for CallSession or any session source with RTCPeerConnection.
  *
- * Provides DTMF (Dual-Tone Multi-Frequency) tone sending functionality for
- * active call sessions with support for tone sequences and queue management.
+ * Accepts Ref<CallSession | DtmfSessionSource | null>. When session is CallSession, uses
+ * session.sendDTMF() with queue, statistics, and callbacks. When session is
+ * DtmfSessionSource (e.g. JsSIP RTCSession), uses low-level insertDTMF on the peer
+ * connection; queue/statistics/callbacks are still available but optional.
  *
  * @module composables/useDTMF
  */
@@ -11,9 +13,29 @@ import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import type { CallSession } from '../core/CallSession'
 import type { DTMFOptions } from '../types/call.types'
 import { createLogger } from '../utils/logger'
+import { abortableSleep, throwIfAborted, isAbortError } from '../utils/abortController'
+import { sendDtmfTone } from '../utils/dtmf'
 import { DTMF_CONSTANTS } from './constants'
 
 const log = createLogger('useDTMF')
+
+/** Session-like type that exposes RTCPeerConnection for DTMF (e.g. JsSIP RTCSession) */
+export interface DtmfSessionSource {
+  connection?: RTCPeerConnection
+  sessionDescriptionHandler?: { peerConnection?: RTCPeerConnection }
+  state?: string
+}
+
+function isCallSession(s: CallSession | DtmfSessionSource | null): s is CallSession {
+  return s != null && 'sendDTMF' in s && typeof (s as CallSession).sendDTMF === 'function'
+}
+
+function getPeerConnection(s: CallSession | DtmfSessionSource): RTCPeerConnection | undefined {
+  if (isCallSession(s)) {
+    return s.connection
+  }
+  return s.connection ?? s.sessionDescriptionHandler?.peerConnection
+}
 
 /**
  * DTMF sequence options
@@ -23,6 +45,8 @@ export interface DTMFSequenceOptions extends DTMFOptions {
   interToneGap?: number
   /** Transport method for sending DTMF */
   transport?: 'RFC2833' | 'INFO'
+  /** Optional AbortSignal to cancel the sequence */
+  signal?: AbortSignal
   /** Callback for each tone sent */
   onToneSent?: (tone: string) => void
   /** Callback when sequence completes */
@@ -91,12 +115,12 @@ export interface UseDTMFReturn {
 }
 
 /**
- * DTMF Composable
+ * DTMF tone sending with queue management, statistics, and callbacks.
+ * Session can be CallSession (uses session.sendDTMF) or DtmfSessionSource (uses
+ * low-level insertDTMF on peer connection). Queue, statistics and callbacks
+ * are always exposed; for DtmfSessionSource the low-level path is used internally.
  *
- * Manages DTMF tone sending for active call sessions with queue management,
- * tone sequences, and flexible configuration.
- *
- * @param session - Call session instance
+ * @param session - Ref to CallSession or DtmfSessionSource (e.g. JsSIP RTCSession)
  * @returns DTMF state and methods
  *
  * @example
@@ -123,7 +147,7 @@ export interface UseDTMFReturn {
  * await processQueue()
  * ```
  */
-export function useDTMF(session: Ref<CallSession | null>): UseDTMFReturn {
+export function useDTMF(session: Ref<CallSession | DtmfSessionSource | null>): UseDTMFReturn {
   // ============================================================================
   // Reactive State
   // ============================================================================
@@ -136,6 +160,8 @@ export function useDTMF(session: Ref<CallSession | null>): UseDTMFReturn {
 
   // Cancellation flag
   let isCancelled = false
+  // True while sendToneSequence is running; sendTone must not clear isSending when true (concurrent guard)
+  let sequenceInProgress = false
 
   // ============================================================================
   // Computed Values
@@ -198,8 +224,17 @@ export function useDTMF(session: Ref<CallSession | null>): UseDTMFReturn {
 
       isSending.value = true
 
-      // Send via call session
-      await session.value.sendDTMF(tone, options)
+      if (isCallSession(session.value)) {
+        await session.value.sendDTMF(tone, options)
+      } else {
+        const pc = getPeerConnection(session.value)
+        if (!pc) {
+          throw new Error('No peer connection available for DTMF')
+        }
+        const duration = options?.duration ?? DTMF_CONSTANTS.DEFAULT_DURATION
+        const gap = options?.interToneGap ?? DTMF_CONSTANTS.DEFAULT_INTER_TONE_GAP
+        sendDtmfTone(pc, tone, duration, gap)
+      }
 
       // Update state
       lastSentTone.value = tone
@@ -224,7 +259,9 @@ export function useDTMF(session: Ref<CallSession | null>): UseDTMFReturn {
 
       throw err
     } finally {
-      isSending.value = false
+      if (!sequenceInProgress) {
+        isSending.value = false
+      }
     }
   }
 
@@ -245,6 +282,9 @@ export function useDTMF(session: Ref<CallSession | null>): UseDTMFReturn {
       throw new Error(error)
     }
 
+    if (tones.length === 0) {
+      throw new Error('Empty DTMF sequence')
+    }
     // Validate all tones
     validateToneSequence(tones)
 
@@ -252,18 +292,26 @@ export function useDTMF(session: Ref<CallSession | null>): UseDTMFReturn {
       duration = DTMF_CONSTANTS.DEFAULT_DURATION,
       interToneGap = DTMF_CONSTANTS.DEFAULT_INTER_TONE_GAP,
       transport,
+      signal,
       onToneSent,
       onComplete,
       onError,
     } = options
 
+    throwIfAborted(signal)
+
+    if (isSending.value) {
+      throw new Error('DTMF sequence already in progress')
+    }
+    isSending.value = true
+    isCancelled = false
+    sequenceInProgress = true
+
     try {
       log.info(`Sending DTMF sequence: ${tones} (${tones.length} tones)`)
 
-      isSending.value = true
-      isCancelled = false
-
       for (let i = 0; i < tones.length; i++) {
+        throwIfAborted(signal)
         // Check for cancellation
         if (isCancelled) {
           log.info('DTMF sequence cancelled')
@@ -284,9 +332,16 @@ export function useDTMF(session: Ref<CallSession | null>): UseDTMFReturn {
 
           // Wait inter-tone gap (except after last tone)
           if (i < tones.length - 1 && interToneGap > 0) {
-            await new Promise((resolve) => setTimeout(resolve, interToneGap))
+            if (signal) {
+              await abortableSleep(interToneGap, signal)
+            } else {
+              await new Promise((resolve) => setTimeout(resolve, interToneGap))
+            }
           }
         } catch (error) {
+          if (isAbortError(error)) {
+            throw error
+          }
           const err = error instanceof Error ? error : new Error('Tone send failed')
           log.error(`Failed to send tone ${tone} in sequence:`, err)
 
@@ -310,6 +365,7 @@ export function useDTMF(session: Ref<CallSession | null>): UseDTMFReturn {
       log.error('DTMF sequence failed:', error)
       throw error
     } finally {
+      sequenceInProgress = false
       isSending.value = false
       isCancelled = false
     }

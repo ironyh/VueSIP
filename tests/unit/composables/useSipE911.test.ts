@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { useSipE911 } from '@/composables/useSipE911'
 import type { SipClient } from '@/core/SipClient'
-import type {  } from '@/types/e911.types'
+import type {} from '@/types/e911.types'
 import type { EventBus } from '@/core/EventBus'
 
 // Mock EventBus
@@ -70,7 +70,10 @@ describe('useSipE911', () => {
 
   describe('initialization', () => {
     it('should initialize with default configuration', () => {
-      const { config, locations, activeCalls, isMonitoring } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { config, locations, activeCalls, isMonitoring } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       expect(config.value.enabled).toBe(true)
       expect(config.value.emergencyNumbers).toContain('911')
@@ -98,7 +101,9 @@ describe('useSipE911', () => {
     })
 
     it('should auto-start monitoring when autoStart is true', () => {
-      const { isMonitoring } = useSipE911(clientRef, mockEventBus as unknown as EventBus, { autoStart: true })
+      const { isMonitoring } = useSipE911(clientRef, mockEventBus as unknown as EventBus, {
+        autoStart: true,
+      })
 
       expect(isMonitoring.value).toBe(true)
       expect(mockEventBus.on).toHaveBeenCalled()
@@ -114,7 +119,10 @@ describe('useSipE911', () => {
 
   describe('monitoring', () => {
     it('should start monitoring', () => {
-      const { startMonitoring, isMonitoring } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { startMonitoring, isMonitoring } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       startMonitoring()
 
@@ -126,7 +134,10 @@ describe('useSipE911', () => {
     })
 
     it('should stop monitoring', () => {
-      const { startMonitoring, stopMonitoring, isMonitoring } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { startMonitoring, stopMonitoring, isMonitoring } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       startMonitoring()
       expect(isMonitoring.value).toBe(true)
@@ -137,7 +148,10 @@ describe('useSipE911', () => {
     })
 
     it('should not start monitoring twice', () => {
-      const { startMonitoring, isMonitoring } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { startMonitoring, isMonitoring } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       startMonitoring()
       const callCount = mockEventBus.on.mock.calls.length
@@ -150,7 +164,10 @@ describe('useSipE911', () => {
 
   describe('location management', () => {
     it('should add a location', () => {
-      const { addLocation, locations, locationList } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, locations, locationList } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const location = addLocation({
         name: 'Main Office',
@@ -176,7 +193,10 @@ describe('useSipE911', () => {
     })
 
     it('should update a location', () => {
-      const { addLocation, updateLocation, getLocation } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, updateLocation, getLocation } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const location = addLocation({
         name: 'Test Location',
@@ -193,7 +213,10 @@ describe('useSipE911', () => {
     })
 
     it('should remove a location', () => {
-      const { addLocation, removeLocation, locations } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, removeLocation, locations } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const location = addLocation({
         name: 'Test Location',
@@ -212,7 +235,10 @@ describe('useSipE911', () => {
     })
 
     it('should set default location', () => {
-      const { addLocation, setDefaultLocation, defaultLocation } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, setDefaultLocation, defaultLocation } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const loc1 = addLocation({
         name: 'Location 1',
@@ -238,7 +264,10 @@ describe('useSipE911', () => {
     })
 
     it('should get location for extension', () => {
-      const { addLocation, getLocationForExtension } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, getLocationForExtension } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       addLocation({
         name: 'Floor 1',
@@ -262,7 +291,10 @@ describe('useSipE911', () => {
     })
 
     it('should verify a location', async () => {
-      const { addLocation, verifyLocation, getLocation } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, verifyLocation, getLocation } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const location = addLocation({
         name: 'Test Location',
@@ -286,7 +318,10 @@ describe('useSipE911', () => {
 
   describe('notification recipients', () => {
     it('should add a recipient', () => {
-      const { addRecipient, config, recipients } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addRecipient, config, recipients } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const recipient = addRecipient({
         name: 'Security Team',
@@ -303,7 +338,10 @@ describe('useSipE911', () => {
     })
 
     it('should update a recipient', () => {
-      const { addRecipient, updateRecipient, config } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addRecipient, updateRecipient, config } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const recipient = addRecipient({
         name: 'Security Team',
@@ -320,7 +358,10 @@ describe('useSipE911', () => {
     })
 
     it('should remove a recipient', () => {
-      const { addRecipient, removeRecipient, config } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addRecipient, removeRecipient, config } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const recipient = addRecipient({
         name: 'Security Team',
@@ -339,7 +380,10 @@ describe('useSipE911', () => {
     })
 
     it('should filter enabled recipients', () => {
-      const { addRecipient, recipients } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addRecipient, recipients } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       addRecipient({
         name: 'Active Recipient',
@@ -401,7 +445,10 @@ describe('useSipE911', () => {
     })
 
     it('should report compliant when properly configured', () => {
-      const { addLocation, addRecipient, updateConfig, checkCompliance } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, addRecipient, updateConfig, checkCompliance } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       updateConfig({ defaultCallbackNumber: '+15551234567' })
 
@@ -437,7 +484,10 @@ describe('useSipE911', () => {
     })
 
     it('should detect unverified locations', () => {
-      const { addLocation, addRecipient, updateConfig, checkCompliance } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, addRecipient, updateConfig, checkCompliance } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       updateConfig({ defaultCallbackNumber: '+15551234567' })
 
@@ -466,7 +516,10 @@ describe('useSipE911', () => {
 
   describe('compliance logging', () => {
     it('should log events', () => {
-      const { addLocation, complianceLogs, getLogs } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, complianceLogs, getLogs } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       addLocation({
         name: 'Test Location',
@@ -516,7 +569,11 @@ describe('useSipE911', () => {
     })
 
     it('should properly escape CSV fields with special characters', () => {
-      const { addLocation, exportLogs, complianceLogs: _complianceLogs } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const {
+        addLocation,
+        exportLogs,
+        complianceLogs: _complianceLogs,
+      } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
 
       // Add a location with a comma in the name (quotes get sanitized out)
       addLocation({
@@ -534,10 +591,19 @@ describe('useSipE911', () => {
     })
 
     it('should clear old logs', () => {
-      const { addLocation, clearOldLogs, complianceLogs } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, clearOldLogs, complianceLogs } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       // Add some logs
-      addLocation({ name: 'Loc1', type: 'civic', isDefault: false, isVerified: false, extensions: [] })
+      addLocation({
+        name: 'Loc1',
+        type: 'civic',
+        isDefault: false,
+        isVerified: false,
+        extensions: [],
+      })
 
       const initialCount = complianceLogs.value.length
 
@@ -552,7 +618,10 @@ describe('useSipE911', () => {
 
   describe('call history', () => {
     it('should get calls in date range', () => {
-      const { callHistory, getCallsInRange } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { callHistory, getCallsInRange } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const now = new Date()
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
@@ -612,7 +681,10 @@ describe('useSipE911', () => {
 
   describe('location formatting', () => {
     it('should format civic address', () => {
-      const { addLocation, formatLocation } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, formatE911Location } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const location = addLocation({
         name: 'Main Office',
@@ -634,7 +706,7 @@ describe('useSipE911', () => {
         extensions: [],
       })
 
-      const formatted = formatLocation(location)
+      const formatted = formatE911Location(location)
 
       expect(formatted).toContain('123')
       expect(formatted).toContain('N')
@@ -646,7 +718,10 @@ describe('useSipE911', () => {
     })
 
     it('should format geo coordinates', () => {
-      const { addLocation, formatLocation } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, formatE911Location } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const location = addLocation({
         name: 'GPS Location',
@@ -661,7 +736,7 @@ describe('useSipE911', () => {
         extensions: [],
       })
 
-      const formatted = formatLocation(location)
+      const formatted = formatE911Location(location)
 
       expect(formatted).toContain('GPS:')
       expect(formatted).toContain('37.774')
@@ -672,9 +747,13 @@ describe('useSipE911', () => {
   describe('test notifications', () => {
     it('should send test notification', async () => {
       const onNotificationSent = vi.fn()
-      const { addRecipient, sendTestNotification } = useSipE911(clientRef, mockEventBus as unknown as EventBus, {
-        onNotificationSent,
-      })
+      const { addRecipient, sendTestNotification } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus,
+        {
+          onNotificationSent,
+        }
+      )
 
       addRecipient({
         name: 'Test Recipient',
@@ -693,7 +772,10 @@ describe('useSipE911', () => {
     })
 
     it('should fail test notification without recipients', async () => {
-      const { sendTestNotification, error } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { sendTestNotification, error } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const result = await sendTestNotification()
 
@@ -705,9 +787,13 @@ describe('useSipE911', () => {
   describe('callbacks', () => {
     it('should call onEmergencyCall callback', () => {
       const onEmergencyCall = vi.fn()
-      const { startMonitoring, addLocation } = useSipE911(clientRef, mockEventBus as unknown as EventBus, {
-        onEmergencyCall,
-      })
+      const { startMonitoring, addLocation } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus,
+        {
+          onEmergencyCall,
+        }
+      )
 
       addLocation({
         name: 'Office',
@@ -735,7 +821,9 @@ describe('useSipE911', () => {
 
     it('should call onEvent callback', () => {
       const onEvent = vi.fn()
-      const { startMonitoring } = useSipE911(clientRef, mockEventBus as unknown as EventBus, { onEvent })
+      const { startMonitoring } = useSipE911(clientRef, mockEventBus as unknown as EventBus, {
+        onEvent,
+      })
 
       startMonitoring()
 
@@ -755,7 +843,10 @@ describe('useSipE911', () => {
 
   describe('computed properties', () => {
     it('should track active emergency calls', () => {
-      const { startMonitoring, hasActiveEmergency, activeCallList, activeCalls } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { startMonitoring, hasActiveEmergency, activeCallList, activeCalls } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       startMonitoring()
 
@@ -832,7 +923,10 @@ describe('useSipE911', () => {
     })
 
     it('should sanitize location name on update', () => {
-      const { addLocation, updateLocation, getLocation } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addLocation, updateLocation, getLocation } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const location = addLocation({
         name: 'Valid Name',
@@ -850,7 +944,10 @@ describe('useSipE911', () => {
     })
 
     it('should sanitize recipient email', () => {
-      const { addRecipient, config: _config } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addRecipient, config: _config } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const recipient = addRecipient({
         name: 'Test',
@@ -912,7 +1009,10 @@ describe('useSipE911', () => {
     })
 
     it('should sanitize fields on recipient update', () => {
-      const { addRecipient, updateRecipient, config } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { addRecipient, updateRecipient, config } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       const recipient = addRecipient({
         name: 'Original',
@@ -935,7 +1035,10 @@ describe('useSipE911', () => {
 
   describe('client changes', () => {
     it('should handle client changes when monitoring', async () => {
-      const { startMonitoring, isMonitoring } = useSipE911(clientRef, mockEventBus as unknown as EventBus)
+      const { startMonitoring, isMonitoring } = useSipE911(
+        clientRef,
+        mockEventBus as unknown as EventBus
+      )
 
       startMonitoring()
       expect(isMonitoring.value).toBe(true)

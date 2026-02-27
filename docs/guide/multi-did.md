@@ -115,3 +115,59 @@ calledIdentity: {
   - `extracted` (`candidates`, `dialed`, `target`)
 - Log `session.calledNumberCandidates` when validating a new provider.
 - If your PBX/proxy rewrites the INVITE, focus first on `P-Called-Party-ID`, `History-Info`, and `Diversion`.
+
+## Real header examples
+
+The following examples show representative SIP header values for inbound INVITEs. Actual captures may vary by provider, PBX version, and forwarding/transfer settings. Use them to interpret `Incoming called identity snapshot` and to choose the right `calledIdentity` preset or precedence.
+
+### Direct-to-provider (e.g. 46elks, Telnyx)
+
+The DID is often in Request-URI and/or To:
+
+```
+INVITE sip:+46123456789@edge.46elks.com;transport=wss SIP/2.0
+To: <sip:+46123456789@edge.46elks.com>
+From: <sip:+46987654321@edge.46elks.com>;tag=...
+```
+
+- **Request-URI:** `sip:+46123456789@...` → dialed DID.
+- **To:** same number here; with default precedence, `dialed` and `target` both resolve to this DID.
+
+With forwarding, the provider may add Diversion:
+
+```
+To: <sip:1001@pbx.example.com>
+Diversion: <sip:+46123456789@provider.com>;reason=unconditional
+```
+
+- **Dialed** (originally called): `+46123456789` from `Diversion`.
+- **Target** (current To): `1001` from `To`. Use `dialedPrecedence` so that `diversion` is preferred for `dialed` when you need the original DID.
+
+### FreePBX / Asterisk re-INVITE (provider → PBX → endpoint)
+
+The provider sends the DID to the PBX; the PBX re-INVITEs the extension with Request-URI/To rewritten to the extension. The original DID is often only in P-Called-Party-ID, History-Info, or Diversion:
+
+```
+INVITE sip:1001@192.168.1.10:5060 SIP/2.0
+To: <sip:1001@192.168.1.10>
+P-Called-Party-ID: <sip:+46123456789@provider.com>
+History-Info: <sip:+46123456789@provider.com>;index=1
+```
+
+- **Request-URI / To:** extension `1001` (current target).
+- **P-Called-Party-ID / History-Info:** original DID `+46123456789`. With `preset: 'freepbx_pjsip'`, VueSip prefers these for `dialed`, so `session.calledNumberDialed` will be the DID, not the extension.
+
+If the PBX only passes the DID in a custom header:
+
+```
+X-Called-DID: +46123456789
+```
+
+Configure `customHeaderMap` and `customHeaderPrecedence` as in the example in the FreePBX section above.
+
+### Which header wins by default
+
+- **Dialed** (originally called): default precedence is `['p-called-party-id', 'history-info', 'diversion', 'to', 'request-uri']`. The first header present with a valid value wins.
+- **Target** (current INVITE target): default precedence is `['request-uri', 'to', 'p-called-party-id']`.
+
+To override, set `calledIdentity.dialedPrecedence` and/or `calledIdentity.targetPrecedence` in your config (e.g. put `diversion` or `history-info` earlier for `dialed` when your provider puts the DID there).

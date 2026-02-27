@@ -181,6 +181,12 @@ export class WebSpeechProvider implements TranscriptionProvider {
           return
         }
 
+        // Clear any existing restart timeout to prevent multiple pending restarts
+        if (this.restartTimeout) {
+          clearTimeout(this.restartTimeout)
+          this.restartTimeout = null
+        }
+
         const delay = Math.min(300 * Math.pow(2, this.restartAttempts), 30000)
         this.restartAttempts++
 
@@ -190,8 +196,9 @@ export class WebSpeechProvider implements TranscriptionProvider {
           if (!this.isRunning || !this.recognition) return
           try {
             this.recognition.start()
+            this.restartAttempts = 0
           } catch {
-            // Ignore if already started
+            // Already started or failed - backoff will continue
           }
         }, delay)
       }

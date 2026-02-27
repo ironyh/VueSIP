@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, toRef } from 'vue'
 import type { MediaDevice } from 'vuesip'
 import Elks46OutboundSettings from './Elks46OutboundSettings.vue'
 import TranscriptionSettingsSection from './TranscriptionSettingsSection.vue'
+import { useAudioDeviceTest } from '../composables/useAudioDeviceTest'
 
 type SettingsCategory =
   | 'account'
@@ -58,97 +59,15 @@ const scrollableCategories = computed(() => {
   return categories
 })
 
-// Audio testing
-const isTestingMic = ref(false)
-const isTestingSpeaker = ref(false)
-let micTestStream: MediaStream | null = null
-let speakerTestAudio: HTMLAudioElement | null = null
-
-async function testMicrophone() {
-  if (isTestingMic.value) {
-    // Stop test
-    if (micTestStream) {
-      micTestStream.getTracks().forEach((track) => track.stop())
-      micTestStream = null
-    }
-    isTestingMic.value = false
-    return
-  }
-
-  try {
-    isTestingMic.value = true
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        deviceId: props.selectedAudioInputId ? { exact: props.selectedAudioInputId } : undefined,
-      },
-    })
-    micTestStream = stream
-    // Visual feedback - could add waveform visualization here
-    setTimeout(() => {
-      if (micTestStream) {
-        micTestStream.getTracks().forEach((track) => track.stop())
-        micTestStream = null
-      }
-      isTestingMic.value = false
-    }, 3000)
-  } catch (error) {
-    console.error('Microphone test failed:', error)
-    isTestingMic.value = false
-  }
-}
-
-async function testSpeaker() {
-  if (isTestingSpeaker.value) {
-    // Stop test
-    if (speakerTestAudio) {
-      speakerTestAudio.pause()
-      speakerTestAudio = null
-    }
-    isTestingSpeaker.value = false
-    return
-  }
-
-  try {
-    isTestingSpeaker.value = true
-    // Create a test tone
-    const audioContext = new AudioContext()
-    const oscillator = audioContext.createOscillator()
-    const gainNode = audioContext.createGain()
-    const destination = audioContext.destination
-
-    oscillator.connect(gainNode)
-    gainNode.connect(destination)
-
-    oscillator.frequency.value = 440 // A4 note
-    gainNode.gain.value = 0.1
-
-    oscillator.start()
-    oscillator.stop(audioContext.currentTime + 0.5)
-
-    setTimeout(() => {
-      isTestingSpeaker.value = false
-    }, 500)
-  } catch (error) {
-    console.error('Speaker test failed:', error)
-    isTestingSpeaker.value = false
-  }
-}
+// Audio device testing (composable handles cleanup on unmount)
+const { isTestingMic, isTestingSpeaker, testMicrophone, testSpeaker } = useAudioDeviceTest(
+  toRef(props, 'selectedAudioInputId'),
+  toRef(props, 'selectedAudioOutputId')
+)
 
 function handleDisconnect() {
   emit('disconnect')
 }
-
-// Cleanup audio test streams on unmount
-onUnmounted(() => {
-  if (micTestStream) {
-    micTestStream.getTracks().forEach((track) => track.stop())
-    micTestStream = null
-  }
-  if (speakerTestAudio) {
-    speakerTestAudio.pause()
-    speakerTestAudio = null
-  }
-})
 </script>
 
 <template>

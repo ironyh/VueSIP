@@ -11,10 +11,65 @@
  * - Logger configuration for tests
  */
 
-import { vi, afterEach } from 'vitest'
+import { vi, afterEach, beforeEach } from 'vitest'
 import { config } from '@vue/test-utils'
 import { createApp } from 'vue'
 import { configureLogger } from '../src/utils/logger'
+
+// ==========================================
+// LOCALSTORAGE MOCK
+// ==========================================
+// Create a proper localStorage mock that works in jsdom
+class LocalStorageMock implements Storage {
+  private store: Map<string, string> = new Map()
+
+  get length(): number {
+    return this.store.size
+  }
+
+  key(index: number): string | null {
+    const keys = Array.from(this.store.keys())
+    return keys[index] ?? null
+  }
+
+  getItem(key: string): string | null {
+    return this.store.get(key) ?? null
+  }
+
+  setItem(key: string, value: string): void {
+    this.store.set(key, String(value))
+  }
+
+  removeItem(key: string): void {
+    this.store.delete(key)
+  }
+
+  clear(): void {
+    this.store.clear()
+  }
+}
+
+// Install localStorage mock globally
+const localStorageMock = new LocalStorageMock()
+const sessionStorageMock = new LocalStorageMock()
+
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+  configurable: true,
+})
+
+Object.defineProperty(global, 'sessionStorage', {
+  value: sessionStorageMock,
+  writable: true,
+  configurable: true,
+})
+
+// Clear storage before each test
+beforeEach(() => {
+  localStorageMock.clear()
+  sessionStorageMock.clear()
+})
 
 // ==========================================
 // VUE TEST UTILS CONFIGURATION

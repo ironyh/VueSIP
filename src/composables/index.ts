@@ -29,6 +29,7 @@ export {
   type UseDTMFReturn,
   type DTMFSequenceOptions,
   type DTMFSendResult,
+  type DtmfSessionSource,
 } from './useDTMF'
 
 // Advanced composables
@@ -82,14 +83,53 @@ export { useSipAutoAnswer } from './useSipAutoAnswer'
 export { useSipE911 } from './useSipE911'
 export { useSipSecondLine } from './useSipSecondLine'
 // useSipConnection requires sip.js library - not exported until dual-library support is added
-export { useSipDtmf } from './useSipDtmf'
 
 // Call quality composables
 export { useCallQualityScore } from './useCallQualityScore'
 export { useNetworkQualityIndicator } from './useNetworkQualityIndicator'
 export { useBandwidthAdaptation } from './useBandwidthAdaptation'
 export { useConnectionRecovery } from './useConnectionRecovery'
+export {
+  useTransportRecovery,
+  type TransportRecoveryOptions,
+  type TransportRecoveryMetrics,
+  type UseTransportRecoveryReturn,
+} from './useTransportRecovery'
+export {
+  useCredentialExpiry,
+  type CredentialStatus,
+  type CredentialExpiryOptions,
+  type UseCredentialExpiryReturn,
+} from './useCredentialExpiry'
 export { useSessionPersistence } from './useSessionPersistence'
+
+export {
+  useNotifications,
+  type NotificationType,
+  type NotificationPosition,
+  type NotificationAction,
+  type Notification,
+  type NotifyOptions,
+  type NotificationOptions,
+  type UseNotificationsReturn,
+} from './useNotifications'
+
+export {
+  useConnectionHealthBar,
+  type HealthLevel,
+  type HealthDetails,
+  type ConnectionHealthBarOptions,
+  type UseConnectionHealthBarReturn,
+} from './useConnectionHealthBar'
+
+export {
+  useGracefulDegradation,
+  type DegradationLevel,
+  type DegradationThresholds,
+  type AdaptationHistoryEntry,
+  type GracefulDegradationOptions,
+  type UseGracefulDegradationReturn,
+} from './useGracefulDegradation'
 
 // Audio processing composable
 export {
@@ -103,7 +143,18 @@ export {
 // Additional composables
 export { useCallHold } from './useCallHold'
 export { useCallTransfer } from './useCallTransfer'
+export {
+  useCallWaiting,
+  type UseCallWaitingReturn,
+  type WaitingCall,
+  type CallWaitingOptions,
+} from './useCallWaiting'
 export { useAudioDevices } from './useAudioDevices'
+export {
+  useAudioDeviceSwitch,
+  type AudioDeviceSwitchOptions,
+  type UseAudioDeviceSwitchReturn,
+} from './useAudioDeviceSwitch'
 export { useMultiLine } from './useMultiLine'
 export { useDialog } from './useDialog'
 export { useFreePBXPresence } from './useFreePBXPresence'
@@ -276,8 +327,14 @@ export {
   TRANSFER_CONSTANTS,
   HISTORY_CONSTANTS,
   CALL_CONSTANTS,
+  CALL_WAITING_CONSTANTS,
   MEDIA_CONSTANTS,
   DTMF_CONSTANTS,
+  DEVICE_SWITCH_CONSTANTS,
+  NOTIFICATION_CONSTANTS,
+  CONNECTION_HEALTH_CONSTANTS,
+  CREDENTIAL_EXPIRY_CONSTANTS,
+  DEGRADATION_CONSTANTS,
   TIMEOUTS,
   RETRY_CONFIG,
 } from './constants'

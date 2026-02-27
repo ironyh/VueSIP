@@ -122,7 +122,7 @@ import { AdapterFactory } from '@/adapters/AdapterFactory'
 
 // Create adapter with JsSIP
 const adapter = await AdapterFactory.createAdapter(sipConfig, {
-  library: 'jssip'
+  library: 'jssip',
 })
 
 // Connect and register
@@ -131,7 +131,7 @@ await adapter.register()
 
 // Make a call
 const session = await adapter.call('sip:bob@example.com', {
-  mediaConstraints: { audio: true, video: false }
+  mediaConstraints: { audio: true, video: false },
 })
 
 // Handle call events
@@ -151,7 +151,7 @@ console.log('Available SIP libraries:', libraries)
 const preferredLibrary = libraries.includes('sipjs') ? 'sipjs' : 'jssip'
 
 const adapter = await AdapterFactory.createAdapter(sipConfig, {
-  library: preferredLibrary
+  library: preferredLibrary,
 })
 ```
 
@@ -165,34 +165,39 @@ class MyCustomAdapter implements ISipAdapter {
 
 const adapter = await AdapterFactory.createAdapter(sipConfig, {
   library: 'custom',
-  customAdapter: new MyCustomAdapter()
+  customAdapter: new MyCustomAdapter(),
 })
 ```
 
 ## Adapter Implementation Status
 
-| Adapter | Status | Version | Features |
-|---------|--------|---------|----------|
-| **JsSIP** | 🚧 In Progress | - | Full feature set planned |
-| **SIP.js** | 📋 Planned | - | Future implementation |
-| **Custom** | ✅ Supported | - | Via ISipAdapter interface |
+Current state: **JsSIP adapter implemented** (JsSipAdapter, JsSipCallSession); **SIP.js planned**. SipClient refactor to use adapter is pending (Phase 3).
+
+| Adapter    | Status         | Version | Features                       |
+| ---------- | -------------- | ------- | ------------------------------ |
+| **JsSIP**  | ✅ Implemented | -       | JsSipAdapter, JsSipCallSession |
+| **SIP.js** | 📋 Planned     | -       | Future implementation          |
+| **Custom** | ✅ Supported   | -       | Via ISipAdapter interface      |
 
 ## Implementation Roadmap
 
-### Phase 1: Foundation (Current)
+### Phase 1: Foundation (Complete)
+
 - ✅ Define `ISipAdapter` and `ICallSession` interfaces
 - ✅ Create `AdapterFactory` for library selection
 - ✅ Document adapter architecture
-- 🚧 Implement `JsSipAdapter` wrapping current code
+- ✅ Implement `JsSipAdapter` wrapping JsSIP
 
-### Phase 2: JsSIP Adapter (Next)
-- 🔲 Extract JsSIP code into `JsSipAdapter` class
-- 🔲 Implement `JsSipCallSession` class
-- 🔲 Ensure full feature parity with current implementation
+### Phase 2: JsSIP Adapter (Complete)
+
+- ✅ Extract JsSIP code into `JsSipAdapter` class
+- ✅ Implement `JsSipCallSession` class
+- ✅ Feature parity with current JsSIP usage
 - 🔲 Add comprehensive unit tests for adapter
 - 🔲 Update documentation
 
 ### Phase 3: Core Refactoring
+
 - 🔲 Refactor `SipClient.ts` to use `ISipAdapter` interface
 - 🔲 Refactor `CallSession.ts` to use `ICallSession` interface
 - 🔲 Update all composables to use adapter interfaces
@@ -200,6 +205,7 @@ const adapter = await AdapterFactory.createAdapter(sipConfig, {
 - 🔲 Maintain backward compatibility
 
 ### Phase 4: SIP.js Adapter
+
 - 🔲 Implement `SipJsAdapter` class
 - 🔲 Implement `SipJsCallSession` class
 - 🔲 Map SIP.js APIs to adapter interface
@@ -208,6 +214,7 @@ const adapter = await AdapterFactory.createAdapter(sipConfig, {
 - 🔲 Update documentation and examples
 
 ### Phase 5: Optimization
+
 - 🔲 Dynamic imports for tree-shaking
 - 🔲 Make SIP libraries optional peer dependencies
 - 🔲 Performance optimization
@@ -241,18 +248,23 @@ src/adapters/
 ## Key Design Decisions
 
 ### 1. **Event-Driven Architecture**
+
 Both `ISipAdapter` and `ICallSession` extend `EventEmitter` to maintain VueSip's event-driven design while providing standardized event names across libraries.
 
 ### 2. **Async Operations**
+
 All adapter methods return Promises to handle async SIP operations consistently, regardless of the underlying library's async patterns.
 
 ### 3. **Factory Pattern**
+
 The `AdapterFactory` enables runtime library selection and provides a clean creation API. Dynamic imports allow tree-shaking of unused adapters.
 
 ### 4. **Interface Segregation**
+
 Separate interfaces for adapters and call sessions follow SOLID principles and make the code more maintainable.
 
 ### 5. **Type Safety**
+
 Comprehensive TypeScript types ensure compile-time safety when working with any adapter implementation.
 
 ## Event Mapping
@@ -260,42 +272,48 @@ Comprehensive TypeScript types ensure compile-time safety when working with any 
 Different SIP libraries use different event names. Adapters map library-specific events to standardized names:
 
 ### Connection Events
-| Standard Event | JsSIP Event | SIP.js Event |
-|----------------|-------------|--------------|
-| `connection:connecting` | `connecting` | `transport.connecting` |
-| `connection:connected` | `connected` | `transport.connected` |
+
+| Standard Event            | JsSIP Event    | SIP.js Event             |
+| ------------------------- | -------------- | ------------------------ |
+| `connection:connecting`   | `connecting`   | `transport.connecting`   |
+| `connection:connected`    | `connected`    | `transport.connected`    |
 | `connection:disconnected` | `disconnected` | `transport.disconnected` |
-| `connection:failed` | N/A | `transport.error` |
+| `connection:failed`       | N/A            | `transport.error`        |
 
 ### Call Events
-| Standard Event | JsSIP Event | SIP.js Event |
-|----------------|-------------|--------------|
-| `call:incoming` | `newRTCSession` (incoming) | `invite` |
+
+| Standard Event  | JsSIP Event                | SIP.js Event      |
+| --------------- | -------------------------- | ----------------- |
+| `call:incoming` | `newRTCSession` (incoming) | `invite`          |
 | `call:outgoing` | `newRTCSession` (outgoing) | N/A (synchronous) |
 
 ### Session Events
+
 | Standard Event | JsSIP RTCSession | SIP.js Session |
-|----------------|------------------|----------------|
-| `progress` | `progress` | `progress` |
-| `accepted` | `accepted` | `accepted` |
-| `ended` | `ended` | `terminated` |
-| `failed` | `failed` | `failed` |
+| -------------- | ---------------- | -------------- |
+| `progress`     | `progress`       | `progress`     |
+| `accepted`     | `accepted`       | `accepted`     |
+| `ended`        | `ended`          | `terminated`   |
+| `failed`       | `failed`         | `failed`       |
 
 ## Testing Strategy
 
 ### Unit Tests
+
 - Test each adapter implementation in isolation
 - Mock SIP library dependencies
 - Verify event mapping
 - Test error handling
 
 ### Integration Tests
+
 - Test adapter factory creation
 - Test library switching
 - Test feature parity across adapters
 - Test backward compatibility
 
 ### E2E Tests
+
 - Test real SIP server connections with each adapter
 - Verify call flows with different libraries
 - Test library-specific features
@@ -321,6 +339,6 @@ When implementing a new adapter:
 
 ---
 
-**Status:** Foundation phase complete. JsSIP adapter implementation in progress.
+**Status:** JsSIP adapter implemented (JsSipAdapter, JsSipCallSession). Core refactoring (SipClient uses adapter) and SIP.js adapter planned.
 
-**Last Updated:** 2025-11-08
+**Last Updated:** 2026-02-25

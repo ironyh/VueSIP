@@ -549,7 +549,7 @@ export function useCallSession(
     const timer = createOperationTimer()
 
     try {
-      console.log('[useCallSession] makeCall STARTING', {
+      log.debug('[useCallSession] makeCall STARTING', {
         target,
         hasMediaManager: !!mediaManager?.value,
       })
@@ -557,7 +557,7 @@ export function useCallSession(
 
       // Clear any existing session
       clearSession()
-      console.log('[useCallSession] Session cleared')
+      log.debug('[useCallSession] Session cleared')
 
       // Check if aborted after clearing session
       throwIfAborted(effectiveSignal)
@@ -565,10 +565,10 @@ export function useCallSession(
       // Acquire local media if mediaManager is provided
       if (mediaManager?.value) {
         const { audio = true, video = false } = options
-        console.log('[useCallSession] About to acquire media', { audio, video })
+        log.debug('[useCallSession] About to acquire media', { audio, video })
         log.debug(`Acquiring local media (audio: ${audio}, video: ${video})`)
         await mediaManager.value.getUserMedia({ audio, video })
-        console.log('[useCallSession] Media acquired successfully')
+        log.debug('[useCallSession] Media acquired successfully')
         mediaAcquired = true
         // Store reference to local stream for cleanup if call fails
         localStreamBeforeCall = mediaManager.value.getLocalStream() || null
@@ -577,7 +577,7 @@ export function useCallSession(
         throwIfAborted(effectiveSignal)
       }
 
-      console.log('[useCallSession] About to call sipClient.call()', {
+      log.debug('[useCallSession] About to call sipClient.call()', {
         hasSipClient: !!sipClient.value,
         hasLocalStream: !!localStreamBeforeCall,
       })
@@ -593,40 +593,40 @@ export function useCallSession(
       // Otherwise, let JsSIP handle getUserMedia via mediaConstraints
       if (localStreamBeforeCall) {
         callOptions.mediaStream = localStreamBeforeCall
-        console.log('[useCallSession] Passing existing mediaStream to JsSIP')
+        log.debug('[useCallSession] Passing existing mediaStream to JsSIP')
       } else {
         callOptions.mediaConstraints = {
           audio: options.audio ?? true,
           video: options.video ?? false,
         }
-        console.log('[useCallSession] Using mediaConstraints for JsSIP')
+        log.debug('[useCallSession] Using mediaConstraints for JsSIP')
       }
 
       const newSession = await sipClient.value.call(target, callOptions)
 
-      console.log('[useCallSession] sipClient.call() returned', { sessionId: newSession.id })
+      log.debug('[useCallSession] sipClient.call() returned', { sessionId: newSession.id })
 
       // Check if aborted after call initiation
       throwIfAborted(effectiveSignal)
 
       // Store session
       session.value = newSession
-      console.log('[useCallSession] Session stored')
+      log.debug('[useCallSession] Session stored')
 
       // Set up event listeners to track state changes for Vue reactivity
       setupSessionEventListeners(newSession)
 
       // Add to call store
       callStore.addActiveCall(newSession)
-      console.log('[useCallSession] Added to call store')
+      log.debug('[useCallSession] Added to call store')
 
       // Reset duration
       resetDuration()
 
       log.info(`Call initiated: ${newSession.id}`)
-      console.log('[useCallSession] makeCall COMPLETED successfully')
+      log.debug('[useCallSession] makeCall COMPLETED successfully')
     } catch (error) {
-      console.error('[useCallSession] makeCall FAILED', {
+      log.error('[useCallSession] makeCall FAILED', {
         error,
         errorMessage: error instanceof Error ? error.message : String(error),
         errorStack: error instanceof Error ? error.stack : undefined,
@@ -1320,8 +1320,7 @@ export function useCallSession(
     }
 
     // Listen for new sessions (incoming calls)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:new_session
-    const listenerId = eventBus.on('sip:new_session' as any, (event: any) => {
+    const listenerId = eventBus.on('sip:new_session', (event) => {
       log.debug('Received sip:new_session event:', event)
 
       // Only handle incoming calls - outgoing calls are handled by makeCall()
@@ -1366,8 +1365,7 @@ export function useCallSession(
 
     // Store cleanup function
     incomingCallListenerCleanup = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- EventBus type definition doesn't include sip:new_session
-      eventBus.off('sip:new_session' as any, listenerId)
+      eventBus.off('sip:new_session', listenerId)
     }
 
     log.debug('Incoming call listener set up')
