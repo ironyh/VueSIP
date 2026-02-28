@@ -12,11 +12,30 @@
             <button
               data-testid="playground-connect-cta"
               class="connect-cta"
+              :class="{
+                'cta-ready': isConnected && isRegistered,
+                'cta-connected': isConnected && !isRegistered,
+              }"
               type="button"
               @click="openConnectionSettings"
+              :aria-label="
+                isConnected
+                  ? isRegistered
+                    ? 'SIP ready for calls – open settings'
+                    : 'SIP connected – open settings'
+                  : 'Configure SIP connection'
+              "
             >
-              <span class="cta-dot"></span>
-              <span>Configure SIP connection</span>
+              <span
+                class="cta-dot"
+                :class="{
+                  ready: isConnected && isRegistered,
+                  connected: isConnected && !isRegistered,
+                }"
+              ></span>
+              <span>{{
+                isConnected ? (isRegistered ? 'Ready' : 'Connected') : 'Configure SIP connection'
+              }}</span>
             </button>
             <button
               @click="toggleTheme"
@@ -379,7 +398,13 @@ interface CredentialsOptions {
 const examples = allExamples
 
 // Get shared SIP client for global auto-connect (lazy-loaded via Proxy)
-const { connect, disconnect: _disconnect, isConnected, updateConfig } = playgroundSipClient
+const {
+  connect,
+  disconnect: _disconnect,
+  isConnected,
+  isRegistered,
+  updateConfig,
+} = playgroundSipClient
 
 // State
 const currentExample = ref('click-to-call-widget')
@@ -824,6 +849,38 @@ watch(isDarkMode, (newValue) => {
   border-radius: 999px;
   background: #bbf7d0;
   box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.35);
+}
+
+.cta-dot.connected {
+  background: #fcd34d;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35);
+}
+
+.cta-dot.ready {
+  background: #6ee7b7;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.35);
+}
+
+.connect-cta.cta-connected {
+  background: linear-gradient(135deg, #b45309, #d97706);
+  color: #fff7ed;
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
+}
+
+.connect-cta.cta-connected:hover {
+  background: linear-gradient(135deg, #92400e, #b45309);
+  box-shadow: 0 8px 22px rgba(245, 158, 11, 0.4);
+}
+
+.connect-cta.cta-ready {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #ecfdf5;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+}
+
+.connect-cta.cta-ready:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.4);
 }
 
 .theme-toggle {

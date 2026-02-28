@@ -28,7 +28,12 @@
           <span>Connected</span>
           <span v-if="isRegistered" class="badge badge-registered">Registered</span>
         </div>
-        <button class="btn-icon btn-add" @click="openAddModal" title="Add new connection">
+        <button
+          class="btn-icon btn-add"
+          @click="openAddModal"
+          title="Add new connection"
+          aria-label="Add new connection"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="18"
@@ -136,6 +141,7 @@
             class="btn-icon btn-small"
             @click.stop="setAsDefault(connection.id)"
             title="Set as default"
+            aria-label="Set as default"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -157,6 +163,7 @@
             class="btn-icon btn-small"
             @click.stop="openEditModal(connection)"
             title="Edit connection"
+            aria-label="Edit connection"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -177,6 +184,7 @@
             class="btn-icon btn-small btn-icon-danger"
             @click.stop="confirmDelete(connection)"
             title="Delete connection"
+            aria-label="Delete connection"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -217,6 +225,7 @@
         <line x1="8" y1="12" x2="16" y2="12" />
       </svg>
       <p>No saved connections yet</p>
+      <p class="empty-state-hint">Add a SIP account to use demos with a real server.</p>
       <button class="btn btn-primary btn-sm" @click="openAddModal">
         Add Your First Connection
       </button>
@@ -228,7 +237,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h4>{{ isEditing ? 'Edit Connection' : 'Add New Connection' }}</h4>
-            <button class="btn-icon btn-close" @click="closeModal">
+            <button class="btn-icon btn-close" @click="closeModal" aria-label="Close dialog">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -403,7 +412,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch, onUnmounted } from 'vue'
 import { useConnectionManager, type SavedConnection } from '../composables/useConnectionManager'
 
 // Types
@@ -517,6 +526,22 @@ function closeModal() {
   showModal.value = false
   resetForm()
 }
+
+function onEscapeKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') closeModal()
+}
+
+watch(showModal, (open) => {
+  if (open) {
+    document.addEventListener('keydown', onEscapeKey)
+  } else {
+    document.removeEventListener('keydown', onEscapeKey)
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onEscapeKey)
+})
 
 function resetForm() {
   form.name = ''
@@ -909,8 +934,14 @@ function executeDelete() {
 }
 
 .empty-state p {
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0;
   font-size: 0.9375rem;
+}
+
+.empty-state .empty-state-hint {
+  margin-bottom: 1rem;
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
 }
 
 /* Modal */
