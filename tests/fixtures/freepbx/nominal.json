@@ -1,0 +1,45 @@
+{
+  "data": {
+    "fetchAllCdrs": {
+      "cdrs": [
+        {
+          "id": "123",
+          "uniqueid": "1709123456.42",
+          "calldate": "2025-02-28T14:30:00.000Z",
+          "timestamp": 1730201400,
+          "clid": "\"Alice\" <101>",
+          "src": "101",
+          "dst": "102",
+          "dcontext": "from-internal",
+          "channel": "PJSIP/101-00000001",
+          "dstchannel": "PJSIP/102-00000002",
+          "duration": 120,
+          "billsec": 118,
+          "disposition": "ANSWERED",
+          "recordingfile": "/var/spool/asterisk/monitor/2025/02/28/1709123456.42.wav",
+          "linkedid": "1709123456.41"
+        },
+        {
+          "id": "124",
+          "uniqueid": "1709123789.43",
+          "calldate": "2025-02-28T15:00:00.000Z",
+          "timestamp": 1730203200,
+          "clid": "\"Bob\" <102>",
+          "src": "102",
+          "dst": "8005551234",
+          "dcontext": "to-pstn",
+          "channel": "PJSIP/102-00000003",
+          "dstchannel": "PJSIP/trunk-00000004",
+          "duration": 45,
+          "billsec": 43,
+          "disposition": "ANSWERED",
+          "recordingfile": "/var/spool/asterisk/monitor/2025/02/28/1709123789.43.wav",
+          "linkedid": "1709123789.42"
+        }
+      ],
+      "totalCount": 2,
+      "status": true,
+      "message": "OK"
+    }
+  }
+}

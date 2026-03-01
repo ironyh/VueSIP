@@ -1,0 +1,19 @@
+{
+  "data": {
+    "fetchAllCdrs": {
+      "cdrs": [
+        {
+          "uniqueid": "1709000000.99",
+          "calldate": "2025-02-01T08:00:00.000Z",
+          "src": "201",
+          "dst": "202",
+          "dcontext": "from-internal",
+          "duration": 60,
+          "recordingfile": "/var/spool/asterisk/monitor/2025/02/01/1709000000.99.wav"
+        }
+      ],
+      "totalCount": 1,
+      "status": true
+    }
+  }
+}

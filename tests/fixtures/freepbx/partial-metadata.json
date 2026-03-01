@@ -1,0 +1,28 @@
+{
+  "data": {
+    "fetchAllCdrs": {
+      "cdrs": [
+        {
+          "uniqueid": "1709124100.45"
+        },
+        {
+          "uniqueid": "1709124101.46",
+          "calldate": "2025-02-28T16:00:00Z",
+          "duration": 0,
+          "billsec": null
+        },
+        {
+          "uniqueid": "1709124102.47",
+          "clid": "unknown",
+          "src": "",
+          "dst": "",
+          "dcontext": "unknown-context",
+          "channel": null,
+          "dstchannel": null
+        }
+      ],
+      "totalCount": 3,
+      "status": true
+    }
+  }
+}

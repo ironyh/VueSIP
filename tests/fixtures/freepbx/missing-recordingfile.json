@@ -1,0 +1,21 @@
+{
+  "data": {
+    "fetchAllCdrs": {
+      "cdrs": [
+        {
+          "id": "125",
+          "uniqueid": "1709123999.44",
+          "calldate": "2025-02-28T15:15:00.000Z",
+          "src": "101",
+          "dst": "103",
+          "dcontext": "from-internal",
+          "duration": 30,
+          "billsec": 28,
+          "disposition": "ANSWERED"
+        }
+      ],
+      "totalCount": 1,
+      "status": true
+    }
+  }
+}
