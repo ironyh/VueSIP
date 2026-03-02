@@ -93,3 +93,50 @@
 ## Log – VueSIP-dpi.5
 
 - 2026-03-02: Initial documentation plan drafted for PBX recording retrieval (user + provider-author guides); ready to execute.
+
+---
+
+## State – VueSIP-dpi.7 (PBX recording retrieval: fixture-based contract tests)
+
+- State.Bead = VueSIP-dpi.7
+- State.Owner = Agent (Cursor)
+- State.Phase = CONSTRUCT
+- State.Status = IN_PROGRESS
+- State.UpdatedAt = 2026-03-02
+
+## Plan – VueSIP-dpi.7
+
+1. **Reconfirm scope and dependencies**
+   - Re-read `docs/plans/2026-02-pbx-recording-retrieval.md` dpi.7 row to confirm that this bead is limited to fixture-based contract tests (not new runtime behavior).
+   - Confirm that beads dpi.2 (composable), dpi.3 (FreePBX adapter), and dpi.6 (security/auth) are implemented enough to support contract tests by reviewing `src/pbx-adapters/freepbx.ts`, `src/composables/usePbxRecordings.ts`, and `tests/unit/composables/usePbxRecordings.test.ts`.
+   - Note which edge cases are already covered by existing unit tests (e.g. unauthorized, expired, not_found, missing playback URLs) so the contract tests complement rather than duplicate them.
+
+2. **Design fixture formats and locations**
+   - Define a small set of JSON fixtures under `tests/fixtures/freepbx/` that represent realistic FreePBX GraphQL CDR responses (`FreePbxFetchAllCdrsResponse`), including nominal and edge-case payloads.
+   - Plan fixture files for at least: (a) nominal CDR list with mixed inbound/outbound/internal calls and valid `recordingfile`, (b) CDR list where some rows have missing/empty `recordingfile`, (c) empty CDR list with `totalCount = 0`, and (d) partial metadata rows missing optional fields like `clid`, `dcontext`, `channel`, or `dstchannel`.
+   - Decide whether any additional fixtures are needed specifically for pagination and date filtering behavior (e.g. multiple pages of CDRs with varying `calldate` values) and document expected coverage.
+
+3. **Plan test harness for FreePBX adapter contract tests**
+   - Choose a test location and naming convention (e.g. `tests/contract/pbx/freepbx.contract.test.ts` or `tests/unit/pbx-adapters/freepbx.contract.test.ts`) and document it here for consistency with future PBX providers.
+   - Design a reusable helper that injects a custom `fetch` into `createFreePbxRecordingProvider` which reads and returns the JSON fixtures as GraphQL responses, so tests exercise the adapter via its public `listRecordings` API rather than internal mapping functions.
+   - Define how tests will assert on `PbxRecordingListResult` fields: verifying `items.length`, `totalCount`, `hasMore`, and field-level mappings for `RecordingSummary` (id, callUniqueId, direction, startTime, duration, callerId, callee, channelOrLabel, metadata).
+
+4. **Plan contract test cases for CDR → RecordingSummary mapping**
+   - For the nominal fixture, assert direction mapping (`mapDirection`) for different `dcontext` values (from-pstn, to-pstn, internal) and graceful fallback to `internal` or `unknown` when only `src`/`dst` are present.
+   - Specify expectations for `startTime` (parsed from `calldate` with reasonable default when missing), `duration` (preferring `duration` over `billsec`, defaulting to 0 when both are absent), and `channelOrLabel` (joined from `channel` and `dstchannel` when present).
+   - For fixtures with missing `recordingfile` or partial metadata, assert that `RecordingSummary` objects are still returned, with `metadata` present but safely omitting or nulling missing fields, and that no runtime errors occur when mapping incomplete rows.
+
+5. **Plan contract test cases for pagination and filter passthrough**
+   - Design tests that call `provider.listRecordings` with different `PbxRecordingListQuery` values for `limit`, `offset`, `sortBy`, `dateFrom`, and `dateTo`, using a mock `fetch` implementation that captures the GraphQL request body.
+   - Assert that the generated GraphQL variables (`first`, `after`, `orderby`, `startDate`, `endDate`) correctly reflect the query options (including the `DEFAULT_PAGE_SIZE` and `MAX_PAGE_SIZE` constraints) and that unsupported query fields are safely ignored rather than causing errors.
+   - Ensure that the contract tests document expected behavior for page boundaries (`hasMore` computation) so future changes to pagination or sorting semantics will cause intentional test updates.
+
+6. **Plan contract test cases for playback URL construction**
+   - Define tests that call `provider.getPlaybackInfo` for different `baseUrl` configurations (with and without `/admin` suffix, with trailing slashes) and assert that the `playbackUrl` uses the expected `config.php?display=cdr&action=download_audio&cdr_file=<uniqueid>` pattern.
+   - Specify assertions for the `RecordingPlaybackInfo` shape: `recordingId` matches the input, `requiresAuth` is set according to the current implementation, and `metadata.source` is stable (`'freepbx'`).
+   - Decide whether to add a small helper to validate that playback URLs are deterministic for a given `baseUrl` and `recordingId` (no unexpected encoding or query parameter ordering changes).
+
+7. **TDD and landing strategy**
+   - For each planned contract test group (mapping, pagination/filters, playback URL construction), follow strict TDD: write the failing test against the public adapter API, run `pnpm run test:unit` (or a focused Vitest command) to confirm the failure, then implement only the minimal code or fixture additions required to make the tests pass.
+   - Run `pnpm run lint`, `pnpm run typecheck`, and the relevant test command(s) to ensure the new fixtures and contract tests are lint-clean, type-safe, and stable alongside existing `usePbxRecordings` tests.
+   - Once all acceptance criteria for VueSIP-dpi.7 are met (fixtures present, contract tests for mapping, pagination/filter passthrough, and playback URL construction all green), update the bead via `bd` and land the work following `AGENTS.md` (focused commit message, `git pull --rebase`, `bd sync`, `git push`).
