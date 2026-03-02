@@ -55,6 +55,9 @@ export * from './oauth.types'
 // Local recording types
 export * from './local-recording.types'
 
+// PBX recording types (provider interface, list/playback)
+export * from './pbx-recording.types'
+
 // Session persistence types
 export * from './session-persistence.types'
 

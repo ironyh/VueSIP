@@ -368,6 +368,41 @@ export * from './utils/notifications'
 export * from './storage'
 
 // ============================================================================
+// PBX Recording Adapters
+// ============================================================================
+
+/**
+ * PBX recording adapters for listing and playing call recordings.
+ *
+ * Adapters implement the {@link PbxRecordingProvider} interface so the UI
+ * can work with any supported PBX (FreePBX, etc.) without PBX-specific code.
+ *
+ * @see {@link createFreePbxRecordingProvider} for FreePBX (GraphQL + config.php download URL)
+ * @see {@link PbxRecordingProvider} for the provider contract
+ * @see {@link RecordingSummary} and {@link RecordingPlaybackInfo} for data types
+ *
+ * @remarks
+ * **Authentication:** Playback URLs often require an authenticated context.
+ * - **Same-origin:** If your app is served from the same origin as the PBX admin,
+ *   the browser sends session cookies automatically; no extra config.
+ * - **Cross-origin:** Use a backend proxy that fetches the recording with
+ *   server-side auth and streams to the client, or use token-based auth and
+ *   pass headers via the adapter config (e.g. `getAuthHeaders` for FreePBX).
+ *
+ * @example
+ * ```typescript
+ * import { createFreePbxRecordingProvider } from 'vuesip'
+ *
+ * const provider = createFreePbxRecordingProvider({
+ *   baseUrl: 'https://pbx.example.com',
+ * })
+ * const { items } = await provider.listRecordings({ limit: 20 })
+ * const info = await provider.getPlaybackInfo(items[0].id)
+ * ```
+ */
+export * from './pbx-adapters'
+
+// ============================================================================
 // Codecs (Preview)
 // ============================================================================
 

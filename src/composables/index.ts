@@ -420,3 +420,6 @@ export {
   type CallSummaryResult,
   type UseCallSummaryReturn,
 } from './useCallSummary'
+
+// PBX Recordings composable
+export { usePbxRecordings, type UsePbxRecordingsReturn } from './usePbxRecordings'
