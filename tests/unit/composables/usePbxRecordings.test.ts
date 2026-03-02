@@ -1,13 +1,14 @@
 /**
  * @vitest-environment jsdom
  *
- * Unit tests for usePbxRecordings: success, loading, provider swap,
- * unauthorized and expired playback URL errors.
+ * Unit tests for usePbxRecordings: contract delegation, loading/error states,
+ * provider swap, unauthorized and expired URL edge cases.
+ * DoD: tests in tests/unit/composables/, all pass, no skipped.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, ref, shallowRef, nextTick } from 'vue'
-import { usePbxRecordings } from '../usePbxRecordings'
+import { usePbxRecordings } from '@/composables/usePbxRecordings'
 import { setLogHandler } from '@/utils/logger'
 import type {
   PbxRecordingProvider,
@@ -60,6 +61,60 @@ function createMockProvider(
 describe('usePbxRecordings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  describe('contract delegation', () => {
+    it('fetchRecordings delegates to provider.listRecordings with query', async () => {
+      const listRecordings = vi.fn().mockResolvedValue({
+        items: [] as RecordingSummary[],
+        totalCount: 0,
+        hasMore: false,
+      })
+      const provider = createMockProvider({ listRecordings })
+      const providerRef = shallowRef<PbxRecordingProvider | null>(provider)
+
+      let result: ReturnType<typeof usePbxRecordings> | null = null
+      const TestComp = defineComponent({
+        setup() {
+          result = usePbxRecordings(providerRef)
+          return { ...result }
+        },
+        template: '<div/>',
+      })
+      mount(TestComp)
+      await nextTick()
+      if (!result) throw new Error('result is null')
+
+      await result.fetchRecordings({ limit: 20, offset: 0 })
+
+      expect(listRecordings).toHaveBeenCalledWith({ limit: 20, offset: 0 })
+    })
+
+    it('getPlaybackUrl delegates to provider.getPlaybackInfo and returns URL', async () => {
+      const getPlaybackInfo = vi.fn().mockResolvedValue({
+        recordingId: 'rec-1',
+        playbackUrl: 'https://example.com/audio/rec-1',
+      } as RecordingPlaybackInfo)
+      const provider = createMockProvider({ getPlaybackInfo })
+      const providerRef = shallowRef<PbxRecordingProvider | null>(provider)
+
+      let result: ReturnType<typeof usePbxRecordings> | null = null
+      const TestComp = defineComponent({
+        setup() {
+          result = usePbxRecordings(providerRef)
+          return { ...result }
+        },
+        template: '<div/>',
+      })
+      mount(TestComp)
+      await nextTick()
+      if (!result) throw new Error('result is null')
+
+      const url = await result.getPlaybackUrl('rec-1')
+
+      expect(getPlaybackInfo).toHaveBeenCalledWith('rec-1')
+      expect(url).toBe('https://example.com/audio/rec-1')
+    })
   })
 
   describe('success', () => {
@@ -127,9 +182,35 @@ describe('usePbxRecordings', () => {
       expect(url).toBe('https://example.com/audio/rec-1')
       expect(result.playbackError.value).toBeNull()
     })
+
+    it('getPlaybackUrl uses streamUrl when playbackUrl is absent', async () => {
+      const provider = createMockProvider({
+        getPlaybackInfo: vi.fn().mockResolvedValue({
+          recordingId: 'rec-1',
+          streamUrl: 'https://example.com/stream/rec-1',
+          format: 'audio/wav',
+        } as RecordingPlaybackInfo),
+      })
+      const providerRef = shallowRef<PbxRecordingProvider | null>(provider)
+
+      let result: ReturnType<typeof usePbxRecordings> | null = null
+      const TestComp = defineComponent({
+        setup() {
+          result = usePbxRecordings(providerRef)
+          return { ...result }
+        },
+        template: '<div/>',
+      })
+      mount(TestComp)
+      await nextTick()
+      if (!result) throw new Error('result is null')
+
+      const url = await result.getPlaybackUrl('rec-1')
+      expect(url).toBe('https://example.com/stream/rec-1')
+    })
   })
 
-  describe('loading', () => {
+  describe('loading and error states', () => {
     it('loading is true while fetchRecordings is in flight', async () => {
       let resolveList: (v: PbxRecordingListResult) => void = () => {}
       const listPromise = new Promise<PbxRecordingListResult>((r) => {
@@ -159,6 +240,52 @@ describe('usePbxRecordings', () => {
       resolveList({ items: [], totalCount: 0, hasMore: false })
       await p
       expect(result.loading.value).toBe(false)
+    })
+
+    it('fetchRecordings sets error when provider.listRecordings rejects', async () => {
+      const provider = createMockProvider({
+        listRecordings: vi.fn().mockRejectedValue(new Error('Network error')),
+      })
+      const providerRef = shallowRef<PbxRecordingProvider | null>(provider)
+
+      let result: ReturnType<typeof usePbxRecordings> | null = null
+      const TestComp = defineComponent({
+        setup() {
+          result = usePbxRecordings(providerRef)
+          return { ...result }
+        },
+        template: '<div/>',
+      })
+      mount(TestComp)
+      await nextTick()
+      if (!result) throw new Error('result is null')
+
+      await result.fetchRecordings()
+      expect(result.error.value).toBe('Network error')
+      expect(result.recordings.value).toEqual([])
+      expect(result.loading.value).toBe(false)
+    })
+
+    it('fetchRecordings sets error when provider does not support listRecordings', async () => {
+      const provider = createMockProvider({
+        capabilities: { listRecordings: false, getPlaybackInfo: true },
+      })
+      const providerRef = shallowRef<PbxRecordingProvider | null>(provider)
+
+      let result: ReturnType<typeof usePbxRecordings> | null = null
+      const TestComp = defineComponent({
+        setup() {
+          result = usePbxRecordings(providerRef)
+          return { ...result }
+        },
+        template: '<div/>',
+      })
+      mount(TestComp)
+      await nextTick()
+      if (!result) throw new Error('result is null')
+
+      await result.fetchRecordings()
+      expect(result.error.value).toBe('Provider does not support listing recordings')
     })
   })
 
@@ -362,6 +489,58 @@ describe('usePbxRecordings', () => {
       await expect(result.getPlaybackUrl('rec-1')).rejects.toThrow()
       expect(result.playbackError.value?.code).toBe('unknown')
       expect(result.playbackError.value?.message).toContain('Provider not initialized')
+    })
+  })
+
+  describe('getPlaybackUrl when provider has no getPlaybackInfo capability', () => {
+    it('sets playbackError and throws when capabilities.getPlaybackInfo is false', async () => {
+      const provider = createMockProvider({
+        capabilities: { listRecordings: true, getPlaybackInfo: false },
+      })
+      const providerRef = shallowRef<PbxRecordingProvider | null>(provider)
+
+      let result: ReturnType<typeof usePbxRecordings> | null = null
+      const TestComp = defineComponent({
+        setup() {
+          result = usePbxRecordings(providerRef)
+          return { ...result }
+        },
+        template: '<div/>',
+      })
+      mount(TestComp)
+      await nextTick()
+      if (!result) throw new Error('result is null')
+
+      await expect(result.getPlaybackUrl('rec-1')).rejects.toThrow('does not support playback info')
+      expect(result.playbackError.value?.code).toBe('unknown')
+      expect(result.playbackError.value?.message).toContain('does not support playback info')
+    })
+  })
+
+  describe('deterministic URL retrieval', () => {
+    it('getPlaybackUrl throws when playbackInfo has neither playbackUrl nor streamUrl', async () => {
+      const provider = createMockProvider({
+        getPlaybackInfo: vi.fn().mockResolvedValue({
+          recordingId: 'rec-1',
+          format: 'audio/wav',
+        } as RecordingPlaybackInfo),
+      })
+      const providerRef = shallowRef<PbxRecordingProvider | null>(provider)
+
+      let result: ReturnType<typeof usePbxRecordings> | null = null
+      const TestComp = defineComponent({
+        setup() {
+          result = usePbxRecordings(providerRef)
+          return { ...result }
+        },
+        template: '<div/>',
+      })
+      mount(TestComp)
+      await nextTick()
+      if (!result) throw new Error('result is null')
+
+      await expect(result.getPlaybackUrl('rec-1')).rejects.toThrow('No playback URL')
+      expect(result.playbackError.value?.code).toBe('unknown')
     })
   })
 
