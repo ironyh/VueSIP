@@ -10,11 +10,33 @@
 import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import type { CallSession } from '../core/CallSession'
 import type { AudioDevice } from '../types/audio.types'
-import type { UseAudioDevicesReturn } from './useAudioDevices'
 import { DEVICE_SWITCH_CONSTANTS } from './constants'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('useAudioDeviceSwitch')
+
+/**
+ * Audio-devices shape required by useAudioDeviceSwitch.
+ * useAudioDevices() satisfies this fully. Optional members are used when present;
+ * when missing (e.g. when passing a useMediaDevices()-like object), their
+ * features are skipped (device checks, refresh, device-removed fallback).
+ */
+export interface AudioDevicesForSwitch {
+  currentMicrophone: Ref<AudioDevice | null>
+  currentSpeaker: Ref<AudioDevice | null>
+  getMicrophoneById: (deviceId: string) => AudioDevice | undefined
+  getSpeakerById: (deviceId: string) => AudioDevice | undefined
+  /** If present, used to validate device before switch; otherwise skipped. */
+  isDeviceAvailable?: (deviceId: string) => boolean
+  /** If present, used for device-removed fallback; otherwise skipped. */
+  refreshDevices?: () => Promise<void>
+  /** If present, used for microphone fallback; otherwise skipped. */
+  microphones?: Ref<AudioDevice[]>
+  /** If present, used for speaker fallback; otherwise skipped. */
+  speakers?: Ref<AudioDevice[]>
+  /** If present, enables device-removed listener and fallback; otherwise skipped. */
+  onDeviceRemoved?: (callback: (device: AudioDevice) => void) => () => void
+}
 
 export interface AudioDeviceSwitchOptions {
   /** HTMLAudioElement used for remote audio playback (required for speaker switching) */
@@ -37,7 +59,7 @@ export interface UseAudioDeviceSwitchReturn {
 
 export function useAudioDeviceSwitch(
   callSession: Ref<CallSession | null>,
-  audioDevices: UseAudioDevicesReturn,
+  audioDevices: AudioDevicesForSwitch,
   options: AudioDeviceSwitchOptions = {}
 ): UseAudioDeviceSwitchReturn {
   const {
@@ -102,7 +124,7 @@ export function useAudioDeviceSwitch(
       throw new Error('No active call session')
     }
 
-    if (!audioDevices.isDeviceAvailable(deviceId)) {
+    if (typeof audioDevices.isDeviceAvailable === 'function' && !audioDevices.isDeviceAvailable(deviceId)) {
       throw new Error(`Microphone device not found: ${deviceId}`)
     }
 
@@ -161,7 +183,7 @@ export function useAudioDeviceSwitch(
       throw new Error('A device switch operation is already in progress')
     }
 
-    if (!audioDevices.isDeviceAvailable(deviceId)) {
+    if (typeof audioDevices.isDeviceAvailable === 'function' && !audioDevices.isDeviceAvailable(deviceId)) {
       throw new Error(`Speaker device not found: ${deviceId}`)
     }
 
@@ -201,6 +223,7 @@ export function useAudioDeviceSwitch(
       activeInputDeviceId.value = null
 
       if (!autoFallback || !callSession.value) return
+      if (typeof audioDevices.refreshDevices !== 'function' || !audioDevices.microphones) return
 
       await audioDevices.refreshDevices()
 
@@ -221,6 +244,7 @@ export function useAudioDeviceSwitch(
       activeOutputDeviceId.value = null
 
       if (!autoFallback) return
+      if (typeof audioDevices.refreshDevices !== 'function' || !audioDevices.speakers) return
 
       await audioDevices.refreshDevices()
 
@@ -238,7 +262,7 @@ export function useAudioDeviceSwitch(
     }
   }
 
-  if (autoFallback) {
+  if (autoFallback && typeof audioDevices.onDeviceRemoved === 'function') {
     deviceRemovedCleanup = audioDevices.onDeviceRemoved((device: AudioDevice) => {
       if (
         (device.kind === 'audioinput' && activeInputDeviceId.value === device.deviceId) ||

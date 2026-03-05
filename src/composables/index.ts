@@ -152,6 +152,7 @@ export {
 export { useAudioDevices } from './useAudioDevices'
 export {
   useAudioDeviceSwitch,
+  type AudioDevicesForSwitch,
   type AudioDeviceSwitchOptions,
   type UseAudioDeviceSwitchReturn,
 } from './useAudioDeviceSwitch'
@@ -423,3 +424,16 @@ export {
 
 // PBX Recordings composable
 export { usePbxRecordings, type UsePbxRecordingsReturn } from './usePbxRecordings'
+
+// Confirmation dialog composable
+export { useConfirm } from './useConfirm'
+export type { UseConfirmReturn, ConfirmOptions, ConfirmResult } from './useConfirm'
+export {
+  confirmEndCall,
+  confirmLeaveConference,
+  confirmDeleteRecording,
+  confirmMuteParticipant,
+  confirmRemoveParticipant,
+  confirmTransferCall,
+  confirmStartRecording,
+} from './useConfirm'
