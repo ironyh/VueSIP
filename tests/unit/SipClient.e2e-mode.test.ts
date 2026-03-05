@@ -87,9 +87,9 @@ describe('SipClient - E2E Test Mode', () => {
       await sipClient.stop()
     })
 
-    // SKIP: This test times out inconsistently due to complex async mock coordination
+    // SKIP: This test times out due to complex async coordination in normal mode
     // The E2E mode itself works (13/14 tests pass), this is a test infrastructure issue
-    // TODO: Investigate why mock UA.start() implementation doesn't properly coordinate with waitForConnection()
+    // TODO: Investigate further - mockUA.start() now sets isConnected=true but test still hangs
     it.skip('should use normal mode when E2E globals not present', async () => {
       const sipClient = new SipClient(config, eventBus)
 

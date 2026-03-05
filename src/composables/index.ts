@@ -34,7 +34,11 @@ export {
 
 // Advanced composables
 export { useCallHistory, type UseCallHistoryReturn } from './useCallHistory'
-export { useMultiSipClient } from './useMultiSipClient'
+export {
+  useMultiSipClient,
+  type MultiSipAccountListItem,
+  type MultiSipAccountConfig,
+} from './useMultiSipClient'
 export { useSipAccountManager } from './useSipAccountManager'
 export { useCallControls, type UseCallControlsReturn, type ActiveTransfer } from './useCallControls'
 export { usePresence, type UsePresenceReturn } from './usePresence'
