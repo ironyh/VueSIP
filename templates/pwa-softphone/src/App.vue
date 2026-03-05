@@ -14,10 +14,15 @@ import { useTranscription } from 'vuesip'
 import { useTranscriptPersistence } from './composables/useTranscriptPersistence'
 import { useCallRecording } from './composables/useCallRecording'
 import { useContacts } from './composables/useContacts'
+import { useProviderCallHistory } from './composables/useProviderCallHistory'
 import type { Contact } from './composables/useContacts'
 
 // Phone composable
 const phone = usePhone()
+
+// Provider call history (Load from 46elks / Telnyx when supported)
+const providerIdRef = computed(() => phone.currentConfig.value?.providerId ?? null)
+const providerHistory = useProviderCallHistory(providerIdRef)
 
 // Push notifications
 const {
@@ -44,7 +49,7 @@ const callRecording = useCallRecording()
 const currentCallId = ref<string | null>(null)
 
 // Contacts
-const { incrementCallCount, getContactByNumber, favorites } = useContacts()
+const { incrementCallCount } = useContacts()
 const showContacts = ref(false)
 const contactsInitialNumber = ref('')
 
@@ -281,11 +286,17 @@ function handleBackFromDetail() {
   selectedCallId.value = null
 }
 
+function handleProviderEntryClick(remote: string) {
+  activeTab.value = 'dialpad'
+  handleCall(remote)
+}
+
 async function handleConnect(config: any) {
   try {
     statusMessage.value = ''
     await phone.configure(config)
     await phone.connectPhone()
+    statusMessage.value = ''
     // Request push permission after connecting
     if (pushSupported.value && !pushPermissionGranted.value) {
       await requestPushPermission()
@@ -310,10 +321,10 @@ function openContacts(initialNumber = '') {
 }
 
 function handleContactSelect(contact: Contact) {
-  // Set the dialpad number to the contact's number
-  phone.dialNumber.value = contact.number
+  // Close contacts and place a call to the selected contact
   showContacts.value = false
   activeTab.value = 'dialpad'
+  handleCall(contact.number)
 }
 
 function handleContactCall(number: string) {
@@ -327,12 +338,25 @@ watch(
   (newState, oldState) => {
     // When call ends, increment the call count for the contact
     if (oldState === 'active' && newState === 'idle') {
-      const remoteNumber = phone.remoteIdentity.value?.replace(/[^\d+]/g, '')
+      const remoteNumber = phone.remoteUri.value?.replace(/[^\d+]/g, '')
       if (remoteNumber) {
         incrementCallCount(remoteNumber)
       }
     }
   }
+)
+
+// Auto-load 46elks (or Telnyx) account call history when user opens History tab
+watch(
+  activeTab,
+  (tab) => {
+    if (tab !== 'history') return
+    if (!providerHistory.canLoadHistory.value) return
+    if (providerHistory.entries.value.length > 0) return
+    if (providerHistory.isLoading.value) return
+    void providerHistory.load()
+  },
+  { immediate: false }
 )
 
 // Cleanup
@@ -518,7 +542,64 @@ onMounted(() => {
               </button>
             </div>
 
-            <div v-if="phone.historyEntries.value.length === 0" class="empty-state">
+            <!-- Account history (46elks / Telnyx when supported) -->
+            <div v-if="providerHistory.canLoadHistory.value" class="account-history-section">
+              <h3 class="account-history-heading">
+                {{ providerHistory.entries.value.length > 0 ? 'From your account' : 'Account call history' }}
+              </h3>
+              <button
+                type="button"
+                class="load-account-history-btn"
+                :disabled="providerHistory.isLoading.value"
+                @click="providerHistory.load()"
+              >
+                <span v-if="providerHistory.isLoading.value" class="load-spinner" aria-hidden="true"></span>
+                {{ providerHistory.isLoading.value ? 'Loading…' : providerHistory.loadLabel.value }}
+              </button>
+              <p v-if="providerHistory.error.value" class="account-history-error" role="alert">
+                {{ providerHistory.error.value }}
+              </p>
+              <button
+                v-if="providerHistory.error.value"
+                type="button"
+                class="retry-history-btn"
+                :disabled="providerHistory.isLoading.value"
+                @click="providerHistory.load()"
+              >
+                <span v-if="providerHistory.isLoading.value" class="load-spinner" aria-hidden="true"></span>
+                {{ providerHistory.isLoading.value ? 'Loading…' : 'Retry' }}
+              </button>
+              <template v-if="providerHistory.entries.value.length > 0">
+                <ul class="history-list">
+                  <li
+                    v-for="entry in providerHistory.entries.value"
+                    :key="entry.id"
+                    class="history-item history-item-provider"
+                    @click="handleProviderEntryClick(entry.remote)"
+                  >
+                    <div class="history-icon" :class="entry.direction">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path v-if="entry.direction === 'outgoing'" d="M5 19l14-14M12 5h7v7" />
+                        <path v-else d="M19 5L5 19M5 12V5h7" />
+                      </svg>
+                    </div>
+                    <div class="history-details">
+                      <span class="history-name">{{ entry.remote }}</span>
+                      <span class="history-time">{{ entry.created }}</span>
+                    </div>
+                    <span class="history-duration">{{ formatDuration(entry.duration) }}</span>
+                  </li>
+                </ul>
+              </template>
+            </div>
+
+            <div
+              v-if="
+                phone.historyEntries.value.length === 0 &&
+                providerHistory.entries.value.length === 0
+              "
+              class="empty-state"
+            >
               <svg
                 class="icon"
                 viewBox="0 0 24 24"
@@ -529,8 +610,16 @@ onMounted(() => {
                 <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p>No recent calls</p>
+              <p v-if="providerHistory.canLoadHistory.value" class="empty-hint">
+                {{ providerHistory.emptyHint.value }}
+              </p>
             </div>
-            <div v-else-if="finalFilteredHistory.length === 0" class="empty-state">
+            <div
+              v-else-if="
+                phone.historyEntries.value.length > 0 && finalFilteredHistory.length === 0
+              "
+              class="empty-state"
+            >
               <svg
                 class="icon"
                 viewBox="0 0 24 24"
@@ -812,6 +901,82 @@ function formatDuration(seconds: number): string {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.account-history-section {
+  margin-bottom: 1rem;
+}
+
+.load-account-history-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.load-account-history-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.load-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--text-primary);
+  border-radius: 50%;
+  animation: account-history-spin 0.8s linear infinite;
+}
+
+@keyframes account-history-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.account-history-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: #c53030;
+}
+
+.retry-history-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.retry-history-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.account-history-heading {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.empty-hint {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
 }
 
 .history-search {

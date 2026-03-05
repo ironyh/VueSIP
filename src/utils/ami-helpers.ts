@@ -722,41 +722,8 @@ export function sanitizeExtension(extension: string): string {
   return extension.replace(/[^a-zA-Z0-9_.\/-]/g, '').trim()
 }
 
-/**
- * Normalize phone number by removing all formatting
- *
- * Useful for comparing phone numbers or storing in databases.
- *
- * @param number - Phone number to normalize
- * @returns Normalized phone number (digits only)
- *
- * @example
- * ```typescript
- * normalizePhoneNumber('+1 (555) 123-4567')  // "15551234567"
- * normalizePhoneNumber('555-1234')           // "5551234"
- * ```
- */
-export function normalizePhoneNumber(number: string): string {
-  return number.replace(/\D/g, '')
-}
-
-/**
- * Compare two phone numbers for equality (ignoring formatting)
- *
- * @param number1 - First phone number
- * @param number2 - Second phone number
- * @returns true if numbers are equivalent
- *
- * @example
- * ```typescript
- * comparePhoneNumbers('555-1234', '5551234')              // true
- * comparePhoneNumbers('+1-555-1234', '1 (555) 1234')     // true
- * comparePhoneNumbers('555-1234', '555-5678')            // false
- * ```
- */
-export function comparePhoneNumbers(number1: string, number2: string): boolean {
-  return normalizePhoneNumber(number1) === normalizePhoneNumber(number2)
-}
+// Re-export phone helpers from formatters (single source of truth, also on public API)
+export { normalizePhoneNumber, comparePhoneNumbers } from './formatters'
 
 // ============================================================================
 // AMI-Specific Helpers
