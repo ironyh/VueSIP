@@ -1,19 +1,16 @@
-import { ref, computed, type Ref } from 'vue'
-// TODO: Add support for both jssip and sip.js libraries
-// Current implementation uses sip.js API (UserAgent, Registerer, etc.)
-// Future: Create adapter pattern to support both jssip.UA and sip.js.UserAgent
-// @ts-expect-error - sip.js not installed yet, will support both libraries
-import { UserAgent, Registerer, RegistererState } from 'sip.js'
+import { ref, type Ref } from 'vue'
+import JsSIP, { type UA } from 'jssip'
 
-// Type aliases for sip.js compatibility (future support)
-// Will be properly typed when sip.js support is added
-type SipConfig = Record<string, unknown> & {
+// Type definitions for the composable
+type SipConfig = {
   username?: string
   server?: string
   password?: string
   displayName?: string
   autoRegister?: boolean
-  sessionDescriptionHandlerFactoryOptions?: unknown
+  sockets?: unknown[]
+  uri?: string
+  [key: string]: unknown
 }
 type SipError = Error & { code?: number; reason?: string; cause?: Error }
 
@@ -34,54 +31,70 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
   const isConnecting = ref(false)
   const error = ref<SipError | null>(null)
 
-  let userAgent: UserAgent | null = null
-  let registerer: Registerer | null = null
+  let ua: UA | null = null
 
-  const connect = async () => {
+  const connect = async (): Promise<void> => {
     try {
       isConnecting.value = true
       error.value = null
 
-      const uri = UserAgent.makeURI(`sip:${config.username}@${config.server}`)
-      if (!uri) {
-        throw new Error('Invalid SIP URI')
+      // Build SIP URI
+      const username = config.username || ''
+      const server = config.server || ''
+      const sipUri = `sip:${username}@${server}`
+
+      // Create UA configuration
+      const uaConfig: JsSIP.UAConfiguration = {
+        uri: sipUri,
+        password: config.password,
+        display_name: config.displayName || config.username,
+        sockets: config.sockets || [new JsSIP.WebSocketInterface(`wss://${server}`)],
+        register: config.autoRegister !== false,
+        session_timers: true,
       }
 
-      userAgent = new UserAgent({
-        uri,
-        transportOptions: {
-          server: `wss://${config.server}`,
-        },
-        authorizationUsername: config.username,
-        authorizationPassword: config.password,
-        displayName: config.displayName || config.username,
-        sessionDescriptionHandlerFactoryOptions: config.sessionDescriptionHandlerFactoryOptions || {
-          constraints: {
-            audio: true,
-            video: false,
-          },
-        },
+      ua = new JsSIP.UA(uaConfig)
+
+      // Set up event handlers
+      ua.on('connecting', () => {
+        isConnecting.value = true
       })
 
-      userAgent.delegate = {
-        onConnect: () => {
-          isConnected.value = true
-          if (config.autoRegister !== false) {
-            register()
-          }
-        },
-        onDisconnect: () => {
-          isConnected.value = false
-          isRegistered.value = false
-        },
-      }
+      ua.on('connected', () => {
+        isConnected.value = true
+        isConnecting.value = false
+        if (config.autoRegister !== false) {
+          register()
+        }
+      })
 
-      await userAgent.start()
+      ua.on('disconnected', () => {
+        isConnected.value = false
+        isRegistered.value = false
+        isConnecting.value = false
+      })
 
-      if (userAgent) {
-        registerer = new Registerer(userAgent)
-      }
+      ua.on('registered', () => {
+        isRegistered.value = true
+      })
+
+      ua.on('unregistered', () => {
+        isRegistered.value = false
+      })
+
+      ua.on('registrationFailed', (e: { cause: Error; response?: { status_code: number } }) => {
+        isConnecting.value = false
+        error.value = {
+          name: 'RegistrationError',
+          code: e.response?.status_code || -1,
+          message: 'Failed to register with SIP server',
+          cause: e.cause,
+        }
+      })
+
+      ua.start()
     } catch (err) {
+      isConnecting.value = false
       error.value = {
         name: 'ConnectionError',
         code: -1,
@@ -89,24 +102,22 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
         cause: err as Error,
       }
       throw err
-    } finally {
-      isConnecting.value = false
     }
   }
 
-  const disconnect = async () => {
+  const disconnect = async (): Promise<void> => {
     try {
-      if (registerer && isRegistered.value) {
-        await unregister()
-      }
-
-      if (userAgent) {
-        await userAgent.stop()
-        userAgent = null
+      if (ua) {
+        if (isRegistered.value) {
+          ua.unregister()
+        }
+        ua.stop()
+        ua = null
       }
 
       isConnected.value = false
       isRegistered.value = false
+      isConnecting.value = false
     } catch (err) {
       error.value = {
         name: 'SipError',
@@ -118,17 +129,12 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
     }
   }
 
-  const register = async () => {
+  const register = async (): Promise<void> => {
     try {
-      if (!registerer) {
-        throw new Error('Registerer not initialized')
+      if (!ua) {
+        throw new Error('UA not initialized')
       }
-
-      registerer.stateChange.addListener((state: RegistererState) => {
-        isRegistered.value = state === RegistererState.Registered
-      })
-
-      await registerer.register()
+      ua.register()
     } catch (err) {
       error.value = {
         name: 'SipError',
@@ -140,13 +146,12 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
     }
   }
 
-  const unregister = async () => {
+  const unregister = async (): Promise<void> => {
     try {
-      if (!registerer) {
-        throw new Error('Registerer not initialized')
+      if (!ua) {
+        throw new Error('UA not initialized')
       }
-
-      await registerer.unregister()
+      ua.unregister()
       isRegistered.value = false
     } catch (err) {
       error.value = {
@@ -160,10 +165,10 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
   }
 
   return {
-    isConnected: computed(() => isConnected.value),
-    isRegistered: computed(() => isRegistered.value),
-    isConnecting: computed(() => isConnecting.value),
-    error: computed(() => error.value),
+    isConnected,
+    isRegistered,
+    isConnecting,
+    error,
     connect,
     disconnect,
     register,
