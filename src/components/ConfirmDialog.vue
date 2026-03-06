@@ -20,15 +20,18 @@ const emit = defineEmits<{
 }>()
 
 // Use the composable for state management
-const { isOpen, options, confirm, cancelCurrent, confirmCurrent, reset } = useConfirm()
+const { isOpen, options, confirm, cancelCurrent, confirmCurrent, _reset } = useConfirm()
 
 // Sync props with composable state
-watch(() => props.visible, (newVal) => {
-  if (newVal && props.options) {
-    // Standalone mode - use props
-    confirm(props.options)
+watch(
+  () => props.visible,
+  (newVal) => {
+    if (newVal && props.options) {
+      // Standalone mode - use props
+      confirm(props.options)
+    }
   }
-})
+)
 
 // Watch composable state changes
 watch(isOpen, (newVal) => {
@@ -53,7 +56,7 @@ const handleConfirm = () => {
   confirmCurrent()
 }
 
-// Handle cancel button click  
+// Handle cancel button click
 const handleCancel = () => {
   emit('cancel')
   cancelCurrent()
@@ -77,9 +80,9 @@ const handleHide = () => {
   >
     <div class="confirm-dialog-content">
       <div v-if="options?.icon" class="confirm-dialog-icon">
-        <i :class="options.icon" />
+        <i :class="options.icon"></i>
       </div>
-      
+
       <p class="confirm-dialog-message">
         {{ options?.message || 'Are you sure you want to proceed?' }}
       </p>
