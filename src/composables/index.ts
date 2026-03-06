@@ -18,7 +18,7 @@ export {
   type UseCallSessionReturn,
   type CallSessionOptions,
 } from './useCallSession'
-export type { CallSessionPiPOptions } from './types'
+export type { CallSessionPiPOptions, ExtendedCallSession, ExtendedSipClient, hasCallSessionMethod } from './types'
 export {
   useMediaDevices,
   type UseMediaDevicesReturn,
