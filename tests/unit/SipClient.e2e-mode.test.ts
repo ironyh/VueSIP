@@ -28,7 +28,7 @@ vi.mock('@/utils/logger', () => ({
 vi.mock('jssip')
 
 // Import mock helpers from the mocked module
-import { mockUA, resetMockJsSip } from 'jssip'
+import { mockUA, resetMockJsSip, setupAutoConnect } from 'jssip'
 
 describe('SipClient - E2E Test Mode', () => {
   let eventBus: EventBus
@@ -87,18 +87,36 @@ describe('SipClient - E2E Test Mode', () => {
       await sipClient.stop()
     })
 
-    // SKIP: This test times out due to complex async coordination in normal mode
-    // The E2E mode itself works (13/14 tests pass), this is a test infrastructure issue
-    // TODO: Investigate further - mockUA.start() now sets isConnected=true but test still hangs
-    it.skip('should use normal mode when E2E globals not present', async () => {
-      const sipClient = new SipClient(config, eventBus)
+    // Fixed: Use setupAutoConnect + vi.waitFor + autoRegister:false to properly mock the connection flow
+    // The original issue was that mockUA.start() didn't trigger the connected event
+    // setupAutoConnect configures the mock to auto-trigger events like real JsSIP
+    // vi.waitFor is needed because the connection is async
+    // autoRegister:false prevents additional async registration that causes timing issues
+    it('should use normal mode when E2E globals not present', async () => {
+      // Use config without auto-register to avoid timing issues with registration
+      const testConfig = {
+        ...config,
+        registrationOptions: {
+          autoRegister: false,
+        },
+      }
+      const sipClient = new SipClient(testConfig, eventBus)
 
-      // This test verifies that SipClient works in normal (non-E2E) mode
+      // Setup auto-connect to trigger connected event automatically
+      setupAutoConnect({})
+
+      // This test verifies that SipClient works in normal mode (non-E2E)
       // by checking that JsSIP UA is created and started
       await sipClient.start()
 
-      expect(mockUA.start).toHaveBeenCalled()
-      expect(sipClient.isConnected).toBe(true)
+      // Use vi.waitFor with longer timeout because connection is async
+      await vi.waitFor(
+        () => {
+          expect(mockUA.start).toHaveBeenCalled()
+          expect(sipClient.isConnected).toBe(true)
+        },
+        { timeout: 15000 }
+      )
 
       await sipClient.stop()
     })
