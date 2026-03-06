@@ -18,7 +18,12 @@ export {
   type UseCallSessionReturn,
   type CallSessionOptions,
 } from './useCallSession'
-export type { CallSessionPiPOptions, ExtendedCallSession, ExtendedSipClient, hasCallSessionMethod } from './types'
+export type {
+  CallSessionPiPOptions,
+  ExtendedCallSession,
+  ExtendedSipClient,
+  hasCallSessionMethod,
+} from './types'
 export {
   useMediaDevices,
   type UseMediaDevicesReturn,
@@ -86,7 +91,7 @@ export { useSipWebRTCStats } from './useSipWebRTCStats'
 export { useSipAutoAnswer } from './useSipAutoAnswer'
 export { useSipE911 } from './useSipE911'
 export { useSipSecondLine } from './useSipSecondLine'
-// useSipConnection requires sip.js library - not exported until dual-library support is added
+export { useSipConnection, type UseSipConnectionReturn } from './useSipConnection'
 
 // Call quality composables
 export { useCallQualityScore } from './useCallQualityScore'
