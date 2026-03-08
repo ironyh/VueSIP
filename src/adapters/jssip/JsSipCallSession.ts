@@ -16,7 +16,10 @@ import type {
   CallStatistics,
   CallSessionEvents,
 } from '../types'
+import { createLogger } from '../../utils/logger'
 import { CallDirection, CallState } from '../../types/call.types'
+
+const log = createLogger('JsSipCallSession')
 
 /**
  * JsSIP Call Session Implementation
@@ -110,7 +113,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
         // Pass pre-acquired mediaStream if provided (takes precedence over mediaConstraints)
         if (options?.mediaStream) {
           jssipOptions.mediaStream = options.mediaStream
-          console.log('[JsSipCallSession] Using pre-acquired mediaStream for answer')
+          log.debug('Using pre-acquired mediaStream for answer')
         }
 
         if (options?.extraHeaders) {
@@ -407,7 +410,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     this.session.on(
       'ended',
       (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
-        console.log('[JsSipCallSession] Call ended:', {
+        log.debug('Call ended:', {
           originator: data.originator,
           cause: data.cause,
           statusCode: data.message?.status_code,
@@ -425,7 +428,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     this.session.on(
       'failed',
       (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
-        console.error('[JsSipCallSession] Call failed:', {
+        log.error('Call failed:', {
           originator: data.originator,
           cause: data.cause,
           statusCode: data.message?.status_code,

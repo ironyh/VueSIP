@@ -3,10 +3,10 @@
 ## State – Stream D1 (JsSipAdapter / JsSipCallSession)
 
 - State.Stream = D1
-- State.Owner = Agent 5
-- State.Phase = BLUEPRINT
-- State.Status = NEEDS_PLAN_APPROVAL
-- State.UpdatedAt = 2026-02-25
+- State.Owner = Agent (Cursor)
+- State.Phase = CONSTRUCT
+- State.Status = COMPLETE
+- State.UpdatedAt = 2026-03-06
 
 ## Plan – Stream D1
 
@@ -46,6 +46,7 @@
 ## Log – Stream D1
 
 - 2026-02-25: Initial Stream D1 plan drafted by Agent 5; awaiting user approval.
+- 2026-03-06: D1 audit and implementation complete. ISipAdapter and ICallSession contracts fully satisfied by JsSipAdapter/JsSipCallSession. Replaced console.log/console.error with createLogger in both adapter files. Updated adapter README (Phase 2 checkboxes, status, date). All quality gates green (0 lint errors, typecheck pass, 6292/6292 tests pass).
 
 ---
 
@@ -53,9 +54,9 @@
 
 - State.Bead = VueSIP-dpi.5
 - State.Owner = Agent (Cursor)
-- State.Phase = BLUEPRINT
-- State.Status = NEEDS_PLAN_APPROVAL
-- State.UpdatedAt = 2026-03-02
+- State.Phase = CONSTRUCT
+- State.Status = COMPLETE
+- State.UpdatedAt = 2026-03-06
 
 ## Plan – VueSIP-dpi.5
 
@@ -93,6 +94,7 @@
 ## Log – VueSIP-dpi.5
 
 - 2026-03-02: Initial documentation plan drafted for PBX recording retrieval (user + provider-author guides); ready to execute.
+- 2026-03-06: Documentation committed (b6dbd2e) and merged to main via PR #182. 262-line guide at docs/guide/recordings-retrieval-pbx.md.
 
 ---
 
@@ -101,8 +103,8 @@
 - State.Bead = VueSIP-dpi.7
 - State.Owner = Agent (Cursor)
 - State.Phase = CONSTRUCT
-- State.Status = IN_PROGRESS
-- State.UpdatedAt = 2026-03-02
+- State.Status = COMPLETE
+- State.UpdatedAt = 2026-03-06
 
 ## Plan – VueSIP-dpi.7
 

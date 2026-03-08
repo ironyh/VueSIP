@@ -193,8 +193,8 @@ Current state: **JsSIP adapter implemented** (JsSipAdapter, JsSipCallSession); *
 - ✅ Extract JsSIP code into `JsSipAdapter` class
 - ✅ Implement `JsSipCallSession` class
 - ✅ Feature parity with current JsSIP usage
-- 🔲 Add comprehensive unit tests for adapter
-- 🔲 Update documentation
+- ✅ Add comprehensive unit tests for adapter
+- ✅ Update documentation
 
 ### Phase 3: Core Refactoring
 
@@ -230,7 +230,7 @@ src/adapters/
 ├── AdapterFactory.ts            # Factory for creating adapters
 │
 ├── jssip/                       # JsSIP adapter implementation
-│   ├── JsSipAdapter.ts          # JsSIP adapter (in progress)
+│   ├── JsSipAdapter.ts          # JsSIP adapter (implements ISipAdapter)
 │   ├── JsSipCallSession.ts      # JsSIP call session wrapper
 │   ├── JsSipEventMapper.ts      # Maps JsSIP events to standard events
 │   └── types.ts                 # JsSIP-specific types
@@ -339,6 +339,6 @@ When implementing a new adapter:
 
 ---
 
-**Status:** JsSIP adapter implemented (JsSipAdapter, JsSipCallSession). Core refactoring (SipClient uses adapter) and SIP.js adapter planned.
+**Status:** JsSIP adapter implemented and fully audited against ISipAdapter/ICallSession contracts (JsSipAdapter, JsSipCallSession). Core refactoring (SipClient uses adapter) and SIP.js adapter planned.
 
-**Last Updated:** 2026-02-25
+**Last Updated:** 2026-03-06
