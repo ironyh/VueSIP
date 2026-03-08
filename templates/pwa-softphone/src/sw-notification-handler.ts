@@ -1,5 +1,7 @@
 /// <reference lib="webworker" />
 
+declare const self: ServiceWorkerGlobalScope
+
 /**
  * Service Worker Notification Click Handler
  *
@@ -31,7 +33,7 @@ self.addEventListener('notificationclick', (event: Event) => {
 
   // Focus existing window or open new one
   notifEvent.waitUntil(
-    (self as any).clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList: readonly any[]) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // Try to find an existing window and focus it
       for (const client of clientList) {
         if ('focus' in client) {
@@ -42,7 +44,7 @@ self.addEventListener('notificationclick', (event: Event) => {
         }
       }
       // No existing window - open a new one
-      return (self as any).clients.openWindow(targetUrl)
+      return self.clients.openWindow(targetUrl)
     })
   )
 })
