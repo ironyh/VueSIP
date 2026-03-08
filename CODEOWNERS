@@ -1,0 +1,21 @@
+# Code owners for VueSIP - https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything else
+* @ironyh
+
+# Enterprise package
+packages/enterprise/ @ironyh
+
+# Templates
+templates/basic-softphone/ @ironyh
+templates/call-center/ @ironyh
+templates/ivr-tester/ @ironysh
+templates/minimal/ @ironyh
+templates/pwa-softphone/ @ironyh
+templates/video-room/ @ironyh
+
+# GitHub workflows
+.github/workflows/ @ironyh
+
+# GitHub configuration
+.github/ @ironyh
