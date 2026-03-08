@@ -548,9 +548,13 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
 
           const preferTransceiverApi = this._codecPolicy.preferTransceiverApi !== false
           const canSetCodecPrefs =
-            typeof (globalThis as any).RTCRtpTransceiver !== 'undefined' &&
-            typeof ((globalThis as any).RTCRtpTransceiver?.prototype as any)
-              ?.setCodecPreferences === 'function'
+            typeof (globalThis as unknown as { RTCRtpTransceiver?: unknown }).RTCRtpTransceiver !==
+              'undefined' &&
+            typeof (
+              globalThis as unknown as {
+                RTCRtpTransceiver?: { prototype?: { setCodecPreferences?: unknown } }
+              }
+            ).RTCRtpTransceiver?.prototype?.setCodecPreferences === 'function'
 
           // Use SDP fallback when transceiver API is disabled by policy, or when the environment
           // doesn't support setCodecPreferences.
