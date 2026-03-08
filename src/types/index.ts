@@ -93,5 +93,7 @@ export type {
   Elks46CallDirection,
   Elks46CallState,
   Elks46CallLeg,
+  Elks46CallReadonly,
+  Elks46CallLegReadonly,
   FetchCallsOptions,
 } from '../providers/services/elks46ApiService'

@@ -173,6 +173,14 @@ export interface Elks46Call {
   legs?: Elks46CallLeg[]
 }
 
+/** Readonly version of Elks46CallLeg */
+export type Elks46CallLegReadonly = Readonly<Elks46CallLeg>
+
+/** Readonly version of Elks46Call (for immutable history display) */
+export type Elks46CallReadonly = Omit<Readonly<Elks46Call>, 'legs'> & {
+  readonly legs?: ReadonlyArray<Elks46CallLegReadonly>
+}
+
 /**
  * Response from listing calls
  */
