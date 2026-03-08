@@ -159,7 +159,7 @@
     "typedoc-plugin-missing-exports": "^4.1.2",
     "typescript": "~5.4.0",
     "vite": "^7.2.2",
-    "vitepress": "^0.1.1",
+    "vitepress": "^1.6.4",
     "vitest": "^4.0.8",
     "vue": "^3.4.0",
     "vue-tsc": "^2.0.0",

@@ -93,6 +93,7 @@ export default defineConfig({
             { text: 'Overview', link: '/guide/' },
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Starter Templates', link: '/guide/templates' },
+            { text: 'Template Deployment', link: '/guide/template-deployment' },
             { text: 'Playground (live SIP)', link: '/guide/playground-live-sip' },
             { text: 'Migration Guide', link: '/guide/migration' },
           ],
