@@ -74,11 +74,25 @@ export function useAudioDeviceSwitch(
   const activeOutputDeviceId = ref<string | null>(null)
 
   const currentInputDevice = computed<AudioDevice | null>(() => {
+    if (!audioDevices.currentMicrophone) {
+      // Partial implementation: no currentMicrophone ref, try fallback
+      if (activeInputDeviceId.value && audioDevices.getMicrophoneById) {
+        return audioDevices.getMicrophoneById(activeInputDeviceId.value) ?? null
+      }
+      return null
+    }
     if (!activeInputDeviceId.value) return audioDevices.currentMicrophone.value
     return audioDevices.getMicrophoneById(activeInputDeviceId.value) ?? null
   })
 
   const currentOutputDevice = computed<AudioDevice | null>(() => {
+    if (!audioDevices.currentSpeaker) {
+      // Partial implementation: no currentSpeaker ref, try fallback
+      if (activeOutputDeviceId.value && audioDevices.getSpeakerById) {
+        return audioDevices.getSpeakerById(activeOutputDeviceId.value) ?? null
+      }
+      return null
+    }
     if (!activeOutputDeviceId.value) return audioDevices.currentSpeaker.value
     return audioDevices.getSpeakerById(activeOutputDeviceId.value) ?? null
   })
