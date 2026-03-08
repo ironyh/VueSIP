@@ -578,7 +578,7 @@ export function createVueSip(options: VueSipOptions = {}): Plugin {
         logger.debug('User preferences initialized')
         // Apply notifications defaults
         try {
-          const n = (userPreferences as any).notifications
+          const n = userPreferences?.notifications
           if (n && typeof localStorage !== 'undefined') {
             if (typeof n.enabled === 'boolean') {
               localStorage.setItem('vuesip_notifications_enabled', n.enabled ? 'true' : 'false')
