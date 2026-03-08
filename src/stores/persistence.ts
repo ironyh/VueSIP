@@ -375,7 +375,9 @@ class StorePersistenceManager {
     this.managers.clear()
 
     if (this.indexedDB) {
-      this.indexedDB.close()
+      if (typeof this.indexedDB.close === 'function') {
+        this.indexedDB.close()
+      }
       this.indexedDB = null
     }
 

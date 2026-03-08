@@ -1,6 +1,6 @@
 # Workflow State – Stream D1 (JsSipAdapter / JsSipCallSession)
 
-## State
+## State – Stream D1 (JsSipAdapter / JsSipCallSession)
 
 - State.Stream = D1
 - State.Owner = Agent 5
@@ -8,7 +8,7 @@
 - State.Status = NEEDS_PLAN_APPROVAL
 - State.UpdatedAt = 2026-02-25
 
-## Plan
+## Plan – Stream D1
 
 1. **Reconfirm scope and existing implementation**
    - Re-read `docs/plans/2026-02-25-codebase-improvements-multiagent.md` Stream D section, focusing on D.1.
@@ -43,6 +43,100 @@
    - Once adapter-level changes are complete and quality gates are green, summarize the final `JsSipAdapter` / `JsSipCallSession` surface and E2E/test-mode expectations in a short note (either appended to `src/adapters/README.md` or captured for the D2/D3 streams).
    - Use `bd` to update the bead for Stream D1 as in progress and then completed, and land the work following `AGENTS.md` (commit with a focused message, `git pull --rebase`, `bd sync`, `git push`).
 
-## Log
+## Log – Stream D1
 
 - 2026-02-25: Initial Stream D1 plan drafted by Agent 5; awaiting user approval.
+
+---
+
+## State – VueSIP-dpi.5 (PBX recording documentation)
+
+- State.Bead = VueSIP-dpi.5
+- State.Owner = Agent (Cursor)
+- State.Phase = BLUEPRINT
+- State.Status = NEEDS_PLAN_APPROVAL
+- State.UpdatedAt = 2026-03-02
+
+## Plan – VueSIP-dpi.5
+
+1. **Review current PBX recording docs and implementation**
+   - Re-read `docs/plans/2026-02-pbx-recording-retrieval.md` to confirm dpi.5 scope and dependencies.
+   - Review `docs/guide/recordings-retrieval-pbx.md` and `docs/composables-documented.md` to see what is already documented for `usePbxRecordings`, PBX recording types, and the FreePBX adapter.
+   - Skim `src/types/pbx-recording.types.ts`, `src/pbx-adapters/freepbx.ts`, and `src/composables/usePbxRecordings.ts` (or equivalent) just enough to align docs with the current API and error-handling behavior.
+
+2. **Design documentation structure**
+   - Decide how to structure `docs/guide/recordings-retrieval-pbx.md` so it clearly separates:
+     - A **user guide** for app developers using `usePbxRecordings` with the FreePBX adapter.
+     - A **provider-author guide** for implementing new `PbxRecordingProvider` adapters.
+   - Identify where to place the **security checklist**, **versioning policy** (additive-only in minor, breaking changes require major), and a concise **Definition of Done (DoD)** for future adapters.
+
+3. **Implement user guide track**
+   - Update the guide with a concrete `usePbxRecordings` usage example that wires a `createFreePbxRecordingProvider` instance into the composable and renders a recordings list with playback actions and basic error handling.
+   - Document recommended UI patterns for paging, date filtering (when capabilities allow), unauthorized/expired playback handling, and same-origin vs backend-proxy auth choices, reusing the existing security section where possible.
+
+4. **Implement provider-author guide track**
+   - Add a provider-author section that explains how to implement a new `PbxRecordingProvider`:
+     - Required and optional methods and capabilities.
+     - How to map PBX-specific CDR/recording payloads to `RecordingSummary` and `RecordingPlaybackInfo`.
+     - How to surface stable `PbxPlaybackErrorCode` values without leaking sensitive details.
+   - Embed a **security checklist** (auth modes, token handling, logging hygiene, expiry behavior) and an explicit **versioning policy** for adapter contracts.
+   - Capture a short **DoD checklist** for future adapters that mirrors the bead’s acceptance criteria (types aligned, capabilities reported, tests/fixtures in place, docs updated).
+
+5. **Cross-links and API parity**
+   - Ensure `docs/composables-documented.md` and any relevant API docs reference the updated guide and clearly label `usePbxRecordings` as the primary entrypoint for PBX recording retrieval.
+   - Add or update cross-links from `docs/guide/index.md`, `docs/adapters/README.md`, or similar navigation so that both app developers and adapter authors can find the new content.
+
+6. **Verification and landing**
+   - Run `pnpm run lint`, `pnpm run test:unit`, and any docs build or link-check command used in this repo (e.g. `pnpm run docs:build` if present) to ensure the new documentation does not break the site or tests.
+   - Update bead `VueSIP-dpi.5` via `bd` to in_progress/closed as appropriate, then commit the changes with a focused message and land them according to `AGENTS.md` (`git pull --rebase`, `bd sync`, `git push`).
+
+## Log – VueSIP-dpi.5
+
+- 2026-03-02: Initial documentation plan drafted for PBX recording retrieval (user + provider-author guides); ready to execute.
+
+---
+
+## State – VueSIP-dpi.7 (PBX recording retrieval: fixture-based contract tests)
+
+- State.Bead = VueSIP-dpi.7
+- State.Owner = Agent (Cursor)
+- State.Phase = CONSTRUCT
+- State.Status = IN_PROGRESS
+- State.UpdatedAt = 2026-03-02
+
+## Plan – VueSIP-dpi.7
+
+1. **Reconfirm scope and dependencies**
+   - Re-read `docs/plans/2026-02-pbx-recording-retrieval.md` dpi.7 row to confirm that this bead is limited to fixture-based contract tests (not new runtime behavior).
+   - Confirm that beads dpi.2 (composable), dpi.3 (FreePBX adapter), and dpi.6 (security/auth) are implemented enough to support contract tests by reviewing `src/pbx-adapters/freepbx.ts`, `src/composables/usePbxRecordings.ts`, and `tests/unit/composables/usePbxRecordings.test.ts`.
+   - Note which edge cases are already covered by existing unit tests (e.g. unauthorized, expired, not_found, missing playback URLs) so the contract tests complement rather than duplicate them.
+
+2. **Design fixture formats and locations**
+   - Define a small set of JSON fixtures under `tests/fixtures/freepbx/` that represent realistic FreePBX GraphQL CDR responses (`FreePbxFetchAllCdrsResponse`), including nominal and edge-case payloads.
+   - Plan fixture files for at least: (a) nominal CDR list with mixed inbound/outbound/internal calls and valid `recordingfile`, (b) CDR list where some rows have missing/empty `recordingfile`, (c) empty CDR list with `totalCount = 0`, and (d) partial metadata rows missing optional fields like `clid`, `dcontext`, `channel`, or `dstchannel`.
+   - Decide whether any additional fixtures are needed specifically for pagination and date filtering behavior (e.g. multiple pages of CDRs with varying `calldate` values) and document expected coverage.
+
+3. **Plan test harness for FreePBX adapter contract tests**
+   - Choose a test location and naming convention (e.g. `tests/contract/pbx/freepbx.contract.test.ts` or `tests/unit/pbx-adapters/freepbx.contract.test.ts`) and document it here for consistency with future PBX providers.
+   - Design a reusable helper that injects a custom `fetch` into `createFreePbxRecordingProvider` which reads and returns the JSON fixtures as GraphQL responses, so tests exercise the adapter via its public `listRecordings` API rather than internal mapping functions.
+   - Define how tests will assert on `PbxRecordingListResult` fields: verifying `items.length`, `totalCount`, `hasMore`, and field-level mappings for `RecordingSummary` (id, callUniqueId, direction, startTime, duration, callerId, callee, channelOrLabel, metadata).
+
+4. **Plan contract test cases for CDR → RecordingSummary mapping**
+   - For the nominal fixture, assert direction mapping (`mapDirection`) for different `dcontext` values (from-pstn, to-pstn, internal) and graceful fallback to `internal` or `unknown` when only `src`/`dst` are present.
+   - Specify expectations for `startTime` (parsed from `calldate` with reasonable default when missing), `duration` (preferring `duration` over `billsec`, defaulting to 0 when both are absent), and `channelOrLabel` (joined from `channel` and `dstchannel` when present).
+   - For fixtures with missing `recordingfile` or partial metadata, assert that `RecordingSummary` objects are still returned, with `metadata` present but safely omitting or nulling missing fields, and that no runtime errors occur when mapping incomplete rows.
+
+5. **Plan contract test cases for pagination and filter passthrough**
+   - Design tests that call `provider.listRecordings` with different `PbxRecordingListQuery` values for `limit`, `offset`, `sortBy`, `dateFrom`, and `dateTo`, using a mock `fetch` implementation that captures the GraphQL request body.
+   - Assert that the generated GraphQL variables (`first`, `after`, `orderby`, `startDate`, `endDate`) correctly reflect the query options (including the `DEFAULT_PAGE_SIZE` and `MAX_PAGE_SIZE` constraints) and that unsupported query fields are safely ignored rather than causing errors.
+   - Ensure that the contract tests document expected behavior for page boundaries (`hasMore` computation) so future changes to pagination or sorting semantics will cause intentional test updates.
+
+6. **Plan contract test cases for playback URL construction**
+   - Define tests that call `provider.getPlaybackInfo` for different `baseUrl` configurations (with and without `/admin` suffix, with trailing slashes) and assert that the `playbackUrl` uses the expected `config.php?display=cdr&action=download_audio&cdr_file=<uniqueid>` pattern.
+   - Specify assertions for the `RecordingPlaybackInfo` shape: `recordingId` matches the input, `requiresAuth` is set according to the current implementation, and `metadata.source` is stable (`'freepbx'`).
+   - Decide whether to add a small helper to validate that playback URLs are deterministic for a given `baseUrl` and `recordingId` (no unexpected encoding or query parameter ordering changes).
+
+7. **TDD and landing strategy**
+   - For each planned contract test group (mapping, pagination/filters, playback URL construction), follow strict TDD: write the failing test against the public adapter API, run `pnpm run test:unit` (or a focused Vitest command) to confirm the failure, then implement only the minimal code or fixture additions required to make the tests pass.
+   - Run `pnpm run lint`, `pnpm run typecheck`, and the relevant test command(s) to ensure the new fixtures and contract tests are lint-clean, type-safe, and stable alongside existing `usePbxRecordings` tests.
+   - Once all acceptance criteria for VueSIP-dpi.7 are met (fixtures present, contract tests for mapping, pagination/filter passthrough, and playback URL construction all green), update the bead via `bd` and land the work following `AGENTS.md` (focused commit message, `git pull --rebase`, `bd sync`, `git push`).

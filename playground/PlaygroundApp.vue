@@ -10,6 +10,34 @@
           </div>
           <div class="header-actions">
             <button
+              data-testid="playground-connect-cta"
+              class="connect-cta"
+              :class="{
+                'cta-ready': isConnected && isRegistered,
+                'cta-connected': isConnected && !isRegistered,
+              }"
+              type="button"
+              @click="openConnectionSettings"
+              :aria-label="
+                isConnected
+                  ? isRegistered
+                    ? 'SIP ready for calls – open settings'
+                    : 'SIP connected – open settings'
+                  : 'Configure SIP connection'
+              "
+            >
+              <span
+                class="cta-dot"
+                :class="{
+                  ready: isConnected && isRegistered,
+                  connected: isConnected && !isRegistered,
+                }"
+              ></span>
+              <span>{{
+                isConnected ? (isRegistered ? 'Ready' : 'Connected') : 'Configure SIP connection'
+              }}</span>
+            </button>
+            <button
               @click="toggleTheme"
               class="theme-toggle"
               :aria-label="`Switch to ${isDarkMode ? 'light' : 'dark'} mode`"
@@ -370,7 +398,13 @@ interface CredentialsOptions {
 const examples = allExamples
 
 // Get shared SIP client for global auto-connect (lazy-loaded via Proxy)
-const { connect, disconnect: _disconnect, isConnected, updateConfig } = playgroundSipClient
+const {
+  connect,
+  disconnect: _disconnect,
+  isConnected,
+  isRegistered,
+  updateConfig,
+} = playgroundSipClient
 
 // State
 const currentExample = ref('click-to-call-widget')
@@ -465,6 +499,11 @@ const selectExample = (id: string) => {
   updateHashRoute()
   // Scroll to top of main content area
   scrollToTop()
+}
+
+const openConnectionSettings = () => {
+  // Jump directly to the Settings demo, which hosts the SIP Connection Manager panel
+  selectExample('settings')
 }
 
 const selectCategory = (category: ExampleCategory | 'all') => {
@@ -765,7 +804,83 @@ watch(isDarkMode, (newValue) => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+}
+
+.connect-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  color: #052e16;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.connect-cta:hover {
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(21, 128, 61, 0.4);
+}
+
+.connect-cta:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.35);
+}
+
+.connect-cta:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
+.cta-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #bbf7d0;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.35);
+}
+
+.cta-dot.connected {
+  background: #fcd34d;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35);
+}
+
+.cta-dot.ready {
+  background: #6ee7b7;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.35);
+}
+
+.connect-cta.cta-connected {
+  background: linear-gradient(135deg, #b45309, #d97706);
+  color: #fff7ed;
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.35);
+}
+
+.connect-cta.cta-connected:hover {
+  background: linear-gradient(135deg, #92400e, #b45309);
+  box-shadow: 0 8px 22px rgba(245, 158, 11, 0.4);
+}
+
+.connect-cta.cta-ready {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #ecfdf5;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+}
+
+.connect-cta.cta-ready:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.4);
 }
 
 .theme-toggle {
@@ -1471,11 +1586,12 @@ watch(isDarkMode, (newValue) => {
   }
 }
 
-/* Decorative header blobs */
+/* Decorative header blobs - do not intercept pointer events */
 .playground-header::before,
 .playground-header::after {
   content: '';
   position: absolute;
+  pointer-events: none;
   filter: blur(40px);
   opacity: 0.6;
   transform: translateZ(0);

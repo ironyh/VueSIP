@@ -18,7 +18,12 @@ export {
   type UseCallSessionReturn,
   type CallSessionOptions,
 } from './useCallSession'
-export type { CallSessionPiPOptions } from './types'
+export type {
+  CallSessionPiPOptions,
+  ExtendedCallSession,
+  ExtendedSipClient,
+  hasCallSessionMethod,
+} from './types'
 export {
   useMediaDevices,
   type UseMediaDevicesReturn,
@@ -34,7 +39,11 @@ export {
 
 // Advanced composables
 export { useCallHistory, type UseCallHistoryReturn } from './useCallHistory'
-export { useMultiSipClient } from './useMultiSipClient'
+export {
+  useMultiSipClient,
+  type MultiSipAccountListItem,
+  type MultiSipAccountConfig,
+} from './useMultiSipClient'
 export { useSipAccountManager } from './useSipAccountManager'
 export { useCallControls, type UseCallControlsReturn, type ActiveTransfer } from './useCallControls'
 export { usePresence, type UsePresenceReturn } from './usePresence'
@@ -82,7 +91,7 @@ export { useSipWebRTCStats } from './useSipWebRTCStats'
 export { useSipAutoAnswer } from './useSipAutoAnswer'
 export { useSipE911 } from './useSipE911'
 export { useSipSecondLine } from './useSipSecondLine'
-// useSipConnection requires sip.js library - not exported until dual-library support is added
+export { useSipConnection, type UseSipConnectionReturn } from './useSipConnection'
 
 // Call quality composables
 export { useCallQualityScore } from './useCallQualityScore'
@@ -152,6 +161,7 @@ export {
 export { useAudioDevices } from './useAudioDevices'
 export {
   useAudioDeviceSwitch,
+  type AudioDevicesForSwitch,
   type AudioDeviceSwitchOptions,
   type UseAudioDeviceSwitchReturn,
 } from './useAudioDeviceSwitch'
@@ -420,3 +430,19 @@ export {
   type CallSummaryResult,
   type UseCallSummaryReturn,
 } from './useCallSummary'
+
+// PBX Recordings composable
+export { usePbxRecordings, type UsePbxRecordingsReturn } from './usePbxRecordings'
+
+// Confirmation dialog composable
+export { useConfirm } from './useConfirm'
+export type { UseConfirmReturn, ConfirmOptions, ConfirmResult } from './useConfirm'
+export {
+  confirmEndCall,
+  confirmLeaveConference,
+  confirmDeleteRecording,
+  confirmMuteParticipant,
+  confirmRemoveParticipant,
+  confirmTransferCall,
+  confirmStartRecording,
+} from './useConfirm'

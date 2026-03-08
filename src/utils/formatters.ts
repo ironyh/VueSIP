@@ -74,6 +74,35 @@ export function formatDurationShort(seconds: number): string {
 }
 
 /**
+ * Formats a duration in seconds to compact M:SS or H:MM:SS (for call UIs)
+ *
+ * @param seconds - Duration in seconds
+ * @returns Compact formatted duration (e.g. "0:05", "1:30", "1:05:00")
+ *
+ * @example
+ * ```typescript
+ * formatDurationCompact(65)    // "1:05"
+ * formatDurationCompact(3665) // "1:01:05"
+ * formatDurationCompact(5)    // "0:05"
+ * ```
+ */
+export function formatDurationCompact(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return '0:00'
+  }
+
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = Math.floor(seconds % 60)
+  const pad = (num: number): string => num.toString().padStart(2, '0')
+
+  if (hours > 0) {
+    return `${hours}:${pad(minutes)}:${pad(secs)}`
+  }
+  return `${minutes}:${pad(secs)}`
+}
+
+/**
  * Formats a SIP URI for display
  *
  * Extracts and formats the display name and user@domain from a SIP URI
@@ -227,6 +256,39 @@ export function formatPhoneNumber(number: string): string {
   }
 
   return cleaned
+}
+
+/**
+ * Normalizes a phone number to digits only (for comparison or storage)
+ *
+ * @param number - Phone number to normalize
+ * @returns Digits only (e.g. "15551234567")
+ *
+ * @example
+ * ```typescript
+ * normalizePhoneNumber('+1 (555) 123-4567')  // "15551234567"
+ * normalizePhoneNumber('555-1234')            // "5551234"
+ * ```
+ */
+export function normalizePhoneNumber(number: string): string {
+  return number.replace(/\D/g, '')
+}
+
+/**
+ * Compares two phone numbers for equality (ignoring formatting)
+ *
+ * @param number1 - First phone number
+ * @param number2 - Second phone number
+ * @returns true if the numbers are equivalent
+ *
+ * @example
+ * ```typescript
+ * comparePhoneNumbers('555-1234', '5551234')          // true
+ * comparePhoneNumbers('+1-555-1234', '1 (555) 1234')  // true
+ * ```
+ */
+export function comparePhoneNumbers(number1: string, number2: string): boolean {
+  return normalizePhoneNumber(number1) === normalizePhoneNumber(number2)
 }
 
 /**

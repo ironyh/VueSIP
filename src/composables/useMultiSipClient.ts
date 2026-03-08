@@ -10,7 +10,7 @@
 
 import { ref, computed, shallowRef, type ComputedRef, type Ref } from 'vue'
 import type { SipClientConfig } from '../types/config.types'
-import { CallDirection } from '../types/call.types'
+import { CallDirection, type CallState, type CallSession } from '../types/call.types'
 import { EventBus } from '../core/EventBus'
 import { MediaManager } from '../core/MediaManager'
 import { buildSipUri, extractSipDomain } from '../utils/formatters'
@@ -37,6 +37,18 @@ export interface MultiSipAccountInstance {
   isRegistered: ComputedRef<boolean>
   isConnecting: ComputedRef<boolean>
   error: Ref<Error | null>
+}
+
+/** Account list item shape for multi-SIP UI (id, name, connection/registration state, call state, error). */
+export interface MultiSipAccountListItem {
+  id: string
+  name: string
+  isConnected: boolean
+  isRegistered: boolean
+  isConnecting: boolean
+  isOutbound: boolean
+  callState: CallState
+  error: string | null
 }
 
 export function useMultiSipClient() {
@@ -217,7 +229,7 @@ export function useMultiSipClient() {
           accountName: account.name,
           remoteUri: account.callSession.remoteUri.value,
           remoteDisplayName: account.callSession.remoteDisplayName.value,
-          calledLine: (account.callSession.session.value as any)?.data?.calledNumberDialed?.raw,
+          calledLine: (account.callSession.session.value as CallSession | null)?.calledNumberDialed?.raw,
         })
       }
     }
@@ -225,7 +237,7 @@ export function useMultiSipClient() {
     return calls
   })
 
-  const accountList = computed(() => {
+  const accountList = computed<MultiSipAccountListItem[]>(() => {
     return Array.from(accounts.value.values()).map((account) => ({
       id: account.id,
       name: account.name,

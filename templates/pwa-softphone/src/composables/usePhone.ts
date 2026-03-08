@@ -16,6 +16,8 @@ import {
   useAudioDeviceSwitch,
   buildSipUri,
   extractSipDomain,
+  type MultiSipAccountListItem,
+  type CallSession,
 } from 'vuesip'
 
 export interface PhoneConfig {
@@ -45,6 +47,13 @@ export interface PhoneConfig {
     enabled: boolean
   }>
   outboundAccountId?: string | null
+}
+
+/** Minimal shape for session.data / called-identity access when resolving called line */
+interface CallSessionDataLike {
+  calledNumberDialed?: { raw?: string }
+  calledNumberTarget?: { raw?: string }
+  calledIdentity?: { dialed?: { raw?: string }; target?: { raw?: string } }
 }
 
 export function usePhone() {
@@ -96,9 +105,9 @@ export function usePhone() {
   }
 
   function cycleOutboundAccount(direction: 'prev' | 'next') {
-    const list = (multiSipClient.accountList.value as any[]).map((a) => ({
-      id: a.id as string,
-      name: a.name as string,
+    const list = multiSipClient.accountList.value.map((a: MultiSipAccountListItem) => ({
+      id: a.id,
+      name: a.name,
     }))
     if (list.length <= 1) return
 
@@ -113,7 +122,7 @@ export function usePhone() {
   const is46Elks = computed(() => currentConfig.value?.providerId === '46elks')
   const canCycleOutbound = computed(() => {
     if (connectionMode.value === 'multi') {
-      return (multiSipClient.accountList.value as any[]).length > 1
+      return multiSipClient.accountList.value.length > 1
     }
     return is46Elks.value && outboundCallerIds.value.length > 1
   })
@@ -121,7 +130,7 @@ export function usePhone() {
   const outboundPrimary = computed(() => {
     if (connectionMode.value === 'multi') {
       const id = multiSipClient.outboundAccountId.value
-      const account = (multiSipClient.accountList.value as any[]).find((a: any) => a.id === id)
+      const account = multiSipClient.accountList.value.find((a: MultiSipAccountListItem) => a.id === id)
       const name = account?.name || id
       return name ? `Account: ${name}` : ''
     }
@@ -331,17 +340,18 @@ export function usePhone() {
   }
 
   const calledLine = computed(() => {
-    const s = session.value as any
+    const s = session.value as CallSession | null
     if (!s) return ''
+    const d = s.data as CallSessionDataLike | undefined
     return (
       s.calledNumberDialed?.raw ||
       s.calledNumberTarget?.raw ||
       s.calledIdentity?.dialed?.raw ||
       s.calledIdentity?.target?.raw ||
-      s.data?.calledNumberDialed?.raw ||
-      s.data?.calledNumberTarget?.raw ||
-      s.data?.calledIdentity?.dialed?.raw ||
-      s.data?.calledIdentity?.target?.raw ||
+      d?.calledNumberDialed?.raw ||
+      d?.calledNumberTarget?.raw ||
+      d?.calledIdentity?.dialed?.raw ||
+      d?.calledIdentity?.target?.raw ||
       ''
     )
   })
@@ -383,6 +393,7 @@ export function usePhone() {
     clientRef
   )
 
+  // useMediaDevices does not implement AudioDevicesForSwitch; optional features (e.g. mid-call switch) skipped
   const audioSwitch = useAudioDeviceSwitch(
     computed(() => callSession.session.value),
     mediaDevices as any
@@ -817,14 +828,14 @@ export function usePhone() {
 
   const effectiveIsConnecting = computed(() => {
     if (connectionMode.value === 'multi') {
-      return (multiSipClient.accountList.value as any[]).some((a: any) => a.isConnecting)
+      return multiSipClient.accountList.value.some((a: MultiSipAccountListItem) => a.isConnecting)
     }
     return isConnecting.value
   })
 
   const effectiveSipError = computed(() => {
     if (connectionMode.value === 'multi') {
-      const first = (multiSipClient.accountList.value as any[]).find((a: any) => a.error)
+      const first = multiSipClient.accountList.value.find((a: MultiSipAccountListItem) => a.error)
       return first?.error ? new Error(first.error) : null
     }
     return sipError.value

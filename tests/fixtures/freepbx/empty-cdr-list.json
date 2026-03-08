@@ -1,0 +1,10 @@
+{
+  "data": {
+    "fetchAllCdrs": {
+      "cdrs": [],
+      "totalCount": 0,
+      "status": true,
+      "message": "OK"
+    }
+  }
+}

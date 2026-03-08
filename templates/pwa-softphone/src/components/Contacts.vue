@@ -6,13 +6,13 @@ import { useContacts } from '../composables/useContacts'
 const props = defineProps<{
   visible: boolean
   initialNumber?: string
-}()
+}>()
 
 const emit = defineEmits<{
-  (e: 'select', contact: Contact): void
-  (e: 'call', number: string): void
-  (e: 'close'): void
-}()
+  select: [contact: Contact]
+  call: [number: string]
+  close: []
+}>()
 
 const { contacts, favorites, recentContacts, addContact, updateContact, deleteContact, toggleFavorite, searchContacts } = useContacts()
 
@@ -41,11 +41,11 @@ const filteredContacts = computed(() => {
   if (!searchQuery.value.trim()) {
     switch (activeTab.value) {
       case 'favorites':
-        return favorites.value
+        return favorites.value ?? []
       case 'recent':
-        return recentContacts.value
+        return recentContacts.value ?? []
       default:
-        return contacts.value.sort((a, b) => a.name.localeCompare(b.name))
+        return (contacts.value ?? []).slice().sort((a, b) => a.name.localeCompare(b.name))
     }
   }
   return searchContacts(searchQuery.value)

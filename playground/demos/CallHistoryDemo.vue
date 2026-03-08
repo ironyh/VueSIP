@@ -31,6 +31,86 @@
       </p>
     </div>
 
+    <!-- Account history (46elks) -->
+    <div class="account-history-section">
+      <h3>Account history (46elks)</h3>
+      <p class="account-hint">
+        Load call history from your 46elks account. Authenticate with your API credentials, then
+        click "Load from 46elks".
+      </p>
+
+      <div v-if="!elksApi.isAuthenticated.value" class="elks-auth-form">
+        <InputText
+          v-model="elksUsername"
+          placeholder="API username (e.g. u...)"
+          class="auth-input"
+        />
+        <InputText
+          v-model="elksPassword"
+          type="password"
+          placeholder="API password"
+          class="auth-input"
+        />
+        <Button
+          label="Authenticate"
+          :loading="elksApi.isLoading.value"
+          :disabled="!elksUsername.trim() || !elksPassword"
+          @click="handleElksAuthenticate"
+        />
+        <p v-if="elksApi.error.value" class="account-history-error" role="alert">
+          {{ elksApi.error.value }}
+        </p>
+      </div>
+
+      <template v-else>
+        <div class="account-history-actions">
+          <Button
+            label="Load from 46elks"
+            :loading="elksApi.isLoadingCallHistory.value"
+            @click="handleLoadElksHistory"
+            severity="secondary"
+          />
+          <Button
+            label="Sign out 46elks"
+            severity="secondary"
+            outlined
+            @click="elksApi.clear()"
+          />
+        </div>
+        <p v-if="elksLoadError" class="account-history-error" role="alert">
+          {{ elksLoadError }}
+        </p>
+        <template v-if="elksApi.callHistory.value.length > 0">
+          <h4 class="account-list-heading">From your account</h4>
+          <div class="history-entries">
+            <div
+              v-for="entry in normalizedElksHistory"
+              :key="entry.id"
+              class="history-entry history-entry-provider"
+            >
+              <div class="entry-icon">
+                <span v-if="entry.direction === 'incoming'">IN</span>
+                <span v-else>OUT</span>
+              </div>
+              <div class="entry-info">
+                <div class="entry-name">{{ entry.remote }}</div>
+                <div class="entry-details">
+                  <span class="entry-date">{{ entry.created }}</span>
+                </div>
+              </div>
+              <div class="entry-status">
+                <div class="entry-duration">{{ formatDuration(entry.duration) }}</div>
+                <span class="entry-badge provider-badge">46elks</span>
+              </div>
+            </div>
+          </div>
+        </template>
+        <p v-else-if="!elksApi.isLoadingCallHistory.value" class="account-empty">
+          No account history loaded. Click "Load from 46elks" to fetch calls.
+        </p>
+      </template>
+    </div>
+
     <!-- Statistics Overview -->
     <div class="stats-overview">
       <h3>Call Statistics</h3>
@@ -250,7 +330,7 @@ await exportHistory({
  * - Fallback hex colors in var() functions are acceptable as they're only used if custom properties aren't defined
  */
 import { ref, computed } from 'vue'
-import { useCallHistory } from '../../src'
+import { useCallHistory, use46ElksApi } from '../../src'
 import { useSimulation } from '../composables/useSimulation'
 import SimulationControls from '../components/SimulationControls.vue'
 import { Button, InputText, Dropdown } from './shared-components'
@@ -258,6 +338,55 @@ import { Button, InputText, Dropdown } from './shared-components'
 // Simulation system
 const simulation = useSimulation()
 const { isSimulationMode, activeScenario } = simulation
+
+// 46elks API for account call history
+const elksApi = use46ElksApi()
+const elksUsername = ref('')
+const elksPassword = ref('')
+const elksLoadError = ref<string | null>(null)
+
+function formatElksDate(isoString: string): string {
+  const date = new Date(isoString)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  if (days === 0) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  } else if (days === 1) {
+    return 'Yesterday ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  } else if (days < 7) {
+    return date.toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  } else {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+}
+
+const normalizedElksHistory = computed(() =>
+  elksApi.callHistory.value.map((call) => ({
+    id: call.id,
+    direction: call.direction,
+    remote: call.direction === 'incoming' ? call.from : call.to,
+    created: formatElksDate(call.created),
+    duration: call.duration ?? 0,
+  }))
+)
+
+async function handleElksAuthenticate() {
+  elksLoadError.value = null
+  const ok = await elksApi.authenticate(elksUsername.value.trim(), elksPassword.value)
+  if (!ok) {
+    elksLoadError.value = elksApi.error.value ?? 'Authentication failed'
+  }
+}
+
+async function handleLoadElksHistory() {
+  elksLoadError.value = null
+  try {
+    await elksApi.loadCallHistory({ limit: 50 })
+  } catch (e) {
+    elksLoadError.value = e instanceof Error ? e.message : 'Failed to load history'
+  }
+}
 
 // Call History composable
 const {
@@ -427,6 +556,82 @@ const formatDate = (date: Date): string => {
   border-left: 3px solid var(--primary, #667eea);
   border-radius: 4px;
   font-size: 0.875rem;
+}
+
+.account-history-section {
+  padding: 1.5rem;
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.account-history-section h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary, #333);
+  font-size: 1.125rem;
+}
+
+.account-hint {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #666);
+  line-height: 1.5;
+}
+
+.elks-auth-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.elks-auth-form .auth-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.account-history-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.account-history-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--danger, #dc2626);
+  width: 100%;
+}
+
+.account-list-heading {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+}
+
+.account-empty {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #666);
+}
+
+.history-entry-provider {
+  background: var(--bg-primary, white);
+}
+
+.provider-badge {
+  font-size: 0.6875rem;
+  background: var(--primary, #667eea);
+  color: white;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
 }
 
 .stats-overview {

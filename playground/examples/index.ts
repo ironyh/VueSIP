@@ -45,6 +45,7 @@ import { ringGroupsExample } from './ring-groups'
 import { featureCodesExample } from './feature-codes'
 import { e911Example } from './e911'
 import { recordingManagementExample } from './recording-management'
+import { pbxRecordingsSmokeExample } from './pbx-recordings-smoke'
 import { ivrMonitorExample } from './ivr-monitor'
 import { supervisorExample } from './supervisor'
 import { clickToCallExample } from './click-to-call'
@@ -102,6 +103,7 @@ export const amiExamples = [
   ringGroupsExample,
   ivrMonitorExample,
   recordingManagementExample,
+  pbxRecordingsSmokeExample,
   timeConditionsExample,
   featureCodesExample,
   callbackExample,

@@ -276,7 +276,9 @@ export { RecordingPlugin, createRecordingPlugin } from './plugins'
  * abort controller utilities, and storage quota helpers.
  *
  * @see {@link validateSipUri} for SIP URI validation
- * @see {@link formatDuration} for duration formatting
+ * @see {@link formatDuration} for duration formatting (HH:MM:SS)
+ * @see {@link formatDurationCompact} for compact call duration (M:SS)
+ * @see {@link normalizePhoneNumber} and {@link comparePhoneNumbers} for phone matching
  * @see {@link createLogger} for logging
  * @see {@link encrypt} for data encryption
  * @see {@link logErrorWithContext} for structured error logging
@@ -284,10 +286,12 @@ export { RecordingPlugin, createRecordingPlugin } from './plugins'
  *
  * @example
  * ```typescript
- * import { validateSipUri, formatDuration, createLogger } from 'vuesip'
+ * import { validateSipUri, formatDuration, formatDurationCompact, normalizePhoneNumber, createLogger } from 'vuesip'
  *
  * const result = validateSipUri('sip:user@example.com')
- * const formatted = formatDuration(125) // "02:05"
+ * formatDuration(125)           // "00:02:05"
+ * formatDurationCompact(125)    // "2:05"
+ * normalizePhoneNumber('+1 (555) 123-4567')  // "15551234567"
  * const logger = createLogger('MyApp')
  * logger.info('Application started')
  * ```
@@ -366,6 +370,41 @@ export * from './utils/notifications'
  * ```
  */
 export * from './storage'
+
+// ============================================================================
+// PBX Recording Adapters
+// ============================================================================
+
+/**
+ * PBX recording adapters for listing and playing call recordings.
+ *
+ * Adapters implement the {@link PbxRecordingProvider} interface so the UI
+ * can work with any supported PBX (FreePBX, etc.) without PBX-specific code.
+ *
+ * @see {@link createFreePbxRecordingProvider} for FreePBX (GraphQL + config.php download URL)
+ * @see {@link PbxRecordingProvider} for the provider contract
+ * @see {@link RecordingSummary} and {@link RecordingPlaybackInfo} for data types
+ *
+ * @remarks
+ * **Authentication:** Playback URLs often require an authenticated context.
+ * - **Same-origin:** If your app is served from the same origin as the PBX admin,
+ *   the browser sends session cookies automatically; no extra config.
+ * - **Cross-origin:** Use a backend proxy that fetches the recording with
+ *   server-side auth and streams to the client, or use token-based auth and
+ *   pass headers via the adapter config (e.g. `getAuthHeaders` for FreePBX).
+ *
+ * @example
+ * ```typescript
+ * import { createFreePbxRecordingProvider } from 'vuesip'
+ *
+ * const provider = createFreePbxRecordingProvider({
+ *   baseUrl: 'https://pbx.example.com',
+ * })
+ * const { items } = await provider.listRecordings({ limit: 20 })
+ * const info = await provider.getPlaybackInfo(items[0].id)
+ * ```
+ */
+export * from './pbx-adapters'
 
 // ============================================================================
 // Codecs (Preview)

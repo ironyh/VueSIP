@@ -133,6 +133,8 @@ pnpm dev
 
 Visit `http://localhost:5173` to explore all 50+ demos with live code.
 
+To use a **real SIP account** in the Playground: click **"Configure SIP connection"** in the header, add your WebSocket URI and SIP credentials in the Settings demo, then run any demo (e.g. Basic Call) with the same connection. See [Playground with Real SIP](/guide/playground-live-sip) for details and a **safety note** (use test accounts only; do not use production secrets in shared or public environments).
+
 ## Related
 
 - [Quick Start](/examples/quick-start)
