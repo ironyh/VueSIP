@@ -14,6 +14,7 @@ import type { UseConnectionRecoveryReturn } from '@/types/connection-recovery.ty
 import type { UseTransportRecoveryReturn } from './useTransportRecovery'
 import type { UseSipRegistrationReturn } from './useSipRegistration'
 import type { UseNotificationsReturn } from './useNotifications'
+import { createMetricsEmitter, type MetricsCallback, useSipMetrics } from './useSipMetrics'
 
 const logger = createLogger('useConnectionHealthBar')
 
@@ -52,6 +53,8 @@ export interface ConnectionHealthBarOptions {
   registration?: UseSipRegistrationReturn
   notifications?: UseNotificationsReturn
   debounceMs?: number
+  /** Callback for metrics events (health changes, recovery, etc.) */
+  onMetrics?: MetricsCallback
 }
 
 export interface UseConnectionHealthBarReturn {
@@ -157,11 +160,16 @@ export function useConnectionHealthBar(
     registration,
     notifications,
     debounceMs = CONNECTION_HEALTH_CONSTANTS.DEFAULT_DEBOUNCE_MS,
+    onMetrics,
   } = options
+
+  // Create metrics emitter
+  const emitMetrics = createMetricsEmitter('useConnectionHealthBar')
 
   const debouncedLevel = ref<HealthLevel>('good')
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
   let lastNotifiedLevel: HealthLevel | null = null
+  let previousEmittedLevel: HealthLevel | null = null
 
   const details = computed<HealthDetails>(() => {
     const transportState = transportRecovery?.connectionState.value ?? ConnectionState.Connected
@@ -236,6 +244,39 @@ export function useConnectionHealthBar(
     }
   }
 
+  // Helper to emit health change metrics
+  function emitHealthMetrics(newLevel: HealthLevel, previousLevel: HealthLevel | null): void {
+    // Emit level change
+    if (previousLevel !== null && previousLevel !== newLevel) {
+      const isRecovery =
+        (previousLevel === 'poor' ||
+          previousLevel === 'critical' ||
+          previousLevel === 'offline') &&
+        (newLevel === 'good' || newLevel === 'excellent')
+
+      if (isRecovery) {
+        emitMetrics({
+          type: 'health.recovery',
+          previousLevel,
+          currentLevel: newLevel,
+        })
+      } else {
+        emitMetrics({
+          type: 'health.level_change',
+          previousLevel,
+          currentLevel: newLevel,
+          details: {
+            transport: details.value.transport,
+            registration: details.value.registration,
+            network: details.value.network,
+            ice: details.value.ice,
+          },
+        })
+      }
+    }
+    previousEmittedLevel = newLevel
+  }
+
   // Watch raw level and debounce updates
   const stopWatch = watch(
     rawLevel,
@@ -247,6 +288,7 @@ export function useConnectionHealthBar(
       // Immediate update for critical drops (offline/critical)
       if (newLevel === 'offline' || newLevel === 'critical') {
         debouncedLevel.value = newLevel
+        emitHealthMetrics(newLevel, previousEmittedLevel)
         if (lastNotifiedLevel !== newLevel) {
           notifyHealthDrop(newLevel)
           lastNotifiedLevel = newLevel
@@ -258,6 +300,9 @@ export function useConnectionHealthBar(
         debounceTimer = null
         const previousLevel = debouncedLevel.value
         debouncedLevel.value = newLevel
+
+        // Emit metrics
+        emitHealthMetrics(newLevel, previousLevel)
 
         // Notify on drops
         if (
@@ -290,12 +335,20 @@ export function useConnectionHealthBar(
   // Initialize debounced level synchronously
   debouncedLevel.value = rawLevel.value
 
+  // Register user callback if provided (using the shared global system)
+  let unsubscribeUser: (() => void) | null = null
+  if (onMetrics) {
+    const { onMetrics: registerCallback } = useSipMetrics()
+    unsubscribeUser = registerCallback(onMetrics)
+  }
+
   logger.debug('Connection health bar initialized', {
     hasNetworkQuality: !!networkQuality,
     hasConnectionRecovery: !!connectionRecovery,
     hasTransportRecovery: !!transportRecovery,
     hasRegistration: !!registration,
     hasNotifications: !!notifications,
+    hasMetrics: !!onMetrics,
     debounceMs,
   })
 
@@ -304,6 +357,10 @@ export function useConnectionHealthBar(
       if (debounceTimer !== null) {
         clearTimeout(debounceTimer)
         debounceTimer = null
+      }
+      if (unsubscribeUser) {
+        unsubscribeUser()
+        unsubscribeUser = null
       }
       stopWatch()
       logger.debug('Connection health bar disposed')

@@ -140,6 +140,26 @@ export {
   type UseGracefulDegradationReturn,
 } from './useGracefulDegradation'
 
+// Metrics & observability
+export {
+  useSipMetrics,
+  createMetricsEmitter,
+  type MetricsEventType,
+  type MetricsEvent,
+  type MetricsCallback,
+  type UseSipMetricsOptions,
+  type UseSipMetricsReturn,
+  type BaseMetricsEvent,
+  type HealthLevelChangeEvent,
+  type HealthRecoveryEvent,
+  type DegradationApplyEvent,
+  type DegradationRecoverEvent,
+  type ConnectionReconnectingEvent,
+  type ConnectionRecoveredEvent,
+  type IceHealthChangeEvent,
+  type RegistrationStateChangeEvent,
+} from './useSipMetrics'
+
 // Audio processing composable
 export {
   useAudioProcessing,
