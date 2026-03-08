@@ -14,6 +14,18 @@ import { createLogger } from '@/utils/logger'
 const logger = createLogger('useSipMetrics')
 
 // =============================================================================
+// Window Type Augmentation
+// =============================================================================
+
+export type MetricsEventCallback = (event: MetricsEvent) => void
+
+declare global {
+  interface Window {
+    __vuesipMetrics?: MetricsEventCallback | MetricsEventCallback[]
+  }
+}
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -181,7 +193,7 @@ function emitToCallbacks(event: MetricsEvent): void {
 
   // Also emit to global window hook if available
   if (typeof window !== 'undefined') {
-    const globalHook = (window as any).__vuesipMetrics
+    const globalHook = window.__vuesipMetrics
     if (typeof globalHook === 'function') {
       try {
         globalHook(event)
@@ -208,10 +220,7 @@ function emitToCallbacks(event: MetricsEvent): void {
 // =============================================================================
 
 export function useSipMetrics(options: UseSipMetricsOptions = {}): UseSipMetricsReturn {
-  const {
-    enabled = true,
-    sampleRate = 1.0,
-  } = options
+  const { enabled = true, sampleRate = 1.0 } = options
 
   // Update global state
   if (enabled !== undefined) {
