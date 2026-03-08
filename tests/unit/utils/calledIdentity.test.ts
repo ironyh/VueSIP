@@ -97,4 +97,114 @@ describe('calledIdentity extraction', () => {
     const res = extractCalledIdentity(request)
     expect(res.dialed?.raw).toBe('+15551212')
   })
+
+  it('extracts custom x-header and maps to dialed', () => {
+    const request = {
+      ruri: 'sip:1001@pbx.example.com',
+      headers: {
+        To: '<sip:1001@pbx.example.com>',
+        'X-Original-To': '<sip:+46123456789@pbx.example.com>',
+      },
+    } as any
+
+    const res = extractCalledIdentity(request, {
+      customHeaderMap: { 'X-Original-To': 'dialed' },
+    })
+
+    expect(res.dialed?.raw).toBe('+46123456789')
+    expect(res.dialed?.source).toBe('x-header')
+    expect(res.dialed?.headerName).toBe('X-Original-To')
+  })
+
+  it('extracts custom x-header and maps to target', () => {
+    const request = {
+      ruri: 'sip:1001@pbx.example.com',
+      headers: {
+        To: '<sip:1001@pbx.example.com>',
+        'X-Target-Line': '<sip:2001@pbx.example.com>',
+      },
+    } as any
+
+    const res = extractCalledIdentity(request, {
+      customHeaderMap: { 'X-Target-Line': 'target' },
+    })
+
+    expect(res.target?.raw).toBe('2001')
+    expect(res.target?.source).toBe('x-header')
+    expect(res.target?.headerName).toBe('X-Target-Line')
+  })
+
+  it('respects customHeaderPrecedence for x-headers', () => {
+    const request = {
+      headers: {
+        'X-Second': '<sip:+15550002@example.com>',
+        'X-First': '<sip:+15550001@example.com>',
+      },
+    } as any
+
+    const res = extractCalledIdentity(request, {
+      customHeaderMap: {
+        'X-First': 'dialed',
+        'X-Second': 'dialed',
+      },
+      customHeaderPrecedence: ['X-First', 'X-Second'],
+    })
+
+    expect(res.dialed?.raw).toBe('+15550001')
+  })
+
+  it('normalizes phone numbers when normalization is enabled', () => {
+    const request = {
+      headers: {
+        To: '<sip:+46 (12) 345-6789@pbx.example.com>',
+      },
+    } as any
+
+    const res = extractCalledIdentity(request, {
+      normalization: { enabled: true, stripSeparators: true, keepPlus: true },
+    })
+
+    expect(res.dialed?.normalized).toBe('+46123456789')
+  })
+
+  it('strips plus when normalization disables keepPlus', () => {
+    const request = {
+      headers: {
+        To: '<sip:+46123456789@pbx.example.com>',
+      },
+    } as any
+
+    const res = extractCalledIdentity(request, {
+      normalization: { enabled: true, keepPlus: false },
+    })
+
+    expect(res.dialed?.normalized).toBe('46123456789')
+  })
+
+  it('returns empty extraction for undefined request', () => {
+    const res = extractCalledIdentity(undefined)
+    expect(res.candidates).toEqual([])
+    expect(res.dialed).toBeUndefined()
+    expect(res.target).toBeUndefined()
+  })
+
+  it('handles missing To header gracefully', () => {
+    const request = {
+      ruri: 'sip:46700000000@voip.46elks.com',
+      headers: {},
+    } as any
+
+    const res = extractCalledIdentity(request)
+    expect(res.target?.raw).toBe('46700000000')
+  })
+
+  it('handles empty headers object', () => {
+    const request = {
+      ruri: 'sip:46700000000@voip.46elks.com',
+      headers: undefined,
+    } as any
+
+    const res = extractCalledIdentity(request)
+    expect(res.target?.raw).toBe('46700000000')
+  })
 })
