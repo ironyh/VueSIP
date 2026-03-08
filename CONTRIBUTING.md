@@ -1553,6 +1553,16 @@ The workflow automatically creates a GitHub Release with changelog, publishes pa
 - [JsSIP Documentation](https://jssip.net/documentation/)
 - [WebRTC API](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API)
 
+## Beads Decision Log
+
+When closing or merging a bead (issue) without completing all child tasks, record the decision:
+
+| Bead | Decision | Reason | PR/Issue Link |
+|------|----------|--------|---------------|
+| VueSIP-xxx | closed/won't fix | Superseded by VueSIP-yyy | #123 |
+
+Add this table to the bead's notes or close reason. This helps track architectural decisions.
+
 ## License
 
 By contributing to VueSip, you agree that your contributions will be licensed under the MIT License.
