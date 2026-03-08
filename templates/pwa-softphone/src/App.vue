@@ -15,6 +15,7 @@ import { useTranscriptPersistence } from './composables/useTranscriptPersistence
 import { useCallRecording } from './composables/useCallRecording'
 import { useContacts } from './composables/useContacts'
 import { useProviderCallHistory } from './composables/useProviderCallHistory'
+import { useTranscriptSearch } from './composables/useTranscriptSearch'
 import type { Contact } from './composables/useContacts'
 
 // Phone composable
@@ -82,50 +83,21 @@ const filteredHistory = computed(() => {
 })
 
 // Async transcript search (enhancement - searches saved transcripts)
-const transcriptSearchResults = ref<Set<string>>(new Set())
-const isSearchingTranscripts = ref(false)
-let transcriptSearchTimeout: ReturnType<typeof setTimeout> | null = null
+// Using useTranscriptSearch composable for better testability
+const {
+  transcriptSearchResults,
+  isSearchingTranscripts,
+  transcriptMatchedEntries,
+  watchSearchQuery,
+} = useTranscriptSearch(
+  phone.historyEntries,
+  transcriptPersistence.persistenceEnabled,
+  (entryId: string) => transcriptPersistence.getTranscript(entryId),
+  { debounceMs: 300 }
+)
 
-watch(historySearchQuery, async (query) => {
-  // Clear previous timeout
-  if (transcriptSearchTimeout) {
-    clearTimeout(transcriptSearchTimeout)
-  }
-
-  if (!query.trim() || !transcriptPersistence.persistenceEnabled.value) {
-    transcriptSearchResults.value.clear()
-    isSearchingTranscripts.value = false
-    return
-  }
-
-  // Debounce transcript search (search metadata immediately, transcripts after delay)
-  transcriptSearchTimeout = setTimeout(async () => {
-    isSearchingTranscripts.value = true
-    const results = new Set<string>()
-    const queryLower = query.toLowerCase()
-
-    try {
-      // Check all history entries for matching transcripts
-      for (const entry of phone.historyEntries.value) {
-        const transcript = await transcriptPersistence.getTranscript(entry.id)
-        if (transcript) {
-          const transcriptText = transcript
-            .map((e) => e.text)
-            .join(' ')
-            .toLowerCase()
-          if (transcriptText.includes(queryLower)) {
-            results.add(entry.id)
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error searching transcripts:', error)
-    } finally {
-      transcriptSearchResults.value = results
-      isSearchingTranscripts.value = false
-    }
-  }, 300)
-})
+// Watch search query for transcript search
+watchSearchQuery(historySearchQuery)
 
 // Combined filtered history (metadata + transcript matches)
 const finalFilteredHistory = computed(() => {
@@ -136,11 +108,8 @@ const finalFilteredHistory = computed(() => {
 
   // If transcript search found matches, include those even if they didn't match metadata
   if (transcriptSearchResults.value.size > 0) {
-    const transcriptMatches = phone.historyEntries.value.filter((entry) =>
-      transcriptSearchResults.value.has(entry.id)
-    )
     // Combine and deduplicate
-    const combined = [...metadataMatches, ...transcriptMatches]
+    const combined = [...metadataMatches, ...transcriptMatchedEntries.value]
     const unique = combined.filter(
       (entry, index, self) => index === self.findIndex((e) => e.id === entry.id)
     )
@@ -545,7 +514,11 @@ onMounted(() => {
             <!-- Account history (46elks / Telnyx when supported) -->
             <div v-if="providerHistory.canLoadHistory.value" class="account-history-section">
               <h3 class="account-history-heading">
-                {{ providerHistory.entries.value.length > 0 ? 'From your account' : 'Account call history' }}
+                {{
+                  providerHistory.entries.value.length > 0
+                    ? 'From your account'
+                    : 'Account call history'
+                }}
               </h3>
               <button
                 type="button"
@@ -553,7 +526,11 @@ onMounted(() => {
                 :disabled="providerHistory.isLoading.value"
                 @click="providerHistory.load()"
               >
-                <span v-if="providerHistory.isLoading.value" class="load-spinner" aria-hidden="true"></span>
+                <span
+                  v-if="providerHistory.isLoading.value"
+                  class="load-spinner"
+                  aria-hidden="true"
+                ></span>
                 {{ providerHistory.isLoading.value ? 'Loading…' : providerHistory.loadLabel.value }}
               </button>
               <p v-if="providerHistory.error.value" class="account-history-error" role="alert">
@@ -566,7 +543,11 @@ onMounted(() => {
                 :disabled="providerHistory.isLoading.value"
                 @click="providerHistory.load()"
               >
-                <span v-if="providerHistory.isLoading.value" class="load-spinner" aria-hidden="true"></span>
+                <span
+                  v-if="providerHistory.isLoading.value"
+                  class="load-spinner"
+                  aria-hidden="true"
+                ></span>
                 {{ providerHistory.isLoading.value ? 'Loading…' : 'Retry' }}
               </button>
               <template v-if="providerHistory.entries.value.length > 0">
@@ -615,9 +596,7 @@ onMounted(() => {
               </p>
             </div>
             <div
-              v-else-if="
-                phone.historyEntries.value.length > 0 && finalFilteredHistory.length === 0
-              "
+              v-else-if="phone.historyEntries.value.length > 0 && finalFilteredHistory.length === 0"
               class="empty-state"
             >
               <svg
