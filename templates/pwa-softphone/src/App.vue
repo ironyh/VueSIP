@@ -328,8 +328,16 @@ watch(
   { immediate: false }
 )
 
+// Clear stale status message when tab becomes visible (if connected)
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible' && phone.isConnected.value) {
+    statusMessage.value = ''
+  }
+}
+
 // Cleanup
 onUnmounted(async () => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   if (phone.isConnected.value) {
     await phone.disconnectPhone()
   }
@@ -338,6 +346,9 @@ onUnmounted(async () => {
 // Handle notification deep links (Phase 3 - SW notification actions)
 // URL params: ?notifAction=answer|decline|open&callId=<id>
 onMounted(() => {
+  // Listen for visibility changes to clear stale status messages
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+
   const params = new URLSearchParams(window.location.search)
   const notifAction = params.get('notifAction')
   const callId = params.get('callId')
