@@ -5,14 +5,13 @@
  * @group utils
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   isNotificationsEnabled,
   setNotificationsEnabled,
   ensurePermission,
   showIncomingCallNotification,
   getSWRegistration,
-  showIncomingCallWithActions,
   NotificationManager,
   createNotificationManager,
 } from '@/utils/notifications'
