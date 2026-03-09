@@ -5,6 +5,7 @@
  * These constants are used throughout the library for SIP configuration,
  * media settings, timeouts, and protocol defaults.
  *
+ * @packageDocumentation
  * @module utils/constants
  */
 

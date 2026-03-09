@@ -4,6 +4,7 @@
  * Formatting functions for SIP URIs, durations, phone numbers, and dates.
  * These utilities help display data in user-friendly formats.
  *
+ * @packageDocumentation
  * @module utils/formatters
  */
 
