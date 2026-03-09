@@ -72,3 +72,6 @@ export {
   isNotFoundError,
   isConstraintError,
 } from './errorHelpers'
+
+// Re-export diagnostics utilities
+export * from './diagnostics'
