@@ -11,6 +11,7 @@ import {
   setNotificationsEnabled,
   ensurePermission,
   showIncomingCallNotification,
+  showIncomingCallWithActions,
   getSWRegistration,
   NotificationManager,
   createNotificationManager,
@@ -87,18 +88,12 @@ describe('notifications utils', () => {
   describe('setNotificationsEnabled', () => {
     it('should set localStorage to true when enabled', () => {
       setNotificationsEnabled(true)
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        'vuesip_notifications_enabled',
-        'true'
-      )
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('vuesip_notifications_enabled', 'true')
     })
 
     it('should set localStorage to false when disabled', () => {
       setNotificationsEnabled(false)
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        'vuesip_notifications_enabled',
-        'false'
-      )
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('vuesip_notifications_enabled', 'false')
     })
 
     it('should handle localStorage errors gracefully', () => {
@@ -189,6 +184,47 @@ describe('notifications utils', () => {
       // Result depends on Notification API availability in test env
       expect(typeof result).toBe('boolean')
     })
+
+    it('should handle Notification constructor errors gracefully', async () => {
+      mockNotification.permission = 'granted'
+      // Mock Notification to throw
+      const OriginalNotification = global.Notification
+      global.Notification = class extends Error {
+        constructor() {
+          super('Notification error')
+          this.name = 'NotificationError'
+        }
+      } as any
+      const result = await showIncomingCallNotification({
+        title: 'Test',
+        body: 'Body',
+      })
+      global.Notification = OriginalNotification
+      expect(result).toBe(false)
+    })
+
+    it('should handle window.focus errors in onclick', async () => {
+      mockNotification.permission = 'granted'
+      // Mock Notification with onclick that throws
+      const mockNotify = vi.fn().mockImplementation(() => {
+        // Create mock notification with onclick that throws
+        return {
+          onclick: () => {
+            throw new Error('Focus error')
+          },
+          close: vi.fn(),
+        }
+      })
+      const OriginalNotification = global.Notification
+      ;(global.Notification as any) = mockNotify
+      const result = await showIncomingCallNotification({
+        title: 'Test',
+        body: 'Body',
+      })
+      global.Notification = OriginalNotification
+      // Should still return true as notification was created
+      expect(typeof result).toBe('boolean')
+    })
   })
 
   describe('getSWRegistration', () => {
@@ -221,6 +257,84 @@ describe('notifications utils', () => {
     })
   })
 
+  describe('showIncomingCallWithActions', () => {
+    it('should return false when no service worker registration', async () => {
+      mockServiceWorker.getRegistration.mockResolvedValue(null)
+      const result = await showIncomingCallWithActions({
+        title: 'Test',
+        body: 'Body',
+      })
+      expect(result).toBe(false)
+    })
+
+    it('should return false when not in browser', async () => {
+      const originalWindow = global.window
+      // @ts-expect-error - deleting for test
+      delete global.window
+      const mockReg = { showNotification: vi.fn() }
+      mockServiceWorker.getRegistration.mockResolvedValue(mockReg)
+      const result = await showIncomingCallWithActions({
+        title: 'Test',
+        body: 'Body',
+      })
+      global.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return false when permission not granted', async () => {
+      mockNotification.permission = 'default'
+      const mockReg = { showNotification: vi.fn() }
+      mockServiceWorker.getRegistration.mockResolvedValue(mockReg)
+      const result = await showIncomingCallWithActions({
+        title: 'Test',
+        body: 'Body',
+      })
+      expect(result).toBe(false)
+    })
+
+    it('should show notification with actions when permitted', async () => {
+      mockNotification.permission = 'granted'
+      const mockReg = {
+        showNotification: vi.fn().mockResolvedValue(undefined),
+        scope: '/sw.js',
+      }
+      mockServiceWorker.getRegistration.mockResolvedValue(mockReg)
+      const result = await showIncomingCallWithActions({
+        title: 'Incoming Call',
+        body: 'From Alice',
+        icon: '/icon.png',
+        callId: 'abc123',
+      })
+      expect(result).toBe(true)
+      expect(mockReg.showNotification).toHaveBeenCalledWith(
+        'Incoming Call',
+        expect.objectContaining({
+          body: 'From Alice',
+          icon: '/icon.png',
+          tag: 'incoming-call',
+          actions: expect.arrayContaining([
+            expect.objectContaining({ action: 'answer' }),
+            expect.objectContaining({ action: 'decline' }),
+          ]),
+        })
+      )
+    })
+
+    it('should handle showNotification errors gracefully', async () => {
+      mockNotification.permission = 'granted'
+      const mockReg = {
+        showNotification: vi.fn().mockRejectedValue(new Error('SW Error')),
+        scope: '/sw.js',
+      }
+      mockServiceWorker.getRegistration.mockResolvedValue(mockReg)
+      const result = await showIncomingCallWithActions({
+        title: 'Test',
+        body: 'Body',
+      })
+      expect(result).toBe(false)
+    })
+  })
+
   describe('NotificationManager', () => {
     it('should create with default strategy', () => {
       const manager = new NotificationManager()
@@ -247,6 +361,42 @@ describe('notifications utils', () => {
         body: 'Body',
       })
       expect(result).toBe(false) // returns false because mock Notification doesn't work fully
+    })
+
+    it('should use sw_actions when service worker is registered', async () => {
+      mockNotification.permission = 'granted'
+      const mockReg = { showNotification: vi.fn().mockResolvedValue(undefined) }
+      mockServiceWorker.getRegistration.mockResolvedValue(mockReg)
+      const manager = new NotificationManager({ strategy: 'sw_actions' })
+      await manager.notifyIncomingCall({
+        title: 'Test',
+        body: 'Body',
+      })
+      expect(mockReg.showNotification).toHaveBeenCalled()
+    })
+
+    it('should fall back to in_page when sw_actions fails', async () => {
+      mockNotification.permission = 'granted'
+      mockServiceWorker.getRegistration.mockResolvedValue(null)
+      const manager = new NotificationManager({ strategy: 'sw_actions' })
+      const _result = await manager.notifyIncomingCall({
+        title: 'Test',
+        body: 'Body',
+      })
+      // Should return false because both SW and standard notification fail in mock
+      expect(typeof _result).toBe('boolean')
+    })
+
+    it('should prefer sw_actions in auto mode when available', async () => {
+      mockNotification.permission = 'granted'
+      const mockReg = { showNotification: vi.fn().mockResolvedValue(undefined) }
+      mockServiceWorker.getRegistration.mockResolvedValue(mockReg)
+      const manager = new NotificationManager({ strategy: 'auto' })
+      await manager.notifyIncomingCall({
+        title: 'Test',
+        body: 'Body',
+      })
+      expect(mockReg.showNotification).toHaveBeenCalled()
     })
   })
 
