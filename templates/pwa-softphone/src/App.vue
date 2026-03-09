@@ -5,6 +5,7 @@ import CallScreen from './components/CallScreen.vue'
 import IncomingCall from './components/IncomingCall.vue'
 import Settings from './components/Settings.vue'
 import SettingsMenu from './components/SettingsMenu.vue'
+import DiagnosticsPanel from './components/DiagnosticsPanel.vue'
 import CallDetailView from './components/CallDetailView.vue'
 import Contacts from './components/Contacts.vue'
 import { usePhone } from './composables/usePhone'
@@ -90,7 +91,7 @@ const {
   transcriptMatchedEntries,
   watchSearchQuery,
 } = useTranscriptSearch(
-  phone.historyEntries,
+  phone.historyEntries as any,
   transcriptPersistence.persistenceEnabled,
   (entryId: string) => transcriptPersistence.getTranscript(entryId),
   { debounceMs: 300 }
@@ -682,6 +683,8 @@ onMounted(() => {
               :on-select-audio-output="(id) => phone.selectAudioOutput(id)"
               :on-refresh46-elks-preferences="phone.refresh46ElksOutboundPreferences"
             />
+            <!-- Diagnostics Panel - shown in settings for troubleshooting -->
+            <DiagnosticsPanel />
           </div>
         </div>
 
