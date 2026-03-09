@@ -313,10 +313,10 @@ export const STORAGE_KEYS = {
  * Performance targets and limits
  */
 export const PERFORMANCE = {
-  /** Maximum bundle size in bytes (minified) - includes AMI composables, OAuth2, MultiLine, FreePBX, Phase 3 enhancements, Call Quality Dashboard, Transcription, Provider APIs (Telnyx, 46elks), Growth Roadmap features (Smart Routing, Click-to-Call, Sentiment, Call Summary, SIP Mock, Audio Processing, AMI Originate, AMI Spy) */
+  /** Maximum bundle size in bytes (minified) */
   MAX_BUNDLE_SIZE: 750 * 1024, // 750 KB
 
-  /** Maximum bundle size in bytes (gzipped) - increased for Growth Roadmap composables, enterprise features, and conflict resolution composables */
+  /** Maximum bundle size in bytes (gzipped) */
   MAX_BUNDLE_SIZE_GZIPPED: 220 * 1024, // 220 KB
 
   /** Target call setup time in milliseconds */
