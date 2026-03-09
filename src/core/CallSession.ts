@@ -1126,7 +1126,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     })
 
     // Emit to EventBridge for E2E tests
-    if (typeof (window as any).__emitSipEvent === 'function') {
+    if (typeof window.__emitSipEvent === 'function') {
       // Map CallSession events to EventBridge event names
       let bridgeEvent: string | null = null
 
@@ -1140,8 +1140,8 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
         bridgeEvent = event // Keep these as-is
       }
 
-      if (bridgeEvent) {
-        ;(window as any).__emitSipEvent(bridgeEvent, {
+      if (bridgeEvent && window.__emitSipEvent) {
+        window.__emitSipEvent(bridgeEvent, {
           callId: this._id,
           direction: this._direction,
           remoteUri: this._remoteUri,
