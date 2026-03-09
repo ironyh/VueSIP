@@ -1,3 +1,14 @@
+/**
+ * useSipConnection - Low-level SIP connection management composable.
+ *
+ * Provides direct control over JsSIP User Agent connection lifecycle,
+ * including registration, unregistration, and connection state tracking.
+ * This is a simpler alternative to useSipClient for cases where fine-grained
+ * control over the connection is needed.
+ *
+ * @packageDocumentation
+ */
+
 import { ref, type Ref } from 'vue'
 import JsSIP, { type UA } from 'jssip'
 
