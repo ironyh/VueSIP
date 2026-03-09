@@ -30,7 +30,8 @@ watch(
       // Standalone mode - use props
       confirm(props.options)
     }
-  }
+  },
+  { immediate: true }
 )
 
 // Watch composable state changes
