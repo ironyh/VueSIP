@@ -12,6 +12,7 @@
 import type { SipClient } from '../core/SipClient'
 import type { CallSession } from '../core/CallSession'
 import type { MediaManager } from '../core/MediaManager'
+import { VERSION } from './constants'
 
 export interface DiagnosticResult {
   timestamp: string
@@ -94,9 +95,7 @@ export async function collectDiagnostics(
 }
 
 function getVersion(): string {
-  // Try to get from process.env (Vite exposes this differently)
-  // Fallback to a static version that can be updated at build time
-  return '1.0.0-diagnostics'
+  return VERSION
 }
 
 function collectConnectionDiagnostics(sipClient?: SipClient): ConnectionDiagnostic {
