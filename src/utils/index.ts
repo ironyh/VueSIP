@@ -35,3 +35,40 @@ export * from './dtmf'
 
 // Re-export notification utilities
 export * from './notifications'
+
+// Re-export EventEmitter
+export * from './EventEmitter'
+
+// Re-export abort controller utilities
+export * from './abortController'
+
+// Re-export AMI helpers
+export * from './ami-helpers'
+
+// Re-export called identity utilities
+export * from './calledIdentity'
+
+// Re-export dialog info parser
+export * from './dialogInfoParser'
+
+// Re-export error context utilities
+export {
+  ErrorSeverity,
+  type ErrorContext,
+  type ErrorLogEntry,
+  createErrorContext,
+  formatError,
+  createOperationTimer,
+  sanitizeContext,
+  extractErrorInfo,
+  logErrorWithContext,
+} from './errorContext'
+
+// Re-export error helpers
+export type { FormattedError } from './errorHelpers'
+export {
+  formatError as formatErrorHelper,
+  isPermissionDeniedError,
+  isNotFoundError,
+  isConstraintError,
+} from './errorHelpers'
