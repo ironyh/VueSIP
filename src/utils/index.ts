@@ -32,3 +32,6 @@ export * from './e911'
 
 // Re-export DTMF utilities
 export * from './dtmf'
+
+// Re-export notification utilities
+export * from './notifications'
