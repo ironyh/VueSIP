@@ -5,7 +5,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { useSipMetrics, createMetricsEmitter } from '../useSipMetrics'
+import { useSipMetrics, createMetricsEmitter, type MetricsEvent } from '../useSipMetrics'
+
+declare global {
+  interface Window {
+    __vuesipMetrics?: ((event: MetricsEvent) => void) | ((event: MetricsEvent) => void)[]
+  }
+}
 
 describe('useSipMetrics', () => {
   beforeEach(() => {
@@ -16,7 +22,7 @@ describe('useSipMetrics', () => {
   afterEach(() => {
     // Clean up window hook if set
     if (typeof window !== 'undefined') {
-      delete (window as any).__vuesipMetrics
+      delete window.__vuesipMetrics
     }
   })
 
@@ -71,7 +77,7 @@ describe('useSipMetrics', () => {
         type: 'health.level_change',
         previousLevel: 'good',
         currentLevel: 'fair',
-      } as any)
+      })
 
       expect(callback).toHaveBeenCalledTimes(1)
       expect(callback.mock.calls[0][0]).toMatchObject({
@@ -90,7 +96,7 @@ describe('useSipMetrics', () => {
       onMetrics(callback)
       offMetrics(callback)
 
-      emit({ type: 'test.event' } as any)
+      emit({ type: 'test.event' })
 
       expect(callback).not.toHaveBeenCalled()
     })
@@ -114,7 +120,7 @@ describe('useSipMetrics', () => {
       onMetrics(callback)
       disable()
 
-      emit({ type: 'test.event' } as any)
+      emit({ type: 'test.event' })
 
       expect(callback).not.toHaveBeenCalled()
     })
@@ -131,7 +137,7 @@ describe('useSipMetrics', () => {
 
       // Emit multiple events - none should pass with 0 sample rate
       for (let i = 0; i < 10; i++) {
-        emit({ type: 'test.event' } as any)
+        emit({ type: 'test.event' })
       }
 
       expect(callback).not.toHaveBeenCalled()
@@ -151,7 +157,7 @@ describe('useSipMetrics', () => {
       // @ts-ignore
       window.__vuesipMetrics = windowCallback
 
-      emit({ type: 'test.event' } as any)
+      emit({ type: 'test.event' })
 
       expect(windowCallback).toHaveBeenCalledTimes(1)
     })
@@ -164,7 +170,7 @@ describe('useSipMetrics', () => {
       // @ts-ignore
       window.__vuesipMetrics = [callback1, callback2]
 
-      emit({ type: 'test.event' } as any)
+      emit({ type: 'test.event' })
 
       expect(callback1).toHaveBeenCalledTimes(1)
       expect(callback2).toHaveBeenCalledTimes(1)
@@ -179,7 +185,7 @@ describe('useSipMetrics', () => {
       onMetrics(callback)
 
       const beforeEmit = Date.now()
-      emit({ type: 'test.event' } as any)
+      emit({ type: 'test.event' })
       const afterEmit = Date.now()
 
       const emittedEvent = callback.mock.calls[0][0]
@@ -193,7 +199,7 @@ describe('useSipMetrics', () => {
 
       onMetrics(callback)
 
-      emit({ type: 'test.event' } as any)
+      emit({ type: 'test.event' })
 
       expect(callback.mock.calls[0][0].source).toBe('useSipMetrics')
     })
