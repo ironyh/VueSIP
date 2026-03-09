@@ -75,7 +75,14 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
         isConnected.value = true
         isConnecting.value = false
         if (config.autoRegister !== false) {
-          register()
+          register().catch((err) => {
+            error.value = {
+              name: 'RegistrationError',
+              code: -1,
+              message: 'Failed to register with SIP server',
+              cause: err,
+            }
+          })
         }
       })
 
