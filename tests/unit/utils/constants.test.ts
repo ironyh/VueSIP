@@ -44,7 +44,7 @@ import {
 describe('constants', () => {
   describe('VERSION', () => {
     it('should have a valid version string', () => {
-      expect(VERSION).toBe('1.0.0')
+      expect(VERSION).toBe('1.1.0')
     })
   })
 
