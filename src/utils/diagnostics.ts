@@ -27,7 +27,7 @@ export interface DiagnosticResult {
 export interface ConnectionDiagnostic {
   state: string
   wsUrl?: string
-  reconnectAttempts: number
+  reconnectAttempts?: number
   lastConnected?: string
   lastError?: string
 }
@@ -102,7 +102,7 @@ function collectConnectionDiagnostics(sipClient?: SipClient): ConnectionDiagnost
   if (!sipClient) {
     return {
       state: 'unavailable',
-      reconnectAttempts: 0,
+      reconnectAttempts: undefined,
     }
   }
 
@@ -111,7 +111,7 @@ function collectConnectionDiagnostics(sipClient?: SipClient): ConnectionDiagnost
 
   return {
     state: connectionState,
-    reconnectAttempts: 0,
+    reconnectAttempts: undefined,
     lastConnected: state?.lastRegistrationTime?.toISOString(),
   }
 }
@@ -257,7 +257,9 @@ export function formatDiagnostics(diag: DiagnosticResult): string {
     '',
     '📡 Connection:',
     `  State: ${diag.connection.state}`,
-    `  Reconnects: ${diag.connection.reconnectAttempts}`,
+    diag.connection.reconnectAttempts !== undefined
+      ? `  Reconnects: ${diag.connection.reconnectAttempts}`
+      : '',
     diag.connection.lastError ? `  Last Error: ${diag.connection.lastError}` : '',
     '',
     '📝 Registration:',

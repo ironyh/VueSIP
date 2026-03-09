@@ -37,7 +37,7 @@ describe('diagnostics', () => {
       const result = await collectDiagnostics(undefined)
 
       expect(result.connection.state).toBe('unavailable')
-      expect(result.connection.reconnectAttempts).toBe(0)
+      expect(result.connection.reconnectAttempts).toBeUndefined()
     })
 
     it('should include registration diagnostics', async () => {
@@ -158,7 +158,7 @@ describe('diagnostics', () => {
       const diag = {
         timestamp: '2024-01-01T00:00:00.000Z',
         version: '1.0.0',
-        connection: { state: 'connected', reconnectAttempts: 0 },
+        connection: { state: 'connected', reconnectAttempts: undefined },
         registration: { state: 'registered' },
         media: {
           microphone: { deviceId: 'm1', label: 'Mic', isActive: true },
@@ -181,7 +181,7 @@ describe('diagnostics', () => {
       const diag = {
         timestamp: '2024-01-01T00:00:00.000Z',
         version: '1.0.0',
-        connection: { state: 'disconnected', reconnectAttempts: 0 },
+        connection: { state: 'disconnected', reconnectAttempts: undefined },
         registration: { state: 'unregistered' },
         media: {
           microphone: { deviceId: '', label: 'none', isActive: false },
