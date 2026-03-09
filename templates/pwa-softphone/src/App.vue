@@ -684,7 +684,7 @@ onMounted(() => {
               :on-refresh46-elks-preferences="phone.refresh46ElksOutboundPreferences"
             />
             <!-- Diagnostics Panel - shown in settings for troubleshooting -->
-            <DiagnosticsPanel />
+            <DiagnosticsPanel :phone-diagnostics="phone.diagnostics" />
           </div>
         </div>
 

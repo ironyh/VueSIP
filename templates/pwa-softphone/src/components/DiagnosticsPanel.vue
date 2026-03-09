@@ -6,6 +6,7 @@ const props = defineProps<{
   sipClient?: any
   mediaManager?: any
   activeCalls?: any[]
+  phoneDiagnostics?: any // Simplified diagnostics from usePhone
 }>()
 
 const diagnostics = ref<DiagnosticResult | null>(null)
@@ -21,11 +22,35 @@ async function refreshDiagnostics() {
   error.value = null
 
   try {
-    diagnostics.value = await collectDiagnostics(
-      props.sipClient,
-      props.mediaManager,
-      props.activeCalls
-    )
+    if (props.phoneDiagnostics) {
+      // Use the pre-collected diagnostics from phone
+      const pd = props.phoneDiagnostics
+      diagnostics.value = {
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+        connection: pd.connection || { state: 'unknown', reconnectAttempts: 0 },
+        registration: pd.registration || { state: 'unknown' },
+        media: {
+          microphone: { deviceId: '', label: 'Not available', isActive: false },
+          speaker: { deviceId: '', label: 'Not available', isActive: false },
+          permissionGranted: false,
+          devicesAvailable: [],
+        },
+        calls: pd.calls || { activeCalls: 0, calls: [] },
+        summary: {
+          isHealthy: pd.connection?.state === 'connected',
+          issues: pd.connection?.state !== 'connected' ? ['Not connected'] : [],
+          recommendations:
+            pd.connection?.state !== 'connected' ? ['Check SIP server configuration'] : [],
+        },
+      }
+    } else {
+      diagnostics.value = await collectDiagnostics(
+        props.sipClient,
+        props.mediaManager,
+        props.activeCalls
+      )
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to collect diagnostics'
   } finally {

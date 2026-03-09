@@ -130,7 +130,9 @@ export function usePhone() {
   const outboundPrimary = computed(() => {
     if (connectionMode.value === 'multi') {
       const id = multiSipClient.outboundAccountId.value
-      const account = multiSipClient.accountList.value.find((a: MultiSipAccountListItem) => a.id === id)
+      const account = multiSipClient.accountList.value.find(
+        (a: MultiSipAccountListItem) => a.id === id
+      )
       const name = account?.name || id
       return name ? `Account: ${name}` : ''
     }
@@ -925,5 +927,44 @@ export function usePhone() {
     degradation,
     callWaiting,
     audioSwitch,
+
+    // Diagnostics
+    diagnostics: computed(() => {
+      const activeSessions: Array<{
+        id: string
+        direction: string
+        state: string
+        peerNumber: string
+        startTime?: string
+        duration?: number
+      }> = []
+
+      if (callSession.session.value) {
+        const s = callSession.session.value
+        activeSessions.push({
+          id: s.id ?? 'unknown',
+          direction: direction.value ?? 'unknown',
+          state: callState.value,
+          peerNumber: remoteUri.value ?? '',
+          startTime: (s as any).startTime,
+          duration: (s as any).duration ?? 0,
+        })
+      }
+
+      return {
+        connection: {
+          state: effectiveIsConnected.value ? 'connected' : 'disconnected',
+          reconnectAttempts: 0,
+          lastError: (sipError.value as Error)?.message,
+        },
+        registration: {
+          state: effectiveIsRegistered.value ? 'registered' : 'unregistered',
+        },
+        calls: {
+          activeCalls: activeSessions.length,
+          calls: activeSessions,
+        },
+      }
+    }),
   }
 }
