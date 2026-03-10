@@ -125,8 +125,8 @@ describe('useSipAccountManager integration behavior', () => {
     // Initialize - this triggers the watcher
     useSipAccountManager()
 
-    // Add enabled account
-    mockSettingsStore.enabledAccounts.value = [
+    // Add enabled account (use the underlying ref that the computed reads from)
+    mockEnabledAccounts.value = [
       {
         id: 'account-1',
         name: 'Account 1',
@@ -167,7 +167,7 @@ describe('useSipAccountManager integration behavior', () => {
     useSipAccountManager()
 
     // Set empty enabled accounts (all disabled)
-    mockSettingsStore.enabledAccounts.value = []
+    mockEnabledAccounts.value = []
 
     // Wait for watcher to execute
     await new Promise((resolve) => setTimeout(resolve, 50))
