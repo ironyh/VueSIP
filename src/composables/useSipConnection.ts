@@ -44,6 +44,55 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
 
   let ua: UA | null = null
 
+  // Store handler references for cleanup
+  type UaEventHandler = () => void
+  const handlers: {
+    connecting: UaEventHandler
+    connected: UaEventHandler
+    disconnected: UaEventHandler
+    registered: UaEventHandler
+    unregistered: UaEventHandler
+    registrationFailed: (e: { cause: Error; response?: { status_code: number } }) => void
+  } = {
+    connecting: () => {
+      isConnecting.value = true
+    },
+    connected: () => {
+      isConnected.value = true
+      isConnecting.value = false
+      if (config.autoRegister !== false) {
+        register().catch((err) => {
+          error.value = {
+            name: 'RegistrationError',
+            code: -1,
+            message: 'Failed to register with SIP server',
+            cause: err,
+          }
+        })
+      }
+    },
+    disconnected: () => {
+      isConnected.value = false
+      isRegistered.value = false
+      isConnecting.value = false
+    },
+    registered: () => {
+      isRegistered.value = true
+    },
+    unregistered: () => {
+      isRegistered.value = false
+    },
+    registrationFailed: (e) => {
+      isConnecting.value = false
+      error.value = {
+        name: 'RegistrationError',
+        code: e.response?.status_code || -1,
+        message: 'Failed to register with SIP server',
+        cause: e.cause,
+      }
+    },
+  }
+
   const connect = async (): Promise<void> => {
     try {
       isConnecting.value = true
@@ -66,49 +115,13 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
 
       ua = new JsSIP.UA(uaConfig)
 
-      // Set up event handlers
-      ua.on('connecting', () => {
-        isConnecting.value = true
-      })
-
-      ua.on('connected', () => {
-        isConnected.value = true
-        isConnecting.value = false
-        if (config.autoRegister !== false) {
-          register().catch((err) => {
-            error.value = {
-              name: 'RegistrationError',
-              code: -1,
-              message: 'Failed to register with SIP server',
-              cause: err,
-            }
-          })
-        }
-      })
-
-      ua.on('disconnected', () => {
-        isConnected.value = false
-        isRegistered.value = false
-        isConnecting.value = false
-      })
-
-      ua.on('registered', () => {
-        isRegistered.value = true
-      })
-
-      ua.on('unregistered', () => {
-        isRegistered.value = false
-      })
-
-      ua.on('registrationFailed', (e: { cause: Error; response?: { status_code: number } }) => {
-        isConnecting.value = false
-        error.value = {
-          name: 'RegistrationError',
-          code: e.response?.status_code || -1,
-          message: 'Failed to register with SIP server',
-          cause: e.cause,
-        }
-      })
+      // Set up event handlers (store references for cleanup)
+      ua.on('connecting', handlers.connecting)
+      ua.on('connected', handlers.connected)
+      ua.on('disconnected', handlers.disconnected)
+      ua.on('registered', handlers.registered)
+      ua.on('unregistered', handlers.unregistered)
+      ua.on('registrationFailed', handlers.registrationFailed)
 
       ua.start()
     } catch (err) {
@@ -126,6 +139,15 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
   const disconnect = async (): Promise<void> => {
     try {
       if (ua) {
+        // Remove event handlers to prevent memory leaks
+        ua.off('connecting', handlers.connecting)
+        ua.off('connected', handlers.connected)
+        ua.off('disconnected', handlers.disconnected)
+        ua.off('registered', handlers.registered)
+        ua.off('unregistered', handlers.unregistered)
+        ua.off('registrationFailed', handlers.registrationFailed)
+
+        // Unregister first if registered, then stop
         if (isRegistered.value) {
           ua.unregister()
         }
