@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { collectDiagnostics, formatDiagnostics, type DiagnosticResult } from '../diagnostics'
+import type { SipClient } from '../../core/SipClient'
 
 // Mock the constants module
 vi.mock('../constants', () => ({
@@ -48,7 +49,7 @@ describe('diagnostics', () => {
     })
 
     it('should handle sipClient with getState method', async () => {
-      const mockSipClient = {
+      const mockSipClient: Partial<SipClient> = {
         getState: vi.fn().mockReturnValue({
           connectionState: 'connected',
           registrationState: 'registered',
@@ -58,7 +59,7 @@ describe('diagnostics', () => {
         }),
       }
 
-      const result = await collectDiagnostics(mockSipClient as any)
+      const result = await collectDiagnostics(mockSipClient as SipClient)
 
       expect(result.connection.state).toBe('connected')
       expect(result.connection.lastConnected).toBe('2024-01-15T10:00:00.000Z')
