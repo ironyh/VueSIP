@@ -270,5 +270,27 @@ describe('e911', () => {
       expect(result).toContain('Floor 5')
       expect(result).toContain('Room 501')
     })
+
+    it('should format civic address with directional and suffix fields', () => {
+      const location = {
+        name: 'Test',
+        civic: {
+          houseNumber: '123',
+          houseNumberSuffix: 'A',
+          preDirectional: 'N',
+          streetName: 'Main',
+          streetSuffix: 'St',
+          postDirectional: 'W',
+          city: 'Springfield',
+          state: 'IL',
+          postalCode: '62701',
+          additionalInfo: 'Suite 100',
+        },
+      }
+      const result = formatE911Location(location)
+      expect(result).toContain('123A')
+      expect(result).toContain('N Main St W')
+      expect(result).toContain('Suite 100')
+    })
   })
 })
