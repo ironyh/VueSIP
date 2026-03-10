@@ -33,11 +33,16 @@ function toSipClientConfig(account: SipAccount): SipClientConfig {
 }
 
 export function useSipAccountManager() {
-  const settings = useSettingsStore()
+  const store = useSettingsStore()
   const multi = useMultiSipClient()
 
-  const enabledAccounts = computed(() => settings.enabledAccounts)
-  const activeAccountId = computed(() => settings.settings.activeAccountId)
+  // Use enabledAccounts directly - it's already a computed in the store
+  const enabledAccounts = store.enabledAccounts
+  // Cast settings ref for proper TypeScript typing (Pinia setup stores)
+  const settingsRef = store.settings as unknown as import('vue').Ref<
+    import('../stores/settingsStore').SettingsSchema
+  >
+  const activeAccountId = computed(() => settingsRef.value.activeAccountId)
 
   // Mirror active account selection to outbound account.
   watch(
@@ -82,24 +87,24 @@ export function useSipAccountManager() {
 
       // Ensure outbound selection
       if (
-        settings.settings.activeAccountId &&
-        multi.accounts.value.has(settings.settings.activeAccountId)
+        settingsRef.value.activeAccountId &&
+        multi.accounts.value.has(settingsRef.value.activeAccountId)
       ) {
-        multi.setOutboundAccount(settings.settings.activeAccountId)
+        multi.setOutboundAccount(settingsRef.value.activeAccountId)
       }
     },
     { immediate: true, deep: true }
   )
 
   function setActiveAccount(id: string | null): void {
-    settings.setActiveAccount(id)
+    store.setActiveAccount(id)
     if (id && multi.accounts.value.has(id)) {
       multi.setOutboundAccount(id)
     }
   }
 
   return {
-    settings,
+    settings: store,
     enabledAccounts,
     activeAccountId,
     setActiveAccount,
