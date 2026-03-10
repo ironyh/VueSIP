@@ -13,6 +13,12 @@ import type { SipClientConfig } from '../types/config.types'
 import { useSettingsStore, type SipAccount } from '../stores/settingsStore'
 import { useMultiSipClient, type MultiSipAccountConfig } from './useMultiSipClient'
 
+/**
+ * Convert a SipAccount from settings store to SipClientConfig for useMultiSipClient.
+ *
+ * @param account - The SIP account configuration from settings store
+ * @returns SipClientConfig compatible with useMultiSipClient
+ */
 function toSipClientConfig(account: SipAccount): SipClientConfig {
   return {
     uri: account.serverUri,
@@ -96,10 +102,26 @@ export function useSipAccountManager() {
     { immediate: true, deep: true }
   )
 
+  /**
+   * Set the active SIP account.
+   *
+   * Updates both the settings store and the multi-SIP client to ensure
+   * the selected account is used for outbound calls.
+   *
+   * @param id - Account ID to set as active, or null to clear
+   */
   function setActiveAccount(id: string | null): void {
+    // Update store first - this is the source of truth
     store.setActiveAccount(id)
-    if (id && multi.accounts.value.has(id)) {
-      multi.setOutboundAccount(id)
+    // Then sync to multi-sip client if account exists there
+    if (id) {
+      try {
+        if (multi.accounts.value.has(id)) {
+          multi.setOutboundAccount(id)
+        }
+      } catch (err) {
+        console.warn(`useSipAccountManager: Failed to set outbound account ${id}:`, err)
+      }
     }
   }
 
