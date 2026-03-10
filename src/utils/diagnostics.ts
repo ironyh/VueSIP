@@ -107,10 +107,12 @@ function collectConnectionDiagnostics(sipClient?: SipClient): ConnectionDiagnost
   }
 
   const state = sipClient.getState()
+  const config = sipClient.getConfig()
   const connectionState = state?.connectionState || 'unknown'
 
   return {
     state: connectionState,
+    wsUrl: config?.uri,
     reconnectAttempts: undefined,
     lastConnected: state?.lastRegistrationTime?.toISOString(),
   }

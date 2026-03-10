@@ -25,12 +25,16 @@ describe('diagnostics', () => {
           connectionState: 'connected',
           lastRegistrationTime: new Date('2024-01-01T00:00:00Z'),
         }),
+        getConfig: vi.fn().mockReturnValue({
+          uri: 'wss://sip.example.com:7443',
+        }),
       }
 
       const result = await collectDiagnostics(mockSipClient as any)
 
       expect(result.connection.state).toBe('connected')
       expect(result.connection.lastConnected).toBe('2024-01-01T00:00:00.000Z')
+      expect(result.connection.wsUrl).toBe('wss://sip.example.com:7443')
     })
 
     it('should return unavailable when sipClient is undefined', async () => {
@@ -47,6 +51,9 @@ describe('diagnostics', () => {
           registeredUri: 'sip:1000@example.com',
           registrationExpiry: 3600,
           lastRegistrationTime: new Date('2024-01-01T00:00:00Z'),
+        }),
+        getConfig: vi.fn().mockReturnValue({
+          uri: 'wss://sip.example.com:7443',
         }),
       }
 
@@ -118,6 +125,9 @@ describe('diagnostics', () => {
           registrationState: 'registered',
           lastRegistrationTime: new Date(),
         }),
+        getConfig: vi.fn().mockReturnValue({
+          uri: 'wss://sip.example.com:7443',
+        }),
       }
 
       const mockDevices: MediaDeviceInfo[] = [
@@ -140,6 +150,9 @@ describe('diagnostics', () => {
         getState: vi.fn().mockReturnValue({
           connectionState: 'disconnected',
           registrationState: 'unregistered',
+        }),
+        getConfig: vi.fn().mockReturnValue({
+          uri: 'wss://sip.example.com:7443',
         }),
       }
 
