@@ -9,12 +9,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, computed } from 'vue'
 import type { SipAccount } from '@/stores/settingsStore'
 
-// Mock the settings store
+// Mock the settings store - enabledAccounts is a computed in the real store
+const mockEnabledAccounts = ref<SipAccount[]>([])
 const mockSettingsStore = {
   settings: ref({
     activeAccountId: 'account-1',
   }),
-  enabledAccounts: ref<SipAccount[]>([]),
+  enabledAccounts: computed<SipAccount[]>(() => mockEnabledAccounts.value),
   setActiveAccount: vi.fn(),
 }
 
@@ -38,7 +39,7 @@ describe('useSipAccountManager types', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockMultiSipClient.accounts.value = new Map()
-    mockSettingsStore.enabledAccounts.value = []
+    mockEnabledAccounts.value = []
     mockSettingsStore.settings.value.activeAccountId = 'account-1'
   })
 
