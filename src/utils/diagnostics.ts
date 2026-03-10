@@ -106,15 +106,24 @@ function collectConnectionDiagnostics(sipClient?: SipClient): ConnectionDiagnost
     }
   }
 
-  const state = sipClient.getState()
-  const config = sipClient.getConfig()
-  const connectionState = state?.connectionState || 'unknown'
+  try {
+    const state = sipClient.getState()
+    const config = sipClient.getConfig?.()
+    const connectionState = state?.connectionState || 'unknown'
 
-  return {
-    state: connectionState,
-    wsUrl: config?.uri,
-    reconnectAttempts: undefined,
-    lastConnected: state?.lastRegistrationTime?.toISOString(),
+    return {
+      state: connectionState,
+      wsUrl: config?.uri,
+      reconnectAttempts: undefined,
+      lastConnected: state?.lastRegistrationTime?.toISOString(),
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return {
+      state: 'error',
+      reconnectAttempts: undefined,
+      lastError: message,
+    }
   }
 }
 
@@ -123,14 +132,22 @@ function collectRegistrationDiagnostics(sipClient?: SipClient): RegistrationDiag
     return { state: 'unavailable' }
   }
 
-  const state = sipClient.getState()
-  const registrationState = state?.registrationState || 'unknown'
+  try {
+    const state = sipClient.getState()
+    const registrationState = state?.registrationState || 'unknown'
 
-  return {
-    state: registrationState,
-    registeredUri: state?.registeredUri,
-    expires: state?.registrationExpiry,
-    registerExpiresAt: state?.lastRegistrationTime?.toISOString(),
+    return {
+      state: registrationState,
+      registeredUri: state?.registeredUri,
+      expires: state?.registrationExpiry,
+      registerExpiresAt: state?.lastRegistrationTime?.toISOString(),
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return {
+      state: 'error',
+      registeredUri: message,
+    }
   }
 }
 
