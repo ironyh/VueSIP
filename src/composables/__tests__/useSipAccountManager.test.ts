@@ -10,7 +10,14 @@ import type { SipAccount } from '../../stores/settingsStore'
 import type { SettingsSchema } from '../../stores/settingsStore'
 
 // Mock useMultiSipClient
-const mockAccounts = new Map<string, any>()
+interface MockAccountState {
+  id: string
+  name: string
+  sip: unknown
+  outboundCapable: boolean
+  status: string
+}
+const mockAccounts = new Map<string, MockAccountState>()
 const mockAddAccount = vi.fn().mockResolvedValue(undefined)
 const mockRemoveAccount = vi.fn().mockResolvedValue(undefined)
 const mockSetOutboundAccount = vi.fn()
