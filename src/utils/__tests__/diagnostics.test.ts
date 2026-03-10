@@ -6,6 +6,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { collectDiagnostics, formatDiagnostics, type DiagnosticResult } from '../diagnostics'
 import type { SipClient } from '../../core/SipClient'
 
+// Minimal mock type for testing collectDiagnostics
+type MockSipClient = Pick<SipClient, 'getState' | 'getConfig'>
+type MockCallSession = { getState?: () => unknown }
+
 // Mock the constants module
 vi.mock('../constants', () => ({
   VERSION: '1.0.0-test',
@@ -69,44 +73,44 @@ describe('diagnostics', () => {
     })
 
     it('should handle sipClient with getConfig method', async () => {
-      const mockSipClient = {
+      const mockSipClient: MockSipClient = {
         getState: vi.fn().mockReturnValue({ connectionState: 'connected' }),
         getConfig: vi.fn().mockReturnValue({ uri: 'wss://sip.example.com' }),
       }
 
-      const result = await collectDiagnostics(mockSipClient as any)
+      const result = await collectDiagnostics(mockSipClient)
 
       expect(result.connection.wsUrl).toBe('wss://sip.example.com')
     })
 
     it('should handle sipClient throwing from getState', async () => {
-      const mockSipClient = {
+      const mockSipClient: MockSipClient = {
         getState: vi.fn().mockImplementation(() => {
           throw new Error('SIP client error')
         }),
       }
 
-      const result = await collectDiagnostics(mockSipClient as any)
+      const result = await collectDiagnostics(mockSipClient)
 
       expect(result.connection.state).toBe('error')
       expect(result.connection.lastError).toBe('SIP client error')
     })
 
     it('should handle sipClient throwing from getConfig', async () => {
-      const mockSipClient = {
+      const mockSipClient: MockSipClient = {
         getState: vi.fn().mockReturnValue({}),
         getConfig: vi.fn().mockImplementation(() => {
           throw new Error('Config error')
         }),
       }
 
-      const result = await collectDiagnostics(mockSipClient as any)
+      const result = await collectDiagnostics(mockSipClient)
 
       expect(result.connection.wsUrl).toBeUndefined()
     })
 
     it('should collect call diagnostics from CallSession array', async () => {
-      const mockCalls = [
+      const mockCalls: MockCallSession[] = [
         {
           id: 'call-1',
           direction: 'outbound',
@@ -123,7 +127,7 @@ describe('diagnostics', () => {
         },
       ]
 
-      const result = await collectDiagnostics(undefined, undefined, mockCalls as any)
+      const result = await collectDiagnostics(undefined, undefined, mockCalls)
 
       expect(result.calls.activeCalls).toBe(2)
       expect(result.calls.calls).toHaveLength(2)
@@ -144,13 +148,13 @@ describe('diagnostics', () => {
 
   describe('summary generation', () => {
     it('should mark as unhealthy when connection not connected', async () => {
-      const mockSipClient = {
+      const mockSipClient: MockSipClient = {
         getState: vi.fn().mockReturnValue({
           connectionState: 'disconnected',
         }),
       }
 
-      const result = await collectDiagnostics(mockSipClient as any)
+      const result = await collectDiagnostics(mockSipClient)
 
       expect(result.summary.isHealthy).toBe(false)
       expect(result.summary.issues).toContain('SIP connection: disconnected')
@@ -160,28 +164,28 @@ describe('diagnostics', () => {
     })
 
     it('should mark as unhealthy when registration not registered', async () => {
-      const mockSipClient = {
+      const mockSipClient: MockSipClient = {
         getState: vi.fn().mockReturnValue({
           connectionState: 'connected',
           registrationState: 'failed',
         }),
       }
 
-      const result = await collectDiagnostics(mockSipClient as any)
+      const result = await collectDiagnostics(mockSipClient)
 
       expect(result.summary.isHealthy).toBe(false)
       expect(result.summary.issues).toContain('SIP registration: failed')
     })
 
     it('should add recommendation to re-register when connected but not registered', async () => {
-      const mockSipClient = {
+      const mockSipClient: MockSipClient = {
         getState: vi.fn().mockReturnValue({
           connectionState: 'connected',
           registrationState: 'unregistered',
         }),
       }
 
-      const result = await collectDiagnostics(mockSipClient as any)
+      const result = await collectDiagnostics(mockSipClient)
 
       expect(result.summary.recommendations).toContain('Re-register with SIP server')
     })
@@ -228,7 +232,7 @@ describe('diagnostics', () => {
     })
 
     it('should warn on high number of active calls', async () => {
-      const mockCalls = Array.from({ length: 7 }, (_, i) => ({
+      const mockCalls: MockCallSession[] = Array.from({ length: 7 }, (_, i) => ({
         id: `call-${i}`,
         direction: 'outbound',
         state: 'active',
@@ -236,7 +240,7 @@ describe('diagnostics', () => {
         timing: { startTime: new Date(), duration: 0 },
       }))
 
-      const result = await collectDiagnostics(undefined, undefined, mockCalls as any)
+      const result = await collectDiagnostics(undefined, undefined, mockCalls)
 
       expect(result.summary.issues).toContain('High number of active calls: 7')
       expect(result.summary.recommendations).toContain('Consider cleaning up stale call sessions')
