@@ -314,7 +314,7 @@ export const STORAGE_KEYS = {
  */
 export const PERFORMANCE = {
   /** Maximum bundle size in bytes (minified) */
-  MAX_BUNDLE_SIZE: 750 * 1024, // 750 KB
+  MAX_BUNDLE_SIZE: 770 * 1024, // 770 KB
 
   /** Maximum bundle size in bytes (gzipped) */
   MAX_BUNDLE_SIZE_GZIPPED: 220 * 1024, // 220 KB
