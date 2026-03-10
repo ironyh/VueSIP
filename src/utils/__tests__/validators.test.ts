@@ -47,6 +47,7 @@ describe('validators', () => {
     })
 
     it('should reject non-string input', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = validateSipUri(null as any)
       expect(result.valid).toBe(false)
       expect(result.error).toContain('must be a non-empty string')
@@ -109,6 +110,7 @@ describe('validators', () => {
     })
 
     it('should reject non-string input', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = validatePhoneNumber(undefined as any)
       expect(result.valid).toBe(false)
     })
@@ -305,6 +307,7 @@ describe('validators', () => {
     })
 
     it('should reject non-object config', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = validateSipConfig('not an object' as any)
       expect(result.valid).toBe(false)
     })
@@ -370,6 +373,7 @@ describe('validators', () => {
 
     it('should reject non-boolean audio', () => {
       const config: Partial<MediaConfiguration> = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         audio: 'true' as any,
       }
       const result = validateMediaConfig(config)
@@ -378,6 +382,7 @@ describe('validators', () => {
 
     it('should reject non-boolean echoCancellation', () => {
       const config: Partial<MediaConfiguration> = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         echoCancellation: 'yes' as any,
       }
       const result = validateMediaConfig(config)
@@ -385,6 +390,7 @@ describe('validators', () => {
     })
 
     it('should reject non-object config', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = validateMediaConfig(null as any)
       expect(result.valid).toBe(false)
     })
