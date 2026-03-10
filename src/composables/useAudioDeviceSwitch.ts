@@ -81,7 +81,7 @@ export function useAudioDeviceSwitch(
       }
       return null
     }
-    if (!activeInputDeviceId.value) return audioDevices.currentMicrophone.value
+    if (!activeInputDeviceId.value) return audioDevices.currentMicrophone.value ?? null
     return audioDevices.getMicrophoneById(activeInputDeviceId.value) ?? null
   })
 
@@ -93,7 +93,7 @@ export function useAudioDeviceSwitch(
       }
       return null
     }
-    if (!activeOutputDeviceId.value) return audioDevices.currentSpeaker.value
+    if (!activeOutputDeviceId.value) return audioDevices.currentSpeaker.value ?? null
     return audioDevices.getSpeakerById(activeOutputDeviceId.value) ?? null
   })
 
@@ -138,7 +138,10 @@ export function useAudioDeviceSwitch(
       throw new Error('No active call session')
     }
 
-    if (typeof audioDevices.isDeviceAvailable === 'function' && !audioDevices.isDeviceAvailable(deviceId)) {
+    if (
+      typeof audioDevices.isDeviceAvailable === 'function' &&
+      !audioDevices.isDeviceAvailable(deviceId)
+    ) {
       throw new Error(`Microphone device not found: ${deviceId}`)
     }
 
@@ -197,7 +200,10 @@ export function useAudioDeviceSwitch(
       throw new Error('A device switch operation is already in progress')
     }
 
-    if (typeof audioDevices.isDeviceAvailable === 'function' && !audioDevices.isDeviceAvailable(deviceId)) {
+    if (
+      typeof audioDevices.isDeviceAvailable === 'function' &&
+      !audioDevices.isDeviceAvailable(deviceId)
+    ) {
       throw new Error(`Speaker device not found: ${deviceId}`)
     }
 
