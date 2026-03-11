@@ -196,4 +196,22 @@ describe('encryption utilities', () => {
       expect(result).toHaveProperty('data')
     })
   })
+
+  describe('hashPassword', () => {
+    it('should hash a password and return hex string', async () => {
+      const { hashPassword } = await import('../encryption')
+
+      const hash = await hashPassword('testpassword')
+      expect(typeof hash).toBe('string')
+      expect(hash.length).toBe(64) // SHA-256 produces 32 bytes = 64 hex chars
+    })
+
+    it('should throw when crypto not available', async () => {
+      vi.stubGlobal('crypto', undefined)
+      vi.resetModules()
+      const { hashPassword } = await import('../encryption')
+
+      await expect(hashPassword('password')).rejects.toThrow('Web Crypto API is not available')
+    })
+  })
 })
