@@ -63,7 +63,7 @@ const NAMESPACE_COLORS = [
 /**
  * Global logger configuration
  */
-interface LoggerConfig {
+export interface LoggerConfig {
   /** Minimum log level to output */
   level: LogLevel
   /** Whether logging is enabled */

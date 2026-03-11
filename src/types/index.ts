@@ -108,3 +108,9 @@ export type {
   CallDiagnostic,
   DiagnosticSummary,
 } from '../utils/diagnostics'
+
+// Logger types (from utils)
+export type { LogLevel, LogHandler, LoggerConfig } from '../utils/logger'
+
+// Error context types (from utils)
+export type { ErrorSeverity, ErrorContext, ErrorLogEntry } from '../utils/errorContext'
