@@ -127,7 +127,7 @@
   },
   "dependencies": {
     "@jridgewell/source-map": "^0.3.11",
-    "jssip": "^3.10.0",
+    "jssip": "^3.13.6",
     "pinia": "2.3.1",
     "webrtc-adapter": "^9.0.0"
   },

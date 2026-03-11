@@ -30,8 +30,8 @@ importers:
         specifier: ^0.3.11
         version: 0.3.11
       jssip:
-        specifier: ^3.10.0
-        version: 3.13.5
+        specifier: ^3.13.6
+        version: 3.13.6
       pinia:
         specifier: 2.3.1
         version: 2.3.1(typescript@5.4.5)(vue@3.5.29(typescript@5.4.5))
@@ -3468,8 +3468,8 @@ packages:
     resolution: {integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==}
     engines: {node: '>=0.10.0'}
 
-  jssip@3.13.5:
-    resolution: {integrity: sha512-nBQvpHSq22EqDeAQTUJ62A3CiOTUo16TfxUUVRHATsZWizfmf9y/U40WWJQMk6iZZaBbwbPvVYigat2ac+AKog==}
+  jssip@3.13.6:
+    resolution: {integrity: sha512-Bf1ndrSuqpO87/AG56WACR7kKcCvKOzaIQROu7JUMh0qFaGOV4NuR+wsnaXa7f3/d6xhwVczczFyt1ywJmTjPg==}
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
@@ -8267,7 +8267,7 @@ snapshots:
 
   jsonpointer@5.0.1: {}
 
-  jssip@3.13.5:
+  jssip@3.13.6:
     dependencies:
       debug: 4.4.3
       events: 3.3.0
