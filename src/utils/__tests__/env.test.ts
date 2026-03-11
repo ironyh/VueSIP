@@ -9,17 +9,19 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 describe('env utilities', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   describe('isDebugMode', () => {
     it('should return false when window is undefined (SSR)', async () => {
       // Save and remove window
       const originalWindow = globalThis.window
-      delete globalThis.window
+      delete (globalThis as any).window
 
       const { isDebugMode } = await import('../env')
       const result = isDebugMode()
@@ -30,47 +32,57 @@ describe('env utilities', () => {
       expect(result).toBe(false)
     })
 
-    it('should check VITE_DEBUG env variable', async () => {
-      // This test verifies the logic path - actual value depends on test environment
-      const { isDebugMode } = await import('../env')
+    it('should return true when VITE_DEBUG is "true" string', async () => {
+      // Stub import.meta before importing
+      vi.stubGlobal('import.meta', {
+        env: { VITE_DEBUG: 'true' },
+      })
 
-      // Just call it - the function should not throw
-      // The actual return depends on the environment setup
-      expect(typeof isDebugMode()).toBe('boolean')
-    })
-
-    it('should handle window __PLAYWRIGHT_TEST__ flag', async () => {
-      // Set the flag
-      const originalWindow = globalThis.window
-      const mockWindow = { __PLAYWRIGHT_TEST__: true }
-      globalThis.window = mockWindow as Window & typeof globalThis
-
+      vi.resetModules()
       const { isDebugMode } = await import('../env')
       const result = isDebugMode()
 
-      // Restore
-      globalThis.window = originalWindow
-
-      // This should return true because of __PLAYWRIGHT_TEST__
       expect(result).toBe(true)
     })
 
-    it('should return false when no debug flags are present', async () => {
-      // Ensure no debug flags
-      const originalWindow = globalThis.window
-      const mockWindow = {}
-      globalThis.window = mockWindow as Window & typeof globalThis
+    it('should return true when VITE_DEBUG is boolean true', async () => {
+      vi.stubGlobal('import.meta', {
+        env: { VITE_DEBUG: true },
+      })
 
-      // Need to re-import to pick up the window state
       vi.resetModules()
-
       const { isDebugMode } = await import('../env')
       const result = isDebugMode()
 
-      globalThis.window = originalWindow
+      expect(result).toBe(true)
+    })
 
-      // Should be false when no flags are set (depends on actual env)
-      expect(typeof result).toBe('boolean')
+    it('should return true when MODE is "test"', async () => {
+      vi.stubGlobal('import.meta', {
+        env: { MODE: 'test' },
+      })
+
+      vi.resetModules()
+      const { isDebugMode } = await import('../env')
+      const result = isDebugMode()
+
+      expect(result).toBe(true)
+    })
+
+    it('should return true when window.__PLAYWRIGHT_TEST__ is true', async () => {
+      // Set window with __PLAYWRIGHT_TEST__ flag
+      globalThis.window = { __PLAYWRIGHT_TEST__: true } as any
+
+      // Set import.meta to have no debug flags (or at least not 'true')
+      vi.stubGlobal('import.meta', {
+        env: { VITE_DEBUG: false },
+      })
+
+      vi.resetModules()
+      const { isDebugMode } = await import('../env')
+      const result = isDebugMode()
+
+      expect(result).toBe(true)
     })
   })
 })
