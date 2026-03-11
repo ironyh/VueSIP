@@ -21,7 +21,7 @@ describe('env utilities', () => {
     it('should return false when window is undefined (SSR)', async () => {
       // Save and remove window
       const originalWindow = globalThis.window
-      delete (globalThis as any).window
+      delete (globalThis as Record<string, unknown>).window
 
       const { isDebugMode } = await import('../env')
       const result = isDebugMode()
@@ -71,7 +71,7 @@ describe('env utilities', () => {
 
     it('should return true when window.__PLAYWRIGHT_TEST__ is true', async () => {
       // Set window with __PLAYWRIGHT_TEST__ flag
-      globalThis.window = { __PLAYWRIGHT_TEST__: true } as any
+      globalThis.window = { __PLAYWRIGHT_TEST__: true } as Record<string, unknown>
 
       // Set import.meta to have no debug flags (or at least not 'true')
       vi.stubGlobal('import.meta', {
