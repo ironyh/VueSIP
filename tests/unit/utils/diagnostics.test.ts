@@ -164,6 +164,99 @@ describe('diagnostics', () => {
       expect(result.summary.isHealthy).toBe(false)
       expect(result.summary.issues.length).toBeGreaterThan(0)
     })
+
+    it('should handle connection errors gracefully', async () => {
+      const mockSipClient = {
+        getState: vi.fn().mockImplementation(() => {
+          throw new Error('Connection failed')
+        }),
+      }
+
+      const result = await collectDiagnostics(mockSipClient as any)
+
+      expect(result.connection.state).toBe('error')
+      expect(result.connection.lastError).toBe('Connection failed')
+    })
+
+    it('should handle registration errors gracefully', async () => {
+      const mockSipClient = {
+        getState: vi.fn().mockImplementation(() => {
+          throw new Error('Registration failed')
+        }),
+      }
+
+      const result = await collectDiagnostics(mockSipClient as any)
+
+      expect(result.registration.state).toBe('error')
+      expect(result.registration.registeredUri).toBe('Registration failed')
+    })
+
+    it('should report high number of active calls as issue', async () => {
+      const mockCalls = Array.from({ length: 7 }, (_, i) => ({
+        id: `call-${i}`,
+        direction: 'outbound',
+        state: 'confirmed',
+        remoteUri: `sip:200${i}@example.com`,
+        timing: { startTime: new Date(), duration: 60 },
+      })) as any[]
+
+      const mockDevices: MediaDeviceInfo[] = [
+        { deviceId: 'mic-1', kind: 'audioinput', label: 'Mic', groupId: 'g1' },
+      ]
+
+      vi.spyOn(navigator.mediaDevices, 'enumerateDevices').mockResolvedValue(mockDevices)
+      vi.spyOn(navigator.mediaDevices, 'getUserMedia').mockResolvedValue({
+        getTracks: () => [{ stop: vi.fn() }],
+      } as any)
+
+      const result = await collectDiagnostics(undefined, undefined, mockCalls)
+
+      expect(result.summary.isHealthy).toBe(false)
+      expect(result.summary.issues.some((i) => i.includes('High number of active calls'))).toBe(
+        true
+      )
+    })
+
+    it('should report microphone permission denied specifically', async () => {
+      vi.spyOn(navigator.mediaDevices, 'enumerateDevices').mockResolvedValue([])
+      const error = new Error('Permission denied')
+      error.name = 'NotAllowedError'
+      vi.spyOn(navigator.mediaDevices, 'getUserMedia').mockRejectedValue(error)
+
+      const result = await collectDiagnostics(undefined, undefined)
+
+      expect(result.media.permissionGranted).toBe(false)
+      expect(result.summary.issues.some((i) => i.includes('permission'))).toBe(true)
+    })
+
+    it('should handle unlabeled devices', async () => {
+      const mockDevices: MediaDeviceInfo[] = [
+        { deviceId: 'mic-1', kind: 'audioinput', label: '', groupId: 'g1' },
+      ]
+
+      vi.spyOn(navigator.mediaDevices, 'enumerateDevices').mockResolvedValue(mockDevices)
+      vi.spyOn(navigator.mediaDevices, 'getUserMedia').mockResolvedValue({
+        getTracks: () => [{ stop: vi.fn() }],
+      } as any)
+
+      const result = await collectDiagnostics(undefined, undefined)
+
+      expect(result.media.microphone.label).toBe('unlabeled')
+    })
+
+    it('should handle empty calls array', async () => {
+      const result = await collectDiagnostics(undefined, undefined, [])
+
+      expect(result.calls.activeCalls).toBe(0)
+      expect(result.calls.calls).toHaveLength(0)
+    })
+
+    it('should handle undefined calls', async () => {
+      const result = await collectDiagnostics(undefined, undefined, undefined)
+
+      expect(result.calls.activeCalls).toBe(0)
+      expect(result.calls.calls).toHaveLength(0)
+    })
   })
 
   describe('formatDiagnostics', () => {
