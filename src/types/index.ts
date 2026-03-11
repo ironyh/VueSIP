@@ -97,3 +97,14 @@ export type {
   Elks46CallLegReadonly,
   FetchCallsOptions,
 } from '../providers/services/elks46ApiService'
+
+// Diagnostic types (from utils)
+export type {
+  DiagnosticResult,
+  ConnectionDiagnostic,
+  RegistrationDiagnostic,
+  MediaDiagnostic,
+  DeviceDiagnostic,
+  CallDiagnostic,
+  DiagnosticSummary,
+} from '../utils/diagnostics'
