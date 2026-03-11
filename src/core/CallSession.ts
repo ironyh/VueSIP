@@ -122,6 +122,10 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
   // Termination
   private _terminationCause?: TerminationCause
+  // Last error details for diagnostics
+  private _lastResponseCode?: number
+  private _lastReasonPhrase?: string
+  private _lastErrorMessage?: string
 
   // Flags
   private isAnswering = false
@@ -227,6 +231,18 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
   get terminationCause(): TerminationCause | undefined {
     return this._terminationCause
+  }
+
+  get lastResponseCode(): number | undefined {
+    return this._lastResponseCode
+  }
+
+  get lastReasonPhrase(): string | undefined {
+    return this._lastReasonPhrase
+  }
+
+  get lastErrorMessage(): string | undefined {
+    return this._lastErrorMessage
   }
 
   get data(): Record<string, any> {
@@ -959,6 +975,11 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
       // Determine termination cause
       this._terminationCause = this.mapTerminationCause(e.cause)
+
+      // Store last error details for diagnostics
+      this._lastResponseCode = e.response?.status_code
+      this._lastReasonPhrase = e.response?.reason_phrase
+      this._lastErrorMessage = e.message
 
       this.updateState('failed' as CallState)
 
