@@ -6,7 +6,10 @@ import {
   getAvailableCauses,
 } from '../callDiagnostics'
 import type { CallSession } from '@/types/call.types'
-import { CallState, CallDirection } from '@/types/call.types'
+import { CallState, CallDirection, TerminationCause } from '@/types/call.types'
+
+/** Extended termination cause type for testing custom/unknown causes */
+type AnyTerminationCause = TerminationCause | (string & {})
 
 describe('callDiagnostics', () => {
   const createMockCall = (overrides: Partial<CallSession> = {}): CallSession => ({
@@ -30,7 +33,7 @@ describe('callDiagnostics', () => {
   describe('getCallDiagnostics', () => {
     it('should return diagnostics for known cause', () => {
       const call = createMockCall({
-        terminationCause: 'Busy' as any,
+        terminationCause: 'Busy' as AnyTerminationCause,
         lastResponseCode: 486,
         lastReasonPhrase: 'Busy Everywhere',
       })
@@ -46,7 +49,7 @@ describe('callDiagnostics', () => {
 
     it('should return diagnostics for unknown cause', () => {
       const call = createMockCall({
-        terminationCause: 'UnknownCause' as any,
+        terminationCause: 'UnknownCause' as AnyTerminationCause,
       })
 
       const result = getCallDiagnostics(call)
@@ -57,7 +60,7 @@ describe('callDiagnostics', () => {
 
     it('should include lastErrorMessage when present', () => {
       const call = createMockCall({
-        terminationCause: 'Transport Error' as any,
+        terminationCause: 'Transport Error' as AnyTerminationCause,
         lastErrorMessage: 'Connection reset by peer',
       })
 
@@ -68,7 +71,7 @@ describe('callDiagnostics', () => {
 
     it('should handle media failure cause', () => {
       const call = createMockCall({
-        terminationCause: 'getusermediafailed' as any,
+        terminationCause: 'getusermediafailed' as AnyTerminationCause,
       })
 
       const result = getCallDiagnostics(call)

@@ -9,6 +9,16 @@
 
 import type { CallSession } from '@/types/call.types'
 
+/** Default fallback for unknown causes */
+const UNKNOWN_CAUSE = {
+  explanation: 'Unknown failure reason',
+  suggestions: [
+    'Check server logs for more details',
+    'Try the call again',
+    'Contact support if persistent',
+  ],
+} as const
+
 /**
  * Diagnostic information for a failed call
  */
@@ -122,15 +132,8 @@ const CAUSE_MAPPINGS: Record<string, { explanation: string; suggestions: string[
       'Try refreshing the browser',
     ],
   },
-  // Default
-  unknown: {
-    explanation: 'Unknown failure reason',
-    suggestions: [
-      'Check server logs for more details',
-      'Try the call again',
-      'Contact support if persistent',
-    ],
-  },
+  // Default fallback (also available as UNKNOWN_CAUSE constant)
+  unknown: UNKNOWN_CAUSE,
 }
 
 /**
@@ -138,7 +141,7 @@ const CAUSE_MAPPINGS: Record<string, { explanation: string; suggestions: string[
  */
 export function getCallDiagnostics(call: CallSession): CallDiagnostics {
   const cause = call.terminationCause || 'unknown'
-  const mapping = CAUSE_MAPPINGS[cause] ?? CAUSE_MAPPINGS['unknown']
+  const mapping = CAUSE_MAPPINGS[cause] ?? UNKNOWN_CAUSE
 
   return {
     callId: call.id,
@@ -147,7 +150,7 @@ export function getCallDiagnostics(call: CallSession): CallDiagnostics {
     responseCode: call.lastResponseCode,
     reasonPhrase: call.lastReasonPhrase,
     message: call.lastErrorMessage,
-    suggestions: mapping?.suggestions ?? CAUSE_MAPPINGS['unknown']!.suggestions,
+    suggestions: mapping?.suggestions ?? UNKNOWN_CAUSE.suggestions,
   }
 }
 
@@ -156,7 +159,7 @@ export function getCallDiagnostics(call: CallSession): CallDiagnostics {
  */
 export function getCauseExplanation(cause: string): string {
   const mapping = CAUSE_MAPPINGS[cause]
-  return mapping?.explanation ?? CAUSE_MAPPINGS['unknown']!.explanation
+  return mapping?.explanation ?? UNKNOWN_CAUSE.explanation
 }
 
 /**
@@ -164,7 +167,7 @@ export function getCauseExplanation(cause: string): string {
  */
 export function getCauseSuggestions(cause: string): string[] {
   const mapping = CAUSE_MAPPINGS[cause]
-  return mapping?.suggestions ?? CAUSE_MAPPINGS['unknown']!.suggestions
+  return mapping?.suggestions ?? UNKNOWN_CAUSE.suggestions
 }
 
 /**
