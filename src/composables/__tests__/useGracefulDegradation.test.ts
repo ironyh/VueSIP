@@ -4,6 +4,10 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useGracefulDegradation, type DegradationLevel } from '../useGracefulDegradation'
+import type { UseConnectionHealthBarReturn } from '../useConnectionHealthBar'
+import type { UseCallSessionReturn } from '../useCallSession'
+import type { UseNotificationsReturn } from '../useNotifications'
+import type { HealthLevel } from '../useConnectionHealthBar'
 
 // Mock useSipMetrics
 vi.mock('../useSipMetrics', () => ({
@@ -226,7 +230,7 @@ describe('useGracefulDegradation', () => {
       }
 
       const { applyDegradation } = useGracefulDegradation({
-        healthBar: healthBarRef as any,
+        healthBar: healthBarRef as unknown as UseConnectionHealthBarReturn,
       })
 
       applyDegradation(1 as DegradationLevel)
@@ -245,15 +249,15 @@ describe('useGracefulDegradation', () => {
         getSenders: () => [],
       }
 
-      const session = {
-        session: { value: { connection: mockConnection } as any },
+      const session: UseCallSessionReturn = {
+        session: { value: { connection: mockConnection } } as never,
         hasLocalVideo: { value: true },
         disableVideo: vi.fn(),
         enableVideo: vi.fn(),
-      }
+      } as unknown as UseCallSessionReturn
 
       const { applyDegradation, activeAdaptations } = useGracefulDegradation({
-        callSession: session as any,
+        callSession: session,
       })
 
       applyDegradation(1 as DegradationLevel)
@@ -265,7 +269,7 @@ describe('useGracefulDegradation', () => {
   describe('with notifications', () => {
     it('should call warning notification on degradation', () => {
       const { applyDegradation } = useGracefulDegradation({
-        notifications: mockNotifications as any,
+        notifications: mockNotifications as unknown as UseNotificationsReturn,
       })
 
       applyDegradation(1 as DegradationLevel)
@@ -275,7 +279,7 @@ describe('useGracefulDegradation', () => {
 
     it('should call success notification on full recovery', async () => {
       const { applyDegradation, recoverFull } = useGracefulDegradation({
-        notifications: mockNotifications as any,
+        notifications: mockNotifications as unknown as UseNotificationsReturn,
       })
 
       applyDegradation(2 as DegradationLevel)
@@ -294,14 +298,18 @@ describe('useGracefulDegradation', () => {
 
   describe('custom thresholds', () => {
     it('should accept custom thresholds', () => {
-      const customThresholds = {
-        mild: ['good'] as any[],
-        moderate: ['fair'] as any[],
-        severe: ['poor'] as any[],
+      const customThresholds: {
+        mild: HealthLevel[]
+        moderate: HealthLevel[]
+        severe: HealthLevel[]
+      } = {
+        mild: ['good'],
+        moderate: ['fair'],
+        severe: ['poor'],
       }
 
       const { degradationLevel } = useGracefulDegradation({
-        healthBar: mockHealthBar as any,
+        healthBar: mockHealthBar as unknown as UseConnectionHealthBarReturn,
         thresholds: customThresholds,
       })
 
