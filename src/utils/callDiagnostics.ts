@@ -159,6 +159,72 @@ const CAUSE_MAPPINGS: Record<string, { explanation: string; suggestions: string[
   },
   // Default fallback (also available as UNKNOWN_CAUSE constant)
   unknown: UNKNOWN_CAUSE,
+
+  // Additional TerminationCause enum values
+  canceled: {
+    explanation: 'Call was canceled before being answered',
+    suggestions: [
+      'Check if caller hung up prematurely',
+      'Verify no network issues caused early termination',
+    ],
+  },
+  rejected: {
+    explanation: 'Call was explicitly rejected by the callee',
+    suggestions: [
+      'Callee explicitly declined the call',
+      'Check if DND (Do Not Disturb) is enabled',
+      'Verify callee is available',
+    ],
+  },
+  no_answer: {
+    explanation: 'Call was not answered within the timeout period',
+    suggestions: [
+      'Caller did not answer in time',
+      'Increase no_answer_timeout setting',
+      'Check if callee is available',
+    ],
+  },
+  unavailable: {
+    explanation: 'Callee is unavailable',
+    suggestions: [
+      'Callee cannot be reached',
+      'Check network connectivity to callee',
+      'Verify callee registration status',
+    ],
+  },
+  request_timeout: {
+    explanation: 'Request timed out waiting for response',
+    suggestions: [
+      'Check network latency',
+      'Verify SIP server is reachable',
+      'Check firewall timeout settings',
+    ],
+  },
+  webrtc_error: {
+    explanation: 'WebRTC error occurred',
+    suggestions: [
+      'Check browser WebRTC support',
+      'Verify microphone/camera permissions',
+      'Check for browser extensions interfering',
+      'Try a different browser',
+    ],
+  },
+  internal_error: {
+    explanation: 'Internal client error occurred',
+    suggestions: [
+      'Refresh the application',
+      'Check browser console for errors',
+      'Try clearing cache and cookies',
+    ],
+  },
+  network_error: {
+    explanation: 'Network connection error',
+    suggestions: [
+      'Check internet connectivity',
+      'Verify WebSocket connection',
+      'Check firewall/network configuration',
+    ],
+  },
 }
 
 /**
