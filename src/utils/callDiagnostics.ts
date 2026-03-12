@@ -17,7 +17,7 @@ const UNKNOWN_CAUSE = {
     'Try the call again',
     'Contact support if persistent',
   ],
-} as const
+}
 
 /**
  * Diagnostic information for a failed call
@@ -29,16 +29,38 @@ export interface CallDiagnostics {
   responseCode?: number
   reasonPhrase?: string
   message?: string
-  suggestions: readonly string[] | string[]
+  suggestions: string[]
+}
+
+/**
+ * Validates that a value is a non-empty string
+ */
+function isValidString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+/**
+ * Validates that an array contains only valid non-empty strings
+ */
+function isValidStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isValidString)
+}
+
+/**
+ * Runtime validation for suggestions array - ensures type safety at runtime
+ */
+function normalizeSuggestions(input: unknown): string[] {
+  if (isValidStringArray(input)) {
+    return input
+  }
+  // Fallback to default suggestions if validation fails
+  return [...UNKNOWN_CAUSE.suggestions]
 }
 
 /**
  * Map of SIP causes to human-readable explanations and troubleshooting suggestions
  */
-const CAUSE_MAPPINGS: Record<
-  string,
-  { explanation: string; suggestions: readonly string[] | string[] }
-> = {
+const CAUSE_MAPPINGS: Record<string, { explanation: string; suggestions: string[] }> = {
   // SIP specific causes
   'No ACK': {
     explanation: 'Call was not acknowledged within timeout period',
@@ -153,7 +175,7 @@ export function getCallDiagnostics(call: CallSession): CallDiagnostics {
     responseCode: call.lastResponseCode,
     reasonPhrase: call.lastReasonPhrase,
     message: call.lastErrorMessage,
-    suggestions: mapping?.suggestions ?? UNKNOWN_CAUSE.suggestions,
+    suggestions: normalizeSuggestions(mapping?.suggestions ?? UNKNOWN_CAUSE.suggestions),
   }
 }
 
@@ -168,9 +190,9 @@ export function getCauseExplanation(cause: string): string {
 /**
  * Get troubleshooting suggestions for a termination cause
  */
-export function getCauseSuggestions(cause: string): readonly string[] | string[] {
+export function getCauseSuggestions(cause: string): string[] {
   const mapping = CAUSE_MAPPINGS[cause]
-  return mapping?.suggestions ?? UNKNOWN_CAUSE.suggestions
+  return normalizeSuggestions(mapping?.suggestions ?? UNKNOWN_CAUSE.suggestions)
 }
 
 /**
