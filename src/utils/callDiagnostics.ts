@@ -231,6 +231,15 @@ const CAUSE_MAPPINGS: Record<string, { explanation: string; suggestions: string[
  * Get diagnostic information for a failed call
  */
 export function getCallDiagnostics(call: CallSession): CallDiagnostics {
+  if (!call || typeof call !== 'object') {
+    return {
+      callId: 'unknown',
+      timestamp: new Date(),
+      cause: 'unknown',
+      suggestions: normalizeSuggestions(UNKNOWN_CAUSE.suggestions),
+    }
+  }
+
   const cause = call.terminationCause || 'unknown'
   const mapping = CAUSE_MAPPINGS[cause] ?? UNKNOWN_CAUSE
 

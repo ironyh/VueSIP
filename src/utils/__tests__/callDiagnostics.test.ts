@@ -47,6 +47,22 @@ describe('callDiagnostics', () => {
       expect(result.suggestions).toContain('Call later')
     })
 
+    it('should return fallback for null call', () => {
+      const result = getCallDiagnostics(null as any)
+
+      expect(result.callId).toBe('unknown')
+      expect(result.cause).toBe('unknown')
+      expect(result.suggestions).toContain('Check server logs for more details')
+    })
+
+    it('should return fallback for undefined call', () => {
+      const result = getCallDiagnostics(undefined as any)
+
+      expect(result.callId).toBe('unknown')
+      expect(result.cause).toBe('unknown')
+      expect(result.suggestions).toContain('Check server logs for more details')
+    })
+
     it('should return diagnostics for unknown cause', () => {
       const call = createMockCall({
         terminationCause: 'UnknownCause' as AnyTerminationCause,
