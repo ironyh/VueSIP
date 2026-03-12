@@ -50,9 +50,12 @@ interface ListNumbersResponse {
 
 /**
  * Create Basic Auth header from credentials
+ * Uses encodeURIComponent to properly handle Unicode characters in credentials
  */
 function createAuthHeader(credentials: Elks46ApiCredentials): string {
-  const encoded = btoa(`${credentials.username}:${credentials.password}`)
+  const encoded = btoa(
+    encodeURIComponent(credentials.username) + ':' + encodeURIComponent(credentials.password)
+  )
   return `Basic ${encoded}`
 }
 
