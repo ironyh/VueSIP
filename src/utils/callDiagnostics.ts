@@ -29,13 +29,16 @@ export interface CallDiagnostics {
   responseCode?: number
   reasonPhrase?: string
   message?: string
-  suggestions: string[]
+  suggestions: readonly string[] | string[]
 }
 
 /**
  * Map of SIP causes to human-readable explanations and troubleshooting suggestions
  */
-const CAUSE_MAPPINGS: Record<string, { explanation: string; suggestions: string[] }> = {
+const CAUSE_MAPPINGS: Record<
+  string,
+  { explanation: string; suggestions: readonly string[] | string[] }
+> = {
   // SIP specific causes
   'No ACK': {
     explanation: 'Call was not acknowledged within timeout period',
@@ -165,7 +168,7 @@ export function getCauseExplanation(cause: string): string {
 /**
  * Get troubleshooting suggestions for a termination cause
  */
-export function getCauseSuggestions(cause: string): string[] {
+export function getCauseSuggestions(cause: string): readonly string[] | string[] {
   const mapping = CAUSE_MAPPINGS[cause]
   return mapping?.suggestions ?? UNKNOWN_CAUSE.suggestions
 }

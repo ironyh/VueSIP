@@ -27,7 +27,10 @@ class MockRTCPeerConnection {
     if (!this._listeners.has(event)) {
       this._listeners.set(event, new Set())
     }
-    this._listeners.get(event)!.add(handler)
+    const handlers = this._listeners.get(event)
+    if (handlers) {
+      handlers.add(handler)
+    }
   }
 
   removeEventListener(event: string, handler: () => void) {
