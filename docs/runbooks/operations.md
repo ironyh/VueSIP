@@ -4,13 +4,13 @@ This runbook covers common operational procedures for VueSIP deployments.
 
 ## Quick Reference
 
-| Command            | Description             |
-| ------------------ | ----------------------- |
-| `npm run build`    | Build production bundle |
-| `npm run dev`      | Start dev server        |
-| `npm run lint`     | Run ESLint              |
-| `npm run test`     | Run unit tests          |
-| `npm run test:e2e` | Run E2E tests           |
+| Command             | Description             |
+| ------------------- | ----------------------- |
+| `pnpm run build`    | Build production bundle |
+| `pnpm run dev`      | Start dev server        |
+| `pnpm run lint`     | Run ESLint              |
+| `pnpm run test`     | Run unit tests          |
+| `pnpm run test:e2e` | Run E2E tests           |
 
 ## Deployment Checklist
 
@@ -19,20 +19,20 @@ This runbook covers common operational procedures for VueSIP deployments.
 1. **Run full test suite**
 
    ```bash
-   npm run test
-   npm run test:e2e
+   pnpm run test
+   pnpm run test:e2e
    ```
 
 2. **Run lint and fix**
 
    ```bash
-   npm run lint
+   pnpm run lint
    ```
 
 3. **Build production bundle**
 
    ```bash
-   npm run build
+   pnpm run build
    ```
 
 4. **Verify build output**
@@ -44,7 +44,7 @@ This runbook covers common operational procedures for VueSIP deployments.
 1. **Production build**
 
    ```bash
-   npm run build
+   pnpm run build
    ```
 
 2. **Serve dist/ directory** via your hosting provider
@@ -61,7 +61,7 @@ This runbook covers common operational procedures for VueSIP deployments.
 
 **Issue:** `Module not found`
 
-- Run `rm -rf node_modules && npm install`
+- Run `rm -rf node_modules && pnpm install`
 
 **Issue:** TypeScript errors
 
@@ -82,7 +82,7 @@ This runbook covers common operational procedures for VueSIP deployments.
 
 **Memory leaks**
 
-- Run `npm run test:memory` if available
+- Run `pnpm run test:memory` if available
 - Check DevTools Memory tab during extended use
 
 ## Monitoring
@@ -107,7 +107,7 @@ setLogLevel('debug') // 'error' | 'warn' | 'info' | 'debug'
 
 1. Identify last working version from git tags
 2. `git checkout <tag>`
-3. `npm run build`
+3. `pnpm run build`
 4. Redeploy `dist/`
 
 ## Health Check Script
