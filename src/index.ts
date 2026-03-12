@@ -338,6 +338,7 @@ export * from './utils/errorContext'
 export * from './utils/abortController'
 export * from './utils/notifications'
 export * from './utils/diagnostics'
+export * from './utils/callDiagnostics'
 // storageQuota functions exported from stores instead
 // constants partially exported (STORAGE_KEYS from types instead)
 

@@ -75,3 +75,6 @@ export {
 
 // Re-export diagnostics utilities
 export * from './diagnostics'
+
+// Re-export call diagnostics utilities
+export * from './callDiagnostics'
