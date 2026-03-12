@@ -48,7 +48,7 @@ describe('callDiagnostics', () => {
     })
 
     it('should return fallback for null call', () => {
-      const result = getCallDiagnostics(null as any)
+      const result = getCallDiagnostics(null as unknown as CallSession | null | undefined)
 
       expect(result.callId).toBe('unknown')
       expect(result.cause).toBe('unknown')
@@ -56,7 +56,7 @@ describe('callDiagnostics', () => {
     })
 
     it('should return fallback for undefined call', () => {
-      const result = getCallDiagnostics(undefined as any)
+      const result = getCallDiagnostics(undefined as unknown as CallSession | null | undefined)
 
       expect(result.callId).toBe('unknown')
       expect(result.cause).toBe('unknown')
