@@ -196,7 +196,7 @@ describe('useCallQualityScore', () => {
       qualityScore.updateScore(input)
 
       const score = qualityScore.score.value
-      expect(score?.overall).toEqual(Math.round(score!.overall * 100) / 100)
+      expect(score?.overall).toEqual(Math.round((score?.overall ?? 0) * 100) / 100)
     })
   })
 
@@ -247,8 +247,8 @@ describe('useCallQualityScore', () => {
       qualityScore.updateScore({ ...input, packetLoss: 2 })
 
       expect(qualityScore.history.value.length).toBe(3)
-      expect(qualityScore.history.value[0].overall).toBeGreaterThan(
-        qualityScore.history.value[1]!.overall
+      expect(qualityScore.history.value[0]?.overall).toBeGreaterThan(
+        qualityScore.history.value[1]?.overall ?? 0
       )
     })
   })
