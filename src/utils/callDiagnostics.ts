@@ -249,6 +249,9 @@ export function getCallDiagnostics(call: CallSession): CallDiagnostics {
  * Get human-readable explanation for a termination cause
  */
 export function getCauseExplanation(cause: string): string {
+  if (!cause || typeof cause !== 'string') {
+    return UNKNOWN_CAUSE.explanation
+  }
   const mapping = CAUSE_MAPPINGS[cause]
   return mapping?.explanation ?? UNKNOWN_CAUSE.explanation
 }
@@ -257,6 +260,9 @@ export function getCauseExplanation(cause: string): string {
  * Get troubleshooting suggestions for a termination cause
  */
 export function getCauseSuggestions(cause: string): string[] {
+  if (!cause || typeof cause !== 'string') {
+    return normalizeSuggestions(UNKNOWN_CAUSE.suggestions)
+  }
   const mapping = CAUSE_MAPPINGS[cause]
   return normalizeSuggestions(mapping?.suggestions ?? UNKNOWN_CAUSE.suggestions)
 }
