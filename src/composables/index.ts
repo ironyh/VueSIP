@@ -170,7 +170,7 @@ export {
 } from './useAudioProcessing'
 
 // Additional composables
-export { useCallHold } from './useCallHold'
+export { useCallHold, type UseCallHoldReturn } from './useCallHold'
 export { useCallTransfer } from './useCallTransfer'
 export {
   useCallWaiting,
