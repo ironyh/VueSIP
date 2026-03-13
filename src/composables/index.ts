@@ -92,10 +92,24 @@ export {
 } from './useAmiSpy'
 
 // SIP composables
-export { useSipWebRTCStats } from './useSipWebRTCStats'
-export { useSipAutoAnswer } from './useSipAutoAnswer'
-export { useSipE911 } from './useSipE911'
+export { useSipWebRTCStats, type UseSipWebRTCStatsReturn } from './useSipWebRTCStats'
+export {
+  useSipAutoAnswer,
+  type AutoAnswerMode,
+  type IntercomMode,
+  type AutoAnswerTrigger,
+  type AutoAnswerHeaders,
+  type AutoAnswerWhitelistEntry,
+  type AutoAnswerSettings,
+  type AutoAnswerEvent,
+  type AutoAnswerStats,
+  type PendingAutoAnswer,
+  type UseSipAutoAnswerOptions,
+  type UseSipAutoAnswerReturn,
+} from './useSipAutoAnswer'
+export { useSipE911, type UseSipE911Return } from './useSipE911'
 export { useSipSecondLine } from './useSipSecondLine'
+export type { UseSipSecondLineReturn } from '../types/multiline.types'
 export { useSipConnection, type UseSipConnectionReturn } from './useSipConnection'
 
 // Call quality composables
