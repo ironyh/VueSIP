@@ -6,6 +6,41 @@
  * handling incoming calls across accounts.
  *
  * @module composables/useMultiSipClient
+ *
+ * @example
+ * ```typescript
+ * import { useMultiSipClient } from 'vuesip'
+ *
+ * const {
+ *   accounts,
+ *   outboundAccountId,
+ *   addAccount,
+ *   removeAccount,
+ *   setOutboundAccount,
+ *   getAccount,
+ *   makeCall,
+ * } = useMultiSipClient()
+ *
+ * // Add multiple SIP accounts
+ * await addAccount({
+ *   id: 'account-1',
+ *   name: 'Office',
+ *   sip: { uri: 'sip:1001@office.example.com', password: 'secret', server: 'wss://office.example.com/ws' },
+ *   outboundCapable: true,
+ * })
+ *
+ * await addAccount({
+ *   id: 'account-2',
+ *   name: 'Mobile',
+ *   sip: { uri: 'sip:1002@mobile.example.com', password: 'secret', server: 'wss://mobile.example.com/ws' },
+ * })
+ *
+ * // Switch outbound account before calling
+ * setOutboundAccount('account-2')
+ *
+ * // Make call from selected outbound account
+ * await makeCall('sip:2000@example.com')
+ * ```
  */
 
 import { ref, computed, shallowRef, type ComputedRef, type Ref } from 'vue'
@@ -229,7 +264,8 @@ export function useMultiSipClient() {
           accountName: account.name,
           remoteUri: account.callSession.remoteUri.value,
           remoteDisplayName: account.callSession.remoteDisplayName.value,
-          calledLine: (account.callSession.session.value as CallSession | null)?.calledNumberDialed?.raw,
+          calledLine: (account.callSession.session.value as CallSession | null)?.calledNumberDialed
+            ?.raw,
         })
       }
     }
