@@ -33,6 +33,11 @@ import {
   SIP_URI_REGEX,
   E164_PHONE_REGEX,
   WEBSOCKET_URL_REGEX,
+  DTMF_TONES,
+  LOG_LEVELS,
+  CALL_STATES,
+  CONNECTION_STATES,
+  REGISTRATION_STATES,
 } from '../constants'
 
 describe('constants', () => {
@@ -203,6 +208,94 @@ describe('constants', () => {
       expect(WEBSOCKET_URL_REGEX.test('wss://example.com/ws')).toBe(true)
       expect(WEBSOCKET_URL_REGEX.test('ws://localhost:8080')).toBe(true)
       expect(WEBSOCKET_URL_REGEX.test('http://example.com')).toBe(false)
+    })
+  })
+
+  describe('DTMF tones', () => {
+    it('should have DTMF_TONES array', () => {
+      expect(DTMF_TONES).toBeDefined()
+      expect(DTMF_TONES).toBeInstanceOf(Array)
+    })
+
+    it('should have all standard DTMF tones', () => {
+      expect(DTMF_TONES).toContain('0')
+      expect(DTMF_TONES).toContain('9')
+      expect(DTMF_TONES).toContain('*')
+      expect(DTMF_TONES).toContain('#')
+      expect(DTMF_TONES).toContain('A')
+      expect(DTMF_TONES).toContain('B')
+      expect(DTMF_TONES).toContain('C')
+      expect(DTMF_TONES).toContain('D')
+    })
+
+    it('should have exactly 16 DTMF tones', () => {
+      expect(DTMF_TONES).toHaveLength(16)
+    })
+  })
+
+  describe('log levels', () => {
+    it('should have LOG_LEVELS array', () => {
+      expect(LOG_LEVELS).toBeDefined()
+      expect(LOG_LEVELS).toBeInstanceOf(Array)
+    })
+
+    it('should have standard log levels', () => {
+      expect(LOG_LEVELS).toContain('debug')
+      expect(LOG_LEVELS).toContain('info')
+      expect(LOG_LEVELS).toContain('warn')
+      expect(LOG_LEVELS).toContain('error')
+    })
+
+    it('should have exactly 4 log levels', () => {
+      expect(LOG_LEVELS).toHaveLength(4)
+    })
+  })
+
+  describe('call states', () => {
+    it('should have CALL_STATES array', () => {
+      expect(CALL_STATES).toBeDefined()
+      expect(CALL_STATES).toBeInstanceOf(Array)
+    })
+
+    it('should include all call lifecycle states', () => {
+      expect(CALL_STATES).toContain('idle')
+      expect(CALL_STATES).toContain('calling')
+      expect(CALL_STATES).toContain('ringing')
+      expect(CALL_STATES).toContain('answering')
+      expect(CALL_STATES).toContain('active')
+      expect(CALL_STATES).toContain('holding')
+      expect(CALL_STATES).toContain('held')
+      expect(CALL_STATES).toContain('terminating')
+      expect(CALL_STATES).toContain('terminated')
+    })
+  })
+
+  describe('connection states', () => {
+    it('should have CONNECTION_STATES array', () => {
+      expect(CONNECTION_STATES).toBeDefined()
+      expect(CONNECTION_STATES).toBeInstanceOf(Array)
+    })
+
+    it('should include all connection states', () => {
+      expect(CONNECTION_STATES).toContain('disconnected')
+      expect(CONNECTION_STATES).toContain('connecting')
+      expect(CONNECTION_STATES).toContain('connected')
+      expect(CONNECTION_STATES).toContain('error')
+    })
+  })
+
+  describe('registration states', () => {
+    it('should have REGISTRATION_STATES array', () => {
+      expect(REGISTRATION_STATES).toBeDefined()
+      expect(REGISTRATION_STATES).toBeInstanceOf(Array)
+    })
+
+    it('should include all registration states', () => {
+      expect(REGISTRATION_STATES).toContain('unregistered')
+      expect(REGISTRATION_STATES).toContain('registering')
+      expect(REGISTRATION_STATES).toContain('registered')
+      expect(REGISTRATION_STATES).toContain('unregistering')
+      expect(REGISTRATION_STATES).toContain('failed')
     })
   })
 })
