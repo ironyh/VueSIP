@@ -85,6 +85,32 @@ This runbook covers common operational procedures for VueSIP deployments.
 - Run `pnpm run test:memory` if available
 - Check DevTools Memory tab during extended use
 
+### Provider-Specific Issues (46elks)
+
+**Failed to fetch account list**
+
+- Verify API credentials in config
+- Check network can reach `https://api.46elks.com`
+- Ensure API key has correct IAM permissions
+
+**Outbound calls fail immediately**
+
+- Verify originate (REST) is enabled on your 46elks account
+- Check that your DID numbers are configured for outbound calling
+- Verify caller ID (CLID) is properly set in config
+
+**Inbound calls not arriving**
+
+- Ensure your Webhook URL is reachable from 46elks servers
+- Check that SIP registration is successful (see registration status)
+- Verify DID is correctly mapped to your SIP account
+
+**SMS not working**
+
+- 46elks SMS requires separate webhook configuration
+- Verify SMS webhook URL is publicly accessible
+- Check that sender number (from) is verified in 46elks dashboard
+
 ## Monitoring
 
 ### Key Metrics
