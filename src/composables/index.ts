@@ -171,7 +171,7 @@ export {
 
 // Additional composables
 export { useCallHold, type UseCallHoldReturn } from './useCallHold'
-export { useCallTransfer } from './useCallTransfer'
+export { useCallTransfer, type UseCallTransferReturn } from './useCallTransfer'
 export {
   useCallWaiting,
   type UseCallWaitingReturn,
