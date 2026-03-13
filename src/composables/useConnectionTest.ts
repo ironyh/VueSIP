@@ -15,6 +15,7 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { PermissionStatus } from '../types/media.types'
 import { useMediaPermissions } from './useMediaPermissions'
+import { useSipAccountManager } from './useSipAccountManager'
 import { createLogger } from '../utils/logger'
 import { registrationStore } from '../stores/registrationStore'
 
@@ -172,8 +173,6 @@ export function useConnectionTest(): UseConnectionTestReturn {
     try {
       // Check if there's an active SIP registration
       // Use settings store to check for enabled accounts
-      const { useSipAccountManager } = await import('./useSipAccountManager')
-
       const accountManager = useSipAccountManager()
 
       // Check if there are enabled accounts
