@@ -18,6 +18,7 @@ import {
   truncate,
   formatCallStatus,
   formatCallDirection,
+  formatSipStatusCode,
 } from '../../src/utils/formatters'
 
 describe('formatters', () => {
@@ -392,6 +393,54 @@ describe('formatters', () => {
       expect(formatCallDirection('incoming')).toBe('Incoming')
       expect(formatCallDirection('OUTGOING')).toBe('Outgoing')
       expect(formatCallDirection('outgoing')).toBe('Outgoing')
+    })
+  })
+
+  describe('formatSipStatusCode', () => {
+    it('should format 486 as Busy Here', () => {
+      expect(formatSipStatusCode(486)).toBe('Busy Here')
+    })
+
+    it('should format 408 as Request Timeout', () => {
+      expect(formatSipStatusCode(408)).toBe('Request Timeout')
+    })
+
+    it('should format 200 as OK', () => {
+      expect(formatSipStatusCode(200)).toBe('OK')
+    })
+
+    it('should format 404 as Not Found', () => {
+      expect(formatSipStatusCode(404)).toBe('Not Found')
+    })
+
+    it('should format 403 as Forbidden', () => {
+      expect(formatSipStatusCode(403)).toBe('Forbidden')
+    })
+
+    it('should include reason phrase when provided', () => {
+      expect(formatSipStatusCode(486, 'User is on another call')).toBe(
+        'Busy Here: User is on another call'
+      )
+    })
+
+    it('should handle unknown status codes', () => {
+      expect(formatSipStatusCode(999)).toBe('Unknown Status (999)')
+    })
+
+    it('should handle provisional 1xx codes', () => {
+      expect(formatSipStatusCode(100)).toBe('Trying')
+      expect(formatSipStatusCode(180)).toBe('Ringing')
+      expect(formatSipStatusCode(183)).toBe('Session Progress')
+    })
+
+    it('should handle server error 5xx codes', () => {
+      expect(formatSipStatusCode(503)).toBe('Service Unavailable')
+      expect(formatSipStatusCode(500)).toBe('Server Internal Error')
+    })
+
+    it('should handle global failure 6xx codes', () => {
+      expect(formatSipStatusCode(600)).toBe('Busy Everywhere')
+      expect(formatSipStatusCode(603)).toBe('Decline')
     })
   })
 })

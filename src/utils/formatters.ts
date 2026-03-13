@@ -661,3 +661,84 @@ export function extractSipDomain(sipUri: string): string | null {
   const parsed = parseSipUri(sipUri)
   return parsed?.host ?? null
 }
+
+/**
+ * Maps SIP status codes to human-readable messages
+ * Based on RFC 3261 SIP status codes
+ */
+const SIP_STATUS_MESSAGES: Record<number, string> = {
+  // Provisional 1xx
+  100: 'Trying',
+  180: 'Ringing',
+  183: 'Session Progress',
+  // Success 2xx
+  200: 'OK',
+  202: 'Accepted',
+  // Redirection 3xx
+  300: 'Multiple Choices',
+  301: 'Moved Permanently',
+  302: 'Moved Temporarily',
+  // Client Error 4xx
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  405: 'Method Not Allowed',
+  408: 'Request Timeout',
+  410: 'Gone',
+  413: 'Request Entity Too Large',
+  415: 'Unsupported Media Type',
+  416: 'Unsupported URI Scheme',
+  420: 'Bad Extension',
+  421: 'Extension Required',
+  423: 'Interval Too Brief',
+  480: 'Temporarily Unavailable',
+  481: 'Call/Transaction Does Not Exist',
+  482: 'Loop Detected',
+  483: 'Too Many Hops',
+  484: 'Address Incomplete',
+  485: 'Ambiguous',
+  486: 'Busy Here',
+  487: 'Request Terminated',
+  488: 'Not Acceptable Here',
+  489: 'Bad Event',
+  491: 'Request Pending',
+  493: 'Undecipherable',
+  // Server Error 5xx
+  500: 'Server Internal Error',
+  501: 'Not Implemented',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
+  504: 'Server Timeout',
+  505: 'Version Not Supported',
+  513: 'Message Too Large',
+  // Global Failure 6xx
+  600: 'Busy Everywhere',
+  603: 'Decline',
+  604: 'Does Not Exist Anywhere',
+  606: 'Not Acceptable',
+}
+
+/**
+ * Formats a SIP status code into a human-readable message
+ *
+ * @param statusCode - SIP status code (e.g., 486, 408)
+ * @param reasonPhrase - Optional custom reason phrase from SIP response
+ * @returns Human-readable status message
+ *
+ * @example
+ * ```typescript
+ * formatSipStatusCode(486) // "Busy Here"
+ * formatSipStatusCode(408) // "Request Timeout"
+ * formatSipStatusCode(486, 'User is on another call') // "Busy Here: User is on another call"
+ * ```
+ */
+export function formatSipStatusCode(statusCode: number, reasonPhrase?: string): string {
+  const baseMessage = SIP_STATUS_MESSAGES[statusCode] || `Unknown Status (${statusCode})`
+
+  if (reasonPhrase) {
+    return `${baseMessage}: ${reasonPhrase}`
+  }
+
+  return baseMessage
+}
