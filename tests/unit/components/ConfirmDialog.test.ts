@@ -11,8 +11,9 @@ import Button from 'primevue/button'
 // Mock the useConfirm composable
 vi.mock('@/composables/useConfirm', () => ({
   useConfirm: vi.fn(() => {
-    const isOpen = vi.fn(false)
-    const options = vi.fn(null)
+    // Use objects with .value to simulate Vue refs
+    const isOpen = { value: false }
+    const options = { value: null }
     const confirm = vi.fn()
     const cancelCurrent = vi.fn()
     const confirmCurrent = vi.fn()
