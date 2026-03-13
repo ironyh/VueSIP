@@ -39,14 +39,14 @@ function createMockRTCRtpSender(kind: 'audio' | 'video') {
   }
 
   return {
-    track: { kind },
+    track: { kind } as MediaStreamTrack,
     getParameters: vi.fn().mockReturnValue(params),
     setParameters: vi.fn().mockResolvedValue(undefined),
-  }
+  } as unknown as RTCRtpSender
 }
 
 function createMockPeerConnection(options?: { hasVideo?: boolean; hasAudio?: boolean }) {
-  const senders: any[] = []
+  const senders: RTCRtpSender[] = []
 
   if (options?.hasAudio !== false) {
     senders.push(createMockRTCRtpSender('audio'))
@@ -57,7 +57,7 @@ function createMockPeerConnection(options?: { hasVideo?: boolean; hasAudio?: boo
 
   return {
     getSenders: vi.fn().mockReturnValue(senders),
-  }
+  } as unknown as RTCPeerConnection
 }
 
 function createMockCallSession(options?: {
@@ -212,7 +212,7 @@ describe('useGracefulDegradation', () => {
 
       // Verify setParameters was called on video sender
       const pc = mockCallSession.session.value?.connection
-      const videoSender = pc?.getSenders().find((s: any) => s.track?.kind === 'video')
+      const videoSender = pc?.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video')
       expect(videoSender?.setParameters).toHaveBeenCalled()
 
       unmount()
@@ -228,7 +228,7 @@ describe('useGracefulDegradation', () => {
       await vi.advanceTimersByTimeAsync(0)
 
       const pc = mockCallSession.session.value?.connection
-      const videoSender = pc?.getSenders().find((s: any) => s.track?.kind === 'video')
+      const videoSender = pc?.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video')
       const setParamsCall = videoSender?.setParameters.mock.calls[0][0]
 
       expect(setParamsCall.encodings[0].maxBitrate).toBe(250000)
@@ -341,7 +341,7 @@ describe('useGracefulDegradation', () => {
 
       // Verify setParameters was called on audio sender
       const pc = mockCallSession.session.value?.connection
-      const audioSender = pc?.getSenders().find((s: any) => s.track?.kind === 'audio')
+      const audioSender = pc?.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'audio')
       expect(audioSender?.setParameters).toHaveBeenCalled()
 
       unmount()
@@ -357,7 +357,7 @@ describe('useGracefulDegradation', () => {
       await vi.advanceTimersByTimeAsync(0)
 
       const pc = mockCallSession.session.value?.connection
-      const audioSender = pc?.getSenders().find((s: any) => s.track?.kind === 'audio')
+      const audioSender = pc?.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'audio')
       const setParamsCall = audioSender?.setParameters.mock.calls[0][0]
 
       expect(setParamsCall.encodings[0].maxBitrate).toBe(
@@ -605,7 +605,7 @@ describe('useGracefulDegradation', () => {
 
       // Verify setParameters was called to restore
       const pc = mockCallSession.session.value?.connection
-      const videoSender = pc?.getSenders().find((s: any) => s.track?.kind === 'video')
+      const videoSender = pc?.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video')
       expect(videoSender?.setParameters).toHaveBeenCalledTimes(2) // Once for apply, once for revert
 
       unmount()
@@ -624,7 +624,7 @@ describe('useGracefulDegradation', () => {
       await vi.advanceTimersByTimeAsync(0)
 
       const pc = mockCallSession.session.value?.connection
-      const videoSender = pc?.getSenders().find((s: any) => s.track?.kind === 'video')
+      const videoSender = pc?.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video')
       const lastCall = videoSender?.setParameters.mock.calls.slice(-1)[0][0]
 
       // The encoding should have maxBitrate and maxFramerate deleted
@@ -689,7 +689,7 @@ describe('useGracefulDegradation', () => {
 
       // Verify setParameters was called on audio sender
       const pc = mockCallSession.session.value?.connection
-      const audioSender = pc?.getSenders().find((s: any) => s.track?.kind === 'audio')
+      const audioSender = pc?.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'audio')
       expect(audioSender?.setParameters).toHaveBeenCalledTimes(2)
 
       unmount()
@@ -708,7 +708,7 @@ describe('useGracefulDegradation', () => {
       await vi.advanceTimersByTimeAsync(0)
 
       const pc = mockCallSession.session.value?.connection
-      const audioSender = pc?.getSenders().find((s: any) => s.track?.kind === 'audio')
+      const audioSender = pc?.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'audio')
       const lastCall = audioSender?.setParameters.mock.calls.slice(-1)[0][0]
 
       expect(lastCall.encodings[0].maxBitrate).toBeUndefined()
@@ -896,7 +896,7 @@ describe('useGracefulDegradation', () => {
     it('should handle setParameters rejection gracefully', async () => {
       const mockCallSession = createMockCallSession({ hasLocalVideo: true })
       const pc = mockCallSession.session.value?.connection
-      const videoSender = pc?.getSenders().find((s: any) => s.track?.kind === 'video')
+      const videoSender = pc?.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video')
       ;(videoSender?.setParameters as any).mockRejectedValue(new Error('Failed'))
 
       const { result, unmount } = withSetup(() =>
