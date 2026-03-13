@@ -3,7 +3,12 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { formatDuration, formatDurationShort, formatDurationCompact } from '@/utils/formatters'
+import {
+  formatDuration,
+  formatDurationShort,
+  formatDurationCompact,
+  formatMilliseconds,
+} from '@/utils/formatters'
 
 describe('formatDuration', () => {
   it('should format zero seconds', () => {
@@ -91,5 +96,56 @@ describe('formatDurationCompact', () => {
 
   it('should handle NaN', () => {
     expect(formatDurationCompact(NaN)).toBe('0:00')
+  })
+})
+
+describe('formatMilliseconds', () => {
+  it('should format zero milliseconds', () => {
+    expect(formatMilliseconds(0)).toBe('0.0ms')
+  })
+
+  it('should format milliseconds less than 1 second', () => {
+    expect(formatMilliseconds(1)).toBe('1.0ms')
+    expect(formatMilliseconds(500)).toBe('500.0ms')
+    expect(formatMilliseconds(999)).toBe('999.0ms')
+  })
+
+  it('should format seconds with default precision', () => {
+    expect(formatMilliseconds(1000)).toBe('1.0s')
+    expect(formatMilliseconds(1500)).toBe('1.5s')
+    expect(formatMilliseconds(59999)).toBe('60.0s')
+  })
+
+  it('should format seconds with custom precision', () => {
+    expect(formatMilliseconds(1500, 0)).toBe('2s')
+    expect(formatMilliseconds(1500, 2)).toBe('1.50s')
+  })
+
+  it('should format minutes and seconds', () => {
+    expect(formatMilliseconds(60000)).toBe('1m')
+    expect(formatMilliseconds(65000)).toBe('1m 5.0s')
+    expect(formatMilliseconds(90000)).toBe('1m 30.0s')
+    expect(formatMilliseconds(3540000)).toBe('59m')
+  })
+
+  it('should format hours and minutes', () => {
+    expect(formatMilliseconds(3600000)).toBe('1h')
+    expect(formatMilliseconds(3660000)).toBe('1h 1m')
+    expect(formatMilliseconds(7200000)).toBe('2h')
+    expect(formatMilliseconds(3661000)).toBe('1h 1m')
+    expect(formatMilliseconds(7261000)).toBe('2h 1m')
+  })
+
+  it('should handle negative values', () => {
+    expect(formatMilliseconds(-1)).toBe('0ms')
+    expect(formatMilliseconds(-1000)).toBe('0ms')
+  })
+
+  it('should handle Infinity', () => {
+    expect(formatMilliseconds(Infinity)).toBe('0ms')
+  })
+
+  it('should handle NaN', () => {
+    expect(formatMilliseconds(NaN)).toBe('0ms')
   })
 })
