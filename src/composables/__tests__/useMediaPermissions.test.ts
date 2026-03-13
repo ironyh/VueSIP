@@ -17,6 +17,11 @@ vi.mock('../../utils/logger', () => ({
   }),
 }))
 
+import type { Pinia } from 'pinia'
+
+// In file scope for afterEach
+let piniaInstance: Pinia | undefined
+
 describe('useMediaPermissions', () => {
   let mockPermissionsQuery: ReturnType<typeof vi.fn>
   let mockGetUserMedia: ReturnType<typeof vi.fn>
@@ -26,7 +31,8 @@ describe('useMediaPermissions', () => {
     mockPermissionsQuery = vi.fn()
     mockGetUserMedia = vi.fn()
     mockEnumerateDevices = vi.fn()
-    setActivePinia(createPinia())
+    piniaInstance = createPinia()
+    setActivePinia(piniaInstance)
 
     // Reset navigator mocks
     Object.defineProperty(global, 'navigator', {
@@ -45,7 +51,7 @@ describe('useMediaPermissions', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
-    setActivePinia(undefined as any)
+    setActivePinia(undefined)
   })
 
   describe('initial state', () => {
