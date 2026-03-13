@@ -35,6 +35,13 @@ export {
   type PermissionCheckResult,
 } from './useMediaPermissions'
 export {
+  useConnectionTest,
+  type UseConnectionTestReturn,
+  type ConnectionCheckResult,
+  type ConnectionTestSummary,
+  type TestType,
+} from './useConnectionTest'
+export {
   useDTMF,
   type UseDTMFReturn,
   type DTMFSequenceOptions,
