@@ -8,6 +8,7 @@ import SettingsMenu from './components/SettingsMenu.vue'
 import DiagnosticsPanel from './components/DiagnosticsPanel.vue'
 import CallDetailView from './components/CallDetailView.vue'
 import Contacts from './components/Contacts.vue'
+import ConnectionTestButton from './components/ConnectionTestButton.vue'
 import { usePhone } from './composables/usePhone'
 import { usePushNotifications } from './composables/usePushNotifications'
 import { usePwaInstall } from './composables/usePwaInstall'
@@ -438,6 +439,8 @@ onMounted(async () => {
           <span class="permission-icon">🎤</span>
           <span class="permission-text">{{ readinessMessage }}</span>
         </div>
+        <!-- Connection Test Button -->
+        <ConnectionTestButton />
       </div>
     </header>
 
