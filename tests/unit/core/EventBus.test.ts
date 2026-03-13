@@ -184,6 +184,24 @@ describe('EventBus', () => {
 
       expect(handler).toHaveBeenCalledWith('buffered')
     })
+
+    it('should drop buffered events after BUFFER_TTL expires', async () => {
+      // Emit an event - it gets buffered (no listeners yet)
+      bus.emit('test', 'old event')
+
+      // Wait longer than BUFFER_TTL (5 seconds)
+      await new Promise((resolve) => setTimeout(resolve, 5100))
+
+      // Now register a listener - expired events should NOT be replayed
+      const handler = vi.fn()
+      bus.on('test', handler)
+
+      // Wait for any potential replay
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      // Handler should NOT have been called because the buffered event expired
+      expect(handler).not.toHaveBeenCalled()
+    })
   })
 
   describe('emitSync()', () => {
@@ -340,6 +358,27 @@ describe('EventBus', () => {
       await bus.emit('call:started', { value: 'test' })
 
       expect(namespaceHandler).toHaveBeenCalledWith({ value: 'test' })
+    })
+
+    it('should work with emitSync for wildcard events', () => {
+      const wildcardHandler = vi.fn()
+      bus.on('*', wildcardHandler)
+
+      bus.emitSync('any-event', 'sync data')
+
+      expect(wildcardHandler).toHaveBeenCalledWith('sync data')
+    })
+
+    it('should respect priority for wildcard listeners', async () => {
+      const order: string[] = []
+
+      bus.on('call:*', () => order.push('low'), { priority: 0 })
+      bus.on('call:*', () => order.push('high'), { priority: 10 })
+
+      await bus.emit('call:ringing', {})
+
+      // Higher priority should execute first
+      expect(order).toEqual(['high', 'low'])
     })
   })
 })
