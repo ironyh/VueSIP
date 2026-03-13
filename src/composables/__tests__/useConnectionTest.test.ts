@@ -6,10 +6,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useConnectionTest } from '../useConnectionTest'
 import { PermissionStatus } from '../../types/media.types'
+import type { RegistrationState } from '../../types/sip.types'
+import type { SipAccount } from '../../types/config.types'
 
 // Declare mock store - must be accessible to vi.mock factory
 const mockRegistrationStoreState = {
-  value: 'unregistered' as any,
+  value: 'unregistered' as RegistrationState,
 }
 
 // Mock permission check results
@@ -38,7 +40,7 @@ vi.mock('../useMediaPermissions', () => ({
 }))
 
 // Mock useSipAccountManager - use a getter to allow test-time overrides
-let mockEnabledAccounts: any[] = [{ id: '1' }]
+let mockEnabledAccounts: SipAccount[] = [{ id: '1' }]
 vi.mock('../useSipAccountManager', () => ({
   useSipAccountManager: () => ({
     get enabledAccounts() {
@@ -54,7 +56,7 @@ vi.mock('../../stores/registrationStore', () => ({
       get state() {
         return mockRegistrationStoreState.value
       },
-      set state(v: any) {
+      set state(v: RegistrationState) {
         mockRegistrationStoreState.value = v
       },
     }
@@ -332,7 +334,7 @@ describe('useConnectionTest', () => {
 
     it('should return error for unknown test type', async () => {
       const { runTest } = useConnectionTest()
-      const result = await runTest('unknown' as any)
+      const result = await runTest('unknown' as unknown as TestType)
 
       expect(result.passed).toBe(false)
       expect(result.message).toContain('Okänd testtyp')
