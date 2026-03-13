@@ -413,6 +413,16 @@ describe('formatCallDirection', () => {
   test('formats outgoing', () => {
     expect(formatCallDirection('outgoing')).toBe('Outgoing')
   })
+
+  test('handles unknown direction gracefully', () => {
+    expect(formatCallDirection('unknown')).toBe('unknown')
+    expect(formatCallDirection('')).toBe('')
+  })
+
+  test('handles case variations', () => {
+    expect(formatCallDirection('INCOMING')).toBe('INCOMING')
+    expect(formatCallDirection('Outgoing')).toBe('Outgoing')
+  })
 })
 
 describe('buildSipUri', () => {
