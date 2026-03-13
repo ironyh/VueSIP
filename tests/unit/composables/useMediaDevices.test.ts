@@ -1089,4 +1089,285 @@ describe('useMediaDevices - Comprehensive Tests', () => {
       expect(mockEnumerateDevices).toHaveBeenCalled()
     })
   })
+
+  describe('Device Enumeration Mocks - Expanded Scenarios', () => {
+    it('should handle multiple audio input devices', async () => {
+      const mockDevices = [
+        { deviceId: 'mic-1', kind: 'audioinput', label: 'Built-in Microphone', groupId: 'g1' },
+        { deviceId: 'mic-2', kind: 'audioinput', label: 'USB Microphone', groupId: 'g1' },
+        { deviceId: 'mic-3', kind: 'audioinput', label: 'Bluetooth Headset', groupId: 'g2' },
+      ]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      // Pre-populate the mock store
+      mockDeviceStore.audioInputDevices = mockDevices.map((d) => ({
+        deviceId: d.deviceId,
+        kind: MediaDeviceKind.AudioInput,
+        label: d.label,
+        groupId: d.groupId,
+      }))
+
+      const { enumerateDevices, audioInputDevices } = useMediaDevices(ref(null), {
+        autoEnumerate: false,
+      })
+
+      await enumerateDevices()
+
+      expect(audioInputDevices.value.length).toBe(3)
+      expect(audioInputDevices.value.map((d) => d.deviceId)).toEqual(['mic-1', 'mic-2', 'mic-3'])
+    })
+
+    it('should handle multiple video input devices', async () => {
+      const mockDevices = [
+        { deviceId: 'cam-1', kind: 'videoinput', label: 'FaceTime HD Camera', groupId: 'g1' },
+        { deviceId: 'cam-2', kind: 'videoinput', label: 'USB Webcam', groupId: 'g2' },
+      ]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      // Pre-populate the mock store
+      mockDeviceStore.videoInputDevices = mockDevices.map((d) => ({
+        deviceId: d.deviceId,
+        kind: MediaDeviceKind.VideoInput,
+        label: d.label,
+        groupId: d.groupId,
+      }))
+
+      const { enumerateDevices, videoInputDevices } = useMediaDevices(ref(null), {
+        autoEnumerate: false,
+      })
+
+      await enumerateDevices()
+
+      expect(videoInputDevices.value.length).toBe(2)
+    })
+
+    it('should handle multiple audio output devices', async () => {
+      const mockDevices = [
+        { deviceId: 'speaker-1', kind: 'audiooutput', label: 'Built-in Speakers', groupId: 'g1' },
+        { deviceId: 'speaker-2', kind: 'audiooutput', label: 'HDMI Audio', groupId: 'g1' },
+        { deviceId: 'speaker-3', kind: 'audiooutput', label: 'Bluetooth Speaker', groupId: 'g2' },
+        { deviceId: 'speaker-4', kind: 'audiooutput', label: 'Headphones', groupId: 'g3' },
+      ]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      // Pre-populate the mock store
+      mockDeviceStore.audioOutputDevices = mockDevices.map((d) => ({
+        deviceId: d.deviceId,
+        kind: MediaDeviceKind.AudioOutput,
+        label: d.label,
+        groupId: d.groupId,
+      }))
+
+      const { enumerateDevices, audioOutputDevices } = useMediaDevices(ref(null), {
+        autoEnumerate: false,
+      })
+
+      await enumerateDevices()
+
+      expect(audioOutputDevices.value.length).toBe(4)
+    })
+
+    it('should handle mixed device configuration', async () => {
+      const mockDevices = [
+        { deviceId: 'mic-1', kind: 'audioinput', label: 'Microphone', groupId: 'g1' },
+        { deviceId: 'cam-1', kind: 'videoinput', label: 'Camera', groupId: 'g1' },
+        { deviceId: 'speaker-1', kind: 'audiooutput', label: 'Speaker', groupId: 'g1' },
+        { deviceId: 'mic-2', kind: 'audioinput', label: 'USB Mic', groupId: 'g2' },
+        { deviceId: 'cam-2', kind: 'videoinput', label: 'USB Camera', groupId: 'g2' },
+      ]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      // Pre-populate the mock store with categorized devices
+      mockDeviceStore.audioInputDevices = [
+        { deviceId: 'mic-1', kind: MediaDeviceKind.AudioInput, label: 'Microphone', groupId: 'g1' },
+        { deviceId: 'mic-2', kind: MediaDeviceKind.AudioInput, label: 'USB Mic', groupId: 'g2' },
+      ]
+      mockDeviceStore.videoInputDevices = [
+        { deviceId: 'cam-1', kind: MediaDeviceKind.VideoInput, label: 'Camera', groupId: 'g1' },
+        { deviceId: 'cam-2', kind: MediaDeviceKind.VideoInput, label: 'USB Camera', groupId: 'g2' },
+      ]
+      mockDeviceStore.audioOutputDevices = [
+        {
+          deviceId: 'speaker-1',
+          kind: MediaDeviceKind.AudioOutput,
+          label: 'Speaker',
+          groupId: 'g1',
+        },
+      ]
+
+      const {
+        enumerateDevices,
+        allDevices,
+        totalDevices,
+        audioInputDevices,
+        videoInputDevices,
+        audioOutputDevices,
+      } = useMediaDevices(ref(null), {
+        autoEnumerate: false,
+      })
+
+      await enumerateDevices()
+
+      expect(allDevices.value.length).toBe(5)
+      expect(totalDevices.value).toBe(5)
+      expect(audioInputDevices.value.length).toBe(2)
+      expect(videoInputDevices.value.length).toBe(2)
+      expect(audioOutputDevices.value.length).toBe(1)
+    })
+
+    it('should handle empty device list gracefully', async () => {
+      mockEnumerateDevices.mockResolvedValue([])
+
+      const {
+        enumerateDevices,
+        allDevices,
+        totalDevices,
+        hasAudioInputDevices,
+        hasVideoInputDevices,
+        hasAudioOutputDevices,
+      } = useMediaDevices(ref(null), {
+        autoEnumerate: false,
+      })
+
+      await enumerateDevices()
+
+      expect(allDevices.value.length).toBe(0)
+      expect(totalDevices.value).toBe(0)
+      expect(hasAudioInputDevices.value).toBe(false)
+      expect(hasVideoInputDevices.value).toBe(false)
+      expect(hasAudioOutputDevices.value).toBe(false)
+    })
+
+    it('should generate fallback labels for devices without permissions', async () => {
+      const mockDevices = [
+        { deviceId: 'mic-abc123', kind: 'audioinput', label: '', groupId: 'g1' },
+        { deviceId: 'cam-def456', kind: 'videoinput', label: '', groupId: 'g1' },
+        { deviceId: 'speaker-ghi789', kind: 'audiooutput', label: '', groupId: 'g1' },
+      ]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      const { enumerateDevices } = useMediaDevices(ref(null), { autoEnumerate: false })
+
+      const devices = await enumerateDevices()
+
+      // Should generate fallback labels
+      expect(devices[0].label).toMatch(/Microphone/)
+      expect(devices[1].label).toMatch(/Camera/)
+      expect(devices[2].label).toMatch(/Speaker/)
+    })
+
+    it('should generate unique fallback labels for multiple unlabeled devices', async () => {
+      const mockDevices = [
+        { deviceId: 'dev1', kind: 'audioinput', label: '', groupId: 'g1' },
+        { deviceId: 'dev2', kind: 'audioinput', label: '', groupId: 'g1' },
+        { deviceId: 'dev3', kind: 'audioinput', label: '', groupId: 'g1' },
+      ]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      const { enumerateDevices } = useMediaDevices(ref(null), { autoEnumerate: false })
+
+      const devices = await enumerateDevices()
+
+      // All should have labels with device ID suffix
+      expect(devices[0].label).toContain('Microphone')
+      expect(devices[1].label).toContain('Microphone')
+      expect(devices[2].label).toContain('Microphone')
+    })
+
+    it('should use MediaManager enumerateDevices when available', async () => {
+      const managerDevices: MediaDevice[] = [
+        {
+          deviceId: 'manager-mic',
+          kind: MediaDeviceKind.AudioInput,
+          label: 'Manager Mic',
+          groupId: 'g1',
+        },
+      ]
+
+      mockMediaManager.enumerateDevices.mockResolvedValue(managerDevices)
+      mockEnumerateDevices.mockResolvedValue([
+        { deviceId: 'manager-mic', kind: 'audioinput', label: 'Manager Mic', groupId: 'g1' },
+      ])
+
+      const { enumerateDevices } = useMediaDevices(ref(mockMediaManager), { autoEnumerate: false })
+
+      const devices = await enumerateDevices()
+
+      expect(mockMediaManager.enumerateDevices).toHaveBeenCalled()
+      expect(devices).toEqual(managerDevices)
+    })
+
+    it('should fallback to navigator API when MediaManager fails', async () => {
+      mockMediaManager.enumerateDevices.mockRejectedValue(new Error('MediaManager failed'))
+      mockEnumerateDevices.mockResolvedValue([
+        { deviceId: 'fallback-mic', kind: 'audioinput', label: 'Fallback Mic', groupId: 'g1' },
+      ])
+
+      const { enumerateDevices } = useMediaDevices(ref(mockMediaManager), { autoEnumerate: false })
+
+      // Should throw because MediaManager fails
+      await expect(enumerateDevices()).rejects.toThrow('MediaManager failed')
+    })
+
+    it('should handle device with groupId', async () => {
+      const mockDevices = [
+        { deviceId: 'mic-1', kind: 'audioinput', label: 'Mic', groupId: 'group-a' },
+        { deviceId: 'mic-2', kind: 'audioinput', label: 'Mic', groupId: 'group-a' },
+        { deviceId: 'mic-3', kind: 'audioinput', label: 'Mic', groupId: 'group-b' },
+      ]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      const { enumerateDevices } = useMediaDevices(ref(null), { autoEnumerate: false })
+
+      const devices = await enumerateDevices()
+
+      expect(devices[0].groupId).toBe('group-a')
+      expect(devices[1].groupId).toBe('group-a')
+      expect(devices[2].groupId).toBe('group-b')
+    })
+
+    it('should handle devices with special characters in labels', async () => {
+      const mockDevices = [
+        {
+          deviceId: 'mic-1',
+          kind: 'audioinput',
+          label: 'Microphone (USB Audio Device) #1',
+          groupId: 'g1',
+        },
+        { deviceId: 'cam-1', kind: 'videoinput', label: 'Webcam - HD Pro', groupId: 'g1' },
+      ]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      const { enumerateDevices } = useMediaDevices(ref(null), { autoEnumerate: false })
+
+      const devices = await enumerateDevices()
+
+      expect(devices[0].label).toBe('Microphone (USB Audio Device) #1')
+      expect(devices[1].label).toBe('Webcam - HD Pro')
+    })
+
+    it('should call setDevices with raw browser devices', async () => {
+      const mockDevices = [{ deviceId: 'mic-1', kind: 'audioinput', label: 'Mic', groupId: 'g1' }]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      const { enumerateDevices } = useMediaDevices(ref(null), { autoEnumerate: false })
+
+      await enumerateDevices()
+
+      // setDevices should be called with raw MediaDeviceInfo array
+      expect(mockDeviceStore.setDevices).toHaveBeenCalledWith(mockDevices)
+    })
+
+    it('should call setDevices with raw browser devices', async () => {
+      const mockDevices = [{ deviceId: 'mic-1', kind: 'audioinput', label: 'Mic', groupId: 'g1' }]
+      mockEnumerateDevices.mockResolvedValue(mockDevices)
+
+      const { enumerateDevices } = useMediaDevices(ref(null), { autoEnumerate: false })
+
+      await enumerateDevices()
+
+      // setDevices should be called with raw MediaDeviceInfo array
+      expect(mockDeviceStore.setDevices).toHaveBeenCalledWith(mockDevices)
+    })
+  })
 })
