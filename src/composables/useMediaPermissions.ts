@@ -8,7 +8,7 @@
  * @module composables/useMediaPermissions
  */
 
-import { ref, computed, onMounted, readonly } from 'vue'
+import { ref, computed, onMounted, readonly, type Ref, type ComputedRef } from 'vue'
 import { PermissionStatus } from '../types/media.types'
 import { createLogger } from '../utils/logger'
 
