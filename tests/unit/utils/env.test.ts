@@ -91,5 +91,83 @@ describe('utils/env', () => {
       const result = isDebugMode()
       expect(typeof result).toBe('boolean')
     })
+
+    it('should return true when VITE_DEBUG is set to "true" string', () => {
+      Object.defineProperty(globalThis, 'window', {
+        value: {},
+        writable: true,
+      })
+
+      // Mock import.meta.env
+      const originalImportMeta = globalThis.importMeta
+      globalThis.importMeta = {
+        env: {
+          VITE_DEBUG: 'true',
+        },
+      } as any
+
+      const result = isDebugMode()
+      expect(result).toBe(true)
+
+      // Restore
+      globalThis.importMeta = originalImportMeta
+    })
+
+    it('should return true when VITE_DEBUG is set to boolean true', () => {
+      Object.defineProperty(globalThis, 'window', {
+        value: {},
+        writable: true,
+      })
+
+      const originalImportMeta = globalThis.importMeta
+      globalThis.importMeta = {
+        env: {
+          VITE_DEBUG: true,
+        },
+      } as any
+
+      const result = isDebugMode()
+      expect(result).toBe(true)
+
+      globalThis.importMeta = originalImportMeta
+    })
+
+    it('should return true when MODE is "test"', () => {
+      Object.defineProperty(globalThis, 'window', {
+        value: {},
+        writable: true,
+      })
+
+      const originalImportMeta = globalThis.importMeta
+      globalThis.importMeta = {
+        env: {
+          MODE: 'test',
+        },
+      } as any
+
+      const result = isDebugMode()
+      expect(result).toBe(true)
+
+      globalThis.importMeta = originalImportMeta
+    })
+
+    it('should return true when TEST is true', () => {
+      Object.defineProperty(globalThis, 'window', {
+        value: {},
+        writable: true,
+      })
+
+      const originalImportMeta = globalThis.importMeta
+      globalThis.importMeta = {
+        env: {
+          TEST: true,
+        },
+      } as any
+
+      const result = isDebugMode()
+      expect(result).toBe(true)
+
+      globalThis.importMeta = originalImportMeta
+    })
   })
 })
