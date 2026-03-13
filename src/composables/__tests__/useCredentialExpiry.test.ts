@@ -353,7 +353,7 @@ describe('useCredentialExpiry', () => {
       const registration = createMockRegistration()
       const { authFailureCount } = useCredentialExpiry({
         registration,
-        authErrorCodes: [407, 511] as any,
+        authErrorCodes: [407, 511],
       })
 
       registration.lastError.value = '407 Proxy Authentication Required'
