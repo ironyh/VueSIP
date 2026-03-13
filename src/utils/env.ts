@@ -32,6 +32,15 @@ export function isProductionMode(): boolean {
 }
 
 /**
+ * Check if running in development environment
+ *
+ * @returns true if running in development mode (not production)
+ */
+export function isDevelopmentMode(): boolean {
+  return !isProductionMode()
+}
+
+/**
  * Check if debug mode is enabled
  *
  * Uses Vite environment variables (VITE_DEBUG) or build-time flags.
