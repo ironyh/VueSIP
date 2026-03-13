@@ -7,6 +7,31 @@
  */
 
 /**
+ * Check if running in production environment
+ *
+ * @returns true if running in production mode
+ */
+export function isProductionMode(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  try {
+    const meta = import.meta as {
+      env?: { MODE?: string; PROD?: boolean; VITE_PROD?: string | boolean }
+    }
+    // Check for Vite environment variable
+    if (meta.env?.MODE === 'production' || meta.env?.PROD || meta.env?.VITE_PROD === 'true') {
+      return true
+    }
+  } catch {
+    // import.meta not available
+  }
+
+  return false
+}
+
+/**
  * Check if debug mode is enabled
  *
  * Uses Vite environment variables (VITE_DEBUG) or build-time flags.
