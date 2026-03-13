@@ -49,8 +49,8 @@ describe('useMediaPermissions', () => {
     it('should start with NotRequested status', () => {
       const { audioStatus, videoStatus } = useMediaPermissions()
 
-      expect(audioStatus).toBe(PermissionStatus.NotRequested)
-      expect(videoStatus).toBe(PermissionStatus.NotRequested)
+      expect(audioStatus.value).toBe(PermissionStatus.NotRequested)
+      expect(videoStatus.value).toBe(PermissionStatus.NotRequested)
     })
 
     it('should have correct initial computed values', () => {

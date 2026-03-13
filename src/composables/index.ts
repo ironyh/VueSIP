@@ -30,6 +30,11 @@ export {
   type DeviceTestOptions,
 } from './useMediaDevices'
 export {
+  useMediaPermissions,
+  type UseMediaPermissionsReturn,
+  type PermissionCheckResult,
+} from './useMediaPermissions'
+export {
   useDTMF,
   type UseDTMFReturn,
   type DTMFSequenceOptions,
