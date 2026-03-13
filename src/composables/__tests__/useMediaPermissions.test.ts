@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
 import { useMediaPermissions } from '../useMediaPermissions'
 import { PermissionStatus } from '../../types/media.types'
 
@@ -25,6 +26,7 @@ describe('useMediaPermissions', () => {
     mockPermissionsQuery = vi.fn()
     mockGetUserMedia = vi.fn()
     mockEnumerateDevices = vi.fn()
+    setActivePinia(createPinia())
 
     // Reset navigator mocks
     Object.defineProperty(global, 'navigator', {
@@ -43,6 +45,7 @@ describe('useMediaPermissions', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    setActivePinia(undefined as any)
   })
 
   describe('initial state', () => {
@@ -142,6 +145,96 @@ describe('useMediaPermissions', () => {
     })
   })
 
+  describe('checkVideoPermission', () => {
+    it('should return granted when camera permission is granted', async () => {
+      mockPermissionsQuery.mockResolvedValue({
+        state: 'granted',
+        onchange: null,
+      })
+
+      const { checkVideoPermission, hasVideoPermission } = useMediaPermissions()
+      const result = await checkVideoPermission()
+
+      expect(result.granted).toBe(true)
+      expect(result.status).toBe(PermissionStatus.Granted)
+      expect(hasVideoPermission.value).toBe(true)
+      expect(result.message).toBe('Kameratillgång beviljad')
+    })
+
+    it('should return denied when camera permission is denied', async () => {
+      mockPermissionsQuery.mockResolvedValue({
+        state: 'denied',
+        onchange: null,
+      })
+
+      const { checkVideoPermission, hasVideoPermission } = useMediaPermissions()
+      const result = await checkVideoPermission()
+
+      expect(result.granted).toBe(false)
+      expect(result.status).toBe(PermissionStatus.Denied)
+      expect(hasVideoPermission.value).toBe(false)
+      expect(result.blocking).toBe(true)
+      expect(result.message).toContain('nekad')
+    })
+
+    it('should fallback to enumerateDevices when Permissions API unavailable', async () => {
+      Object.defineProperty(global.navigator, 'permissions', { value: undefined })
+
+      mockEnumerateDevices.mockResolvedValue([
+        { kind: 'videoinput', deviceId: 'cam1', label: 'Camera 1' },
+      ])
+
+      const { checkVideoPermission, hasVideoPermission } = useMediaPermissions()
+      await checkVideoPermission()
+
+      expect(hasVideoPermission.value).toBe(true)
+      expect(mockEnumerateDevices).toHaveBeenCalled()
+    })
+  })
+
+  describe('requestVideoPermission', () => {
+    it('should return granted when getUserMedia succeeds', async () => {
+      const mockStream = {
+        getTracks: vi.fn().mockReturnValue([{ stop: vi.fn() }]),
+      }
+      mockGetUserMedia.mockResolvedValue(mockStream)
+
+      const { requestVideoPermission, hasVideoPermission } = useMediaPermissions()
+      const result = await requestVideoPermission()
+
+      expect(result.granted).toBe(true)
+      expect(result.status).toBe(PermissionStatus.Granted)
+      expect(hasVideoPermission.value).toBe(true)
+      expect(mockGetUserMedia).toHaveBeenCalledWith({ video: true })
+    })
+
+    it('should return denied when user denies camera permission', async () => {
+      const error = new DOMException('Permission denied', 'NotAllowedError')
+      mockGetUserMedia.mockRejectedValue(error)
+
+      const { requestVideoPermission, hasVideoPermission } = useMediaPermissions()
+      const result = await requestVideoPermission()
+
+      expect(result.granted).toBe(false)
+      expect(result.status).toBe(PermissionStatus.Denied)
+      expect(hasVideoPermission.value).toBe(false)
+      expect(result.blocking).toBe(true)
+    })
+
+    it('should stop tracks after getting permission', async () => {
+      const mockTrack = { stop: vi.fn() }
+      const mockStream = {
+        getTracks: vi.fn().mockReturnValue([mockTrack]),
+      }
+      mockGetUserMedia.mockResolvedValue(mockStream)
+
+      const { requestVideoPermission } = useMediaPermissions()
+      await requestVideoPermission()
+
+      expect(mockTrack.stop).toHaveBeenCalled()
+    })
+  })
+
   describe('requestAudioPermission', () => {
     it('should return granted when getUserMedia succeeds', async () => {
       const mockStream = {
@@ -236,6 +329,43 @@ describe('useMediaPermissions', () => {
 
       expect(result.granted).toBe(false)
       expect(result.status).toBe(PermissionStatus.Denied)
+    })
+
+    it('should request video when video=true', async () => {
+      const mockStream = {
+        getTracks: vi.fn().mockReturnValue([{ stop: vi.fn() }]),
+      }
+      // First call audio, second call video
+      mockGetUserMedia.mockResolvedValueOnce(mockStream).mockResolvedValueOnce(mockStream)
+
+      const { requestCallPermissions } = useMediaPermissions()
+      const result = await requestCallPermissions(true)
+
+      expect(result.granted).toBe(true)
+      expect(mockGetUserMedia).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('isChecking state', () => {
+    it('should set isChecking during permission check', async () => {
+      mockPermissionsQuery.mockImplementation(() => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({ state: 'granted', onchange: null })
+          }, 10)
+        })
+      })
+
+      const { checkAudioPermission, isChecking } = useMediaPermissions()
+
+      const checkPromise = checkAudioPermission()
+      // Give microtask time to start
+      await new Promise((r) => setTimeout(r, 0))
+
+      expect(isChecking.value).toBe(true)
+
+      await checkPromise
+      expect(isChecking.value).toBe(false)
     })
   })
 
