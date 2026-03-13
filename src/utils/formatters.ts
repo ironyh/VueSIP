@@ -582,7 +582,16 @@ export function formatCallDirection(direction: string): string {
     outgoing: 'Outgoing',
   }
 
-  return directionMap[direction.toLowerCase()] || direction
+  const normalized = direction.toLowerCase()
+  const titleCase = directionMap[normalized]
+
+  if (!titleCase) return direction
+
+  // Preserve case style of input: uppercase stays uppercase, title case stays title case
+  if (direction === direction.toUpperCase()) {
+    return titleCase.toUpperCase()
+  }
+  return titleCase
 }
 
 /**
