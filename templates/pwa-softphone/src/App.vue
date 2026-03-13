@@ -12,6 +12,7 @@ import { usePhone } from './composables/usePhone'
 import { usePushNotifications } from './composables/usePushNotifications'
 import { usePwaInstall } from './composables/usePwaInstall'
 import { useTranscription } from 'vuesip'
+import { useMediaPermissions } from 'vuesip'
 import { useTranscriptPersistence } from './composables/useTranscriptPersistence'
 import { useCallRecording } from './composables/useCallRecording'
 import { useContacts } from './composables/useContacts'
@@ -36,6 +37,10 @@ const {
 
 // PWA install
 const { canInstall, promptInstall, isInstalled } = usePwaInstall()
+
+// Media permissions - early check to reduce first-call friction
+const { isReadyForCalls, readinessMessage, checkAllPermissions, requestCallPermissions } =
+  useMediaPermissions()
 
 // UI state
 const activeTab = ref<'dialpad' | 'history' | 'settings'>('dialpad')
@@ -346,7 +351,17 @@ onUnmounted(async () => {
 
 // Handle notification deep links (Phase 3 - SW notification actions)
 // URL params: ?notifAction=answer|decline|open&callId=<id>
-onMounted(() => {
+onMounted(async () => {
+  // Early permission check to reduce first-call friction
+  // Check permissions silently first
+  const { audio } = await checkAllPermissions()
+
+  // If not granted, request proactively before user tries to make a call
+  if (!audio.granted && audio.status !== 'denied') {
+    console.log('[VueSIP] Requesting microphone permission early...')
+    await requestCallPermissions()
+  }
+
   // Listen for visibility changes to clear stale status messages
   document.addEventListener('visibilitychange', handleVisibilityChange)
 
@@ -411,6 +426,17 @@ onMounted(() => {
                   : 'Offline'
             }}
           </span>
+        </div>
+        <!-- Permission status indicator -->
+        <div
+          v-if="!isReadyForCalls"
+          class="permission-indicator"
+          :class="{ denied: readinessMessage.includes('nekad') }"
+          :title="readinessMessage"
+          @click="requestCallPermissions()"
+        >
+          <span class="permission-icon">🎤</span>
+          <span class="permission-text">{{ readinessMessage }}</span>
         </div>
       </div>
     </header>
@@ -817,6 +843,37 @@ function formatDuration(seconds: number): string {
 .status-badge.connecting .status-dot {
   background: var(--color-warning);
   animation: pulse 1s infinite;
+}
+
+/* Permission indicator styles */
+.permission-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--color-warning);
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.permission-indicator:hover {
+  filter: brightness(1.1);
+}
+
+.permission-indicator.denied {
+  background: var(--color-danger);
+}
+
+.permission-icon {
+  font-size: 14px;
+}
+
+.permission-text {
+  color: #fff;
+  white-space: nowrap;
 }
 
 @keyframes pulse {
