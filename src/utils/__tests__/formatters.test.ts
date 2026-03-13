@@ -103,6 +103,50 @@ describe('formatDurationCompact', () => {
   test('handles negative values', () => {
     expect(formatDurationCompact(-10)).toBe('0:00')
   })
+
+  // Edge cases for compact call timer format
+  test('formats 59 seconds correctly', () => {
+    expect(formatDurationCompact(59)).toBe('0:59')
+  })
+
+  test('formats 60 seconds as 1:00', () => {
+    expect(formatDurationCompact(60)).toBe('1:00')
+  })
+
+  test('formats 59 minutes and 59 seconds', () => {
+    expect(formatDurationCompact(3599)).toBe('59:59')
+  })
+
+  test('formats 60 minutes as 1:00:00', () => {
+    expect(formatDurationCompact(3600)).toBe('1:00:00')
+  })
+
+  test('formats large hours correctly', () => {
+    expect(formatDurationCompact(7200)).toBe('2:00:00')
+    expect(formatDurationCompact(86400)).toBe('24:00:00')
+  })
+
+  test('handles Infinity', () => {
+    expect(formatDurationCompact(Infinity)).toBe('0:00')
+  })
+
+  test('handles NaN', () => {
+    expect(formatDurationCompact(NaN)).toBe('0:00')
+  })
+
+  test('handles non-finite numbers', () => {
+    expect(formatDurationCompact(-Infinity)).toBe('0:00')
+  })
+
+  test('handles very large numbers', () => {
+    // MAX_SAFE_INTEGER = 9007199254740991, which is ~2501999792983 hours
+    expect(formatDurationCompact(Number.MAX_SAFE_INTEGER)).toBe('2501999792983:36:31')
+  })
+
+  test('pads single digit minutes and seconds', () => {
+    expect(formatDurationCompact(61)).toBe('1:01')
+    expect(formatDurationCompact(3601)).toBe('1:00:01')
+  })
 })
 
 describe('formatSipUri', () => {
