@@ -76,3 +76,28 @@ export function isDebugMode(): boolean {
 
   return false
 }
+
+/**
+ * Check if running in a secure context (HTTPS or localhost)
+ *
+ * WebRTC and getUserMedia require a secure context.
+ * This utility helps detect whether the app can use these APIs.
+ *
+ * @returns true if running in a secure context
+ *
+ * @example
+ * ```typescript
+ * if (!isSecureContext()) {
+ *   console.warn('getUserMedia requires HTTPS or localhost')
+ * }
+ * ```
+ */
+export function isSecureContext(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  // Use the browser's built-in secure context check
+  // This returns true for HTTPS, wss://, and localhost (including file:// in some browsers)
+  return window.isSecureContext === true
+}

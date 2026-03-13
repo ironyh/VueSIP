@@ -158,4 +158,49 @@ describe('env utilities', () => {
       expect(result).toBe(true)
     })
   })
+
+  describe('isSecureContext', () => {
+    it('should return false when window is undefined (SSR)', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return true when window.isSecureContext is true', async () => {
+      const originalWindow = globalThis.window
+
+      globalThis.window = {
+        ...originalWindow,
+        isSecureContext: true,
+      } as Record<string, unknown>
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(true)
+    })
+
+    it('should return false when window.isSecureContext is false', async () => {
+      const originalWindow = globalThis.window
+
+      globalThis.window = {
+        ...originalWindow,
+        isSecureContext: false,
+      } as Record<string, unknown>
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+  })
 })
