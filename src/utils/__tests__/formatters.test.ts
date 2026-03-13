@@ -420,8 +420,11 @@ describe('formatCallDirection', () => {
   })
 
   test('handles case variations', () => {
-    expect(formatCallDirection('INCOMING')).toBe('INCOMING')
+    // formatCallDirection always returns title case regardless of input
+    expect(formatCallDirection('INCOMING')).toBe('Incoming')
     expect(formatCallDirection('Outgoing')).toBe('Outgoing')
+    expect(formatCallDirection('incoming')).toBe('Incoming')
+    expect(formatCallDirection('OUTGOING')).toBe('Outgoing')
   })
 })
 
