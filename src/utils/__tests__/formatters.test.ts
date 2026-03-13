@@ -9,6 +9,7 @@ import {
   formatDuration,
   formatDurationShort,
   formatDurationCompact,
+  formatMilliseconds,
   formatSipUri,
   parseSipUri,
   extractDisplayName,
@@ -455,5 +456,42 @@ describe('extractSipDomain', () => {
 
   test('handles empty string', () => {
     expect(extractSipDomain('')).toBeNull()
+  })
+})
+
+describe('formatMilliseconds', () => {
+  test('formats milliseconds less than 1 second', () => {
+    expect(formatMilliseconds(50)).toBe('50.0ms')
+    expect(formatMilliseconds(0)).toBe('0.0ms')
+    expect(formatMilliseconds(999)).toBe('999.0ms')
+  })
+
+  test('formats seconds', () => {
+    expect(formatMilliseconds(1000)).toBe('1.0s')
+    expect(formatMilliseconds(1500)).toBe('1.5s')
+    expect(formatMilliseconds(59999)).toBe('60.0s')
+  })
+
+  test('formats minutes', () => {
+    expect(formatMilliseconds(60000)).toBe('1m')
+    expect(formatMilliseconds(65000)).toBe('1m 5.0s')
+    expect(formatMilliseconds(3599999)).toBe('59m 60.0s')
+  })
+
+  test('formats hours', () => {
+    expect(formatMilliseconds(3600000)).toBe('1h')
+    expect(formatMilliseconds(3665000)).toBe('1h 1m')
+    expect(formatMilliseconds(7323000)).toBe('2h 2m')
+  })
+
+  test('handles custom precision', () => {
+    expect(formatMilliseconds(1500, 0)).toBe('2s')
+    expect(formatMilliseconds(1500, 2)).toBe('1.50s')
+  })
+
+  test('handles edge cases', () => {
+    expect(formatMilliseconds(-1)).toBe('0ms')
+    expect(formatMilliseconds(Infinity)).toBe('0ms')
+    expect(formatMilliseconds(NaN)).toBe('0ms')
   })
 })

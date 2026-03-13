@@ -104,6 +104,56 @@ export function formatDurationCompact(seconds: number): string {
 }
 
 /**
+ * Formats milliseconds to a human-readable duration string
+ *
+ * Useful for WebRTC stats (jitter, latency, etc.) where values are in milliseconds
+ *
+ * @param ms - Duration in milliseconds
+ * @param precision - Number of decimal places (default: 1)
+ * @returns Formatted duration string
+ *
+ * @example
+ * ```typescript
+ * formatMilliseconds(50)      // "50.0ms"
+ * formatMilliseconds(1500)     // "1.5s"
+ * formatMilliseconds(65000)   // "1m 5.0s"
+ * formatMilliseconds(3665000) // "1h 1m 5.0s"
+ * ```
+ */
+export function formatMilliseconds(ms: number, precision = 1): string {
+  if (!Number.isFinite(ms) || ms < 0) {
+    return '0ms'
+  }
+
+  if (ms < 1000) {
+    return `${ms.toFixed(precision)}ms`
+  }
+
+  const seconds = ms / 1000
+
+  if (seconds < 60) {
+    return `${seconds.toFixed(precision)}s`
+  }
+
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+
+  if (minutes < 60) {
+    return remainingSeconds > 0
+      ? `${minutes}m ${remainingSeconds.toFixed(precision)}s`
+      : `${minutes}m`
+  }
+
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+
+  if (remainingMinutes > 0) {
+    return `${hours}h ${remainingMinutes}m`
+  }
+  return `${hours}h`
+}
+
+/**
  * Formats a SIP URI for display
  *
  * Extracts and formats the display name and user@domain from a SIP URI
