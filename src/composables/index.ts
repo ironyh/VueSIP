@@ -116,6 +116,7 @@ export {
   type UseCredentialExpiryReturn,
 } from './useCredentialExpiry'
 export { useSessionPersistence } from './useSessionPersistence'
+export { useSettings, type UseSettingsReturn } from './useSettings'
 
 export {
   useNotifications,
@@ -191,7 +192,7 @@ export {
   type UseAudioDeviceSwitchReturn,
 } from './useAudioDeviceSwitch'
 export { useMultiLine } from './useMultiLine'
-export { useDialog } from './useDialog'
+export { useDialog, type UseDialogReturn } from './useDialog'
 export { useFreePBXPresence } from './useFreePBXPresence'
 export {
   usePictureInPicture,
