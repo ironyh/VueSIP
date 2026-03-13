@@ -183,7 +183,7 @@ export {
   type WaitingCall,
   type CallWaitingOptions,
 } from './useCallWaiting'
-export { useAudioDevices } from './useAudioDevices'
+export { useAudioDevices, type UseAudioDevicesReturn } from './useAudioDevices'
 export {
   useAudioDeviceSwitch,
   type AudioDevicesForSwitch,
