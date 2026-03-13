@@ -7,6 +7,24 @@
  */
 
 /**
+ * Check if running in a browser environment (vs Node.js/server-side)
+ *
+ * Useful for code that needs to run differently in browser vs server contexts.
+ *
+ * @returns true if running in a browser environment
+ *
+ * @example
+ * ```typescript
+ * if (isBrowser()) {
+ *   // Access window, document, navigator, etc.
+ * }
+ * ```
+ */
+export function isBrowser(): boolean {
+  return typeof window !== 'undefined'
+}
+
+/**
  * Check if running in production environment
  *
  * @returns true if running in production mode
