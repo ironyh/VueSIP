@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { formatDuration, formatDurationShort } from '@/utils/formatters'
+import { formatDuration, formatDurationShort, formatDurationCompact } from '@/utils/formatters'
 
 describe('formatDuration', () => {
   it('should format zero seconds', () => {
@@ -54,5 +54,42 @@ describe('formatDurationShort', () => {
 
   it('should handle negative values', () => {
     expect(formatDurationShort(-10)).toBe('0s')
+  })
+})
+
+describe('formatDurationCompact', () => {
+  it('should format zero as 0:00', () => {
+    expect(formatDurationCompact(0)).toBe('0:00')
+  })
+
+  it('should format seconds only without leading zero on minutes', () => {
+    expect(formatDurationCompact(5)).toBe('0:05')
+    expect(formatDurationCompact(30)).toBe('0:30')
+    expect(formatDurationCompact(59)).toBe('0:59')
+  })
+
+  it('should format minutes and seconds', () => {
+    expect(formatDurationCompact(65)).toBe('1:05')
+    expect(formatDurationCompact(600)).toBe('10:00')
+    expect(formatDurationCompact(3599)).toBe('59:59')
+  })
+
+  it('should format hours with full HH:MM:SS', () => {
+    expect(formatDurationCompact(3600)).toBe('1:00:00')
+    expect(formatDurationCompact(3665)).toBe('1:01:05')
+    expect(formatDurationCompact(7200)).toBe('2:00:00')
+    expect(formatDurationCompact(86399)).toBe('23:59:59')
+  })
+
+  it('should handle negative values', () => {
+    expect(formatDurationCompact(-10)).toBe('0:00')
+  })
+
+  it('should handle Infinity', () => {
+    expect(formatDurationCompact(Infinity)).toBe('0:00')
+  })
+
+  it('should handle NaN', () => {
+    expect(formatDurationCompact(NaN)).toBe('0:00')
   })
 })
