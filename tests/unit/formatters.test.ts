@@ -389,6 +389,9 @@ describe('formatters', () => {
 
     it('should handle case insensitivity', () => {
       expect(formatCallDirection('INCOMING')).toBe('Incoming')
+      expect(formatCallDirection('incoming')).toBe('Incoming')
+      expect(formatCallDirection('OUTGOING')).toBe('Outgoing')
+      expect(formatCallDirection('outgoing')).toBe('Outgoing')
     })
   })
 })
