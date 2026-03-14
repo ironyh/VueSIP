@@ -398,10 +398,79 @@ export function usePhone() {
     clientRef
   )
 
-  // useMediaDevices does not implement AudioDevicesForSwitch; optional features (e.g. mid-call switch) skipped
+  // Adapter to satisfy AudioDevicesForSwitch interface requirements
+  // useMediaDevices returns MediaDevice[] but useAudioDeviceSwitch expects AudioDevice[]
+  const audioDevicesAdapter = {
+    get currentMicrophone() {
+      const id = selectedAudioInputId.value
+      const devices = [...audioInputDevices.value] as Array<{
+        deviceId: string
+        label: string
+        kind: string
+      }>
+      if (!id || !devices) return null
+      const found = devices.find((d) => d.deviceId === id)
+      return found
+        ? {
+            deviceId: found.deviceId,
+            label: found.label,
+            kind: found.kind as 'audioinput' | 'audiooutput' | 'videoinput',
+          }
+        : null
+    },
+    get currentSpeaker() {
+      const id = selectedAudioOutputId.value
+      const devices = [...audioOutputDevices.value] as Array<{
+        deviceId: string
+        label: string
+        kind: string
+      }>
+      if (!id || !devices) return null
+      const found = devices.find((d) => d.deviceId === id)
+      return found
+        ? {
+            deviceId: found.deviceId,
+            label: found.label,
+            kind: found.kind as 'audioinput' | 'audiooutput' | 'videoinput',
+          }
+        : null
+    },
+    getMicrophoneById: (deviceId: string) => {
+      const devices = [...audioInputDevices.value] as Array<{
+        deviceId: string
+        label: string
+        kind: string
+      }>
+      const found = devices?.find((d) => d.deviceId === deviceId)
+      return found
+        ? {
+            deviceId: found.deviceId,
+            label: found.label,
+            kind: found.kind as 'audioinput' | 'audiooutput' | 'videoinput',
+          }
+        : undefined
+    },
+    getSpeakerById: (deviceId: string) => {
+      const devices = [...audioOutputDevices.value] as Array<{
+        deviceId: string
+        label: string
+        kind: string
+      }>
+      const found = devices?.find((d) => d.deviceId === deviceId)
+      return found
+        ? {
+            deviceId: found.deviceId,
+            label: found.label,
+            kind: found.kind as 'audioinput' | 'audiooutput' | 'videoinput',
+          }
+        : undefined
+    },
+  }
+
+  // Audio device switch for mid-call device changes
   const audioSwitch = useAudioDeviceSwitch(
     computed(() => callSession.session.value),
-    mediaDevices as any
+    audioDevicesAdapter as any
   )
 
   async function selectAudioInput(deviceId: string) {
