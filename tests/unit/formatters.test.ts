@@ -385,7 +385,7 @@ describe('formatters', () => {
     })
 
     it('should handle unknown direction', () => {
-      expect(formatCallDirection('unknown')).toBe('unknown')
+      expect(formatCallDirection('unknown')).toBe('Unknown')
     })
 
     it('should handle case insensitivity', () => {

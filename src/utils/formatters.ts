@@ -654,7 +654,10 @@ export function formatCallDirection(direction: string): string {
   }
 
   const normalized = direction.toLowerCase()
-  return directionMap[normalized] ?? direction
+  // Return title case for known directions, or capitalize first letter of unknown
+  return (
+    directionMap[normalized] ?? direction.charAt(0).toUpperCase() + direction.slice(1).toLowerCase()
+  )
 }
 
 /**

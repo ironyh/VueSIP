@@ -415,7 +415,7 @@ describe('formatCallDirection', () => {
   })
 
   test('handles unknown direction gracefully', () => {
-    expect(formatCallDirection('unknown')).toBe('unknown')
+    expect(formatCallDirection('unknown')).toBe('Unknown')
     expect(formatCallDirection('')).toBe('')
   })
 
