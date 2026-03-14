@@ -8,6 +8,7 @@
  */
 import { ref, computed, watch, onUnmounted, type Ref } from 'vue'
 import type { CallSession } from '@/types/call.types'
+import type { DtmfSessionSource } from './useDTMF'
 
 /**
  * Call quality statistics
@@ -140,13 +141,13 @@ export function useCallQualityStats(
     if (!session) return null
 
     // Access peer connection through session data or connection property
-    const conn = (session as any).connection
+    const conn = (session as DtmfSessionSource).connection
     if (conn instanceof RTCPeerConnection) {
       return conn
     }
 
     // Fallback: try to access through sessionDescriptionHandler (JsSIP pattern)
-    const sdh = (session as any).sessionDescriptionHandler
+    const sdh = (session as DtmfSessionSource).sessionDescriptionHandler
     if (sdh?.peerConnection instanceof RTCPeerConnection) {
       return sdh.peerConnection
     }
