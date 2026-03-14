@@ -26,7 +26,7 @@ export * from './storageQuota'
 
 // Re-export environment utilities
 export * from './env'
-export { isMobileDevice } from './env'
+export { isMobileDevice, isIOS, isAndroid, getBrowserName, getOS } from './env'
 
 // Re-export E911 utilities
 export * from './e911'

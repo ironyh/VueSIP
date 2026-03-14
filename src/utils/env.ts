@@ -158,3 +158,131 @@ export function isMobileDevice(): boolean {
 
   return mobilePatterns.some((pattern) => pattern.test(userAgent))
 }
+
+/**
+ * Check if running on an iOS device (iPhone, iPad, iPod)
+ *
+ * @returns true if running on an iOS device
+ *
+ * @example
+ * ```typescript
+ * if (isIOS()) {
+ *   // iOS-specific handling (Safari, WebKit quirks)
+ * }
+ * ```
+ */
+export function isIOS(): boolean {
+  if (typeof window === 'undefined' || !navigator) {
+    return false
+  }
+
+  const userAgent = navigator.userAgent || ''
+  return /iPhone|iPad|iPod/i.test(userAgent)
+}
+
+/**
+ * Check if running on an Android device
+ *
+ * @returns true if running on an Android device
+ *
+ * @example
+ * ```typescript
+ * if (isAndroid()) {
+ *   // Android-specific handling
+ * }
+ * ```
+ */
+export function isAndroid(): boolean {
+  if (typeof window === 'undefined' || !navigator) {
+    return false
+  }
+
+  const userAgent = navigator.userAgent || ''
+  return /Android/i.test(userAgent)
+}
+
+/**
+ * Get the current browser name
+ *
+ * @returns browser name string ('chrome', 'firefox', 'safari', 'edge', 'opera', 'unknown')
+ *
+ * @example
+ * ```typescript
+ * const browser = getBrowserName()
+ * if (browser === 'safari') {
+ *   // Safari-specific handling
+ * }
+ * ```
+ */
+export function getBrowserName(): 'chrome' | 'firefox' | 'safari' | 'edge' | 'opera' | 'unknown' {
+  if (typeof window === 'undefined' || !navigator) {
+    return 'unknown'
+  }
+
+  const userAgent = navigator.userAgent || ''
+
+  // Order matters: Opera must be checked before Chrome
+  // Edge must be checked before Chrome
+  if (/OPR|Opera/i.test(userAgent)) {
+    return 'opera'
+  }
+  if (/Edg/i.test(userAgent)) {
+    return 'edge'
+  }
+  if (/Chrome/i.test(userAgent)) {
+    return 'chrome'
+  }
+  if (/Safari/i.test(userAgent) && !/Chrome/i.test(userAgent)) {
+    return 'safari'
+  }
+  if (/Firefox/i.test(userAgent)) {
+    return 'firefox'
+  }
+
+  return 'unknown'
+}
+
+/**
+ * Get the current operating system
+ *
+ * @returns OS name string ('windows', 'mac', 'linux', 'android', 'ios', 'unknown')
+ *
+ * @example
+ * ```typescript
+ * const os = getOS()
+ * if (os === 'windows') {
+ *   // Windows-specific handling
+ * }
+ * ```
+ */
+export function getOS(): 'windows' | 'mac' | 'linux' | 'android' | 'ios' | 'unknown' {
+  if (typeof window === 'undefined' || !navigator) {
+    return 'unknown'
+  }
+
+  const userAgent = navigator.userAgent || ''
+  const platform = navigator.platform || ''
+
+  // Check for iOS first (before Mac)
+  if (/iPhone|iPad|iPod/i.test(userAgent)) {
+    return 'ios'
+  }
+  // Check for Android
+  if (/Android/i.test(userAgent)) {
+    return 'android'
+  }
+  // Check for Mac
+  if (/Mac/i.test(platform) || /Mac/i.test(userAgent)) {
+    return 'mac'
+  }
+  // Check for Windows
+  if (/Win/i.test(platform) || /Win/i.test(userAgent)) {
+    return 'windows'
+  }
+  // Check for Linux
+  if (/Linux/i.test(platform) || /Linux/i.test(userAgent)) {
+    return 'linux'
+  }
+
+  return 'unknown'
+}
