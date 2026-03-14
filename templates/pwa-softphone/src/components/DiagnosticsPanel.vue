@@ -30,7 +30,7 @@ async function refreshDiagnostics() {
         version: '1.0.0',
         connection: pd.connection || { state: 'unknown', reconnectAttempts: 0 },
         registration: pd.registration || { state: 'unknown' },
-        media: {
+        media: pd.media || {
           microphone: { deviceId: '', label: 'Not available', isActive: false },
           speaker: { deviceId: '', label: 'Not available', isActive: false },
           permissionGranted: false,
@@ -38,10 +38,23 @@ async function refreshDiagnostics() {
         },
         calls: pd.calls || { activeCalls: 0, calls: [] },
         summary: {
-          isHealthy: pd.connection?.state === 'connected',
-          issues: pd.connection?.state !== 'connected' ? ['Not connected'] : [],
-          recommendations:
-            pd.connection?.state !== 'connected' ? ['Check SIP server configuration'] : [],
+          isHealthy:
+            pd.connection?.state === 'connected' && pd.registration?.state === 'registered',
+          issues: [
+            ...(pd.connection?.state !== 'connected' ? ['Not connected to SIP server'] : []),
+            ...(pd.registration?.state !== 'registered' ? ['Not registered'] : []),
+            ...(pd.media && !pd.media.permissionGranted
+              ? ['Microphone permission not granted']
+              : []),
+            ...(pd.lastFailure ? [`Last call failed: ${pd.lastFailure.explanation}`] : []),
+          ],
+          recommendations: [
+            ...(pd.connection?.state !== 'connected' ? ['Check SIP server configuration'] : []),
+            ...(pd.media && !pd.media.permissionGranted
+              ? ['Grant microphone permission for calls']
+              : []),
+            ...(pd.lastFailure?.suggestions || []),
+          ],
         },
       }
     } else {
@@ -211,6 +224,23 @@ defineExpose({ refreshDiagnostics, startAutoRefresh, stopAutoRefresh })
           <div class="diag-item">
             <span class="label">Active:</span>
             <span class="value">{{ diagnostics.calls.activeCalls }}</span>
+          </div>
+        </div>
+
+        <!-- Last Call Failure -->
+        <div v-if="phoneDiagnostics?.lastFailure" class="diag-section failure">
+          <h4>🔴 Last Call Failure</h4>
+          <div class="diag-item">
+            <span class="label">Cause:</span>
+            <span class="value">{{ phoneDiagnostics.lastFailure.cause }}</span>
+          </div>
+          <div class="diag-item">
+            <span class="label">Details:</span>
+            <span class="value">{{ phoneDiagnostics.lastFailure.explanation }}</span>
+          </div>
+          <div v-if="phoneDiagnostics.lastFailure.responseCode" class="diag-item">
+            <span class="label">SIP Code:</span>
+            <span class="value">{{ phoneDiagnostics.lastFailure.responseCode }}</span>
           </div>
         </div>
 
@@ -411,6 +441,11 @@ defineExpose({ refreshDiagnostics, startAutoRefresh, stopAutoRefresh })
 .diag-section.issues,
 .diag-section.recommendations {
   background: var(--bg-primary);
+}
+
+.diag-section.failure {
+  background: rgba(197, 48, 48, 0.1);
+  border: 1px solid var(--color-error);
 }
 
 .diag-section.issues ul,
