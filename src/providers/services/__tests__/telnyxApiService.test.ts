@@ -73,7 +73,7 @@ describe('telnyxApiService', () => {
       })
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('page[size]=10'),
+        expect.stringContaining('page%5Bsize%5D=10'),
         expect.any(Object)
       )
     })
