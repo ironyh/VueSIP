@@ -467,10 +467,12 @@ export function useCallQualityHistory(
     let result = [...records.value]
 
     if (options.from) {
-      result = result.filter((r) => r.startedAt >= (options.from as number))
+      const fromTime = options.from.getTime()
+      result = result.filter((r) => r.startedAt.getTime() >= fromTime)
     }
     if (options.to) {
-      result = result.filter((r) => r.startedAt <= (options.to as number))
+      const toTime = options.to.getTime()
+      result = result.filter((r) => r.startedAt.getTime() <= toTime)
     }
     if (options.minQuality) {
       const qualityRanking: Record<QualityLevel, number> = {
