@@ -278,7 +278,7 @@ export function useCallQualityHistory(
     }
 
     const completed = all.filter((r) => r.durationSeconds !== null && r.durationSeconds > 0)
-    const durations = completed.map((r) => r.durationSeconds!)
+    const durations = completed.map((r) => r.durationSeconds as number)
     const avgDuration =
       durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : null
 
@@ -467,10 +467,10 @@ export function useCallQualityHistory(
     let result = [...records.value]
 
     if (options.from) {
-      result = result.filter((r) => r.startedAt >= options.from!)
+      result = result.filter((r) => r.startedAt >= (options.from as number))
     }
     if (options.to) {
-      result = result.filter((r) => r.startedAt <= options.to!)
+      result = result.filter((r) => r.startedAt <= (options.to as number))
     }
     if (options.minQuality) {
       const qualityRanking: Record<QualityLevel, number> = {

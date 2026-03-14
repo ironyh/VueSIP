@@ -3,6 +3,7 @@ import { ref, computed, toRef } from 'vue'
 import type { MediaDevice } from 'vuesip'
 import Elks46OutboundSettings from './Elks46OutboundSettings.vue'
 import TranscriptionSettingsSection from './TranscriptionSettingsSection.vue'
+import CallQualityHistory from './CallQualityHistory.vue'
 import { useAudioDeviceTest } from '../composables/useAudioDeviceTest'
 
 type SettingsCategory =
@@ -227,22 +228,7 @@ function handleDisconnect() {
 
       <!-- Calls Settings -->
       <div v-if="activeCategory === 'calls'" class="category-content">
-        <div class="settings-section">
-          <h3 class="section-header">
-            <span class="section-icon">📞</span>
-            <span>Call Settings</span>
-          </h3>
-
-          <div class="section-content">
-            <div class="setting-item">
-              <div class="setting-info">
-                <label>Call Settings</label>
-                <p class="setting-hint">Configure call behavior and preferences</p>
-              </div>
-              <p class="coming-soon">Coming soon</p>
-            </div>
-          </div>
-        </div>
+        <CallQualityHistory />
       </div>
 
       <!-- Transcription Settings -->
