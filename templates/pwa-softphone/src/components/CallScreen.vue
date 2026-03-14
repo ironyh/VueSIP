@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, inject } from 'vue'
-import { useCallQualityStats, type CallQualityStats } from 'vuesip'
+import { ref, computed } from 'vue'
+import { useCallQualityStats } from 'vuesip'
 import type { CallSession } from '@/types/call.types'
 
 const props = defineProps<{
@@ -30,7 +30,7 @@ const showStats = ref(false)
 
 // Call quality stats - only when session is available
 const sessionRef = computed(() => props.session)
-const { stats, qualityLevel, isCollecting } = useCallQualityStats(sessionRef)
+const { stats, qualityLevel } = useCallQualityStats(sessionRef)
 
 const formattedDuration = computed(() => {
   const mins = Math.floor(props.duration / 60)

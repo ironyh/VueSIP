@@ -985,11 +985,8 @@ export function usePhone() {
 
       // Media device info from useMediaDevices
       const micDevices = audioInputDevices.value || []
-      const selectedMic = micDevices.find(
-        (d: MediaDeviceInfo) => d.deviceId === selectedAudioInputId.value
-      )
-      const hasPermission =
-        micDevices.length > 0 && micDevices.some((d: MediaDeviceInfo) => d.label !== '')
+      const selectedMic = micDevices.find((d) => d.deviceId === selectedAudioInputId.value)
+      const hasPermission = micDevices.length > 0 && micDevices.some((d) => d.label !== '')
 
       return {
         connection: {
@@ -1013,7 +1010,7 @@ export function usePhone() {
             isActive: true,
           },
           permissionGranted: hasPermission,
-          devicesAvailable: micDevices.map((d: MediaDeviceInfo) => ({
+          devicesAvailable: micDevices.map((d) => ({
             deviceId: d.deviceId,
             label: d.label || `Microphone ${d.deviceId.slice(0, 8)}`,
           })),

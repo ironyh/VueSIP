@@ -50,7 +50,6 @@ const statusMessage = ref('')
 const selectedCallId = ref<string | null>(null)
 const showCallDetail = ref(false)
 const historySearchQuery = ref('')
-const showDiagnostics = ref(false)
 
 // Persistence
 const transcriptPersistence = useTranscriptPersistence()
