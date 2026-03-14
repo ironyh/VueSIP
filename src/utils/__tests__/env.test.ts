@@ -203,4 +203,237 @@ describe('env utilities', () => {
       expect(result).toBe(false)
     })
   })
+
+  describe('isIOS', () => {
+    it('should return false when window is undefined', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { isIOS } = await import('../env')
+      const result = isIOS()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return true for iPhone user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
+      })
+
+      const { isIOS } = await import('../env')
+      expect(isIOS()).toBe(true)
+    })
+
+    it('should return true for iPad user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
+      })
+
+      const { isIOS } = await import('../env')
+      expect(isIOS()).toBe(true)
+    })
+
+    it('should return false for Android user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36',
+      })
+
+      const { isIOS } = await import('../env')
+      expect(isIOS()).toBe(false)
+    })
+
+    it('should return false for desktop user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      })
+
+      const { isIOS } = await import('../env')
+      expect(isIOS()).toBe(false)
+    })
+  })
+
+  describe('isAndroid', () => {
+    it('should return false when window is undefined', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { isAndroid } = await import('../env')
+      const result = isAndroid()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return true for Android user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36',
+      })
+
+      const { isAndroid } = await import('../env')
+      expect(isAndroid()).toBe(true)
+    })
+
+    it('should return false for iOS user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)',
+      })
+
+      const { isAndroid } = await import('../env')
+      expect(isAndroid()).toBe(false)
+    })
+
+    it('should return false for desktop user agent', async () => {
+      vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' })
+
+      const { isAndroid } = await import('../env')
+      expect(isAndroid()).toBe(false)
+    })
+  })
+
+  describe('getBrowserName', () => {
+    it('should return unknown when window is undefined', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { getBrowserName } = await import('../env')
+      const result = getBrowserName()
+
+      globalThis.window = originalWindow
+      expect(result).toBe('unknown')
+    })
+
+    it('should return chrome for Chrome user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      })
+
+      const { getBrowserName } = await import('../env')
+      expect(getBrowserName()).toBe('chrome')
+    })
+
+    it('should return firefox for Firefox user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+      })
+
+      const { getBrowserName } = await import('../env')
+      expect(getBrowserName()).toBe('firefox')
+    })
+
+    it('should return safari for Safari user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent:
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+      })
+
+      const { getBrowserName } = await import('../env')
+      expect(getBrowserName()).toBe('safari')
+    })
+
+    it('should return edge for Edge user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+      })
+
+      const { getBrowserName } = await import('../env')
+      expect(getBrowserName()).toBe('edge')
+    })
+
+    it('should return opera for Opera user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent:
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0',
+      })
+
+      const { getBrowserName } = await import('../env')
+      expect(getBrowserName()).toBe('opera')
+    })
+
+    it('should return chrome when both Chrome and Safari in user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent:
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      })
+
+      const { getBrowserName } = await import('../env')
+      expect(getBrowserName()).toBe('chrome')
+    })
+  })
+
+  describe('getOS', () => {
+    it('should return unknown when window is undefined', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { getOS } = await import('../env')
+      const result = getOS()
+
+      globalThis.window = originalWindow
+      expect(result).toBe('unknown')
+    })
+
+    it('should return windows for Windows user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        platform: 'Win32',
+      })
+
+      const { getOS } = await import('../env')
+      expect(getOS()).toBe('windows')
+    })
+
+    it('should return mac for Mac user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        platform: 'MacIntel',
+      })
+
+      const { getOS } = await import('../env')
+      expect(getOS()).toBe('mac')
+    })
+
+    it('should return linux for Linux user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (X11; Linux x86_64)',
+        platform: 'Linux x86_64',
+      })
+
+      const { getOS } = await import('../env')
+      expect(getOS()).toBe('linux')
+    })
+
+    it('should return ios for iPhone user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)',
+        platform: 'iPhone',
+      })
+
+      const { getOS } = await import('../env')
+      expect(getOS()).toBe('ios')
+    })
+
+    it('should return ios for iPad user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X)',
+        platform: 'iPad',
+      })
+
+      const { getOS } = await import('../env')
+      expect(getOS()).toBe('ios')
+    })
+
+    it('should return android for Android user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7)',
+        platform: 'Linux aarch64',
+      })
+
+      const { getOS } = await import('../env')
+      expect(getOS()).toBe('android')
+    })
+  })
 })
