@@ -884,6 +884,7 @@ export class SipClient {
             calledNumberCandidates: calledIdentity.candidates,
             calledNumberDialed: calledIdentity.dialed,
             calledNumberTarget: calledIdentity.target,
+            rtcConfiguration: this.config.rtcConfiguration,
           }
         )
 
