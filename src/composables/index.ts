@@ -56,6 +56,13 @@ export {
   type UseQualityAlertsOptions,
 } from './useQualityAlerts'
 export {
+  useCallQualityHistory,
+  type UseCallQualityHistoryReturn,
+  type CallQualityRecord,
+  type QualitySnapshot,
+  type UseCallQualityHistoryOptions,
+} from './useCallQualityHistory'
+export {
   useDTMF,
   type UseDTMFReturn,
   type DTMFSequenceOptions,
