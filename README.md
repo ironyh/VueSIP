@@ -371,6 +371,25 @@ pnpm lint
 
 Requires WebRTC and modern JavaScript support.
 
+## Environment Detection
+
+VueSip provides browser and OS detection utilities for responsive UI implementations:
+
+```typescript
+import { isIOS, isAndroid, isMobileDevice, getBrowserName, getOS } from 'vuesip'
+
+// Device type detection
+isIOS() // Returns true on iOS Safari/WebView
+isAndroid() // Returns true on Android Chrome/WebView
+isMobileDevice() // Returns true on any mobile device
+
+// Browser detection
+getBrowserName() // Returns: 'chrome' | 'firefox' | 'safari' | 'edge' | 'opera' | 'unknown'
+
+// OS detection
+getOS() // Returns: 'windows' | 'mac' | 'linux' | 'android' | 'ios' | 'unknown'
+```
+
 ## Architecture
 
 SIP is accessed via an adapter (JsSIP implemented; SIP.js planned). VueSip follows the **headless component pattern**:
