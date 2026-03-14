@@ -436,4 +436,91 @@ describe('env utilities', () => {
       expect(getOS()).toBe('android')
     })
   })
+
+  describe('isBrowser', () => {
+    it('should return false when window is undefined (Node.js/SSR)', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { isBrowser } = await import('../env')
+      const result = isBrowser()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return true when window is defined', async () => {
+      vi.stubGlobal('window', {})
+
+      const { isBrowser } = await import('../env')
+      expect(isBrowser()).toBe(true)
+    })
+  })
+
+  describe('isMobileDevice', () => {
+    it('should return false when window is undefined', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { isMobileDevice } = await import('../env')
+      const result = isMobileDevice()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return true for Android user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36',
+      })
+
+      const { isMobileDevice } = await import('../env')
+      expect(isMobileDevice()).toBe(true)
+    })
+
+    it('should return true for iPhone user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)',
+      })
+
+      const { isMobileDevice } = await import('../env')
+      expect(isMobileDevice()).toBe(true)
+    })
+
+    it('should return true for iPad user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X)',
+      })
+
+      const { isMobileDevice } = await import('../env')
+      expect(isMobileDevice()).toBe(true)
+    })
+
+    it('should return false for desktop user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      })
+
+      const { isMobileDevice } = await import('../env')
+      expect(isMobileDevice()).toBe(false)
+    })
+
+    it('should return true for BlackBerry user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Mozilla/5.0 (BlackBerry; U; BlackBerry 9900)',
+      })
+
+      const { isMobileDevice } = await import('../env')
+      expect(isMobileDevice()).toBe(true)
+    })
+
+    it('should return true for Opera Mini user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: 'Opera/9.80 (Android; Opera Mini/36.2.2254)',
+      })
+
+      const { isMobileDevice } = await import('../env')
+      expect(isMobileDevice()).toBe(true)
+    })
+  })
 })
