@@ -60,7 +60,9 @@ export {
   type UseCallQualityHistoryReturn,
   type CallQualityRecord,
   type QualitySnapshot,
-  type UseCallQualityHistoryOptions,
+  type HistoryStorageConfig,
+  type HistoryQueryOptions,
+  type QualityAggregates,
 } from './useCallQualityHistory'
 export {
   useDTMF,
