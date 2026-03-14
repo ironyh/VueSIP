@@ -457,6 +457,37 @@ describe('env utilities', () => {
     })
   })
 
+  describe('isProductionMode - edge cases', () => {
+    it('should return false when import.meta.env throws', async () => {
+      // Test the catch block in isProductionMode
+      const originalWindow = globalThis.window
+      globalThis.window = {
+        isSecureContext: true,
+      } as Record<string, unknown>
+
+      // Make import.meta.env throw by making it undefined when accessed
+      const originalMeta = Object.getOwnPropertyDescriptor(import.meta, 'env')
+      Object.defineProperty(import.meta, 'env', {
+        get() {
+          throw new Error('import.meta.env not available')
+        },
+        configurable: true,
+      })
+
+      vi.resetModules()
+      const { isProductionMode } = await import('../env')
+      const result = isProductionMode()
+
+      // Restore
+      globalThis.window = originalWindow
+      if (originalMeta) {
+        Object.defineProperty(import.meta, 'env', originalMeta)
+      }
+
+      expect(result).toBe(false)
+    })
+  })
+
   describe('isMobileDevice', () => {
     it('should return false when window is undefined', async () => {
       const originalWindow = globalThis.window
