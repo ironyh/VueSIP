@@ -42,6 +42,13 @@ export {
   type TestType,
 } from './useConnectionTest'
 export {
+  useCallQualityStats,
+  type UseCallQualityStatsReturn,
+  type CallQualityStats,
+  type QualityLevel,
+  type UseCallQualityStatsOptions,
+} from './useCallQualityStats'
+export {
   useDTMF,
   type UseDTMFReturn,
   type DTMFSequenceOptions,

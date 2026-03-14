@@ -461,6 +461,7 @@ onMounted(async () => {
           :status-line1="phone.callStatusLine1.value"
           :status-line2="phone.callStatusLine2.value"
           :called-line="phone.calledLine.value"
+          :session="phone.session?.value"
           @end-call="handleEndCall"
           @toggle-hold="phone.toggleHold"
           @toggle-mute="phone.toggleMute"
