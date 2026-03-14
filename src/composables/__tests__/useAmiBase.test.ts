@@ -28,7 +28,10 @@ function createMockClient(): AmiClient {
       if (!listeners.has(event)) {
         listeners.set(event, new Set())
       }
-      listeners.get(event)!.add(handler)
+      const eventListeners = listeners.get(event)
+      if (eventListeners) {
+        eventListeners.add(handler)
+      }
     }),
 
     off: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
@@ -154,7 +157,7 @@ describe('useAmiBase', () => {
       // Loading should be true during fetch
       expect(isLoading.value).toBe(true)
 
-      resolveFetch!([{ id: '1', name: 'Test' }])
+      resolveFetch([{ id: '1', name: 'Test' }])
       await refreshPromise
 
       expect(isLoading.value).toBe(false)
