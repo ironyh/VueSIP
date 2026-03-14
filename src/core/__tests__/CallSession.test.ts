@@ -23,8 +23,8 @@ const createMockRTCSession = () => ({
     display_name: 'Caller',
   },
   // Event handler storage
-  _eventHandlers: {} as Record<string, any>,
-  on: vi.fn((event: string, handler: any) => {
+  _eventHandlers: {} as Record<string, unknown>,
+  on: vi.fn((event: string, handler: unknown) => {
     return handler
   }),
   off: vi.fn(),
