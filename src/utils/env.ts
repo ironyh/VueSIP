@@ -119,3 +119,42 @@ export function isSecureContext(): boolean {
   // This returns true for HTTPS, wss://, and localhost (including file:// in some browsers)
   return window.isSecureContext === true
 }
+
+/**
+ * Check if running on a mobile device (phone or tablet)
+ *
+ * Useful for adapting UI and behavior for mobile vs desktop.
+ * Checks for common mobile indicators in the user agent string.
+ *
+ * @returns true if running on a mobile device
+ *
+ * @example
+ * ```typescript
+ * if (isMobileDevice()) {
+ *   // Show mobile-optimized UI
+ *   enablePushNotifications()
+ * }
+ * ```
+ */
+export function isMobileDevice(): boolean {
+  if (typeof window === 'undefined' || !navigator) {
+    return false
+  }
+
+  const userAgent = navigator.userAgent || ''
+
+  // Check for common mobile indicators
+  const mobilePatterns = [
+    /Android/i,
+    /webOS/i,
+    /iPhone/i,
+    /iPad/i,
+    /iPod/i,
+    /BlackBerry/i,
+    /IEMobile/i,
+    /Opera Mini/i,
+    /Mobile/i,
+  ]
+
+  return mobilePatterns.some((pattern) => pattern.test(userAgent))
+}
