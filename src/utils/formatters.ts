@@ -263,9 +263,80 @@ export function extractDisplayName(uri: string): string | null | undefined {
 }
 
 /**
+ * Country phone formatting patterns
+ * Maps country codes to formatting functions
+ */
+const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
+  // US/Canada: +1 (XXX) XXX-XXXX
+  '+1': (num) => {
+    if (num.length !== 12) return num
+    return `+1 (${num.slice(2, 5)}) ${num.slice(5, 8)}-${num.slice(8)}`
+  },
+  // UK: +44 XX XXXX XXXX
+  '+44': (num) => {
+    if (num.length < 12) return num
+    return `+44 ${num.slice(3, 5)} ${num.slice(5, 9)} ${num.slice(9)}`
+  },
+  // Sweden: +46 XXX XX XX XX (mobile) or +46 XX XXX XXX (landline)
+  '+46': (num) => {
+    if (num.length !== 12) return num
+    // Mobile: +46 70 012 34 56
+    // Landline: +46 8 123 456 78
+    const after46 = num.slice(3) // Skip "+46" to get the number
+    if (
+      after46.startsWith('70') ||
+      after46.startsWith('72') ||
+      after46.startsWith('73') ||
+      after46.startsWith('76')
+    ) {
+      // Mobile: 70X XXX XXXX
+      return `+46 ${after46.slice(0, 2)} ${after46.slice(2, 5)} ${after46.slice(5)}`
+    }
+    // Landline: 8 123 456
+    return `+46 ${after46.slice(0, 1)} ${after46.slice(1, 4)} ${after46.slice(4)}`
+  },
+  // Germany: +49 XXXX XXXXXX
+  '+49': (num) => {
+    if (num.length < 13) return num
+    return `+49 ${num.slice(3, 7)} ${num.slice(7)}`
+  },
+  // France: +33 X XX XX XX XX
+  '+33': (num) => {
+    if (num.length !== 12) return num
+    return `+33 ${num.slice(2, 3)} ${num.slice(3, 5)} ${num.slice(5, 7)} ${num.slice(7, 9)} ${num.slice(9)}`
+  },
+  // Netherlands: +31 X XXXX XXXX
+  '+31': (num) => {
+    if (num.length < 12) return num
+    return `+31 ${num.slice(3, 4)} ${num.slice(4, 8)} ${num.slice(8)}`
+  },
+  // Norway: +47 XXX XX XXX
+  '+47': (num) => {
+    if (num.length !== 12) return num
+    return `+47 ${num.slice(3, 6)} ${num.slice(6, 8)} ${num.slice(8)}`
+  },
+  // Denmark: +45 XX XX XX XX
+  '+45': (num) => {
+    if (num.length !== 12) return num
+    return `+45 ${num.slice(2, 4)} ${num.slice(4, 6)} ${num.slice(6, 8)} ${num.slice(8)}`
+  },
+  // Finland: +358 XXX XX XX XX
+  '+358': (num) => {
+    if (num.length !== 13) return num
+    return `+358 ${num.slice(3, 6)} ${num.slice(6, 8)} ${num.slice(8, 10)} ${num.slice(10)}`
+  },
+  // Australia: +61 X XXXX XXXX
+  '+61': (num) => {
+    if (num.length < 12) return num
+    return `+61 ${num.slice(3, 4)} ${num.slice(4, 8)} ${num.slice(8)}`
+  },
+}
+
+/**
  * Formats a phone number for display
  *
  * Takes an E.164 phone number and formats it for display
+ * Supports: US/Canada, UK, Sweden, Germany, France, Netherlands, Norway, Denmark, Finland, Australia
  *
  * @param number - E.164 phone number (+country code + number)
  * @returns Formatted phone number
@@ -274,6 +345,7 @@ export function extractDisplayName(uri: string): string | null | undefined {
  * ```typescript
  * formatPhoneNumber('+14155551234') // "+1 (415) 555-1234"
  * formatPhoneNumber('+442071234567') // "+44 20 7123 4567"
+ * formatPhoneNumber('+46700123456') // "+46 70 012 34 56"
  * ```
  */
 export function formatPhoneNumber(number: string): string {
@@ -288,18 +360,17 @@ export function formatPhoneNumber(number: string): string {
     return number // Return as-is if not E.164 format
   }
 
-  // Format based on country code
-  // US/Canada: +1 (XXX) XXX-XXXX
-  if (cleaned.startsWith('+1') && cleaned.length === 12) {
-    return `+1 (${cleaned.slice(2, 5)}) ${cleaned.slice(5, 8)}-${cleaned.slice(8)}`
+  // Try to match country-specific formatter
+  for (const [prefix, formatter] of Object.entries(PHONE_FORMATTERS)) {
+    if (cleaned.startsWith(prefix)) {
+      const formatted = formatter(cleaned)
+      if (formatted !== cleaned) {
+        return formatted
+      }
+    }
   }
 
-  // UK: +44 XX XXXX XXXX
-  if (cleaned.startsWith('+44') && cleaned.length >= 12) {
-    return `+44 ${cleaned.slice(3, 5)} ${cleaned.slice(5, 9)} ${cleaned.slice(9)}`
-  }
-
-  // Generic format: +XX XXX XXX XXXX
+  // Generic format: +XX XXX XXX XXXX (fallback)
   if (cleaned.length > 4) {
     const countryCode = cleaned.slice(0, cleaned.length - 10)
     const rest = cleaned.slice(cleaned.length - 10)
