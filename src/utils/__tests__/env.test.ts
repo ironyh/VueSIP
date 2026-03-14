@@ -435,6 +435,16 @@ describe('env utilities', () => {
       const { getOS } = await import('../env')
       expect(getOS()).toBe('android')
     })
+
+    it('should return unknown for unrecognized user agent', async () => {
+      vi.stubGlobal('navigator', {
+        userAgent: '',
+        platform: '',
+      })
+
+      const { getOS } = await import('../env')
+      expect(getOS()).toBe('unknown')
+    })
   })
 
   describe('isBrowser', () => {
