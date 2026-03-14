@@ -111,6 +111,38 @@ This runbook covers common operational procedures for VueSIP deployments.
 - Verify SMS webhook URL is publicly accessible
 - Check that sender number (from) is verified in 46elks dashboard
 
+### Provider-Specific Issues (Telnyx)
+
+**Failed to connect or authenticate**
+
+- Verify API key is valid and has not expired
+- Check network can reach `https://api.telnyx.com`
+- Ensure your Telnyx workspace is active and in good standing
+
+**Outbound calls fail with "Insufficient permissions"**
+
+- Verify your Telnyx SIP connection has origination enabled
+- Check that your calling plan includes outbound voice
+- Ensure your caller ID (CLID) is verified in Telnyx portal
+
+**Inbound calls not arriving**
+
+- Verify your webhook endpoint is reachable from Telnyx servers
+- Check SIP registration status in Telnyx portal
+- Ensure DID number is properly associated with your SIP connection
+- Verify TLS/SSL settings match Telnyx requirements
+
+**Call quality issues or one-way audio**
+
+- Check Telnyx connection region matches your geographic location
+- Verify STUN/TURN servers are properly configured
+- Check for packet loss in Telnyx call logs
+
+**Fax calls failing**
+
+- Ensure T.38 fax mode is enabled if using fax
+- Check that your connection supports T.38 passthrough
+
 ## Monitoring
 
 ### Key Metrics
