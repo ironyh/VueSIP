@@ -74,6 +74,50 @@ This runbook covers common operational procedures for VueSIP deployments.
 - Check browser permissions for microphone
 - Verify WebRTC support: `navigator.mediaDevices.getUserMedia({ audio: true })`
 
+### WebRTC Issues
+
+**getUserMedia fails with NotAllowedError**
+
+- User denied microphone permission → show permission request UI
+- Browser blocked autoplay → request on user gesture
+- Solution: Use `useMediaPermissions` composable for guided flow
+
+**getUserMedia fails with NotFoundError**
+
+- No microphone connected → show device selection UI
+- Device disconnected → listen for `devicechange` events
+- Solution: Use `useAudioDevices` composable for device enumeration
+
+**getUserMedia fails with NotReadableError**
+
+- Another app is using the microphone (Zoom, Teams, etc.)
+- On macOS: check System Preferences → Security & Privacy → Microphone
+- Solution: Close other apps or use `useAudioDeviceSwitch` to let user choose
+
+**One-way audio (can hear but can't be heard)**
+
+- Check NAT/firewall: UDP port 10000-20000 needs to be open
+- Missing STUN/TURN for external users → configure in SipClient config
+- Solution: Use `useCallQualityScore` to diagnose
+
+**Audio quality poor / choppy**
+
+- Network congestion → check bandwidth, enable Opus codec
+- High latency → verify TURN servers are configured
+- CPU overload → reduce processing (disable video, lower sample rate)
+
+**WebRTC connection fails to establish**
+
+- TLS/SSL certificate issues → ensure valid cert or use wss://
+- Firewall blocking WebSocket → use port 443 or configure proxy
+- Check browser console for specific ICE/SDP errors
+
+**ICE candidate gathering timeout**
+
+- Usually indicates network/firewall issue
+- Configure TURN server for reliable NAT traversal
+- Check `iceCandidatePoolSize` in config (try 10)
+
 **Connection failures**
 
 - Verify SIP server URL is correct
