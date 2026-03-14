@@ -4,17 +4,17 @@
 
 import { describe, it, expect } from 'vitest'
 import {
-  formatError,
+  formatUnknownError,
   isPermissionDeniedError,
   isNotFoundError,
   isConstraintError,
 } from '../errorHelpers'
 
 describe('errorHelpers', () => {
-  describe('formatError', () => {
+  describe('formatUnknownError', () => {
     it('should format a standard Error', () => {
       const error = new Error('Test error message')
-      const result = formatError(error)
+      const result = formatUnknownError(error)
 
       expect(result.message).toBe('Test error message')
       expect(result.name).toBe('Error')
@@ -23,7 +23,7 @@ describe('errorHelpers', () => {
 
     it('should format a DOMException with code', () => {
       const error = new DOMException('Permission denied', 'NotAllowedError')
-      const result = formatError(error)
+      const result = formatUnknownError(error)
 
       expect(result.message).toBe('Permission denied')
       expect(result.name).toBe('NotAllowedError')
@@ -31,7 +31,7 @@ describe('errorHelpers', () => {
     })
 
     it('should format a string error', () => {
-      const result = formatError('Simple error string')
+      const result = formatUnknownError('Simple error string')
 
       expect(result.message).toBe('Simple error string')
       expect(result.name).toBe('StringError')
@@ -39,7 +39,7 @@ describe('errorHelpers', () => {
 
     it('should format an object with message property', () => {
       const error = { message: 'Object error', name: 'CustomError', code: 42 }
-      const result = formatError(error)
+      const result = formatUnknownError(error)
 
       expect(result.message).toBe('Object error')
       expect(result.name).toBe('CustomError')
@@ -47,14 +47,14 @@ describe('errorHelpers', () => {
     })
 
     it('should handle completely unknown error', () => {
-      const result = formatError(null)
+      const result = formatUnknownError(null)
 
       expect(result.message).toBe('null')
       expect(result.name).toBe('UnknownError')
     })
 
     it('should handle number error', () => {
-      const result = formatError(404)
+      const result = formatUnknownError(404)
 
       expect(result.message).toBe('404')
       expect(result.name).toBe('UnknownError')

@@ -29,11 +29,11 @@ export interface FormattedError {
  * try {
  *   await getUserMedia()
  * } catch (error: unknown) {
- *   logger.error('Failed to get media', formatError(error))
+ *   logger.error('Failed to get media', formatUnknownError(error))
  * }
  * ```
  */
-export function formatError(error: unknown): FormattedError {
+export function formatUnknownError(error: unknown): FormattedError {
   // Handle standard Error instances
   if (error instanceof Error) {
     return {

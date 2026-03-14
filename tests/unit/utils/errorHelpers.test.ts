@@ -4,19 +4,19 @@
 
 import { describe, it, expect } from 'vitest'
 import {
-  formatError,
+  formatUnknownError,
   isPermissionDeniedError,
   isNotFoundError,
   isConstraintError,
 } from '@/utils/errorHelpers'
 
 describe('errorHelpers', () => {
-  describe('formatError', () => {
+  describe('formatUnknownError', () => {
     it('should format standard Error instances', () => {
       const error = new Error('Test error message')
       error.name = 'TestError'
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('Test error message')
       expect(formatted.name).toBe('TestError')
@@ -28,7 +28,7 @@ describe('errorHelpers', () => {
       error.name = 'NotAllowedError'
       ;(error as any).code = 20
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('Permission denied')
       expect(formatted.name).toBe('NotAllowedError')
@@ -38,7 +38,7 @@ describe('errorHelpers', () => {
     it('should format string errors', () => {
       const error = 'Simple error string'
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('Simple error string')
       expect(formatted.name).toBe('StringError')
@@ -53,7 +53,7 @@ describe('errorHelpers', () => {
         code: 'ERR_CUSTOM',
       }
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('Custom error message')
       expect(formatted.name).toBe('CustomError')
@@ -65,7 +65,7 @@ describe('errorHelpers', () => {
         message: 'Error without name',
       }
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('Error without name')
       expect(formatted.name).toBe('UnknownError')
@@ -78,7 +78,7 @@ describe('errorHelpers', () => {
         code: 404,
       }
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('Numeric code error')
       expect(formatted.name).toBe('UnknownError')
@@ -88,7 +88,7 @@ describe('errorHelpers', () => {
     it('should handle completely unknown error types', () => {
       const error = 123 // number
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('123')
       expect(formatted.name).toBe('UnknownError')
@@ -99,7 +99,7 @@ describe('errorHelpers', () => {
     it('should handle null as unknown error', () => {
       const error = null
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('null')
       expect(formatted.name).toBe('UnknownError')
@@ -108,7 +108,7 @@ describe('errorHelpers', () => {
     it('should handle undefined as unknown error', () => {
       const error = undefined
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('undefined')
       expect(formatted.name).toBe('UnknownError')
@@ -117,7 +117,7 @@ describe('errorHelpers', () => {
     it('should handle objects without message property', () => {
       const error = { foo: 'bar', baz: 123 }
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('[object Object]')
       expect(formatted.name).toBe('UnknownError')
@@ -125,7 +125,7 @@ describe('errorHelpers', () => {
 
     it('should preserve stack trace from Error instances', () => {
       const error = new Error('Error with stack')
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.stack).toBeTruthy()
       expect(formatted.stack).toContain('Error')
@@ -270,7 +270,7 @@ describe('errorHelpers', () => {
       }
 
       const error = new CustomError('Custom error message')
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
 
       expect(formatted.message).toBe('Custom error message')
       expect(formatted.name).toBe('CustomError')
@@ -281,7 +281,7 @@ describe('errorHelpers', () => {
       const error = new Error('Permission denied')
       error.name = 'NotAllowedError'
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
       expect(formatted.name).toBe('NotAllowedError')
       expect(isPermissionDeniedError(error)).toBe(true)
       expect(isNotFoundError(error)).toBe(false)
@@ -292,7 +292,7 @@ describe('errorHelpers', () => {
       const error = new Error('Device not found')
       error.name = 'DevicesNotFoundError'
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
       expect(formatted.name).toBe('DevicesNotFoundError')
       expect(isPermissionDeniedError(error)).toBe(false)
       expect(isNotFoundError(error)).toBe(true)
@@ -303,7 +303,7 @@ describe('errorHelpers', () => {
       const error = new Error('Constraints not satisfied')
       error.name = 'OverconstrainedError'
 
-      const formatted = formatError(error)
+      const formatted = formatUnknownError(error)
       expect(formatted.name).toBe('OverconstrainedError')
       expect(isPermissionDeniedError(error)).toBe(false)
       expect(isNotFoundError(error)).toBe(false)

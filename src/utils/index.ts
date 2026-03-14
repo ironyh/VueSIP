@@ -68,7 +68,7 @@ export {
 // Re-export error helpers
 export type { FormattedError } from './errorHelpers'
 export {
-  formatError as formatUnknownError,
+  formatUnknownError,
   isPermissionDeniedError,
   isNotFoundError,
   isConstraintError,
