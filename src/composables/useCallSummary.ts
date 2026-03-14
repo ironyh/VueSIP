@@ -8,6 +8,7 @@
  */
 
 import { ref, type Ref } from 'vue'
+import { titleCase } from '../utils/formatters'
 
 // =============================================================================
 // Types
@@ -790,8 +791,7 @@ export function useCallSummary(options?: CallSummaryOptions): UseCallSummaryRetu
               .replace(/^(the\s+)?/, '')
             if (actionDescription.length > 5) {
               // Capitalize first letter
-              actionDescription =
-                actionDescription.charAt(0).toUpperCase() + actionDescription.slice(1)
+              actionDescription = titleCase(actionDescription)
             }
           }
           break
@@ -808,8 +808,7 @@ export function useCallSummary(options?: CallSummaryOptions): UseCallSummaryRetu
               .replace(/[.!?]$/, '')
               .trim()
             if (actionDescription.length > 5) {
-              actionDescription =
-                actionDescription.charAt(0).toUpperCase() + actionDescription.slice(1)
+              actionDescription = titleCase(actionDescription)
             }
             break
           }
@@ -829,8 +828,7 @@ export function useCallSummary(options?: CallSummaryOptions): UseCallSummaryRetu
                 .replace(/[.!?]$/, '')
                 .trim()
               if (actionDescription.length > 5) {
-                actionDescription =
-                  actionDescription.charAt(0).toUpperCase() + actionDescription.slice(1)
+                actionDescription = titleCase(actionDescription)
               }
             }
             break

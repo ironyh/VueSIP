@@ -12,6 +12,24 @@ import type { SipUri } from '../types/sip.types'
 import { SIP_URI_REGEX } from './constants'
 
 /**
+ * Converts a string to title case (first letter uppercase, rest lowercase)
+ *
+ * @param str - String to convert
+ * @returns Title cased string
+ *
+ * @example
+ * ```typescript
+ * titleCase('hello') // "Hello"
+ * titleCase('HELLO') // "Hello"
+ * titleCase('hElLo') // "Hello"
+ * ```
+ */
+export function titleCase(str: string): string {
+  if (!str) return ''
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
+/**
  * Formats a duration in seconds to HH:MM:SS format
  *
  * @param seconds - Duration in seconds
@@ -654,10 +672,8 @@ export function formatCallDirection(direction: string): string {
   }
 
   const normalized = direction.toLowerCase()
-  // Return title case for known directions, or capitalize first letter of unknown
-  return (
-    directionMap[normalized] ?? direction.charAt(0).toUpperCase() + direction.slice(1).toLowerCase()
-  )
+  // Return title case for known directions, or title case for unknown
+  return directionMap[normalized] ?? titleCase(direction)
 }
 
 /**
