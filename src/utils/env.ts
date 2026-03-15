@@ -286,3 +286,31 @@ export function getOS(): 'windows' | 'mac' | 'linux' | 'android' | 'ios' | 'unkn
 
   return 'unknown'
 }
+
+/**
+ * Check if running inside an iframe
+ *
+ * Useful for detecting embed scenarios where the app is running
+ * in a parent page's iframe, which affects certain APIs and behaviors.
+ *
+ * @returns true if running in an iframe
+ *
+ * @example
+ * ```typescript
+ * if (isIframe()) {
+ *   // Disable features that don't work in iframes
+ * }
+ * ```
+ */
+export function isIframe(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  try {
+    return window.self !== window.top
+  } catch {
+    // Accessing window.top throws SecurityError in cross-origin iframes
+    return true
+  }
+}
