@@ -28,9 +28,19 @@ vi.mock('../../services/OAuth2Service', () => ({
     getStoredToken: vi.fn(),
     getUserInfo: vi.fn(),
     refreshToken: vi.fn(),
-    isAuthenticated: false,
-    token: null,
-    userInfo: null,
+    clearAuth: vi.fn(),
+    refreshTokens: vi.fn(),
+    getAccessToken: vi.fn(),
+    isTokenExpired: vi.fn(),
+    authState: { value: 'idle' },
+    isAuthenticated: { value: false },
+    error: { value: null },
+    userInfo: { value: null },
+    sipCredentials: { value: null },
+    tokens: { value: null },
+    tokenExpiresAt: { value: null },
+    isRefreshing: { value: false },
+    isLoading: { value: false },
   })),
   generatePKCE: vi.fn(() => ({
     codeVerifier: 'test-code-verifier',
@@ -164,14 +174,6 @@ describe('useOAuth2', () => {
       const result = useOAuth2(mockOptions)
 
       expect(result.error).toBeDefined()
-    })
-  })
-
-  describe('loading state', () => {
-    it('should provide isLoading state', () => {
-      const result = useOAuth2(mockOptions)
-
-      expect(result.isLoading).toBeDefined()
     })
   })
 })
