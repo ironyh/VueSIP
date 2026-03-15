@@ -4,6 +4,7 @@ import type { MediaDevice } from 'vuesip'
 import Elks46OutboundSettings from './Elks46OutboundSettings.vue'
 import TranscriptionSettingsSection from './TranscriptionSettingsSection.vue'
 import CallQualityHistory from './CallQualityHistory.vue'
+import QrProvisioning from './QrProvisioning.vue'
 import { useAudioDeviceTest } from '../composables/useAudioDeviceTest'
 
 type SettingsCategory =
@@ -13,6 +14,7 @@ type SettingsCategory =
   | 'transcription'
   | 'notifications'
   | 'privacy'
+  | 'provisioning'
   | 'advanced'
 
 interface Category {
@@ -28,6 +30,7 @@ const categories: Category[] = [
   { id: 'transcription', label: 'Transcription', icon: '📝' },
   { id: 'notifications', label: 'Notifications', icon: '🔔' },
   { id: 'privacy', label: 'Privacy', icon: '🔒' },
+  { id: 'provisioning', label: 'Provisioning', icon: '📱' },
   { id: 'advanced', label: 'Advanced', icon: '⚙️' },
 ]
 
@@ -35,6 +38,15 @@ const props = defineProps<{
   // Phone state
   isConnected: boolean
   accounts: Array<{ id: string; name: string }>
+  currentAccountConfig?: {
+    displayName: string
+    username: string
+    password: string
+    domain: string
+    port?: number
+    transport?: 'udp' | 'tcp' | 'tls'
+    stunServer?: string
+  } | null
   outboundAccountId: string | null
   audioInputDevices: readonly MediaDevice[]
   audioOutputDevices: readonly MediaDevice[]
@@ -273,6 +285,29 @@ function handleDisconnect() {
                 <p class="setting-hint">Manage your privacy and data preferences</p>
               </div>
               <p class="coming-soon">Coming soon</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Provisioning Settings -->
+      <div v-if="activeCategory === 'provisioning'" class="category-content">
+        <div class="settings-section">
+          <h3 class="section-header">
+            <span class="section-icon">📱</span>
+            <span>QR Provisioning</span>
+          </h3>
+
+          <div v-if="props.currentAccountConfig" class="section-content">
+            <QrProvisioning :account-config="props.currentAccountConfig" />
+          </div>
+
+          <div v-else class="section-content">
+            <div class="setting-item">
+              <div class="setting-info">
+                <label>No Account Configured</label>
+                <p class="setting-hint">Connect a SIP account to generate QR provisioning codes</p>
+              </div>
             </div>
           </div>
         </div>
