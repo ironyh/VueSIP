@@ -21,8 +21,40 @@ import { useProviderCallHistory } from './composables/useProviderCallHistory'
 import { useTranscriptSearch } from './composables/useTranscriptSearch'
 import type { Contact } from './composables/useContacts'
 
+// Simple SIP URI parser (inline to avoid import path issues)
+function parseSipUri(uri: string): { user: string; host: string; port?: number } | null {
+  const match = uri.match(/^(?:sip|sips):([^@]+)@([^:]+)(?::(\d+))?$/i)
+  if (!match) return null
+  return {
+    user: match[1],
+    host: match[2],
+    port: match[3] ? parseInt(match[3], 10) : undefined,
+  }
+}
+
 // Phone composable
 const phone = usePhone()
+
+// Computed account config for QR provisioning
+const currentAccountConfigForQr = computed(() => {
+  const config = phone.currentConfig.value
+  if (!config?.sipUri || !config?.password) {
+    return null
+  }
+
+  const parsed = parseSipUri(config.sipUri)
+  if (!parsed?.user || !parsed?.host) {
+    return null
+  }
+
+  return {
+    displayName: config.displayName || parsed.user,
+    username: parsed.user,
+    password: config.password,
+    domain: parsed.host,
+    port: parsed.port,
+  }
+})
 
 // Provider call history (Load from 46elks / Telnyx when supported)
 const providerIdRef = computed(() => phone.currentConfig.value?.providerId ?? null)
@@ -700,6 +732,7 @@ onMounted(async () => {
             <SettingsMenu
               :is-connected="phone.isConnected.value"
               :accounts="phone.accounts.value"
+              :current-account-config="currentAccountConfigForQr"
               :outbound-account-id="phone.outboundAccountId.value"
               :audio-input-devices="phone.audioInputDevices.value"
               :audio-output-devices="phone.audioOutputDevices.value"
