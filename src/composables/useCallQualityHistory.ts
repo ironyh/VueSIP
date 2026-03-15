@@ -216,6 +216,8 @@ export function useCallQualityHistory(options: UseCallQualityHistoryOptions = {}
   isTracking: ComputedRef<boolean>
   /** Currently active call ID */
   activeCallId: ComputedRef<string | null>
+  /** Currently active call details (for UI) */
+  activeCall: ComputedRef<UICallQualityRecord | null>
   /** All records as reactive ref (for UI) */
   records: ComputedRef<UICallQualityRecord[]>
   /** Aggregated statistics (for UI) */
@@ -265,6 +267,24 @@ export function useCallQualityHistory(options: UseCallQualityHistoryOptions = {}
   // Computed
   const isTracking = computed(() => activeCall.value !== null)
   const activeCallId = computed(() => activeCall.value?.id ?? null)
+
+  /**
+   * UI-friendly active call computed property
+   */
+  const uiActiveCall = computed<UICallQualityRecord | null>(() => {
+    if (!activeCall.value) return null
+    return {
+      callId: activeCall.value.id,
+      startedAt: new Date(activeCall.value.startTime),
+      durationSeconds: null, // Active call has no duration yet
+      overallQuality: 'unknown' as QualityLevel, // Will be determined on end
+      alertCount: activeCall.value.alertCount,
+      metadata: {
+        remoteNumber: activeCall.value.remoteIdentity,
+        direction: activeCall.value.direction,
+      },
+    }
+  })
 
   /**
    * Load records from localStorage
@@ -723,6 +743,7 @@ export function useCallQualityHistory(options: UseCallQualityHistoryOptions = {}
   return {
     isTracking,
     activeCallId,
+    activeCall: uiActiveCall,
     records: uiRecords,
     aggregates: uiAggregates,
     startCall,
