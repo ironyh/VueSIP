@@ -291,6 +291,59 @@ describe('env utilities', () => {
     })
   })
 
+  describe('isIframe', () => {
+    it('should return false when window is undefined', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { isIframe } = await import('../env')
+      const result = isIframe()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return false when not in iframe (window.self === window.top)', async () => {
+      vi.stubGlobal('window', {
+        self: {},
+        top: {},
+      })
+      // Make them equal to simulate not in iframe
+      vi.stubGlobal('window', {
+        self: globalThis,
+        top: globalThis,
+      })
+
+      const { isIframe } = await import('../env')
+      expect(isIframe()).toBe(false)
+    })
+
+    it('should return true when in iframe (window.self !== window.top)', async () => {
+      const mockSelf = {}
+      const mockTop = {} // Different object reference = different context
+
+      vi.stubGlobal('window', {
+        self: mockSelf,
+        top: mockTop,
+      })
+
+      const { isIframe } = await import('../env')
+      expect(isIframe()).toBe(true)
+    })
+
+    it('should return true when accessing window.top throws SecurityError', async () => {
+      vi.stubGlobal('window', {
+        self: {},
+        get top() {
+          throw new DOMException('Blocked', 'SecurityError')
+        },
+      })
+
+      const { isIframe } = await import('../env')
+      expect(isIframe()).toBe(true)
+    })
+  })
+
   describe('getBrowserName', () => {
     it('should return unknown when window is undefined', async () => {
       const originalWindow = globalThis.window
