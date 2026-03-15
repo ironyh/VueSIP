@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import Dialog from 'primevue/dialog'
@@ -11,9 +12,9 @@ import Button from 'primevue/button'
 // Mock the useConfirm composable
 vi.mock('@/composables/useConfirm', () => ({
   useConfirm: vi.fn(() => {
-    // Use objects with .value to simulate Vue refs
-    const isOpen = { value: false }
-    const options = { value: null }
+    // Use actual Vue refs to match real composable behavior
+    const isOpen = ref(false)
+    const options = ref(null)
     const confirm = vi.fn()
     const cancelCurrent = vi.fn()
     const confirmCurrent = vi.fn()
