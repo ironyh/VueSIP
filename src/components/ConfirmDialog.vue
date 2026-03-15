@@ -20,7 +20,7 @@ const emit = defineEmits<{
 }>()
 
 // Use the composable for state management
-const { isOpen, options, confirm, cancelCurrent, confirmCurrent, _reset } = useConfirm()
+const { isOpen, options, confirm, cancelCurrent, confirmCurrent } = useConfirm()
 
 // Sync props with composable state
 watch(
