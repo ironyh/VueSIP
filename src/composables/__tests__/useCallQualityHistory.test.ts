@@ -1,469 +1,906 @@
 /**
- * @vitest-environment jsdom
+ * useCallQualityHistory Tests
  */
-
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useCallQualityHistory } from '../useCallQualityHistory'
-import type { CallQualityStats } from '../useCallQualityStats'
+import type { CallQualityStats, QualityLevel } from '../useCallQualityStats'
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+}
+Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
 describe('useCallQualityHistory', () => {
-  const TEST_STORAGE_KEY = 'vuesip-quality-test'
-
   beforeEach(() => {
-    // Clear localStorage before each test
-    localStorage.clear()
+    vi.clearAllMocks()
+    localStorageMock.getItem.mockReturnValue(null)
   })
 
-  afterEach(() => {
-    localStorage.clear()
-  })
+  describe('initialization', () => {
+    it('should start with no active call', () => {
+      const { isTracking, activeCallId } = useCallQualityHistory()
 
-  describe('initial state', () => {
-    it('should start with empty records', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      expect(history.records.value).toEqual([])
+      expect(isTracking.value).toBe(false)
+      expect(activeCallId.value).toBeNull()
     })
 
-    it('should start with null active call', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      expect(history.activeCall.value).toBeNull()
+    it('should load existing records from localStorage', () => {
+      const existingRecords = [
+        {
+          id: 'test-1',
+          startTime: Date.now() - 10000,
+          endTime: Date.now() - 5000,
+          durationMs: 5000,
+          overallQuality: 'good' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: 50,
+            maxRtt: 100,
+            avgRtt: 75,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 50, good: 50, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(existingRecords))
+
+      const { getHistory } = useCallQualityHistory()
+      const history = getHistory()
+
+      expect(history).toHaveLength(1)
+      expect(history[0].id).toBe('test-1')
     })
 
-    it('should have empty aggregates initially', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      expect(history.aggregates.value.totalCalls).toBe(0)
-      expect(history.aggregates.value.completedCalls).toBe(0)
-    })
-  })
-
-  describe('startCall', () => {
-    it('should create a new active call record', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-
-      history.startCall('call-123')
-
-      expect(history.activeCall.value).not.toBeNull()
-      expect(history.activeCall.value?.callId).toBe('call-123')
-      expect(history.activeCall.value?.startedAt).toBeInstanceOf(Date)
-      expect(history.activeCall.value?.endedAt).toBeNull()
-      expect(history.activeCall.value?.snapshots).toEqual([])
-    })
-
-    it('should accept metadata when starting a call', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-
-      history.startCall('call-456', {
-        direction: 'outbound',
-        remoteNumber: '555-0100',
-        localAccount: '100',
-      })
-
-      expect(history.activeCall.value?.metadata?.direction).toBe('outbound')
-      expect(history.activeCall.value?.metadata?.remoteNumber).toBe('555-0100')
-      expect(history.activeCall.value?.metadata?.localAccount).toBe('100')
-    })
-
-    it('should end any existing active call before starting new one', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-
-      history.startCall('call-1')
-      history.startCall('call-2')
-
-      // First call should be in records now
-      expect(history.records.value.length).toBe(1)
-      expect(history.records.value[0].callId).toBe('call-1')
-      // Second call should be active
-      expect(history.activeCall.value?.callId).toBe('call-2')
-    })
-  })
-
-  describe('addSnapshot', () => {
-    it('should add snapshot to active call', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      history.startCall('call-123')
-
-      const stats: CallQualityStats = {
-        rtt: 45,
-        jitter: 2,
-        packetLossPercent: 0.1,
-        bitrateKbps: 128,
-        codec: 'opus',
-        packetsReceived: 1000,
-        packetsLost: 1,
-        lastUpdated: new Date(),
+    it('should filter out expired records', () => {
+      const oldRecord = {
+        id: 'old-1',
+        startTime: Date.now() - 40 * 24 * 60 * 60 * 1000, // 40 days ago
+        endTime: Date.now() - 40 * 24 * 60 * 60 * 1000,
+        durationMs: 1000,
+        overallQuality: 'poor' as QualityLevel,
+        alertCount: 0,
+        aggregates: {
+          minRtt: null,
+          maxRtt: null,
+          avgRtt: null,
+          minJitter: null,
+          maxJitter: null,
+          avgJitter: null,
+          minPacketLoss: null,
+          maxPacketLoss: null,
+          avgPacketLoss: null,
+          qualityDistribution: { excellent: 0, good: 0, fair: 0, poor: 100, unknown: 0 },
+        },
+        snapshots: [],
       }
 
-      history.addSnapshot(stats)
+      localStorageMock.getItem.mockReturnValue(JSON.stringify([oldRecord]))
 
-      expect(history.activeCall.value?.snapshots.length).toBe(1)
-      expect(history.activeCall.value?.snapshots[0].rtt).toBe(45)
-      expect(history.activeCall.value?.snapshots[0].jitter).toBe(2)
-      expect(history.activeCall.value?.snapshots[0].packetLossPercent).toBe(0.1)
-      expect(history.activeCall.value?.snapshots[0].codec).toBe('opus')
-    })
+      const { getHistory } = useCallQualityHistory()
 
-    it('should not add snapshot when no active call', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-
-      const stats: CallQualityStats = {
-        rtt: 45,
-        jitter: 2,
-        packetLossPercent: 0.1,
-        bitrateKbps: 128,
-        codec: 'opus',
-        packetsReceived: 1000,
-        packetsLost: 1,
-        lastUpdated: new Date(),
-      }
-
-      history.addSnapshot(stats)
-
-      expect(history.activeCall.value).toBeNull()
-    })
-
-    it('should update worst quality when snapshot is worse', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      history.startCall('call-123')
-
-      // Add excellent quality snapshot
-      history.addSnapshot({
-        rtt: 50,
-        jitter: 2,
-        packetLossPercent: 0.1,
-        bitrateKbps: 128,
-        codec: 'opus',
-        packetsReceived: 1000,
-        packetsLost: 0,
-        lastUpdated: new Date(),
-      })
-
-      expect(history.activeCall.value?.worstQuality).toBe('excellent')
-
-      // Add poor quality snapshot
-      history.addSnapshot({
-        rtt: 600,
-        jitter: 50,
-        packetLossPercent: 10,
-        bitrateKbps: 32,
-        codec: 'opus',
-        packetsReceived: 500,
-        packetsLost: 50,
-        lastUpdated: new Date(),
-      })
-
-      expect(history.activeCall.value?.worstQuality).toBe('poor')
+      expect(getHistory()).toHaveLength(0)
     })
   })
 
-  describe('endCall', () => {
-    it('should move active call to records', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      history.startCall('call-123')
+  describe('call tracking lifecycle', () => {
+    it('should start tracking a new call', () => {
+      const { startCall, isTracking, activeCallId } = useCallQualityHistory()
 
-      history.addSnapshot({
-        rtt: 45,
-        jitter: 2,
-        packetLossPercent: 0.1,
-        bitrateKbps: 128,
-        codec: 'opus',
-        packetsReceived: 1000,
-        packetsLost: 1,
-        lastUpdated: new Date(),
-      })
+      startCall('call-123', '+46123456789', 'outgoing')
 
-      history.endCall()
-
-      expect(history.activeCall.value).toBeNull()
-      expect(history.records.value.length).toBe(1)
-      expect(history.records.value[0].callId).toBe('call-123')
-      expect(history.records.value[0].endedAt).not.toBeNull()
-      expect(history.records.value[0].durationSeconds).not.toBeNull()
+      expect(isTracking.value).toBe(true)
+      expect(activeCallId.value).toBe('call-123')
     })
 
-    it('should calculate averages from snapshots', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      history.startCall('call-123')
+    it('should end current call before starting new one', () => {
+      const { startCall, endCall, getHistory } = useCallQualityHistory()
 
-      history.addSnapshot({
-        rtt: 40,
-        jitter: 2,
-        packetLossPercent: 0,
-        bitrateKbps: 128,
-        codec: 'opus',
-        packetsReceived: 500,
-        packetsLost: 0,
-        lastUpdated: new Date(),
+      startCall('call-1')
+      endCall()
+
+      startCall('call-2')
+      endCall()
+
+      expect(getHistory()).toHaveLength(2)
+    })
+
+    it('should end call and create record', () => {
+      const { startCall, endCall, getHistory, isTracking } = useCallQualityHistory()
+
+      startCall('call-abc', '+46701234567', 'incoming')
+      const record = endCall()
+
+      expect(record).not.toBeNull()
+      expect(record?.id).toBe('call-abc')
+      expect(record?.remoteIdentity).toBe('+46701234567')
+      expect(record?.direction).toBe('incoming')
+      expect(record?.durationMs).toBeGreaterThanOrEqual(0)
+      expect(isTracking.value).toBe(false)
+      expect(getHistory()).toHaveLength(1)
+    })
+
+    it('should return null when ending without active call', () => {
+      const { endCall } = useCallQualityHistory()
+
+      const record = endCall()
+
+      expect(record).toBeNull()
+    })
+  })
+
+  describe('snapshot recording', () => {
+    it('should record snapshots during active call', () => {
+      const { startCall, recordSnapshot, endCall } = useCallQualityHistory({
+        snapshotIntervalMs: 0, // No throttling for tests
       })
 
-      history.addSnapshot({
-        rtt: 60,
-        jitter: 4,
-        packetLossPercent: 2,
+      const stats: CallQualityStats = {
+        rtt: 100,
+        jitter: 10,
+        packetLossPercent: 1,
         bitrateKbps: 64,
         codec: 'opus',
-        packetsReceived: 500,
+        packetsReceived: 1000,
         packetsLost: 10,
         lastUpdated: new Date(),
-      })
-
-      history.endCall()
-
-      const record = history.records.value[0]
-      expect(record.averages.rtt).toBe(50)
-      expect(record.averages.jitter).toBe(3)
-      expect(record.averages.packetLossPercent).toBe(1)
-      expect(record.averages.bitrateKbps).toBe(96)
-    })
-
-    it('should determine overall quality from snapshots', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      history.startCall('call-123')
-
-      // Add 3 excellent snapshots, 1 poor snapshot
-      for (let i = 0; i < 3; i++) {
-        history.addSnapshot({
-          rtt: 50,
-          jitter: 2,
-          packetLossPercent: 0.1,
-          bitrateKbps: 128,
-          codec: 'opus',
-          packetsReceived: 500,
-          packetsLost: 0,
-          lastUpdated: new Date(),
-        })
       }
 
-      history.addSnapshot({
-        rtt: 600,
-        jitter: 50,
-        packetLossPercent: 10,
-        bitrateKbps: 32,
-        codec: 'opus',
-        packetsReceived: 500,
-        packetsLost: 50,
+      startCall('call-test')
+      recordSnapshot(stats, 'good')
+      const record = endCall()
+
+      expect(record?.snapshots).toHaveLength(1)
+      expect(record?.snapshots[0].rtt).toBe(100)
+      expect(record?.snapshots[0].qualityLevel).toBe('good')
+    })
+
+    it('should throttle snapshots by interval', () => {
+      const { startCall, recordSnapshot, endCall } = useCallQualityHistory({
+        snapshotIntervalMs: 1000,
+      })
+
+      const stats: CallQualityStats = {
+        rtt: 100,
+        jitter: null,
+        packetLossPercent: null,
+        bitrateKbps: null,
+        codec: null,
+        packetsReceived: null,
+        packetsLost: null,
         lastUpdated: new Date(),
-      })
+      }
 
-      history.endCall()
+      startCall('call-test')
+      recordSnapshot(stats, 'good')
+      recordSnapshot(stats, 'good') // Should be throttled
+      recordSnapshot(stats, 'good') // Should be throttled
+      const record = endCall()
 
-      // Most common is excellent
-      expect(history.records.value[0].overallQuality).toBe('excellent')
+      expect(record?.snapshots).toHaveLength(1)
     })
 
-    it('should persist to localStorage', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      history.startCall('call-123')
-      history.endCall()
+    it('should not record snapshots without active call', () => {
+      const { recordSnapshot, getHistory } = useCallQualityHistory()
 
-      const stored = localStorage.getItem(TEST_STORAGE_KEY)
-      expect(stored).not.toBeNull()
-      expect(() => JSON.parse(stored as string)).not.toThrow()
-    })
-
-    it('should do nothing when no active call', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-
-      history.endCall()
-
-      expect(history.records.value).toEqual([])
-    })
-  })
-
-  describe('query', () => {
-    it('should return all records with no filters', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY + '-all' })
-      history.startCall('call-1')
-      history.endCall()
-      history.startCall('call-2')
-      history.endCall()
-
-      const results = history.query()
-      expect(results.length).toBe(2)
-    })
-
-    it('should filter by limit', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY + '-limit' })
-      history.startCall('call-1')
-      history.endCall()
-      history.startCall('call-2')
-      history.endCall()
-      history.startCall('call-3')
-      history.endCall()
-
-      const results = history.query({ limit: 2 })
-      expect(results.length).toBe(2)
-    })
-
-    it('should return results with default sorting', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY + '-sort' })
-      history.startCall('call-1')
-      history.endCall()
-      history.startCall('call-2')
-      history.endCall()
-
-      const results = history.query()
-      // Should have 2 results
-      expect(results.length).toBe(2)
-    })
-  })
-
-  describe('exportToJson', () => {
-    it('should export records as JSON', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      history.startCall('call-123')
-      history.endCall()
-
-      const json = history.exportToJson()
-
-      expect(() => JSON.parse(json)).not.toThrow()
-      const parsed = JSON.parse(json)
-      expect(parsed.length).toBe(1)
-    })
-  })
-
-  describe('importFromJson', () => {
-    it('should import records from JSON', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-
-      // First create some records to export
-      const history2 = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY + '2' })
-      history2.startCall('call-imported')
-      history2.endCall()
-      const json = history2.exportToJson()
-
-      history.importFromJson(json)
-
-      expect(history.records.value.length).toBe(1)
-      expect(history.records.value[0].callId).toBe('call-imported')
-    })
-
-    it('should throw on invalid JSON', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-
-      expect(() => history.importFromJson('invalid json')).toThrow()
-    })
-  })
-
-  describe('clearHistory', () => {
-    it('should clear all records', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      history.startCall('call-123')
-      history.endCall()
-
-      history.clearHistory()
-
-      expect(history.records.value).toEqual([])
-      expect(localStorage.getItem(TEST_STORAGE_KEY)).toBeNull()
-    })
-  })
-
-  describe('deleteRecord', () => {
-    it('should delete specific record by callId', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-      history.startCall('call-1')
-      history.endCall()
-      history.startCall('call-2')
-      history.endCall()
-
-      expect(history.records.value.length).toBe(2)
-
-      history.deleteRecord('call-1')
-
-      expect(history.records.value.length).toBe(1)
-      expect(history.records.value[0].callId).toBe('call-2')
-    })
-  })
-
-  describe('aggregates', () => {
-    it('should calculate quality distribution', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
-
-      // Create records with different quality levels
-      history.startCall('call-1')
-      history.addSnapshot({
-        rtt: 50,
-        jitter: 2,
-        packetLossPercent: 0.1,
-        bitrateKbps: 128,
-        codec: 'opus',
-        packetsReceived: 100,
-        packetsLost: 0,
+      const stats: CallQualityStats = {
+        rtt: 100,
+        jitter: null,
+        packetLossPercent: null,
+        bitrateKbps: null,
+        codec: null,
+        packetsReceived: null,
+        packetsLost: null,
         lastUpdated: new Date(),
-      })
-      history.endCall()
+      }
 
-      history.startCall('call-2')
-      history.addSnapshot({
-        rtt: 50,
-        jitter: 2,
-        packetLossPercent: 0.1,
-        bitrateKbps: 128,
-        codec: 'opus',
-        packetsReceived: 100,
-        packetsLost: 0,
-        lastUpdated: new Date(),
-      })
-      history.endCall()
+      recordSnapshot(stats, 'good')
 
-      history.startCall('call-3')
-      history.addSnapshot({
-        rtt: 400,
-        jitter: 30,
-        packetLossPercent: 4,
-        bitrateKbps: 64,
-        codec: 'opus',
-        packetsReceived: 100,
-        packetsLost: 4,
-        lastUpdated: new Date(),
-      })
-      history.endCall()
-
-      const agg = history.aggregates.value
-      expect(agg.totalCalls).toBe(3)
-      expect(agg.qualityDistribution.excellent).toBe(2)
-      expect(agg.qualityDistribution.fair).toBe(1)
+      expect(getHistory()).toHaveLength(0)
     })
 
-    it('should calculate alert rate', () => {
-      const history = useCallQualityHistory({ storageKey: TEST_STORAGE_KEY })
+    it('should record multiple snapshots', () => {
+      const { startCall, recordSnapshot, endCall } = useCallQualityHistory({
+        snapshotIntervalMs: 0,
+      })
 
-      history.startCall('call-1')
-      history.endCall()
+      startCall('call-test')
 
-      history.startCall('call-2')
-      history.endCall()
+      for (let i = 0; i < 5; i++) {
+        recordSnapshot(
+          {
+            rtt: 50 + i * 10,
+            jitter: 5 + i,
+            packetLossPercent: i * 0.5,
+            bitrateKbps: 64,
+            codec: 'opus',
+            packetsReceived: 100 + i * 10,
+            packetsLost: i,
+            lastUpdated: new Date(),
+          },
+          i < 2 ? 'excellent' : 'good'
+        )
+      }
 
-      // One call with alerts
-      history.startCall('call-3')
-      history.endCall()
+      const record = endCall()
 
-      // Note: alertCount would need to be incremented by addSnapshot when quality drops
-      // For now, testing basic alert rate calculation
-      const agg = history.aggregates.value
-      expect(agg.totalCalls).toBe(3)
+      expect(record?.snapshots).toHaveLength(5)
+      expect(record?.aggregates.avgRtt).toBe(70) // (50+60+70+80+90)/5
     })
   })
 
-  describe('autoCleanup', () => {
-    it('should cleanup records when exceeding maxRecords', () => {
-      const history = useCallQualityHistory({
-        storageKey: TEST_STORAGE_KEY + '-cleanup',
-        maxRecords: 2,
-        autoCleanup: true,
+  describe('alert counting', () => {
+    it('should count alerts during call', () => {
+      const { startCall, recordAlert, endCall } = useCallQualityHistory()
+
+      startCall('call-test')
+      recordAlert()
+      recordAlert()
+      recordAlert()
+      const record = endCall()
+
+      expect(record?.alertCount).toBe(3)
+    })
+
+    it('should not record alerts without active call', () => {
+      const { recordAlert, getHistory } = useCallQualityHistory()
+
+      recordAlert()
+      recordAlert()
+
+      expect(getHistory()).toHaveLength(0)
+    })
+  })
+
+  describe('aggregate calculation', () => {
+    it('should calculate correct aggregates from snapshots', () => {
+      const { startCall, recordSnapshot, endCall } = useCallQualityHistory({
+        snapshotIntervalMs: 0,
       })
 
-      // Create 3 calls
-      history.startCall('call-1')
-      history.endCall()
+      startCall('call-test')
 
-      history.startCall('call-2')
-      history.endCall()
+      recordSnapshot(
+        {
+          rtt: 50,
+          jitter: 10,
+          packetLossPercent: 1,
+          bitrateKbps: 64,
+          codec: 'opus',
+          packetsReceived: 100,
+          packetsLost: 1,
+          lastUpdated: new Date(),
+        },
+        'excellent'
+      )
 
-      history.startCall('call-3')
-      history.endCall()
+      recordSnapshot(
+        {
+          rtt: 100,
+          jitter: 20,
+          packetLossPercent: 2,
+          bitrateKbps: 64,
+          codec: 'opus',
+          packetsReceived: 200,
+          packetsLost: 4,
+          lastUpdated: new Date(),
+        },
+        'good'
+      )
 
-      // Should only keep 2 records (implementation keeps newest or oldest depending on sort behavior)
-      expect(history.records.value.length).toBe(2)
+      recordSnapshot(
+        {
+          rtt: 150,
+          jitter: 30,
+          packetLossPercent: 3,
+          bitrateKbps: 64,
+          codec: 'opus',
+          packetsReceived: 300,
+          packetsLost: 9,
+          lastUpdated: new Date(),
+        },
+        'fair'
+      )
+
+      const record = endCall()
+
+      expect(record?.aggregates.minRtt).toBe(50)
+      expect(record?.aggregates.maxRtt).toBe(150)
+      expect(record?.aggregates.avgRtt).toBe(100)
+      expect(record?.aggregates.minJitter).toBe(10)
+      expect(record?.aggregates.maxJitter).toBe(30)
+      expect(record?.aggregates.avgJitter).toBe(20)
+      expect(record?.aggregates.minPacketLoss).toBe(1)
+      expect(record?.aggregates.maxPacketLoss).toBe(3)
+      expect(record?.aggregates.avgPacketLoss).toBe(2)
+    })
+
+    it('should determine overall quality based on distribution', () => {
+      const { startCall, recordSnapshot, endCall } = useCallQualityHistory({
+        snapshotIntervalMs: 0,
+      })
+
+      startCall('call-excellent')
+      for (let i = 0; i < 10; i++) {
+        recordSnapshot(
+          {
+            rtt: 50,
+            jitter: 5,
+            packetLossPercent: 0.1,
+            bitrateKbps: 64,
+            codec: 'opus',
+            packetsReceived: 100,
+            packetsLost: 0,
+            lastUpdated: new Date(),
+          },
+          'excellent'
+        )
+      }
+      expect(endCall()?.overallQuality).toBe('excellent')
+
+      startCall('call-poor')
+      for (let i = 0; i < 10; i++) {
+        recordSnapshot(
+          {
+            rtt: 800,
+            jitter: 100,
+            packetLossPercent: 10,
+            bitrateKbps: 32,
+            codec: 'opus',
+            packetsReceived: 100,
+            packetsLost: 10,
+            lastUpdated: new Date(),
+          },
+          'poor'
+        )
+      }
+      expect(endCall()?.overallQuality).toBe('poor')
+    })
+  })
+
+  describe('history filtering', () => {
+    it('should filter by date range', () => {
+      const records = [
+        {
+          id: 'call-1',
+          startTime: Date.now() - 2 * 24 * 60 * 60 * 1000,
+          endTime: Date.now() - 2 * 24 * 60 * 60 * 1000,
+          durationMs: 1000,
+          overallQuality: 'good' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 0, good: 100, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+        {
+          id: 'call-2',
+          startTime: Date.now() - 5 * 24 * 60 * 60 * 1000,
+          endTime: Date.now() - 5 * 24 * 60 * 60 * 1000,
+          durationMs: 1000,
+          overallQuality: 'poor' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 0, good: 0, fair: 0, poor: 100, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(records))
+
+      const { getHistory } = useCallQualityHistory()
+      const fromDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+      const filtered = getHistory({ fromDate })
+
+      expect(filtered).toHaveLength(1)
+      expect(filtered[0].id).toBe('call-1')
+    })
+
+    it('should filter by minimum quality', () => {
+      const records = [
+        {
+          id: 'excellent-call',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          durationMs: 1000,
+          overallQuality: 'excellent' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 100, good: 0, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+        {
+          id: 'poor-call',
+          startTime: Date.now() - 1000,
+          endTime: Date.now() - 1000,
+          durationMs: 1000,
+          overallQuality: 'poor' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 0, good: 0, fair: 0, poor: 100, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(records))
+
+      const { getHistory } = useCallQualityHistory()
+      const filtered = getHistory({ minQuality: 'good' })
+
+      expect(filtered).toHaveLength(1)
+      expect(filtered[0].id).toBe('excellent-call')
+    })
+
+    it('should limit results', () => {
+      const records = Array.from({ length: 20 }, (_, i) => ({
+        id: `call-${i}`,
+        startTime: Date.now() - i * 1000,
+        endTime: Date.now() - i * 1000,
+        durationMs: 1000,
+        overallQuality: 'good' as QualityLevel,
+        alertCount: 0,
+        aggregates: {
+          minRtt: null,
+          maxRtt: null,
+          avgRtt: null,
+          minJitter: null,
+          maxJitter: null,
+          avgJitter: null,
+          minPacketLoss: null,
+          maxPacketLoss: null,
+          avgPacketLoss: null,
+          qualityDistribution: { excellent: 0, good: 100, fair: 0, poor: 0, unknown: 0 },
+        },
+        snapshots: [],
+      }))
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(records))
+
+      const { getHistory } = useCallQualityHistory()
+      const limited = getHistory({ limit: 5 })
+
+      expect(limited).toHaveLength(5)
+    })
+  })
+
+  describe('trends', () => {
+    it('should generate trends for specified days', () => {
+      const today = new Date()
+      const yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+
+      const records = [
+        {
+          id: 'today-good',
+          startTime: today.setHours(12, 0, 0, 0),
+          endTime: today.setHours(12, 5, 0, 0),
+          durationMs: 300000,
+          overallQuality: 'good' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 0, good: 100, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+        {
+          id: 'yesterday-excellent',
+          startTime: yesterday.setHours(12, 0, 0, 0),
+          endTime: yesterday.setHours(12, 5, 0, 0),
+          durationMs: 300000,
+          overallQuality: 'excellent' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 100, good: 0, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(records))
+
+      const { getTrends } = useCallQualityHistory()
+      const trends = getTrends(2)
+
+      expect(trends.labels).toHaveLength(2)
+      expect(trends.scores).toHaveLength(2)
+      expect(trends.callCounts).toHaveLength(2)
+      expect(trends.callCounts.reduce((a, b) => a + b, 0)).toBe(2)
+    })
+  })
+
+  describe('aggregate stats', () => {
+    it('should calculate aggregate stats for period', () => {
+      const records = [
+        {
+          id: 'call-1',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          durationMs: 60000,
+          overallQuality: 'excellent' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 100, good: 0, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+        {
+          id: 'call-2',
+          startTime: Date.now() - 1000,
+          endTime: Date.now() - 1000,
+          durationMs: 120000,
+          overallQuality: 'good' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 0, good: 100, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(records))
+
+      const { getAggregateStats } = useCallQualityHistory()
+      const stats = getAggregateStats(7)
+
+      expect(stats.totalCalls).toBe(2)
+      expect(stats.avgQualityScore).toBe(90) // (100 + 80) / 2
+      expect(stats.avgDurationMs).toBe(90000) // (60000 + 120000) / 2
+    })
+
+    it('should return zeros when no records', () => {
+      const { getAggregateStats } = useCallQualityHistory()
+      const stats = getAggregateStats(7)
+
+      expect(stats.totalCalls).toBe(0)
+      expect(stats.avgQualityScore).toBe(0)
+      expect(stats.avgDurationMs).toBe(0)
+    })
+  })
+
+  describe('export/import', () => {
+    it('should export history as JSON', () => {
+      const records = [
+        {
+          id: 'call-1',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          durationMs: 1000,
+          overallQuality: 'good' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 0, good: 100, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(records))
+
+      const { exportHistory } = useCallQualityHistory()
+      const json = exportHistory()
+
+      expect(JSON.parse(json)).toEqual(records)
+    })
+
+    it('should import history from JSON', () => {
+      const newRecords = [
+        {
+          id: 'imported-1',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          durationMs: 1000,
+          overallQuality: 'excellent' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 100, good: 0, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      const { importHistory, getHistory } = useCallQualityHistory()
+      const result = importHistory(JSON.stringify(newRecords))
+
+      expect(result.success).toBe(true)
+      expect(result.imported).toBe(1)
+      expect(getHistory()).toHaveLength(1)
+    })
+
+    it('should dedupe on import', () => {
+      const existing = [
+        {
+          id: 'call-1',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          durationMs: 1000,
+          overallQuality: 'good' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 0, good: 100, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(existing))
+
+      const { importHistory, getHistory } = useCallQualityHistory()
+      const result = importHistory(JSON.stringify(existing))
+
+      expect(result.imported).toBe(1)
+      expect(getHistory()).toHaveLength(1) // Deduped
+    })
+
+    it('should handle invalid import JSON', () => {
+      const { importHistory } = useCallQualityHistory()
+      const result = importHistory('not valid json')
+
+      expect(result.success).toBe(false)
+      expect(result.errors.length).toBeGreaterThan(0)
+    })
+
+    it('should handle non-array import', () => {
+      const { importHistory } = useCallQualityHistory()
+      const result = importHistory('{"id": "not-an-array"}')
+
+      expect(result.success).toBe(false)
+      expect(result.imported).toBe(0)
+    })
+  })
+
+  describe('deletion', () => {
+    it('should clear all history', () => {
+      const records = [
+        {
+          id: 'call-1',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          durationMs: 1000,
+          overallQuality: 'good' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 0, good: 100, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(records))
+
+      const { clearHistory, getHistory } = useCallQualityHistory()
+      clearHistory()
+
+      expect(getHistory()).toHaveLength(0)
+      expect(localStorageMock.removeItem).toHaveBeenCalled()
+    })
+
+    it('should delete specific record', () => {
+      const records = [
+        {
+          id: 'call-1',
+          startTime: Date.now(),
+          endTime: Date.now(),
+          durationMs: 1000,
+          overallQuality: 'good' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 0, good: 100, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+        {
+          id: 'call-2',
+          startTime: Date.now() - 1000,
+          endTime: Date.now() - 1000,
+          durationMs: 1000,
+          overallQuality: 'excellent' as QualityLevel,
+          alertCount: 0,
+          aggregates: {
+            minRtt: null,
+            maxRtt: null,
+            avgRtt: null,
+            minJitter: null,
+            maxJitter: null,
+            avgJitter: null,
+            minPacketLoss: null,
+            maxPacketLoss: null,
+            avgPacketLoss: null,
+            qualityDistribution: { excellent: 100, good: 0, fair: 0, poor: 0, unknown: 0 },
+          },
+          snapshots: [],
+        },
+      ]
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(records))
+
+      const { deleteRecord, getHistory } = useCallQualityHistory()
+      const deleted = deleteRecord('call-1')
+
+      expect(deleted).toBe(true)
+      expect(getHistory()).toHaveLength(1)
+      expect(getHistory()[0].id).toBe('call-2')
+    })
+
+    it('should return false when deleting non-existent record', () => {
+      const { deleteRecord } = useCallQualityHistory()
+      const deleted = deleteRecord('non-existent')
+
+      expect(deleted).toBe(false)
+    })
+  })
+
+  describe('storage options', () => {
+    it('should use custom storage key', () => {
+      const { startCall, endCall } = useCallQualityHistory({
+        storageKey: 'custom-key',
+      })
+
+      startCall('call-1')
+      endCall()
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        'custom-key:records',
+        expect.any(String)
+      )
+    })
+
+    it('should respect maxRecords limit', () => {
+      const records = Array.from({ length: 150 }, (_, i) => ({
+        id: `call-${i}`,
+        startTime: Date.now() - i * 1000,
+        endTime: Date.now() - i * 1000,
+        durationMs: 1000,
+        overallQuality: 'good' as QualityLevel,
+        alertCount: 0,
+        aggregates: {
+          minRtt: null,
+          maxRtt: null,
+          avgRtt: null,
+          minJitter: null,
+          maxJitter: null,
+          avgJitter: null,
+          minPacketLoss: null,
+          maxPacketLoss: null,
+          avgPacketLoss: null,
+          qualityDistribution: { excellent: 0, good: 100, fair: 0, poor: 0, unknown: 0 },
+        },
+        snapshots: [],
+      }))
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(records))
+
+      const { getHistory } = useCallQualityHistory({ maxRecords: 50 })
+
+      expect(getHistory()).toHaveLength(50)
     })
   })
 })

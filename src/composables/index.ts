@@ -57,12 +57,10 @@ export {
 } from './useQualityAlerts'
 export {
   useCallQualityHistory,
-  type UseCallQualityHistoryReturn,
+  type UseCallQualityHistoryOptions,
   type CallQualityRecord,
+  type CallQualityAggregate,
   type QualitySnapshot,
-  type HistoryStorageConfig,
-  type HistoryQueryOptions,
-  type QualityAggregates,
 } from './useCallQualityHistory'
 export {
   useDTMF,

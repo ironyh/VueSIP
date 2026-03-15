@@ -1,55 +1,20 @@
 /**
- * useCallQualityHistory - Persistent Call Quality History Storage
+ * useCallQualityHistory - Persistent Call Quality History Composable
  *
- * Stores and retrieves call quality metrics for trend analysis.
- * Uses LocalStorage with optional export/import functionality.
+ * Stores call quality snapshots during active calls and persists
+ * completed call summaries for historical analysis and trends.
  *
  * @module composables/useCallQualityHistory
  */
-import { ref, computed, type Ref, type DeepReadonly } from 'vue'
+import { ref, computed, type ComputedRef } from 'vue'
 import type { CallQualityStats, QualityLevel } from './useCallQualityStats'
 
 /**
- * Single call quality snapshot (stored per call)
- */
-export interface CallQualityRecord {
-  /** Unique call identifier */
-  callId: string
-  /** Start timestamp */
-  startedAt: Date
-  /** End timestamp (null if ongoing) */
-  endedAt: Date | null
-  /** Duration in seconds (null if ongoing) */
-  durationSeconds: number | null
-  /** Quality snapshots collected during call */
-  snapshots: QualitySnapshot[]
-  /** Overall call quality assessment */
-  overallQuality: QualityLevel
-  /** Worst quality level observed */
-  worstQuality: QualityLevel
-  /** Average metrics across entire call */
-  averages: {
-    rtt: number | null
-    jitter: number | null
-    packetLossPercent: number | null
-    bitrateKbps: number | null
-  }
-  /** Number of quality alerts triggered */
-  alertCount: number
-  /** Call metadata (optional) */
-  metadata?: {
-    direction?: 'inbound' | 'outbound'
-    remoteNumber?: string
-    localAccount?: string
-  }
-}
-
-/**
- * Individual quality measurement snapshot
+ * A single quality snapshot taken during a call
  */
 export interface QualitySnapshot {
-  /** Timestamp of snapshot */
-  timestamp: Date
+  /** Timestamp when snapshot was taken */
+  timestamp: number
   /** RTT in milliseconds */
   rtt: number | null
   /** Jitter in milliseconds */
@@ -58,229 +23,311 @@ export interface QualitySnapshot {
   packetLossPercent: number | null
   /** Bitrate in kbps */
   bitrateKbps: number | null
-  /** Current quality level */
+  /** Current quality level at snapshot time */
   qualityLevel: QualityLevel
-  /** Codec used */
-  codec: string | null
 }
 
 /**
- * Query options for retrieving history
+ * Aggregate statistics for a completed call
  */
-export interface HistoryQueryOptions {
-  /** Start date filter */
-  from?: Date
-  /** End date filter */
-  to?: Date
-  /** Minimum quality filter */
-  minQuality?: QualityLevel
-  /** Maximum results */
-  limit?: number
-  /** Sort direction */
-  sort?: 'asc' | 'desc'
-}
-
-/**
- * Aggregated quality statistics
- */
-export interface QualityAggregates {
-  /** Total calls in period */
-  totalCalls: number
-  /** Completed calls (non-zero duration) */
-  completedCalls: number
-  /** Average call duration in seconds */
-  avgDurationSeconds: number | null
-  /** Calls by quality level */
-  qualityDistribution: Record<QualityLevel, number>
-  /** Average RTT across all calls */
+export interface CallQualityAggregate {
+  /** Minimum RTT observed */
+  minRtt: number | null
+  /** Maximum RTT observed */
+  maxRtt: number | null
+  /** Average RTT */
   avgRtt: number | null
+  /** Minimum jitter observed */
+  minJitter: number | null
+  /** Maximum jitter observed */
+  maxJitter: number | null
+  /** Average jitter */
+  avgJitter: number | null
+  /** Minimum packet loss observed */
+  minPacketLoss: number | null
+  /** Maximum packet loss observed */
+  maxPacketLoss: number | null
   /** Average packet loss */
   avgPacketLoss: number | null
-  /** Percentage of calls with alerts */
-  alertRate: number
-  /** Trend direction: 'improving' | 'stable' | 'degrading' */
-  trend: 'improving' | 'stable' | 'degrading' | 'unknown'
+  /** Percentage of time in each quality level */
+  qualityDistribution: Record<QualityLevel, number>
 }
 
 /**
- * Storage configuration
+ * Summary record for a completed call
  */
-export interface HistoryStorageConfig {
-  /** LocalStorage key prefix (default: 'vuesip-quality') */
-  storageKey: string
-  /** Max records to store (default: 100) */
-  maxRecords: number
-  /** Auto-cleanup older records (default: true) */
-  autoCleanup: boolean
-}
-
-const DEFAULT_CONFIG: HistoryStorageConfig = {
-  storageKey: 'vuesip-quality',
-  maxRecords: 100,
-  autoCleanup: true,
+export interface CallQualityRecord {
+  /** Unique call identifier */
+  id: string
+  /** Call start timestamp */
+  startTime: number
+  /** Call end timestamp */
+  endTime: number
+  /** Call duration in milliseconds */
+  durationMs: number
+  /** Overall quality rating for the call */
+  overallQuality: QualityLevel
+  /** Number of quality alerts during call */
+  alertCount: number
+  /** Aggregate statistics */
+  aggregates: CallQualityAggregate
+  /** Quality snapshots (sampled every 2s) */
+  snapshots: QualitySnapshot[]
+  /** Remote party identifier (phone number/URI) */
+  remoteIdentity?: string
+  /** Call direction */
+  direction?: 'incoming' | 'outgoing'
 }
 
 /**
- * Serialize record for storage (Dates to ISO strings)
+ * History filter options
  */
-function serializeRecord(record: CallQualityRecord): string {
-  return JSON.stringify({
-    ...record,
-    startedAt: record.startedAt.toISOString(),
-    endedAt: record.endedAt?.toISOString() ?? null,
-    snapshots: record.snapshots.map((s) => ({
-      ...s,
-      timestamp: s.timestamp.toISOString(),
-    })),
-  })
+export interface HistoryFilter {
+  /** Start date for filtering */
+  fromDate?: Date
+  /** End date for filtering */
+  toDate?: Date
+  /** Minimum quality level to include */
+  minQuality?: QualityLevel
+  /** Maximum number of records to return */
+  limit?: number
 }
 
 /**
- * Deserialize record from storage (ISO strings to Dates)
+ * Trend data for charting
  */
-function deserializeRecord(data: string): CallQualityRecord {
-  const parsed = JSON.parse(data)
-  return {
-    ...parsed,
-    startedAt: new Date(parsed.startedAt),
-    endedAt: parsed.endedAt ? new Date(parsed.endedAt) : null,
-    snapshots: parsed.snapshots.map((s: QualitySnapshot & { timestamp: string }) => ({
-      ...s,
-      timestamp: new Date(s.timestamp),
-    })),
-  }
+export interface QualityTrend {
+  /** Date labels */
+  labels: string[]
+  /** Average quality scores per day (0-100) */
+  scores: number[]
+  /** Call counts per day */
+  callCounts: number[]
 }
 
 /**
- * Calculate quality level from snapshot metrics
+ * Options for useCallQualityHistory
  */
-function calculateQualityLevel(rtt: number | null, packetLossPercent: number | null): QualityLevel {
-  if (rtt === null && packetLossPercent === null) return 'unknown'
-
-  const effectiveRtt = rtt ?? 0
-  const effectiveLoss = packetLossPercent ?? 0
-
-  if (effectiveRtt < 150 && effectiveLoss < 1) return 'excellent'
-  if (effectiveRtt < 300 && effectiveLoss < 3) return 'good'
-  if (effectiveRtt < 500 && effectiveLoss < 5) return 'fair'
-  return 'poor'
+export interface UseCallQualityHistoryOptions {
+  /** localStorage key prefix (default: 'vuesip-quality') */
+  storageKey?: string
+  /** Maximum records to store (default: 100) */
+  maxRecords?: number
+  /** Snapshot sample interval in ms (default: 2000) */
+  snapshotIntervalMs?: number
+  /** Days to retain history (default: 30) */
+  retentionDays?: number
 }
 
 /**
- * Composable return type
+ * Active call tracking state (internal)
  */
-export interface UseCallQualityHistoryReturn {
-  /** All stored call records */
-  records: DeepReadonly<Ref<CallQualityRecord[]>>
-  /** Currently active call record (null if no active call) */
-  activeCall: DeepReadonly<Ref<CallQualityRecord | null>>
-  /** Aggregated statistics for all records */
-  aggregates: DeepReadonly<Ref<QualityAggregates>>
-  /** Start recording a new call */
-  startCall: (callId: string, metadata?: CallQualityRecord['metadata']) => void
-  /** Add quality snapshot to active call */
-  addSnapshot: (stats: CallQualityStats) => void
-  /** End recording current call */
-  endCall: () => void
-  /** Query records with filters */
-  query: (options?: HistoryQueryOptions) => CallQualityRecord[]
-  /** Export all records to JSON */
-  exportToJson: () => string
-  /** Import records from JSON */
-  importFromJson: (json: string) => void
-  /** Clear all history */
-  clearHistory: () => void
-  /** Delete specific record */
-  deleteRecord: (callId: string) => void
+interface ActiveCallState {
+  id: string
+  startTime: number
+  snapshots: QualitySnapshot[]
+  alertCount: number
+  remoteIdentity?: string
+  direction?: 'incoming' | 'outgoing'
+  lastSnapshotTime: number
+}
+
+// localStorage key constants
+const STORAGE_KEYS = {
+  records: (prefix: string) => `${prefix}:records`,
+  metadata: (prefix: string) => `${prefix}:metadata`,
 }
 
 /**
- * Vue composable for persistent call quality history
+ * Quality level to numeric score mapping
+ */
+const QUALITY_SCORES: Record<QualityLevel, number> = {
+  excellent: 100,
+  good: 80,
+  fair: 50,
+  poor: 20,
+  unknown: 0,
+}
+
+/**
+ * Vue composable for tracking and persisting call quality history
  *
- * @param config - Storage configuration options
- * @returns Composable interface for history management
+ * @param options - Configuration options
+ * @returns Composable interface for quality history management
  *
  * @example
  * ```ts
- * const history = useCallQualityHistory()
+ * const {
+ *   startCall,
+ *   recordSnapshot,
+ *   endCall,
+ *   getHistory,
+ *   getTrends
+ * } = useCallQualityHistory()
  *
- * // Start recording a call
- * history.startCall('call-123', { direction: 'outbound', remoteNumber: '555-0100' })
+ * // During call
+ * startCall('call-123', '+46123456789')
+ * recordSnapshot(stats, qualityLevel)
+ * endCall()
  *
- * // During call, add snapshots
- * history.addSnapshot({ rtt: 45, jitter: 2, packetLossPercent: 0.1, ... })
- *
- * // End call
- * history.endCall()
- *
- * // Query history
- * const recentCalls = history.query({ from: new Date(Date.now() - 86400000), limit: 10 })
+ * // Review history
+ * const recentCalls = getHistory({ limit: 10 })
  * ```
  */
-export function useCallQualityHistory(
-  config: Partial<HistoryStorageConfig> = {}
-): UseCallQualityHistoryReturn {
-  const cfg = { ...DEFAULT_CONFIG, ...config }
+/**
+ * UI-friendly record shape for components
+ */
+export interface UICallQualityRecord {
+  /** Unique call identifier */
+  callId: string
+  /** Call start timestamp */
+  startedAt: Date
+  /** Call duration in seconds */
+  durationSeconds: number | null
+  /** Overall quality rating */
+  overallQuality: QualityLevel
+  /** Number of alerts during call */
+  alertCount: number
+  /** Call metadata */
+  metadata?: {
+    remoteNumber?: string
+    direction?: 'incoming' | 'outgoing'
+  }
+}
+
+/**
+ * UI-friendly aggregate shape
+ */
+export interface UIAggregates {
+  /** Total number of calls */
+  totalCalls: number
+  /** Average RTT in ms */
+  avgRtt: number | null
+  /** Average packet loss percentage */
+  avgPacketLoss: number | null
+  /** Trend direction */
+  trend: 'improving' | 'degrading' | 'stable'
+  /** Quality distribution by level */
+  qualityDistribution: Record<QualityLevel, number>
+}
+
+export function useCallQualityHistory(options: UseCallQualityHistoryOptions = {}): {
+  /** Whether a call is currently being tracked */
+  isTracking: ComputedRef<boolean>
+  /** Currently active call ID */
+  activeCallId: ComputedRef<string | null>
+  /** All records as reactive ref (for UI) */
+  records: ComputedRef<UICallQualityRecord[]>
+  /** Aggregated statistics (for UI) */
+  aggregates: ComputedRef<UIAggregates>
+  /** Start tracking a new call */
+  startCall: (callId: string, remoteIdentity?: string, direction?: 'incoming' | 'outgoing') => void
+  /** Record a quality snapshot */
+  recordSnapshot: (stats: CallQualityStats, qualityLevel: QualityLevel) => void
+  /** Increment alert counter for active call */
+  recordAlert: () => void
+  /** End tracking and save call record */
+  endCall: () => CallQualityRecord | null
+  /** Get call history with optional filtering */
+  getHistory: (filter?: HistoryFilter) => CallQualityRecord[]
+  /** Get quality trends over time */
+  getTrends: (days?: number) => QualityTrend
+  /** Get aggregated statistics for a period */
+  getAggregateStats: (days?: number) => {
+    totalCalls: number
+    avgQualityScore: number
+    avgDurationMs: number
+  }
+  /** Export history as JSON */
+  exportHistory: (filter?: HistoryFilter) => string
+  /** Alias for exportHistory (component compatibility) */
+  exportToJson: () => string
+  /** Import history from JSON */
+  importHistory: (json: string) => { success: boolean; imported: number; errors: string[] }
+  /** Alias for importHistory (component compatibility) */
+  importFromJson: (json: string) => { success: boolean; imported: number; errors: string[] }
+  /** Clear all history */
+  clearHistory: () => void
+  /** Delete specific record */
+  deleteRecord: (callId: string) => boolean
+} {
+  const {
+    storageKey = 'vuesip-quality',
+    maxRecords = 100,
+    snapshotIntervalMs = 2000,
+    retentionDays = 30,
+  } = options
 
   // Reactive state
-  const records = ref<CallQualityRecord[]>([])
-  const activeCall = ref<CallQualityRecord | null>(null)
+  const activeCall = ref<ActiveCallState | null>(null)
+  const records = ref<CallQualityRecord[]>(loadRecords())
 
-  // Load from LocalStorage on init
-  const storageKey = cfg.storageKey
-  const loadFromStorage = (): void => {
+  // Computed
+  const isTracking = computed(() => activeCall.value !== null)
+  const activeCallId = computed(() => activeCall.value?.id ?? null)
+
+  /**
+   * Load records from localStorage
+   */
+  function loadRecords(): CallQualityRecord[] {
+    if (typeof window === 'undefined') return []
+
     try {
-      const stored = localStorage.getItem(storageKey)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        records.value = parsed.map((r: string) => deserializeRecord(r))
-      }
-    } catch (error) {
-      console.warn('[useCallQualityHistory] Failed to load from storage:', error)
-      records.value = []
+      const stored = localStorage.getItem(STORAGE_KEYS.records(storageKey))
+      if (!stored) return []
+
+      const parsed = JSON.parse(stored) as CallQualityRecord[]
+
+      // Filter out expired records
+      const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000
+      const valid = parsed.filter((r) => r.startTime > cutoff)
+
+      // Sort by start time descending and trim to maxRecords
+      return valid.sort((a, b) => b.startTime - a.startTime).slice(0, maxRecords)
+    } catch {
+      return []
     }
   }
 
-  // Save to LocalStorage
-  const saveToStorage = (): void => {
+  /**
+   * Save records to localStorage
+   */
+  function saveRecords(): void {
+    if (typeof window === 'undefined') return
+
     try {
-      const serialized = records.value.map(serializeRecord)
-      localStorage.setItem(storageKey, JSON.stringify(serialized))
-    } catch (error) {
-      console.warn('[useCallQualityHistory] Failed to save to storage:', error)
+      // Trim to max records
+      const trimmed = records.value.slice(0, maxRecords)
+      localStorage.setItem(STORAGE_KEYS.records(storageKey), JSON.stringify(trimmed))
+    } catch (e) {
+      console.warn('[useCallQualityHistory] Failed to save records:', e)
     }
   }
 
-  // Cleanup old records if over limit
-  const cleanupIfNeeded = (): void => {
-    if (!cfg.autoCleanup || records.value.length <= cfg.maxRecords) return
-
-    // Sort by start date desc, keep newest maxRecords
-    records.value = records.value
-      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
-      .slice(0, cfg.maxRecords)
-  }
-
-  // Calculate aggregates
-  const aggregates = computed<QualityAggregates>(() => {
-    const all = records.value
-    if (all.length === 0) {
+  /**
+   * Calculate aggregate statistics from snapshots
+   */
+  function calculateAggregates(snapshots: QualitySnapshot[]): CallQualityAggregate {
+    if (snapshots.length === 0) {
       return {
-        totalCalls: 0,
-        completedCalls: 0,
-        avgDurationSeconds: null,
-        qualityDistribution: { excellent: 0, good: 0, fair: 0, poor: 0, unknown: 0 },
+        minRtt: null,
+        maxRtt: null,
         avgRtt: null,
+        minJitter: null,
+        maxJitter: null,
+        avgJitter: null,
+        minPacketLoss: null,
+        maxPacketLoss: null,
         avgPacketLoss: null,
-        alertRate: 0,
-        trend: 'unknown',
+        qualityDistribution: { excellent: 0, good: 0, fair: 0, poor: 0, unknown: 0 },
       }
     }
 
-    const completed = all.filter((r) => r.durationSeconds !== null && r.durationSeconds > 0)
-    const durations = completed.map((r) => r.durationSeconds as number)
-    const avgDuration =
-      durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : null
+    const rtts = snapshots.map((s) => s.rtt).filter((v): v is number => v !== null)
+    const jitters = snapshots.map((s) => s.jitter).filter((v): v is number => v !== null)
+    const packetLosses = snapshots
+      .map((s) => s.packetLossPercent)
+      .filter((v): v is number => v !== null)
 
     // Quality distribution
     const distribution: Record<QualityLevel, number> = {
@@ -290,265 +337,405 @@ export function useCallQualityHistory(
       poor: 0,
       unknown: 0,
     }
-    all.forEach((r) => {
-      distribution[r.overallQuality]++
+    snapshots.forEach((s) => {
+      distribution[s.qualityLevel]++
     })
-
-    // Average RTT and packet loss from snapshots
-    let totalRtt = 0
-    let rttCount = 0
-    let totalLoss = 0
-    let lossCount = 0
-    all.forEach((r) => {
-      r.snapshots.forEach((s) => {
-        if (s.rtt !== null) {
-          totalRtt += s.rtt
-          rttCount++
-        }
-        if (s.packetLossPercent !== null) {
-          totalLoss += s.packetLossPercent
-          lossCount++
-        }
-      })
+    const total = snapshots.length
+    Object.keys(distribution).forEach((key) => {
+      distribution[key as QualityLevel] = (distribution[key as QualityLevel] / total) * 100
     })
-
-    // Alert rate
-    const callsWithAlerts = all.filter((r) => r.alertCount > 0).length
-
-    // Simple trend: compare first half vs second half avg quality
-    const sorted = [...all].sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime())
-    const mid = Math.floor(sorted.length / 2)
-    const firstHalf = sorted.slice(0, mid)
-    const secondHalf = sorted.slice(mid)
-
-    const qualityScore = (q: QualityLevel): number =>
-      ({ excellent: 4, good: 3, fair: 2, poor: 1, unknown: 0 })[q]
-
-    const firstAvg =
-      firstHalf.length > 0
-        ? firstHalf.reduce((sum, r) => sum + qualityScore(r.overallQuality), 0) / firstHalf.length
-        : 0
-    const secondAvg =
-      secondHalf.length > 0
-        ? secondHalf.reduce((sum, r) => sum + qualityScore(r.overallQuality), 0) / secondHalf.length
-        : 0
-
-    let trend: QualityAggregates['trend'] = 'stable'
-    if (secondAvg > firstAvg + 0.5) trend = 'improving'
-    else if (secondAvg < firstAvg - 0.5) trend = 'degrading'
 
     return {
-      totalCalls: all.length,
-      completedCalls: completed.length,
-      avgDurationSeconds: avgDuration,
+      minRtt: rtts.length > 0 ? Math.min(...rtts) : null,
+      maxRtt: rtts.length > 0 ? Math.max(...rtts) : null,
+      avgRtt: rtts.length > 0 ? rtts.reduce((a, b) => a + b, 0) / rtts.length : null,
+      minJitter: jitters.length > 0 ? Math.min(...jitters) : null,
+      maxJitter: jitters.length > 0 ? Math.max(...jitters) : null,
+      avgJitter: jitters.length > 0 ? jitters.reduce((a, b) => a + b, 0) / jitters.length : null,
+      minPacketLoss: packetLosses.length > 0 ? Math.min(...packetLosses) : null,
+      maxPacketLoss: packetLosses.length > 0 ? Math.max(...packetLosses) : null,
+      avgPacketLoss:
+        packetLosses.length > 0
+          ? packetLosses.reduce((a, b) => a + b, 0) / packetLosses.length
+          : null,
       qualityDistribution: distribution,
-      avgRtt: rttCount > 0 ? totalRtt / rttCount : null,
-      avgPacketLoss: lossCount > 0 ? totalLoss / lossCount : null,
-      alertRate: all.length > 0 ? (callsWithAlerts / all.length) * 100 : 0,
-      trend,
-    }
-  })
-
-  /**
-   * Start recording a new call
-   */
-  const startCall = (callId: string, metadata?: CallQualityRecord['metadata']): void => {
-    // End any existing active call first
-    if (activeCall.value) {
-      endCall()
-    }
-
-    activeCall.value = {
-      callId,
-      startedAt: new Date(),
-      endedAt: null,
-      durationSeconds: null,
-      snapshots: [],
-      overallQuality: 'unknown',
-      worstQuality: 'unknown',
-      averages: { rtt: null, jitter: null, packetLossPercent: null, bitrateKbps: null },
-      alertCount: 0,
-      metadata,
     }
   }
 
   /**
-   * Add quality snapshot to active call
+   * Determine overall call quality from distribution
    */
-  const addSnapshot = (stats: CallQualityStats): void => {
+  function determineOverallQuality(distribution: Record<QualityLevel, number>): QualityLevel {
+    // If more than 50% poor, call is poor
+    if (distribution.poor > 50) return 'poor'
+    // If more than 50% fair or below, call is fair
+    if (distribution.fair + distribution.poor > 50) return 'fair'
+    // If more than 80% excellent, call is excellent
+    if (distribution.excellent > 80) return 'excellent'
+    // Default to good
+    return 'good'
+  }
+
+  /**
+   * Start tracking a new call
+   */
+  function startCall(
+    callId: string,
+    remoteIdentity?: string,
+    direction?: 'incoming' | 'outgoing'
+  ): void {
+    if (activeCall.value) {
+      console.warn('[useCallQualityHistory] Ending previous call before starting new one')
+      endCall()
+    }
+
+    activeCall.value = {
+      id: callId,
+      startTime: Date.now(),
+      snapshots: [],
+      alertCount: 0,
+      remoteIdentity,
+      direction,
+      lastSnapshotTime: 0,
+    }
+  }
+
+  /**
+   * Record a quality snapshot for the active call
+   */
+  function recordSnapshot(stats: CallQualityStats, qualityLevel: QualityLevel): void {
     if (!activeCall.value) return
 
-    const qualityLevel = calculateQualityLevel(stats.rtt, stats.packetLossPercent)
+    const now = Date.now()
+
+    // Throttle snapshots to configured interval
+    if (now - activeCall.value.lastSnapshotTime < snapshotIntervalMs) {
+      return
+    }
 
     const snapshot: QualitySnapshot = {
-      timestamp: stats.lastUpdated ?? new Date(),
+      timestamp: now,
       rtt: stats.rtt,
       jitter: stats.jitter,
       packetLossPercent: stats.packetLossPercent,
       bitrateKbps: stats.bitrateKbps,
       qualityLevel,
-      codec: stats.codec,
     }
 
     activeCall.value.snapshots.push(snapshot)
+    activeCall.value.lastSnapshotTime = now
+  }
 
-    // Update worst quality
-    const qualityRanking: Record<QualityLevel, number> = {
-      excellent: 4,
-      good: 3,
-      fair: 2,
-      poor: 1,
-      unknown: 0,
-    }
-
-    if (
-      activeCall.value.worstQuality === 'unknown' ||
-      qualityRanking[qualityLevel] < qualityRanking[activeCall.value.worstQuality]
-    ) {
-      activeCall.value.worstQuality = qualityLevel
+  /**
+   * Record an alert occurrence
+   */
+  function recordAlert(): void {
+    if (activeCall.value) {
+      activeCall.value.alertCount++
     }
   }
 
   /**
-   * End recording current call and save to history
+   * End tracking and save the call record
    */
-  const endCall = (): void => {
-    if (!activeCall.value) return
+  function endCall(): CallQualityRecord | null {
+    if (!activeCall.value) return null
 
-    const call = activeCall.value
-    call.endedAt = new Date()
-    call.durationSeconds = Math.round((call.endedAt.getTime() - call.startedAt.getTime()) / 1000)
+    const endTime = Date.now()
+    const state = activeCall.value
 
-    // Calculate averages from snapshots
-    if (call.snapshots.length > 0) {
-      const rtts = call.snapshots.map((s) => s.rtt).filter((v): v is number => v !== null)
-      const jitters = call.snapshots.map((s) => s.jitter).filter((v): v is number => v !== null)
-      const losses = call.snapshots
-        .map((s) => s.packetLossPercent)
-        .filter((v): v is number => v !== null)
-      const bitrates = call.snapshots
-        .map((s) => s.bitrateKbps)
-        .filter((v): v is number => v !== null)
+    const aggregates = calculateAggregates(state.snapshots)
+    const overallQuality = determineOverallQuality(aggregates.qualityDistribution)
 
-      call.averages = {
-        rtt: rtts.length > 0 ? rtts.reduce((a, b) => a + b, 0) / rtts.length : null,
-        jitter: jitters.length > 0 ? jitters.reduce((a, b) => a + b, 0) / jitters.length : null,
-        packetLossPercent:
-          losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : null,
-        bitrateKbps:
-          bitrates.length > 0 ? bitrates.reduce((a, b) => a + b, 0) / bitrates.length : null,
-      }
-
-      // Overall quality is the most common quality level
-      const qualityCounts: Record<QualityLevel, number> = {
-        excellent: 0,
-        good: 0,
-        fair: 0,
-        poor: 0,
-        unknown: 0,
-      }
-      call.snapshots.forEach((s) => qualityCounts[s.qualityLevel]++)
-      call.overallQuality = (Object.entries(qualityCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ??
-        'unknown') as QualityLevel
+    const record: CallQualityRecord = {
+      id: state.id,
+      startTime: state.startTime,
+      endTime,
+      durationMs: endTime - state.startTime,
+      overallQuality,
+      alertCount: state.alertCount,
+      aggregates,
+      snapshots: state.snapshots,
+      remoteIdentity: state.remoteIdentity,
+      direction: state.direction,
     }
 
-    // Save to records
-    records.value.push({ ...call })
-    cleanupIfNeeded()
-    saveToStorage()
+    // Add to records and save
+    records.value = [record, ...records.value].slice(0, maxRecords)
+    saveRecords()
 
+    // Clear active call
     activeCall.value = null
+
+    return record
   }
 
   /**
-   * Query records with filters
+   * Get filtered history
    */
-  const query = (options: HistoryQueryOptions = {}): CallQualityRecord[] => {
+  function getHistory(filter: HistoryFilter = {}): CallQualityRecord[] {
     let result = [...records.value]
 
-    if (options.from) {
-      const fromTime = options.from.getTime()
-      result = result.filter((r) => r.startedAt.getTime() >= fromTime)
-    }
-    if (options.to) {
-      const toTime = options.to.getTime()
-      result = result.filter((r) => r.startedAt.getTime() <= toTime)
-    }
-    if (options.minQuality) {
-      const qualityRanking: Record<QualityLevel, number> = {
-        excellent: 4,
-        good: 3,
-        fair: 2,
-        poor: 1,
-        unknown: 0,
-      }
-      const minRank = qualityRanking[options.minQuality]
-      result = result.filter((r) => qualityRanking[r.overallQuality] >= minRank)
+    if (filter.fromDate) {
+      const fromTime = filter.fromDate.getTime()
+      result = result.filter((r) => r.startTime >= fromTime)
     }
 
-    result.sort((a, b) =>
-      options.sort === 'asc'
-        ? a.startedAt.getTime() - b.startedAt.getTime()
-        : b.startedAt.getTime() - a.startedAt.getTime()
-    )
+    if (filter.toDate) {
+      const toTime = filter.toDate.getTime()
+      result = result.filter((r) => r.startTime <= toTime)
+    }
 
-    if (options.limit) {
-      result = result.slice(0, options.limit)
+    if (filter.minQuality) {
+      const qualityOrder: QualityLevel[] = ['poor', 'fair', 'good', 'excellent']
+      const minIndex = qualityOrder.indexOf(filter.minQuality)
+      result = result.filter((r) => qualityOrder.indexOf(r.overallQuality) >= minIndex)
+    }
+
+    if (filter.limit) {
+      result = result.slice(0, filter.limit)
     }
 
     return result
   }
 
   /**
-   * Export all records to JSON
+   * Get quality trends over specified days
    */
-  const exportToJson = (): string => {
-    return JSON.stringify(records.value.map(serializeRecord), null, 2)
+  function getTrends(days = 7): QualityTrend {
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days + 1)
+
+    const labels: string[] = []
+    const scores: number[] = []
+    const callCounts: number[] = []
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate)
+      date.setDate(date.getDate() + i)
+
+      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+      const dayEnd = dayStart + 24 * 60 * 60 * 1000
+
+      const dayCalls = records.value.filter((r) => r.startTime >= dayStart && r.startTime < dayEnd)
+
+      const avgScore =
+        dayCalls.length > 0
+          ? dayCalls.reduce((sum, c) => sum + QUALITY_SCORES[c.overallQuality], 0) / dayCalls.length
+          : 0
+
+      labels.push(date.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' }))
+      scores.push(Math.round(avgScore))
+      callCounts.push(dayCalls.length)
+    }
+
+    return { labels, scores, callCounts }
   }
 
   /**
-   * Import records from JSON
+   * Get aggregate statistics for a period
    */
-  const importFromJson = (json: string): void => {
+  function getAggregateStats(days = 7): {
+    totalCalls: number
+    avgQualityScore: number
+    avgDurationMs: number
+  } {
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+    const recent = records.value.filter((r) => r.startTime > cutoff)
+
+    if (recent.length === 0) {
+      return { totalCalls: 0, avgQualityScore: 0, avgDurationMs: 0 }
+    }
+
+    const totalScore = recent.reduce((sum, r) => sum + QUALITY_SCORES[r.overallQuality], 0)
+    const totalDuration = recent.reduce((sum, r) => sum + r.durationMs, 0)
+
+    return {
+      totalCalls: recent.length,
+      avgQualityScore: Math.round(totalScore / recent.length),
+      avgDurationMs: Math.round(totalDuration / recent.length),
+    }
+  }
+
+  /**
+   * Export history as JSON
+   */
+  function exportHistory(filter?: HistoryFilter): string {
+    const data = getHistory(filter)
+    return JSON.stringify(data, null, 2)
+  }
+
+  /**
+   * Import history from JSON
+   */
+  function importHistory(json: string): { success: boolean; imported: number; errors: string[] } {
+    const errors: string[] = []
+
     try {
-      const parsed = JSON.parse(json)
-      records.value = parsed.map((r: string) => deserializeRecord(r))
-      saveToStorage()
-    } catch (error) {
-      console.error('[useCallQualityHistory] Failed to import:', error)
-      throw new Error('Invalid import data')
+      const parsed = JSON.parse(json) as unknown
+
+      if (!Array.isArray(parsed)) {
+        return { success: false, imported: 0, errors: ['Invalid format: expected array'] }
+      }
+
+      let imported = 0
+      const newRecords: CallQualityRecord[] = []
+
+      for (const item of parsed) {
+        // Basic validation
+        if (typeof item === 'object' && item !== null && 'id' in item && 'startTime' in item) {
+          newRecords.push(item as CallQualityRecord)
+          imported++
+        } else {
+          errors.push(`Invalid record: ${JSON.stringify(item).slice(0, 100)}`)
+        }
+      }
+
+      // Merge with existing, dedupe by ID
+      const existingIds = new Set(records.value.map((r) => r.id))
+      const merged = [...newRecords.filter((r) => !existingIds.has(r.id)), ...records.value]
+        .sort((a, b) => b.startTime - a.startTime)
+        .slice(0, maxRecords)
+
+      records.value = merged
+      saveRecords()
+
+      return { success: true, imported, errors }
+    } catch (e) {
+      return { success: false, imported: 0, errors: [String(e)] }
     }
   }
 
   /**
    * Clear all history
    */
-  const clearHistory = (): void => {
+  function clearHistory(): void {
     records.value = []
-    localStorage.removeItem(storageKey)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.records(storageKey))
+    }
   }
 
   /**
-   * Delete specific record
+   * Delete a specific record
    */
-  const deleteRecord = (callId: string): void => {
-    records.value = records.value.filter((r) => r.callId !== callId)
-    saveToStorage()
+  function deleteRecord(callId: string): boolean {
+    const before = records.value.length
+    records.value = records.value.filter((r) => r.id !== callId)
+
+    if (records.value.length < before) {
+      saveRecords()
+      return true
+    }
+    return false
   }
 
-  // Load initial data
-  loadFromStorage()
+  /**
+   * UI-friendly records computed property
+   */
+  const uiRecords = computed<UICallQualityRecord[]>(() => {
+    return records.value.map((r) => ({
+      callId: r.id,
+      startedAt: new Date(r.startTime),
+      durationSeconds: r.durationMs > 0 ? Math.round(r.durationMs / 1000) : null,
+      overallQuality: r.overallQuality,
+      alertCount: r.alertCount,
+      metadata: {
+        remoteNumber: r.remoteIdentity,
+        direction: r.direction,
+      },
+    }))
+  })
+
+  /**
+   * UI-friendly aggregates computed property
+   */
+  const uiAggregates = computed<UIAggregates>(() => {
+    const allRecords = records.value
+    const totalCalls = allRecords.length
+
+    if (totalCalls === 0) {
+      return {
+        totalCalls: 0,
+        avgRtt: null,
+        avgPacketLoss: null,
+        trend: 'stable',
+        qualityDistribution: { excellent: 0, good: 0, fair: 0, poor: 0, unknown: 0 },
+      }
+    }
+
+    // Calculate averages from aggregates
+    let totalAvgRtt = 0
+    let rttCount = 0
+    let totalAvgPacketLoss = 0
+    let packetLossCount = 0
+    const qualityDistribution: Record<QualityLevel, number> = {
+      excellent: 0,
+      good: 0,
+      fair: 0,
+      poor: 0,
+      unknown: 0,
+    }
+
+    allRecords.forEach((r) => {
+      if (r.aggregates.avgRtt !== null) {
+        totalAvgRtt += r.aggregates.avgRtt
+        rttCount++
+      }
+      if (r.aggregates.avgPacketLoss !== null) {
+        totalAvgPacketLoss += r.aggregates.avgPacketLoss
+        packetLossCount++
+      }
+      qualityDistribution[r.overallQuality]++
+    })
+
+    // Calculate trend (compare recent 7 days vs previous 7 days)
+    const now = Date.now()
+    const sevenDays = 7 * 24 * 60 * 60 * 1000
+    const recentCalls = allRecords.filter((r) => r.startTime > now - sevenDays)
+    const previousCalls = allRecords.filter(
+      (r) => r.startTime <= now - sevenDays && r.startTime > now - 2 * sevenDays
+    )
+
+    let trend: 'improving' | 'degrading' | 'stable' = 'stable'
+    if (recentCalls.length > 0 && previousCalls.length > 0) {
+      const recentScore =
+        recentCalls.reduce((sum, r) => sum + QUALITY_SCORES[r.overallQuality], 0) /
+        recentCalls.length
+      const prevScore =
+        previousCalls.reduce((sum, r) => sum + QUALITY_SCORES[r.overallQuality], 0) /
+        previousCalls.length
+
+      if (recentScore > prevScore + 5) trend = 'improving'
+      else if (recentScore < prevScore - 5) trend = 'degrading'
+    }
+
+    return {
+      totalCalls,
+      avgRtt: rttCount > 0 ? Math.round(totalAvgRtt / rttCount) : null,
+      avgPacketLoss:
+        packetLossCount > 0 ? parseFloat((totalAvgPacketLoss / packetLossCount).toFixed(1)) : null,
+      trend,
+      qualityDistribution,
+    }
+  })
 
   return {
-    records: records as unknown as DeepReadonly<Ref<CallQualityRecord[]>>,
-    activeCall: activeCall as unknown as DeepReadonly<Ref<CallQualityRecord | null>>,
-    aggregates: aggregates as unknown as DeepReadonly<Ref<QualityAggregates>>,
+    isTracking,
+    activeCallId,
+    records: uiRecords,
+    aggregates: uiAggregates,
     startCall,
-    addSnapshot,
+    recordSnapshot,
+    recordAlert,
     endCall,
-    query,
-    exportToJson,
-    importFromJson,
+    getHistory,
+    getTrends,
+    getAggregateStats,
+    exportHistory,
+    exportToJson: () => exportHistory(),
+    importHistory,
+    importFromJson: importHistory,
     clearHistory,
     deleteRecord,
   }
