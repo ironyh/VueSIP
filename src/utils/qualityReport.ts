@@ -114,10 +114,12 @@ export function calculateMOS(
   const R = Math.max(0, Math.min(100, MOS_R0 - MOS_IS - MOS_ID - Ipl - Id))
 
   // Convert R factor to MOS (1.0-4.5 scale, capped at 4.5)
+  // Using standard ITU-T G.107 formula coefficient 7e-6 (not 7e-5)
+  // The formula produces negative values with 7e-5 for R < ~30, causing MOS to floor at 1.0 prematurely
   if (R < 0) return 1.0
   if (R > 100) return 4.5
 
-  const mos = 1 + 0.035 * R + R * (R - 60) * (100 - R) * 7e-5
+  const mos = 1 + 0.035 * R + R * (R - 60) * (100 - R) * 7e-6
   return Math.max(1.0, Math.min(4.5, mos))
 }
 
