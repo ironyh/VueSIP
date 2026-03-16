@@ -102,8 +102,9 @@ export function calculateMOS(
   const effectiveRtt = rttMs ?? 0
 
   // Calculate impairment factors
-  // Packet loss impairment (exponential impact)
-  const Ipl = effectivePacketLoss > 0 ? 30 * Math.log10(1 + effectivePacketLoss * 10) : 0
+  // Packet loss impairment (exponential impact, standard E-model formula)
+  // Using log10(1 + pl*10) but scaled more reasonably for WebRTC
+  const Ipl = effectivePacketLoss > 0 ? 25 * Math.log10(1 + effectivePacketLoss) : 0
 
   // Delay impairment (RTT + jitter buffer)
   const totalDelay = effectiveRtt + effectiveJitter * 2 // Jitter buffer estimate
