@@ -105,7 +105,7 @@ describe('encryption', () => {
 
     it('should use custom iterations when provided', async () => {
       const testData = { value: 'test' }
-      const password = 'key'
+      const password = 'testkey123'
       const customIterations = 5000
 
       await encrypt(testData, password, { iterations: customIterations })

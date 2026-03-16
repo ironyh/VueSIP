@@ -121,6 +121,20 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 }
 
 /**
+ * Validate password for encryption/decryption
+ * @param password - Password to validate
+ * @throws Error if password is too short
+ */
+function validatePassword(password: string): void {
+  if (!password || typeof password !== 'string') {
+    throw new Error('Password must be a non-empty string')
+  }
+  if (password.length < 8) {
+    throw new Error('Password must be at least 8 characters long')
+  }
+}
+
+/**
  * Derive encryption key from password using PBKDF2
  * @param password - Password to derive key from
  * @param salt - Salt for key derivation
@@ -132,6 +146,9 @@ async function deriveKey(
   salt: Uint8Array,
   iterations = 100000
 ): Promise<CryptoKey> {
+  // Validate password first
+  validatePassword(password)
+
   // Import password as key material
   const encoder = new TextEncoder()
   const keyMaterial = await crypto.subtle.importKey(
