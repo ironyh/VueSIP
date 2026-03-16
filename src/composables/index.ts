@@ -505,6 +505,13 @@ export {
 // PBX Recordings composable
 export { usePbxRecordings, type UsePbxRecordingsReturn } from './usePbxRecordings'
 
+// WebRTC Call Recording composable
+export {
+  useCallRecording,
+  type CallRecordingMetadata,
+  type UseCallRecordingOptions,
+} from './useCallRecording'
+
 // Confirmation dialog composable
 export { useConfirm } from './useConfirm'
 export type { UseConfirmReturn, ConfirmOptions, ConfirmResult } from './useConfirm'
