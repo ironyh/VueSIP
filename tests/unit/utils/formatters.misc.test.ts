@@ -40,6 +40,14 @@ describe('titleCase', () => {
   it('should handle string with spaces', () => {
     expect(titleCase('hello world')).toBe('Hello world')
   })
+
+  it('should handle null input', () => {
+    expect(titleCase(null as unknown as string)).toBe('')
+  })
+
+  it('should handle undefined input', () => {
+    expect(titleCase(undefined as unknown as string)).toBe('')
+  })
 })
 
 describe('truncate', () => {
