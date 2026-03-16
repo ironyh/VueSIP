@@ -8,6 +8,20 @@ import { ref } from 'vue'
 import { useAmiBase } from '../useAmiBase'
 import type { AmiClient } from '@/core/AmiClient'
 
+// Mock logger to verify debug calls
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
+}))
+vi.mock('@/utils/logger', () => ({
+  createLogger: () => mockLogger,
+  configureLogger: vi.fn(),
+}))
+
 // Mock types
 interface TestItem {
   id: string
@@ -288,7 +302,7 @@ describe('useAmiBase', () => {
     })
 
     it('should log when debug is true', async () => {
-      const consoleSpy = vi.spyOn(console, 'log')
+      mockLogger.debug.mockClear()
 
       const { refresh } = useAmiBase<TestItem>(mockClient, {
         fetchData: vi.fn().mockResolvedValue([]),
@@ -298,8 +312,7 @@ describe('useAmiBase', () => {
 
       await refresh()
 
-      expect(consoleSpy).toHaveBeenCalled()
-      consoleSpy.mockRestore()
+      expect(mockLogger.debug).toHaveBeenCalled()
     })
   })
 
