@@ -42,6 +42,8 @@ const {
   hasRecording,
   formattedDuration: recordingDuration,
   startRecording,
+  pauseRecording,
+  resumeRecording,
   stopRecording,
   downloadRecording,
   clearRecording,
