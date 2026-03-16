@@ -205,6 +205,30 @@ import { setLogLevel } from 'vuesip'
 setLogLevel('debug') // 'error' | 'warn' | 'info' | 'debug'
 ```
 
+### Quality Monitoring
+
+VueSIP provides quality monitoring utilities for diagnosing call issues:
+
+```typescript
+import {
+  calculateMOS,
+  calculateQualityScore,
+  determineQualityLevel,
+  QualityHistoryBuffer
+} from 'vuesip'
+
+// Calculate MOS from metrics
+const mos = calculateMOS(packetLossPercent, jitterMs, rttMs)
+
+// Determine quality level from score
+const level = determineQualityLevel(qualityScore) // 'excellent' | 'good' | 'fair' | 'poor' | 'critical'
+
+// Track quality history
+const buffer = new QualityHistoryBuffer(60) // 60 seconds of history
+buffer.push({ rtt: 50, jitter: 10, packetLossPercent: 0.5, ... })
+const metrics = buffer.getMetrics()
+```
+
 ## Rollback Procedure
 
 1. Identify last working version from git tags
