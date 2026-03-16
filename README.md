@@ -459,3 +459,5 @@ The library will expose a `useCodecs` composable that lets you:
 - Apply preferences to transceivers or transform SDP as a fallback
 
 See `docs/adr/0001-codecs-architecture.md` for the design overview.
+
+<!-- Pre-commit hooks active: lint-staged + type-check -->
