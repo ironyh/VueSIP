@@ -837,6 +837,10 @@ const SIP_STATUS_MESSAGES: Record<number, string> = {
  * ```
  */
 export function formatSipStatusCode(statusCode: number, reasonPhrase?: string): string {
+  if (statusCode === undefined || statusCode === null || typeof statusCode !== 'number') {
+    return ''
+  }
+
   const baseMessage = SIP_STATUS_MESSAGES[statusCode] || `Unknown Status (${statusCode})`
 
   if (reasonPhrase) {

@@ -256,4 +256,12 @@ describe('formatSipStatusCode', () => {
   it('should use custom reason phrase', () => {
     expect(formatSipStatusCode(180, 'Ringing')).toBe('Ringing: Ringing')
   })
+
+  it('should return empty string for null statusCode', () => {
+    expect(formatSipStatusCode(null as any)).toBe('')
+  })
+
+  it('should return empty string for undefined statusCode', () => {
+    expect(formatSipStatusCode(undefined as any)).toBe('')
+  })
 })
