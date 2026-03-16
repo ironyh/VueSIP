@@ -78,3 +78,6 @@ export * from './diagnostics'
 
 // Re-export call diagnostics utilities
 export * from './callDiagnostics'
+
+// Re-export quality report utilities
+export * from './qualityReport'
