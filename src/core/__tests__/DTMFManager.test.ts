@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { DTMFManager } from '../DTMFManager'
 import type { RTCSession } from 'jssip/lib/RTCSession'
+import type { DTMFEvent } from '@/types/dtmf.types'
 
 // Mock RTCSession
 const createMockSession = (isEstablished = true) =>
@@ -82,7 +83,7 @@ describe('DTMFManager', () => {
 
     it('should emit start, tone, and end events', async () => {
       manager.setSession(mockSession)
-      const events: any[] = []
+      const events: DTMFEvent[] = []
 
       manager.on((event) => events.push(event))
 
