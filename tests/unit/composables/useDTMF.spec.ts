@@ -96,7 +96,7 @@ describe('useDTMF', () => {
 
       // Check if sending flag was set (might already be done)
       await new Promise((resolve) => setTimeout(resolve, 5))
-      const _sendingDuringCall = isSending.value
+      _sendingDuringCall = isSending.value
 
       await promise
 
