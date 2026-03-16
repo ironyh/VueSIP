@@ -27,6 +27,7 @@ const emit = defineEmits<{
 
 const showDtmf = ref(false)
 const showStats = ref(false)
+const showRecording = ref(false)
 
 // Call quality stats - only when session is available
 const sessionRef = computed(() => props.session)
@@ -131,6 +132,72 @@ function handleDtmf(digit: string) {
           </button>
         </div>
         <button class="dtmf-close" @click="showDtmf = false">Hide Keypad</button>
+      </div>
+    </Transition>
+
+    <!-- Recording Controls Panel -->
+    <Transition name="slide">
+      <div
+        v-if="showRecording && callState === 'active' && isRecordingSupported"
+        class="recording-panel"
+      >
+        <div class="recording-header">
+          <span class="recording-title">Call Recording</span>
+          <span v-if="isRecording" class="recording-indicator">
+            <span class="recording-dot"></span>
+            REC {{ recordingDuration }}
+          </span>
+          <span v-else-if="isPaused" class="recording-paused">PAUSED {{ recordingDuration }}</span>
+        </div>
+        <div class="recording-controls">
+          <button
+            v-if="!isRecording && !isPaused && !hasRecording"
+            class="rec-btn record"
+            @click="startRecording()"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="8" />
+            </svg>
+            Start
+          </button>
+          <button v-if="isRecording" class="rec-btn pause" @click="stopRecording()">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+            Stop
+          </button>
+          <button v-if="isRecording" class="rec-btn pause" @click="pauseRecording()">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            </svg>
+            Pause
+          </button>
+          <button v-if="isPaused" class="rec-btn resume" @click="resumeRecording()">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Resume
+          </button>
+          <button v-if="hasRecording" class="rec-btn download" @click="downloadRecording()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Download
+          </button>
+          <button v-if="hasRecording" class="rec-btn clear" @click="clearRecording()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+              />
+            </svg>
+            Clear
+          </button>
+        </div>
+        <div v-if="!isRecordingSupported" class="recording-unsupported">
+          Recording not supported in this browser
+        </div>
+        <button class="recording-close" @click="showRecording = false">Close</button>
       </div>
     </Transition>
 
@@ -244,6 +311,24 @@ function handleDtmf(digit: string) {
           <span>Stats</span>
         </button>
 
+        <button
+          class="control-btn"
+          :class="{ active: isRecording || isPaused }"
+          @click="showRecording = !showRecording"
+        >
+          <svg v-if="isRecording" viewBox="0 0 24 24" fill="currentColor" class="recording-pulse">
+            <circle cx="12" cy="12" r="8" fill="currentColor" />
+          </svg>
+          <svg v-else-if="isPaused" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" />
+            <circle cx="12" cy="12" r="3" fill="currentColor" />
+          </svg>
+          <span>{{ isRecording ? 'Recording' : isPaused ? 'Paused' : 'Record' }}</span>
+        </button>
+
         <button class="control-btn end-call" @click="emit('endCall')">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path
@@ -348,6 +433,162 @@ function handleDtmf(digit: string) {
   border-radius: var(--radius-lg);
   padding: 1rem;
   z-index: 10;
+}
+
+/* Recording Panel */
+.recording-panel {
+  position: absolute;
+  bottom: 200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 320px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  z-index: 10;
+}
+
+.recording-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.recording-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.recording-dot {
+  width: 10px;
+  height: 10px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.recording-paused {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #eab308;
+}
+
+.recording-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.rec-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rec-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.rec-btn.record {
+  background: #ef4444;
+  color: white;
+}
+
+.rec-btn.record:hover {
+  background: #dc2626;
+}
+
+.rec-btn.pause {
+  background: #eab308;
+  color: white;
+}
+
+.rec-btn.pause:hover {
+  background: #ca8a04;
+}
+
+.rec-btn.resume {
+  background: #22c55e;
+  color: white;
+}
+
+.rec-btn.resume:hover {
+  background: #16a34a;
+}
+
+.rec-btn.download {
+  background: #3b82f6;
+  color: white;
+}
+
+.rec-btn.download:hover {
+  background: #2563eb;
+}
+
+.rec-btn.clear {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.rec-btn.clear:hover {
+  background: #374151;
+  color: white;
+}
+
+.recording-unsupported {
+  text-align: center;
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.recording-close {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.recording-pulse {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Quality Stats Panel */
