@@ -2477,7 +2477,14 @@ export class SipClient {
       this.config = JSON.parse(JSON.stringify(this.config)) as SipClientConfig
     }
 
-    const rtcConfiguration = options?.rtcConfiguration ?? this.config.rtcConfiguration
+    // Default RTC configuration with STUN servers if not provided
+    // Without STUN, browsers only gather host candidates (private LAN IPs),
+    // causing WebRTC media to fail for users on the public internet
+    const defaultRtcConfig: RTCConfiguration = {
+      iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
+    }
+    const rtcConfiguration =
+      options?.rtcConfiguration ?? this.config.rtcConfiguration ?? defaultRtcConfig
 
     // Build call options
     // JsSIP primarily expects `pcConfig` for RTCPeerConnection configuration.

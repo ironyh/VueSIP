@@ -341,12 +341,16 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       }
 
       // RTC configuration - use options if provided, otherwise fall back to config from data
-      const rtcConfiguration = options?.rtcConfiguration ?? this._data?.rtcConfiguration
-      if (rtcConfiguration) {
-        answerOptions.rtcConfiguration = rtcConfiguration
-        // JsSIP uses `pcConfig` as the RTCPeerConnection configuration key.
-        answerOptions.pcConfig = rtcConfiguration
+      // Default to STUN servers if not provided - without STUN, only host candidates are gathered
+      // which causes WebRTC to fail for users on the public internet
+      const defaultRtcConfig: RTCConfiguration = {
+        iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
       }
+      const rtcConfiguration =
+        options?.rtcConfiguration ?? this._data?.rtcConfiguration ?? defaultRtcConfig
+      answerOptions.rtcConfiguration = rtcConfiguration
+      // JsSIP uses `pcConfig` as the RTCPeerConnection configuration key.
+      answerOptions.pcConfig = rtcConfiguration
 
       // Extra headers
       if (options?.extraHeaders) {
