@@ -64,4 +64,21 @@ describe('formatPhoneNumber', () => {
     expect(result).toContain('555')
     expect(result).toContain('1234')
   })
+
+  // Country-specific formatting tests (uncovered areas)
+  it('should format German numbers (+49)', () => {
+    const result = formatPhoneNumber('+493012345678')
+    // Germany: +49 XXXX XXXXXX
+    expect(result).toMatch(/^\+49 \d{4} \d{5,6}$/)
+  })
+
+  it('should format Netherlands numbers (+31)', () => {
+    const result = formatPhoneNumber('+31612345678')
+    // Netherlands: +31 X XXXX XXXX
+    expect(result).toMatch(/^\+31 \d{1} \d{4} \d{4}$/)
+  })
+
+  // Note: formatPhoneNumber has bugs with +49 (Germany), +47 (Norway), +45 (Denmark), +33 (France)
+  // that produce malformed output like "+4 930" instead of "+49 30"
+  // Bug filed separately
 })
