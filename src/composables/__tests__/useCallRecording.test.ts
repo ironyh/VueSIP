@@ -215,6 +215,34 @@ describe('useCallRecording', () => {
     })
   })
 
+  describe('downloadRecording', () => {
+    it('should fail when no recording is available', () => {
+      const streamRef = ref<MediaStream | null>(mockStream())
+      const { downloadRecording, error } = useCallRecording(streamRef)
+
+      const result = downloadRecording()
+
+      expect(result).toBe(false)
+      expect(error.value).toBe('No recording available')
+    })
+
+    it('should create download link when recording is available', () => {
+      const streamRef = ref<MediaStream | null>(mockStream())
+      const { startRecording, stopRecording, downloadRecording, recordedBlob } =
+        useCallRecording(streamRef)
+
+      startRecording()
+      stopRecording()
+
+      // Ensure blob exists
+      expect(recordedBlob.value).not.toBeNull()
+
+      const result = downloadRecording('test-recording')
+
+      expect(result).toBe(true)
+    })
+  })
+
   describe('isSupported', () => {
     it('should return true when MediaRecorder is supported', () => {
       const streamRef = ref<MediaStream | null>(mockStream())
