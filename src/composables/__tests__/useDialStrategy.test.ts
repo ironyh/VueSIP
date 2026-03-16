@@ -10,6 +10,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref } from 'vue'
 import { useDialStrategy } from '../useDialStrategy'
+import type { DialStrategyType } from '../../types/dialStrategy.types'
+import type { SipClient } from '../../core/sipclient'
 
 // Mock the 46elks API service
 vi.mock('../../providers/services/elks46ApiService', () => ({
@@ -84,7 +86,11 @@ describe('useDialStrategy', () => {
     it('should throw when configuring with unknown strategy', () => {
       const { configure } = useDialStrategy(ref(null))
       expect(() => {
-        configure({ providerId: 'test', strategy: 'invalid-strategy' as any, autoDetect: false })
+        configure({
+          providerId: 'test',
+          strategy: 'invalid-strategy' as DialStrategyType,
+          autoDetect: false,
+        })
       }).toThrow('Unknown dial strategy')
     })
 
@@ -136,7 +142,7 @@ describe('useDialStrategy', () => {
     })
 
     it('should return error when SIP client has no makeCall', async () => {
-      const clientWithoutMakeCall = ref({} as any)
+      const clientWithoutMakeCall = ref({} as SipClient)
       const { configure, dial, error } = useDialStrategy(clientWithoutMakeCall)
       configure({ providerId: 'test', strategy: 'sip-invite', autoDetect: false })
 
@@ -256,7 +262,7 @@ describe('useDialStrategy', () => {
       const { configure, dial } = useDialStrategy(ref(null))
       configure({ providerId: '46elks', strategy: 'rest-originate', autoDetect: false })
 
-      const result = await dial('+1234567890', 'invalid-options' as any)
+      const result = await dial('+1234567890', 'invalid-options' as unknown)
 
       expect(result.success).toBe(false)
       expect(result.error).toContain('REST originate requires options object')
