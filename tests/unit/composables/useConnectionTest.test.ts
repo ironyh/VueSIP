@@ -61,7 +61,7 @@ describe('useConnectionTest', () => {
     it('should have default status message when no test run', () => {
       composable = useConnectionTest()
       expect(composable.statusMessage.value).toBe(
-        'Ingen diagnos körd. Kör test för att se anslutningsstatus.'
+        'No diagnostics run. Run test to check connection status.'
       )
     })
   })
@@ -79,8 +79,8 @@ describe('useConnectionTest', () => {
       const result = await composable.testNetworkConnectivity()
 
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('Nätverksanslutning')
-      expect(result.message).toBe('Internetanslutning aktiv')
+      expect(result.name).toBe('Network Connection')
+      expect(result.message).toBe('Internet connection active')
     })
 
     it('should fail when offline', async () => {
@@ -95,7 +95,7 @@ describe('useConnectionTest', () => {
 
       expect(result.passed).toBe(false)
       expect(result.severity).toBe('error')
-      expect(result.message).toBe('Ingen internetanslutning')
+      expect(result.message).toBe('No internet connection')
     })
   })
 
@@ -115,7 +115,7 @@ describe('useConnectionTest', () => {
       const result = await composable.testAudioPermission()
 
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('Mikrofon')
+      expect(result.name).toBe('Microphone')
     })
 
     it('should fail when audio permission denied', async () => {
@@ -153,7 +153,7 @@ describe('useConnectionTest', () => {
       const result = await composable.testVideoPermission()
 
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('Kamera')
+      expect(result.name).toBe('Camera')
     })
 
     it('should pass with warning when video permission not granted (optional)', async () => {
@@ -186,8 +186,8 @@ describe('useConnectionTest', () => {
       const result = await composable.testSipRegistration()
 
       expect(result.passed).toBe(false)
-      expect(result.name).toBe('SIP-registrering')
-      expect(result.message).toBe('Inget SIP-konto konfigurerat')
+      expect(result.name).toBe('SIP Registration')
+      expect(result.message).toBe('No SIP account configured')
       expect(result.severity).toBe('error')
     })
 
@@ -203,7 +203,7 @@ describe('useConnectionTest', () => {
       const result = await composable.testSipRegistration()
 
       expect(result.passed).toBe(true)
-      expect(result.message).toBe('SIP-konto registrerat och redo')
+      expect(result.message).toBe('SIP account registered and ready')
     })
 
     it('should warn when SIP is registering', async () => {
@@ -219,7 +219,7 @@ describe('useConnectionTest', () => {
 
       expect(result.passed).toBe(false)
       expect(result.severity).toBe('warning')
-      expect(result.message).toBe('Registrerar...')
+      expect(result.message).toBe('Registering...')
     })
 
     it('should fail when SIP is not registered', async () => {
@@ -235,7 +235,7 @@ describe('useConnectionTest', () => {
 
       expect(result.passed).toBe(false)
       expect(result.severity).toBe('error')
-      expect(result.message).toBe('SIP-konto inte registrerat')
+      expect(result.message).toBe('SIP account not registered')
     })
   })
 
@@ -245,7 +245,7 @@ describe('useConnectionTest', () => {
       const result = await composable.testTurnConnectivity()
 
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('TURN-anslutning')
+      expect(result.name).toBe('TURN Connection')
       expect(result.severity).toBe('info')
     })
   })
@@ -314,7 +314,7 @@ describe('useConnectionTest', () => {
 
       const result = await composable.runTest('network')
 
-      expect(result.name).toBe('Nätverksanslutning')
+      expect(result.name).toBe('Network Connection')
     })
 
     it('should return error for unknown test type', async () => {
@@ -323,7 +323,7 @@ describe('useConnectionTest', () => {
       const result = await composable.runTest('unknown' as any)
 
       expect(result.passed).toBe(false)
-      expect(result.message).toContain('Okänd testtyp')
+      expect(result.message).toContain('Unknown test type')
     })
   })
 })

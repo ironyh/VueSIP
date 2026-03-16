@@ -151,12 +151,12 @@ export function useConnectionTest(): UseConnectionTestReturn {
   const statusMessage = computed(() => {
     const results = lastResults.value
     if (!results) {
-      return 'Ingen diagnos körd. Kör test för att se anslutningsstatus.'
+      return 'No diagnostics run. Run test to check connection status.'
     }
     if (results.isReady) {
-      return `✅ Redo för samtal (${results.passedCount}/${results.checks.length} kontroller godkända)`
+      return `✅ Ready for calls (${results.passedCount}/${results.checks.length} checks passed)`
     }
-    return `❌ Problem upptäckta (${results.failedCount} fel, ${results.warningCount} varningar)`
+    return `❌ Issues found (${results.failedCount} errors, ${results.warningCount} warnings)`
   })
 
   // ============================================================================
@@ -178,10 +178,10 @@ export function useConnectionTest(): UseConnectionTestReturn {
       if (!enabledAccounts || enabledAccounts.length === 0) {
         return {
           passed: false,
-          name: 'SIP-registrering',
-          message: 'Inget SIP-konto konfigurerat',
-          error: 'Inga SIP-konton hittades',
-          suggestion: 'Lägg till ett SIP-konto i inställningar för att ringa samtal',
+          name: 'SIP Registration',
+          message: 'No SIP account configured',
+          error: 'No SIP accounts found',
+          suggestion: 'Add a SIP account in settings to make calls',
           severity: 'error',
         }
       }
@@ -192,25 +192,25 @@ export function useConnectionTest(): UseConnectionTestReturn {
       if (regState === 'registered') {
         return {
           passed: true,
-          name: 'SIP-registrering',
-          message: 'SIP-konto registrerat och redo',
+          name: 'SIP Registration',
+          message: 'SIP account registered and ready',
           severity: 'info',
         }
       } else if (regState === 'registering') {
         return {
           passed: false,
-          name: 'SIP-registrering',
-          message: 'Registrerar...',
-          suggestion: 'Vänta på att registreringen ska slutföras',
+          name: 'SIP Registration',
+          message: 'Registering...',
+          suggestion: 'Wait for registration to complete',
           severity: 'warning',
         }
       } else {
         return {
           passed: false,
-          name: 'SIP-registrering',
-          message: 'SIP-konto inte registrerat',
-          error: `Registreringsstatus: ${regState}`,
-          suggestion: 'Kontrollera SIP-uppgifter och serveranslutning i inställningar',
+          name: 'SIP Registration',
+          message: 'SIP account not registered',
+          error: `Registration status: ${regState}`,
+          suggestion: 'Check SIP credentials and server connection in settings',
           severity: 'error',
         }
       }
@@ -218,10 +218,10 @@ export function useConnectionTest(): UseConnectionTestReturn {
       log.warn('SIP registration test failed:', error)
       return {
         passed: false,
-        name: 'SIP-registrering',
-        message: 'Kunde inte testa SIP-registrering',
+        name: 'SIP Registration',
+        message: 'Could not test SIP registration',
         error: error instanceof Error ? error.message : String(error),
-        suggestion: 'Försök igen eller kontrollera din internetanslutning',
+        suggestion: 'Try again or check your internet connection',
         severity: 'error',
       }
     }
@@ -237,8 +237,8 @@ export function useConnectionTest(): UseConnectionTestReturn {
       if (result.granted) {
         return {
           passed: true,
-          name: 'Mikrofon',
-          message: 'Mikrofontillgång beviljad',
+          name: 'Microphone',
+          message: 'Microphone access granted',
           severity: 'info',
         }
       }
@@ -246,30 +246,30 @@ export function useConnectionTest(): UseConnectionTestReturn {
       if (result.status === PermissionStatus.Denied) {
         return {
           passed: false,
-          name: 'Mikrofon',
-          message: 'Mikrofontillgång nekad',
-          error: 'Mikrofonbehörighet blockerad av webbläsare',
-          suggestion: 'Klicka på låsikonen i adressfältet och ge mikrofontillgång',
+          name: 'Microphone',
+          message: 'Microphone access denied',
+          error: 'Microphone permission blocked by browser',
+          suggestion: 'Click the lock icon in the address bar and allow microphone access',
           severity: 'error',
         }
       }
 
       return {
         passed: false,
-        name: 'Mikrofon',
-        message: 'Mikrofontillgång inte beviljad',
-        error: 'Ingen mikrofontillgång',
-        suggestion: 'Klicka på "Ge tillgång" när webbläraren frågar efter mikrofon',
+        name: 'Microphone',
+        message: 'Microphone access not granted',
+        error: 'No microphone access',
+        suggestion: 'Click "Allow" when the browser asks for microphone access',
         severity: 'error',
       }
     } catch (error) {
       log.warn('Audio permission test failed:', error)
       return {
         passed: false,
-        name: 'Mikrofon',
-        message: 'Kunde inte testa mikrofontillgång',
+        name: 'Microphone',
+        message: 'Could not test microphone access',
         error: error instanceof Error ? error.message : String(error),
-        suggestion: 'Försök igen eller kontrollera webbläsarinställningar',
+        suggestion: 'Try again or check browser settings',
         severity: 'error',
       }
     }
@@ -285,8 +285,8 @@ export function useConnectionTest(): UseConnectionTestReturn {
       if (result.granted) {
         return {
           passed: true,
-          name: 'Kamera',
-          message: 'Kameratillgång beviljad',
+          name: 'Camera',
+          message: 'Camera access granted',
           severity: 'info',
         }
       }
@@ -294,27 +294,27 @@ export function useConnectionTest(): UseConnectionTestReturn {
       if (result.status === PermissionStatus.Denied) {
         return {
           passed: false,
-          name: 'Kamera',
-          message: 'Kameratillgång nekad',
-          error: 'Kamerabehörighet blockerad av webbläsare',
-          suggestion: 'Klicka på låsikonen i adressfältet och ge kameratillgång',
+          name: 'Camera',
+          message: 'Camera access denied',
+          error: 'Camera permission blocked by browser',
+          suggestion: 'Click the lock icon in the address bar and allow camera access',
           severity: 'warning', // Video is optional
         }
       }
 
       return {
         passed: true, // Video is optional
-        name: 'Kamera',
-        message: 'Kameratillgång inte beviljad (valfritt)',
-        suggestion: 'Ge kameratillgång för videosamtal',
+        name: 'Camera',
+        message: 'Camera access not granted (optional)',
+        suggestion: 'Allow camera access for video calls',
         severity: 'warning',
       }
     } catch (error) {
       log.warn('Video permission test failed:', error)
       return {
         passed: true, // Video is optional
-        name: 'Kamera',
-        message: 'Kunde inte testa kameratillgång (valfritt)',
+        name: 'Camera',
+        message: 'Could not test camera access (optional)',
         severity: 'warning',
       }
     }
@@ -363,16 +363,16 @@ export function useConnectionTest(): UseConnectionTestReturn {
         if (gathered.length > 0) {
           return {
             passed: true,
-            name: 'STUN-anslutning',
-            message: 'STUN-servrar nås',
+            name: 'STUN Connection',
+            message: 'STUN servers reachable',
             severity: 'info',
           }
         } else {
           return {
             passed: true, // STUN not strictly required
-            name: 'STUN-anslutning',
-            message: 'STUN-servrar konfigurerade men inga kandidater hittades',
-            suggestion: 'Fortsätt utan STUN - samtal kan fortfarande fungera',
+            name: 'STUN Connection',
+            message: 'STUN servers configured but no candidates found',
+            suggestion: 'Continue without STUN - calls may still work',
             severity: 'warning',
           }
         }
@@ -383,10 +383,10 @@ export function useConnectionTest(): UseConnectionTestReturn {
       log.warn('STUN connectivity test failed:', error)
       return {
         passed: true, // STUN is optional
-        name: 'STUN-anslutning',
-        message: 'Kunde inte ansluta till STUN-servrar',
+        name: 'STUN Connection',
+        message: 'Could not connect to STUN servers',
         error: error instanceof Error ? error.message : String(error),
-        suggestion: 'Kontrollera din internetanslutning eller STUN-serverkonfiguration',
+        suggestion: 'Check your internet connection or STUN server configuration',
         severity: 'warning',
       }
     }
@@ -404,19 +404,19 @@ export function useConnectionTest(): UseConnectionTestReturn {
       // In production, you'd check settingsStore for TURN config
       return {
         passed: true,
-        name: 'TURN-anslutning',
-        message: 'Inga TURN-servrar konfigurerade (valfritt)',
-        suggestion: 'TILLÄGG: Lägg till TURN-servrar för bättre anslutning bakom brandvägg',
+        name: 'TURN Connection',
+        message: 'No TURN servers configured (optional)',
+        suggestion: 'TIP: Add TURN servers for better connectivity behind firewalls',
         severity: 'info',
       }
     } catch (error) {
       log.warn('TURN connectivity test failed:', error)
       return {
         passed: true, // TURN is optional
-        name: 'TURN-anslutning',
-        message: 'Kunde inte ansluta till TURN-servrar',
+        name: 'TURN Connection',
+        message: 'Could not connect to TURN servers',
         error: error instanceof Error ? error.message : String(error),
-        suggestion: 'Kontrollera TURN-uppgifter eller internetanslutning',
+        suggestion: 'Check TURN credentials or internet connection',
         severity: 'warning',
       }
     }
@@ -431,10 +431,10 @@ export function useConnectionTest(): UseConnectionTestReturn {
       if (!navigator.onLine) {
         return {
           passed: false,
-          name: 'Nätverksanslutning',
-          message: 'Ingen internetanslutning',
-          error: 'Navigator.onLine är false',
-          suggestion: 'Kontrollera din internetanslutning',
+          name: 'Network Connection',
+          message: 'No internet connection',
+          error: 'Navigator.onLine is false',
+          suggestion: 'Check your internet connection',
           severity: 'error',
         }
       }
@@ -448,17 +448,17 @@ export function useConnectionTest(): UseConnectionTestReturn {
         // With mode: no-cors, we get an opaque response which is success
         return {
           passed: true,
-          name: 'Nätverksanslutning',
-          message: 'Internetanslutning aktiv',
+          name: 'Network Connection',
+          message: 'Internet connection active',
           severity: 'info',
         }
       } catch {
         // fetch failed but we're online - might be a firewall issue
         return {
           passed: true,
-          name: 'Nätverksanslutning',
-          message: 'Internetanslutning aktiv (begränsad)',
-          suggestion: 'Vissa tjänster kan vara blockerade av brandvägg',
+          name: 'Network Connection',
+          message: 'Internet connection active (limited)',
+          suggestion: 'Some services may be blocked by firewall',
           severity: 'warning',
         }
       }
@@ -466,8 +466,8 @@ export function useConnectionTest(): UseConnectionTestReturn {
       log.warn('Network connectivity test failed:', error)
       return {
         passed: false,
-        name: 'Nätverksanslutning',
-        message: 'Kunde inte testa nätverksanslutning',
+        name: 'Network Connection',
+        message: 'Could not test network connection',
         error: error instanceof Error ? error.message : String(error),
         severity: 'error',
       }
@@ -494,8 +494,8 @@ export function useConnectionTest(): UseConnectionTestReturn {
       default:
         return {
           passed: false,
-          name: 'Okänd',
-          message: `Okänd testtyp: ${type}`,
+          name: 'Unknown',
+          message: `Unknown test type: ${type}`,
           severity: 'error',
         }
     }
@@ -528,7 +528,7 @@ export function useConnectionTest(): UseConnectionTestReturn {
       // Determine overall readiness
       // Ready if: network OK + audio OK + (SIP OK or SIP not configured)
       const isReady =
-        network.passed && audio.passed && (sip.passed || sip.message.includes('inte konfigurerat'))
+        network.passed && audio.passed && (sip.passed || sip.message.includes('not configured'))
 
       const summary: ConnectionTestSummary = {
         isReady,
@@ -536,8 +536,8 @@ export function useConnectionTest(): UseConnectionTestReturn {
         failedCount,
         warningCount,
         message: isReady
-          ? 'Redo för samtal'
-          : `Problem upptäckta: ${failedCount} fel, ${warningCount} varningar`,
+          ? 'Ready for calls'
+          : `Issues found: ${failedCount} errors, ${warningCount} warnings`,
         checks,
       }
 
