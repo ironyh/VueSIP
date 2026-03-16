@@ -124,7 +124,7 @@ describe('useConnectionTest', () => {
 
     it('should show appropriate status message when no test has been run', () => {
       const { statusMessage } = useConnectionTest()
-      expect(statusMessage.value).toBe('Ingen diagnos körd. Kör test för att se anslutningsstatus.')
+      expect(statusMessage.value).toBe('No diagnostics run. Run test to check connection status.')
     })
 
     it('should not be ready for calls initially', () => {
@@ -140,8 +140,8 @@ describe('useConnectionTest', () => {
       const result = await testNetworkConnectivity()
 
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('Nätverksanslutning')
-      expect(result.message).toBe('Internetanslutning aktiv')
+      expect(result.name).toBe('Network Connection')
+      expect(result.message).toBe('Internet connection active')
       expect(result.severity).toBe('info')
     })
 
@@ -151,8 +151,8 @@ describe('useConnectionTest', () => {
       const result = await testNetworkConnectivity()
 
       expect(result.passed).toBe(false)
-      expect(result.name).toBe('Nätverksanslutning')
-      expect(result.message).toBe('Ingen internetanslutning')
+      expect(result.name).toBe('Network Connection')
+      expect(result.message).toBe('No internet connection')
       expect(result.severity).toBe('error')
       expect(result.suggestion).toBeDefined()
     })
@@ -166,8 +166,8 @@ describe('useConnectionTest', () => {
       const result = await testAudioPermission()
 
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('Mikrofon')
-      expect(result.message).toBe('Mikrofontillgång beviljad')
+      expect(result.name).toBe('Microphone')
+      expect(result.message).toBe('Microphone access granted')
       expect(result.severity).toBe('info')
     })
 
@@ -178,8 +178,8 @@ describe('useConnectionTest', () => {
       const result = await testAudioPermission()
 
       expect(result.passed).toBe(false)
-      expect(result.name).toBe('Mikrofon')
-      expect(result.message).toBe('Mikrofontillgång nekad')
+      expect(result.name).toBe('Microphone')
+      expect(result.message).toBe('Microphone access denied')
       expect(result.severity).toBe('error')
       expect(result.suggestion).toBeDefined()
     })
@@ -193,8 +193,8 @@ describe('useConnectionTest', () => {
       const result = await testVideoPermission()
 
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('Kamera')
-      expect(result.message).toBe('Kameratillgång beviljad')
+      expect(result.name).toBe('Camera')
+      expect(result.message).toBe('Camera access granted')
       expect(result.severity).toBe('info')
     })
 
@@ -206,7 +206,7 @@ describe('useConnectionTest', () => {
 
       // Video is optional, so it returns passed: true with a warning
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('Kamera')
+      expect(result.name).toBe('Camera')
       expect(result.severity).toBe('warning')
     })
   })
@@ -219,8 +219,8 @@ describe('useConnectionTest', () => {
       const result = await testSipRegistration()
 
       expect(result.passed).toBe(false)
-      expect(result.name).toBe('SIP-registrering')
-      expect(result.message).toBe('Inget SIP-konto konfigurerat')
+      expect(result.name).toBe('SIP Registration')
+      expect(result.message).toBe('No SIP account configured')
       expect(result.severity).toBe('error')
       expect(result.suggestion).toBeDefined()
     })
@@ -233,8 +233,8 @@ describe('useConnectionTest', () => {
       const result = await testSipRegistration()
 
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('SIP-registrering')
-      expect(result.message).toBe('SIP-konto registrerat och redo')
+      expect(result.name).toBe('SIP Registration')
+      expect(result.message).toBe('SIP account registered and ready')
       expect(result.severity).toBe('info')
     })
 
@@ -246,8 +246,8 @@ describe('useConnectionTest', () => {
       const result = await testSipRegistration()
 
       expect(result.passed).toBe(false)
-      expect(result.name).toBe('SIP-registrering')
-      expect(result.message).toBe('Registrerar...')
+      expect(result.name).toBe('SIP Registration')
+      expect(result.message).toBe('Registering...')
       expect(result.severity).toBe('warning')
     })
 
@@ -259,8 +259,8 @@ describe('useConnectionTest', () => {
       const result = await testSipRegistration()
 
       expect(result.passed).toBe(false)
-      expect(result.name).toBe('SIP-registrering')
-      expect(result.message).toBe('SIP-konto inte registrerat')
+      expect(result.name).toBe('SIP Registration')
+      expect(result.message).toBe('SIP account not registered')
       expect(result.severity).toBe('error')
     })
   })
@@ -272,7 +272,7 @@ describe('useConnectionTest', () => {
 
       // The mock doesn't perfectly simulate ICE gathering, so it returns warning
       // but the code path is exercised correctly
-      expect(result.name).toBe('STUN-anslutning')
+      expect(result.name).toBe('STUN Connection')
       expect(result.passed).toBe(true) // STUN is optional, so it passes
     })
   })
@@ -283,8 +283,8 @@ describe('useConnectionTest', () => {
       const result = await testTurnConnectivity()
 
       expect(result.passed).toBe(true)
-      expect(result.name).toBe('TURN-anslutning')
-      expect(result.message).toBe('Inga TURN-servrar konfigurerade (valfritt)')
+      expect(result.name).toBe('TURN Connection')
+      expect(result.message).toBe('No TURN servers configured (optional)')
       expect(result.severity).toBe('info')
     })
   })
@@ -294,42 +294,42 @@ describe('useConnectionTest', () => {
       const { runTest } = useConnectionTest()
       const result = await runTest('network')
 
-      expect(result.name).toBe('Nätverksanslutning')
+      expect(result.name).toBe('Network Connection')
     })
 
     it('should run audio test when type is audio', async () => {
       const { runTest } = useConnectionTest()
       const result = await runTest('audio')
 
-      expect(result.name).toBe('Mikrofon')
+      expect(result.name).toBe('Microphone')
     })
 
     it('should run video test when type is video', async () => {
       const { runTest } = useConnectionTest()
       const result = await runTest('video')
 
-      expect(result.name).toBe('Kamera')
+      expect(result.name).toBe('Camera')
     })
 
     it('should run sip test when type is sip', async () => {
       const { runTest } = useConnectionTest()
       const result = await runTest('sip')
 
-      expect(result.name).toBe('SIP-registrering')
+      expect(result.name).toBe('SIP Registration')
     })
 
     it('should run stun test when type is stun', async () => {
       const { runTest } = useConnectionTest()
       const result = await runTest('stun')
 
-      expect(result.name).toBe('STUN-anslutning')
+      expect(result.name).toBe('STUN Connection')
     })
 
     it('should run turn test when type is turn', async () => {
       const { runTest } = useConnectionTest()
       const result = await runTest('turn')
 
-      expect(result.name).toBe('TURN-anslutning')
+      expect(result.name).toBe('TURN Connection')
     })
 
     it('should return error for unknown test type', async () => {
@@ -337,7 +337,7 @@ describe('useConnectionTest', () => {
       const result = await runTest('unknown' as unknown as TestType)
 
       expect(result.passed).toBe(false)
-      expect(result.message).toContain('Okänd testtyp')
+      expect(result.message).toContain('Unknown test type')
     })
   })
 
