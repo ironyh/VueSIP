@@ -621,6 +621,11 @@ export function truncate(str: string, maxLength: number, ellipsis = '...'): stri
     return ''
   }
 
+  // If maxLength is too small to fit ellipsis, return empty string with ellipsis
+  if (maxLength <= ellipsis.length) {
+    return ellipsis.slice(0, Math.max(0, maxLength))
+  }
+
   if (str.length <= maxLength) {
     return str
   }

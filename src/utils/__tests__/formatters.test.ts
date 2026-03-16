@@ -389,6 +389,18 @@ describe('truncate', () => {
     // Function guards against non-strings - test with empty string
     expect(truncate('', 10)).toBe('')
   })
+
+  test('handles maxLength smaller than ellipsis', () => {
+    expect(truncate('Hello', 2, '...')).toBe('..')
+    expect(truncate('Hello', 1, '...')).toBe('.')
+    expect(truncate('Hello', 0, '...')).toBe('')
+  })
+
+  test('handles maxLength smaller than ellipsis', () => {
+    expect(truncate('Hello', 2, '...')).toBe('..')
+    expect(truncate('Hello', 1, '...')).toBe('.')
+    expect(truncate('Hello', 0, '...')).toBe('')
+  })
 })
 
 describe('formatCallStatus', () => {
