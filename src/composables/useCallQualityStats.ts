@@ -9,6 +9,9 @@
 import { ref, computed, watch, onUnmounted, type Ref } from 'vue'
 import type { CallSession } from '@/types/call.types'
 import type { DtmfSessionSource } from './useDTMF'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('composables:useCallQualityStats')
 
 /**
  * Call quality statistics
@@ -245,7 +248,7 @@ export function useCallQualityStats(
         lastUpdated: new Date(),
       }
     } catch (error) {
-      console.warn('[useCallQualityStats] Failed to collect stats:', error)
+      logger.warn('Failed to collect stats:', error)
     }
   }
 

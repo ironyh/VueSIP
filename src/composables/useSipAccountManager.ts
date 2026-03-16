@@ -12,6 +12,9 @@ import { computed, watch } from 'vue'
 import type { SipClientConfig } from '../types/config.types'
 import { useSettingsStore, type SipAccount } from '../stores/settingsStore'
 import { useMultiSipClient, type MultiSipAccountConfig } from './useMultiSipClient'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('composables:useSipAccountManager')
 
 /**
  * Convert a SipAccount from settings store to SipClientConfig for useMultiSipClient.
@@ -120,7 +123,7 @@ export function useSipAccountManager() {
           multi.setOutboundAccount(id)
         }
       } catch (err) {
-        console.warn(`useSipAccountManager: Failed to set outbound account ${id}:`, err)
+        logger.warn(`Failed to set outbound account ${id}:`, err)
       }
     }
   }

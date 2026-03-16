@@ -715,7 +715,7 @@ if (typeof window !== 'undefined') {
   if (window.location?.search?.includes('test=true')) {
     ;(window as TestWindow).deviceStore = deviceStore
     ;(window as TestWindow).__deviceStoreState = state
-    console.log('deviceStore and state exposed on window for E2E testing')
+    log.debug('deviceStore and state exposed on window for E2E testing')
   } else {
     // Also set up a listener in case the URL changes (for dynamic test mode)
     const checkAndExpose = () => {

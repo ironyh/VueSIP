@@ -6,6 +6,9 @@
  */
 
 import type { StorageType, StoredCredentials } from './types'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('providers:credentialStorage')
 
 /** Storage configuration options */
 export interface StorageOptions {
@@ -55,7 +58,7 @@ function createWebStorage(storage: Storage, key: string): CredentialStorage {
         storage.setItem(key, JSON.stringify(credentials))
       } catch {
         // Storage might be full or disabled - fail silently
-        console.warn('Failed to save credentials to storage')
+        logger.warn('Failed to save credentials to storage')
       }
     },
 

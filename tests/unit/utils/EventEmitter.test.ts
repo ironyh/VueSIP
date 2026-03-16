@@ -195,18 +195,14 @@ describe('EventEmitter', () => {
       })
       const goodHandler = vi.fn()
 
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
       emitter.on('test', errorHandler)
       emitter.on('test', goodHandler)
 
-      emitter.emit('test', 'hello')
+      // This should not throw - errors should be caught
+      expect(() => emitter.emit('test', 'hello')).not.toThrow()
 
       expect(errorHandler).toHaveBeenCalled()
       expect(goodHandler).toHaveBeenCalled()
-      expect(consoleSpy).toHaveBeenCalled()
-
-      consoleSpy.mockRestore()
     })
 
     it('should pass correct data to handlers', () => {

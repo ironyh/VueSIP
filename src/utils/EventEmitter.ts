@@ -5,6 +5,10 @@
  * Used as a base for adapters and other event-driven components.
  */
 
+import { createLogger } from './logger'
+
+const logger = createLogger('utils:EventEmitter')
+
 export type EventHandler<T = unknown> = (data: T) => void
 
 /**
@@ -101,7 +105,7 @@ export class EventEmitter<TEvents extends Record<string, unknown> = Record<strin
       try {
         handler(data)
       } catch (error) {
-        console.error(`Error in event handler for "${eventKey}":`, error)
+        logger.error(`Error in event handler for "${eventKey}":`, error)
       }
     }
   }

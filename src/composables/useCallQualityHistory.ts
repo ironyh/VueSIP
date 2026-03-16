@@ -8,6 +8,9 @@
  */
 import { ref, computed, type ComputedRef } from 'vue'
 import type { CallQualityStats, QualityLevel } from './useCallQualityStats'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('composables:useCallQualityHistory')
 
 /**
  * A single quality snapshot taken during a call
@@ -320,7 +323,7 @@ export function useCallQualityHistory(options: UseCallQualityHistoryOptions = {}
       const trimmed = records.value.slice(0, maxRecords)
       localStorage.setItem(STORAGE_KEYS.records(storageKey), JSON.stringify(trimmed))
     } catch (e) {
-      console.warn('[useCallQualityHistory] Failed to save records:', e)
+      logger.warn('Failed to save records:', e)
     }
   }
 
@@ -405,7 +408,7 @@ export function useCallQualityHistory(options: UseCallQualityHistoryOptions = {}
     direction?: 'incoming' | 'outgoing'
   ): void {
     if (activeCall.value) {
-      console.warn('[useCallQualityHistory] Ending previous call before starting new one')
+      logger.warn('Ending previous call before starting new one')
       endCall()
     }
 

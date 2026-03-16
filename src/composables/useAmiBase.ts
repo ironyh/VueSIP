@@ -12,6 +12,9 @@ import type { AmiClient } from '@/core/AmiClient'
 import type { AmiClientEvents } from '@/types/ami.types'
 import type { BaseAmiOptions, BaseAmiReturn, EventCleanup } from '@/types/common'
 import { createErrorMessage } from '@/utils/ami-helpers'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('composables:useAmiBase')
 
 /**
  * Event handler function type
@@ -177,7 +180,7 @@ export function useAmiBase<T>(
 
   function log(...args: unknown[]): void {
     if (debug) {
-      console.log(`[useAmiBase:${errorContext}]`, ...args)
+      logger.debug(`[${errorContext}]`, ...args)
     }
   }
 
