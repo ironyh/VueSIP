@@ -45,13 +45,13 @@ describe('qualityReport', () => {
     it('should return lower MOS with high packet loss', () => {
       const mosLow = calculateMOS(20, null, null)
       const mosNone = calculateMOS(0, null, null)
-      expect(mosLow).toBeLessThan(mosNone!)
+      expect(mosLow).toBeLessThan(mosNone)
     })
 
     it('should return lower MOS with high RTT', () => {
       const mosLow = calculateMOS(null, null, 800)
       const mosHigh = calculateMOS(null, null, 50)
-      expect(mosLow).toBeLessThan(mosHigh!)
+      expect(mosLow).toBeLessThan(mosHigh)
     })
 
     it('should handle jitter in MOS calculation', () => {
@@ -91,19 +91,19 @@ describe('qualityReport', () => {
     it('should apply penalty for high packet loss', () => {
       const withPenalty = calculateQualityScore(3.5, 10, null, null)
       const withoutPenalty = calculateQualityScore(3.5, 0, null, null)
-      expect(withPenalty).toBeLessThan(withoutPenalty!)
+      expect(withPenalty).toBeLessThan(withoutPenalty)
     })
 
     it('should apply penalty for high jitter', () => {
       const withPenalty = calculateQualityScore(3.5, null, 100, null)
       const withoutPenalty = calculateQualityScore(3.5, null, 0, null)
-      expect(withPenalty).toBeLessThan(withoutPenalty!)
+      expect(withPenalty).toBeLessThan(withoutPenalty)
     })
 
     it('should apply penalty for high RTT', () => {
       const withPenalty = calculateQualityScore(3.5, null, null, 800)
       const withoutPenalty = calculateQualityScore(3.5, null, null, 100)
-      expect(withPenalty).toBeLessThan(withoutPenalty!)
+      expect(withPenalty).toBeLessThan(withoutPenalty)
     })
 
     it('should calculate MOS from raw metrics if not provided', () => {
@@ -435,7 +435,7 @@ describe('qualityReport', () => {
       const range = buffer.getMOSRange()
       expect(range.min).not.toBeNull()
       expect(range.max).not.toBeNull()
-      expect(range.min).toBeLessThan(range.max!)
+      expect(range.min).toBeLessThan(range.max)
     })
 
     it('should calculate average packet loss', () => {
