@@ -7,7 +7,6 @@ import { useConnectionRecovery } from '../useConnectionRecovery'
 
 // Mock RTCPeerConnection
 class MockRTCPeerConnection {
-  iceConnectionState: string = 'new'
   _listeners: Map<string, Set<() => void>> = new Map()
 
   restartIce = vi.fn()
