@@ -159,6 +159,7 @@ export {
 } from './useCredentialExpiry'
 export { useSessionPersistence } from './useSessionPersistence'
 export { useSettings, type UseSettingsReturn } from './useSettings'
+export { useSettingsPersistence, type UseSettingsPersistenceReturn } from './useSettingsPersistence'
 
 export {
   useNotifications,
