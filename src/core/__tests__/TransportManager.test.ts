@@ -17,10 +17,10 @@ class MockWebSocket {
   url: string
   protocol: string = ''
 
-  onopen: ((event: any) => void) | null = null
-  onclose: ((event: any) => void) | null = null
-  onerror: ((event: any) => void) | null = null
-  onmessage: ((event: any) => void) | null = null
+  onopen: ((event: Event) => void) | null = null
+  onclose: ((event: CloseEvent) => void) | null = null
+  onerror: ((event: Event) => void) | null = null
+  onmessage: ((event: MessageEvent) => void) | null = null
 
   constructor(url: string, _protocols?: string | string[]) {
     this.url = url
@@ -30,9 +30,18 @@ class MockWebSocket {
   close = vi.fn()
 }
 
-global.WebSocket = MockWebSocket as any
+global.WebSocket = MockWebSocket as unknown as typeof WebSocket
 
 describe('TransportManager', () => {
+  // Helper type to access private members for testing
+  type TransportManagerForTest = TransportManager & {
+    emit(event: TransportEvent, data?: Record<string, unknown>): void
+    reconnectionAttempts: number
+  }
+
+  const toTestable = (manager: TransportManager): TransportManagerForTest =>
+    manager as TransportManagerForTest
+
   let manager: TransportManager
   const mockUrl = 'wss://example.com/ws'
 
@@ -79,7 +88,7 @@ describe('TransportManager', () => {
     it('should add and call event listener', () => {
       const handler = vi.fn()
       manager.on(TransportEvent.Connected, handler)
-      ;(manager as any).emit(TransportEvent.Connected, { state: ConnectionState.Connected })
+      toTestable(manager).emit(TransportEvent.Connected, { state: ConnectionState.Connected })
       expect(handler).toHaveBeenCalledTimes(1)
     })
 
@@ -87,7 +96,7 @@ describe('TransportManager', () => {
       const handler = vi.fn()
       manager.on(TransportEvent.Connected, handler)
       manager.off(TransportEvent.Connected, handler)
-      ;(manager as any).emit(TransportEvent.Connected, { state: ConnectionState.Connected })
+      toTestable(manager).emit(TransportEvent.Connected, { state: ConnectionState.Connected })
       expect(handler).not.toHaveBeenCalled()
     })
 
@@ -97,7 +106,7 @@ describe('TransportManager', () => {
       manager.on(TransportEvent.Connected, handler1)
       manager.on(TransportEvent.Connected, handler2)
       manager.removeAllListeners(TransportEvent.Connected)
-      ;(manager as any).emit(TransportEvent.Connected, { state: ConnectionState.Connected })
+      toTestable(manager).emit(TransportEvent.Connected, { state: ConnectionState.Connected })
       expect(handler1).not.toHaveBeenCalled()
       expect(handler2).not.toHaveBeenCalled()
     })
@@ -108,8 +117,8 @@ describe('TransportManager', () => {
       manager.on(TransportEvent.Connected, handler1)
       manager.on(TransportEvent.Disconnected, handler2)
       manager.removeAllListeners()
-      ;(manager as any).emit(TransportEvent.Connected, { state: ConnectionState.Connected })
-      ;(manager as any).emit(TransportEvent.Disconnected, { state: ConnectionState.Disconnected })
+      toTestable(manager).emit(TransportEvent.Connected, { state: ConnectionState.Connected })
+      toTestable(manager).emit(TransportEvent.Disconnected, { state: ConnectionState.Disconnected })
       expect(handler1).not.toHaveBeenCalled()
       expect(handler2).not.toHaveBeenCalled()
     })
@@ -123,13 +132,13 @@ describe('TransportManager', () => {
       const connectPromise = manager.connect()
       expect(manager.state).toBe(ConnectionState.Connecting)
       expect(connectingHandler).toHaveBeenCalled()
-      ;(MockWebSocket.prototype.onopen as any)({})
+      MockWebSocket.prototype.onopen?.(new Event('open'))
       await connectPromise
     })
 
     it('should resolve when connected', async () => {
       const connectPromise = manager.connect()
-      ;(MockWebSocket.prototype.onopen as any)({})
+      MockWebSocket.prototype.onopen?.(new Event('open'))
       await expect(connectPromise).resolves.toBeUndefined()
       expect(manager.state).toBe(ConnectionState.Connected)
       expect(manager.isConnected).toBe(true)
@@ -143,7 +152,7 @@ describe('TransportManager', () => {
     })
 
     it('should reset reconnection attempts on connect', async () => {
-      ;(manager as any).reconnectionAttempts = 5
+      toTestable(manager).reconnectionAttempts = 5
       await manager.connect()
       expect(manager.getReconnectionAttempts()).toBe(0)
     })
@@ -168,7 +177,7 @@ describe('TransportManager', () => {
 
     it('should reset reconnection attempts', async () => {
       await manager.connect()
-      ;(manager as any).reconnectionAttempts = 5
+      toTestable(manager).reconnectionAttempts = 5
       manager.disconnect()
       expect(manager.getReconnectionAttempts()).toBe(0)
     })
@@ -195,7 +204,7 @@ describe('TransportManager', () => {
   describe('manual reconnect', () => {
     it('should reset reconnection counter on manual reconnect', async () => {
       await manager.connect()
-      ;(manager as any).reconnectionAttempts = 5
+      toTestable(manager).reconnectionAttempts = 5
       await manager.reconnect()
       expect(manager.getReconnectionAttempts()).toBe(0)
     })
@@ -213,7 +222,7 @@ describe('TransportManager', () => {
   describe('resetReconnectionAttempts', () => {
     it('should reset counter', async () => {
       await manager.connect()
-      ;(manager as any).reconnectionAttempts = 5
+      toTestable(manager).reconnectionAttempts = 5
       manager.resetReconnectionAttempts()
       expect(manager.getReconnectionAttempts()).toBe(0)
     })
@@ -233,7 +242,7 @@ describe('TransportManager', () => {
       manager.on(TransportEvent.Disconnected, disconnectHandler)
       manager.destroy()
       // Manually emit to verify listeners are gone
-      ;(manager as any).emit(TransportEvent.Disconnected, { state: ConnectionState.Disconnected })
+      toTestable(manager).emit(TransportEvent.Disconnected, { state: ConnectionState.Disconnected })
       expect(disconnectHandler).not.toHaveBeenCalled()
     })
   })
@@ -244,7 +253,7 @@ describe('TransportManager', () => {
       const messageHandler = vi.fn()
       manager.on(TransportEvent.Message, messageHandler)
       const testMessage = 'SIP/2.0 200 OK\r\n'
-      ;(MockWebSocket.prototype.onmessage as any)({ data: testMessage })
+      MockWebSocket.prototype.onmessage?.(new MessageEvent('message', { data: testMessage }))
       expect(messageHandler).toHaveBeenCalledWith(testMessage)
     })
   })
@@ -254,7 +263,7 @@ describe('TransportManager', () => {
       await manager.connect()
       const errorHandler = vi.fn()
       manager.on(TransportEvent.Error, errorHandler)
-      ;(MockWebSocket.prototype.onerror as any)(new Error('WebSocket error'))
+      MockWebSocket.prototype.onerror?.(new Event('error'))
       expect(errorHandler).toHaveBeenCalled()
     })
 
@@ -280,7 +289,7 @@ describe('TransportManager', () => {
       const reconnectingHandler = vi.fn()
       manager.on(TransportEvent.Reconnecting, reconnectingHandler)
       // Simulate unexpected disconnect (not manual)
-      ;(MockWebSocket.prototype.onclose as any)({})
+      MockWebSocket.prototype.onclose?.(new CloseEvent('close'))
       // Should attempt reconnection
       expect(reconnectingHandler).toHaveBeenCalled()
     })
