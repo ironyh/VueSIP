@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref } from 'vue'
 import { useCallRecording } from '../useCallRecording'
 
+// Type augmentation for test global scope
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace globalThis {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    var MediaRecorder:
+      | typeof FakeMediaRecorder
+      | ((stream: MediaStream, options?: MediaRecorderOptions) => FakeMediaRecorder)
+      | any
+  }
+}
+
 class FakeMediaRecorder {
   static isTypeSupported = vi.fn((type?: string) => !!type && type.includes('/'))
   ondataavailable: ((e: BlobEvent) => void) | null = null
@@ -23,16 +35,16 @@ class FakeMediaRecorder {
   stop = vi.fn(() => this.onstop?.())
 }
 
-const realMR = (global as any).MediaRecorder
+const realMR = globalThis.MediaRecorder
 
 beforeEach(() => {
   vi.useFakeTimers()
-  ;(global as any).MediaRecorder = FakeMediaRecorder
+  globalThis.MediaRecorder = FakeMediaRecorder
 })
 
 afterEach(() => {
   vi.useRealTimers()
-  ;(global as any).MediaRecorder = realMR
+  globalThis.MediaRecorder = realMR
 })
 
 function mockStream(): MediaStream {
