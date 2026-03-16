@@ -6,11 +6,10 @@ import { useCallRecording } from '../useCallRecording'
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace globalThis {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     var MediaRecorder:
       | typeof FakeMediaRecorder
       | ((stream: MediaStream, options?: MediaRecorderOptions) => FakeMediaRecorder)
-      | any
+      | undefined
   }
 }
 
