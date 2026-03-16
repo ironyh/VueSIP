@@ -156,6 +156,7 @@ export function validatePhoneNumber(number: string): SimpleValidationResult {
   if (!number || typeof number !== 'string') {
     return {
       valid: false,
+      isValid: false,
       error: 'Phone number must be a non-empty string',
       normalized: null,
     }
@@ -166,6 +167,7 @@ export function validatePhoneNumber(number: string): SimpleValidationResult {
   if (!trimmed) {
     return {
       valid: false,
+      isValid: false,
       error: 'Phone number cannot be empty',
       normalized: null,
     }
@@ -175,6 +177,7 @@ export function validatePhoneNumber(number: string): SimpleValidationResult {
   if (!E164_PHONE_REGEX.test(trimmed)) {
     return {
       valid: false,
+      isValid: false,
       error:
         'Invalid phone number format. Expected E.164 format: +[country code][number] (max 15 digits)',
       normalized: null,
@@ -183,6 +186,7 @@ export function validatePhoneNumber(number: string): SimpleValidationResult {
 
   return {
     valid: true,
+    isValid: true,
     error: null,
     normalized: trimmed,
   }
