@@ -132,6 +132,23 @@ describe('formatCallStatus', () => {
   it('should handle empty string', () => {
     expect(formatCallStatus('')).toBe('')
   })
+
+  it('should handle null input', () => {
+    expect(formatCallStatus(null as unknown as string)).toBe('')
+  })
+
+  it('should handle undefined input', () => {
+    expect(formatCallStatus(undefined as unknown as string)).toBe('')
+  })
+
+  it('should handle uppercase input', () => {
+    expect(formatCallStatus('COMPLETED')).toBe('Completed')
+    expect(formatCallStatus('MISSED')).toBe('Missed')
+  })
+
+  it('should handle mixed case input', () => {
+    expect(formatCallStatus('CoMpLeTeD')).toBe('Completed')
+  })
 })
 
 describe('formatBytes', () => {

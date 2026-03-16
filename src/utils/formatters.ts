@@ -646,6 +646,10 @@ export function truncate(str: string, maxLength: number, ellipsis = '...'): stri
  * ```
  */
 export function formatCallStatus(status: string): string {
+  if (!status || typeof status !== 'string') {
+    return ''
+  }
+
   const statusMap: Record<string, string> = {
     completed: 'Completed',
     missed: 'Missed',
