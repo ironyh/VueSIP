@@ -678,6 +678,38 @@ describe('HubSpotAdapter', () => {
       })
     )
   })
+
+  it('should test connection successfully', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ results: [] }),
+    })
+
+    const adapter = new HubSpotAdapter({
+      apiKey: 'test-api-key',
+    })
+
+    const result = await adapter.testConnection()
+
+    expect(result).toBe(true)
+  })
+
+  it('should handle test connection failure', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: 'Unauthorized' }),
+    })
+
+    const adapter = new HubSpotAdapter({
+      apiKey: 'invalid-key',
+    })
+
+    const result = await adapter.testConnection()
+
+    expect(result).toBe(false)
+  })
 })
 
 // ============================================
