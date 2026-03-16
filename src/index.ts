@@ -339,6 +339,21 @@ export * from './utils/abortController'
 export * from './utils/notifications'
 export * from './utils/diagnostics'
 export * from './utils/callDiagnostics'
+// Export quality report utilities (selective to avoid naming conflict with composables)
+export {
+  calculateMOS,
+  calculateQualityScore,
+  determineQualityLevel as getQualityLevel,
+  determineQualityTrend as getQualityTrend,
+  createQualityMetrics,
+  QualityHistoryBuffer,
+  generateCallQualityReport,
+  MAX_HISTORY_SIZE,
+  QUALITY_THRESHOLDS,
+  type QualityMetrics,
+  type QualityAlertRecord,
+  type CallQualityReport,
+} from './utils/qualityReport'
 // storageQuota functions exported from stores instead
 // constants partially exported (STORAGE_KEYS from types instead)
 
