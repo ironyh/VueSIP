@@ -22,6 +22,7 @@ import {
   DEFAULT_VIDEO_CONSTRAINTS,
   ICE_GATHERING_TIMEOUT,
   STATS_COLLECTION_INTERVAL,
+  DEFAULT_STUN_SERVERS,
 } from '@/utils/constants'
 import { createLogger } from '@/utils/logger'
 import { EventNames } from '@/types/events.types'
@@ -1290,7 +1291,7 @@ export class MediaManager {
     } else {
       // Default STUN servers
       iceServers.push({
-        urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'],
+        urls: [...DEFAULT_STUN_SERVERS],
       })
     }
 

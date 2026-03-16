@@ -109,6 +109,17 @@ export const MAX_RETRY_ATTEMPTS = 5
 export const ICE_GATHERING_TIMEOUT = 5000
 
 /**
+ * Default STUN servers for WebRTC ICE candidate gathering
+ * Used when no custom RTCConfiguration is provided
+ * Includes three Google STUN servers for redundancy
+ */
+export const DEFAULT_STUN_SERVERS = [
+  'stun:stun.l.google.com:19302',
+  'stun:stun1.l.google.com:19302',
+  'stun:stun2.l.google.com:19302',
+] as const
+
+/**
  * Default DTMF tone duration in milliseconds
  */
 export const DEFAULT_DTMF_DURATION = 100

@@ -22,7 +22,7 @@ import type { CalledIdentityExtraction } from '@/types/called-identity.types'
 // JsSIP types available in @/types/jssip.types for future type improvements
 import { createLogger } from '@/utils/logger'
 import { EventEmitter } from '@/utils/EventEmitter'
-import { CALL_SESSION } from '@/utils/constants'
+import { CALL_SESSION, DEFAULT_STUN_SERVERS } from '@/utils/constants'
 
 const logger = createLogger('CallSession')
 
@@ -344,7 +344,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       // Default to STUN servers if not provided - without STUN, only host candidates are gathered
       // which causes WebRTC to fail for users on the public internet
       const defaultRtcConfig: RTCConfiguration = {
-        iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
+        iceServers: [{ urls: [...DEFAULT_STUN_SERVERS] }],
       }
       const rtcConfiguration =
         options?.rtcConfiguration ?? this._data?.rtcConfiguration ?? defaultRtcConfig

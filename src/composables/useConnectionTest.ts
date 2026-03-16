@@ -18,6 +18,7 @@ import { useMediaPermissions } from './useMediaPermissions'
 import { useSipAccountManager } from './useSipAccountManager'
 import { createLogger } from '../utils/logger'
 import { registrationStore } from '../stores/registrationStore'
+import { DEFAULT_STUN_SERVERS } from '../utils/constants'
 
 const log = createLogger('useConnectionTest')
 
@@ -97,10 +98,6 @@ export interface UseConnectionTestReturn {
   /** Clear test results */
   clearResults: () => void
 }
-
-// ============================================================================
-// Default STUN servers (Google STUN)
-const DEFAULT_STUN_SERVERS = ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302']
 
 // ============================================================================
 // Composables

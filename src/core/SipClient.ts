@@ -80,7 +80,7 @@ import { createLogger } from '@/utils/logger'
 import { extractCalledIdentity } from '../utils/calledIdentity'
 import { SipEventNames } from '@/types/event-names'
 import { validateSipConfig } from '@/utils/validators'
-import { USER_AGENT } from '@/utils/constants'
+import { USER_AGENT, DEFAULT_STUN_SERVERS } from '@/utils/constants'
 
 const logger = createLogger('SipClient')
 
@@ -2481,7 +2481,7 @@ export class SipClient {
     // Without STUN, browsers only gather host candidates (private LAN IPs),
     // causing WebRTC media to fail for users on the public internet
     const defaultRtcConfig: RTCConfiguration = {
-      iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
+      iceServers: [{ urls: [...DEFAULT_STUN_SERVERS] }],
     }
     const rtcConfiguration =
       options?.rtcConfiguration ?? this.config.rtcConfiguration ?? defaultRtcConfig
