@@ -183,7 +183,7 @@ describe('useCallQualityStats', () => {
       // Use null session initially to avoid auto-start
       const sessionRef = ref<CallSession | null>(null)
 
-      const { start, isCollecting, stats } = useCallQualityStats(sessionRef, {
+      const { start, isCollecting } = useCallQualityStats(sessionRef, {
         pollIntervalMs: 999999,
       })
 
@@ -192,8 +192,9 @@ describe('useCallQualityStats', () => {
       // Manually start - this should work even with null session
       start()
 
+      // Note: lastUpdated is set when stats are actually collected (async),
+      // not immediately when start() is called. Check isCollecting instead.
       expect(isCollecting.value).toBe(true)
-      expect(stats.value.lastUpdated).toBeInstanceOf(Date)
     })
 
     it('should stop collecting on stop()', async () => {
