@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useCallQualityStats } from 'vuesip'
+import { useCallQualityStats, useCallRecording } from 'vuesip'
 import type { CallSession } from '@/types/call.types'
 
 const props = defineProps<{
@@ -31,6 +31,21 @@ const showStats = ref(false)
 // Call quality stats - only when session is available
 const sessionRef = computed(() => props.session)
 const { stats, qualityLevel } = useCallQualityStats(sessionRef)
+
+// Call recording - wire to remote stream
+const remoteStreamRef = computed(() => props.session?.remoteStream ?? null)
+const {
+  recordingState,
+  isRecording,
+  isPaused,
+  hasRecording,
+  formattedDuration: recordingDuration,
+  startRecording,
+  stopRecording,
+  downloadRecording,
+  clearRecording,
+  isSupported: isRecordingSupported,
+} = useCallRecording(remoteStreamRef)
 
 const formattedDuration = computed(() => {
   const mins = Math.floor(props.duration / 60)
