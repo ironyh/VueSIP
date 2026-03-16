@@ -671,6 +671,10 @@ export function formatCallStatus(status: string): string {
  * ```
  */
 export function formatCallDirection(direction: string): string {
+  if (!direction || typeof direction !== 'string') {
+    return ''
+  }
+
   const directionMap: Record<string, string> = {
     incoming: 'Incoming',
     outgoing: 'Outgoing',

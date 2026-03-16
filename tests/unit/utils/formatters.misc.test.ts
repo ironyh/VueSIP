@@ -84,6 +84,28 @@ describe('formatCallDirection', () => {
   it('should handle empty string', () => {
     expect(formatCallDirection('')).toBe('')
   })
+
+  it('should handle uppercase input', () => {
+    expect(formatCallDirection('INCOMING')).toBe('Incoming')
+    expect(formatCallDirection('OUTGOING')).toBe('Outgoing')
+  })
+
+  it('should handle mixed case input', () => {
+    expect(formatCallDirection('InCoMiNg')).toBe('Incoming')
+    expect(formatCallDirection('OuTgOiNg')).toBe('Outgoing')
+  })
+
+  it('should handle null input', () => {
+    expect(formatCallDirection(null as unknown as string)).toBe('')
+  })
+
+  it('should handle undefined input', () => {
+    expect(formatCallDirection(undefined as unknown as string)).toBe('')
+  })
+
+  it('should handle numeric input as string', () => {
+    expect(formatCallDirection('123' as unknown as string)).toBe('123')
+  })
 })
 
 describe('formatCallStatus', () => {
