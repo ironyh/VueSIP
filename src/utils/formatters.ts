@@ -307,11 +307,11 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
       after46.startsWith('73') ||
       after46.startsWith('76')
     ) {
-      // Mobile: 70X XXX XXXX
-      return `+46 ${after46.slice(0, 2)} ${after46.slice(2, 5)} ${after46.slice(5)}`
+      // Mobile: 70X XXX XX XX
+      return `+46 ${after46.slice(0, 2)} ${after46.slice(2, 5)} ${after46.slice(5, 7)} ${after46.slice(7)}`
     }
-    // Landline: 8 123 456
-    return `+46 ${after46.slice(0, 1)} ${after46.slice(1, 4)} ${after46.slice(4)}`
+    // Landline: 8 123 456 78
+    return `+46 ${after46.slice(0, 1)} ${after46.slice(1, 4)} ${after46.slice(4, 7)} ${after46.slice(7)}`
   },
   // Germany: +49 XXXX XXXXXX
   '+49': (num) => {
@@ -321,7 +321,7 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
   // France: +33 X XX XX XX XX
   '+33': (num) => {
     if (num.length !== 12) return num
-    return `+33 ${num.slice(2, 3)} ${num.slice(3, 5)} ${num.slice(5, 7)} ${num.slice(7, 9)} ${num.slice(9)}`
+    return `+33 ${num.slice(3, 4)} ${num.slice(4, 6)} ${num.slice(6, 8)} ${num.slice(8, 10)} ${num.slice(10)}`
   },
   // Netherlands: +31 X XXXX XXXX
   '+31': (num) => {
@@ -330,18 +330,18 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
   },
   // Norway: +47 XXX XX XXX
   '+47': (num) => {
-    if (num.length !== 12) return num
+    if (num.length !== 11) return num
     return `+47 ${num.slice(3, 6)} ${num.slice(6, 8)} ${num.slice(8)}`
   },
   // Denmark: +45 XX XX XX XX
   '+45': (num) => {
-    if (num.length !== 12) return num
-    return `+45 ${num.slice(2, 4)} ${num.slice(4, 6)} ${num.slice(6, 8)} ${num.slice(8)}`
+    if (num.length !== 11) return num
+    return `+45 ${num.slice(3, 5)} ${num.slice(5, 7)} ${num.slice(7, 9)} ${num.slice(9)}`
   },
   // Finland: +358 XXX XX XX XX
   '+358': (num) => {
     if (num.length !== 13) return num
-    return `+358 ${num.slice(3, 6)} ${num.slice(6, 8)} ${num.slice(8, 10)} ${num.slice(10)}`
+    return `+358 ${num.slice(4, 7)} ${num.slice(7, 9)} ${num.slice(9, 11)} ${num.slice(11)}`
   },
   // Australia: +61 X XXXX XXXX
   '+61': (num) => {

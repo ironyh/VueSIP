@@ -244,6 +244,43 @@ describe('formatPhoneNumber', () => {
   test('handles empty string', () => {
     expect(formatPhoneNumber('')).toBe('')
   })
+
+  // Country-specific phone formatting tests
+  test('formats Sweden mobile phone number', () => {
+    expect(formatPhoneNumber('+46700123456')).toBe('+46 70 012 34 56')
+  })
+
+  test('formats Sweden landline phone number', () => {
+    expect(formatPhoneNumber('+46812345678')).toBe('+46 8 123 456 78')
+  })
+
+  test('formats Germany phone number', () => {
+    expect(formatPhoneNumber('+4915112345678')).toBe('+49 1511 2345678')
+  })
+
+  test('formats France phone number', () => {
+    expect(formatPhoneNumber('+33123456789')).toBe('+33 1 23 45 67 89')
+  })
+
+  test('formats Netherlands phone number', () => {
+    expect(formatPhoneNumber('+31612345678')).toBe('+31 6 1234 5678')
+  })
+
+  test('formats Norway phone number', () => {
+    expect(formatPhoneNumber('+4791234567')).toBe('+47 912 34 567')
+  })
+
+  test('formats Denmark phone number', () => {
+    expect(formatPhoneNumber('+4528123456')).toBe('+45 28 12 34 56')
+  })
+
+  test('formats Finland phone number', () => {
+    expect(formatPhoneNumber('+358501234567')).toBe('+358 501 23 45 67')
+  })
+
+  test('formats Australia phone number', () => {
+    expect(formatPhoneNumber('+61412345678')).toBe('+61 4 1234 5678')
+  })
 })
 
 describe('normalizePhoneNumber', () => {

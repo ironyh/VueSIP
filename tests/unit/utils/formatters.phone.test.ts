@@ -55,7 +55,7 @@ describe('formatPhoneNumber', () => {
     const result = formatPhoneNumber('+46700123456')
     expect(result).toContain('70')
     expect(result).toContain('012')
-    expect(result).toContain('3456')
+    expect(result).toContain('34 56')
   })
 
   it('should format US numbers', () => {
