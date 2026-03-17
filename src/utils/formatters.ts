@@ -839,8 +839,13 @@ const SIP_STATUS_MESSAGES: Record<number, string> = {
  * formatSipStatusCode(486, 'User is on another call') // "Busy Here: User is on another call"
  * ```
  */
-export function formatSipStatusCode(statusCode: number, reasonPhrase?: string): string {
-  if (statusCode === undefined || statusCode === null || typeof statusCode !== 'number') {
+export function formatSipStatusCode(statusCode?: number, reasonPhrase?: string): string {
+  if (
+    statusCode === undefined ||
+    statusCode === null ||
+    typeof statusCode !== 'number' ||
+    Number.isNaN(statusCode)
+  ) {
     return ''
   }
 

@@ -26,6 +26,7 @@ import {
   formatCallDirection,
   buildSipUri,
   extractSipDomain,
+  formatSipStatusCode,
 } from '../formatters'
 
 describe('formatDuration', () => {
@@ -555,5 +556,41 @@ describe('formatMilliseconds', () => {
     expect(formatMilliseconds(-1)).toBe('0ms')
     expect(formatMilliseconds(Infinity)).toBe('0ms')
     expect(formatMilliseconds(NaN)).toBe('0ms')
+  })
+})
+
+describe('formatSipStatusCode', () => {
+  test('formats known status code', () => {
+    expect(formatSipStatusCode(486)).toBe('Busy Here')
+  })
+
+  test('formats 200 OK', () => {
+    expect(formatSipStatusCode(200)).toBe('OK')
+  })
+
+  test('formats unknown status code', () => {
+    expect(formatSipStatusCode(999)).toBe('Unknown Status (999)')
+  })
+
+  test('includes reason phrase when provided', () => {
+    expect(formatSipStatusCode(486, 'User is on another call')).toBe(
+      'Busy Here: User is on another call'
+    )
+  })
+
+  test('handles undefined statusCode', () => {
+    expect(formatSipStatusCode()).toBe('')
+  })
+
+  test('handles null statusCode', () => {
+    expect(formatSipStatusCode(null as unknown as number)).toBe('')
+  })
+
+  test('handles NaN statusCode', () => {
+    expect(formatSipStatusCode(NaN)).toBe('')
+  })
+
+  test('handles non-number statusCode', () => {
+    expect(formatSipStatusCode('486' as unknown as number)).toBe('')
   })
 })
