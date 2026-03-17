@@ -429,3 +429,66 @@ export function isSipStatusCodeError(error: unknown, statusCodes?: number[]): bo
 
   return false
 }
+
+/**
+ * Checks if the error is a RangeError (e.g., invalid array length, number out of range)
+ *
+ * @param error - The error to check
+ * @returns True if the error is a RangeError
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   const arr = new Array(-1)
+ * } catch (e) {
+ *   if (isRangeError(e)) {
+ *     console.log('Invalid range:', e.message)
+ *   }
+ * }
+ * ```
+ */
+export function isRangeError(error: unknown): boolean {
+  return error instanceof RangeError
+}
+
+/**
+ * Checks if the error is a SyntaxError (e.g., invalid JSON parsing, malformed input)
+ *
+ * @param error - The error to check
+ * @returns True if the error is a SyntaxError
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   JSON.parse('invalid json')
+ * } catch (e) {
+ *   if (isSyntaxError(e)) {
+ *     console.log('Syntax error:', e.message)
+ *   }
+ * }
+ * ```
+ */
+export function isSyntaxError(error: unknown): boolean {
+  return error instanceof SyntaxError
+}
+
+/**
+ * Checks if the error is a ReferenceError (accessing undefined variable)
+ *
+ * @param error - The error to check
+ * @returns True if the error is a ReferenceError
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   console.log(undefinedVar)
+ * } catch (e) {
+ *   if (isReferenceError(e)) {
+ *     console.log('Undefined variable:', e.message)
+ *   }
+ * }
+ * ```
+ */
+export function isReferenceError(error: unknown): boolean {
+  return error instanceof ReferenceError
+}

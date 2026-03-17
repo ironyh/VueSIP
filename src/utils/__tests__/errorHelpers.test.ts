@@ -15,6 +15,9 @@ import {
   isTimeoutError,
   isWebRtcError,
   isSipStatusCodeError,
+  isRangeError,
+  isSyntaxError,
+  isReferenceError,
 } from '../errorHelpers'
 
 describe('errorHelpers', () => {
@@ -558,6 +561,83 @@ describe('errorHelpers', () => {
     it('should return true for SERVER_INTERNAL_ERROR pattern from SIP_STATUS_CODES', () => {
       const error = new Error('500 Server Internal Error')
       expect(isSipStatusCodeError(error)).toBe(true)
+    })
+  })
+
+  describe('isRangeError', () => {
+    it('should return true for RangeError instance', () => {
+      const error = new RangeError('Invalid length')
+      expect(isRangeError(error)).toBe(true)
+    })
+
+    it('should return true for built-in RangeError', () => {
+      try {
+        // eslint-disable-next-line no-new
+        new Array(-1)
+      } catch (e) {
+        expect(isRangeError(e)).toBe(true)
+      }
+    })
+
+    it('should return false for other Error types', () => {
+      expect(isRangeError(new Error())).toBe(false)
+      expect(isRangeError(new TypeError())).toBe(false)
+      expect(isRangeError(new SyntaxError())).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isRangeError('string')).toBe(false)
+      expect(isRangeError(null)).toBe(false)
+      expect(isRangeError(undefined)).toBe(false)
+      expect(isRangeError({})).toBe(false)
+    })
+  })
+
+  describe('isSyntaxError', () => {
+    it('should return true for SyntaxError instance', () => {
+      const error = new SyntaxError('Invalid syntax')
+      expect(isSyntaxError(error)).toBe(true)
+    })
+
+    it('should return true for JSON.parse SyntaxError', () => {
+      try {
+        JSON.parse('invalid json')
+      } catch (e) {
+        expect(isSyntaxError(e)).toBe(true)
+      }
+    })
+
+    it('should return false for other Error types', () => {
+      expect(isSyntaxError(new Error())).toBe(false)
+      expect(isSyntaxError(new TypeError())).toBe(false)
+      expect(isSyntaxError(new RangeError())).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isSyntaxError('string')).toBe(false)
+      expect(isSyntaxError(null)).toBe(false)
+      expect(isSyntaxError(undefined)).toBe(false)
+      expect(isSyntaxError({})).toBe(false)
+    })
+  })
+
+  describe('isReferenceError', () => {
+    it('should return true for ReferenceError instance', () => {
+      const error = new ReferenceError('Undefined variable')
+      expect(isReferenceError(error)).toBe(true)
+    })
+
+    it('should return false for other Error types', () => {
+      expect(isReferenceError(new Error())).toBe(false)
+      expect(isReferenceError(new TypeError())).toBe(false)
+      expect(isReferenceError(new RangeError())).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isReferenceError('string')).toBe(false)
+      expect(isReferenceError(null)).toBe(false)
+      expect(isReferenceError(undefined)).toBe(false)
+      expect(isReferenceError({})).toBe(false)
     })
   })
 })

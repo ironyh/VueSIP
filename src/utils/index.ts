@@ -79,6 +79,9 @@ export {
   isTimeoutError,
   isWebRtcError,
   isSipStatusCodeError,
+  isRangeError,
+  isSyntaxError,
+  isReferenceError,
 } from './errorHelpers'
 
 // Re-export diagnostics utilities
