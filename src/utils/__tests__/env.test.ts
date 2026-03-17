@@ -709,4 +709,59 @@ describe('env utilities', () => {
       expect(isServiceWorkerSupported()).toBe(false)
     })
   })
+
+  describe('isWebRTCSupported', () => {
+    it('should return false when window is undefined (SSR)', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { isWebRTCSupported } = await import('../env')
+      const result = isWebRTCSupported()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return true when RTCPeerConnection is available', async () => {
+      vi.stubGlobal('window', {
+        RTCPeerConnection: class RTCPeerConnection {},
+      })
+      vi.stubGlobal('navigator', {
+        mediaDevices: {
+          getUserMedia: vi.fn(),
+        },
+      })
+
+      const { isWebRTCSupported } = await import('../env')
+      expect(isWebRTCSupported()).toBe(true)
+    })
+
+    it('should return true when webkitRTCPeerConnection is available (Safari legacy)', async () => {
+      vi.stubGlobal('window', {
+        webkitRTCPeerConnection: class {},
+      })
+      vi.stubGlobal('navigator', {
+        mediaDevices: {
+          getUserMedia: vi.fn(),
+        },
+      })
+
+      const { isWebRTCSupported } = await import('../env')
+      expect(isWebRTCSupported()).toBe(true)
+    })
+
+    it('should return true when mozRTCPeerConnection is available (Firefox legacy)', async () => {
+      vi.stubGlobal('window', {
+        mozRTCPeerConnection: class {},
+      })
+      vi.stubGlobal('navigator', {
+        mediaDevices: {
+          getUserMedia: vi.fn(),
+        },
+      })
+
+      const { isWebRTCSupported } = await import('../env')
+      expect(isWebRTCSupported()).toBe(true)
+    })
+  })
 })
