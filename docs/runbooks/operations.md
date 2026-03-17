@@ -187,6 +187,64 @@ This runbook covers common operational procedures for VueSIP deployments.
 - Ensure T.38 fax mode is enabled if using fax
 - Check that your connection supports T.38 passthrough
 
+### Provider-Specific Issues (FreePBX/Asterisk)
+
+**Failed to connect to AMI (Asterisk Manager Interface)**
+
+- Verify AMI is enabled in FreePBX: Settings → Asterisk Manager Interface
+- Check username/password credentials match your config
+- Verify firewall allows access to port 5038 (or configured AMI port)
+- Ensure "Write" permissions are enabled for your AMI user
+
+**Agent login fails**
+
+- Verify agent is created in FreePBX queue configuration
+- Check agent extension exists and is available
+- Ensure proper queue membership and penalty settings
+- Check AST_HOOK function (if using fancy extensions)
+
+**Queue calls not arriving**
+
+- Verify queue is properly configured with members
+- Check queue timeout and retry settings
+- Ensure agents are logged in and available (not in wrap-up)
+- Check for queue paused orbusy agents: `queue show` in Asterisk CLI
+
+**CDR (Call Detail Records) not logging**
+
+- Verify CDR is enabled in FreePBX Advanced Settings
+- Check MySQL/MariaDB connection for CDR database
+- Ensure proper permissions for CDR write user
+- Check `cdr_adaptive_odbc` module is loaded
+
+**Voicemail not working**
+
+- Verify voicemail extension is configured in FreePBX
+- Check voicemail storage directory permissions
+- Ensure email settings are configured for voicemail-to-email
+- Check for disk space on voicemail storage
+
+**Presence/BLF not updating**
+
+- Verify FreePBX presence is enabled
+- Check SIP peer is properly configured for `busy` detection
+- Ensure proper `hint` extensions are set in extensions_custom.conf
+- Verify NAT settings don't block NOTIFY packets
+
+**Call recording not starting**
+
+- Verify FreePBX recording is enabled for the extension/queue
+- Check storage location has proper permissions
+- Ensure enough disk space for recordings
+- Verify MixMonitor path is correct in Asterisk config
+
+**TTS (Text-to-Speech) not working**
+
+- Verify TTS engine is installed (e.g., Google TTS, Festival)
+- Check AGI script permissions
+- Ensure network access for external TTS APIs
+- Verify temp directory is writable
+
 ## Monitoring
 
 ### Key Metrics
