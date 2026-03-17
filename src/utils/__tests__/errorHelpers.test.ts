@@ -18,6 +18,10 @@ import {
   isRangeError,
   isSyntaxError,
   isReferenceError,
+  isInvalidAccessError,
+  isDataError,
+  isNotAllowedError,
+  isNotSupportedError,
 } from '../errorHelpers'
 
 describe('errorHelpers', () => {
@@ -638,6 +642,102 @@ describe('errorHelpers', () => {
       expect(isReferenceError(null)).toBe(false)
       expect(isReferenceError(undefined)).toBe(false)
       expect(isReferenceError({})).toBe(false)
+    })
+  })
+
+  describe('isInvalidAccessError', () => {
+    it('should return true for DOMException with InvalidAccessError name', () => {
+      const error = new DOMException('Invalid access', 'InvalidAccessError')
+      expect(isInvalidAccessError(error)).toBe(true)
+    })
+
+    it('should return false for other DOMException types', () => {
+      const error = new DOMException('Not allowed', 'NotAllowedError')
+      expect(isInvalidAccessError(error)).toBe(false)
+    })
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Invalid access')
+      error.name = 'InvalidAccessError'
+      expect(isInvalidAccessError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isInvalidAccessError('string')).toBe(false)
+      expect(isInvalidAccessError(null)).toBe(false)
+      expect(isInvalidAccessError({})).toBe(false)
+    })
+  })
+
+  describe('isDataError', () => {
+    it('should return true for DOMException with DataError name', () => {
+      const error = new DOMException('Data error', 'DataError')
+      expect(isDataError(error)).toBe(true)
+    })
+
+    it('should return false for other DOMException types', () => {
+      const error = new DOMException('Not found', 'NotFoundError')
+      expect(isDataError(error)).toBe(false)
+    })
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Data error')
+      error.name = 'DataError'
+      expect(isDataError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isDataError('string')).toBe(false)
+      expect(isDataError(null)).toBe(false)
+      expect(isDataError({})).toBe(false)
+    })
+  })
+
+  describe('isNotAllowedError', () => {
+    it('should return true for DOMException with NotAllowedError name', () => {
+      const error = new DOMException('Not allowed', 'NotAllowedError')
+      expect(isNotAllowedError(error)).toBe(true)
+    })
+
+    it('should return false for other DOMException types', () => {
+      const error = new DOMException('Not found', 'NotFoundError')
+      expect(isNotAllowedError(error)).toBe(false)
+    })
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Not allowed')
+      error.name = 'NotAllowedError'
+      expect(isNotAllowedError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isNotAllowedError('string')).toBe(false)
+      expect(isNotAllowedError(null)).toBe(false)
+      expect(isNotAllowedError({})).toBe(false)
+    })
+  })
+
+  describe('isNotSupportedError', () => {
+    it('should return true for DOMException with NotSupportedError name', () => {
+      const error = new DOMException('Not supported', 'NotSupportedError')
+      expect(isNotSupportedError(error)).toBe(true)
+    })
+
+    it('should return false for other DOMException types', () => {
+      const error = new DOMException('Not allowed', 'NotAllowedError')
+      expect(isNotSupportedError(error)).toBe(false)
+    })
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Not supported')
+      error.name = 'NotSupportedError'
+      expect(isNotSupportedError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isNotSupportedError('string')).toBe(false)
+      expect(isNotSupportedError(null)).toBe(false)
+      expect(isNotSupportedError({})).toBe(false)
     })
   })
 })

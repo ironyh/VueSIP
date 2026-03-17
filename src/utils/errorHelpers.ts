@@ -492,3 +492,87 @@ export function isSyntaxError(error: unknown): boolean {
 export function isReferenceError(error: unknown): boolean {
   return error instanceof ReferenceError
 }
+
+/**
+ * Checks if the error is a DOM InvalidAccessError
+ *
+ * @param error - The error to check
+ * @returns True if the error is an InvalidAccessError
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   // Operation that fails with InvalidAccessError
+ * } catch (e) {
+ *   if (isInvalidAccessError(e)) {
+ *     console.log('Invalid access:', e.message)
+ *   }
+ * }
+ * ```
+ */
+export function isInvalidAccessError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'InvalidAccessError'
+}
+
+/**
+ * Checks if the error is a DataError (IndexedDB)
+ *
+ * @param error - The error to check
+ * @returns True if the error is a DataError
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   // IndexedDB operation that fails
+ * } catch (e) {
+ *   if (isDataError(e)) {
+ *     console.log('Data error:', e.message)
+ *   }
+ * }
+ * ```
+ */
+export function isDataError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'DataError'
+}
+
+/**
+ * Checks if the error is a NotAllowedError (permissions denied)
+ *
+ * @param error - The error to check
+ * @returns True if the error is a NotAllowedError
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await navigator.mediaDevices.getUserMedia({ audio: true })
+ * } catch (e) {
+ *   if (isNotAllowedError(e)) {
+ *     console.log('Permission denied:', e.message)
+ *   }
+ * }
+ * ```
+ */
+export function isNotAllowedError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'NotAllowedError'
+}
+
+/**
+ * Checks if the error is a NotSupportedError
+ *
+ * @param error - The error to check
+ * @returns True if the error is a NotSupportedError
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   // Operation not supported
+ * } catch (e) {
+ *   if (isNotSupportedError(e)) {
+ *     console.log('Not supported:', e.message)
+ *   }
+ * }
+ * ```
+ */
+export function isNotSupportedError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'NotSupportedError'
+}
