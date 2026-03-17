@@ -274,6 +274,11 @@ describe('errorHelpers', () => {
       expect(isAuthenticationError(error)).toBe(true)
     })
 
+    it('should return true when message includes "403"', () => {
+      const error = new Error('HTTP 403 Forbidden')
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
     it('should return false for non-auth errors', () => {
       const error = new Error('Some other error')
       expect(isAuthenticationError(error)).toBe(false)
