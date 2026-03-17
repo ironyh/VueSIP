@@ -8,6 +8,7 @@ import {
   isPermissionDeniedError,
   isNotFoundError,
   isConstraintError,
+  isNetworkError,
 } from '../errorHelpers'
 
 describe('errorHelpers', () => {
@@ -132,6 +133,45 @@ describe('errorHelpers', () => {
     it('should return false for other errors', () => {
       const error = new Error('Other')
       expect(isConstraintError(error)).toBe(false)
+    })
+  })
+
+  describe('isNetworkError', () => {
+    it('should return true for NetworkError', () => {
+      const error = new Error('Network failure')
+      error.name = 'NetworkError'
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return true for TypeError', () => {
+      const error = new TypeError('Type error')
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "network"', () => {
+      const error = new Error('Network connection lost')
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "fetch"', () => {
+      const error = new Error('Failed to fetch resource')
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "connection"', () => {
+      const error = new Error('Connection refused')
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return false for other errors without network-related message', () => {
+      const error = new Error('Something went wrong')
+      expect(isNetworkError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isNetworkError('string')).toBe(false)
+      expect(isNetworkError(null)).toBe(false)
+      expect(isNetworkError(42)).toBe(false)
     })
   })
 })
