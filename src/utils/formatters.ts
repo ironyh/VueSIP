@@ -411,6 +411,9 @@ export function formatPhoneNumber(number: string): string {
  * ```
  */
 export function normalizePhoneNumber(number: string): string {
+  if (!number || typeof number !== 'string') {
+    return ''
+  }
   return number.replace(/\D/g, '')
 }
 
