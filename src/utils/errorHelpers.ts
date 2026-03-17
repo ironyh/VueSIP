@@ -118,3 +118,23 @@ export function isConstraintError(error: unknown): boolean {
     error.name === 'NotReadableError'
   )
 }
+
+/**
+ * Check if an error is a network error
+ *
+ * @param error - The error to check
+ * @returns True if the error is a network error
+ */
+export function isNetworkError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return (
+    error.name === 'NetworkError' ||
+    error.name === 'TypeError' ||
+    error.message.toLowerCase().includes('network') ||
+    error.message.toLowerCase().includes('fetch') ||
+    error.message.toLowerCase().includes('connection')
+  )
+}

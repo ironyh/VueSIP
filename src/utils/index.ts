@@ -71,6 +71,7 @@ export {
   isPermissionDeniedError,
   isNotFoundError,
   isConstraintError,
+  isNetworkError,
 } from './errorHelpers'
 
 // Re-export diagnostics utilities
