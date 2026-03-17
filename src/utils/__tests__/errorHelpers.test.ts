@@ -201,6 +201,21 @@ describe('errorHelpers', () => {
       expect(isSessionError(error)).toBe(true)
     })
 
+    it('should return true when message includes "bye" or "byedone"', () => {
+      const error = new Error('BYE failed - byedone timeout')
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "prack"', () => {
+      const error = new Error('PRACK failed')
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "ack"', () => {
+      const error = new Error('ACK timeout')
+      expect(isSessionError(error)).toBe(true)
+    })
+
     it('should return false for non-session errors', () => {
       const error = new Error('Some other error')
       expect(isSessionError(error)).toBe(false)
@@ -225,6 +240,18 @@ describe('errorHelpers', () => {
       expect(isTransportError(error)).toBe(true)
     })
 
+    it('should return true for ConnectionError', () => {
+      const error = new Error('Connection failed')
+      error.name = 'ConnectionError'
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true for SocketError', () => {
+      const error = new Error('Socket error')
+      error.name = 'SocketError'
+      expect(isTransportError(error)).toBe(true)
+    })
+
     it('should return true when message includes "websocket"', () => {
       const error = new Error('WebSocket connection failed')
       expect(isTransportError(error)).toBe(true)
@@ -232,6 +259,16 @@ describe('errorHelpers', () => {
 
     it('should return true when message includes "tls handshake"', () => {
       const error = new Error('TLS handshake timeout')
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "transport"', () => {
+      const error = new Error('Transport unavailable')
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "sip/tls"', () => {
+      const error = new Error('SIP/TLS connection failed')
       expect(isTransportError(error)).toBe(true)
     })
 
