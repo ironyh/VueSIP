@@ -9,6 +9,9 @@ import {
   isNotFoundError,
   isConstraintError,
   isNetworkError,
+  isSessionError,
+  isTransportError,
+  isAuthenticationError,
 } from '@/utils/errorHelpers'
 
 describe('errorHelpers', () => {
@@ -326,6 +329,273 @@ describe('errorHelpers', () => {
       expect(isNetworkError(null)).toBe(false)
       expect(isNetworkError(undefined)).toBe(false)
       expect(isNetworkError(42)).toBe(false)
+    })
+  })
+
+  describe('isSessionError', () => {
+    it('should return true for RequestTimeout', () => {
+      const error = new Error('Request timeout')
+      error.name = 'RequestTimeout'
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true for SessionDescriptionHandlerError', () => {
+      const error = new Error('SDP error')
+      error.name = 'SessionDescriptionHandlerError'
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true for InviteClientError', () => {
+      const error = new Error('Invite failed')
+      error.name = 'InviteClientError'
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true for ServerError', () => {
+      const error = new Error('Server error')
+      error.name = 'ServerError'
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true for BadRequestError', () => {
+      const error = new Error('Bad request')
+      error.name = 'BadRequestError'
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true for NotAcceptableError', () => {
+      const error = new Error('Not acceptable')
+      error.name = 'NotAcceptableError'
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true for UnsupportedError', () => {
+      const error = new Error('Not supported')
+      error.name = 'UnsupportedError'
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "session"', () => {
+      const error = new Error('Session terminated unexpectedly')
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "invite"', () => {
+      const error = new Error('Invite transaction failed')
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "byedone"', () => {
+      const error = new Error('byedone received')
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "prack"', () => {
+      const error = new Error('PRACK failed')
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "ack"', () => {
+      const error = new Error('ACK not received')
+
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return false for other errors without session-related message', () => {
+      const error = new Error('Something went wrong')
+      error.name = 'OtherError'
+
+      expect(isSessionError(error)).toBe(false)
+    })
+
+    it('should return false for permission errors', () => {
+      const error = new Error('Permission denied')
+      error.name = 'NotAllowedError'
+
+      expect(isSessionError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error objects', () => {
+      expect(isSessionError('string')).toBe(false)
+      expect(isSessionError({ message: 'Session error' })).toBe(false)
+      expect(isSessionError(null)).toBe(false)
+      expect(isSessionError(undefined)).toBe(false)
+      expect(isSessionError(42)).toBe(false)
+    })
+  })
+
+  describe('isTransportError', () => {
+    it('should return true for TransportError', () => {
+      const error = new Error('Transport failed')
+      error.name = 'TransportError'
+
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true for WebSocketError', () => {
+      const error = new Error('WebSocket error')
+      error.name = 'WebSocketError'
+
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true for ConnectionError', () => {
+      const error = new Error('Connection failed')
+      error.name = 'ConnectionError'
+
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true for SocketError', () => {
+      const error = new Error('Socket error')
+      error.name = 'SocketError'
+
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "websocket"', () => {
+      const error = new Error('WebSocket connection closed')
+
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "transport"', () => {
+      const error = new Error('Transport layer error')
+
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "sip/tls"', () => {
+      const error = new Error('SIP/TLS connection failed')
+
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "tls handshake"', () => {
+      const error = new Error('TLS handshake timeout')
+
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return false for other errors without transport-related message', () => {
+      const error = new Error('Something went wrong')
+      error.name = 'OtherError'
+
+      expect(isTransportError(error)).toBe(false)
+    })
+
+    it('should return false for session errors', () => {
+      const error = new Error('Session terminated')
+      error.name = 'RequestTimeout'
+
+      expect(isTransportError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error objects', () => {
+      expect(isTransportError('string')).toBe(false)
+      expect(isTransportError({ message: 'Transport error' })).toBe(false)
+      expect(isTransportError(null)).toBe(false)
+      expect(isTransportError(undefined)).toBe(false)
+      expect(isTransportError(42)).toBe(false)
+    })
+  })
+
+  describe('isAuthenticationError', () => {
+    it('should return true for Unauthorized', () => {
+      const error = new Error('Unauthorized')
+      error.name = 'Unauthorized'
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true for Forbidden', () => {
+      const error = new Error('Forbidden')
+      error.name = 'Forbidden'
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true for AuthenticationError', () => {
+      const error = new Error('Authentication failed')
+      error.name = 'AuthenticationError'
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true for InvalidCredentialsError', () => {
+      const error = new Error('Invalid credentials')
+      error.name = 'InvalidCredentialsError'
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "unauthorized"', () => {
+      const error = new Error('User is unauthorized')
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "forbidden"', () => {
+      const error = new Error('Access forbidden')
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "authentication"', () => {
+      const error = new Error('Authentication required')
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "credentials"', () => {
+      const error = new Error('Invalid credentials provided')
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "401"', () => {
+      const error = new Error('HTTP 401 Unauthorized')
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "403"', () => {
+      const error = new Error('HTTP 403 Forbidden')
+
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return false for other errors without auth-related message', () => {
+      const error = new Error('Something went wrong')
+      error.name = 'OtherError'
+
+      expect(isAuthenticationError(error)).toBe(false)
+    })
+
+    it('should return false for session errors', () => {
+      const error = new Error('Session timeout')
+      error.name = 'RequestTimeout'
+
+      expect(isAuthenticationError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error objects', () => {
+      expect(isAuthenticationError('string')).toBe(false)
+      expect(isAuthenticationError({ message: 'Auth error' })).toBe(false)
+      expect(isAuthenticationError(null)).toBe(false)
+      expect(isAuthenticationError(undefined)).toBe(false)
+      expect(isAuthenticationError(42)).toBe(false)
     })
   })
 
