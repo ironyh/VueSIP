@@ -8,6 +8,7 @@ import {
   isPermissionDeniedError,
   isNotFoundError,
   isConstraintError,
+  isNetworkError,
 } from '@/utils/errorHelpers'
 
 describe('errorHelpers', () => {
@@ -257,6 +258,74 @@ describe('errorHelpers', () => {
       expect(isConstraintError(null)).toBe(false)
       expect(isConstraintError(undefined)).toBe(false)
       expect(isConstraintError(123)).toBe(false)
+    })
+  })
+
+  describe('isNetworkError', () => {
+    it('should return true for NetworkError', () => {
+      const error = new Error('Network failure')
+      error.name = 'NetworkError'
+
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return true for TypeError', () => {
+      const error = new TypeError('Type error')
+
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "network"', () => {
+      const error = new Error('Network connection lost')
+
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "fetch"', () => {
+      const error = new Error('Failed to fetch resource')
+
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "connection"', () => {
+      const error = new Error('Connection refused')
+
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return true for case-insensitive message matching', () => {
+      const error = new Error('NETWORK FAILURE')
+
+      expect(isNetworkError(error)).toBe(true)
+    })
+
+    it('should return false for other errors without network-related message', () => {
+      const error = new Error('Something went wrong')
+      error.name = 'OtherError'
+
+      expect(isNetworkError(error)).toBe(false)
+    })
+
+    it('should return false for permission errors', () => {
+      const error = new Error('Permission denied')
+      error.name = 'NotAllowedError'
+
+      expect(isNetworkError(error)).toBe(false)
+    })
+
+    it('should return false for not found errors', () => {
+      const error = new Error('Not found')
+      error.name = 'NotFoundError'
+
+      expect(isNetworkError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error objects', () => {
+      expect(isNetworkError('string')).toBe(false)
+      expect(isNetworkError({ message: 'Network error' })).toBe(false)
+      expect(isNetworkError(null)).toBe(false)
+      expect(isNetworkError(undefined)).toBe(false)
+      expect(isNetworkError(42)).toBe(false)
     })
   })
 
