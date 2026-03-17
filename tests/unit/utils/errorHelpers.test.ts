@@ -12,6 +12,10 @@ import {
   isSessionError,
   isTransportError,
   isAuthenticationError,
+  isNotAllowedError,
+  isNotSupportedError,
+  isDataError,
+  isInvalidAccessError,
 } from '@/utils/errorHelpers'
 
 describe('errorHelpers', () => {
@@ -647,6 +651,102 @@ describe('errorHelpers', () => {
       expect(isPermissionDeniedError(error)).toBe(false)
       expect(isNotFoundError(error)).toBe(false)
       expect(isConstraintError(error)).toBe(true)
+    })
+  })
+
+  describe('isNotAllowedError', () => {
+    it('should return true for NotAllowedError DOMException', () => {
+      const error = new DOMException('Permission denied', 'NotAllowedError')
+      expect(isNotAllowedError(error)).toBe(true)
+    })
+
+    it('should return false for other DOMException types', () => {
+      const error = new DOMException('Some error', 'NotFoundError')
+      expect(isNotAllowedError(error)).toBe(false)
+    })
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Permission denied')
+      expect(isNotAllowedError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error objects', () => {
+      expect(isNotAllowedError('string error')).toBe(false)
+      expect(isNotAllowedError(null)).toBe(false)
+      expect(isNotAllowedError(undefined)).toBe(false)
+      expect(isNotAllowedError({})).toBe(false)
+    })
+  })
+
+  describe('isNotSupportedError', () => {
+    it('should return true for NotSupportedError DOMException', () => {
+      const error = new DOMException('Operation not supported', 'NotSupportedError')
+      expect(isNotSupportedError(error)).toBe(true)
+    })
+
+    it('should return false for other DOMException types', () => {
+      const error = new DOMException('Some error', 'NotAllowedError')
+      expect(isNotSupportedError(error)).toBe(false)
+    })
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Not supported')
+      expect(isNotSupportedError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error objects', () => {
+      expect(isNotSupportedError('string error')).toBe(false)
+      expect(isNotSupportedError(null)).toBe(false)
+      expect(isNotSupportedError(undefined)).toBe(false)
+      expect(isNotSupportedError({})).toBe(false)
+    })
+  })
+
+  describe('isDataError', () => {
+    it('should return true for DataError DOMException', () => {
+      const error = new DOMException('Data error', 'DataError')
+      expect(isDataError(error)).toBe(true)
+    })
+
+    it('should return false for other DOMException types', () => {
+      const error = new DOMException('Some error', 'NotAllowedError')
+      expect(isDataError(error)).toBe(false)
+    })
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Data error')
+      expect(isDataError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error objects', () => {
+      expect(isDataError('string error')).toBe(false)
+      expect(isDataError(null)).toBe(false)
+      expect(isDataError(undefined)).toBe(false)
+      expect(isDataError({})).toBe(false)
+    })
+  })
+
+  describe('isInvalidAccessError', () => {
+    it('should return true for InvalidAccessError DOMException', () => {
+      const error = new DOMException('Invalid access', 'InvalidAccessError')
+      expect(isInvalidAccessError(error)).toBe(true)
+    })
+
+    it('should return false for other DOMException types', () => {
+      const error = new DOMException('Some error', 'NotAllowedError')
+      expect(isInvalidAccessError(error)).toBe(false)
+    })
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Invalid access')
+      expect(isInvalidAccessError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error objects', () => {
+      expect(isInvalidAccessError('string error')).toBe(false)
+      expect(isInvalidAccessError(null)).toBe(false)
+      expect(isInvalidAccessError(undefined)).toBe(false)
+      expect(isInvalidAccessError({})).toBe(false)
     })
   })
 })

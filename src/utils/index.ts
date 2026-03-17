@@ -82,6 +82,10 @@ export {
   isRangeError,
   isSyntaxError,
   isReferenceError,
+  isInvalidAccessError,
+  isDataError,
+  isNotAllowedError,
+  isNotSupportedError,
 } from './errorHelpers'
 
 // Re-export diagnostics utilities
