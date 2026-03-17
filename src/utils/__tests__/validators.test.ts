@@ -11,6 +11,7 @@ import {
   validateWebSocketUrl,
   validateDtmfTone,
   validateDtmfSequence,
+  validateUrl,
 } from '../validators'
 import type { SipClientConfig, MediaConfiguration } from '../../types/config.types'
 
@@ -393,6 +394,87 @@ describe('validators', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = validateMediaConfig(null as any)
       expect(result.valid).toBe(false)
+    })
+  })
+
+  describe('validateUrl', () => {
+    it('should validate a correct HTTPS URL', () => {
+      const result = validateUrl('https://example.com')
+      expect(result.valid).toBe(true)
+      expect(result.normalized).toBe('https://example.com')
+    })
+
+    it('should validate a correct HTTP URL', () => {
+      const result = validateUrl('http://example.com')
+      expect(result.valid).toBe(true)
+      expect(result.normalized).toBe('http://example.com')
+    })
+
+    it('should validate URL with path', () => {
+      const result = validateUrl('https://example.com/api/v1/users')
+      expect(result.valid).toBe(true)
+    })
+
+    it('should validate URL with port', () => {
+      const result = validateUrl('https://example.com:8443/api')
+      expect(result.valid).toBe(true)
+    })
+
+    it('should validate URL with query string', () => {
+      const result = validateUrl('https://example.com/api?foo=bar&baz=qux')
+      expect(result.valid).toBe(true)
+    })
+
+    it('should reject empty string', () => {
+      const result = validateUrl('')
+      expect(result.valid).toBe(false)
+      expect(result.error).toContain('non-empty')
+    })
+
+    it('should reject non-string input', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = validateUrl(null as any)
+      expect(result.valid).toBe(false)
+    })
+
+    it('should reject whitespace-only string', () => {
+      const result = validateUrl('   ')
+      expect(result.valid).toBe(false)
+      expect(result.error).toContain('empty')
+    })
+
+    it('should reject invalid URL structure', () => {
+      const result = validateUrl('not-a-url')
+      expect(result.valid).toBe(false)
+    })
+
+    it('should reject WebSocket URL by default', () => {
+      const result = validateUrl('wss://example.com')
+      expect(result.valid).toBe(false)
+      expect(result.error).toContain('protocol')
+    })
+
+    it('should reject WS URL by default', () => {
+      const result = validateUrl('ws://example.com')
+      expect(result.valid).toBe(false)
+      expect(result.error).toContain('protocol')
+    })
+
+    it('should allow custom protocols', () => {
+      const result = validateUrl('wss://example.com', ['wss:'])
+      expect(result.valid).toBe(true)
+    })
+
+    it('should reject URL without hostname', () => {
+      const result = validateUrl('https://')
+      expect(result.valid).toBe(false)
+      expect(result.error).toContain('hostname')
+    })
+
+    it('should normalize trimmed URL', () => {
+      const result = validateUrl('  https://example.com  ')
+      expect(result.valid).toBe(true)
+      expect(result.normalized).toBe('https://example.com')
     })
   })
 })

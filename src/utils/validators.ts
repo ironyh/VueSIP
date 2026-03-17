@@ -582,3 +582,79 @@ export function validateDtmfSequence(sequence: string): SimpleValidationResult {
     normalized: normalized.join(''),
   }
 }
+
+/**
+ * Validates a general URL
+ *
+ * Checks if the URL is a valid HTTP/HTTPS URL using the URL constructor.
+ * This complements the WebSocket URL validator for general-purpose URL validation.
+ *
+ * @param url - The URL to validate
+ * @param allowedProtocols - Array of allowed protocols (default: ['http:', 'https:'])
+ * @returns Validation result
+ *
+ * @example
+ * ```typescript
+ * const result = validateUrl('https://example.com/api')
+ * if (result.valid) {
+ *   console.log('Valid URL:', result.normalized)
+ * }
+ * ```
+ */
+export function validateUrl(
+  url: string,
+  allowedProtocols: string[] = ['http:', 'https:']
+): SimpleValidationResult {
+  if (!url || typeof url !== 'string') {
+    return {
+      valid: false,
+      error: 'URL must be a non-empty string',
+      normalized: null,
+    }
+  }
+
+  const trimmed = url.trim()
+
+  if (!trimmed) {
+    return {
+      valid: false,
+      error: 'URL cannot be empty',
+      normalized: null,
+    }
+  }
+
+  // Try to parse as URL to validate structure
+  try {
+    const parsedUrl = new URL(trimmed)
+
+    // Validate protocol
+    if (!allowedProtocols.includes(parsedUrl.protocol)) {
+      return {
+        valid: false,
+        error: `Invalid protocol. Allowed: ${allowedProtocols.join(', ')}`,
+        normalized: null,
+      }
+    }
+
+    // Validate hostname exists
+    if (!parsedUrl.hostname) {
+      return {
+        valid: false,
+        error: 'URL must include a hostname',
+        normalized: null,
+      }
+    }
+
+    return {
+      valid: true,
+      error: null,
+      normalized: trimmed,
+    }
+  } catch (error) {
+    return {
+      valid: false,
+      error: `Invalid URL structure: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      normalized: null,
+    }
+  }
+}
