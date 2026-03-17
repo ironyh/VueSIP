@@ -30,6 +30,30 @@ export function titleCase(str: string): string {
 }
 
 /**
+ * Clamps a number between min and max bounds
+ *
+ * @param value - Number to clamp
+ * @param min - Minimum bound (inclusive)
+ * @param max - Maximum bound (inclusive)
+ * @returns Clamped value
+ *
+ * @example
+ * ```typescript
+ * clamp(5, 0, 10)    // 5
+ * clamp(-5, 0, 10)   // 0
+ * clamp(15, 0, 10)   // 10
+ * clamp(5, 0, 0)     // 0
+ * ```
+ */
+export function clamp(value: number, min: number, max: number): number {
+  if (min > max) return min
+  if (Number.isNaN(value)) return min
+  if (value < min) return min
+  if (value > max) return max
+  return value
+}
+
+/**
  * Formats a duration in seconds to HH:MM:SS format
  *
  * @param seconds - Duration in seconds

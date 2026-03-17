@@ -27,6 +27,7 @@ import {
   buildSipUri,
   extractSipDomain,
   formatSipStatusCode,
+  clamp,
 } from '../formatters'
 
 describe('formatDuration', () => {
@@ -592,5 +593,42 @@ describe('formatSipStatusCode', () => {
 
   test('handles non-number statusCode', () => {
     expect(formatSipStatusCode('486' as unknown as number)).toBe('')
+  })
+})
+
+describe('clamp', () => {
+  test('returns value when within bounds', () => {
+    expect(clamp(5, 0, 10)).toBe(5)
+    expect(clamp(0, 0, 10)).toBe(0)
+    expect(clamp(10, 0, 10)).toBe(10)
+  })
+
+  test('returns min when value is below bounds', () => {
+    expect(clamp(-5, 0, 10)).toBe(0)
+    expect(clamp(-100, 0, 10)).toBe(0)
+  })
+
+  test('returns max when value is above bounds', () => {
+    expect(clamp(15, 0, 10)).toBe(10)
+    expect(clamp(100, 0, 10)).toBe(10)
+  })
+
+  test('handles edge case when min equals max', () => {
+    expect(clamp(5, 0, 0)).toBe(0)
+    expect(clamp(-5, 0, 0)).toBe(0)
+    expect(clamp(5, 5, 5)).toBe(5)
+  })
+
+  test('handles NaN values', () => {
+    expect(clamp(NaN, 0, 10)).toBe(0)
+  })
+
+  test('handles Infinity values', () => {
+    expect(clamp(Infinity, 0, 10)).toBe(10)
+    expect(clamp(-Infinity, 0, 10)).toBe(0)
+  })
+
+  test('handles NaN values', () => {
+    expect(clamp(NaN, 0, 10)).toBe(0)
   })
 })
