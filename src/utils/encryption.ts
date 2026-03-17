@@ -315,3 +315,158 @@ export async function hashPassword(password: string): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
 }
+
+/**
+ * Default replacement string for masked values
+ */
+const MASKED_REPLACEMENT = '***REDACTED***'
+
+/**
+ * Fields that should always be masked regardless of value
+ */
+const ALWAYS_MASK_FIELDS = new Set([
+  'password',
+  'secret',
+  'token',
+  'auth',
+  'authorization',
+  'pass',
+  'pwd',
+  'credential',
+  'privateKey',
+  'apiKey',
+  'apiKey',
+  'accessToken',
+  'refreshToken',
+])
+
+/**
+ * Sanitize sensitive data from an object for safe logging
+ *
+ * Recursively walks through an object and masks sensitive fields
+ * and patterns that match potential credentials.
+ *
+ * @param data - Data to sanitize (object, string, or other)
+ * @param options - Sanitization options
+ * @returns Sanitized data safe for logging
+ *
+ * @example
+ * ```typescript
+ * const config = {
+ *   password: 'secret123',
+ *   username: 'alice',
+ *   sipUri: 'sip:alice@example.com'
+ * }
+ * const safe = sanitizeForLogs(config)
+ * // { password: '***REDACTED***', username: 'alice', sipUri: 'sip:alice@***REDACTED***' }
+ * ```
+ */
+export function sanitizeForLogs(
+  data: unknown,
+  options: {
+    /** Custom replacement string */
+    replacement?: string
+    /** Whether to mask SIP URIs (default: true) */
+    maskSipUris?: boolean
+    /** Whether to mask URLs with credentials (default: true) */
+    maskUrlCredentials?: boolean
+    /** Maximum length for non-masked strings */
+    maxLength?: number
+  } = {}
+): unknown {
+  const {
+    replacement = MASKED_REPLACEMENT,
+    maskSipUris = true,
+    maskUrlCredentials = true,
+    maxLength = 1000,
+  } = options
+
+  // Handle primitives
+  if (data === null || data === undefined) {
+    return data
+  }
+
+  // Handle string input
+  if (typeof data === 'string') {
+    let result = data
+
+    // Mask URLs with credentials if enabled
+    if (maskUrlCredentials) {
+      // Mask user:pass@host patterns in URLs
+      result = result.replace(/(https?|wss?):\/\/[^:\s]+:[^@\s]+@/gi, '$1://***REDACTED***@')
+      // Mask SIP URIs with passwords
+      result = result.replace(
+        /sip[s]?:[^:\s]+:[^@\s]+@[^\s;]+/gi,
+        'sip:***REDACTED***@***REDACTED***'
+      )
+    }
+
+    // Truncate long strings
+    if (result.length > maxLength) {
+      result = result.slice(0, maxLength) + '...'
+    }
+
+    return result
+  }
+
+  // For non-object primitives (number, boolean, etc.)
+  if (typeof data !== 'object') {
+    return data
+  }
+
+  // Handle arrays
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeForLogs(item, options))
+  }
+
+  // Handle objects
+  const result: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(data)) {
+    const lowerKey = key.toLowerCase()
+
+    // Always mask certain fields
+    if (
+      ALWAYS_MASK_FIELDS.has(lowerKey) ||
+      lowerKey.includes('password') ||
+      lowerKey.includes('secret')
+    ) {
+      result[key] = replacement
+      continue
+    }
+
+    // Recursively sanitize nested objects
+    if (value !== null && typeof value === 'object') {
+      result[key] = sanitizeForLogs(value, options)
+    } else if (typeof value === 'string') {
+      // Mask string values that look like sensitive data
+      let maskedValue = value
+
+      // Mask potential credentials in string values
+      if (maskSipUris) {
+        maskedValue = maskedValue.replace(
+          /sip[s]?:[^:\s]+:[^@\s]+@[^\s;]+/gi,
+          'sip:***REDACTED***@***REDACTED***'
+        )
+      }
+
+      if (maskUrlCredentials) {
+        maskedValue = maskedValue.replace(
+          /(https?|wss?):\/\/[^:\s]+:[^@\s]+@/gi,
+          '$1://***REDACTED***@'
+        )
+      }
+
+      // Truncate long strings
+      if (maskedValue.length > maxLength) {
+        maskedValue = maskedValue.slice(0, maxLength) + '...'
+      }
+
+      result[key] = maskedValue
+    } else {
+      result[key] = value
+    }
+  }
+
+  return result
+}

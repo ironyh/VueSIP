@@ -214,4 +214,135 @@ describe('encryption utilities', () => {
       await expect(hashPassword('password')).rejects.toThrow('Web Crypto API is not available')
     })
   })
+
+  describe('sanitizeForLogs', () => {
+    it('should return null as-is', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+      expect(sanitizeForLogs(null)).toBe(null)
+    })
+
+    it('should return undefined as-is', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+      expect(sanitizeForLogs(undefined)).toBe(undefined)
+    })
+
+    it('should return numbers as-is', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+      expect(sanitizeForLogs(123)).toBe(123)
+    })
+
+    it('should return booleans as-is', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+      expect(sanitizeForLogs(true)).toBe(true)
+    })
+
+    it('should mask password field', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = { username: 'alice', password: 'secret123' }
+      const result = sanitizeForLogs(input) as Record<string, unknown>
+
+      expect(result.username).toBe('alice')
+      expect(result.password).toBe('***REDACTED***')
+    })
+
+    it('should mask secret field', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = { secret: 'mysecret', data: 'some data' }
+      const result = sanitizeForLogs(input) as Record<string, unknown>
+
+      expect(result.secret).toBe('***REDACTED***')
+      expect(result.data).toBe('some data')
+    })
+
+    it('should mask token field', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = { token: 'abc123', data: 'some data' }
+      const result = sanitizeForLogs(input) as Record<string, unknown>
+
+      expect(result.token).toBe('***REDACTED***')
+      expect(result.data).toBe('some data')
+    })
+
+    it('should mask nested password fields', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = {
+        user: { name: 'bob', password: 'nestedsecret' },
+      }
+      const result = sanitizeForLogs(input) as { user: Record<string, unknown> }
+
+      expect(result.user.name).toBe('bob')
+      expect(result.user.password).toBe('***REDACTED***')
+    })
+
+    it('should handle arrays', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = [{ password: 'pass1' }, { password: 'pass2' }]
+      const result = sanitizeForLogs(input) as Array<Record<string, unknown>>
+
+      expect(result[0].password).toBe('***REDACTED***')
+      expect(result[1].password).toBe('***REDACTED***')
+    })
+
+    it('should mask URLs with credentials', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = { url: 'https://user:pass@example.com/api' }
+      const result = sanitizeForLogs(input) as Record<string, unknown>
+
+      expect(result.url).toBe('https://***REDACTED***@example.com/api')
+    })
+
+    it('should mask SIP URIs with passwords', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = { sip: 'sip:alice:password123@example.com' }
+      const result = sanitizeForLogs(input) as Record<string, unknown>
+
+      expect(result.sip).toBe('sip:***REDACTED***@***REDACTED***')
+    })
+
+    it('should use custom replacement string', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = { password: 'secret' }
+      const result = sanitizeForLogs(input, { replacement: '[HIDDEN]' }) as Record<string, unknown>
+
+      expect(result.password).toBe('[HIDDEN]')
+    })
+
+    it('should respect maskSipUris option', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = { sip: 'sip:alice:password@example.com' }
+      const result = sanitizeForLogs(input, { maskSipUris: false }) as Record<string, unknown>
+
+      // Should not be masked when disabled
+      expect(result.sip).toBe('sip:alice:password@example.com')
+    })
+
+    it('should truncate long strings', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const longString = 'a'.repeat(2000)
+      const input = { data: longString }
+      const result = sanitizeForLogs(input, { maxLength: 100 }) as Record<string, unknown>
+
+      expect((result.data as string).length).toBe(103) // 100 + '...'
+    })
+
+    it('should handle case-insensitive password field', async () => {
+      const { sanitizeForLogs } = await import('../encryption')
+
+      const input = { PASSWORD: 'secret', Password: 'secret2' }
+      const result = sanitizeForLogs(input) as Record<string, unknown>
+
+      expect(result.PASSWORD).toBe('***REDACTED***')
+      expect(result.Password).toBe('***REDACTED***')
+    })
+  })
 })

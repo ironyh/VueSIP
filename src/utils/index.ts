@@ -20,6 +20,7 @@ export * from './logger'
 
 // Re-export encryption utilities
 export * from './encryption'
+export { sanitizeForLogs } from './encryption'
 
 // Re-export storage quota utilities
 export * from './storageQuota'
