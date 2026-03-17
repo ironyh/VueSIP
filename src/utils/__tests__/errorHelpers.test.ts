@@ -14,6 +14,7 @@ import {
   isAuthenticationError,
   isTimeoutError,
   isWebRtcError,
+  isSipStatusCodeError,
 } from '../errorHelpers'
 
 describe('errorHelpers', () => {
@@ -468,6 +469,95 @@ describe('errorHelpers', () => {
       expect(isWebRtcError('string')).toBe(false)
       expect(isWebRtcError(null)).toBe(false)
       expect(isWebRtcError(42)).toBe(false)
+    })
+  })
+
+  describe('isSipStatusCodeError', () => {
+    it('should return true when message contains 4xx status code', () => {
+      const error = new Error('SIP request failed with 403 Forbidden')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return true when message contains 5xx status code', () => {
+      const error = new Error('SIP server error 503 Service Unavailable')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return true for specific status code patterns in message', () => {
+      const error = new Error('Call failed: 404 Not Found')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return true for 401 Unauthorized in message', () => {
+      const error = new Error('Authentication required: 401')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return true for 500 Server Error in message', () => {
+      const error = new Error('Internal server error: 500')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return true for well-known SIP error names in message', () => {
+      const error = new Error('486 Busy Here')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return true for 408 Request Timeout in message', () => {
+      const error = new Error('408 Request Timeout')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should filter by specific status codes when provided', () => {
+      const error = new Error('Request failed with 403')
+      expect(isSipStatusCodeError(error, [401, 403, 500])).toBe(true)
+    })
+
+    it('should return false when status code not in filter', () => {
+      const error = new Error('Request failed with 404')
+      expect(isSipStatusCodeError(error, [401, 403, 500])).toBe(false)
+    })
+
+    it('should return true for 4xx range when no filter and code in range', () => {
+      const error = new Error('Bad request: 408')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return true for 5xx range when no filter and code in range', () => {
+      const error = new Error('Server error: 504')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return false for non-SIP errors', () => {
+      const error = new Error('Some generic error')
+      expect(isSipStatusCodeError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isSipStatusCodeError('string')).toBe(false)
+      expect(isSipStatusCodeError(null)).toBe(false)
+      expect(isSipStatusCodeError(42)).toBe(false)
+      expect(isSipStatusCodeError({})).toBe(false)
+    })
+
+    it('should handle errors without status codes in name or message', () => {
+      const error = new Error('Network connectivity lost')
+      expect(isSipStatusCodeError(error)).toBe(false)
+    })
+
+    it('should return true for BAD_REQUEST pattern from SIP_STATUS_CODES', () => {
+      const error = new Error('400 Bad Request')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return true for NOT_FOUND pattern from SIP_STATUS_CODES', () => {
+      const error = new Error('404 Not Found')
+      expect(isSipStatusCodeError(error)).toBe(true)
+    })
+
+    it('should return true for SERVER_INTERNAL_ERROR pattern from SIP_STATUS_CODES', () => {
+      const error = new Error('500 Server Internal Error')
+      expect(isSipStatusCodeError(error)).toBe(true)
     })
   })
 })
