@@ -265,3 +265,52 @@ export function isTimeoutError(error: unknown): boolean {
     message.includes('deadline exceeded')
   )
 }
+
+/**
+ * Check if an error is a WebRTC error
+ *
+ * @param error - The error to check
+ * @returns True if the error is a WebRTC-related error
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await getUserMedia({ audio: true })
+ * } catch (error) {
+ *   if (isWebRtcError(error)) {
+ *     console.log('WebRTC error:', error.message)
+ *   }
+ * }
+ * ```
+ */
+export function isWebRtcError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const webrtcErrorNames = [
+    'NotReadableError',
+    'AbortError', // getUserMedia aborted
+    'SourceUnavailable',
+    'DevicesNotFoundError',
+    'PermissionDeniedError',
+    'NotAllowedError',
+    'OverconstrainedError',
+    'TypeError', // Often used for WebRTC constraint errors
+  ]
+
+  const message = error.message.toLowerCase()
+  const name = error.name
+
+  return (
+    webrtcErrorNames.includes(name) ||
+    message.includes('getusermedia') ||
+    message.includes('webrtc') ||
+    message.includes('peerconnection') ||
+    message.includes('rtcpeerconnection') ||
+    message.includes('media device') ||
+    message.includes('audio') ||
+    message.includes('video') ||
+    message.includes('constraint')
+  )
+}

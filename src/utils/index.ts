@@ -77,6 +77,7 @@ export {
   isTransportError,
   isAuthenticationError,
   isTimeoutError,
+  isWebRtcError,
 } from './errorHelpers'
 
 // Re-export diagnostics utilities
