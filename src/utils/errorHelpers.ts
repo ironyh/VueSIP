@@ -314,3 +314,118 @@ export function isWebRtcError(error: unknown): boolean {
     message.includes('constraint')
   )
 }
+
+/**
+ * Common SIP status codes for error detection
+ */
+const SIP_STATUS_CODES = {
+  /** 4xx Client Errors */
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  PAYMENT_REQUIRED: 402,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  METHOD_NOT_ALLOWED: 405,
+  NOT_ACCEPTABLE: 406,
+  PROXY_AUTHENTICATION_REQUIRED: 407,
+  REQUEST_TIMEOUT: 408,
+  GONE: 410,
+  CONDITIONAL_REQUEST_FAILED: 412,
+  REQUEST_ENTITY_TOO_LARGE: 413,
+  REQUEST_URI_TOO_LONG: 414,
+  UNSUPPORTED_MEDIA_TYPE: 415,
+  UNSUPPORTED_URI_SCHEME: 416,
+  BAD_EXTENSION: 420,
+  EXTENSION_REQUIRED: 421,
+  SESSION_INTERVAL_TOO_SMALL: 422,
+  SESSION_INTERVAL_TOO_BIG: 423,
+  BROADCAST_NOT_ALLOWED: 482,
+  ANONYMITY_DISALLOWED: 483,
+  /** 5xx Server Errors */
+  SERVER_INTERNAL_ERROR: 500,
+  NOT_IMPLEMENTED: 501,
+  BAD_GATEWAY: 502,
+  SERVICE_UNAVAILABLE: 503,
+  SERVER_TIMEOUT: 504,
+  VERSION_NOT_SUPPORTED: 505,
+  MESSAGE_TOO_LARGE: 513,
+} as const
+
+/**
+ * Check if an error is a SIP status code error
+ *
+ * @param error - The error to check
+ * @param statusCodes - Optional array of status codes to match (default: all 4xx and 5xx)
+ * @returns True if the error contains a SIP status code
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await makeCall('sip:friend@example.com')
+ * } catch (error) {
+ *   if (isSipStatusCodeError(error, [401, 403, 500])) {
+ *     console.log('Auth or server error')
+ *   }
+ * }
+ * ```
+ */
+export function isSipStatusCodeError(error: unknown, statusCodes?: number[]): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const message = error.message
+  const name = error.name
+
+  // Check if error name contains a status code (e.g., "BadRequestError", "ServerError")
+  const statusCodeMatch = name.match(/\b(\d{3})\b/)
+  if (statusCodeMatch && statusCodeMatch[1]) {
+    const code = parseInt(statusCodeMatch[1], 10)
+    if (statusCodes) {
+      return statusCodes.includes(code)
+    }
+    return code >= 400 && code < 600
+  }
+
+  // Check if message contains a status code
+  const messageCodeMatch = message.match(/\b(4\d{2}|5\d{2})\b/)
+  if (messageCodeMatch && messageCodeMatch[1]) {
+    const code = parseInt(messageCodeMatch[1], 10)
+    if (statusCodes) {
+      return statusCodes.includes(code)
+    }
+    return true
+  }
+
+  // Check for specific status code patterns in message
+  const statusCodePatterns = [
+    ...Object.values(SIP_STATUS_CODES).map((code) => code.toString()),
+    '400',
+    '401',
+    '402',
+    '403',
+    '404',
+    '405',
+    '406',
+    '407',
+    '408',
+    '500',
+    '501',
+    '502',
+    '503',
+    '504',
+    '505',
+  ]
+
+  for (const pattern of statusCodePatterns) {
+    if (message.includes(pattern)) {
+      if (statusCodes) {
+        const code = parseInt(pattern, 10)
+        return statusCodes.includes(code)
+      }
+      return true
+    }
+  }
+
+  return false
+}
