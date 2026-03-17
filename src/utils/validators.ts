@@ -623,6 +623,26 @@ export function validateUrl(
     }
   }
 
+  // Check for missing hostname before URL constructor (avoids throwing on 'https://')
+  // Extract hostname from URL-like string to validate it exists
+  try {
+    const urlPattern = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/([^/\s:]+)(:\d+)?(\/.*)?$/
+    const match = trimmed.match(urlPattern)
+    if (!match || !match[2]) {
+      return {
+        valid: false,
+        error: 'URL must include a hostname',
+        normalized: null,
+      }
+    }
+  } catch {
+    return {
+      valid: false,
+      error: 'Invalid URL format',
+      normalized: null,
+    }
+  }
+
   // Try to parse as URL to validate structure
   try {
     const parsedUrl = new URL(trimmed)
@@ -636,7 +656,7 @@ export function validateUrl(
       }
     }
 
-    // Validate hostname exists
+    // Validate hostname exists (redundant check but kept for safety)
     if (!parsedUrl.hostname) {
       return {
         valid: false,
