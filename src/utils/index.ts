@@ -72,6 +72,9 @@ export {
   isNotFoundError,
   isConstraintError,
   isNetworkError,
+  isSessionError,
+  isTransportError,
+  isAuthenticationError,
 } from './errorHelpers'
 
 // Re-export diagnostics utilities

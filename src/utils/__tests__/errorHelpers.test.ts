@@ -9,6 +9,9 @@ import {
   isNotFoundError,
   isConstraintError,
   isNetworkError,
+  isSessionError,
+  isTransportError,
+  isAuthenticationError,
 } from '../errorHelpers'
 
 describe('errorHelpers', () => {
@@ -172,6 +175,113 @@ describe('errorHelpers', () => {
       expect(isNetworkError('string')).toBe(false)
       expect(isNetworkError(null)).toBe(false)
       expect(isNetworkError(42)).toBe(false)
+    })
+  })
+
+  describe('isSessionError', () => {
+    it('should return true for RequestTimeout error', () => {
+      const error = new Error('Request timeout')
+      error.name = 'RequestTimeout'
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true for SessionDescriptionHandlerError', () => {
+      const error = new Error('SDP error')
+      error.name = 'SessionDescriptionHandlerError'
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "session"', () => {
+      const error = new Error('Session terminated')
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "invite"', () => {
+      const error = new Error('INVITE failed')
+      expect(isSessionError(error)).toBe(true)
+    })
+
+    it('should return false for non-session errors', () => {
+      const error = new Error('Some other error')
+      expect(isSessionError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isSessionError('string')).toBe(false)
+      expect(isSessionError(null)).toBe(false)
+    })
+  })
+
+  describe('isTransportError', () => {
+    it('should return true for TransportError', () => {
+      const error = new Error('Transport error')
+      error.name = 'TransportError'
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true for WebSocketError', () => {
+      const error = new Error('WebSocket closed')
+      error.name = 'WebSocketError'
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "websocket"', () => {
+      const error = new Error('WebSocket connection failed')
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "tls handshake"', () => {
+      const error = new Error('TLS handshake timeout')
+      expect(isTransportError(error)).toBe(true)
+    })
+
+    it('should return false for non-transport errors', () => {
+      const error = new Error('Some other error')
+      expect(isTransportError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isTransportError('string')).toBe(false)
+      expect(isTransportError(null)).toBe(false)
+    })
+  })
+
+  describe('isAuthenticationError', () => {
+    it('should return true for Unauthorized error', () => {
+      const error = new Error('Unauthorized')
+      error.name = 'Unauthorized'
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true for Forbidden error', () => {
+      const error = new Error('Forbidden')
+      error.name = 'Forbidden'
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "unauthorized"', () => {
+      const error = new Error('User is unauthorized')
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "credentials"', () => {
+      const error = new Error('Invalid credentials')
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "401"', () => {
+      const error = new Error('HTTP 401 Unauthorized')
+      expect(isAuthenticationError(error)).toBe(true)
+    })
+
+    it('should return false for non-auth errors', () => {
+      const error = new Error('Some other error')
+      expect(isAuthenticationError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isAuthenticationError('string')).toBe(false)
+      expect(isAuthenticationError(null)).toBe(false)
     })
   })
 })

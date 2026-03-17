@@ -138,3 +138,91 @@ export function isNetworkError(error: unknown): boolean {
     error.message.toLowerCase().includes('connection')
   )
 }
+
+/**
+ * Check if an error is a SIP session error
+ *
+ * @param error - The error to check
+ * @returns True if the error is a SIP session error
+ */
+export function isSessionError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const sessionErrorNames = [
+    'RequestTimeout',
+    'SessionDescriptionHandlerError',
+    'InviteClientError',
+    'ServerError',
+    'BadRequestError',
+    'NotAcceptableError',
+    'UnsupportedError',
+  ]
+
+  const message = error.message.toLowerCase()
+
+  return (
+    sessionErrorNames.some((name) => error.name === name) ||
+    message.includes('session') ||
+    message.includes('invite') ||
+    message.includes('byedone') ||
+    message.includes('prack') ||
+    message.includes('ack')
+  )
+}
+
+/**
+ * Check if an error is a transport/WebSocket error
+ *
+ * @param error - The error to check
+ * @returns True if the error is a transport error
+ */
+export function isTransportError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const transportErrorNames = ['TransportError', 'WebSocketError', 'ConnectionError', 'SocketError']
+
+  const message = error.message.toLowerCase()
+
+  return (
+    transportErrorNames.some((name) => error.name === name) ||
+    message.includes('websocket') ||
+    message.includes('transport') ||
+    message.includes('sip/tls') ||
+    message.includes('tls handshake')
+  )
+}
+
+/**
+ * Check if an error is an authentication/authorization error
+ *
+ * @param error - The error to check
+ * @returns True if the error is an authentication error
+ */
+export function isAuthenticationError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const authErrorNames = [
+    'Unauthorized',
+    'Forbidden',
+    'AuthenticationError',
+    'InvalidCredentialsError',
+  ]
+
+  const message = error.message.toLowerCase()
+
+  return (
+    authErrorNames.some((name) => error.name === name) ||
+    message.includes('unauthorized') ||
+    message.includes('forbidden') ||
+    message.includes('authentication') ||
+    message.includes('credentials') ||
+    message.includes('401') ||
+    message.includes('403')
+  )
+}
