@@ -173,6 +173,16 @@ export {
 } from './useNotifications'
 
 export {
+  usePushNotifications,
+  type PushPermissionStatus,
+  type ServiceWorkerRegistrationInfo,
+  type PushSubscriptionInfo,
+  type UsePushNotificationsOptions,
+  type UsePushNotificationsReturn,
+  type PushNotificationOptions,
+} from './usePushNotifications'
+
+export {
   useConnectionHealthBar,
   type HealthLevel,
   type HealthDetails,
