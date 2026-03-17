@@ -14,6 +14,7 @@ import {
   formatDateTime,
   formatIsoTimestamp,
   formatSipStatusCode,
+  clamp,
 } from '@/utils/formatters'
 
 describe('titleCase', () => {
@@ -303,5 +304,47 @@ describe('formatSipStatusCode', () => {
 
   it('should return empty string for undefined statusCode', () => {
     expect(formatSipStatusCode(undefined as any)).toBe('')
+  })
+})
+
+describe('clamp', () => {
+  it('should return value when within bounds', () => {
+    expect(clamp(5, 0, 10)).toBe(5)
+  })
+
+  it('should return min when value is below min', () => {
+    expect(clamp(-5, 0, 10)).toBe(0)
+  })
+
+  it('should return max when value is above max', () => {
+    expect(clamp(15, 0, 10)).toBe(10)
+  })
+
+  it('should handle min equal to max', () => {
+    expect(clamp(5, 0, 0)).toBe(0)
+    expect(clamp(-1, 0, 0)).toBe(0)
+    expect(clamp(1, 0, 0)).toBe(0)
+  })
+
+  it('should handle min > max edge case (swaps automatically)', () => {
+    expect(clamp(5, 10, 0)).toBe(5)
+    expect(clamp(-5, 10, 0)).toBe(0)
+    expect(clamp(15, 10, 0)).toBe(10)
+  })
+
+  it('should handle NaN input', () => {
+    expect(clamp(NaN, 0, 10)).toBe(0)
+  })
+
+  it('should handle negative bounds', () => {
+    expect(clamp(0, -10, -5)).toBe(-5)
+    expect(clamp(-15, -10, -5)).toBe(-10)
+    expect(clamp(-3, -10, -5)).toBe(-5)
+  })
+
+  it('should handle floating point values', () => {
+    expect(clamp(3.14, 0, 10)).toBe(3.14)
+    expect(clamp(-1.5, 0, 10)).toBe(0)
+    expect(clamp(15.9, 0, 10)).toBe(10)
   })
 })
