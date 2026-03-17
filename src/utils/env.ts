@@ -358,3 +358,68 @@ export function isWebRTCSupported(): boolean {
 
   return true
 }
+
+/**
+ * Check if running as a Progressive Web App (PWA)
+ *
+ * Detects if the app is installed and running in standalone mode
+ * (added to home screen, installed PWA).
+ *
+ * @returns true if running as an installed PWA
+ *
+ * @example
+ * ```typescript
+ * if (isPWA()) {
+ *   // Enable PWA-specific features
+ *   registerServiceWorker()
+ * }
+ * ```
+ */
+export function isPWA(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  // Check for standalone mode (iOS Safari PWA)
+  if (typeof navigator !== 'undefined') {
+    const standalone = (navigator as unknown as { standalone?: string }).standalone
+    if (standalone === 'standalone' || standalone === 'fullscreen') {
+      return true
+    }
+  }
+
+  // Check for display-mode: standalone (Android/Desktop PWA)
+  if (window.matchMedia?.('(display-mode: standalone)').matches) {
+    return true
+  }
+
+  // Check for display-mode: minimal-ui (alternative PWA mode)
+  if (window.matchMedia?.('(display-mode: minimal-ui)').matches) {
+    return true
+  }
+
+  return false
+}
+
+/**
+ * Check if service workers are supported and enabled
+ *
+ * Service workers are essential for PWA functionality including
+ * push notifications and offline capabilities.
+ *
+ * @returns true if service workers are supported
+ *
+ * @example
+ * ```typescript
+ * if (isServiceWorkerSupported()) {
+ *   registerPushNotifications()
+ * }
+ * ```
+ */
+export function isServiceWorkerSupported(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return 'serviceWorker' in navigator
+}

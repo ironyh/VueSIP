@@ -617,4 +617,96 @@ describe('env utilities', () => {
       expect(isMobileDevice()).toBe(true)
     })
   })
+
+  describe('isPWA', () => {
+    it('should return false when window is undefined (SSR)', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { isPWA } = await import('../env')
+      const result = isPWA()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return true when navigator.standalone is set (iOS PWA)', async () => {
+      vi.stubGlobal('navigator', {
+        standalone: 'standalone',
+      })
+      vi.stubGlobal('window', {
+        matchMedia: vi.fn().mockReturnValue({ matches: false }),
+      })
+
+      const { isPWA } = await import('../env')
+      expect(isPWA()).toBe(true)
+    })
+
+    it('should return true when display-mode is standalone', async () => {
+      vi.stubGlobal('navigator', {})
+      vi.stubGlobal('window', {
+        matchMedia: vi.fn().mockReturnValue({ matches: true }),
+      })
+
+      const { isPWA } = await import('../env')
+      expect(isPWA()).toBe(true)
+    })
+
+    it('should return true when display-mode is minimal-ui', async () => {
+      vi.stubGlobal('navigator', {})
+      vi.stubGlobal('window', {
+        matchMedia: vi.fn((query: string) => {
+          if (query === '(display-mode: standalone)') {
+            return { matches: false }
+          }
+          if (query === '(display-mode: minimal-ui)') {
+            return { matches: true }
+          }
+          return { matches: false }
+        }),
+      })
+
+      const { isPWA } = await import('../env')
+      expect(isPWA()).toBe(true)
+    })
+
+    it('should return false when not running as PWA', async () => {
+      vi.stubGlobal('navigator', {})
+      vi.stubGlobal('window', {
+        matchMedia: vi.fn().mockReturnValue({ matches: false }),
+      })
+
+      const { isPWA } = await import('../env')
+      expect(isPWA()).toBe(false)
+    })
+  })
+
+  describe('isServiceWorkerSupported', () => {
+    it('should return false when window is undefined (SSR)', async () => {
+      const originalWindow = globalThis.window
+      delete (globalThis as Record<string, unknown>).window
+
+      const { isServiceWorkerSupported } = await import('../env')
+      const result = isServiceWorkerSupported()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return true when serviceWorker is in navigator', async () => {
+      vi.stubGlobal('navigator', {
+        serviceWorker: {},
+      })
+
+      const { isServiceWorkerSupported } = await import('../env')
+      expect(isServiceWorkerSupported()).toBe(true)
+    })
+
+    it('should return false when serviceWorker is not in navigator', async () => {
+      vi.stubGlobal('navigator', {})
+
+      const { isServiceWorkerSupported } = await import('../env')
+      expect(isServiceWorkerSupported()).toBe(false)
+    })
+  })
 })
