@@ -46,8 +46,8 @@ export function titleCase(str: string): string {
  * ```
  */
 export function clamp(value: number, min: number, max: number): number {
-  if (min > max) return min
   if (Number.isNaN(value)) return min
+  if (min > max) return max
   if (value < min) return min
   if (value > max) return max
   return value

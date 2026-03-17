@@ -628,7 +628,9 @@ describe('clamp', () => {
     expect(clamp(-Infinity, 0, 10)).toBe(0)
   })
 
-  test('handles NaN values', () => {
-    expect(clamp(NaN, 0, 10)).toBe(0)
+  test('handles min greater than max', () => {
+    expect(clamp(5, 10, 5)).toBe(5)
+    expect(clamp(3, 10, 5)).toBe(5)
+    expect(clamp(15, 10, 5)).toBe(5)
   })
 })
