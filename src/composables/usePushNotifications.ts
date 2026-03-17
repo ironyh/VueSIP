@@ -95,6 +95,7 @@ export interface UsePushNotificationsReturn {
 
 /**
  * Options for showNotification
+ * Extends the standard Notification options for Service Worker notifications
  */
 export interface PushNotificationOptions {
   /** Notification body text */
@@ -111,6 +112,26 @@ export interface PushNotificationOptions {
   data?: unknown
   /** Actions for the notification */
   actions?: Array<{ action: string; title: string; icon?: string }>
+  /** Vibration pattern */
+  vibrate?: number | number[]
+  /** Notification language */
+  lang?: string
+  /** Notification direction */
+  dir?: 'ltr' | 'rtl' | 'auto'
+  /** Notification timestamp */
+  timestamp?: number
+  /** Notification silent flag */
+  silent?: boolean
+  /** Notification noscreen flag */
+  noscreen?: boolean
+  /** Notification sticky flag */
+  sticky?: boolean
+  /** Notification local only */
+  localOnly?: boolean
+  /** Notification category */
+  category?: string
+  /** Notification priority */
+  priority?: 'high' | 'normal' | 'low'
 }
 
 /**
@@ -388,7 +409,8 @@ export function usePushNotifications(
       throw new Error('No service worker registration')
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // Cast to NotificationOptions to satisfy ServiceWorkerRegistration.showNotification type
+    // This is safe because PushNotificationOptions is designed to be compatible
     await reg.showNotification(title, {
       body: opts?.body,
       icon: opts?.icon ?? '/icon-192.png',
@@ -396,8 +418,17 @@ export function usePushNotifications(
       tag: opts?.tag,
       requireInteraction: opts?.requireInteraction,
       data: opts?.data,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any)
+      vibrate: opts?.vibrate,
+      lang: opts?.lang,
+      dir: opts?.dir,
+      timestamp: opts?.timestamp,
+      silent: opts?.silent,
+      noscreen: opts?.noscreen,
+      sticky: opts?.sticky,
+      localOnly: opts?.localOnly,
+      category: opts?.category,
+      priority: opts?.priority,
+    } as NotificationOptions)
 
     logger.debug('Notification shown', { title })
   }
