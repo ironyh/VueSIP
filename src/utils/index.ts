@@ -76,6 +76,7 @@ export {
   isSessionError,
   isTransportError,
   isAuthenticationError,
+  isTimeoutError,
 } from './errorHelpers'
 
 // Re-export diagnostics utilities

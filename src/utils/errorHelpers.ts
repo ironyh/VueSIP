@@ -226,3 +226,42 @@ export function isAuthenticationError(error: unknown): boolean {
     message.includes('403')
   )
 }
+
+/**
+ * Check if an error is a timeout error
+ *
+ * @param error - The error to check
+ * @returns True if the error is a timeout error
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await fetch('/api/endpoint', { signal: AbortSignal.timeout(5000) })
+ * } catch (error) {
+ *   if (isTimeoutError(error)) {
+ *     console.log('Request timed out')
+ *   }
+ * }
+ * ```
+ */
+export function isTimeoutError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const timeoutErrorNames = [
+    'TimeoutError',
+    'AbortError', // AbortError can also indicate timeout in some contexts
+    'RequestTimeout',
+    'GatewayTimeout',
+  ]
+
+  const message = error.message.toLowerCase()
+
+  return (
+    timeoutErrorNames.some((name) => error.name === name) ||
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('deadline exceeded')
+  )
+}

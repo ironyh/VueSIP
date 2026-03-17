@@ -12,6 +12,7 @@ import {
   isSessionError,
   isTransportError,
   isAuthenticationError,
+  isTimeoutError,
 } from '../errorHelpers'
 
 describe('errorHelpers', () => {
@@ -324,6 +325,58 @@ describe('errorHelpers', () => {
     it('should return false for non-Error values', () => {
       expect(isAuthenticationError('string')).toBe(false)
       expect(isAuthenticationError(null)).toBe(false)
+    })
+  })
+
+  describe('isTimeoutError', () => {
+    it('should return true for TimeoutError', () => {
+      const error = new Error('Operation timed out')
+      error.name = 'TimeoutError'
+      expect(isTimeoutError(error)).toBe(true)
+    })
+
+    it('should return true for error with name AbortError', () => {
+      const error = new Error('The operation was aborted')
+      error.name = 'AbortError'
+      expect(isTimeoutError(error)).toBe(true)
+    })
+
+    it('should return true for RequestTimeout error', () => {
+      const error = new Error('Request timeout')
+      error.name = 'RequestTimeout'
+      expect(isTimeoutError(error)).toBe(true)
+    })
+
+    it('should return true for GatewayTimeout error', () => {
+      const error = new Error('Gateway Timeout')
+      error.name = 'GatewayTimeout'
+      expect(isTimeoutError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "timeout"', () => {
+      const error = new Error('Connection timeout after 30s')
+      expect(isTimeoutError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "timed out"', () => {
+      const error = new Error('Request timed out')
+      expect(isTimeoutError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "deadline exceeded"', () => {
+      const error = new Error('Deadline exceeded')
+      expect(isTimeoutError(error)).toBe(true)
+    })
+
+    it('should return false for non-timeout errors', () => {
+      const error = new Error('Some other error')
+      expect(isTimeoutError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isTimeoutError('string')).toBe(false)
+      expect(isTimeoutError(null)).toBe(false)
+      expect(isTimeoutError(42)).toBe(false)
     })
   })
 })
