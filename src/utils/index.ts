@@ -79,5 +79,8 @@ export * from './diagnostics'
 // Re-export call diagnostics utilities
 export * from './callDiagnostics'
 
+// Re-export call quality history utilities
+export * from './callQualityHistory'
+
 // Re-export quality report utilities
 export * from './qualityReport'
