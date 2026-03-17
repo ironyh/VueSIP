@@ -13,6 +13,7 @@ import {
   isTransportError,
   isAuthenticationError,
   isTimeoutError,
+  isWebRtcError,
 } from '../errorHelpers'
 
 describe('errorHelpers', () => {
@@ -377,6 +378,96 @@ describe('errorHelpers', () => {
       expect(isTimeoutError('string')).toBe(false)
       expect(isTimeoutError(null)).toBe(false)
       expect(isTimeoutError(42)).toBe(false)
+    })
+  })
+
+  describe('isWebRtcError', () => {
+    it('should return true for NotReadableError', () => {
+      const error = new Error('Device not readable')
+      error.name = 'NotReadableError'
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true for AbortError', () => {
+      const error = new Error('Operation aborted')
+      error.name = 'AbortError'
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true for SourceUnavailable', () => {
+      const error = new Error('Source unavailable')
+      error.name = 'SourceUnavailable'
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true for DevicesNotFoundError', () => {
+      const error = new Error('No devices found')
+      error.name = 'DevicesNotFoundError'
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true for PermissionDeniedError', () => {
+      const error = new Error('Permission denied')
+      error.name = 'PermissionDeniedError'
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true for NotAllowedError', () => {
+      const error = new Error('Not allowed')
+      error.name = 'NotAllowedError'
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true for OverconstrainedError', () => {
+      const error = new Error('Constraints not satisfied')
+      error.name = 'OverconstrainedError'
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "getusermedia"', () => {
+      const error = new Error('getUserMedia failed: Permission denied')
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "webrtc"', () => {
+      const error = new Error('WebRTC connection failed')
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "peerconnection"', () => {
+      const error = new Error('RTCPeerConnection failed')
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "rtcpeerconnection"', () => {
+      const error = new Error('RTCPeerConnection is not defined')
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "media device"', () => {
+      const error = new Error('No media device found')
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "audio" or "video"', () => {
+      const error = new Error('Failed to access audio device')
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return true when message includes "constraint"', () => {
+      const error = new Error('Audio constraint not satisfied')
+      expect(isWebRtcError(error)).toBe(true)
+    })
+
+    it('should return false for non-WebRTC errors', () => {
+      const error = new Error('Some other error')
+      expect(isWebRtcError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isWebRtcError('string')).toBe(false)
+      expect(isWebRtcError(null)).toBe(false)
+      expect(isWebRtcError(42)).toBe(false)
     })
   })
 })
