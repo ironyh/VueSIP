@@ -183,6 +183,19 @@ describe('formatBytes', () => {
   it('should use custom decimal places', () => {
     expect(formatBytes(1536, 2)).toBe('1.5 KB')
   })
+
+  it('should handle negative values', () => {
+    expect(formatBytes(-10)).toBe('0 B')
+    expect(formatBytes(-1024)).toBe('0 B')
+  })
+
+  it('should handle Infinity', () => {
+    expect(formatBytes(Infinity)).toBe('0 B')
+  })
+
+  it('should handle NaN', () => {
+    expect(formatBytes(NaN)).toBe('0 B')
+  })
 })
 
 describe('formatBitrate', () => {
@@ -204,6 +217,19 @@ describe('formatBitrate', () => {
 
   it('should use custom decimal places', () => {
     expect(formatBitrate(1500, 2)).toBe('1.5 kbps')
+  })
+
+  it('should handle negative values', () => {
+    expect(formatBitrate(-10)).toBe('0 bps')
+    expect(formatBitrate(-1000)).toBe('0 bps')
+  })
+
+  it('should handle Infinity', () => {
+    expect(formatBitrate(Infinity)).toBe('0 bps')
+  })
+
+  it('should handle NaN', () => {
+    expect(formatBitrate(NaN)).toBe('0 bps')
   })
 })
 
@@ -237,6 +263,12 @@ describe('formatDateTime', () => {
     expect(result).toContain('2024')
     expect(result).toContain('15')
     expect(result).toContain('30')
+  })
+
+  it('should handle invalid dates', () => {
+    expect(formatDateTime(new Date('invalid'))).toBe('Invalid date')
+    expect(formatDateTime(new Date(NaN))).toBe('Invalid date')
+    expect(formatDateTime(null as any)).toBe('Invalid date')
   })
 })
 
