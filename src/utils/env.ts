@@ -314,3 +314,47 @@ export function isIframe(): boolean {
     return true
   }
 }
+
+/**
+ * Check if WebRTC is supported in the current environment
+ *
+ * WebRTC support is required for VoIP calling functionality.
+ * This utility helps detect whether the browser supports the necessary APIs.
+ *
+ * @returns true if WebRTC is supported
+ *
+ * @example
+ * ```typescript
+ * if (!isWebRTCSupported()) {
+ *   showUnsupportedBrowserMessage()
+ * }
+ * ```
+ */
+export function isWebRTCSupported(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  // Check for RTCPeerConnection (core WebRTC API)
+  const hasRTCPeerConnection =
+    typeof RTCPeerConnection !== 'undefined' ||
+    typeof (window as unknown as { webkitRTCPeerConnection?: unknown }).webkitRTCPeerConnection !==
+      'undefined' ||
+    typeof (window as unknown as { mozRTCPeerConnection?: unknown }).mozRTCPeerConnection !==
+      'undefined'
+
+  if (!hasRTCPeerConnection) {
+    return false
+  }
+
+  // Check for getUserMedia (media capture)
+  if (
+    typeof navigator !== 'undefined' &&
+    typeof navigator.mediaDevices !== 'undefined' &&
+    typeof navigator.mediaDevices.getUserMedia === 'undefined'
+  ) {
+    return false
+  }
+
+  return true
+}
