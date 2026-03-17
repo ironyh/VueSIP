@@ -26,7 +26,9 @@ import { SIP_URI_REGEX } from './constants'
  */
 export function titleCase(str: string): string {
   if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+  const trimmed = str.trim()
+  if (!trimmed) return ''
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
 }
 
 /**

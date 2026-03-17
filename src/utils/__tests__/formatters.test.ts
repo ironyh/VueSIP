@@ -6,6 +6,7 @@
  */
 
 import {
+  titleCase,
   formatDuration,
   formatDurationShort,
   formatDurationCompact,
@@ -600,6 +601,32 @@ describe('formatSipStatusCode', () => {
 
   test('handles non-number statusCode', () => {
     expect(formatSipStatusCode('486' as unknown as number)).toBe('')
+  })
+})
+
+describe('titleCase', () => {
+  test('converts lowercase string', () => {
+    expect(titleCase('hello')).toBe('Hello')
+  })
+
+  test('converts uppercase string', () => {
+    expect(titleCase('HELLO')).toBe('Hello')
+  })
+
+  test('converts mixed case string', () => {
+    expect(titleCase('hElLo')).toBe('Hello')
+  })
+
+  test('handles empty string', () => {
+    expect(titleCase('')).toBe('')
+  })
+
+  test('handles single character', () => {
+    expect(titleCase('a')).toBe('A')
+  })
+
+  test('handles whitespace-only string', () => {
+    expect(titleCase('   ')).toBe('')
   })
 })
 
