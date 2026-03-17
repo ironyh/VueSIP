@@ -435,10 +435,17 @@ describe('truncate', () => {
     expect(truncate('Hello', 0, '...')).toBe('')
   })
 
-  test('handles maxLength smaller than ellipsis', () => {
-    expect(truncate('Hello', 2, '...')).toBe('..')
-    expect(truncate('Hello', 1, '...')).toBe('.')
-    expect(truncate('Hello', 0, '...')).toBe('')
+  test('handles NaN maxLength', () => {
+    expect(truncate('Hello', NaN)).toBe('Hello')
+  })
+
+  test('handles Infinity maxLength', () => {
+    expect(truncate('Hello', Infinity)).toBe('Hello')
+  })
+
+  test('handles negative maxLength', () => {
+    expect(truncate('Hello', -5)).toBe('Hello')
+    expect(truncate('Hello', -1)).toBe('Hello')
   })
 })
 

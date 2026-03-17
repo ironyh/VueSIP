@@ -648,6 +648,11 @@ export function truncate(str: string, maxLength: number, ellipsis = '...'): stri
     return ''
   }
 
+  // Handle NaN, Infinity, and negative values
+  if (!Number.isFinite(maxLength) || maxLength < 0) {
+    return str
+  }
+
   // If maxLength is too small to fit ellipsis, return empty string with ellipsis
   if (maxLength <= ellipsis.length) {
     return ellipsis.slice(0, Math.max(0, maxLength))
