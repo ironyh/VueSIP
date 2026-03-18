@@ -84,8 +84,8 @@ describe('parseDetailedSipUri', () => {
     expect(parseDetailedSipUri('')).toBeNull()
     expect(parseDetailedSipUri('sip:')).toBeNull()
     expect(parseDetailedSipUri('sip:@example.com')).toBeNull()
-    expect(parseDetailedSipUri(null as any)).toBeNull()
-    expect(parseDetailedSipUri(undefined as any)).toBeNull()
+    expect(parseDetailedSipUri(null as unknown)).toBeNull()
+    expect(parseDetailedSipUri(undefined as unknown)).toBeNull()
   })
 
   it('should implement SipUri interface with toString and clone', () => {
@@ -164,13 +164,13 @@ describe('buildDetailedSipUri', () => {
   })
 
   it('should throw for missing user', () => {
-    expect(() => buildDetailedSipUri({ host: 'example.com' } as any)).toThrow(
+    expect(() => buildDetailedSipUri({ host: 'example.com' } as Partial<SipUri>)).toThrow(
       'requires at least user and host'
     )
   })
 
   it('should throw for missing host', () => {
-    expect(() => buildDetailedSipUri({ user: 'alice' } as any)).toThrow(
+    expect(() => buildDetailedSipUri({ user: 'alice' } as Partial<SipUri>)).toThrow(
       'requires at least user and host'
     )
   })
@@ -253,7 +253,7 @@ describe('isSecureSipUri', () => {
   it('should return false for non-SIP URIs', () => {
     expect(isSecureSipUri('https://example.com')).toBe(false)
     expect(isSecureSipUri('')).toBe(false)
-    expect(isSecureSipUri(null as any)).toBe(false)
+    expect(isSecureSipUri(null as unknown)).toBe(false)
   })
 })
 
