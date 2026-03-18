@@ -11,63 +11,72 @@ import {
   extractUserHost,
   isPhoneSipUri,
 } from '../sipUri'
+import type { SipUri } from '../../types/sip.types'
+
+// Helper to unwrap nullable SipUri - provides type safety without non-null assertion
+function unwrapSipUri(result: SipUri | null, input: string): SipUri {
+  if (result === null) {
+    throw new Error(`Expected non-null result for SIP URI: ${input}`)
+  }
+  return result
+}
 
 describe('parseDetailedSipUri', () => {
   it('should parse a basic SIP URI', () => {
     const result = parseDetailedSipUri('sip:alice@example.com')
     expect(result).not.toBeNull()
-    expect(result!.scheme).toBe('sip')
-    expect(result!.user).toBe('alice')
-    expect(result!.host).toBe('example.com')
-    expect(result!.uri).toBe('sip:alice@example.com')
+    expect(unwrapSipUri(result, '').scheme).toBe('sip')
+    expect(unwrapSipUri(result, '').user).toBe('alice')
+    expect(unwrapSipUri(result, '').host).toBe('example.com')
+    expect(unwrapSipUri(result, '').uri).toBe('sip:alice@example.com')
   })
 
   it('should parse a SIPS URI', () => {
     const result = parseDetailedSipUri('sips://secure@example.com')
     expect(result).not.toBeNull()
-    expect(result!.scheme).toBe('sips')
-    expect(result!.user).toBe('secure')
-    expect(result!.host).toBe('example.com')
+    expect(unwrapSipUri(result, '').scheme).toBe('sips')
+    expect(unwrapSipUri(result, '').user).toBe('secure')
+    expect(unwrapSipUri(result, '').host).toBe('example.com')
   })
 
   it('should parse URI with port', () => {
     const result = parseDetailedSipUri('sip:alice@example.com:5060')
     expect(result).not.toBeNull()
-    expect(result!.port).toBe(5060)
-    expect(result!.uri).toBe('sip:alice@example.com:5060')
+    expect(unwrapSipUri(result, '').port).toBe(5060)
+    expect(unwrapSipUri(result, '').uri).toBe('sip:alice@example.com:5060')
   })
 
   it('should parse URI with parameters', () => {
     const result = parseDetailedSipUri('sip:alice@example.com;transport=tls;user=phone')
     expect(result).not.toBeNull()
-    expect(result!.parameters).toEqual({ transport: 'tls', user: 'phone' })
+    expect(unwrapSipUri(result, '').parameters).toEqual({ transport: 'tls', user: 'phone' })
   })
 
   it('should parse URI with headers', () => {
     const result = parseDetailedSipUri('sip:alice@example.com?lr&did=1234')
     expect(result).not.toBeNull()
-    expect(result!.headers).toEqual({ lr: '', did: '1234' })
+    expect(unwrapSipUri(result, '').headers).toEqual({ lr: '', did: '1234' })
   })
 
   it('should parse URI with display name', () => {
     const result = parseDetailedSipUri('"Alice Bob" <sip:alice@example.com>')
     expect(result).not.toBeNull()
-    expect(result!.displayName).toBe('Alice Bob')
-    expect(result!.user).toBe('alice')
-    expect(result!.host).toBe('example.com')
+    expect(unwrapSipUri(result, '').displayName).toBe('Alice Bob')
+    expect(unwrapSipUri(result, '').user).toBe('alice')
+    expect(unwrapSipUri(result, '').host).toBe('example.com')
   })
 
   it('should handle uppercase scheme', () => {
     const result = parseDetailedSipUri('SIP:alice@example.com')
     expect(result).not.toBeNull()
-    expect(result!.scheme).toBe('sip')
-    expect(result!.host).toBe('example.com')
+    expect(unwrapSipUri(result, '').scheme).toBe('sip')
+    expect(unwrapSipUri(result, '').host).toBe('example.com')
   })
 
   it('should handle uppercase host', () => {
     const result = parseDetailedSipUri('sip:alice@EXAMPLE.COM')
     expect(result).not.toBeNull()
-    expect(result!.host).toBe('example.com')
+    expect(unwrapSipUri(result, '').host).toBe('example.com')
   })
 
   it('should return null for invalid URI', () => {
@@ -81,11 +90,11 @@ describe('parseDetailedSipUri', () => {
 
   it('should implement SipUri interface with toString and clone', () => {
     const result = parseDetailedSipUri('sip:alice@example.com')
-    expect(result!.toString()).toBe('sip:alice@example.com')
+    expect(unwrapSipUri(result, '').toString()).toBe('sip:alice@example.com')
 
-    const cloned = result!.clone()
-    expect(cloned.user).toBe(result!.user)
-    expect(cloned.host).toBe(result!.host)
+    const cloned = unwrapSipUri(result, '').clone()
+    expect(cloned.user).toBe(unwrapSipUri(result, '').user)
+    expect(cloned.host).toBe(unwrapSipUri(result, '').host)
     expect(cloned).not.toBe(result)
   })
 
@@ -94,20 +103,20 @@ describe('parseDetailedSipUri', () => {
       '"Alice" <sip:+14155551234@secure.example.com:5061;transport=tls;user=phone?lr>'
     )
     expect(result).not.toBeNull()
-    expect(result!.scheme).toBe('sip')
-    expect(result!.displayName).toBe('Alice')
-    expect(result!.user).toBe('+14155551234')
-    expect(result!.host).toBe('secure.example.com')
-    expect(result!.port).toBe(5061)
-    expect(result!.parameters).toEqual({ transport: 'tls', user: 'phone' })
-    expect(result!.headers).toEqual({ lr: '' })
+    expect(unwrapSipUri(result, '').scheme).toBe('sip')
+    expect(unwrapSipUri(result, '').displayName).toBe('Alice')
+    expect(unwrapSipUri(result, '').user).toBe('+14155551234')
+    expect(unwrapSipUri(result, '').host).toBe('secure.example.com')
+    expect(unwrapSipUri(result, '').port).toBe(5061)
+    expect(unwrapSipUri(result, '').parameters).toEqual({ transport: 'tls', user: 'phone' })
+    expect(unwrapSipUri(result, '').headers).toEqual({ lr: '' })
   })
 
   it('should parse URI with mixed params and headers', () => {
     const result = parseDetailedSipUri('sip:alice@example.com;transport=tls?lr&did=1234')
     expect(result).not.toBeNull()
-    expect(result!.parameters).toEqual({ transport: 'tls' })
-    expect(result!.headers).toEqual({ lr: '', did: '1234' })
+    expect(unwrapSipUri(result, '').parameters).toEqual({ transport: 'tls' })
+    expect(unwrapSipUri(result, '').headers).toEqual({ lr: '', did: '1234' })
   })
 })
 
@@ -173,7 +182,7 @@ describe('buildDetailedSipUri', () => {
 
   it('should round-trip parse then build', () => {
     const original = 'sip:+14155551234@example.com;transport=tls;user=phone?lr'
-    const parsed = parseDetailedSipUri(original)!
+    const parsed = unwrapSipUri(parseDetailedSipUri(original), original)
     const rebuilt = buildDetailedSipUri(parsed)
     expect(rebuilt).toBe(original)
   })
