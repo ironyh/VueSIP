@@ -63,6 +63,15 @@ vi.mock('../utils/formatters', () => ({
 }))
 
 describe('useMultiSipClient', () => {
+  // Helper to get account after addAccount - provides type safety without non-null assertion
+  function getTestAccount(accounts: Map<string, unknown>) {
+    const account = accounts.get('account-1')
+    if (!account) {
+      throw new Error('Test account account-1 not found')
+    }
+    return account as NonNullable<typeof account>
+  }
+
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
@@ -298,7 +307,7 @@ describe('useMultiSipClient', () => {
       outboundCapable: true,
     })
 
-    const account = accounts.value.get('account-1')!
+    const account = getTestAccount(accounts.value)
     const answerSpy = vi.spyOn(account.callSession, 'answer')
 
     await answerCall('account-1')
@@ -321,7 +330,7 @@ describe('useMultiSipClient', () => {
       outboundCapable: true,
     })
 
-    const account = accounts.value.get('account-1')!
+    const account = getTestAccount(accounts.value)
     const rejectSpy = vi.spyOn(account.callSession, 'reject')
 
     await rejectCall('account-1')
@@ -344,7 +353,7 @@ describe('useMultiSipClient', () => {
       outboundCapable: true,
     })
 
-    const account = accounts.value.get('account-1')!
+    const account = getTestAccount(accounts.value)
     // Mock isRegistered to return true so makeCall works
     vi.spyOn(account.isRegistered, 'value', 'get').mockReturnValue(true)
     vi.spyOn(account.callSession, 'makeCall').mockResolvedValue()
@@ -375,7 +384,7 @@ describe('useMultiSipClient', () => {
       outboundCapable: true,
     })
 
-    const account = accounts.value.get('account-1')!
+    const account = getTestAccount(accounts.value)
     // Mock isRegistered to return true so makeCall works
     vi.spyOn(account.isRegistered, 'value', 'get').mockReturnValue(true)
     vi.spyOn(account.callSession, 'makeCall').mockResolvedValue()
@@ -400,7 +409,7 @@ describe('useMultiSipClient', () => {
       outboundCapable: true,
     })
 
-    const account = accounts.value.get('account-1')!
+    const account = getTestAccount(accounts.value)
     // Mock incoming ringing call
     vi.spyOn(account.callSession.state, 'value', 'get').mockReturnValue('ringing')
     vi.spyOn(account.callSession.direction, 'value', 'get').mockReturnValue('incoming')
@@ -425,7 +434,7 @@ describe('useMultiSipClient', () => {
       outboundCapable: true,
     })
 
-    const account = accounts.value.get('account-1')!
+    const account = getTestAccount(accounts.value)
     vi.spyOn(account.isConnected, 'value', 'get').mockReturnValue(true)
     vi.spyOn(account.isRegistered, 'value', 'get').mockReturnValue(true)
 
