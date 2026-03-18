@@ -18,4 +18,12 @@ export interface CallSession {
   startTime?: number
   /** Call duration in seconds */
   duration?: number
+  /** Remote media stream (for recording) */
+  remoteStream?: MediaStream
+  /** Termination cause (for diagnostics) */
+  terminationCause?: string
+  /** Last SIP response code (for diagnostics) */
+  lastResponseCode?: number
+  /** Last SIP reason phrase (for diagnostics) */
+  lastReasonPhrase?: string
 }

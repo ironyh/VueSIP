@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCallQualityHistory } from 'vuesip'
-import type { CallQualityRecord, QualityLevel } from 'vuesip'
+import type { QualityLevel } from 'vuesip'
 
 const { records, aggregates, exportToJson, importFromJson, clearHistory, deleteRecord } =
   useCallQualityHistory()

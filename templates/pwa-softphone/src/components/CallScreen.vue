@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useCallQualityStats, useCallRecording } from 'vuesip'
 import type { CallSession } from '@/types/call.types'
+import CallFailureOverlay from './CallFailureOverlay.vue'
 
 const props = defineProps<{
   callState: string
@@ -23,6 +24,7 @@ const emit = defineEmits<{
   toggleMute: []
   toggleSpeaker: []
   sendDtmf: [digit: string]
+  retry: []
 }>()
 
 const showDtmf = ref(false)
@@ -36,7 +38,6 @@ const { stats, qualityLevel } = useCallQualityStats(sessionRef)
 // Call recording - wire to remote stream
 const remoteStreamRef = computed(() => props.session?.remoteStream ?? null)
 const {
-  recordingState,
   isRecording,
   isPaused,
   hasRecording,
@@ -342,6 +343,13 @@ function handleDtmf(digit: string) {
         </button>
       </div>
     </div>
+    <!-- Call Failure Overlay -->
+    <CallFailureOverlay
+      :visible="callState === 'failed'"
+      :session="session"
+      @dismiss="emit('endCall')"
+      @retry="emit('retry')"
+    />
   </div>
 </template>
 
