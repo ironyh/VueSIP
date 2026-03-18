@@ -94,7 +94,9 @@ describe('usePresence', () => {
     it('should throw error for invalid presence state', async () => {
       const { setStatus } = createPresence()
 
-      await expect(setStatus('invalid-state' as any)).rejects.toThrow('Invalid presence state')
+      await expect(setStatus('invalid-state' as unknown as PresenceState)).rejects.toThrow(
+        'Invalid presence state'
+      )
     })
 
     it('should successfully set presence status', async () => {
