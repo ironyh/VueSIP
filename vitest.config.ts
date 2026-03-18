@@ -107,14 +107,10 @@ export default defineConfig({
 
     // Use thread pool for better performance
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        // Use all available CPU cores for maximum parallelization
-        // Vitest automatically detects CPU count and uses optimal thread count
-        useAtomics: true, // Better performance for thread communication
-        singleThread: false, // Ensure multi-threading is enabled
-      },
-    },
+
+    // Thread pool options (moved to top-level in Vitest 4+)
+    useAtomics: true, // Better performance for thread communication
+    singleThread: false, // Ensure multi-threading is enabled
 
     // File-level parallelization
     fileParallelism: true, // Run test files in parallel (default true, explicit here)
