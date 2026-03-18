@@ -29,6 +29,7 @@ import {
   extractSipDomain,
   formatSipStatusCode,
   clamp,
+  parseQueryString,
 } from '../formatters'
 
 describe('formatDuration', () => {
@@ -667,5 +668,41 @@ describe('clamp', () => {
     expect(clamp(5, 10, 5)).toBe(5) // value within swapped range [5,10]
     expect(clamp(3, 10, 5)).toBe(5) // value below swapped min, returns swapped min
     expect(clamp(15, 10, 5)).toBe(10) // value above swapped max, returns swapped max
+  })
+})
+
+describe('parseQueryString', () => {
+  it('should parse simple query string', () => {
+    const params = parseQueryString('foo=bar&num=123')
+    expect(params.get('foo')).toBe('bar')
+    expect(params.get('num')).toBe('123')
+  })
+
+  it('should handle query string with leading question mark', () => {
+    const params = parseQueryString('?foo=bar')
+    expect(params.get('foo')).toBe('bar')
+  })
+
+  it('should handle empty query string', () => {
+    expect(parseQueryString('').size).toBe(0)
+    expect(parseQueryString(null as unknown as string).size).toBe(0)
+    expect(parseQueryString(undefined as unknown as string).size).toBe(0)
+  })
+
+  it('should decode URL-encoded values', () => {
+    const params = parseQueryString('foo=hello%20world&bar=a%3Db')
+    expect(params.get('foo')).toBe('hello world')
+    expect(params.get('bar')).toBe('a=b')
+  })
+
+  it('should handle key-only parameters', () => {
+    const params = parseQueryString('flag&foo=bar')
+    expect(params.get('flag')).toBe('')
+    expect(params.get('foo')).toBe('bar')
+  })
+
+  it('should handle duplicate keys (last wins)', () => {
+    const params = parseQueryString('foo=first&foo=second')
+    expect(params.get('foo')).toBe('second')
   })
 })

@@ -900,3 +900,42 @@ export function formatSipStatusCode(statusCode?: number, reasonPhrase?: string):
 
   return baseMessage
 }
+
+/**
+ * Parse query string into key-value pairs
+ *
+ * @param queryString - Query string (with or without leading '?')
+ * @returns Map of query parameters
+ *
+ * @example
+ * ```typescript
+ * const params = parseQueryString('foo=bar&num=123')
+ * params.get('foo') // 'bar'
+ * params.get('num') // '123'
+ * ```
+ */
+export function parseQueryString(queryString: string): Map<string, string> {
+  const params = new Map<string, string>()
+
+  if (!queryString || typeof queryString !== 'string') {
+    return params
+  }
+
+  // Remove leading '?' if present
+  const cleanQuery = queryString.startsWith('?') ? queryString.slice(1) : queryString
+
+  if (!cleanQuery) {
+    return params
+  }
+
+  const pairs = cleanQuery.split('&')
+
+  for (const pair of pairs) {
+    const [key, value] = pair.split('=')
+    if (key) {
+      params.set(decodeURIComponent(key), value !== undefined ? decodeURIComponent(value) : '')
+    }
+  }
+
+  return params
+}
