@@ -663,8 +663,9 @@ describe('clamp', () => {
   })
 
   test('handles min greater than max', () => {
-    expect(clamp(5, 10, 5)).toBe(5)
-    expect(clamp(3, 10, 5)).toBe(5)
-    expect(clamp(15, 10, 5)).toBe(5)
+    // When min > max, bounds are swapped so value is clamped to swapped range
+    expect(clamp(5, 10, 5)).toBe(5) // value within swapped range [5,10]
+    expect(clamp(3, 10, 5)).toBe(5) // value below swapped min, returns swapped min
+    expect(clamp(15, 10, 5)).toBe(10) // value above swapped max, returns swapped max
   })
 })
