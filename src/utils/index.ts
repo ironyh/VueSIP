@@ -11,6 +11,7 @@ export * from './constants'
 
 // Re-export all validators
 export * from './validators'
+export type { SimpleValidationResult } from './validators'
 
 // Re-export all formatters
 export * from './formatters'
