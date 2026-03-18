@@ -336,6 +336,40 @@ export { RecordingPlugin, createRecordingPlugin } from './plugins'
  * ```
  */
 // Export utilities (excluding duplicates: getStorageQuota, getStorageUsageSummary from stores, STORAGE_KEYS from types)
+// Export constants selectively to avoid STORAGE_KEYS conflict (already exported from types)
+export {
+  VERSION,
+  USER_AGENT,
+  DEFAULT_REGISTER_EXPIRES,
+  DEFAULT_SESSION_TIMERS,
+  DEFAULT_NO_ANSWER_TIMEOUT,
+  DEFAULT_PING_INTERVAL,
+  DEFAULT_MAX_FORWARDS,
+  DEFAULT_AUDIO_CONSTRAINTS,
+  DEFAULT_VIDEO_CONSTRAINTS,
+  DEFAULT_MEDIA_CONSTRAINTS,
+  RECONNECTION_DELAYS,
+  MAX_RETRY_ATTEMPTS,
+  ICE_GATHERING_TIMEOUT,
+  DEFAULT_STUN_SERVERS,
+  DEFAULT_DTMF_DURATION,
+  DEFAULT_DTMF_INTER_TONE_GAP,
+  STATS_COLLECTION_INTERVAL,
+  AUDIO_LEVEL_INTERVAL,
+  AUDIO_CODECS,
+  VIDEO_CODECS,
+  SIP_STATUS_CODES,
+  EVENTS,
+  STORAGE_PREFIX,
+  STORAGE_VERSION,
+  PERFORMANCE,
+  VALIDATION,
+  CALL_SESSION,
+  SIP_URI_REGEX,
+  E164_PHONE_REGEX,
+  WEBSOCKET_URL_REGEX,
+  DTMF_TONES,
+} from './utils/constants'
 export * from './utils/validators'
 export * from './utils/formatters'
 export * from './utils/logger'
