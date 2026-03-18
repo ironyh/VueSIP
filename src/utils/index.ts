@@ -100,3 +100,6 @@ export * from './callQualityHistory'
 
 // Re-export quality report utilities
 export * from './qualityReport'
+
+// Re-export SIP URI utilities
+export * from './sipUri'
