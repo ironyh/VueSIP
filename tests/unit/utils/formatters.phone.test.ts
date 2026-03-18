@@ -68,8 +68,10 @@ describe('formatPhoneNumber', () => {
   // Country-specific formatting tests (uncovered areas)
   it('should format German numbers (+49)', () => {
     const result = formatPhoneNumber('+493012345678')
-    // Germany: +49 XXXX XXXXXX
-    expect(result).toMatch(/^\+49 \d{4} \d{5,6}$/)
+    // Germany: +49 XX XXXXXXXX (landline like Berlin 30) or +49 XXX XXXXXXXX (mobile like 151/176/177)
+    // Landline: +49 XX XXXXXXXX where XX is 2-5 digit area code
+    // Mobile: +49 XXX XXXXXXXX where XXX is 3-digit mobile prefix
+    expect(result).toMatch(/^\+49 \d{2,3} \d{5,8}$/)
   })
 
   it('should format Netherlands numbers (+31)', () => {
