@@ -1,0 +1,60 @@
+name: Demo Health Check
+
+on:
+  schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Live Demos
+        run: |
+          echo "🏥 VueSIP Demo Health Check"
+          echo "Time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo "================================"
+          
+          FAILED=0
+          PASSED=0
+          
+          check_endpoint() {
+            local url="$1"
+            local name="$2"
+            if curl -sf --max-time 15 "$url" > /dev/null 2>&1; then
+              echo "✅ $name: OK"
+              ((PASSED++))
+            else
+              echo "❌ $name: FAILED"
+              ((FAILED++))
+            fi
+          }
+          
+          echo ""
+          echo "🌐 Live Demos"
+          echo "-------------"
+          check_endpoint "https://softphone.vuesip.com" "Softphone PWA"
+          check_endpoint "https://basic-softphone.vuesip.com" "Basic Softphone"
+          check_endpoint "https://ivr.vuesip.com" "IVR Tester"
+          check_endpoint "https://video.vuesip.com" "Video Room"
+          check_endpoint "https://callcenter.vuesip.com" "Call Center"
+          
+          echo ""
+          echo "================================"
+          echo "📊 Summary: $PASSED passed, $FAILED failed"
+          
+          exit $FAILED
+
+      - name: Notify on Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🚨 VueSIP Demo Health Alert: One or more demos are failing"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
