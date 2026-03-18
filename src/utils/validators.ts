@@ -625,13 +625,14 @@ export function validateUrl(
 
   // Check for missing hostname before URL constructor (avoids throwing on 'https://')
   // Extract hostname from URL-like string to validate it exists
+  // Also catch URLs with only protocol (e.g., "https://") which have empty hostname
   try {
     const urlPattern = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/([^/\s:]+)(:\d+)?(\/.*)?$/
     const match = trimmed.match(urlPattern)
-    if (!match || !match[2]) {
+    if (!match || !match[2] || match[2].length === 0) {
       return {
         valid: false,
-        error: 'URL must include a hostname',
+        error: 'URL must include a hostname (e.g., example.com)',
         normalized: null,
       }
     }
@@ -660,7 +661,7 @@ export function validateUrl(
     if (!parsedUrl.hostname) {
       return {
         valid: false,
-        error: 'URL must include a hostname',
+        error: 'URL must include a hostname (e.g., example.com)',
         normalized: null,
       }
     }
