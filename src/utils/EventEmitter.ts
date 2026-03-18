@@ -150,4 +150,17 @@ export class EventEmitter<TEvents extends Record<string, unknown> = Record<strin
   eventNames(): string[] {
     return Array.from(this.listeners.keys())
   }
+
+  /**
+   * Get all handlers for a specific event
+   * Useful for testing and debugging
+   *
+   * @param event - Event name
+   * @returns Array of handlers or empty array
+   */
+  getHandlers<K extends keyof TEvents>(event: K): EventHandler<TEvents[K]>[] {
+    const eventKey = event as string
+    const handlers = this.listeners.get(eventKey)
+    return handlers ? (Array.from(handlers) as EventHandler<TEvents[K]>[]) : []
+  }
 }

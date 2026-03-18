@@ -193,6 +193,31 @@ describe('EventEmitter', () => {
     })
   })
 
+  describe('getHandlers', () => {
+    it('should return empty array when no handlers', () => {
+      expect(emitter.getHandlers('test')).toEqual([])
+    })
+
+    it('should return all handlers for an event', () => {
+      const handler1 = vi.fn()
+      const handler2 = vi.fn()
+      emitter.on('test', handler1)
+      emitter.on('test', handler2)
+
+      const handlers = emitter.getHandlers('test')
+
+      expect(handlers).toHaveLength(2)
+      expect(handlers).toContain(handler1)
+      expect(handlers).toContain(handler2)
+    })
+
+    it('should return empty array for event with no handlers', () => {
+      emitter.on('test', vi.fn())
+
+      expect(emitter.getHandlers('other')).toEqual([])
+    })
+  })
+
   describe('removeAllListeners', () => {
     it('should remove all listeners', () => {
       emitter.on('test', vi.fn())
