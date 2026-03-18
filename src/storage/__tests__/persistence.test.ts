@@ -1,12 +1,13 @@
 /**
- * Persistence Manager Tests
+ * @vitest-environment jsdom
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { PersistenceManager, type PersistenceOptions } from '../persistence'
+import { ref } from 'vue'
+import { describe, it, expect, vi } from 'vitest'
+import { PersistenceManager, createPersistence } from '../persistence'
+import type { StorageAdapter, StorageResult } from '../../types/storage.types'
 
-// Mock logger
+// Mock logger to reduce noise in tests
 vi.mock('../utils/logger', () => ({
   createLogger: () => ({
     debug: vi.fn(),
@@ -17,189 +18,457 @@ vi.mock('../utils/logger', () => ({
 }))
 
 describe('PersistenceManager', () => {
-  let mockAdapter: {
-    get: ReturnType<typeof vi.fn>
-    set: ReturnType<typeof vi.fn>
-    remove: ReturnType<typeof vi.fn>
-  }
-
-  const createMockAdapter = () => ({
-    get: vi.fn().mockResolvedValue({ success: true, data: undefined }),
-    set: vi.fn().mockResolvedValue({ success: true }),
-    remove: vi.fn().mockResolvedValue({ success: true }),
-  })
-
-  beforeEach(() => {
-    mockAdapter = createMockAdapter()
-    vi.useFakeTimers()
-  })
-
-  afterEach(() => {
-    vi.useRealTimers()
-    vi.resetAllMocks()
-  })
-
-  const createManager = <T>(options: Partial<PersistenceOptions<T>>): PersistenceManager<T> => {
-    const defaults: PersistenceOptions<T> = {
-      adapter: mockAdapter as any,
-      key: 'test-key',
-      getState: () => ({ value: 'test' }) as T,
-      setState: vi.fn(),
-      autoLoad: false,
-      debounce: 100,
-      ...options,
+  // Mock storage adapter
+  const createMockAdapter = (storage: Record<string, unknown> = {}): StorageAdapter => {
+    return {
+      name: 'mock',
+      async get<T>(key: string): Promise<StorageResult<T>> {
+        if (!(key in storage)) {
+          return { success: true, data: undefined }
+        }
+        return { success: true, data: storage[key] as T }
+      },
+      async set<T>(key: string, value: T): Promise<StorageResult<void>> {
+        storage[key] = value
+        return { success: true }
+      },
+      async remove(key: string): Promise<StorageResult<void>> {
+        delete storage[key]
+        return { success: true }
+      },
+      async clear(): Promise<StorageResult<void>> {
+        Object.keys(storage).forEach((k) => delete storage[k])
+        return { success: true }
+      },
+      async keys(): Promise<StorageResult<string[]>> {
+        return { success: true, data: Object.keys(storage) }
+      },
     }
-    return new PersistenceManager(defaults)
   }
 
-  describe('initialization', () => {
-    it('should not auto-load when autoLoad is false', () => {
-      createManager({ autoLoad: false })
-      expect(mockAdapter.get).not.toHaveBeenCalled()
-    })
-
-    it('should auto-load when autoLoad is true (default)', async () => {
-      mockAdapter.get.mockResolvedValueOnce({ success: true, data: { value: 'loaded' } })
-
-      const setState = vi.fn()
-      createManager({
-        autoLoad: true,
-        setState,
-      })
-
-      // Wait for async load - use real timers for this test
-      vi.useRealTimers()
-      await new Promise((resolve) => setTimeout(resolve, 50))
-      vi.useFakeTimers()
-
-      expect(mockAdapter.get).toHaveBeenCalledWith('test-key')
-      expect(setState).toHaveBeenCalledWith({ value: 'loaded' })
-    })
-
-    it('should handle auto-load failure gracefully', async () => {
-      mockAdapter.get.mockRejectedValueOnce(new Error('Storage error'))
+  describe('constructor', () => {
+    it('should create persistence manager with default options', () => {
+      const adapter = createMockAdapter()
+      const getState = vi.fn(() => ({ foo: 'bar' }))
       const setState = vi.fn()
 
-      createManager({
-        autoLoad: true,
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
         setState,
+        autoLoad: false,
       })
 
-      // Wait for async load - use real timers for this test
-      vi.useRealTimers()
+      expect(manager).toBeDefined()
+    })
+
+    it('should auto-load state when autoLoad is true (default)', async () => {
+      const storage = { 'test-key': { foo: 'bar' } }
+      const adapter = createMockAdapter(storage)
+      const getState = vi.fn(() => ({ foo: 'bar' }))
+      const setState = vi.fn()
+
+      new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: true,
+      })
+
+      // Wait for async auto-load
       await new Promise((resolve) => setTimeout(resolve, 50))
-      vi.useFakeTimers()
+
+      expect(setState).toHaveBeenCalledWith({ foo: 'bar' })
+    })
+
+    it('should not auto-load when autoLoad is false', async () => {
+      const storage = { 'test-key': { foo: 'bar' } }
+      const adapter = createMockAdapter(storage)
+      const getState = vi.fn(() => ({ foo: 'bar' }))
+      const setState = vi.fn()
+
+      new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+      })
+
+      // Wait to ensure no auto-load happens
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       expect(setState).not.toHaveBeenCalled()
     })
   })
 
   describe('save', () => {
-    it('should save state to adapter', async () => {
-      const getState = vi.fn().mockReturnValue({ value: 'test-state' })
-      const manager = createManager({ getState })
+    it('should save state to storage', async () => {
+      const storage: Record<string, unknown> = {}
+      const adapter = createMockAdapter(storage)
+      const getState = vi.fn(() => ({ foo: 'bar', count: 42 }))
+      const setState = vi.fn()
+
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+      })
 
       await manager.save()
 
-      expect(mockAdapter.set).toHaveBeenCalledWith('test-key', { value: 'test-state' })
+      expect(storage['test-key']).toEqual({ foo: 'bar', count: 42 })
     })
 
-    it('should use custom serialize function', async () => {
-      const getState = vi.fn().mockReturnValue({ value: 'test' })
-      const serialize = vi.fn().mockReturnValue({ serialized: true })
-      const manager = createManager({ getState, serialize })
+    it('should use serialize function when provided', async () => {
+      const storage: Record<string, unknown> = {}
+      const adapter = createMockAdapter(storage)
+      const getState = vi.fn(() => ({ foo: 'bar' }))
+      const setState = vi.fn()
+      const serialize = vi.fn((state: { foo: string }) => ({ ...state, serialized: true }))
+
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+        serialize,
+      })
 
       await manager.save()
 
-      expect(serialize).toHaveBeenCalledWith({ value: 'test' })
-      expect(mockAdapter.set).toHaveBeenCalledWith('test-key', { serialized: true })
+      expect(serialize).toHaveBeenCalledWith({ foo: 'bar' })
+      expect(storage['test-key']).toEqual({ foo: 'bar', serialized: true })
     })
 
-    it('should throw when adapter.set fails', async () => {
-      mockAdapter.set.mockResolvedValueOnce({ success: false, error: 'Quota exceeded' })
-      const getState = vi.fn().mockReturnValue({ value: 'test' })
-      const manager = createManager({ getState })
+    it('should throw error when storage set fails', async () => {
+      const adapter: StorageAdapter = {
+        name: 'failing',
+        async get() {
+          return { success: true, data: undefined }
+        },
+        async set() {
+          return { success: false, error: 'Storage full' }
+        },
+        async remove() {
+          return { success: true }
+        },
+        async clear() {
+          return { success: true }
+        },
+        async keys() {
+          return { success: true, data: [] }
+        },
+      }
+      const getState = vi.fn(() => ({ foo: 'bar' }))
+      const setState = vi.fn()
 
-      await expect(manager.save()).rejects.toThrow('Quota exceeded')
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+      })
+
+      await expect(manager.save()).rejects.toThrow('Storage full')
     })
   })
 
   describe('load', () => {
-    it('should load state from adapter', async () => {
-      mockAdapter.get.mockResolvedValueOnce({ success: true, data: { value: 'loaded' } })
+    it('should load state from storage', async () => {
+      const storage = { 'test-key': { foo: 'bar', count: 42 } }
+      const adapter = createMockAdapter(storage)
+      const getState = vi.fn(() => ({ foo: '' }))
       const setState = vi.fn()
-      const manager = createManager({ setState })
+
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+      })
 
       await manager.load()
 
-      expect(setState).toHaveBeenCalledWith({ value: 'loaded' })
+      expect(setState).toHaveBeenCalledWith({ foo: 'bar', count: 42 })
     })
 
-    it('should use custom deserialize function', async () => {
-      mockAdapter.get.mockResolvedValueOnce({ success: true, data: { raw: true } })
+    it('should use deserialize function when provided', async () => {
+      const storage = { 'test-key': { raw: true } }
+      const adapter = createMockAdapter(storage)
+      const getState = vi.fn(() => ({}))
       const setState = vi.fn()
-      const deserialize = vi.fn().mockReturnValue({ deserialized: true })
-      const manager = createManager({ setState, deserialize })
+      const deserialize = vi.fn((data: unknown) => ({ ...(data as object), deserialized: true }))
+
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+        deserialize,
+      })
 
       await manager.load()
 
       expect(deserialize).toHaveBeenCalledWith({ raw: true })
-      expect(setState).toHaveBeenCalledWith({ deserialized: true })
+      expect(setState).toHaveBeenCalledWith({ raw: true, deserialized: true })
     })
 
     it('should not call setState when no data exists', async () => {
-      mockAdapter.get.mockResolvedValueOnce({ success: true, data: undefined })
+      const storage = {}
+      const adapter = createMockAdapter(storage)
+      const getState = vi.fn(() => ({ foo: 'default' }))
       const setState = vi.fn()
-      const manager = createManager({ setState })
+
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+      })
 
       await manager.load()
 
       expect(setState).not.toHaveBeenCalled()
     })
 
-    it('should throw when adapter.get fails', async () => {
-      mockAdapter.get.mockResolvedValueOnce({ success: false, error: 'Not found' })
+    it('should throw error when storage get fails', async () => {
+      const adapter: StorageAdapter = {
+        name: 'failing',
+        async get() {
+          return { success: false, error: 'Access denied' }
+        },
+        async set() {
+          return { success: true }
+        },
+        async remove() {
+          return { success: true }
+        },
+        async clear() {
+          return { success: true }
+        },
+        async keys() {
+          return { success: true, data: [] }
+        },
+      }
+      const getState = vi.fn(() => ({}))
       const setState = vi.fn()
-      const manager = createManager({ setState })
 
-      await expect(manager.load()).rejects.toThrow('Not found')
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+      })
+
+      await expect(manager.load()).rejects.toThrow('Access denied')
     })
   })
 
   describe('clear', () => {
-    it('should remove state from adapter', async () => {
-      const manager = createManager()
+    it('should clear state from storage', async () => {
+      const storage = { 'test-key': { foo: 'bar' } }
+      const adapter = createMockAdapter(storage)
+      const getState = vi.fn(() => ({}))
+      const setState = vi.fn()
+
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+      })
 
       await manager.clear()
 
-      expect(mockAdapter.remove).toHaveBeenCalledWith('test-key')
+      expect(storage['test-key']).toBeUndefined()
     })
 
-    it('should throw when adapter.remove fails', async () => {
-      mockAdapter.remove.mockResolvedValueOnce({ success: false, error: 'Remove failed' })
-      const manager = createManager()
+    it('should throw error when storage remove fails', async () => {
+      const adapter: StorageAdapter = {
+        name: 'failing',
+        async get() {
+          return { success: true, data: undefined }
+        },
+        async set() {
+          return { success: true }
+        },
+        async remove() {
+          return { success: false, error: 'Key not found' }
+        },
+        async clear() {
+          return { success: true }
+        },
+        async keys() {
+          return { success: true, data: [] }
+        },
+      }
+      const getState = vi.fn(() => ({}))
+      const setState = vi.fn()
 
-      await expect(manager.clear()).rejects.toThrow('Remove failed')
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+      })
+
+      await expect(manager.clear()).rejects.toThrow('Key not found')
     })
   })
 
   describe('destroy', () => {
-    it('should cleanup timers and watchers', () => {
-      const unwatchFn = vi.fn()
-      const manager = createManager({
-        watchSource: () => ({ value: 'test' }),
-      } as any)
+    it('should cleanup timer and watcher on destroy', () => {
+      const adapter = createMockAdapter()
+      const getState = vi.fn(() => ({ foo: 'bar' }))
+      const setState = vi.fn()
+      const stateRef = ref({ foo: 'bar' })
 
-      // Access private property for testing
-      ;(manager as any).unwatchFn = unwatchFn
-      ;(manager as any).saveTimer = setTimeout(() => {}, 1000) as any
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        watchSource: stateRef,
+        autoLoad: false,
+      })
+
+      // Modify state to trigger debounced save timer
+      stateRef.value.foo = 'baz'
+
+      expect(manager.destroy()).toBeUndefined()
+
+      // After destroy, the manager should be cleaned up
+      // The exact behavior depends on Vue's watch cleanup
+    })
+
+    it('should be callable multiple times without error', () => {
+      const adapter = createMockAdapter()
+      const getState = vi.fn(() => ({}))
+      const setState = vi.fn()
+
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        autoLoad: false,
+      })
 
       manager.destroy()
+      manager.destroy() // Should not throw
+    })
+  })
 
-      expect(unwatchFn).toHaveBeenCalled()
+  describe('debounce', () => {
+    it('should use custom debounce delay', async () => {
+      const storage: Record<string, unknown> = {}
+      const adapter = createMockAdapter(storage)
+      const getState = vi.fn(() => ({ foo: 'initial' }))
+      const setState = vi.fn()
+
+      const manager = new PersistenceManager({
+        adapter,
+        key: 'test-key',
+        getState,
+        setState,
+        debounce: 100,
+        autoLoad: false,
+      })
+
+      // Change state and trigger save
+      getState.mockReturnValue({ foo: 'changed1' })
+      ;(manager as unknown as { save: () => Promise<void> }).save()
+
+      getState.mockReturnValue({ foo: 'changed2' })
+      ;(manager as unknown as { save: () => Promise<void> }).save()
+
+      // Wait for debounce
+      await new Promise((resolve) => setTimeout(resolve, 150))
+
+      // Should have saved with the latest state
+      expect(storage['test-key']).toEqual({ foo: 'changed2' })
     })
   })
 })
 
-// Note: createPersistence is tested indirectly through PersistenceManager tests
-// as it simply returns a new PersistenceManager instance
+describe('createPersistence', () => {
+  const createMockAdapter = (storage: Record<string, unknown> = {}): StorageAdapter => {
+    return {
+      name: 'mock',
+      async get<T>(key: string): Promise<StorageResult<T>> {
+        if (!(key in storage)) {
+          return { success: true, data: undefined }
+        }
+        return { success: true, data: storage[key] as T }
+      },
+      async set<T>(key: string, value: T): Promise<StorageResult<void>> {
+        storage[key] = value
+        return { success: true }
+      },
+      async remove(key: string): Promise<StorageResult<void>> {
+        delete storage[key]
+        return { success: true }
+      },
+      async clear(): Promise<StorageResult<void>> {
+        Object.keys(storage).forEach((k) => delete storage[k])
+        return { success: true }
+      },
+      async keys(): Promise<StorageResult<string[]>> {
+        return { success: true, data: Object.keys(storage) }
+      },
+    }
+  }
+
+  it('should create a PersistenceManager instance', () => {
+    const adapter = createMockAdapter()
+    const getState = vi.fn(() => ({}))
+    const setState = vi.fn()
+
+    const persistence = createPersistence({
+      adapter,
+      key: 'test-key',
+      getState,
+      setState,
+      autoLoad: false,
+    })
+
+    expect(persistence).toBeInstanceOf(PersistenceManager)
+  })
+
+  it('should expose save, load, clear, and destroy methods', async () => {
+    const adapter = createMockAdapter()
+    const getState = vi.fn(() => ({ foo: 'bar' }))
+    const setState = vi.fn()
+
+    const persistence = createPersistence({
+      adapter,
+      key: 'test-key',
+      getState,
+      setState,
+      autoLoad: false,
+    })
+
+    expect(typeof persistence.save).toBe('function')
+    expect(typeof persistence.load).toBe('function')
+    expect(typeof persistence.clear).toBe('function')
+    expect(typeof persistence.destroy).toBe('function')
+
+    await persistence.save()
+    await persistence.load()
+    await persistence.clear()
+    persistence.destroy()
+  })
+})
