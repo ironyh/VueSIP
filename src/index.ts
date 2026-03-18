@@ -346,6 +346,8 @@ export * from './utils/abortController'
 export * from './utils/notifications'
 export * from './utils/diagnostics'
 export * from './utils/callDiagnostics'
+// Export testing utilities
+export * from './testing'
 // Export quality report utilities (selective to avoid naming conflict with composables)
 export {
   calculateMOS,
