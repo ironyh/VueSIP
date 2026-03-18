@@ -223,4 +223,217 @@ describe('useMultiSipClient', () => {
       'Account non-existent not found'
     )
   })
+
+  it('should throw when making call from unregistered account', async () => {
+    const { makeCall, addAccount } = useMultiSipClient()
+
+    await addAccount({
+      id: 'account-1',
+      name: 'Account 1',
+      sip: { uri: 'sip:1001@test.com', password: 'secret', server: 'wss://test.com/ws' },
+      outboundCapable: true,
+    })
+
+    // Account exists but is not registered - mock isRegistered to false
+    await expect(makeCall('sip:2000@test.com', 'account-1')).rejects.toThrow(
+      'Account Account 1 is not registered'
+    )
+  })
+
+  it('should auto-select first outbound-capable account', async () => {
+    const { addAccount, outboundAccountId } = useMultiSipClient()
+
+    await addAccount({
+      id: 'account-1',
+      name: 'Account 1',
+      sip: { uri: 'sip:1001@test.com', password: 'secret', server: 'wss://test.com/ws' },
+      outboundCapable: false, // Not outbound capable
+    })
+
+    // Should still be null since no outbound-capable account
+    expect(outboundAccountId.value).toBeNull()
+
+    await addAccount({
+      id: 'account-2',
+      name: 'Account 2',
+      sip: { uri: 'sip:1002@test.com', password: 'secret', server: 'wss://test.com/ws' },
+      outboundCapable: true,
+    })
+
+    // Now should auto-select account-2
+    expect(outboundAccountId.value).toBe('account-2')
+  })
+
+  it('should auto-select next outbound account after removal', async () => {
+    const { addAccount, removeAccount, outboundAccountId } = useMultiSipClient()
+
+    await addAccount({
+      id: 'account-1',
+      name: 'Account 1',
+      sip: { uri: 'sip:1001@test.com', password: 'secret', server: 'wss://test.com/ws' },
+      outboundCapable: true,
+    })
+
+    await addAccount({
+      id: 'account-2',
+      name: 'Account 2',
+      sip: { uri: 'sip:1002@test.com', password: 'secret', server: 'wss://test.com/ws' },
+      outboundCapable: true,
+    })
+
+    expect(outboundAccountId.value).toBe('account-1')
+
+    // Remove account-1, should auto-select account-2
+    await removeAccount('account-1')
+    expect(outboundAccountId.value).toBe('account-2')
+  })
+
+  it('should answer call on specified account', async () => {
+    const { addAccount, answerCall, accounts } = useMultiSipClient()
+
+    await addAccount({
+      id: 'account-1',
+      name: 'Account 1',
+      sip: { uri: 'sip:1001@test.com', password: 'secret', server: 'wss://test.com/ws' },
+      outboundCapable: true,
+    })
+
+    const account = accounts.value.get('account-1')!
+    const answerSpy = vi.spyOn(account.callSession, 'answer')
+
+    await answerCall('account-1')
+    expect(answerSpy).toHaveBeenCalled()
+  })
+
+  it('should throw when answering call on non-existent account', async () => {
+    const { answerCall } = useMultiSipClient()
+
+    await expect(answerCall('non-existent')).rejects.toThrow('Account non-existent not found')
+  })
+
+  it('should reject call on specified account', async () => {
+    const { addAccount, rejectCall, accounts } = useMultiSipClient()
+
+    await addAccount({
+      id: 'account-1',
+      name: 'Account 1',
+      sip: { uri: 'sip:1001@test.com', password: 'secret', server: 'wss://test.com/ws' },
+      outboundCapable: true,
+    })
+
+    const account = accounts.value.get('account-1')!
+    const rejectSpy = vi.spyOn(account.callSession, 'reject')
+
+    await rejectCall('account-1')
+    expect(rejectSpy).toHaveBeenCalled()
+  })
+
+  it('should throw when rejecting call on non-existent account', async () => {
+    const { rejectCall } = useMultiSipClient()
+
+    await expect(rejectCall('non-existent')).rejects.toThrow('Account non-existent not found')
+  })
+
+  it('should hangup active call', async () => {
+    const { addAccount, makeCall, hangup, accounts, activeCallAccountId } = useMultiSipClient()
+
+    await addAccount({
+      id: 'account-1',
+      name: 'Account 1',
+      sip: { uri: 'wss://test.com/ws', sipUri: 'sip:1001@test.com', password: 'secret' },
+      outboundCapable: true,
+    })
+
+    const account = accounts.value.get('account-1')!
+    // Mock isRegistered to return true so makeCall works
+    vi.spyOn(account.isRegistered, 'value', 'get').mockReturnValue(true)
+    vi.spyOn(account.callSession, 'makeCall').mockResolvedValue()
+    vi.spyOn(account.callSession.state, 'value', 'get').mockReturnValue('active')
+
+    await makeCall('sip:2000@test.com')
+    expect(activeCallAccountId.value).toBe('account-1')
+
+    const hangupSpy = vi.spyOn(account.callSession, 'hangup')
+    await hangup()
+    expect(hangupSpy).toHaveBeenCalled()
+  })
+
+  it('should not throw when hanging up with no active call', async () => {
+    const { hangup } = useMultiSipClient()
+
+    await expect(hangup()).resolves.not.toThrow()
+  })
+
+  it('should compute activeAccount correctly', async () => {
+    const { addAccount, makeCall, activeAccount, accounts, activeCallAccountId } =
+      useMultiSipClient()
+
+    await addAccount({
+      id: 'account-1',
+      name: 'Account 1',
+      sip: { uri: 'wss://test.com/ws', sipUri: 'sip:1001@test.com', password: 'secret' },
+      outboundCapable: true,
+    })
+
+    const account = accounts.value.get('account-1')!
+    // Mock isRegistered to return true so makeCall works
+    vi.spyOn(account.isRegistered, 'value', 'get').mockReturnValue(true)
+    vi.spyOn(account.callSession, 'makeCall').mockResolvedValue()
+    vi.spyOn(account.callSession.state, 'value', 'get').mockReturnValue('active')
+
+    expect(activeAccount.value).toBeNull()
+    expect(activeCallAccountId.value).toBeNull()
+
+    await makeCall('sip:2000@test.com')
+    expect(activeCallAccountId.value).toBe('account-1')
+    expect(activeAccount.value).not.toBeNull()
+    expect(activeAccount.value?.id).toBe('account-1')
+  })
+
+  it('should compute incomingCalls correctly', async () => {
+    const { addAccount, incomingCalls, accounts } = useMultiSipClient()
+
+    await addAccount({
+      id: 'account-1',
+      name: 'Account 1',
+      sip: { uri: 'sip:1001@test.com', password: 'secret', server: 'wss://test.com/ws' },
+      outboundCapable: true,
+    })
+
+    const account = accounts.value.get('account-1')!
+    // Mock incoming ringing call
+    vi.spyOn(account.callSession.state, 'value', 'get').mockReturnValue('ringing')
+    vi.spyOn(account.callSession.direction, 'value', 'get').mockReturnValue('incoming')
+    vi.spyOn(account.callSession.remoteUri, 'value', 'get').mockReturnValue('sip:caller@test.com')
+    vi.spyOn(account.callSession.remoteDisplayName, 'value', 'get').mockReturnValue('Test Caller')
+
+    const calls = incomingCalls.value
+    expect(calls).toHaveLength(1)
+    expect(calls[0].accountId).toBe('account-1')
+    expect(calls[0].accountName).toBe('Account 1')
+    expect(calls[0].remoteUri).toBe('sip:caller@test.com')
+    expect(calls[0].remoteDisplayName).toBe('Test Caller')
+  })
+
+  it('should compute stats with multiple accounts', async () => {
+    const { addAccount, stats, accounts } = useMultiSipClient()
+
+    await addAccount({
+      id: 'account-1',
+      name: 'Account 1',
+      sip: { uri: 'sip:1001@test.com', password: 'secret', server: 'wss://test.com/ws' },
+      outboundCapable: true,
+    })
+
+    const account = accounts.value.get('account-1')!
+    vi.spyOn(account.isConnected, 'value', 'get').mockReturnValue(true)
+    vi.spyOn(account.isRegistered, 'value', 'get').mockReturnValue(true)
+
+    const s = stats.value
+    expect(s.totalAccounts).toBe(1)
+    expect(s.connectedAccounts).toBe(1)
+    expect(s.registeredAccounts).toBe(1)
+    expect(s.hasOutboundAccount).toBe(true)
+    expect(s.hasActiveCall).toBe(false)
+  })
 })
