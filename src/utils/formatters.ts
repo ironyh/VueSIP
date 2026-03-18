@@ -342,10 +342,19 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
     // Landline: 8 123 456 78
     return `+46 ${after46.slice(0, 1)} ${after46.slice(1, 4)} ${after46.slice(4, 7)} ${after46.slice(7)}`
   },
-  // Germany: +49 XXXX XXXXXX
+  // Germany: +49 XXX XXXXXX (mobile) or +49 XX XXXX XXXX (landline)
   '+49': (num) => {
-    if (num.length < 13) return num
-    return `+49 ${num.slice(3, 7)} ${num.slice(7)}`
+    // Mobile: +49 151 12345678 (13 chars = 2+11) or +49 176 1234567 (12 chars = 2+10)
+    // Landline: +49 30 12345678 (13 chars)
+    if (num.length !== 12 && num.length !== 13 && num.length !== 14) return num
+    const after49 = num.slice(3)
+    // Mobile numbers start with 15x, 16x, 17x
+    if (after49.startsWith('15') || after49.startsWith('16') || after49.startsWith('17')) {
+      // Mobile: +49 151 12345678 (format: +49 XXX XXXXXXXX)
+      return `+49 ${after49.slice(0, 3)} ${after49.slice(3)}`
+    }
+    // Landline: +49 30 12345678 (format: +49 XX XXXXXXXX)
+    return `+49 ${after49.slice(0, 2)} ${after49.slice(2)}`
   },
   // France: +33 X XX XX XX XX
   '+33': (num) => {

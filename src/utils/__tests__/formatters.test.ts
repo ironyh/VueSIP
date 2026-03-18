@@ -258,7 +258,7 @@ describe('formatPhoneNumber', () => {
   })
 
   test('formats Germany phone number', () => {
-    expect(formatPhoneNumber('+4915112345678')).toBe('+49 1511 2345678')
+    expect(formatPhoneNumber('+4915112345678')).toBe('+49 151 12345678')
   })
 
   test('formats France phone number', () => {
