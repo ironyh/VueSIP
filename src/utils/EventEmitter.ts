@@ -130,6 +130,19 @@ export class EventEmitter<TEvents extends Record<string, unknown> = Record<strin
   }
 
   /**
+   * Check if a specific handler is registered for an event
+   *
+   * @param event - Event name
+   * @param handler - Event handler to check
+   * @returns True if the handler is registered
+   */
+  hasListener<K extends keyof TEvents>(event: K, handler: EventHandler<TEvents[K]>): boolean {
+    const eventKey = event as string
+    const handlers = this.listeners.get(eventKey)
+    return handlers ? handlers.has(handler as EventHandler<unknown>) : false
+  }
+
+  /**
    * Get all event names that have listeners
    *
    * @returns Array of event names

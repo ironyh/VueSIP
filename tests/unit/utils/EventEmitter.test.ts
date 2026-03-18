@@ -365,4 +365,48 @@ describe('EventEmitter', () => {
       expect(executionOrder).toEqual([1, 2, 3])
     })
   })
+
+  describe('hasListener()', () => {
+    it('should return true when handler is registered', () => {
+      const handler = vi.fn()
+      emitter.on('test', handler)
+
+      expect(emitter.hasListener('test', handler)).toBe(true)
+    })
+
+    it('should return false when handler is not registered', () => {
+      const handler = vi.fn()
+      emitter.on('test', vi.fn())
+
+      expect(emitter.hasListener('test', handler)).toBe(false)
+    })
+
+    it('should return false for event with no listeners', () => {
+      const handler = vi.fn()
+
+      expect(emitter.hasListener('test', handler)).toBe(false)
+    })
+
+    it('should return false after handler is unsubscribed', () => {
+      const handler = vi.fn()
+      const unsubscribe = emitter.on('test', handler)
+
+      expect(emitter.hasListener('test', handler)).toBe(true)
+
+      unsubscribe()
+
+      expect(emitter.hasListener('test', handler)).toBe(false)
+    })
+
+    it('should return true for one of multiple handlers', () => {
+      const handler1 = vi.fn()
+      const handler2 = vi.fn()
+
+      emitter.on('test', handler1)
+      emitter.on('test', handler2)
+
+      expect(emitter.hasListener('test', handler1)).toBe(true)
+      expect(emitter.hasListener('test', handler2)).toBe(true)
+    })
+  })
 })
