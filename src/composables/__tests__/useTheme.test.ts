@@ -1,7 +1,7 @@
 /**
  * useTheme composable tests
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { _resetForTesting, type Theme } from '../useTheme'
 
 // Mock window.matchMedia
@@ -60,6 +60,13 @@ describe('useTheme', () => {
     vi.clearAllMocks()
     localStorageMock.clear()
     mockMatchMedia.mockReset()
+    classListMock.add.mockClear()
+    classListMock.remove.mockClear()
+  })
+
+  afterEach(() => {
+    // Reset singleton state after each test
+    _resetForTesting()
   })
 
   describe('Theme type', () => {
@@ -82,6 +89,76 @@ describe('useTheme', () => {
       // and isInitialized should be false
       // The actual values are module-level singletons
       expect(true).toBe(true) // Placeholder - actual reset verified by _resetForTesting export
+    })
+  })
+
+  describe('useTheme', () => {
+    it('should return theme functions and state', async () => {
+      const { useTheme } = await importUseTheme()
+
+      const { isDarkMode, theme, setTheme, toggleTheme } = useTheme()
+
+      expect(isDarkMode).toBeDefined()
+      expect(typeof theme).toBe('function')
+      expect(typeof setTheme).toBe('function')
+      expect(typeof toggleTheme).toBe('function')
+    })
+
+    it('should set theme to dark', async () => {
+      const { useTheme } = await importUseTheme()
+
+      const { isDarkMode, setTheme } = useTheme()
+
+      setTheme('dark')
+      expect(isDarkMode.value).toBe(true)
+    })
+
+    it('should set theme to light', async () => {
+      const { useTheme } = await importUseTheme()
+
+      const { isDarkMode, setTheme } = useTheme()
+
+      setTheme('dark')
+      setTheme('light')
+      expect(isDarkMode.value).toBe(false)
+    })
+
+    it('should toggle theme from light to dark', async () => {
+      const { useTheme } = await importUseTheme()
+
+      const { isDarkMode, toggleTheme } = useTheme()
+
+      expect(isDarkMode.value).toBe(false)
+      toggleTheme()
+      expect(isDarkMode.value).toBe(true)
+    })
+
+    it('should toggle theme from dark to light', async () => {
+      const { useTheme } = await importUseTheme()
+
+      const { isDarkMode, setTheme, toggleTheme } = useTheme()
+
+      setTheme('dark')
+      expect(isDarkMode.value).toBe(true)
+      toggleTheme()
+      expect(isDarkMode.value).toBe(false)
+    })
+
+    it('should return correct theme value light', async () => {
+      const { useTheme } = await importUseTheme()
+      const { theme } = useTheme()
+
+      expect(theme()).toBe('light')
+    })
+
+    it('should return correct theme value dark', async () => {
+      const { useTheme, _resetForTesting } = await importUseTheme()
+      _resetForTesting()
+
+      const { setTheme, theme } = useTheme()
+
+      setTheme('dark')
+      expect(theme()).toBe('dark')
     })
   })
 })
