@@ -24,25 +24,25 @@ describe('voipmsProvider', () => {
     it('should require websocketUrl field', () => {
       const field = voipmsProvider.fields.find((f) => f.name === 'websocketUrl')
       expect(field).toBeDefined()
-      expect(field!.type).toBe('text')
-      expect(field!.required).toBe(true)
-      expect(field!.label).toBe('WebSocket Gateway URL')
+      expect(field?.type).toBe('text')
+      expect(field?.required).toBe(true)
+      expect(field?.label).toBe('WebSocket Gateway URL')
     })
 
     it('should require username field', () => {
       const field = voipmsProvider.fields.find((f) => f.name === 'username')
       expect(field).toBeDefined()
-      expect(field!.type).toBe('text')
-      expect(field!.required).toBe(true)
-      expect(field!.label).toBe('Main Account')
+      expect(field?.type).toBe('text')
+      expect(field?.required).toBe(true)
+      expect(field?.label).toBe('Main Account')
     })
 
     it('should require password field', () => {
       const field = voipmsProvider.fields.find((f) => f.name === 'password')
       expect(field).toBeDefined()
-      expect(field!.type).toBe('password')
-      expect(field!.required).toBe(true)
-      expect(field!.label).toBe('SIP Password')
+      expect(field?.type).toBe('password')
+      expect(field?.required).toBe(true)
+      expect(field?.label).toBe('SIP Password')
     })
 
     it('should have no optional displayName field (only 3 required/optional fields)', () => {
