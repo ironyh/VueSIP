@@ -287,6 +287,14 @@ describe('extractUserHost', () => {
   it('should return null for invalid URI', () => {
     expect(extractUserHost('invalid')).toBeNull()
   })
+
+  it('should return null for URI with no user (domain only)', () => {
+    expect(extractUserHost('sip@example.com')).toBeNull()
+  })
+
+  it('should handle URI with transport parameter', () => {
+    expect(extractUserHost('sip:alice@example.com;transport=tls')).toBe('alice@example.com')
+  })
 })
 
 describe('isPhoneSipUri', () => {
