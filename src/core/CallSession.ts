@@ -1184,8 +1184,8 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       throw new Error(`${fieldName} is required`)
     }
 
-    // Basic SIP URI validation: sip: or sips: followed by user@host
-    const sipUriPattern = /^sips?:[\w\-.!~*'()&=+$,;?/]+@[\w\-.]+/
+    // Basic SIP URI validation: sip: or sips: followed by user@host (case-insensitive)
+    const sipUriPattern = /^sips?:[\w\-.!~*'()&=+$,;?/]+@[\w\-.]+/i
     if (!sipUriPattern.test(uri)) {
       throw new Error(
         `Invalid SIP URI format for ${fieldName}: ${uri}. Expected format: sip:user@host or sips:user@host`
