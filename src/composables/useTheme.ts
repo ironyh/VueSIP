@@ -65,6 +65,13 @@ const toggleTheme = (): void => {
 const initializeTheme = (): void => {
   if (isInitialized.value) return
 
+  // Guard against non-browser environments (SSR, workers, etc.)
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+    isDarkMode.value = false
+    isInitialized.value = true
+    return
+  }
+
   const stored = localStorage.getItem(THEME_STORAGE_KEY)
   if (stored) {
     isDarkMode.value = stored === 'dark'
@@ -89,7 +96,10 @@ export function useTheme() {
   // Watch for theme changes and persist
   watch(isDarkMode, (newValue) => {
     applyTheme(newValue)
-    localStorage.setItem(THEME_STORAGE_KEY, newValue ? 'dark' : 'light')
+    // Guard against non-browser environments
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(THEME_STORAGE_KEY, newValue ? 'dark' : 'light')
+    }
   })
 
   return {
