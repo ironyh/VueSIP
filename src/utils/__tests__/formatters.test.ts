@@ -705,4 +705,9 @@ describe('parseQueryString', () => {
     const params = parseQueryString('foo=first&foo=second')
     expect(params.get('foo')).toBe('second')
   })
+
+  it('should handle query string with only question mark', () => {
+    const params = parseQueryString('?')
+    expect(params.size).toBe(0)
+  })
 })
