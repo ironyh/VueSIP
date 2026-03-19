@@ -254,6 +254,131 @@ This runbook covers common operational procedures for VueSIP deployments.
 - Reconnection frequency
 - Audio quality scores
 
+### Essential Health Checks
+
+Run these checks in production to verify system health:
+
+```bash
+# 1. Verify build integrity
+pnpm run build  # Should complete without errors
+
+# 2. Run unit tests
+pnpm run test:unit  # All tests should pass
+
+# 3. Check for TypeScript errors
+pnpm exec tsc --noEmit  # Should have no errors
+```
+
+### Retry and Resilience Patterns
+
+VueSIP provides utilities for handling transient failures:
+
+```typescript
+import { useTransportRecovery } from 'vuesip'
+
+const { isReconnecting, connectionAttempts, lastError, retryAfter } = useTransportRecovery(client, {
+  maxAttempts: 5,
+  baseDelayMs: 1000,
+  maxDelayMs: 30000,
+  backoffMultiplier: 2,
+})
+
+// Monitor reconnection state
+watch(isReconnecting, (reconnecting) => {
+  if (reconnecting) {
+    console.log(`Reconnecting... attempt ${connectionAttempts.value}`)
+  }
+})
+```
+
+### Circuit Breaker Pattern
+
+For provider-level resilience, implement circuit breaker logic:
+
+```typescript
+import { ref, computed } from 'vue'
+
+class CircuitBreaker {
+  private failures = 0
+  private lastFailureTime = 0
+  private state: 'closed' | 'open' | 'half-open' = 'closed'
+
+  private readonly failureThreshold = 5
+  private readonly resetTimeoutMs = 30000
+
+  get isOpen() {
+    if (this.state === 'open') {
+      // Check if reset timeout has passed
+      if (Date.now() - this.lastFailureTime > this.resetTimeoutMs) {
+        this.state = 'half-open'
+        return false
+      }
+      return true
+    }
+    return false
+  }
+
+  recordSuccess() {
+    this.failures = 0
+    this.state = 'closed'
+  }
+
+  recordFailure() {
+    this.failures++
+    this.lastFailureTime = Date.now()
+    if (this.failures >= this.failureThreshold) {
+      this.state = 'open'
+    }
+  }
+}
+```
+
+### Rate Limiting
+
+When using provider APIs (46elks, Telnyx), implement rate limiting:
+
+```typescript
+import { ref } from 'vue'
+
+class RateLimiter {
+  private requests: number[] = []
+  private readonly maxRequests: number
+  private readonly windowMs: number
+
+  constructor(maxRequests: number, windowMs: number) {
+    this.maxRequests = maxRequests
+    this.windowMs = windowMs
+  }
+
+  canProceed(): boolean {
+    const now = Date.now()
+    this.requests = this.requests.filter((t) => now - t < this.windowMs)
+    return this.requests.length < this.maxRequests
+  }
+
+  recordRequest(): void {
+    this.requests.push(Date.now())
+  }
+
+  retryAfterMs(): number {
+    if (this.requests.length === 0) return 0
+    const oldest = Math.min(...this.requests)
+    return Math.max(0, this.windowMs - (Date.now() - oldest))
+  }
+}
+
+// Example: 46elks API rate limiter (10 req/sec)
+const apiLimiter = new RateLimiter(10, 1000)
+
+async function callWithRateLimit<T>(fn: () => Promise<T>): Promise<T> {
+  while (!apiLimiter.canProceed()) {
+    await new Promise((r) => setTimeout(r, apiLimiter.retryAfterMs()))
+  }
+  apiLimiter.recordRequest()
+  return fn()
+}
+```
+
 ### Log Levels
 
 Set via environment:
