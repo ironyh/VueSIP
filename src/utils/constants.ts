@@ -402,7 +402,7 @@ export const CALL_SESSION = {
  * Regular expression for SIP URI validation
  * Matches: sip:user@domain or sips:user@domain
  */
-export const SIP_URI_REGEX = /^sips?:([a-zA-Z0-9._+-]+)@([a-zA-Z0-9.-]+)(?::(\d+))?/
+export const SIP_URI_REGEX = /^sips?:([a-zA-Z0-9._+-]+)@([a-zA-Z0-9.-]+)(?::(\d+))?/i
 
 /**
  * Regular expression for E.164 phone number format
