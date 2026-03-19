@@ -117,7 +117,29 @@ export function isSecureContext(): boolean {
 
   // Use the browser's built-in secure context check
   // This returns true for HTTPS, wss://, and localhost (including file:// in some browsers)
-  return window.isSecureContext === true
+  if (typeof window.isSecureContext === 'boolean') {
+    return window.isSecureContext
+  }
+
+  // Fallback for older browsers: check location protocol
+  // localhost and 127.x.x.x are considered secure
+  try {
+    const { protocol, hostname } = window.location
+    if (protocol === 'https:') {
+      return true
+    }
+    if (protocol === 'http:') {
+      const host = hostname.toLowerCase()
+      // localhost, 127.x.x.x, and .localhost are secure
+      if (host === 'localhost' || host.startsWith('127.') || host.endsWith('.localhost')) {
+        return true
+      }
+    }
+  } catch {
+    // window.location access may fail in some contexts (e.g., sandboxed iframes)
+  }
+
+  return false
 }
 
 /**
