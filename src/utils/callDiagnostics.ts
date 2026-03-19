@@ -34,6 +34,9 @@ export interface CallDiagnostics {
 
 /**
  * Validates that a value is a non-empty string
+ *
+ * @param value - The value to validate
+ * @returns True if value is a non-empty string, false otherwise
  */
 function isValidString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
@@ -41,6 +44,9 @@ function isValidString(value: unknown): value is string {
 
 /**
  * Validates that an array contains only valid non-empty strings
+ *
+ * @param value - The array to validate
+ * @returns True if value is an array of non-empty strings, false otherwise
  */
 function isValidStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isValidString)
@@ -48,6 +54,9 @@ function isValidStringArray(value: unknown): value is string[] {
 
 /**
  * Runtime validation for suggestions array - ensures type safety at runtime
+ *
+ * @param input - The input to normalize into a suggestions array
+ * @returns Array of valid suggestion strings
  */
 function normalizeSuggestions(input: unknown): string[] {
   if (isValidStringArray(input)) {
@@ -229,6 +238,9 @@ const CAUSE_MAPPINGS: Record<string, { explanation: string; suggestions: string[
 
 /**
  * Get diagnostic information for a failed call
+ *
+ * @param call - The call session to analyze
+ * @returns Diagnostic information including cause, suggestions, and metadata
  */
 export function getCallDiagnostics(call: CallSession): CallDiagnostics {
   if (!call || typeof call !== 'object') {
@@ -257,7 +269,7 @@ export function getCallDiagnostics(call: CallSession): CallDiagnostics {
 /**
  * Get human-readable explanation for a termination cause
  *
- * @param cause - SIP cause code (e.g., '16', '17', '486')
+ * @param cause - SIP cause code (e.g., '16', '17', '486', 'Busy', 'No response')
  * @returns Human-readable explanation of the cause
  */
 export function getCauseExplanation(cause: string): string {
@@ -271,8 +283,8 @@ export function getCauseExplanation(cause: string): string {
 /**
  * Get troubleshooting suggestions for a termination cause
  *
- * @param cause - SIP cause code (e.g., '16', '17', '486')
- * @returns Array of troubleshooting suggestions
+ * @param cause - SIP cause code (e.g., '16', '17', '486', 'Busy', 'No response')
+ * @returns Array of troubleshooting suggestions for the given cause
  */
 export function getCauseSuggestions(cause: string): string[] {
   if (!cause || typeof cause !== 'string') {
@@ -285,7 +297,7 @@ export function getCauseSuggestions(cause: string): string[] {
 /**
  * Get all available cause types
  *
- * @returns Array of all available SIP cause codes
+ * @returns Array of all available SIP cause codes/identifiers
  */
 export function getAvailableCauses(): string[] {
   return Object.keys(CAUSE_MAPPINGS)
