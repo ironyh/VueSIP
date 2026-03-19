@@ -202,6 +202,173 @@ describe('env utilities', () => {
       globalThis.window = originalWindow
       expect(result).toBe(false)
     })
+
+    // Fallback logic tests for older browsers
+    it('should return true for https protocol when isSecureContext is undefined', async () => {
+      const originalWindow = globalThis.window
+
+      globalThis.window = {
+        ...originalWindow,
+        isSecureContext: undefined,
+        location: {
+          protocol: 'https:',
+          hostname: 'example.com',
+        },
+      } as Record<string, unknown>
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(true)
+    })
+
+    it('should return true for localhost http when isSecureContext is undefined', async () => {
+      const originalWindow = globalThis.window
+
+      globalThis.window = {
+        ...originalWindow,
+        isSecureContext: undefined,
+        location: {
+          protocol: 'http:',
+          hostname: 'localhost',
+        },
+      } as Record<string, unknown>
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(true)
+    })
+
+    it('should return true for 127.0.0.1 http when isSecureContext is undefined', async () => {
+      const originalWindow = globalThis.window
+
+      globalThis.window = {
+        ...originalWindow,
+        isSecureContext: undefined,
+        location: {
+          protocol: 'http:',
+          hostname: '127.0.0.1',
+        },
+      } as Record<string, unknown>
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(true)
+    })
+
+    it('should return true for 127.x.x.x addresses when isSecureContext is undefined', async () => {
+      const originalWindow = globalThis.window
+
+      globalThis.window = {
+        ...originalWindow,
+        isSecureContext: undefined,
+        location: {
+          protocol: 'http:',
+          hostname: '127.0.0.254',
+        },
+      } as Record<string, unknown>
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(true)
+    })
+
+    it('should return true for .localhost domain when isSecureContext is undefined', async () => {
+      const originalWindow = globalThis.window
+
+      globalThis.window = {
+        ...originalWindow,
+        isSecureContext: undefined,
+        location: {
+          protocol: 'http:',
+          hostname: 'app.localhost',
+        },
+      } as Record<string, unknown>
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(true)
+    })
+
+    it('should return false for non-localhost http when isSecureContext is undefined', async () => {
+      const originalWindow = globalThis.window
+
+      globalThis.window = {
+        ...originalWindow,
+        isSecureContext: undefined,
+        location: {
+          protocol: 'http:',
+          hostname: 'example.com',
+        },
+      } as Record<string, unknown>
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+    })
+
+    it('should return false when window.location access fails (sandboxed iframe)', async () => {
+      const originalWindow = globalThis.window
+
+      // Create a window where accessing location throws
+      let locationAccessCount = 0
+      Object.defineProperty(globalThis, 'window', {
+        value: {
+          ...originalWindow,
+          isSecureContext: undefined,
+          get location() {
+            locationAccessCount++
+            throw new Error('SecurityError: blocked')
+          },
+        },
+        writable: true,
+      })
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(false)
+      expect(locationAccessCount).toBeGreaterThan(0)
+    })
+
+    it('should be case-insensitive for hostname', async () => {
+      const originalWindow = globalThis.window
+
+      globalThis.window = {
+        ...originalWindow,
+        isSecureContext: undefined,
+        location: {
+          protocol: 'http:',
+          hostname: 'LOCALHOST',
+        },
+      } as Record<string, unknown>
+
+      vi.resetModules()
+      const { isSecureContext } = await import('../env')
+      const result = isSecureContext()
+
+      globalThis.window = originalWindow
+      expect(result).toBe(true)
+    })
   })
 
   describe('isIOS', () => {
