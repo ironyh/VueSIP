@@ -28,12 +28,16 @@ export interface WaitForValueOptions<T> extends WaitForOptions {
 }
 
 /**
- * Default options
+ * Resolve options with defaults
  */
-const DEFAULT_OPTIONS: Required<WaitForOptions> = {
-  timeout: 5000,
-  interval: 50,
-  errorMessage: 'Condition not met within timeout',
+function resolveOptions(
+  options: WaitForOptions = {}
+): Omit<Required<WaitForOptions>, 'errorMessage'> & { errorMessage: string | undefined } {
+  return {
+    timeout: options.timeout ?? 5000,
+    interval: options.interval ?? 50,
+    errorMessage: options.errorMessage,
+  }
 }
 
 /**
@@ -66,7 +70,7 @@ export async function waitForCondition(
   condition: () => boolean | Promise<boolean>,
   options: WaitForOptions = {}
 ): Promise<void> {
-  const opts = { ...DEFAULT_OPTIONS, ...options }
+  const opts = resolveOptions(options)
   const startTime = Date.now()
 
   while (true) {
@@ -77,7 +81,7 @@ export async function waitForCondition(
     }
 
     if (Date.now() - startTime >= opts.timeout) {
-      throw new Error(opts.errorMessage)
+      throw new Error(opts.errorMessage ?? 'Condition not met within timeout')
     }
 
     await new Promise((resolve) => setTimeout(resolve, opts.interval))
@@ -106,7 +110,7 @@ export async function waitForResult<T>(
   condition: () => T | Promise<T>,
   options: WaitForOptions = {}
 ): Promise<T> {
-  const opts = { ...DEFAULT_OPTIONS, ...options }
+  const opts = resolveOptions(options)
   const startTime = Date.now()
 
   while (true) {
@@ -117,7 +121,7 @@ export async function waitForResult<T>(
     }
 
     if (Date.now() - startTime >= opts.timeout) {
-      throw new Error(opts.errorMessage)
+      throw new Error(opts.errorMessage ?? 'Condition not met within timeout')
     }
 
     await new Promise((resolve) => setTimeout(resolve, opts.interval))
@@ -196,7 +200,7 @@ export async function waitForValue<T>(
   expected: T | ((value: T) => boolean),
   options: WaitForValueOptions<T> = {}
 ): Promise<T> {
-  const opts = { ...DEFAULT_OPTIONS, ...options }
+  const opts = resolveOptions(options)
   const predicate =
     typeof expected === 'function'
       ? (expected as (value: T) => boolean)
