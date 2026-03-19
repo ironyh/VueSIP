@@ -186,6 +186,24 @@ describe('buildDetailedSipUri', () => {
     const rebuilt = buildDetailedSipUri(parsed)
     expect(rebuilt).toBe(original)
   })
+
+  it('should build SIP URI with headers', () => {
+    const result = buildDetailedSipUri({
+      user: 'alice',
+      host: 'example.com',
+      headers: { lr: '', transport: 'tls' },
+    })
+    expect(result).toBe('sip:alice@example.com?lr&transport=tls')
+  })
+
+  it('should encode special characters in user and parameters', () => {
+    const result = buildDetailedSipUri({
+      user: 'alice@example',
+      host: 'example.com',
+      parameters: { 'x-key': 'value with spaces' },
+    })
+    expect(result).toBe('sip:alice%40example@example.com;x-key=value%20with%20spaces')
+  })
 })
 
 describe('parseSipUriParams', () => {
