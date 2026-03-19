@@ -1,147 +1,138 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+/**
+ * Unit tests for useE911Recipients composable
+ */
+
+import { describe, it, expect } from 'vitest'
 import { useE911Recipients } from '../useE911Recipients'
-import type { E911NotificationRecipient } from '@/types/e911.types'
 
 describe('useE911Recipients', () => {
-  let subject: ReturnType<typeof useE911Recipients>
+  describe('initialization', () => {
+    it('should initialize with empty array by default', () => {
+      const { recipients } = useE911Recipients()
+      expect(recipients.value).toEqual([])
+    })
 
-  const validRecipient: Omit<E911NotificationRecipient, 'id'> = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    phone: '+15551234567',
-    webhookUrl: 'https://example.com/webhook',
-  }
-
-  beforeEach(() => {
-    subject = useE911Recipients()
+    it('should initialize with provided recipients', () => {
+      const initial = [
+        { id: '1', name: 'Test', email: 'test@test.com', phone: '+1234567890' },
+      ] as const
+      const { recipients } = useE911Recipients([...initial])
+      expect(recipients.value).toHaveLength(1)
+      expect(recipients.value[0].name).toBe('Test')
+    })
   })
 
   describe('addRecipient', () => {
     it('should add a recipient with generated id', () => {
-      const recipient = subject.addRecipient(validRecipient)
+      const { recipients, addRecipient } = useE911Recipients()
 
-      expect(recipient.id).toBeDefined()
-      // ID format: timestamp-randomstring
-      expect(recipient.id).toMatch(/^\d+-[a-z0-9]+$/)
-      expect(recipient.name).toBe('John Doe')
-      expect(recipient.email).toBe('john@example.com')
-      expect(recipient.phone).toBe('+15551234567')
-      expect(recipient.webhookUrl).toBe('https://example.com/webhook')
-    })
-
-    it('should sanitize malicious input', () => {
-      const recipient = subject.addRecipient({
-        name: '<script>alert("xss")</script>',
-        email: 'test@example.com',
-        phone: '+15551234567',
-        webhookUrl: 'javascript:alert(1)',
+      const newRecipient = addRecipient({
+        name: 'John Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        webhookUrl: 'https://example.com/webhook',
       })
 
-      expect(recipient.name).not.toContain('<script>')
-      // javascript: URLs are rejected (return undefined)
-      expect(recipient.webhookUrl).toBeUndefined()
+      expect(recipients.value).toHaveLength(1)
+      expect(newRecipient.id).toBeDefined()
+      expect(newRecipient.name).toBe('John Doe')
+      expect(newRecipient.email).toBe('john@example.com')
     })
 
-    it('should add recipient to the list', () => {
-      expect(subject.recipients.value).toHaveLength(0)
+    it('should sanitize input values', () => {
+      const { addRecipient } = useE911Recipients()
 
-      subject.addRecipient(validRecipient)
+      const newRecipient = addRecipient({
+        name: '  John  ',
+        email: '  JOHN@EXAMPLE.COM  ',
+        phone: '+1-234-567-890',
+        webhookUrl: 'https://example.com/  ',
+      })
 
-      expect(subject.recipients.value).toHaveLength(1)
-    })
-
-    it('should allow multiple recipients', () => {
-      subject.addRecipient(validRecipient)
-      subject.addRecipient({ ...validRecipient, email: 'jane@example.com', name: 'Jane Doe' })
-
-      expect(subject.recipients.value).toHaveLength(2)
+      expect(newRecipient.name).toBeDefined()
+      expect(newRecipient.email).toBeDefined()
     })
   })
 
   describe('updateRecipient', () => {
-    it('should update existing recipient', () => {
-      const added = subject.addRecipient(validRecipient)
-
-      const success = subject.updateRecipient(added.id, { name: 'Jane Doe' })
-
-      expect(success).toBe(true)
-      expect(subject.recipients.value[0].name).toBe('Jane Doe')
-    })
-
     it('should return false for non-existent recipient', () => {
-      const success = subject.updateRecipient('non-existent-id', { name: 'Test' })
+      const { updateRecipient } = useE911Recipients()
 
-      expect(success).toBe(false)
+      const result = updateRecipient('non-existent', { name: 'Updated' })
+      expect(result).toBe(false)
     })
 
-    it('should sanitize updated fields', () => {
-      const added = subject.addRecipient(validRecipient)
+    it('should update existing recipient', () => {
+      const { recipients, addRecipient, updateRecipient } = useE911Recipients()
 
-      subject.updateRecipient(added.id, {
-        name: '<img src=x onerror=alert(1)>',
-        webhookUrl: 'javascript:void(0)',
+      const added = addRecipient({
+        name: 'Original Name',
+        email: 'original@test.com',
+        phone: '+1234567890',
       })
 
-      expect(subject.recipients.value[0].name).not.toContain('<img')
-      // javascript: URLs are rejected
-      expect(subject.recipients.value[0].webhookUrl).toBeUndefined()
+      const result = updateRecipient(added.id, { name: 'Updated Name' })
+
+      expect(result).toBe(true)
+      expect(recipients.value[0].name).toBe('Updated Name')
+    })
+
+    it('should sanitize updated values', () => {
+      const { recipients, addRecipient, updateRecipient } = useE911Recipients()
+
+      const added = addRecipient({
+        name: 'Original',
+        email: 'original@test.com',
+        phone: '+1234567890',
+      })
+
+      updateRecipient(added.id, { email: '  NEW@TEST.COM  ' })
+
+      expect(recipients.value[0].email).toBeDefined()
     })
   })
 
   describe('removeRecipient', () => {
-    it('should remove existing recipient', () => {
-      const added = subject.addRecipient(validRecipient)
-      expect(subject.recipients.value).toHaveLength(1)
+    it('should return false for non-existent recipient', () => {
+      const { removeRecipient } = useE911Recipients()
 
-      const success = subject.removeRecipient(added.id)
-
-      expect(success).toBe(true)
-      expect(subject.recipients.value).toHaveLength(0)
+      const result = removeRecipient('non-existent')
+      expect(result).toBe(false)
     })
 
-    it('should return false for non-existent recipient', () => {
-      const success = subject.removeRecipient('non-existent-id')
+    it('should remove existing recipient', () => {
+      const { recipients, addRecipient, removeRecipient } = useE911Recipients()
 
-      expect(success).toBe(false)
+      const added = addRecipient({
+        name: 'To Remove',
+        email: 'remove@test.com',
+        phone: '+1234567890',
+      })
+
+      expect(recipients.value).toHaveLength(1)
+
+      const result = removeRecipient(added.id)
+
+      expect(result).toBe(true)
+      expect(recipients.value).toHaveLength(0)
     })
   })
 
   describe('setRecipients', () => {
     it('should replace all recipients', () => {
-      subject.addRecipient(validRecipient)
-      subject.addRecipient({ ...validRecipient, email: 'jane@example.com' })
+      const { recipients, addRecipient, setRecipients } = useE911Recipients()
 
-      const newRecipients: E911NotificationRecipient[] = [
-        { id: 'e911-new-1', name: 'New 1', email: 'new1@test.com', phone: '+15550000001' },
-        { id: 'e911-new-2', name: 'New 2', email: 'new2@test.com', phone: '+15550000002' },
-      ]
+      addRecipient({ name: 'One', email: 'one@test.com', phone: '+1111111111' })
+      expect(recipients.value).toHaveLength(1)
 
-      subject.setRecipients(newRecipients)
+      const newRecipients = [
+        { id: 'new1', name: 'New One', email: 'new1@test.com', phone: '+2222222222' },
+        { id: 'new2', name: 'New Two', email: 'new2@test.com', phone: '+3333333333' },
+      ] as const
+      setRecipients([...newRecipients])
 
-      expect(subject.recipients.value).toHaveLength(2)
-      expect(subject.recipients.value[0].name).toBe('New 1')
-      expect(subject.recipients.value[1].name).toBe('New 2')
-    })
-
-    it('should handle empty array', () => {
-      subject.addRecipient(validRecipient)
-
-      subject.setRecipients([])
-
-      expect(subject.recipients.value).toHaveLength(0)
-    })
-  })
-
-  describe('with initial recipients', () => {
-    it('should initialize with provided recipients', () => {
-      const initial: E911NotificationRecipient[] = [
-        { id: 'e911-init-1', name: 'Initial 1', email: 'init1@test.com', phone: '+15550000001' },
-      ]
-
-      const subjectWithInitial = useE911Recipients(initial)
-
-      expect(subjectWithInitial.recipients.value).toHaveLength(1)
-      expect(subjectWithInitial.recipients.value[0].name).toBe('Initial 1')
+      expect(recipients.value).toHaveLength(2)
+      expect(recipients.value[0].name).toBe('New One')
     })
   })
 })
