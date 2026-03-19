@@ -256,6 +256,9 @@ export function getCallDiagnostics(call: CallSession): CallDiagnostics {
 
 /**
  * Get human-readable explanation for a termination cause
+ *
+ * @param cause - SIP cause code (e.g., '16', '17', '486')
+ * @returns Human-readable explanation of the cause
  */
 export function getCauseExplanation(cause: string): string {
   if (!cause || typeof cause !== 'string') {
@@ -267,6 +270,9 @@ export function getCauseExplanation(cause: string): string {
 
 /**
  * Get troubleshooting suggestions for a termination cause
+ *
+ * @param cause - SIP cause code (e.g., '16', '17', '486')
+ * @returns Array of troubleshooting suggestions
  */
 export function getCauseSuggestions(cause: string): string[] {
   if (!cause || typeof cause !== 'string') {
@@ -278,6 +284,8 @@ export function getCauseSuggestions(cause: string): string[] {
 
 /**
  * Get all available cause types
+ *
+ * @returns Array of all available SIP cause codes
  */
 export function getAvailableCauses(): string[] {
   return Object.keys(CAUSE_MAPPINGS)
