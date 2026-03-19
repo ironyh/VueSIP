@@ -20,6 +20,14 @@ export interface WaitForOptions {
 }
 
 /**
+ * Options for waitForValue
+ */
+export interface WaitForValueOptions<T> extends WaitForOptions {
+  /** Custom predicate to determine if the value is ready */
+  predicate?: (value: T) => boolean
+}
+
+/**
  * Default options
  */
 const DEFAULT_OPTIONS: Required<WaitForOptions> = {
@@ -144,4 +152,74 @@ export async function waitForDefined<T>(
     },
     { ...options, errorMessage: options.errorMessage ?? 'Value never became defined' }
   ) as Promise<T>
+}
+
+/**
+ * Wait for a value to match a specific expected value or predicate
+ *
+ * Unlike waitForResult which treats any falsy value as "not ready",
+ * this function allows waiting for specific values including falsy ones
+ * like `false`, `0`, or `''`.
+ *
+ * @param getter - Function that returns the value to check
+ * @param expected - Expected value or predicate function
+ * @param options - Wait options
+ * @returns Promise that resolves with the value when it matches
+ * @throws Error if timeout is reached
+ *
+ * @example
+ * ```typescript
+ * // Wait for a toggle to become false
+ * const result = await waitForValue(
+ *   () => settings.autoSave,
+ *   false,
+ *   { timeout: 3000 }
+ * )
+ *
+ * // Wait for count to reach specific number
+ * const count = await waitForValue(
+ *   () => notifications.length,
+ *   5,
+ *   { timeout: 5000 }
+ * )
+ *
+ * // Wait using custom predicate
+ * const item = await waitForValue(
+ *   () => getListItem(id),
+ *   (item) => item?.status === 'ready',
+ *   { timeout: 2000 }
+ * )
+ * ```
+ */
+export async function waitForValue<T>(
+  getter: () => T,
+  expected: T | ((value: T) => boolean),
+  options: WaitForValueOptions<T> = {}
+): Promise<T> {
+  const opts = { ...DEFAULT_OPTIONS, ...options }
+  const predicate =
+    typeof expected === 'function'
+      ? (expected as (value: T) => boolean)
+      : (value: T) => value === expected
+
+  const startTime = Date.now()
+
+  while (true) {
+    const result = getter()
+
+    if (predicate(result)) {
+      return result
+    }
+
+    if (Date.now() - startTime >= opts.timeout) {
+      const expectedStr =
+        typeof expected === 'function' ? 'predicate to match' : `value ${JSON.stringify(expected)}`
+      throw new Error(
+        opts.errorMessage ??
+          `Expected ${expectedStr} within ${opts.timeout}ms, got ${JSON.stringify(result)}`
+      )
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, opts.interval))
+  }
 }

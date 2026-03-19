@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, test, vi } from 'vitest'
-import { waitForCondition, waitForResult, waitForDefined } from '../waitFor'
+import { waitForCondition, waitForResult, waitForDefined, waitForValue } from '../waitFor'
 
 describe('waitForCondition', () => {
   test('resolves immediately when condition is true', async () => {
@@ -142,5 +142,97 @@ describe('waitForDefined', () => {
     await expect(waitForDefined(getter, { timeout: 100 })).rejects.toThrow(
       'Value never became defined'
     )
+  })
+})
+
+describe('waitForValue', () => {
+  test('resolves immediately when value matches expected', async () => {
+    const getter = vi.fn().mockReturnValue('ready')
+
+    const result = await waitForValue(getter, 'ready')
+
+    expect(result).toBe('ready')
+    expect(getter).toHaveBeenCalledTimes(1)
+  })
+
+  test('waits for specific falsy value (false)', async () => {
+    let callCount = 0
+    const getter = vi.fn().mockImplementation(() => {
+      callCount++
+      return callCount >= 2 ? false : true
+    })
+
+    const result = await waitForValue(getter, false, { timeout: 1000, interval: 50 })
+
+    expect(result).toBe(false)
+    expect(getter).toHaveBeenCalledTimes(2)
+  })
+
+  test('waits for specific numeric value (0)', async () => {
+    let callCount = 0
+    const getter = vi.fn().mockImplementation(() => {
+      callCount++
+      return callCount >= 2 ? 0 : callCount
+    })
+
+    const result = await waitForValue(getter, 0, { timeout: 1000, interval: 50 })
+
+    expect(result).toBe(0)
+  })
+
+  test('waits for specific string value (empty string)', async () => {
+    let callCount = 0
+    const getter = vi.fn().mockImplementation(() => {
+      callCount++
+      return callCount >= 2 ? '' : 'loading'
+    })
+
+    const result = await waitForValue(getter, '', { timeout: 1000, interval: 50 })
+
+    expect(result).toBe('')
+  })
+
+  test('supports predicate function', async () => {
+    let callCount = 0
+    const getter = vi.fn().mockImplementation(() => {
+      callCount++
+      return { status: callCount >= 2 ? 'ready' : 'pending', id: 1 }
+    })
+
+    const result = await waitForValue(getter, (value) => value.status === 'ready', {
+      timeout: 1000,
+      interval: 50,
+    })
+
+    expect(result.status).toBe('ready')
+  })
+
+  test('throws error on timeout with descriptive message', async () => {
+    const getter = vi.fn().mockReturnValue('not-ready')
+
+    await expect(waitForValue(getter, 'ready', { timeout: 100, interval: 10 })).rejects.toThrow(
+      '"ready"'
+    )
+  })
+
+  test('throws custom error message', async () => {
+    const getter = vi.fn().mockReturnValue('wrong')
+
+    await expect(
+      waitForValue(getter, 'expected', { timeout: 100, errorMessage: 'Custom error' })
+    ).rejects.toThrow('Custom error')
+  })
+
+  test('handles object comparison', async () => {
+    const expected = { id: 1, name: 'test' }
+    let callCount = 0
+    const getter = vi.fn().mockImplementation(() => {
+      callCount++
+      return callCount >= 2 ? expected : { id: 1, name: 'loading' }
+    })
+
+    const result = await waitForValue(getter, expected, { timeout: 1000, interval: 50 })
+
+    expect(result).toEqual(expected)
   })
 })

@@ -4,7 +4,14 @@
  * @module testing
  */
 
-export { waitForCondition, waitForResult, waitForDefined, type WaitForOptions } from './waitFor'
+export {
+  waitForCondition,
+  waitForResult,
+  waitForDefined,
+  waitForValue,
+  type WaitForOptions,
+  type WaitForValueOptions,
+} from './waitFor'
 export {
   isE2EMode,
   getE2EEmit,
