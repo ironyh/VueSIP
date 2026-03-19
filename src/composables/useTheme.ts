@@ -24,6 +24,7 @@ export const _resetForTesting = (): void => {
 
 /**
  * Apply theme to document
+ * @param dark - Whether to apply dark mode
  */
 const applyTheme = (dark: boolean): void => {
   if (dark) {
@@ -35,6 +36,7 @@ const applyTheme = (dark: boolean): void => {
 
 /**
  * Get current theme
+ * @returns The current theme ('light' or 'dark')
  */
 const getCurrentTheme = (): Theme => {
   return isDarkMode.value ? 'dark' : 'light'
@@ -42,6 +44,7 @@ const getCurrentTheme = (): Theme => {
 
 /**
  * Set theme
+ * @param theme - The theme to set ('light' or 'dark')
  */
 const setTheme = (theme: Theme): void => {
   isDarkMode.value = theme === 'dark'
@@ -49,6 +52,7 @@ const setTheme = (theme: Theme): void => {
 
 /**
  * Toggle theme
+ * @returns The new theme after toggling ('light' or 'dark')
  */
 const toggleTheme = (): void => {
   isDarkMode.value = !isDarkMode.value
@@ -56,6 +60,7 @@ const toggleTheme = (): void => {
 
 /**
  * Initialize theme from localStorage or system preference
+ * @returns void
  */
 const initializeTheme = (): void => {
   if (isInitialized.value) return
@@ -73,6 +78,7 @@ const initializeTheme = (): void => {
 
 /**
  * Theme management composable
+ * @returns Object containing theme state and control functions
  */
 export function useTheme() {
   // Initialize on first use
