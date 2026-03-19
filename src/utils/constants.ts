@@ -414,7 +414,7 @@ export const E164_PHONE_REGEX = /^\+[1-9]\d{1,14}$/
  * Regular expression for WebSocket URL validation
  * Matches: ws:// or wss://
  */
-export const WEBSOCKET_URL_REGEX = /^wss?:\/\/.+/
+export const WEBSOCKET_URL_REGEX = /^wss?:\/\/.+/i
 
 // ============================================================================
 // Type Guards and Helpers
