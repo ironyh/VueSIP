@@ -346,11 +346,22 @@ describe('formatCallTime', () => {
     expect(formatCallTime(date, now)).toContain('Jan')
   })
 
-  test('handles future dates (shows as past due to absolute value)', () => {
+  test('shows "in X minutes" for future dates', () => {
+    const now = new Date('2024-01-15T12:00:00')
+    const date = new Date('2024-01-15T12:05:00')
+    expect(formatCallTime(date, now)).toBe('in 5 minutes')
+  })
+
+  test('shows "in X hours" for future dates', () => {
+    const now = new Date('2024-01-15T12:00:00')
+    const date = new Date('2024-01-15T14:00:00')
+    expect(formatCallTime(date, now)).toBe('in 2 hours')
+  })
+
+  test('shows "in X days" for future dates', () => {
     const now = new Date('2024-01-15T12:00:00')
     const date = new Date('2024-01-20T12:00:00')
-    // Future dates compute as "Just now" since diff is negative but |diff| < 60s
-    expect(formatCallTime(date, now)).toBe('Just now')
+    expect(formatCallTime(date, now)).toBe('in 5 days')
   })
 
   test('handles invalid date', () => {

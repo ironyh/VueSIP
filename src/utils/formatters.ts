@@ -496,6 +496,21 @@ export function formatCallTime(date: Date, now: Date = new Date()): string {
 
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
+  // Future dates: show "in X time"
+  if (seconds < 0) {
+    const absSeconds = Math.abs(seconds)
+    const minutes = Math.floor(absSeconds / 60)
+    if (minutes < 60) {
+      return `in ${minutes} minute${minutes === 1 ? '' : 's'}`
+    }
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) {
+      return `in ${hours} hour${hours === 1 ? '' : 's'}`
+    }
+    const days = Math.floor(hours / 24)
+    return `in ${days} day${days === 1 ? '' : 's'}`
+  }
+
   // Just now (< 60 seconds)
   if (seconds < 60) {
     return 'Just now'
