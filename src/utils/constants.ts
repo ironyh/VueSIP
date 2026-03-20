@@ -477,3 +477,26 @@ export const REGISTRATION_STATES = [
   'unregistering',
   'failed',
 ] as const
+
+/**
+ * Network quality levels (used for call quality monitoring)
+ */
+export const NETWORK_QUALITY_LEVELS = ['excellent', 'good', 'fair', 'poor', 'bad'] as const
+
+/**
+ * Network quality threshold configuration
+ */
+export const NETWORK_QUALITY_THRESHOLDS = {
+  /** Minimum RTT (ms) for excellent quality */
+  excellentRtt: 50,
+  /** Maximum RTT (ms) for good quality */
+  goodRtt: 150,
+  /** Maximum RTT (ms) for fair quality */
+  fairRtt: 300,
+  /** Maximum packet loss (%) for excellent quality */
+  excellentPacketLoss: 1,
+  /** Maximum packet loss (%) for good quality */
+  goodPacketLoss: 3,
+  /** Maximum packet loss (%) for fair quality */
+  fairPacketLoss: 5,
+} as const
