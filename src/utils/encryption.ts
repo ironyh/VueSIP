@@ -172,6 +172,12 @@ export async function encrypt<T = unknown>(
     throw new Error('Web Crypto API is not available')
   }
 
+  // Reject undefined explicitly - JSON.stringify converts it to undefined (not "undefined"),
+  // which produces an empty string that cannot be round-tripped through JSON.parse
+  if (data === undefined) {
+    throw new Error('Cannot encrypt undefined. Provide a value or use null for empty values.')
+  }
+
   const opts = { ...DEFAULT_ENCRYPTION_OPTIONS, ...options }
 
   try {

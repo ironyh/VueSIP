@@ -140,6 +140,14 @@ describe('encryption', () => {
 
       await expect(encrypt({ test: 'data' }, 'password')).rejects.toThrow('Encryption failed')
     })
+
+    it('should reject undefined data with a clear error message', async () => {
+      // JSON.stringify(undefined) returns undefined (not "undefined"), causing
+      // an empty string to be encrypted which cannot round-trip through JSON.parse
+      await expect(
+        encrypt(undefined as unknown as Record<string, unknown>, 'password')
+      ).rejects.toThrow('Cannot encrypt undefined')
+    })
   })
 
   describe('decrypt error handling', () => {
