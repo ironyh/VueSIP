@@ -27,8 +27,36 @@ export interface ServiceWorkerRegistrationInfo {
   /** The service worker script URL */
   scriptURL: string
   /** Current state of the service worker */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  state: any
+  state: ServiceWorkerState
+}
+
+/** Service worker state type */
+export type ServiceWorkerState =
+  | 'installing'
+  | 'installed'
+  | 'activating'
+  | 'activated'
+  | 'redundant'
+
+/** Push event type (Service Worker API) - minimal interface */
+interface PushEvent {
+  readonly data: {
+    readonly json: () => unknown
+    readonly text: () => string
+    readonly arrayBuffer: () => ArrayBuffer
+    readonly blob: () => Blob
+  } | null
+}
+
+/** Notification click event type (Service Worker API) - minimal interface */
+interface NotificationEvent {
+  readonly action: string
+  readonly notification: {
+    readonly title: string
+    readonly body: string
+    readonly tag: string
+    readonly data: unknown
+  }
 }
 
 /**
@@ -53,11 +81,9 @@ export interface UsePushNotificationsOptions {
   /** Path to the service worker file (default: '/sw.js') */
   serviceWorkerPath?: string
   /** Callback when push notification is received */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onPush?: (event: any) => void
+  onPush?: (event: PushEvent) => void
   /** Callback when notification click is handled */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onNotificationClick?: (event: any) => void
+  onNotificationClick?: (event: NotificationEvent) => void
 }
 
 /**
@@ -253,28 +279,26 @@ export function usePushNotifications(
       _registration.value = {
         scope: reg.scope,
         scriptURL: reg.active?.scriptURL ?? reg.installing?.scriptURL ?? '',
-        state: reg.active?.state ?? reg.installing?.state ?? 'installed',
+        state: (reg.active?.state ?? reg.installing?.state ?? 'installed') as ServiceWorkerState,
       }
 
       logger.debug('Service worker registered', { scope: reg.scope })
 
       // Set up push event listener
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      reg.addEventListener('push', (event: any) => {
+      reg.addEventListener('push', ((event: PushEvent) => {
         logger.debug('Push event received', { hasData: !!event.data })
         if (options.onPush && event.data) {
           options.onPush(event)
         }
-      })
+      }) as unknown as EventListener)
 
       // Set up notification click listener
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      reg.addEventListener('notificationclick', (event: any) => {
+      reg.addEventListener('notificationclick', ((event: NotificationEvent) => {
         logger.debug('Notification click received', { action: event.action })
         if (options.onNotificationClick) {
           options.onNotificationClick(event)
         }
-      })
+      }) as unknown as EventListener)
 
       // Check for existing subscription
       const existingSub = await reg.pushManager.getSubscription()
