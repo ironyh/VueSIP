@@ -64,6 +64,49 @@ export function isDevelopmentMode(): boolean {
 }
 
 /**
+ * Check if running in test environment
+ *
+ * Detects Vitest, Vite test mode, and Node.js test environments.
+ * Useful for code that needs to adjust behavior during testing
+ * (e.g., reducing iteration counts for faster tests).
+ *
+ * @returns true if running in a test environment
+ *
+ * @example
+ * ```typescript
+ * if (isTestEnvironment()) {
+ *   // Use fewer iterations for faster tests
+ * }
+ * ```
+ */
+export function isTestEnvironment(): boolean {
+  try {
+    const meta = import.meta as {
+      vitest?: unknown
+      env?: { MODE?: string; TEST?: boolean; VITEST?: boolean }
+    }
+    // Vitest sets import.meta.vitest when running tests
+    if (meta.vitest !== undefined) {
+      return true
+    }
+    // Vite test mode or TEST flag
+    if (meta.env?.MODE === 'test' || meta.env?.TEST || meta.env?.VITEST) {
+      return true
+    }
+  } catch {
+    // import.meta not available, continue to process checks
+  }
+  // Node.js environment variable fallback (for test runners)
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+    return true
+  }
+  if (typeof process !== 'undefined' && !!process.env?.VITEST) {
+    return true
+  }
+  return false
+}
+
+/**
  * Check if debug mode is enabled
  *
  * Uses Vite environment variables (VITE_DEBUG) or build-time flags.

@@ -11,35 +11,9 @@
 
 import type { EncryptedData, EncryptionOptions } from '../types/storage.types'
 import { createLogger } from './logger'
+import { isTestEnvironment } from './env'
 
 const logger = createLogger('utils:encryption')
-
-/**
- * Check if running in test environment
- */
-function isTestEnvironment(): boolean {
-  // Check for Vitest - import.meta.vitest is always available in Vitest
-  try {
-    const meta = import.meta as {
-      vitest?: unknown
-      env?: { MODE?: string; TEST?: boolean; VITEST?: boolean }
-    }
-    if (meta.vitest !== undefined) {
-      return true
-    }
-    // Check for Vite environment variables
-    if (meta.env?.MODE === 'test' || meta.env?.TEST || meta.env?.VITEST) {
-      return true
-    }
-  } catch {
-    // import.meta not available, continue to other checks
-  }
-  // Check for Node.js environment variables
-  if (typeof process !== 'undefined') {
-    return process.env.NODE_ENV === 'test' || !!process.env.VITEST
-  }
-  return false
-}
 
 /**
  * Minimum allowed PBKDF2 iterations for security
