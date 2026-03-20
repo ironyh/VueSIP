@@ -28,6 +28,8 @@ import {
   STORAGE_PREFIX,
   STORAGE_VERSION,
   STORAGE_KEYS,
+  NETWORK_QUALITY_LEVELS,
+  NETWORK_QUALITY_THRESHOLDS,
   PERFORMANCE,
   VALIDATION,
   CALL_SESSION,
@@ -325,6 +327,47 @@ describe('constants', () => {
       expect(REGISTRATION_STATES).toContain('registering')
       expect(REGISTRATION_STATES).toContain('registered')
       expect(REGISTRATION_STATES).toContain('failed')
+    })
+  })
+
+  describe('Network Quality Levels', () => {
+    it('should have all network quality levels in order', () => {
+      expect(NETWORK_QUALITY_LEVELS).toEqual(['excellent', 'good', 'fair', 'poor', 'bad'])
+    })
+
+    it('should have 5 quality levels', () => {
+      expect(NETWORK_QUALITY_LEVELS.length).toBe(5)
+    })
+  })
+
+  describe('Network Quality Thresholds', () => {
+    it('should have RTT thresholds in ascending order', () => {
+      expect(NETWORK_QUALITY_THRESHOLDS.excellentRtt).toBeLessThan(
+        NETWORK_QUALITY_THRESHOLDS.goodRtt
+      )
+      expect(NETWORK_QUALITY_THRESHOLDS.goodRtt).toBeLessThan(NETWORK_QUALITY_THRESHOLDS.fairRtt)
+    })
+
+    it('should have packet loss thresholds in ascending order', () => {
+      expect(NETWORK_QUALITY_THRESHOLDS.excellentPacketLoss).toBeLessThan(
+        NETWORK_QUALITY_THRESHOLDS.goodPacketLoss
+      )
+      expect(NETWORK_QUALITY_THRESHOLDS.goodPacketLoss).toBeLessThan(
+        NETWORK_QUALITY_THRESHOLDS.fairPacketLoss
+      )
+    })
+
+    it('should have reasonable threshold values', () => {
+      // RTT thresholds should be positive and reasonable (in ms)
+      expect(NETWORK_QUALITY_THRESHOLDS.excellentRtt).toBeGreaterThan(0)
+      expect(NETWORK_QUALITY_THRESHOLDS.excellentRtt).toBeLessThan(100)
+      expect(NETWORK_QUALITY_THRESHOLDS.goodRtt).toBeLessThan(200)
+      expect(NETWORK_QUALITY_THRESHOLDS.fairRtt).toBeLessThan(400)
+
+      // Packet loss thresholds should be small percentages
+      expect(NETWORK_QUALITY_THRESHOLDS.excellentPacketLoss).toBeLessThan(2)
+      expect(NETWORK_QUALITY_THRESHOLDS.goodPacketLoss).toBeLessThan(5)
+      expect(NETWORK_QUALITY_THRESHOLDS.fairPacketLoss).toBeLessThan(10)
     })
   })
 })
