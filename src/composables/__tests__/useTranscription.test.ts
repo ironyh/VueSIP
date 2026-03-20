@@ -19,8 +19,22 @@ import type {
   IProviderRegistry,
 } from '@/types/transcription.types'
 
+/**
+ * Internal test methods for mock provider (not part of public API)
+ */
+interface MockProviderTestExtensions {
+  _triggerInterim: (text: string, sourceId: string) => void
+  _triggerFinal: (
+    result: { text: string; confidence: number; language?: string; words?: string[] },
+    sourceId: string
+  ) => void
+  _triggerError: (error: Error) => void
+}
+
+type TestMockProvider = TranscriptionProvider & MockProviderTestExtensions
+
 describe('useTranscription', () => {
-  let mockProvider: TranscriptionProvider
+  let mockProvider: TestMockProvider
   let mockKeywordDetector: IKeywordDetector
   let mockPIIRedactor: IPIIRedactor
   let mockExporter: ITranscriptExporter
@@ -80,16 +94,16 @@ describe('useTranscription', () => {
     }
 
     // Expose trigger functions for testing
-    ;(mockProvider as any)._triggerInterim = (text: string, sourceId: string) => {
+    mockProvider._triggerInterim = (text: string, sourceId: string) => {
       callbacks.onInterim.forEach((cb) => cb(text, sourceId))
     }
-    ;(mockProvider as any)._triggerFinal = (
+    mockProvider._triggerFinal = (
       result: { text: string; confidence: number; language?: string; words?: string[] },
       sourceId: string
     ) => {
       callbacks.onFinal.forEach((cb) => cb(result, sourceId))
     }
-    ;(mockProvider as any)._triggerError = (error: Error) => {
+    mockProvider._triggerError = (error: Error) => {
       callbacks.onError.forEach((cb) => cb(error))
     }
 
