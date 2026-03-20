@@ -739,5 +739,11 @@ describe('errorHelpers', () => {
       expect(isNotSupportedError(null)).toBe(false)
       expect(isNotSupportedError({})).toBe(false)
     })
+
+    it('should return false for regular Error with not supported message', () => {
+      // Current implementation only checks DOMException, not message content
+      const error = new Error('Operation not supported')
+      expect(isNotSupportedError(error)).toBe(false)
+    })
   })
 })
