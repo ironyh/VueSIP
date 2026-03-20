@@ -187,22 +187,18 @@ describe('encryption', () => {
       await expect(decrypt(encryptedData, 'password')).rejects.toThrow('Decryption failed')
     })
 
-    it('should fallback to default iterations for old data without iterations field', async () => {
+    it('should reject old data without iterations field (security improvement)', async () => {
       const encryptedData = {
         data: 'abc',
         iv: 'def',
         salt: 'ghi',
         algorithm: 'AES-GCM',
-        // no iterations field - should fallback
+        // no iterations field - should reject for security
         version: 1,
       }
 
-      mockSubtle.decrypt.mockResolvedValue(new TextEncoder().encode('{"test":true}').buffer)
-
-      await decrypt(encryptedData, 'password')
-
-      // Should have called deriveKey
-      expect(mockSubtle.deriveKey).toHaveBeenCalled()
+      // Should throw due to missing iterations (security improvement)
+      await expect(decrypt(encryptedData, 'password')).rejects.toThrow('iterations too low')
     })
   })
 

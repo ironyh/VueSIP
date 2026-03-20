@@ -42,6 +42,13 @@ function isTestEnvironment(): boolean {
 }
 
 /**
+ * Minimum allowed PBKDF2 iterations for security
+ * Values below this could be vulnerable to brute-force attacks
+ * In test environment, lower values are accepted for testing purposes
+ */
+const MIN_SECURE_ITERATIONS = isTestEnvironment() ? 1000 : 10000
+
+/**
  * Default encryption options
  * Use fewer iterations in test environment for faster tests
  */
@@ -254,7 +261,18 @@ export async function decrypt<T = unknown>(
     const data = new Uint8Array(base64ToArrayBuffer(encryptedData.data))
 
     // Derive decryption key (using iterations from encrypted data)
-    const iterations = encryptedData.iterations || 100000 // fallback for old data
+    // Validate iterations to prevent downgrade attacks
+    const iterations = encryptedData.iterations
+    if (!iterations || iterations < MIN_SECURE_ITERATIONS) {
+      logger.error('Decryption failed: iterations too low or missing', {
+        providedIterations: iterations,
+        minimumRequired: MIN_SECURE_ITERATIONS,
+      })
+      throw new Error(
+        `Invalid encrypted data: iterations too low (minimum: ${MIN_SECURE_ITERATIONS}). The data may be corrupted or tampered with.`
+      )
+    }
+
     const key = await deriveKey(password, salt, iterations)
 
     // Decrypt data
