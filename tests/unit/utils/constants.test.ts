@@ -332,7 +332,7 @@ describe('constants', () => {
 
   describe('Network Quality Levels', () => {
     it('should have all network quality levels in order', () => {
-      expect(NETWORK_QUALITY_LEVELS).toEqual(['excellent', 'good', 'fair', 'poor', 'bad'])
+      expect(NETWORK_QUALITY_LEVELS).toEqual(['excellent', 'good', 'fair', 'poor', 'critical'])
     })
 
     it('should have 5 quality levels', () => {
@@ -346,6 +346,10 @@ describe('constants', () => {
         NETWORK_QUALITY_THRESHOLDS.goodRtt
       )
       expect(NETWORK_QUALITY_THRESHOLDS.goodRtt).toBeLessThan(NETWORK_QUALITY_THRESHOLDS.fairRtt)
+      expect(NETWORK_QUALITY_THRESHOLDS.fairRtt).toBeLessThan(NETWORK_QUALITY_THRESHOLDS.poorRtt)
+      expect(NETWORK_QUALITY_THRESHOLDS.poorRtt).toBeLessThan(
+        NETWORK_QUALITY_THRESHOLDS.criticalRtt
+      )
     })
 
     it('should have packet loss thresholds in ascending order', () => {
@@ -355,6 +359,12 @@ describe('constants', () => {
       expect(NETWORK_QUALITY_THRESHOLDS.goodPacketLoss).toBeLessThan(
         NETWORK_QUALITY_THRESHOLDS.fairPacketLoss
       )
+      expect(NETWORK_QUALITY_THRESHOLDS.fairPacketLoss).toBeLessThan(
+        NETWORK_QUALITY_THRESHOLDS.poorPacketLoss
+      )
+      expect(NETWORK_QUALITY_THRESHOLDS.poorPacketLoss).toBeLessThan(
+        NETWORK_QUALITY_THRESHOLDS.criticalPacketLoss
+      )
     })
 
     it('should have reasonable threshold values', () => {
@@ -363,11 +373,15 @@ describe('constants', () => {
       expect(NETWORK_QUALITY_THRESHOLDS.excellentRtt).toBeLessThan(100)
       expect(NETWORK_QUALITY_THRESHOLDS.goodRtt).toBeLessThan(200)
       expect(NETWORK_QUALITY_THRESHOLDS.fairRtt).toBeLessThan(400)
+      expect(NETWORK_QUALITY_THRESHOLDS.poorRtt).toBeLessThan(600)
+      expect(NETWORK_QUALITY_THRESHOLDS.criticalRtt).toBeLessThan(2000)
 
       // Packet loss thresholds should be small percentages
       expect(NETWORK_QUALITY_THRESHOLDS.excellentPacketLoss).toBeLessThan(2)
       expect(NETWORK_QUALITY_THRESHOLDS.goodPacketLoss).toBeLessThan(5)
       expect(NETWORK_QUALITY_THRESHOLDS.fairPacketLoss).toBeLessThan(10)
+      expect(NETWORK_QUALITY_THRESHOLDS.poorPacketLoss).toBeLessThan(15)
+      expect(NETWORK_QUALITY_THRESHOLDS.criticalPacketLoss).toBeLessThan(30)
     })
   })
 })
