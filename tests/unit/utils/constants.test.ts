@@ -332,11 +332,18 @@ describe('constants', () => {
 
   describe('Network Quality Levels', () => {
     it('should have all network quality levels in order', () => {
-      expect(NETWORK_QUALITY_LEVELS).toEqual(['excellent', 'good', 'fair', 'poor', 'critical'])
+      expect(NETWORK_QUALITY_LEVELS).toEqual([
+        'excellent',
+        'good',
+        'fair',
+        'poor',
+        'critical',
+        'unknown',
+      ])
     })
 
-    it('should have 5 quality levels', () => {
-      expect(NETWORK_QUALITY_LEVELS.length).toBe(5)
+    it('should have 6 quality levels', () => {
+      expect(NETWORK_QUALITY_LEVELS.length).toBe(6)
     })
   })
 

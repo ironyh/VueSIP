@@ -482,7 +482,14 @@ export const REGISTRATION_STATES = [
  * Network quality levels (used for call quality monitoring)
  * Aligned with NetworkQualityLevel type in call-quality.types.ts
  */
-export const NETWORK_QUALITY_LEVELS = ['excellent', 'good', 'fair', 'poor', 'critical'] as const
+export const NETWORK_QUALITY_LEVELS = [
+  'excellent',
+  'good',
+  'fair',
+  'poor',
+  'critical',
+  'unknown',
+] as const
 
 /**
  * Network quality threshold configuration
