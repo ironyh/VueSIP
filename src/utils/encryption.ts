@@ -325,10 +325,10 @@ const ALWAYS_MASK_FIELDS = new Set([
   'pass',
   'pwd',
   'credential',
-  'privateKey',
-  'apiKey',
-  'accessToken',
-  'refreshToken',
+  'privatekey',
+  'apikey',
+  'accesstoken',
+  'refreshtoken',
 ])
 
 /**
@@ -402,6 +402,31 @@ export function sanitizeForLogs(
 
   // For non-object primitives (number, boolean, etc.)
   if (typeof data !== 'object') {
+    return data
+  }
+
+  // Handle Map instances — Object.entries returns [] on Maps, so we must
+  // iterate explicitly or silently drop all entries.
+  if (data instanceof Map) {
+    const resultMap = new Map()
+    for (const [k, v] of data.entries()) {
+      resultMap.set(sanitizeForLogs(k, options), sanitizeForLogs(v, options))
+    }
+    return resultMap
+  }
+
+  // Handle Set instances — Object.entries returns [] on Sets, so we must
+  // iterate explicitly or silently drop all values.
+  if (data instanceof Set) {
+    const resultSet = new Set()
+    for (const v of data.values()) {
+      resultSet.add(sanitizeForLogs(v, options))
+    }
+    return resultSet
+  }
+
+  // Handle WeakMap and WeakSet — cannot be iterated, return as-is
+  if (data instanceof WeakMap || data instanceof WeakSet) {
     return data
   }
 
