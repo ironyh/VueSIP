@@ -312,7 +312,7 @@ describe('useTranscription', () => {
       await result.start()
 
       // Simulate receiving a final transcript
-      ;(provider as any)._triggerFinal(
+      ;(provider as TestMockProvider)._triggerFinal(
         {
           text: 'Hello world',
           confidence: 0.95,
@@ -349,7 +349,7 @@ describe('useTranscription', () => {
       await result.start()
 
       // Simulate interim result
-      ;(provider as any)._triggerInterim('Hello w', 'local')
+      ;(provider as TestMockProvider)._triggerInterim('Hello w', 'local')
 
       expect(result.currentUtterance.value).toBe('Hello w')
     })
@@ -372,7 +372,7 @@ describe('useTranscription', () => {
       const result = useTranscription({ dependencies: deps, ...defaultOptions })
 
       await result.start()
-      ;(provider as any)._triggerFinal({ text: 'Test', confidence: 0.9 }, 'local')
+      ;(provider as TestMockProvider)._triggerFinal({ text: 'Test', confidence: 0.9 }, 'local')
 
       await nextTick()
       expect(result.transcript.value).toHaveLength(1)
@@ -441,7 +441,7 @@ describe('useTranscription', () => {
       expect(result.localEnabled.value).toBe(false)
 
       // Trigger final - local should not be processed
-      ;(provider as any)._triggerFinal({ text: 'Hello', confidence: 0.9 }, 'local')
+      ;(provider as TestMockProvider)._triggerFinal({ text: 'Hello', confidence: 0.9 }, 'local')
 
       await nextTick()
       expect(result.transcript.value).toHaveLength(0)
@@ -517,7 +517,10 @@ describe('useTranscription', () => {
       const result = useTranscription({ dependencies: deps, ...defaultOptions })
 
       await result.start()
-      ;(provider as any)._triggerFinal({ text: 'Test message', confidence: 0.9 }, 'local')
+      ;(provider as TestMockProvider)._triggerFinal(
+        { text: 'Test message', confidence: 0.9 },
+        'local'
+      )
       await nextTick()
 
       const jsonOutput = result.exportTranscript('json')
@@ -543,7 +546,10 @@ describe('useTranscription', () => {
       const result = useTranscription({ dependencies: deps, ...defaultOptions })
 
       await result.start()
-      ;(provider as any)._triggerFinal({ text: 'Hello world', confidence: 0.9 }, 'local')
+      ;(provider as TestMockProvider)._triggerFinal(
+        { text: 'Hello world', confidence: 0.9 },
+        'local'
+      )
       await nextTick()
 
       const textOutput = result.exportTranscript('text')
@@ -570,8 +576,14 @@ describe('useTranscription', () => {
       const result = useTranscription({ dependencies: deps, ...defaultOptions })
 
       await result.start()
-      ;(provider as any)._triggerFinal({ text: 'Hello world', confidence: 0.9 }, 'local')
-      ;(provider as any)._triggerFinal({ text: 'Goodbye world', confidence: 0.9 }, 'remote')
+      ;(provider as TestMockProvider)._triggerFinal(
+        { text: 'Hello world', confidence: 0.9 },
+        'local'
+      )
+      ;(provider as TestMockProvider)._triggerFinal(
+        { text: 'Goodbye world', confidence: 0.9 },
+        'remote'
+      )
       await nextTick()
 
       const searchResults = result.searchTranscript('Hello')
@@ -597,8 +609,14 @@ describe('useTranscription', () => {
       const result = useTranscription({ dependencies: deps, ...defaultOptions })
 
       await result.start()
-      ;(provider as any)._triggerFinal({ text: 'Hello world', confidence: 0.9 }, 'local')
-      ;(provider as any)._triggerFinal({ text: 'Hello there', confidence: 0.9 }, 'remote')
+      ;(provider as TestMockProvider)._triggerFinal(
+        { text: 'Hello world', confidence: 0.9 },
+        'local'
+      )
+      ;(provider as TestMockProvider)._triggerFinal(
+        { text: 'Hello there', confidence: 0.9 },
+        'remote'
+      )
       await nextTick()
 
       const searchResults = result.searchTranscript('Hello', { speaker: 'local' })
@@ -629,13 +647,13 @@ describe('useTranscription', () => {
       const unsubscribe = result.onTranscript(callback)
 
       await result.start()
-      ;(provider as any)._triggerFinal({ text: 'Test', confidence: 0.9 }, 'local')
+      ;(provider as TestMockProvider)._triggerFinal({ text: 'Test', confidence: 0.9 }, 'local')
       await nextTick()
 
       expect(callback).toHaveBeenCalledTimes(1)
 
       unsubscribe()
-      ;(provider as any)._triggerFinal({ text: 'Test 2', confidence: 0.9 }, 'local')
+      ;(provider as TestMockProvider)._triggerFinal({ text: 'Test 2', confidence: 0.9 }, 'local')
       await nextTick()
 
       expect(callback).toHaveBeenCalledTimes(1) // Should not increase
@@ -655,7 +673,8 @@ describe('useTranscription', () => {
       const unsubscribe = result.onKeywordDetected(callback)
 
       // Manually trigger the onMatch callback from keyword detector
-      const onMatchCb = (mockKeywordDetector.onMatch as any).mock.calls[0][0]
+      const onMatchCb = (mockKeywordDetector.onMatch as unknown as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as (match: KeywordMatch) => void
       onMatchCb({ phrase: 'help', action: 'assist' } as KeywordMatch)
 
       expect(callback).toHaveBeenCalled()
@@ -690,7 +709,7 @@ describe('useTranscription', () => {
       await result.start()
 
       // Simulate error
-      ;(provider as any)._triggerError(new Error('Provider error'))
+      ;(provider as TestMockProvider)._triggerError(new Error('Provider error'))
 
       expect(result.error.value).toBeInstanceOf(Error)
       expect(result.error.value?.message).toBe('Provider error')
