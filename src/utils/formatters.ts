@@ -324,7 +324,7 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
     if (num.length < 12) return num
     return `+44 ${num.slice(3, 5)} ${num.slice(5, 9)} ${num.slice(9)}`
   },
-  // Sweden: +46 XXX XX XX XX (mobile) or +46 XX XXX XXX (landline)
+  // Sweden: +46 XX XXX XX XX (mobile: 70X/72X/73X/74X/76X/79X) or +46 X XXX XXX XX (landline)
   '+46': (num) => {
     if (num.length !== 12) return num
     // Mobile: +46 70 012 34 56
@@ -334,9 +334,11 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
       after46.startsWith('70') ||
       after46.startsWith('72') ||
       after46.startsWith('73') ||
-      after46.startsWith('76')
+      after46.startsWith('74') ||
+      after46.startsWith('76') ||
+      after46.startsWith('79')
     ) {
-      // Mobile: 70X XXX XX XX
+      // Mobile: 70X/72X/73X/74X/76X/79X XXX XX XX
       return `+46 ${after46.slice(0, 2)} ${after46.slice(2, 5)} ${after46.slice(5, 7)} ${after46.slice(7)}`
     }
     // Landline: 8 123 456 78

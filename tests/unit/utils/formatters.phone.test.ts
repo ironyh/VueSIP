@@ -58,6 +58,28 @@ describe('formatPhoneNumber', () => {
     expect(result).toContain('34 56')
   })
 
+  it('should format Swedish 79x mobile numbers', () => {
+    const result = formatPhoneNumber('+46791234567')
+    // 79x is a valid Swedish mobile prefix (Tre, Telenor, etc.)
+    expect(result).toBe('+46 79 123 45 67')
+  })
+
+  it('should format Swedish 74x mobile numbers (M2M/IoT)', () => {
+    const result = formatPhoneNumber('+46741234567')
+    // 74x is used for M2M/IoT services in Sweden
+    expect(result).toBe('+46 74 123 45 67')
+  })
+
+  it('should format Swedish 72x mobile numbers', () => {
+    const result = formatPhoneNumber('+46721234567')
+    expect(result).toBe('+46 72 123 45 67')
+  })
+
+  it('should format Swedish 73x mobile numbers', () => {
+    const result = formatPhoneNumber('+46731234567')
+    expect(result).toBe('+46 73 123 45 67')
+  })
+
   it('should format US numbers', () => {
     const result = formatPhoneNumber('+14155551234')
     expect(result).toContain('415')
