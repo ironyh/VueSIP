@@ -346,6 +346,13 @@ describe('formatCallTime', () => {
     expect(formatCallTime(date, now)).toContain('Jan')
   })
 
+  test('handles future dates (shows as past due to absolute value)', () => {
+    const now = new Date('2024-01-15T12:00:00')
+    const date = new Date('2024-01-20T12:00:00')
+    // Future dates compute as "Just now" since diff is negative but |diff| < 60s
+    expect(formatCallTime(date, now)).toBe('Just now')
+  })
+
   test('handles invalid date', () => {
     expect(formatCallTime(new Date('invalid'))).toBe('Invalid date')
   })
