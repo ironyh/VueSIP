@@ -15,6 +15,7 @@ import {
   VALIDATION,
   DTMF_TONES,
 } from './constants'
+import { isProductionMode } from './env'
 
 const VALID_DTMF_SET = new Set<string>(DTMF_TONES)
 
@@ -231,7 +232,7 @@ export function validateSipConfig(config: Partial<SipClientConfig>): ValidationR
       errors.push(`Invalid WebSocket URL: ${wsUrlResult.error}`)
     } else {
       // Warn about insecure WebSocket in production
-      if (config.uri.startsWith('ws://') && process.env.NODE_ENV === 'production') {
+      if (config.uri.startsWith('ws://') && isProductionMode()) {
         warnings.push(
           'Using insecure WebSocket (ws://) in production. Use wss:// for secure connections.'
         )
