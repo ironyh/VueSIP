@@ -327,7 +327,6 @@ const ALWAYS_MASK_FIELDS = new Set([
   'credential',
   'privateKey',
   'apiKey',
-  'apiKey',
   'accessToken',
   'refreshToken',
 ])
