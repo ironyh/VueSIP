@@ -23,6 +23,7 @@ import {
   isNotAllowedError,
   isNotSupportedError,
 } from '../errorHelpers'
+import { isAbortError } from '../abortController'
 
 describe('errorHelpers', () => {
   describe('formatUnknownError', () => {
@@ -744,6 +745,35 @@ describe('errorHelpers', () => {
       // Current implementation only checks DOMException, not message content
       const error = new Error('Operation not supported')
       expect(isNotSupportedError(error)).toBe(false)
+    })
+  })
+
+  describe('isAbortError', () => {
+    it('should return true for DOMException with AbortError name', () => {
+      const error = new DOMException('Operation aborted', 'AbortError')
+      expect(isAbortError(error)).toBe(true)
+    })
+
+    it('should return false for other DOMException types', () => {
+      const error = new DOMException('Not allowed', 'NotAllowedError')
+      expect(isAbortError(error)).toBe(false)
+    })
+
+    it('should return false for regular Error', () => {
+      const error = new Error('Aborted')
+      error.name = 'AbortError'
+      expect(isAbortError(error)).toBe(false)
+    })
+
+    it('should return false for non-Error values', () => {
+      expect(isAbortError('string')).toBe(false)
+      expect(isAbortError(null)).toBe(false)
+      expect(isAbortError({})).toBe(false)
+    })
+
+    it('should return false for regular Error with abort message', () => {
+      const error = new Error('Operation aborted')
+      expect(isAbortError(error)).toBe(false)
     })
   })
 })
