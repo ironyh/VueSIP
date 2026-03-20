@@ -34,6 +34,11 @@ export function isProductionMode(): boolean {
     return false
   }
 
+  // Check Node.js environment variable first (covers Vitest with NODE_ENV=production)
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
+    return true
+  }
+
   try {
     const meta = import.meta as {
       env?: { MODE?: string; PROD?: boolean; VITE_PROD?: string | boolean }
