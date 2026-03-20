@@ -19,6 +19,8 @@ import {
   formatCallStatus,
   formatCallDirection,
   formatSipStatusCode,
+  titleCase,
+  clamp,
 } from '../../src/utils/formatters'
 
 describe('formatters', () => {
@@ -441,6 +443,77 @@ describe('formatters', () => {
     it('should handle global failure 6xx codes', () => {
       expect(formatSipStatusCode(600)).toBe('Busy Everywhere')
       expect(formatSipStatusCode(603)).toBe('Decline')
+    })
+  })
+
+  describe('titleCase', () => {
+    it('should capitalize first letter and lowercase the rest', () => {
+      expect(titleCase('hello')).toBe('Hello')
+      expect(titleCase('WORLD')).toBe('World')
+      expect(titleCase('hELLO wORLD')).toBe('Hello world')
+    })
+
+    it('should handle single character strings', () => {
+      expect(titleCase('a')).toBe('A')
+      expect(titleCase('B')).toBe('B')
+    })
+
+    it('should return empty string for empty or whitespace strings', () => {
+      expect(titleCase('')).toBe('')
+      expect(titleCase('   ')).toBe('')
+      expect(titleCase('\t\n')).toBe('')
+    })
+
+    it('should trim whitespace before processing', () => {
+      expect(titleCase('  hello')).toBe('Hello')
+      expect(titleCase('hello  ')).toBe('Hello')
+      expect(titleCase('  hello world  ')).toBe('Hello world')
+    })
+
+    it('should return empty string for null or undefined', () => {
+      expect(titleCase(null as unknown as string)).toBe('')
+      expect(titleCase(undefined as unknown as string)).toBe('')
+    })
+  })
+
+  describe('clamp', () => {
+    it('should return value when within bounds', () => {
+      expect(clamp(5, 0, 10)).toBe(5)
+      expect(clamp(0, 0, 10)).toBe(0)
+      expect(clamp(10, 0, 10)).toBe(10)
+    })
+
+    it('should return min when value is below bounds', () => {
+      expect(clamp(-5, 0, 10)).toBe(0)
+      expect(clamp(-100, 0, 10)).toBe(0)
+    })
+
+    it('should return max when value is above bounds', () => {
+      expect(clamp(15, 0, 10)).toBe(10)
+      expect(clamp(100, 0, 10)).toBe(10)
+    })
+
+    it('should swap bounds when min > max', () => {
+      expect(clamp(5, 10, 0)).toBe(5)
+      expect(clamp(15, 10, 0)).toBe(10)
+      expect(clamp(-5, 10, 0)).toBe(0)
+    })
+
+    it('should return min for NaN values', () => {
+      expect(clamp(NaN, 0, 10)).toBe(0)
+      expect(clamp(NaN, 5, 5)).toBe(5)
+    })
+
+    it('should handle floating point values', () => {
+      expect(clamp(3.5, 0, 10)).toBe(3.5)
+      expect(clamp(0.001, 0, 10)).toBe(0.001)
+      expect(clamp(9.999, 0, 10)).toBe(9.999)
+    })
+
+    it('should handle equal min and max', () => {
+      expect(clamp(5, 5, 5)).toBe(5)
+      expect(clamp(0, 5, 5)).toBe(5)
+      expect(clamp(10, 5, 5)).toBe(5)
     })
   })
 })
