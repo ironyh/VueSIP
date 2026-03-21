@@ -9,7 +9,12 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { ref } from 'vue'
 import { useMessaging } from '../useMessaging'
 import type { SipClient } from '../../core/SipClient'
-import { MessageStatus, MessageDirection, MessageContentType } from '../../types/messaging.types'
+import {
+  MessageStatus,
+  MessageDirection,
+  MessageContentType,
+  MessagingEvent,
+} from '../../types/messaging.types'
 
 // Mock the logger
 vi.mock('../../utils/logger', () => ({
@@ -37,7 +42,9 @@ function createMockSipClient() {
 
   const mockClient = {
     getConfig: vi.fn(() => ({ uri: 'sip:test@domain.com' })),
-    sendMessage: vi.fn<[string, string, any], Promise<void>>().mockResolvedValue(undefined),
+    sendMessage: vi
+      .fn<[string, string, string | undefined], Promise<void>>()
+      .mockResolvedValue(undefined),
     onIncomingMessage: vi.fn(
       (handler: (from: string, content: string, contentType?: string) => void) => {
         handlers.incomingMessage = handler
@@ -187,7 +194,7 @@ describe('useMessaging', () => {
 
     it('should emit sent event on successful send', async () => {
       const { sendMessage, onMessagingEvent } = useMessaging(ref(mockSipClient))
-      const receivedEvents: any[] = []
+      const receivedEvents: MessagingEvent[] = []
       onMessagingEvent((e) => receivedEvents.push(e))
 
       await sendMessage('sip:alice@domain.com', 'Hello')
@@ -200,7 +207,7 @@ describe('useMessaging', () => {
     it('should emit failed event when send throws', async () => {
       mockSipClient.sendMessage.mockRejectedValueOnce(new Error('Network error'))
       const { sendMessage, onMessagingEvent } = useMessaging(ref(mockSipClient))
-      const receivedEvents: any[] = []
+      const receivedEvents: MessagingEvent[] = []
       onMessagingEvent((e) => receivedEvents.push(e))
 
       await expect(sendMessage('sip:alice@domain.com', 'Hello')).rejects.toThrow()
@@ -389,7 +396,7 @@ describe('useMessaging', () => {
 
     it('should emit read event', () => {
       const { messages, markAsRead, onMessagingEvent } = useMessaging(ref(mockSipClient))
-      const receivedEvents: any[] = []
+      const receivedEvents: MessagingEvent[] = []
       onMessagingEvent((e) => receivedEvents.push(e))
 
       messages.value.push({
@@ -978,7 +985,7 @@ describe('useMessaging', () => {
 
     it('should emit received event', () => {
       const { onMessagingEvent } = useMessaging(ref(mockSipClient))
-      const receivedEvents: any[] = []
+      const receivedEvents: MessagingEvent[] = []
       onMessagingEvent((e) => receivedEvents.push(e))
 
       const handler = mockSipClient._testHandlers.incomingMessage
