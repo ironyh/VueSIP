@@ -358,9 +358,16 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
     // Landline: +49 30 12345678 (format: +49 XX XXXXXXXX)
     return `+49 ${after49.slice(0, 2)} ${after49.slice(2)}`
   },
-  // France: +33 X XX XX XX XX
+  // France: +33 X XX XX XX XX (9-digit local = E.164 11 chars: +33 + 9)
+  // French mobile: +33 6X XX XX XX XX (9-digit local starting with 6)
   '+33': (num) => {
-    if (num.length !== 12) return num
+    // Accept 11-char (+33 + 9 digits) or 12-char (+33 + 10 digits, e.g. mobile)
+    if (num.length !== 11 && num.length !== 12) return num
+    // 9-digit local: +33 1 23 45 67 8
+    if (num.length === 11) {
+      return `+33 ${num.slice(3, 4)} ${num.slice(4, 6)} ${num.slice(6, 8)} ${num.slice(8, 10)} ${num.slice(10)}`
+    }
+    // 10-digit local: +33 1 23 45 67 89
     return `+33 ${num.slice(3, 4)} ${num.slice(4, 6)} ${num.slice(6, 8)} ${num.slice(8, 10)} ${num.slice(10)}`
   },
   // Netherlands: +31 X XXXX XXXX
@@ -368,10 +375,25 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
     if (num.length < 12) return num
     return `+31 ${num.slice(3, 4)} ${num.slice(4, 8)} ${num.slice(8)}`
   },
-  // Norway: +47 XXX XX XXX
+  // Norway: +47 XXX XX XXX (mobile 8-digit) or +47 XX XXX XXXX (landline 8-digit)
+  // Mobile: +4791234567 (11 chars = +47 + 8) ✓
+  // Landline: +4722123456 (11 chars = +47 + 8 digits, total 10 after country code)
   '+47': (num) => {
-    if (num.length !== 11) return num
-    return `+47 ${num.slice(3, 6)} ${num.slice(6, 8)} ${num.slice(8)}`
+    const after47 = num.slice(3)
+    // Mobile: starts with 8 or 9 (8-digit subscriber)
+    if (after47.startsWith('8') || after47.startsWith('9')) {
+      // 8-digit mobile: +47 XXX XX XXX
+      if (num.length === 11) {
+        return `+47 ${num.slice(3, 6)} ${num.slice(6, 8)} ${num.slice(8)}`
+      }
+      return num
+    }
+    // Landline: 2-digit area code + 6-digit subscriber = 8 digits after +47
+    // E.164: 11 chars total (+47 + 10 = 2+10, 10-digit local like +4722123456)
+    if (num.length === 11) {
+      return `+47 ${num.slice(3, 5)} ${num.slice(5, 8)} ${num.slice(8)}`
+    }
+    return num
   },
   // Denmark: +45 XX XX XX XX
   '+45': (num) => {
