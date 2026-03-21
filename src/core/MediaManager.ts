@@ -22,10 +22,11 @@ import {
   DEFAULT_VIDEO_CONSTRAINTS,
   ICE_GATHERING_TIMEOUT,
   STATS_COLLECTION_INTERVAL,
+  DEFAULT_STUN_SERVERS,
 } from '@/utils/constants'
 import { createLogger } from '@/utils/logger'
 import { EventNames } from '@/types/events.types'
-import { formatError } from '@/utils/errorHelpers'
+import { formatUnknownError } from '@/utils/errorHelpers'
 
 const logger = createLogger('MediaManager')
 
@@ -625,7 +626,7 @@ export class MediaManager {
 
       return stream
     } catch (error: unknown) {
-      logger.error('Failed to get user media', formatError(error))
+      logger.error('Failed to get user media', formatUnknownError(error))
 
       // Update permissions on error
       if (
@@ -926,7 +927,7 @@ export class MediaManager {
       logger.info('Permissions granted', this.permissions)
       return this.permissions
     } catch (error: unknown) {
-      logger.error('Permission request failed', formatError(error))
+      logger.error('Permission request failed', formatUnknownError(error))
 
       // Update permissions on error
       if (
@@ -1031,7 +1032,7 @@ export class MediaManager {
         success: true,
       }
     } catch (error: unknown) {
-      logger.error('Audio input test failed', formatError(error))
+      logger.error('Audio input test failed', formatUnknownError(error))
       return {
         deviceId,
         success: false,
@@ -1059,7 +1060,7 @@ export class MediaManager {
         success: true,
       }
     } catch (error: unknown) {
-      logger.error('Video input test failed', formatError(error))
+      logger.error('Video input test failed', formatUnknownError(error))
       return {
         deviceId,
         success: false,
@@ -1290,7 +1291,7 @@ export class MediaManager {
     } else {
       // Default STUN servers
       iceServers.push({
-        urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'],
+        urls: [...DEFAULT_STUN_SERVERS],
       })
     }
 
@@ -1538,7 +1539,7 @@ export class MediaManager {
         audioLevel,
       }
     } catch (error: unknown) {
-      logger.error('Audio input test with level failed', formatError(error))
+      logger.error('Audio input test with level failed', formatUnknownError(error))
       return {
         success: false,
         audioLevel: undefined,

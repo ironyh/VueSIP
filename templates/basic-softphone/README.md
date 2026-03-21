@@ -224,6 +224,48 @@ Or paste a JSON call action directly:
 2. **Theme not applied:**
    - Check theme CSS import order in `main.ts`
 
+## Customization
+
+### Using the VueSIP Library (Dist Build)
+
+The template is pre-configured with a `vuesip` alias that points to the built VueSIP library. This allows you to import VueSIP components and composables directly:
+
+```ts
+import { useSipClient } from 'vuesip'
+import { VueSipCallVolume } from 'vuesip/analytics'
+```
+
+**To use the dist build:**
+
+1. Build the VueSIP library first:
+
+   ```bash
+   pnpm build
+   ```
+
+2. The alias in `vite.config.ts` will resolve `vuesip` to the built distribution:
+   ```ts
+   vuesip: resolve(__dirname, '../../dist/vuesip.js')
+   ```
+
+### Changing the App Icon
+
+To replace the default icon with your own:
+
+1. Add your icon file to `public/` (e.g., `public/icon.svg` or `public/favicon.ico`)
+
+2. Update `index.html` to reference your icon:
+
+   ```html
+   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+   ```
+
+3. For PrimeVue notifications that use an app icon, update `src/App.vue`:
+   ```ts
+   // Find the icon property in notification config
+   icon: '/your-icon.svg'
+   ```
+
 ### Browser Compatibility
 
 VueSip works best in modern browsers:

@@ -15,6 +15,7 @@ import {
   VALIDATION,
   DTMF_TONES,
 } from './constants'
+import { isProductionMode } from './env'
 
 const VALID_DTMF_SET = new Set<string>(DTMF_TONES)
 
@@ -156,6 +157,7 @@ export function validatePhoneNumber(number: string): SimpleValidationResult {
   if (!number || typeof number !== 'string') {
     return {
       valid: false,
+      isValid: false,
       error: 'Phone number must be a non-empty string',
       normalized: null,
     }
@@ -166,6 +168,7 @@ export function validatePhoneNumber(number: string): SimpleValidationResult {
   if (!trimmed) {
     return {
       valid: false,
+      isValid: false,
       error: 'Phone number cannot be empty',
       normalized: null,
     }
@@ -175,6 +178,7 @@ export function validatePhoneNumber(number: string): SimpleValidationResult {
   if (!E164_PHONE_REGEX.test(trimmed)) {
     return {
       valid: false,
+      isValid: false,
       error:
         'Invalid phone number format. Expected E.164 format: +[country code][number] (max 15 digits)',
       normalized: null,
@@ -183,6 +187,7 @@ export function validatePhoneNumber(number: string): SimpleValidationResult {
 
   return {
     valid: true,
+    isValid: true,
     error: null,
     normalized: trimmed,
   }
@@ -227,7 +232,7 @@ export function validateSipConfig(config: Partial<SipClientConfig>): ValidationR
       errors.push(`Invalid WebSocket URL: ${wsUrlResult.error}`)
     } else {
       // Warn about insecure WebSocket in production
-      if (config.uri.startsWith('ws://') && process.env.NODE_ENV === 'production') {
+      if (config.uri.startsWith('ws://') && isProductionMode()) {
         warnings.push(
           'Using insecure WebSocket (ws://) in production. Use wss:// for secure connections.'
         )
@@ -576,5 +581,103 @@ export function validateDtmfSequence(sequence: string): SimpleValidationResult {
     valid: true,
     error: null,
     normalized: normalized.join(''),
+  }
+}
+
+/**
+ * Validates a general URL
+ *
+ * Checks if the URL is a valid HTTP/HTTPS URL using the URL constructor.
+ * This complements the WebSocket URL validator for general-purpose URL validation.
+ *
+ * @param url - The URL to validate
+ * @param allowedProtocols - Array of allowed protocols (default: ['http:', 'https:'])
+ * @returns Validation result
+ *
+ * @example
+ * ```typescript
+ * const result = validateUrl('https://example.com/api')
+ * if (result.valid) {
+ *   console.log('Valid URL:', result.normalized)
+ * }
+ * ```
+ */
+export function validateUrl(
+  url: string,
+  allowedProtocols: string[] = ['http:', 'https:']
+): SimpleValidationResult {
+  if (!url || typeof url !== 'string') {
+    return {
+      valid: false,
+      error: 'URL must be a non-empty string',
+      normalized: null,
+    }
+  }
+
+  const trimmed = url.trim()
+
+  if (!trimmed) {
+    return {
+      valid: false,
+      error: 'URL cannot be empty',
+      normalized: null,
+    }
+  }
+
+  // Check for missing hostname before URL constructor (avoids throwing on 'https://')
+  // Extract hostname from URL-like string to validate it exists
+  // Also catch URLs with only protocol (e.g., "https://") which have empty hostname
+  try {
+    const urlPattern =
+      /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/([^/@\s:]+:[^/@\s]+@)?([^/\s:]+)(:\d+)?(\/.*)?$/
+    const match = trimmed.match(urlPattern)
+    if (!match || !match[3] || match[3].length === 0) {
+      return {
+        valid: false,
+        error: 'URL must include a hostname (e.g., example.com)',
+        normalized: null,
+      }
+    }
+  } catch {
+    return {
+      valid: false,
+      error: 'Invalid URL format',
+      normalized: null,
+    }
+  }
+
+  // Try to parse as URL to validate structure
+  try {
+    const parsedUrl = new URL(trimmed)
+
+    // Validate protocol
+    if (!allowedProtocols.includes(parsedUrl.protocol)) {
+      return {
+        valid: false,
+        error: `Invalid protocol. Allowed: ${allowedProtocols.join(', ')}`,
+        normalized: null,
+      }
+    }
+
+    // Validate hostname exists (redundant check but kept for safety)
+    if (!parsedUrl.hostname) {
+      return {
+        valid: false,
+        error: 'URL must include a hostname (e.g., example.com)',
+        normalized: null,
+      }
+    }
+
+    return {
+      valid: true,
+      error: null,
+      normalized: trimmed,
+    }
+  } catch (error) {
+    return {
+      valid: false,
+      error: `Invalid URL structure: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      normalized: null,
+    }
   }
 }

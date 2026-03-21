@@ -107,7 +107,7 @@ function createMockAdapter(overrides: Partial<CRMAdapter> = {}): CRMAdapter {
     },
 
     async updateCall(_callId: string, _updates: Partial<CallRecord>) {
-      // No-op for mock
+      // No-op for mock; updateCall returns void
     },
 
     async getCallHistory(_contactId: string, _limit?: number) {
@@ -312,6 +312,26 @@ describe('useCRM composable', () => {
       expect(contacts[0]?.firstName).toBe('John')
     })
 
+    it('should lookup contact by ID', async () => {
+      const crm = useCRM()
+      const adapter = createMockAdapter()
+
+      crm.setAdapter(adapter)
+      await crm.connect()
+
+      const contact = await crm.lookupContactById('contact-1')
+
+      expect(contact?.id).toBe('contact-1')
+      expect(contact?.firstName).toBe('John')
+    })
+
+    it('should throw NO_ADAPTER when looking up by ID without adapter', async () => {
+      const crm = useCRM()
+      await expect(crm.lookupContactById('contact-1')).rejects.toMatchObject({
+        code: 'NO_ADAPTER',
+      })
+    })
+
     it('should create contact', async () => {
       const crm = useCRM()
       const adapter = createMockAdapter()
@@ -404,6 +424,25 @@ describe('useCRM composable', () => {
       expect(history.length).toBe(1)
       expect(history[0]?.direction).toBe('inbound')
     })
+
+    it('should update a call', async () => {
+      const crm = useCRM()
+      const adapter = createMockAdapter()
+
+      crm.setAdapter(adapter)
+      await crm.connect()
+
+      await expect(
+        crm.updateCall('call-1', { duration: 300, status: 'transferred' })
+      ).resolves.toBeUndefined() // updateCall returns void
+    })
+
+    it('should throw NO_ADAPTER when updating call without adapter', async () => {
+      const crm = useCRM()
+      await expect(crm.updateCall('call-1', { duration: 300 })).rejects.toMatchObject({
+        code: 'NO_ADAPTER',
+      })
+    })
   })
 
   describe('activity management', () => {
@@ -436,6 +475,60 @@ describe('useCRM composable', () => {
 
       expect(activities.length).toBe(1)
       expect(activities[0]?.type).toBe('task')
+    })
+
+    it('should update an activity', async () => {
+      const crm = useCRM()
+      const adapter = createMockAdapter()
+
+      crm.setAdapter(adapter)
+      await crm.connect()
+
+      const updated = await crm.updateActivity('activity-1', {
+        subject: 'Updated subject',
+        status: 'completed',
+      })
+
+      expect(updated.id).toBe('activity-1')
+      expect(updated.subject).toBe('Updated subject')
+      expect(updated.status).toBe('completed')
+    })
+
+    it('should get activities with limit', async () => {
+      const crm = useCRM()
+      const adapter = createMockAdapter()
+
+      crm.setAdapter(adapter)
+      await crm.connect()
+
+      const activities = await crm.getActivities('contact-1', 5)
+      expect(activities.length).toBe(1)
+    })
+
+    it('should throw NO_ADAPTER when creating follow-up without adapter', async () => {
+      const crm = useCRM()
+      await expect(
+        crm.createFollowUp({
+          contactId: 'contact-1',
+          type: 'task',
+          subject: 'Test',
+          status: 'pending',
+        })
+      ).rejects.toMatchObject({ code: 'NO_ADAPTER' })
+    })
+
+    it('should throw NO_ADAPTER when updating activity without adapter', async () => {
+      const crm = useCRM()
+      await expect(crm.updateActivity('activity-1', { subject: 'Test' })).rejects.toMatchObject({
+        code: 'NO_ADAPTER',
+      })
+    })
+
+    it('should throw NO_ADAPTER when getting activities without adapter', async () => {
+      const crm = useCRM()
+      await expect(crm.getActivities('contact-1')).rejects.toMatchObject({
+        code: 'NO_ADAPTER',
+      })
     })
   })
 
@@ -677,6 +770,38 @@ describe('HubSpotAdapter', () => {
         }),
       })
     )
+  })
+
+  it('should test connection successfully', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ results: [] }),
+    })
+
+    const adapter = new HubSpotAdapter({
+      apiKey: 'test-api-key',
+    })
+
+    const result = await adapter.testConnection()
+
+    expect(result).toBe(true)
+  })
+
+  it('should handle test connection failure', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: 'Unauthorized' }),
+    })
+
+    const adapter = new HubSpotAdapter({
+      apiKey: 'invalid-key',
+    })
+
+    const result = await adapter.testConnection()
+
+    expect(result).toBe(false)
   })
 })
 

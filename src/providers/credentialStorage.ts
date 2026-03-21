@@ -6,6 +6,9 @@
  */
 
 import type { StorageType, StoredCredentials } from './types'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('providers:credentialStorage')
 
 /** Storage configuration options */
 export interface StorageOptions {
@@ -46,6 +49,24 @@ export function createCredentialStorage(
 }
 
 /**
+ * Validate a raw parsed object matches StoredCredentials shape.
+ * Guards against tampered or corrupted storage returning partial data.
+ */
+function isStoredCredentials(raw: unknown): raw is StoredCredentials {
+  if (!raw || typeof raw !== 'object') return false
+  const obj = raw as Record<string, unknown>
+  if (typeof obj.providerId !== 'string' || obj.providerId.length === 0) return false
+  if (typeof obj.values !== 'object' || obj.values === null || Array.isArray(obj.values))
+    return false
+  if (typeof obj.storedAt !== 'number' || !Number.isFinite(obj.storedAt)) return false
+  // Values must be a Record<string, string>
+  for (const v of Object.values(obj.values as Record<string, unknown>)) {
+    if (typeof v !== 'string') return false
+  }
+  return true
+}
+
+/**
  * Create a web storage (localStorage/sessionStorage) based storage
  */
 function createWebStorage(storage: Storage, key: string): CredentialStorage {
@@ -55,7 +76,7 @@ function createWebStorage(storage: Storage, key: string): CredentialStorage {
         storage.setItem(key, JSON.stringify(credentials))
       } catch {
         // Storage might be full or disabled - fail silently
-        console.warn('Failed to save credentials to storage')
+        logger.warn('Failed to save credentials to storage')
       }
     },
 
@@ -63,9 +84,22 @@ function createWebStorage(storage: Storage, key: string): CredentialStorage {
       try {
         const data = storage.getItem(key)
         if (!data) return null
-        return JSON.parse(data) as StoredCredentials
+        const parsed = JSON.parse(data)
+        if (!isStoredCredentials(parsed)) {
+          logger.warn('Stored credentials have invalid shape — clearing corrupted entry', {
+            actualType: typeof parsed,
+          })
+          storage.removeItem(key)
+          return null
+        }
+        return parsed
       } catch {
-        // Invalid JSON or storage error - return null
+        // Invalid JSON or storage error — clear corrupted entry and return null
+        try {
+          storage.removeItem(key)
+        } catch {
+          /* ignore */
+        }
         return null
       }
     },

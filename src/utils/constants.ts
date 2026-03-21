@@ -5,13 +5,14 @@
  * These constants are used throughout the library for SIP configuration,
  * media settings, timeouts, and protocol defaults.
  *
+ * @packageDocumentation
  * @module utils/constants
  */
 
 /**
  * Library version (should match package.json)
  */
-export const VERSION = '1.0.0'
+export const VERSION = '1.1.0'
 
 /**
  * Default User-Agent string format
@@ -106,6 +107,17 @@ export const MAX_RETRY_ATTEMPTS = 5
  * If ICE candidates aren't gathered within this time, proceed anyway
  */
 export const ICE_GATHERING_TIMEOUT = 5000
+
+/**
+ * Default STUN servers for WebRTC ICE candidate gathering
+ * Used when no custom RTCConfiguration is provided
+ * Includes three Google STUN servers for redundancy
+ */
+export const DEFAULT_STUN_SERVERS = [
+  'stun:stun.l.google.com:19302',
+  'stun:stun1.l.google.com:19302',
+  'stun:stun2.l.google.com:19302',
+] as const
 
 /**
  * Default DTMF tone duration in milliseconds
@@ -312,11 +324,17 @@ export const STORAGE_KEYS = {
  * Performance targets and limits
  */
 export const PERFORMANCE = {
-  /** Maximum bundle size in bytes (minified) - includes AMI composables, OAuth2, MultiLine, FreePBX, Phase 3 enhancements, Call Quality Dashboard, Transcription, Provider APIs (Telnyx, 46elks), Growth Roadmap features (Smart Routing, Click-to-Call, Sentiment, Call Summary, SIP Mock, Audio Processing, AMI Originate, AMI Spy) */
-  MAX_BUNDLE_SIZE: 750 * 1024, // 750 KB
+  /** Maximum bundle size in bytes (minified) */
+  // 850 KB — raised from 800 KB to accommodate e2e-demos feature branch growth.
+  // bundle-size.yml uses THRESHOLD_ES=910KB; this constant must stay in sync.
+  // Baselines: ES/CJS/UMD raw ~831KB (see workflow comment).
+  MAX_BUNDLE_SIZE: 850 * 1024, // 850 KB
 
-  /** Maximum bundle size in bytes (gzipped) - increased for Growth Roadmap composables, enterprise features, and conflict resolution composables */
-  MAX_BUNDLE_SIZE_GZIPPED: 220 * 1024, // 220 KB
+  /** Maximum bundle size in bytes (gzipped) */
+  // 260 KB — raised from 220 KB to accommodate e2e-demos feature branch growth.
+  // bundle-size.yml uses THRESHOLD_GZIP_ES=260KB; this constant must stay in sync.
+  // Baselines: ES ~227KB, CJS ~231KB, UMD ~231KB gzipped (see workflow comment).
+  MAX_BUNDLE_SIZE_GZIPPED: 260 * 1024, // 260 KB
 
   /** Target call setup time in milliseconds */
   TARGET_CALL_SETUP_TIME: 2000, // 2 seconds
@@ -390,7 +408,7 @@ export const CALL_SESSION = {
  * Regular expression for SIP URI validation
  * Matches: sip:user@domain or sips:user@domain
  */
-export const SIP_URI_REGEX = /^sips?:([a-zA-Z0-9._+-]+)@([a-zA-Z0-9.-]+)(?::(\d+))?/
+export const SIP_URI_REGEX = /^sips?:([a-zA-Z0-9._+-]+)@([a-zA-Z0-9.-]+)(?::(\d+))?/i
 
 /**
  * Regular expression for E.164 phone number format
@@ -402,7 +420,7 @@ export const E164_PHONE_REGEX = /^\+[1-9]\d{1,14}$/
  * Regular expression for WebSocket URL validation
  * Matches: ws:// or wss://
  */
-export const WEBSOCKET_URL_REGEX = /^wss?:\/\/.+/
+export const WEBSOCKET_URL_REGEX = /^wss?:\/\/.+/i
 
 // ============================================================================
 // Type Guards and Helpers
@@ -465,3 +483,42 @@ export const REGISTRATION_STATES = [
   'unregistering',
   'failed',
 ] as const
+
+/**
+ * Network quality levels (used for call quality monitoring)
+ * Aligned with NetworkQualityLevel type in call-quality.types.ts
+ */
+export const NETWORK_QUALITY_LEVELS = [
+  'excellent',
+  'good',
+  'fair',
+  'poor',
+  'critical',
+  'unknown',
+] as const
+
+/**
+ * Network quality threshold configuration
+ */
+export const NETWORK_QUALITY_THRESHOLDS = {
+  /** Maximum RTT (ms) for excellent quality */
+  excellentRtt: 50,
+  /** Maximum RTT (ms) for good quality */
+  goodRtt: 150,
+  /** Maximum RTT (ms) for fair quality */
+  fairRtt: 300,
+  /** Maximum RTT (ms) for poor quality */
+  poorRtt: 500,
+  /** Maximum RTT (ms) for critical quality */
+  criticalRtt: 1000,
+  /** Maximum packet loss (%) for excellent quality */
+  excellentPacketLoss: 1,
+  /** Maximum packet loss (%) for good quality */
+  goodPacketLoss: 3,
+  /** Maximum packet loss (%) for fair quality */
+  fairPacketLoss: 5,
+  /** Maximum packet loss (%) for poor quality */
+  poorPacketLoss: 10,
+  /** Maximum packet loss (%) for critical quality */
+  criticalPacketLoss: 20,
+} as const

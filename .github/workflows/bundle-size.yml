@@ -1,0 +1,135 @@
+name: Bundle Size
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  bundle-size:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build library
+        run: pnpm run build
+
+      - name: Measure bundle sizes
+        id: measure
+        run: |
+          echo "=== Bundle Size Report ==="
+          
+          # Get file sizes in bytes and human readable
+          ES_SIZE=$(stat -c%s dist/vuesip.js)
+          CJS_SIZE=$(stat -c%s dist/vuesip.cjs)
+          UMD_SIZE=$(stat -c%s dist/vuesip.umd.js)
+          
+          # Get gzipped sizes
+          ES_GZIP=$(gzip -c dist/vuesip.js | wc -c)
+          CJS_GZIP=$(gzip -c dist/vuesip.cjs | wc -c)
+          UMD_GZIP=$(gzip -c dist/vuesip.umd.js | wc -c)
+          
+          # Convert to KB for display
+          ES_KB=$((ES_SIZE / 1024))
+          CJS_KB=$((CJS_SIZE / 1024))
+          UMD_KB=$((UMD_SIZE / 1024))
+          ES_GZIP_KB=$((ES_GZIP / 1024))
+          CJS_GZIP_KB=$((CJS_GZIP / 1024))
+          UMD_GZIP_KB=$((UMD_GZIP / 1024))
+          
+          # Total size
+          TOTAL_SIZE=$((ES_SIZE + CJS_SIZE + UMD_SIZE))
+          TOTAL_KB=$((TOTAL_SIZE / 1024))
+          
+          echo "ES Module: ${ES_KB}KB (gzip: ${ES_GZIP_KB}KB)"
+          echo "CJS Module: ${CJS_KB}KB (gzip: ${CJS_GZIP_KB}KB)"
+          echo "UMD Module: ${UMD_KB}KB (gzip: ${UMD_GZIP_KB}KB)"
+          echo "Total: ${TOTAL_KB}KB"
+          
+          # Set outputs for comment
+          echo "es_size=${ES_KB}" >> $GITHUB_OUTPUT
+          echo "es_gzip=${ES_GZIP_KB}" >> $GITHUB_OUTPUT
+          echo "cjs_size=${CJS_KB}" >> $GITHUB_OUTPUT
+          echo "cjs_gzip=${CJS_GZIP_KB}" >> $GITHUB_OUTPUT
+          echo "umd_size=${UMD_KB}" >> $GITHUB_OUTPUT
+          echo "umd_gzip=${UMD_GZIP_KB}" >> $GITHUB_OUTPUT
+          echo "total_kb=${TOTAL_KB}" >> $GITHUB_OUTPUT
+          
+          # Check thresholds (fail if too large)
+          # Current baseline: ES~831KB, CJS~831KB, UMD~832KB, Total~2494KB
+          # Allow ~10% growth before failing
+          THRESHOLD_ES=910       # Allow ES module to grow to 910KB before warning
+          THRESHOLD_TOTAL=2750   # Allow total to grow to 2750KB before error (exit 1)
+          THRESHOLD_GZIP_ES=260  # Allow gzipped ES to grow to 260KB before warning
+          
+          if [ $ES_KB -gt $THRESHOLD_ES ]; then
+            echo "::warning ::ES module size (${ES_KB}KB) exceeds threshold (${THRESHOLD_ES}KB)"
+          fi
+          
+          if [ $ES_GZIP_KB -gt $THRESHOLD_GZIP_ES ]; then
+            echo "::warning::ES module gzipped size (${ES_GZIP_KB}KB) exceeds threshold (${THRESHOLD_GZIP_ES}KB)"
+          fi
+          
+          if [ $TOTAL_KB -gt $THRESHOLD_TOTAL ]; then
+            echo "::error::Total bundle size (${TOTAL_KB}KB) exceeds threshold (${THRESHOLD_TOTAL}KB)"
+            exit 1
+          fi
+
+      - name: Find existing comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/find-comment@v3
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '## 📦 Bundle Size Report'
+
+      - name: Post/update bundle size comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            ## 📦 Bundle Size Report
+
+            | Format | Size | Gzipped | Status |
+            |--------|------|---------|--------|
+            | ES Module (`.js`) | ${{ steps.measure.outputs.es_size }}KB | ${{ steps.measure.outputs.es_gzip }}KB | ✅ |
+            | CommonJS (`.cjs`) | ${{ steps.measure.outputs.cjs_size }}KB | ${{ steps.measure.outputs.cjs_gzip }}KB | ✅ |
+            | UMD (`.umd.js`) | ${{ steps.measure.outputs.umd_size }}KB | ${{ steps.measure.outputs.umd_gzip }}KB | ✅ |
+            | **Total** | **${{ steps.measure.outputs.total_kb }}KB** | — | ✅ |
+
+            <details>
+            <summary>📊 Size Baselines (for regression detection)</summary>
+
+            - ES Module baseline: ~831KB raw / ~227KB gzipped
+            - CJS baseline: ~831KB raw / ~231KB gzipped
+            - UMD baseline: ~832KB raw / ~231KB gzipped
+            - Total baseline: ~2494KB raw
+            - Thresholds: ES 910KB, Gzip 260KB, Total 2750KB (~10% growth budget)
+            - These are library builds (not tree-shaken application builds)
+
+            </details>
+
+            *Generated by Bundle Size workflow*

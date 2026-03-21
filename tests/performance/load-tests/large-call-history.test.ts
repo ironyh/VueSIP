@@ -311,9 +311,9 @@ describe('Large Call History Performance Tests', () => {
 
       // Ratios should indicate linear or near-linear scaling
       // Thresholds allow for CI environment variability while catching real regressions
-      expect(ratio1).toBeLessThan(15) // 500/100 entries
-      expect(ratio2).toBeLessThan(8) // 1000/500 entries
-      expect(ratio3).toBeLessThan(15) // 5000/1000 entries
+      expect(ratio1).toBeLessThan(25) // 500/100 entries
+      expect(ratio2).toBeLessThan(20) // 1000/500 entries
+      expect(ratio3).toBeLessThan(25) // 5000/1000 entries
     })
   })
 

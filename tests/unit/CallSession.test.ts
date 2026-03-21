@@ -301,6 +301,25 @@ describe('CallSession', () => {
       )
     })
 
+    it('should pass rtcConfiguration to answer (pcConfig for JsSIP)', async () => {
+      const rtcConfiguration = {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+        ],
+        iceTransportPolicy: 'all' as RTCIceTransportPolicy,
+      }
+
+      await session.answer({ rtcConfiguration })
+
+      expect(mockRtcSession.answer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rtcConfiguration,
+          pcConfig: rtcConfiguration,
+        })
+      )
+    })
+
     it('should reject answer for outgoing call', async () => {
       const outgoingSession = new CallSession({
         id: 'test-call-2',

@@ -265,9 +265,16 @@ function generateAlertId(): string {
 
 /**
  * Clamp a value to a range
+ * When min > max, bounds are swapped automatically
  */
 function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
+  // Swap bounds if min > max
+  if (min > max) {
+    ;[min, max] = [max, min]
+  }
+  if (value < min) return min
+  if (value > max) return max
+  return value
 }
 
 /**

@@ -3,5 +3,10 @@
 # Change to git root directory for pnpm workspace compatibility
 cd "$(git rev-parse --show-toplevel)" || exit 1
 
-# Run lint-staged from node_modules
-node_modules/.bin/lint-staged
+echo "🔍 Running lint-staged..."
+node_modules/.bin/lint-staged || exit 1
+
+echo "📝 Running type-check..."
+pnpm run type-check || exit 1
+
+echo "✅ Pre-commit checks passed!"

@@ -93,5 +93,24 @@ export type {
   Elks46CallDirection,
   Elks46CallState,
   Elks46CallLeg,
+  Elks46CallReadonly,
+  Elks46CallLegReadonly,
   FetchCallsOptions,
 } from '../providers/services/elks46ApiService'
+
+// Diagnostic types (from utils)
+export type {
+  DiagnosticResult,
+  ConnectionDiagnostic,
+  RegistrationDiagnostic,
+  MediaDiagnostic,
+  DeviceDiagnostic,
+  CallDiagnostic,
+  DiagnosticSummary,
+} from '../utils/diagnostics'
+
+// Logger types (from utils)
+export type { LogLevel, LogHandler, LoggerConfig } from '../utils/logger'
+
+// Error context types (from utils)
+export type { ErrorSeverity, ErrorContext, ErrorLogEntry } from '../utils/errorContext'

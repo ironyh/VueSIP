@@ -17,21 +17,28 @@ export class DefaultSdpTransformer implements SdpTransformer {
       if (!sdp || typeof sdp !== 'string') return sdp
       const lines = sdp.split(/\r?\n/)
 
-      // Build map from payload type -> mime (e.g., 111 -> audio/opus)
-      const ptToMime = new Map<string, string>()
-
-      // Identify media section and collect rtpmap mappings
-      // We only need mappings for the target kind to compute ordering.
-      let inTargetMedia = false
-      for (const line of lines) {
-        if (line.startsWith('m=')) {
-          inTargetMedia = line.startsWith(`m=${kind}`)
+      // Find the index of the first m=<kind> line
+      let targetMediaIndex = -1
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i]?.startsWith(`m=${kind}`)) {
+          targetMediaIndex = i
+          break
         }
-        if (!inTargetMedia) continue
+      }
+
+      // If no target media section found, return original
+      if (targetMediaIndex === -1) return sdp
+
+      // Build map from payload type -> mime (e.g., 111 -> audio/opus)
+      // Collect all rtpmap lines from the SDP - we need them to map payload types to codecs
+      // (rtpmap lines can appear anywhere in the SDP after the m= lines)
+      const ptToMime = new Map<string, string>()
+      for (let i = targetMediaIndex; i < lines.length; i++) {
+        const line = lines[i]
 
         // a=rtpmap:<pt> <codec>/<clock>[/channels]
         // Example: a=rtpmap:111 opus/48000/2
-        const m = line.match(/^a=rtpmap:(\d+)\s+([^\s/]+)/i)
+        const m = line?.match(/^a=rtpmap:(\d+)\s+([^\s/]+)/i)
         if (m && m[1] && m[2]) {
           const pt: string = m[1]
           const codec: string = m[2]
@@ -39,11 +46,14 @@ export class DefaultSdpTransformer implements SdpTransformer {
         }
       }
 
+      // If no payload types found, return original
+      if (ptToMime.size === 0) return sdp
+
       // Normalize preferred mimes to upper-case for case-insensitive matching
       const preferredUpper = preferredMimeTypes.map((m) => m.toUpperCase())
 
-      // Reorder the first m=<kind> line encountered
-      for (let i = 0; i < lines.length; i++) {
+      // Find and transform the target m= line
+      for (let i = targetMediaIndex; i < lines.length; i++) {
         const line = lines[i]
         if (!line || !line.startsWith(`m=${kind}`)) continue
 
@@ -57,7 +67,8 @@ export class DefaultSdpTransformer implements SdpTransformer {
         // Sort payloads according to preferred mime order
         const scored = payloads.map((pt, idx) => {
           const mime = (ptToMime.get(pt) || '').toUpperCase()
-          const score = preferredUpper.findIndex((p) => mime.startsWith(p))
+          // Match by codec name (e.g., "AUDIO/OPUS" matches "OPUS" or "audio/opus")
+          const score = preferredUpper.findIndex((p) => mime === p || mime.endsWith('/' + p))
           // Unknown or non-preferred mimes get large index to keep them at the end
           const rank = score === -1 ? Number.MAX_SAFE_INTEGER : score
           return { pt, idx, rank }

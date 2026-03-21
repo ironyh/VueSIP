@@ -783,6 +783,50 @@ describe('GDPR', () => {
       await complianceWithAudit.gdpr.deleteUserData('user-123')
       expect(complianceWithAudit.auditLog.entries.value.length).toBeGreaterThan(initialCount)
     })
+
+    it('should anonymize consent records and audit entries on deleteUserData', async () => {
+      // Set up consent record with matching userId in metadata
+      compliance.consentManager.consents.value = [
+        {
+          id: 'consent-1',
+          callId: 'call-1',
+          type: 'recording',
+          granted: true,
+          timestamp: new Date(),
+          method: 'verbal',
+          metadata: { userId: 'user-to-delete' },
+        },
+      ]
+
+      // Set up audit entries with matching actor and details.userId
+      ;(compliance.auditLog as any).entries.value = [
+        {
+          id: 'audit-1',
+          timestamp: new Date(),
+          action: 'call_recorded',
+          actor: 'user-to-delete',
+          details: {},
+        },
+        {
+          id: 'audit-2',
+          timestamp: new Date(),
+          action: 'call_recorded',
+          actor: 'system',
+          details: { userId: 'user-to-delete', note: 'test' },
+        },
+      ]
+
+      await compliance.gdpr.deleteUserData('user-to-delete')
+
+      // Verify consent metadata was anonymized (not deleted)
+      const updatedConsent = compliance.consentManager.consents.value[0]
+      expect(updatedConsent.metadata?.userId).toBe('DELETED')
+
+      // Verify audit entries were anonymized
+      const updatedAudit = (compliance.auditLog as any).entries.value
+      expect(updatedAudit[0].actor).toBe('ANONYMIZED')
+      expect((updatedAudit[1].details as any).userId).toBe('ANONYMIZED')
+    })
   })
 
   describe('Data Anonymization', () => {
@@ -892,6 +936,20 @@ describe('Compliance Validation', () => {
 
       const result = compliance.validateCompliance()
       expect(result.violations.some((v) => v.toLowerCase().includes('audit'))).toBe(true)
+    })
+
+    it('should warn when retentionDays configured but no policies exist', () => {
+      const compliance = useCompliance(
+        createDefaultConfig({
+          regulations: ['GDPR'],
+          retentionDays: 90,
+        })
+      )
+      // Manually clear the auto-generated policies to trigger the edge case
+      ;(compliance.dataRetention as any).policies.value = []
+
+      const result = compliance.validateCompliance()
+      expect(result.violations.some((v) => v.includes('retention'))).toBe(true)
     })
   })
 

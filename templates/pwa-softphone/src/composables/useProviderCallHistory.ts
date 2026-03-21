@@ -3,8 +3,7 @@
  * Syncs account-level call history when supported by the current operator (46elks, Telnyx, etc.).
  */
 import { computed, type Ref } from 'vue'
-import { use46ElksApi } from 'vuesip'
-import type { Elks46Call, Elks46CallLeg } from 'vuesip'
+import { use46ElksApi, type Elks46CallReadonly } from 'vuesip'
 
 export type ProviderId = '46elks' | 'telnyx' | 'custom'
 
@@ -35,11 +34,21 @@ export interface UseProviderCallHistoryReturn {
   emptyHint: Ref<string>
 }
 
-type ReadonlyElks46Call = Omit<Readonly<Elks46Call>, 'legs'> & {
-  readonly legs?: ReadonlyArray<Readonly<Elks46CallLeg>>
+/** DRY map: load button label by provider */
+const loadLabelByProvider: Record<ProviderId, string> = {
+  '46elks': 'Load from 46elks',
+  'telnyx': 'Load from Telnyx',
+  'custom': 'Load history',
 }
 
-function normalize46ElksCall(call: ReadonlyElks46Call): ProviderHistoryEntry {
+/** DRY map: empty state hint by provider */
+const emptyHintByProvider: Record<ProviderId, string> = {
+  '46elks': 'Click "Load from 46elks" to fetch call history from your 46elks account.',
+  'telnyx': 'Telnyx account history will be available in a future update.',
+  'custom': 'Account history is not available for this connection.',
+}
+
+function normalize46ElksCall(call: Elks46CallReadonly): ProviderHistoryEntry {
   return {
     id: call.id,
     direction: call.direction,
@@ -67,10 +76,8 @@ export function useProviderCallHistory(
   })
 
   const loadLabel = computed(() => {
-    const id = providerId.value
-    if (id === '46elks') return 'Load from 46elks'
-    if (id === 'telnyx') return 'Load from Telnyx'
-    return 'Load history'
+    const id = providerId.value ?? 'custom'
+    return loadLabelByProvider[id]
   })
 
   const entries = computed<ProviderHistoryEntry[]>(() => {
@@ -86,14 +93,8 @@ export function useProviderCallHistory(
   const error = computed(() => elksApi.error.value)
 
   const emptyHint = computed(() => {
-    const id = providerId.value
-    if (id === '46elks') {
-      return 'Click "Load from 46elks" to fetch call history from your 46elks account.'
-    }
-    if (id === 'telnyx') {
-      return 'Telnyx account history will be available in a future update.'
-    }
-    return 'Account history is not available for this connection.'
+    const id = providerId.value ?? 'custom'
+    return emptyHintByProvider[id]
   })
 
   async function load(): Promise<void> {

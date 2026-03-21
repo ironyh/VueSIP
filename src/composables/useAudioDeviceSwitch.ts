@@ -74,12 +74,26 @@ export function useAudioDeviceSwitch(
   const activeOutputDeviceId = ref<string | null>(null)
 
   const currentInputDevice = computed<AudioDevice | null>(() => {
-    if (!activeInputDeviceId.value) return audioDevices.currentMicrophone.value
+    if (!audioDevices.currentMicrophone) {
+      // Partial implementation: no currentMicrophone ref, try fallback
+      if (activeInputDeviceId.value && audioDevices.getMicrophoneById) {
+        return audioDevices.getMicrophoneById(activeInputDeviceId.value) ?? null
+      }
+      return null
+    }
+    if (!activeInputDeviceId.value) return audioDevices.currentMicrophone.value ?? null
     return audioDevices.getMicrophoneById(activeInputDeviceId.value) ?? null
   })
 
   const currentOutputDevice = computed<AudioDevice | null>(() => {
-    if (!activeOutputDeviceId.value) return audioDevices.currentSpeaker.value
+    if (!audioDevices.currentSpeaker) {
+      // Partial implementation: no currentSpeaker ref, try fallback
+      if (activeOutputDeviceId.value && audioDevices.getSpeakerById) {
+        return audioDevices.getSpeakerById(activeOutputDeviceId.value) ?? null
+      }
+      return null
+    }
+    if (!activeOutputDeviceId.value) return audioDevices.currentSpeaker.value ?? null
     return audioDevices.getSpeakerById(activeOutputDeviceId.value) ?? null
   })
 
@@ -124,7 +138,10 @@ export function useAudioDeviceSwitch(
       throw new Error('No active call session')
     }
 
-    if (typeof audioDevices.isDeviceAvailable === 'function' && !audioDevices.isDeviceAvailable(deviceId)) {
+    if (
+      typeof audioDevices.isDeviceAvailable === 'function' &&
+      !audioDevices.isDeviceAvailable(deviceId)
+    ) {
       throw new Error(`Microphone device not found: ${deviceId}`)
     }
 
@@ -183,7 +200,10 @@ export function useAudioDeviceSwitch(
       throw new Error('A device switch operation is already in progress')
     }
 
-    if (typeof audioDevices.isDeviceAvailable === 'function' && !audioDevices.isDeviceAvailable(deviceId)) {
+    if (
+      typeof audioDevices.isDeviceAvailable === 'function' &&
+      !audioDevices.isDeviceAvailable(deviceId)
+    ) {
       throw new Error(`Speaker device not found: ${deviceId}`)
     }
 

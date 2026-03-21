@@ -264,6 +264,66 @@ For production deployment, you may want to set up a 46elks voice_start endpoint 
 - Verify audio device selection in Settings
 - Some browsers require user interaction before playing audio
 
+### Using the VueSIP Library (Dist Build)
+
+The template is pre-configured with a `vuesip` alias that points to the built VueSIP library. This allows you to import VueSIP components and composables directly:
+
+```ts
+import { useSipClient } from 'vuesip'
+import { VueSipCallVolume } from 'vuesip/analytics'
+```
+
+**To use the dist build:**
+
+1. Build the VueSIP library first:
+
+   ```bash
+   pnpm build
+   ```
+
+2. The alias in `vite.config.ts` will resolve `vuesip` to the built distribution:
+   ```ts
+   vuesip: resolve(__dirname, '../../dist/vuesip.js')
+   ```
+
+### Changing the PWA Icons
+
+To replace the default icons with your own:
+
+1. Add your icon files to `public/icons/`:
+   - `icon-192.png` - 192x192 pixels
+   - `icon-512.png` - 512x512 pixels (also used as maskable icon)
+
+2. Update `index.html` to reference your favicon:
+
+   ```html
+   <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+   ```
+
+3. Update the PWA manifest in `vite.config.ts`:
+   ```ts
+   VitePWA({
+     manifest: {
+       name: 'Your Softphone Name',
+       short_name: 'Softphone',
+       theme_color: '#4f46e5',
+       icons: [
+         {
+           src: '/icons/icon-192.png',
+           sizes: '192x192',
+           type: 'image/png',
+         },
+         {
+           src: '/icons/icon-512.png',
+           sizes: '512x512',
+           type: 'image/png',
+           purpose: 'any maskable',
+         },
+       ],
+     },
+   })
+   ```
+
 ## License
 
 MIT

@@ -63,6 +63,16 @@ jobs:
           name: coverage-${{ matrix.node-version }}
           path: coverage/
 
+      # Upload as coverage-base on base-branch pushes so coverage-diff can find it.
+      # Runs only on push to main/develop (not on pull_request events from feature branches).
+      - name: Upload base coverage artifact
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-base
+          path: coverage/
+          retention-days: 7
+
   performance-tests:
     name: Performance Tests
     runs-on: ubuntu-latest

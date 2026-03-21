@@ -30,6 +30,39 @@ export {
   type DeviceTestOptions,
 } from './useMediaDevices'
 export {
+  useMediaPermissions,
+  type UseMediaPermissionsReturn,
+  type PermissionCheckResult,
+} from './useMediaPermissions'
+export {
+  useConnectionTest,
+  type UseConnectionTestReturn,
+  type ConnectionCheckResult,
+  type ConnectionTestSummary,
+  type TestType,
+} from './useConnectionTest'
+export {
+  useCallQualityStats,
+  type UseCallQualityStatsReturn,
+  type CallQualityStats,
+  type QualityLevel,
+  type UseCallQualityStatsOptions,
+} from './useCallQualityStats'
+export {
+  useQualityAlerts,
+  type UseQualityAlertsReturn,
+  type QualityAlert,
+  type QualityAlertThresholds,
+  type UseQualityAlertsOptions,
+} from './useQualityAlerts'
+export {
+  useCallQualityHistory,
+  type UseCallQualityHistoryOptions,
+  type CallQualityRecord,
+  type CallQualityAggregate,
+  type QualitySnapshot,
+} from './useCallQualityHistory'
+export {
   useDTMF,
   type UseDTMFReturn,
   type DTMFSequenceOptions,
@@ -87,10 +120,24 @@ export {
 } from './useAmiSpy'
 
 // SIP composables
-export { useSipWebRTCStats } from './useSipWebRTCStats'
-export { useSipAutoAnswer } from './useSipAutoAnswer'
-export { useSipE911 } from './useSipE911'
+export { useSipWebRTCStats, type UseSipWebRTCStatsReturn } from './useSipWebRTCStats'
+export {
+  useSipAutoAnswer,
+  type AutoAnswerMode,
+  type IntercomMode,
+  type AutoAnswerTrigger,
+  type AutoAnswerHeaders,
+  type AutoAnswerWhitelistEntry,
+  type AutoAnswerSettings,
+  type AutoAnswerEvent,
+  type AutoAnswerStats,
+  type PendingAutoAnswer,
+  type UseSipAutoAnswerOptions,
+  type UseSipAutoAnswerReturn,
+} from './useSipAutoAnswer'
+export { useSipE911, type UseSipE911Return } from './useSipE911'
 export { useSipSecondLine } from './useSipSecondLine'
+export type { UseSipSecondLineReturn } from '../types/multiline.types'
 export { useSipConnection, type UseSipConnectionReturn } from './useSipConnection'
 
 // Call quality composables
@@ -111,6 +158,8 @@ export {
   type UseCredentialExpiryReturn,
 } from './useCredentialExpiry'
 export { useSessionPersistence } from './useSessionPersistence'
+export { useSettings, type UseSettingsReturn } from './useSettings'
+export { useSettingsPersistence, type UseSettingsPersistenceReturn } from './useSettingsPersistence'
 
 export {
   useNotifications,
@@ -122,6 +171,16 @@ export {
   type NotificationOptions,
   type UseNotificationsReturn,
 } from './useNotifications'
+
+export {
+  usePushNotifications,
+  type PushPermissionStatus,
+  type ServiceWorkerRegistrationInfo,
+  type PushSubscriptionInfo,
+  type UsePushNotificationsOptions,
+  type UsePushNotificationsReturn,
+  type PushNotificationOptions,
+} from './usePushNotifications'
 
 export {
   useConnectionHealthBar,
@@ -140,6 +199,26 @@ export {
   type UseGracefulDegradationReturn,
 } from './useGracefulDegradation'
 
+// Metrics & observability
+export {
+  useSipMetrics,
+  createMetricsEmitter,
+  type MetricsEventType,
+  type MetricsEvent,
+  type MetricsCallback,
+  type UseSipMetricsOptions,
+  type UseSipMetricsReturn,
+  type BaseMetricsEvent,
+  type HealthLevelChangeEvent,
+  type HealthRecoveryEvent,
+  type DegradationApplyEvent,
+  type DegradationRecoverEvent,
+  type ConnectionReconnectingEvent,
+  type ConnectionRecoveredEvent,
+  type IceHealthChangeEvent,
+  type RegistrationStateChangeEvent,
+} from './useSipMetrics'
+
 // Audio processing composable
 export {
   useAudioProcessing,
@@ -150,15 +229,15 @@ export {
 } from './useAudioProcessing'
 
 // Additional composables
-export { useCallHold } from './useCallHold'
-export { useCallTransfer } from './useCallTransfer'
+export { useCallHold, type UseCallHoldReturn } from './useCallHold'
+export { useCallTransfer, type UseCallTransferReturn } from './useCallTransfer'
 export {
   useCallWaiting,
   type UseCallWaitingReturn,
   type WaitingCall,
   type CallWaitingOptions,
 } from './useCallWaiting'
-export { useAudioDevices } from './useAudioDevices'
+export { useAudioDevices, type UseAudioDevicesReturn } from './useAudioDevices'
 export {
   useAudioDeviceSwitch,
   type AudioDevicesForSwitch,
@@ -166,7 +245,7 @@ export {
   type UseAudioDeviceSwitchReturn,
 } from './useAudioDeviceSwitch'
 export { useMultiLine } from './useMultiLine'
-export { useDialog } from './useDialog'
+export { useDialog, type UseDialogReturn } from './useDialog'
 export { useFreePBXPresence } from './useFreePBXPresence'
 export {
   usePictureInPicture,
@@ -385,6 +464,8 @@ export type {
   Elks46CallDirection,
   Elks46CallState,
   Elks46CallLeg,
+  Elks46CallReadonly,
+  Elks46CallLegReadonly,
   FetchCallsOptions,
 } from '../providers/services/elks46ApiService'
 export type { TelnyxCredential, TelnyxConnection } from '../providers/services/telnyxApiService'
@@ -433,6 +514,13 @@ export {
 
 // PBX Recordings composable
 export { usePbxRecordings, type UsePbxRecordingsReturn } from './usePbxRecordings'
+
+// WebRTC Call Recording composable
+export {
+  useCallRecording,
+  type CallRecordingMetadata,
+  type UseCallRecordingOptions,
+} from './useCallRecording'
 
 // Confirmation dialog composable
 export { useConfirm } from './useConfirm'

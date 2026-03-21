@@ -17,7 +17,7 @@ const socket = new JsSIP.WebSocketInterface('wss://sip.example.com')
 const ua = new JsSIP.UA({
   sockets: [socket],
   uri: 'sip:alice@example.com',
-  password: 'secret'
+  password: 'secret',
 })
 
 ua.start()
@@ -36,7 +36,7 @@ ua.on('newRTCSession', (data) => {
 
 // Make a call
 const session = ua.call('sip:bob@example.com', {
-  mediaConstraints: { audio: true, video: false }
+  mediaConstraints: { audio: true, video: false },
 })
 ```
 
@@ -72,6 +72,7 @@ await makeCall('sip:bob@example.com')
 ```
 
 **Key differences:**
+
 - Reactive state instead of event callbacks
 - Vue Composition API patterns
 - Automatic cleanup on component unmount
@@ -90,8 +91,8 @@ const userAgent = new UserAgent({
   uri: UserAgent.makeURI('sip:alice@example.com'),
   authorizationPassword: 'secret',
   transportOptions: {
-    server: 'wss://sip.example.com'
-  }
+    server: 'wss://sip.example.com',
+  },
 })
 
 await userAgent.start()
@@ -113,7 +114,7 @@ import { useSipClient, useCallSession } from 'vuesip'
 const { connect, register, isRegistered } = useSipClient({
   uri: 'sip:alice@example.com',
   password: 'secret',
-  wsServers: ['wss://sip.example.com']
+  wsServers: ['wss://sip.example.com'],
 })
 
 const { makeCall } = useCallSession()
@@ -128,6 +129,7 @@ await makeCall('sip:bob@example.com')
 If you built a custom WebRTC implementation, VueSip handles all the complexity:
 
 **What VueSip handles for you:**
+
 - SIP signaling (REGISTER, INVITE, BYE, etc.)
 - WebRTC peer connection management
 - ICE candidate gathering and exchange
@@ -138,8 +140,9 @@ If you built a custom WebRTC implementation, VueSip handles all the complexity:
 - Hold/resume/transfer
 
 **Migration steps:**
+
 1. Remove your custom SIP/WebRTC code
-2. Install VueSip: `npm install vuesip`
+2. Install VueSip: `npm install vuesip` (or `pnpm add vuesip` / `yarn add vuesip`)
 3. Use VueSip composables for all SIP operations
 4. Keep your UI components, just wire them to VueSip
 
@@ -159,6 +162,7 @@ This is the first stable release. If upgrading from pre-release versions:
 ### Upgrading Dependencies
 
 VueSip 1.0 requires:
+
 - Vue 3.4.0+
 - Node.js 20.0.0+
 - Modern browser with WebRTC support
@@ -166,9 +170,13 @@ VueSip 1.0 requires:
 ```bash
 # Update Vue if needed
 npm install vue@^3.4.0
+# or: pnpm add vue@^3.4.0
+# or: yarn add vue@^3.4.0
 
 # Install VueSip
 npm install vuesip@^1.0.0
+# or: pnpm add vuesip@^1.0.0
+# or: yarn add vuesip@^1.0.0
 ```
 
 ## Configuration Migration
@@ -180,7 +188,7 @@ npm install vuesip@^1.0.0
 useSipConnection({
   server: 'sip.example.com',
   user: 'alice',
-  pass: 'secret'
+  pass: 'secret',
 })
 ```
 
@@ -191,21 +199,21 @@ useSipConnection({
 useSipClient({
   uri: 'sip:alice@example.com',
   password: 'secret',
-  wsServers: ['wss://sip.example.com:7443']
+  wsServers: ['wss://sip.example.com:7443'],
 })
 ```
 
 ## API Changes Reference
 
-| Old API (Pre-1.0) | New API (1.0+) | Notes |
-|-------------------|----------------|-------|
-| `useSipConnection` | `useSipClient` | Renamed |
-| `config.server` | `config.wsServers` | Now accepts array |
-| `config.user` | `config.uri` | Full SIP URI required |
-| `config.pass` | `config.password` | Renamed |
-| `session.dtmf()` | `useDTMF()` composable | Separate composable |
-| N/A | `useAudioDevices()` | New composable |
-| N/A | `useAmi*()` composables | New AMI integration |
+| Old API (Pre-1.0)  | New API (1.0+)          | Notes                 |
+| ------------------ | ----------------------- | --------------------- |
+| `useSipConnection` | `useSipClient`          | Renamed               |
+| `config.server`    | `config.wsServers`      | Now accepts array     |
+| `config.user`      | `config.uri`            | Full SIP URI required |
+| `config.pass`      | `config.password`       | Renamed               |
+| `session.dtmf()`   | `useDTMF()` composable  | Separate composable   |
+| N/A                | `useAudioDevices()`     | New composable        |
+| N/A                | `useAmi*()` composables | New AMI integration   |
 
 ## Getting Help
 

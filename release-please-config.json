@@ -1,0 +1,37 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "vuesip",
+      "changelog-path": "CHANGELOG.md",
+      "draft": false,
+      "prerelease": false,
+      "merge-commit-message": "merge",
+      "include-component-in-tag": false,
+      "includeVInRelease": false,
+      "separatePullRequests": false
+    },
+    "packages/enterprise": {
+      "release-type": "node",
+      "package-name": "@vuesip/enterprise",
+      "changelog-path": "packages/enterprise/CHANGELOG.md",
+      "draft": false,
+      "prerelease": false,
+      "merge-commit-message": "merge",
+      "include-component-in-tag": false,
+      "includeVInRelease": false,
+      "separatePullRequests": false
+    },
+    "templates/pwa-softphone": {
+      "release-type": "node",
+      "package-name": "@vuesip/template-pwa-softphone",
+      "changelog-path": "templates/pwa-softphone/CHANGELOG.md",
+      "draft": false,
+      "prerelease": false,
+      "merge-commit-message": "merge",
+      "include-component-in-tag": false,
+      "includeVInRelease": false,
+      "separatePullRequests": false
+    }
+  }
+}

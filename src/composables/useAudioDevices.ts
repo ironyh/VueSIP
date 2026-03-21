@@ -11,6 +11,9 @@ import type {
   AudioPermissionState,
   AudioDeviceChangeEvent,
 } from '@/types/audio.types'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('composables:useAudioDevices')
 
 export interface UseAudioDevicesReturn {
   // Device lists
@@ -100,7 +103,7 @@ export function useAudioDevices(): UseAudioDevicesReturn {
     } catch (err) {
       const errorMessage = (err as Error).message
       error.value = errorMessage
-      console.error('Failed to enumerate devices:', err)
+      logger.error('Failed to enumerate devices:', err)
     } finally {
       isLoading.value = false
     }
@@ -365,7 +368,7 @@ export function useAudioDevices(): UseAudioDevicesReturn {
         try {
           cb(event.device)
         } catch (err) {
-          console.error('Error in device added callback:', err)
+          logger.error('Error in device added callback:', err)
         }
       })
     } else if (event.type === 'removed') {
@@ -373,7 +376,7 @@ export function useAudioDevices(): UseAudioDevicesReturn {
         try {
           cb(event.device)
         } catch (err) {
-          console.error('Error in device removed callback:', err)
+          logger.error('Error in device removed callback:', err)
         }
       })
     }

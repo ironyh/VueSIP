@@ -19,6 +19,17 @@ import type {
 import { createLogger } from '../../utils/logger'
 import { CallDirection, CallState } from '../../types/call.types'
 
+// Type for global RTCRtpTransceiver check
+interface GlobalRTCRtpTransceiver {
+  prototype?: {
+    setCodecPreferences?: unknown
+  }
+}
+
+interface GlobalWithRTCRtpTransceiver {
+  RTCRtpTransceiver?: GlobalRTCRtpTransceiver
+}
+
 const log = createLogger('JsSipCallSession')
 
 /**
@@ -520,7 +531,10 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
         // If the user disables the transceiver API, we rely on SDP fallback instead.
         if (this._codecPolicy?.preferTransceiverApi === false) return
 
-        const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : []
+        const transceivers =
+          typeof pc.getTransceivers === 'function'
+            ? (pc.getTransceivers() as RTCRtpTransceiver[])
+            : []
         if (transceivers && transceivers.length > 0) {
           const codecs = useCodecs(this._codecPolicy)
           for (const t of transceivers) {
@@ -529,7 +543,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
               | 'video'
               | undefined
             if (kind === 'audio' || kind === 'video') {
-              codecs.applyToTransceiver(t as unknown as RTCRtpTransceiver, kind)
+              codecs.applyToTransceiver(t, kind)
             }
           }
         }
@@ -548,8 +562,8 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
 
           const preferTransceiverApi = this._codecPolicy.preferTransceiverApi !== false
           const canSetCodecPrefs =
-            typeof (globalThis as any).RTCRtpTransceiver !== 'undefined' &&
-            typeof ((globalThis as any).RTCRtpTransceiver?.prototype as any)
+            typeof (globalThis as GlobalWithRTCRtpTransceiver).RTCRtpTransceiver !== 'undefined' &&
+            typeof (globalThis as GlobalWithRTCRtpTransceiver).RTCRtpTransceiver?.prototype
               ?.setCodecPreferences === 'function'
 
           // Use SDP fallback when transceiver API is disabled by policy, or when the environment

@@ -53,6 +53,16 @@ This document provides a comprehensive reference for all utility functions avail
   - [setLogLevel](#setloglevel)
   - [getLogLevel](#getloglevel)
   - [setLogHandler](#setloghandler)
+- [Quality Report Utilities](#quality-report-utilities)
+  - [Types](#types-1)
+  - [Constants](#constants-1)
+  - [calculateMOS](#calculatemos)
+  - [calculateQualityScore](#calculatequalityscore)
+  - [getQualityLevel](#getqualitylevel)
+  - [getQualityTrend](#getqualitytrend)
+  - [createQualityMetrics](#createqualitymetrics)
+  - [QualityHistoryBuffer](#qualityhistorybuffer)
+  - [generateCallQualityReport](#generatecallqualityreport)
 - [E911 Utilities](#e911-utilities)
   - [sanitizeInput](#sanitizeinput)
   - [sanitizeEmail](#sanitizeemail)
@@ -1679,6 +1689,309 @@ import {
   formatE911Location,
   createDefaultE911Config,
 } from '@/utils/e911'
+```
+
+---
+
+## Quality Report Utilities
+
+VueSip provides quality metrics utilities for WebRTC call quality analytics, including MOS (Mean Opinion Score) calculation, quality history tracking, and comprehensive quality reporting.
+
+**Source:** [src/utils/qualityReport.ts](../../src/utils/qualityReport.ts)
+
+### Importing Quality Utilities
+
+```typescript
+import {
+  calculateMOS,
+  calculateQualityScore,
+  getQualityLevel,
+  getQualityTrend,
+  createQualityMetrics,
+  QualityHistoryBuffer,
+  generateCallQualityReport,
+  type QualityMetrics,
+  type QualityAlertRecord,
+  type CallQualityReport,
+} from 'vuesip'
+```
+
+### Types
+
+| Type                 | Description                                                               |
+| -------------------- | ------------------------------------------------------------------------- |
+| `QualityLevel`       | Quality rating: `'excellent'`, `'good'`, `'fair'`, `'poor'`, `'critical'` |
+| `QualityTrend`       | Trend direction: `'improving'`, `'stable'`, `'degrading'`                 |
+| `QualityMetrics`     | Snapshot of quality metrics at a point in time                            |
+| `QualityAlertRecord` | Record of a quality alert event                                           |
+| `CallQualityReport`  | Complete call quality summary                                             |
+
+### Constants
+
+| Constant             | Value  | Description                                                         |
+| -------------------- | ------ | ------------------------------------------------------------------- |
+| `MAX_HISTORY_SIZE`   | `60`   | Maximum history buffer size (60 seconds at 1 sample/sec)            |
+| `QUALITY_THRESHOLDS` | Object | Score thresholds: `{ excellent: 80, good: 60, fair: 40, poor: 20 }` |
+
+---
+
+### calculateMOS
+
+Calculate Mean Opinion Score (MOS) from network metrics using the E-model algorithm adapted for WebRTC.
+
+```typescript
+function calculateMOS(
+  packetLossPercent: number | null,
+  jitterMs: number | null,
+  rttMs: number | null
+): number | null
+```
+
+**Parameters:**
+
+- `packetLossPercent` - Packet loss percentage (0-100)
+- `jitterMs` - Jitter in milliseconds
+- `rttMs` - Round-trip time in milliseconds
+
+**Returns:** MOS score (1.0-5.0) or `null` if insufficient data
+
+**Example:**
+
+```typescript
+const mos = calculateMOS(2.5, 30, 80)
+// Returns: ~4.0 (good quality)
+
+const mos = calculateMOS(15, 80, 300)
+// Returns: ~2.5 (fair quality)
+```
+
+---
+
+### calculateQualityScore
+
+Calculate overall quality score (0-100) from metrics, with penalties for degraded conditions.
+
+```typescript
+function calculateQualityScore(
+  mos: number | null,
+  packetLossPercent: number | null,
+  jitterMs: number | null,
+  rttMs: number | null
+): number | null
+```
+
+**Parameters:**
+
+- `mos` - Mean Opinion Score (1.0-5.0), or null to calculate from raw metrics
+- `packetLossPercent` - Packet loss percentage (0-100)
+- `jitterMs` - Jitter in milliseconds
+- `rttMs` - Round-trip time in milliseconds
+
+**Returns:** Quality score (0-100) or `null` if insufficient data
+
+**Example:**
+
+```typescript
+const score = calculateQualityScore(4.0, 2.5, 30, 80)
+// Returns: ~85 (excellent)
+
+const score = calculateQualityScore(null, 15, 80, 300)
+// Calculates MOS internally, returns: ~40 (fair)
+```
+
+---
+
+### getQualityLevel (determineQualityLevel)
+
+Determine quality level from a score.
+
+```typescript
+function getQualityLevel(score: number | null): QualityLevel
+```
+
+**Parameters:**
+
+- `score` - Quality score (0-100) or null
+
+**Returns:** Quality level based on thresholds
+
+**Example:**
+
+```typescript
+getQualityLevel(85) // Returns: 'excellent'
+getQualityLevel(65) // Returns: 'good'
+getQualityLevel(45) // Returns: 'fair'
+getQualityLevel(25) // Returns: 'poor'
+getQualityLevel(10) // Returns: 'critical'
+getQualityLevel(null) // Returns: 'poor'
+```
+
+---
+
+### getQualityTrend (determineQualityTrend)
+
+Determine quality trend from recent history.
+
+```typescript
+function getQualityTrend(history: QualityMetrics[]): QualityTrend
+```
+
+**Parameters:**
+
+- `history` - Array of quality metrics (at least 2 samples)
+
+**Returns:** Trend direction
+
+**Example:**
+
+```typescript
+const history = [
+  { qualityScore: 70, timestamp: new Date() },
+  { qualityScore: 75, timestamp: new Date() },
+  { qualityScore: 80, timestamp: new Date() },
+]
+getQualityTrend(history) // Returns: 'improving'
+```
+
+---
+
+### createQualityMetrics
+
+Create a quality metrics snapshot from raw network stats.
+
+```typescript
+function createQualityMetrics(
+  rtt: number | null,
+  jitter: number | null,
+  packetLossPercent: number | null,
+  bitrateKbps: number | null
+): QualityMetrics
+```
+
+**Parameters:**
+
+- `rtt` - Round-trip time in ms
+- `jitter` - Jitter in ms
+- `packetLossPercent` - Packet loss percentage
+- `bitrateKbps` - Bitrate in kbps
+
+**Returns:** Complete quality metrics snapshot
+
+**Example:**
+
+```typescript
+const metrics = createQualityMetrics(80, 30, 2.5, 256)
+// Returns:
+// {
+//   timestamp: Date,
+//   rtt: 80,
+//   jitter: 30,
+//   packetLossPercent: 2.5,
+//   bitrateKbps: 256,
+//   mosScore: ~4.0,
+//   qualityScore: ~85,
+//   qualityLevel: 'excellent'
+// }
+```
+
+---
+
+### QualityHistoryBuffer
+
+Class for tracking quality metrics over time.
+
+```typescript
+class QualityHistoryBuffer {
+  constructor(maxSize?: number)
+  add(metrics: QualityMetrics): void
+  getAll(): QualityMetrics[]
+  getRecent(count: number): QualityMetrics[]
+  getLastSeconds(seconds: number): QualityMetrics[]
+  clear(): void
+  get size(): number
+  getAverageMOS(): number | null
+  getMOSRange(): { min: number | null; max: number | null }
+  getAveragePacketLoss(): number | null
+  getMaxPacketLoss(): number | null
+  getAverageJitter(): number | null
+  getMaxJitter(): number | null
+  getAverageRtt(): number | null
+  getMaxRtt(): number | null
+}
+```
+
+**Example:**
+
+```typescript
+const buffer = new QualityHistoryBuffer(60) // 60 second buffer
+
+// In your metrics collection interval:
+setInterval(() => {
+  const stats = getStatsFromPeerConnection()
+  const metrics = createQualityMetrics(stats.rtt, stats.jitter, stats.packetLoss, stats.bitrate)
+  buffer.add(metrics)
+}, 1000)
+
+// Check current quality:
+const avgMos = buffer.getAverageMOS()
+const trend = getQualityTrend(buffer.getAll())
+console.log(`Average MOS: ${avgMos?.toFixed(2)}, Trend: ${trend}`)
+```
+
+---
+
+### generateCallQualityReport
+
+Generate a complete call quality report from history and alerts.
+
+```typescript
+function generateCallQualityReport(
+  callId: string,
+  duration: number,
+  history: QualityHistoryBuffer,
+  alerts: QualityAlertRecord[]
+): CallQualityReport
+```
+
+**Parameters:**
+
+- `callId` - Unique call identifier
+- `duration` - Call duration in seconds
+- `history` - Quality history buffer
+- `alerts` - Quality alerts during call
+
+**Returns:** Complete quality report
+
+**Example:**
+
+```typescript
+const report = generateCallQualityReport(
+  'call-123',
+  300, // 5 minute call
+  historyBuffer,
+  qualityAlerts
+)
+
+// report contains:
+// {
+//   id: 'qr-1700000000-abc123',
+//   callId: 'call-123',
+//   duration: 300,
+//   averageMos: 3.8,
+//   minMos: 3.2,
+//   maxMos: 4.2,
+//   averagePacketLoss: 1.5,
+//   maxPacketLoss: 5.2,
+//   averageJitter: 35,
+//   maxJitter: 80,
+//   averageRtt: 75,
+//   maxRtt: 150,
+//   overallQuality: 'good',
+//   trend: 'stable',
+//   alertCount: 2,
+//   alerts: [...],
+//   generatedAt: Date
+// }
 ```
 
 ---

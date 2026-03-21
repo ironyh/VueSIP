@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useCallQualityStats, useCallRecording } from 'vuesip'
+import type { CallSession } from '@/types/call.types'
+import CallFailureOverlay from './CallFailureOverlay.vue'
 
 const props = defineProps<{
   callState: string
@@ -12,6 +15,7 @@ const props = defineProps<{
   statusLine1?: string
   statusLine2?: string
   calledLine?: string
+  session?: CallSession | null
 }>()
 
 const emit = defineEmits<{
@@ -20,9 +24,32 @@ const emit = defineEmits<{
   toggleMute: []
   toggleSpeaker: []
   sendDtmf: [digit: string]
+  retry: []
 }>()
 
 const showDtmf = ref(false)
+const showStats = ref(false)
+const showRecording = ref(false)
+
+// Call quality stats - only when session is available
+const sessionRef = computed(() => props.session)
+const { stats, qualityLevel } = useCallQualityStats(sessionRef)
+
+// Call recording - wire to remote stream
+const remoteStreamRef = computed(() => props.session?.remoteStream ?? null)
+const {
+  isRecording,
+  isPaused,
+  hasRecording,
+  formattedDuration: recordingDuration,
+  startRecording,
+  pauseRecording,
+  resumeRecording,
+  stopRecording,
+  downloadRecording,
+  clearRecording,
+  isSupported: isRecordingSupported,
+} = useCallRecording(remoteStreamRef)
 
 const formattedDuration = computed(() => {
   const mins = Math.floor(props.duration / 60)
@@ -42,6 +69,28 @@ const statusText = computed(() => {
   if (props.callState === 'held') return 'On Hold'
   return ''
 })
+
+// Quality indicator color
+const qualityColor = computed(() => {
+  switch (qualityLevel.value) {
+    case 'excellent':
+      return '#22c55e'
+    case 'good':
+      return '#84cc16'
+    case 'fair':
+      return '#eab308'
+    case 'poor':
+      return '#ef4444'
+    default:
+      return '#6b7280'
+  }
+})
+
+// Format stats for display
+function formatStat(value: number | null, decimals = 0): string {
+  if (value === null || value === undefined) return '--'
+  return value.toFixed(decimals)
+}
 
 const dtmfKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 
@@ -86,6 +135,108 @@ function handleDtmf(digit: string) {
           </button>
         </div>
         <button class="dtmf-close" @click="showDtmf = false">Hide Keypad</button>
+      </div>
+    </Transition>
+
+    <!-- Recording Controls Panel -->
+    <Transition name="slide">
+      <div
+        v-if="showRecording && callState === 'active' && isRecordingSupported"
+        class="recording-panel"
+      >
+        <div class="recording-header">
+          <span class="recording-title">Call Recording</span>
+          <span v-if="isRecording" class="recording-indicator">
+            <span class="recording-dot"></span>
+            REC {{ recordingDuration }}
+          </span>
+          <span v-else-if="isPaused" class="recording-paused">PAUSED {{ recordingDuration }}</span>
+        </div>
+        <div class="recording-controls">
+          <button
+            v-if="!isRecording && !isPaused && !hasRecording"
+            class="rec-btn record"
+            @click="startRecording()"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="8" />
+            </svg>
+            Start
+          </button>
+          <button v-if="isRecording" class="rec-btn pause" @click="stopRecording()">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+            Stop
+          </button>
+          <button v-if="isRecording" class="rec-btn pause" @click="pauseRecording()">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            </svg>
+            Pause
+          </button>
+          <button v-if="isPaused" class="rec-btn resume" @click="resumeRecording()">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Resume
+          </button>
+          <button v-if="hasRecording" class="rec-btn download" @click="downloadRecording()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Download
+          </button>
+          <button v-if="hasRecording" class="rec-btn clear" @click="clearRecording()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+              />
+            </svg>
+            Clear
+          </button>
+        </div>
+        <div v-if="!isRecordingSupported" class="recording-unsupported">
+          Recording not supported in this browser
+        </div>
+        <button class="recording-close" @click="showRecording = false">Close</button>
+      </div>
+    </Transition>
+
+    <!-- Call Quality Stats -->
+    <Transition name="slide">
+      <div v-if="showStats && callState === 'active'" class="quality-stats">
+        <div class="stats-header">
+          <span class="stats-title">Technical Details</span>
+          <span
+            class="quality-indicator"
+            :style="{ backgroundColor: qualityColor }"
+            :title="`Quality: ${qualityLevel}`"
+          >
+            {{ qualityLevel === 'unknown' ? '?' : '' }}
+          </span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">RTT</span>
+            <span class="stat-value">{{ formatStat(stats.rtt, 0) }} ms</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Jitter</span>
+            <span class="stat-value">{{ formatStat(stats.jitter, 1) }} ms</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Loss</span>
+            <span class="stat-value">{{ formatStat(stats.packetLossPercent, 1) }}%</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Bitrate</span>
+            <span class="stat-value">{{ formatStat(stats.bitrateKbps, 0) }} kbps</span>
+          </div>
+        </div>
+        <div v-if="stats.codec" class="codec-info">Codec: {{ stats.codec }}</div>
+        <button class="stats-close" @click="showStats = false">Hide Details</button>
       </div>
     </Transition>
 
@@ -154,6 +305,33 @@ function handleDtmf(digit: string) {
           <span>{{ isOnHold ? 'Resume' : 'Hold' }}</span>
         </button>
 
+        <button class="control-btn" :class="{ active: showStats }" @click="showStats = !showStats">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          <span>Stats</span>
+        </button>
+
+        <button
+          class="control-btn"
+          :class="{ active: isRecording || isPaused }"
+          @click="showRecording = !showRecording"
+        >
+          <svg v-if="isRecording" viewBox="0 0 24 24" fill="currentColor" class="recording-pulse">
+            <circle cx="12" cy="12" r="8" fill="currentColor" />
+          </svg>
+          <svg v-else-if="isPaused" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" />
+            <circle cx="12" cy="12" r="3" fill="currentColor" />
+          </svg>
+          <span>{{ isRecording ? 'Recording' : isPaused ? 'Paused' : 'Record' }}</span>
+        </button>
+
         <button class="control-btn end-call" @click="emit('endCall')">
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path
@@ -165,6 +343,13 @@ function handleDtmf(digit: string) {
         </button>
       </div>
     </div>
+    <!-- Call Failure Overlay -->
+    <CallFailureOverlay
+      :visible="callState === 'failed'"
+      :session="session"
+      @dismiss="emit('endCall')"
+      @retry="emit('retry')"
+    />
   </div>
 </template>
 
@@ -258,6 +443,249 @@ function handleDtmf(digit: string) {
   border-radius: var(--radius-lg);
   padding: 1rem;
   z-index: 10;
+}
+
+/* Recording Panel */
+.recording-panel {
+  position: absolute;
+  bottom: 200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 320px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  z-index: 10;
+}
+
+.recording-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.recording-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.recording-dot {
+  width: 10px;
+  height: 10px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.recording-paused {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #eab308;
+}
+
+.recording-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.rec-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rec-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.rec-btn.record {
+  background: #ef4444;
+  color: white;
+}
+
+.rec-btn.record:hover {
+  background: #dc2626;
+}
+
+.rec-btn.pause {
+  background: #eab308;
+  color: white;
+}
+
+.rec-btn.pause:hover {
+  background: #ca8a04;
+}
+
+.rec-btn.resume {
+  background: #22c55e;
+  color: white;
+}
+
+.rec-btn.resume:hover {
+  background: #16a34a;
+}
+
+.rec-btn.download {
+  background: #3b82f6;
+  color: white;
+}
+
+.rec-btn.download:hover {
+  background: #2563eb;
+}
+
+.rec-btn.clear {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.rec-btn.clear:hover {
+  background: #374151;
+  color: white;
+}
+
+.recording-unsupported {
+  text-align: center;
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.recording-close {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.recording-pulse {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Quality Stats Panel */
+.quality-stats {
+  position: absolute;
+  bottom: 200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 320px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  z-index: 10;
+}
+
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stats-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.quality-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.stat-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+.codec-info {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.stats-close {
+  width: 100%;
+  padding: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .dtmf-keys {

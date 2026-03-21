@@ -1,0 +1,83 @@
+# Labeler configuration - maps file paths to PR labels
+# https://github.com/actions/labeler
+
+# Enterprise package
+enterprise:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/enterprise/**'
+      - any-glob-to-any-file: 'packages/enterprise/**/*'
+
+# Templates
+template-basic:
+  - changed-files:
+      - any-glob-to-any-file: 'templates/basic-softphone/**'
+
+template-call-center:
+  - changed-files:
+      - any-glob-to-any-file: 'templates/call-center/**'
+
+template-ivr:
+  - changed-files:
+      - any-glob-to-any-file: 'templates/ivr-tester/**'
+
+template-minimal:
+  - changed-files:
+      - any-glob-to-any-file: 'templates/minimal/**'
+
+template-pwa:
+  - changed-files:
+      - any-glob-to-any-file: 'templates/pwa-softphone/**'
+
+template-video:
+  - changed-files:
+      - any-glob-to-any-file: 'templates/video-room/**'
+
+# GitHub workflows
+ci:
+  - changed-files:
+      - any-glob-to-any-file: '.github/workflows/*.yml'
+      - any-glob-to-any-file: '.github/workflows/*.yaml'
+
+# Documentation
+docs:
+  - changed-files:
+      - any-glob-to-any-file: 'docs/**'
+      - any-glob-to-any-file: '*.md'
+      - any-glob-to-any-file: '*.mdx'
+
+# Configuration
+config:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+      - any-glob-to-any-file: '*.json'
+      - any-glob-to-any-file: '*.yaml'
+      - any-glob-to-any-file: '*.yml'
+      - any-glob-to-any-file: 'tsconfig*.json'
+      - any-glob-to-any-file: 'package.json'
+      - any-glob-to-any-file: 'pnpm-workspace.yaml'
+
+# TypeScript / Code
+typescript:
+  - changed-files:
+      - any-glob-to-any-file: '**/*.ts'
+      - any-glob-to-any-file: '**/*.tsx'
+      - any-glob-to-any-file: '**/*.vue'
+
+# Tests
+test:
+  - changed-files:
+      - any-glob-to-any-file: '**/*.test.ts'
+      - any-glob-to-any-file: '**/*.test.tsx'
+      - any-glob-to-any-file: '**/*.spec.ts'
+      - any-glob-to-any-file: '**/*.spec.tsx'
+      - any-glob-to-any-file: '**/__tests__/**'
+      - any-glob-to-any-file: '**/test/**'
+      - any-glob-to-any-file: '**/tests/**'
+      - any-glob-to-any-file: '**/e2e/**'
+
+# Dependencies
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file: 'pnpm-lock.yaml'
+      - any-glob-to-any-file: 'package-lock.json'
+      - any-glob-to-any-file: 'yarn.lock'

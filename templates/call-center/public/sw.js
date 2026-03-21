@@ -1,4 +1,6 @@
 /* Service Worker for VueSIP Call Center - Notification Actions */
+/// <reference lib="webworker" />
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const action = event.action || 'open';
