@@ -75,11 +75,18 @@ jobs:
           echo "total_kb=${TOTAL_KB}" >> $GITHUB_OUTPUT
           
           # Check thresholds (fail if too large)
-          THRESHOLD_ES=150  # 150KB threshold for ES module
-          THRESHOLD_TOTAL=500  # 500KB total threshold
+          # Current baseline: ES~831KB, CJS~831KB, UMD~832KB, Total~2494KB
+          # Allow ~10% growth before failing
+          THRESHOLD_ES=910       # Allow ES module to grow to 910KB before warning
+          THRESHOLD_TOTAL=2750   # Allow total to grow to 2750KB before error (exit 1)
+          THRESHOLD_GZIP_ES=260  # Allow gzipped ES to grow to 260KB before warning
           
           if [ $ES_KB -gt $THRESHOLD_ES ]; then
-            echo "::warning::ES module size (${ES_KB}KB) exceeds threshold (${THRESHOLD_ES}KB)"
+            echo "::warning ::ES module size (${ES_KB}KB) exceeds threshold (${THRESHOLD_ES}KB)"
+          fi
+          
+          if [ $ES_GZIP_KB -gt $THRESHOLD_GZIP_ES ]; then
+            echo "::warning::ES module gzipped size (${ES_GZIP_KB}KB) exceeds threshold (${THRESHOLD_GZIP_ES}KB)"
           fi
           
           if [ $TOTAL_KB -gt $THRESHOLD_TOTAL ]; then
@@ -116,9 +123,12 @@ jobs:
             <details>
             <summary>📊 Size Baselines (for regression detection)</summary>
 
-            - ES Module baseline: ~850KB raw / ~250KB gzipped
+            - ES Module baseline: ~831KB raw / ~227KB gzipped
+            - CJS baseline: ~831KB raw / ~231KB gzipped
+            - UMD baseline: ~832KB raw / ~231KB gzipped
+            - Total baseline: ~2494KB raw
+            - Thresholds: ES 910KB, Gzip 260KB, Total 2750KB (~10% growth budget)
             - These are library builds (not tree-shaken application builds)
-            - Warnings trigger on significant size increases
 
             </details>
 
