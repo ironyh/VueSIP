@@ -1,0 +1,199 @@
+name: Flaky Test Detector
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: flaky-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-1:
+    runs-on: ubuntu-latest
+    outputs:
+      failed: ${{ steps.run.outputs.failed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: run
+        run: |
+          set +e
+          pnpm test:unit --run 2>/tmp/test.log
+          grep -q "failed" /tmp/test.log && FAILED=$(grep -oP '\d+ failed' /tmp/test.log | head -1 | grep -oP '\d+') || FAILED=0
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: log-1
+          path: /tmp/test.log
+          retention-days: 1
+
+  test-2:
+    runs-on: ubuntu-latest
+    outputs:
+      failed: ${{ steps.run.outputs.failed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: run
+        run: |
+          set +e
+          pnpm test:unit --run 2>/tmp/test.log
+          grep -q "failed" /tmp/test.log && FAILED=$(grep -oP '\d+ failed' /tmp/test.log | head -1 | grep -oP '\d+') || FAILED=0
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: log-2
+          path: /tmp/test.log
+          retention-days: 1
+
+  test-3:
+    runs-on: ubuntu-latest
+    outputs:
+      failed: ${{ steps.run.outputs.failed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: run
+        run: |
+          set +e
+          pnpm test:unit --run 2>/tmp/test.log
+          grep -q "failed" /tmp/test.log && FAILED=$(grep -oP '\d+ failed' /tmp/test.log | head -1 | grep -oP '\d+') || FAILED=0
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: log-3
+          path: /tmp/test.log
+          retention-days: 1
+
+  analyze:
+    needs: [test-1, test-2, test-3]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download logs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: log-*
+          path: logs/
+          merge-multiple: true
+
+      - name: Analyze results
+        id: analyze
+        run: |
+          F1=${{ needs.test-1.outputs.failed }}
+          F2=${{ needs.test-2.outputs.failed }}
+          F3=${{ needs.test-3.outputs.failed }}
+
+          FAILED_RUNS=0
+          [ -n "$F1" ] && [ "$F1" != "0" ] && FAILED_RUNS=$((FAILED_RUNS+1))
+          [ -n "$F2" ] && [ "$F2" != "0" ] && FAILED_RUNS=$((FAILED_RUNS+1))
+          [ -n "$F3" ] && [ "$F3" != "0" ] && FAILED_RUNS=$((FAILED_RUNS+1))
+
+          echo "failed_runs=$FAILED_RUNS" >> $GITHUB_OUTPUT
+
+          if   [ "$FAILED_RUNS" -eq 0 ]; then echo "result=clean" >> $GITHUB_OUTPUT
+          elif [ "$FAILED_RUNS" -eq 3 ]; then echo "result=consistent_failure" >> $GITHUB_OUTPUT
+          else echo "result=flaky" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract failing test names
+        id: names
+        run: |
+          REPORT=""
+          for i in 1 2 3; do
+            LOG="logs/log-$i"
+            if [ -f "$LOG" ]; then
+              if grep -q "failed" "$LOG"; then
+                LINES=$(grep "FAIL" "$LOG" | cut -c1-120 | head -10)
+                [ -n "$LINES" ] && REPORT="${REPORT}Run $i:\n${LINES}\n"
+              fi
+            fi
+          done
+          [ -z "$REPORT" ] && REPORT="none"
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          echo -e "${REPORT}EOF" >> $GITHUB_OUTPUT
+
+      - name: Post PR comment
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = '${{ steps.analyze.outputs.result }}';
+            const failedRuns = parseInt('${{ steps.analyze.outputs.failed_runs }}' || '0');
+            const rawReport = '${{ steps.names.outputs.report }}';
+            const report = rawReport !== 'none' ? rawReport.trim() : '';
+
+            const cfg = {
+              clean:              { title: 'Flaky Test Check: All Clear' },
+              flaky:              { title: 'Flaky Tests Detected' },
+              consistent_failure: { title: 'Consistent Test Failures' }
+            };
+            const c = cfg[result] || cfg.clean;
+
+            const msg = result === 'clean'
+              ? '**No flakiness — all 3 runs passed.**'
+              : result === 'flaky'
+              ? `**Flakiness in ${failedRuns}/3 runs.** Tests may pass on re-run.`
+              : '**Consistent failures across all runs — likely a real regression.**';
+
+            const body = [
+              `## ${c.title}`,
+              '',
+              'Flaky test detector ran the full test suite 3x in parallel.',
+              '',
+              '| Run | Outcome |',
+              '|-----|---------|',
+              `| 1 | ${failedRuns >= 1 ? 'Failed' : 'Passed'} |`,
+              `| 2 | ${failedRuns >= 2 ? 'Failed' : 'Passed'} |`,
+              `| 3 | ${failedRuns >= 3 ? 'Failed' : 'Passed'} |`,
+              '',
+              msg,
+              '',
+              report && result !== 'clean' ? `Failing tests:\`\`\`\n${report}\n\`\`\`` : '',
+              '',
+              '---',
+              '*Flaky Test Detector — VueSIP CI*'
+            ].filter(Boolean).join('\n');
+
+            const prNumber = context.payload.pull_request?.number;
+            if (!prNumber) return;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber,
+            });
+
+            const existing = comments.find(c =>
+              c.user.login === 'github-actions[bot]' && c.body.includes('Flaky Test Detector')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: prNumber, body,
+              });
+            }
