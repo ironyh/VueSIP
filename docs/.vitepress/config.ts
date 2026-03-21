@@ -45,6 +45,10 @@ export default defineConfig({
     '**/*_IMPROVEMENTS.md',
     '**/*_MIGRATION.md',
     'README_CROSS_BROWSER.md',
+    // Exclude TypeDoc-generated API docs — they contain TypeScript generics that
+    // VitePress's Vue SFC compiler misinterprets as unclosed HTML tags (e.g. <void>).
+    // The docs are served separately via the static build output.
+    'api/generated/**/*.md',
   ],
 
   head: [
@@ -181,11 +185,6 @@ export default defineConfig({
             { text: 'Plugins', link: '/api/plugins' },
             { text: 'Utilities', link: '/api/utilities' },
           ],
-        },
-        {
-          text: 'Generated API Docs',
-          collapsed: false,
-          items: [{ text: 'Full API Reference (TypeDoc)', link: '/api/generated/' }],
         },
       ],
 

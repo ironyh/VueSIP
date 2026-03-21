@@ -65,83 +65,97 @@ function escapeTypeScriptGenerics(content) {
 }
 
 /**
- * Escape Vue SFC tags (<script>, <template>, <style>) inside html/vue code blocks.
+ * Escape potentially problematic HTML-like tokens inside ```ts code blocks.
  *
- * VitePress compiles .md files as Vue SFCs. The Vue compiler does NOT understand
- * markdown fenced code blocks — it sees ALL content in the file as Vue SFC content.
- * When typedoc generates code blocks containing <script setup> or <template> tags
- * (as example code), the Vue compiler tries to parse them as real SFC component tags,
- * causing "Element is missing end tag" errors.
+ * TypeDoc generates TypeScript code blocks (```ts) containing generic types like
+ * `Promise<void>`, `AmiMessage<T>`, `Array<T>`. The Vue SFC compiler sees <void>
+ * as an unclosed HTML tag and errors out.
  *
- * We escape these tags by replacing < with &lt; inside html/vue code blocks only.
- * This prevents the Vue compiler from seeing them as SFC tags while keeping
- * the markdown rendering intact (markdown-it ignores entities inside code fences).
+ * We escape < as &lt; for tokens that look like HTML tag openings (letter followed
+ * by word chars). This prevents the Vue compiler from seeing them as tags while
+ * markdown renders &lt; as < in the output.
+ *
+ * Also handles html/vue blocks for SFC-tag escapes (existing behavior).
  *
  * Handles nested fences by tracking depth.
  */
-function escapeVueSfcTagsInCodeBlocks(content) {
-  const OPEN_HTML = '```html\n'
-  const OPEN_VUE = '```vue\n'
-  const OPEN_LEN = 7
-  const CLOSE_FENCE = '\n```\n'
-  const CLOSE_LEN = 4 // '\n```\n' is 4 chars
+function escapeCodeBlockTags(content) {
+  /**
+   * Escape potentially problematic HTML-like tokens inside code blocks.
+   *
+   * VitePress compiles .md files as Vue SFCs. The Vue compiler sees ALL content
+   * in the file (including markdown fenced code blocks) as raw Vue template content.
+   *
+   * TypeDoc generates ```ts blocks with TypeScript generics like `Promise<void>`,
+   * `AmiMessage<T>`. The Vue compiler sees <void> as an unclosed HTML tag and errors.
+   *
+   * For ```html/```vue blocks: escape <script>, <template>, <style> tags (existing).
+   * For ```ts/```tsx/```jsx blocks: escape ALL <tag-like tokens (new).
+   *
+   * markdown-it renders &lt; as < in output, so escaping preserves display correctly.
+   */
 
-  const resultParts = []
-  let pos = 0
+  const FENCE_TYPES = ['```ts\n', '```tsx\n', '```jsx\n', '```html\n', '```vue\n', '```typescript\n']
+  const CLOSE_FENCE = '\n```\n'
+
+  const parts = []
+  let i = 0
   const len = content.length
 
-  while (pos < len) {
-    // Check for opening fence
-    const slice7 = content.slice(pos, pos + OPEN_LEN)
-    let isHtml = slice7 === OPEN_HTML
-    let isVue = slice7 === OPEN_VUE
-
-    if (!isHtml && !isVue) {
-      resultParts.push(content[pos])
-      pos++
-      continue
-    }
-
-    // Found opening fence at pos
-    const blockStart = pos
-    pos += OPEN_LEN // skip opening fence
-
-    // Find closing fence with depth tracking for nested blocks
-    let depth = 1
-    while (pos < len && depth > 0) {
-      const remaining = content.slice(pos, pos + OPEN_LEN)
-      if (remaining === OPEN_HTML || remaining === OPEN_VUE) {
-        depth++
-        pos += OPEN_LEN
-      } else if (content.slice(pos, pos + CLOSE_LEN) === CLOSE_FENCE) {
-        depth--
-        if (depth > 0) pos += CLOSE_LEN // skip inner closing fence
-      } else {
-        pos++
+  while (i < len) {
+    // Check for any opening fence
+    let fenceType = null
+    for (const ft of FENCE_TYPES) {
+      if (content.slice(i, i + ft.length) === ft) {
+        fenceType = ft
+        break
       }
     }
 
-    // pos now points to the character after the final closing fence
-    // The content of this block is from blockStart+OPEN_LEN to pos-CLOSE_LEN
-    const blockContent = content.slice(blockStart + OPEN_LEN, pos - CLOSE_LEN)
-
-    // Append opening fence + (escaped or original) content + closing fence
-    const openFence = isHtml ? OPEN_HTML : OPEN_VUE
-    if (/<(?:script|template|style)(\s|>)/i.test(blockContent)) {
-      const escaped = blockContent
-        .replace(/<script(\s|>)/gi, '&lt;script$1')
-        .replace(/<\/script>/gi, '&lt;/script&gt;')
-        .replace(/<template(\s|>)/gi, '&lt;template$1')
-        .replace(/<\/template>/gi, '&lt;/template&gt;')
-        .replace(/<style(\s|>)/gi, '&lt;style$1')
-        .replace(/<\/style>/gi, '&lt;/style&gt;')
-      resultParts.push(openFence, escaped, CLOSE_FENCE)
-    } else {
-      resultParts.push(openFence, blockContent, CLOSE_FENCE)
+    if (!fenceType) {
+      parts.push(content[i])
+      i++
+      continue
     }
+
+    // Found opening fence at i
+    const blockStart = i
+    i += fenceType.length // skip opening fence
+
+    // Find matching closing fence (no nesting for ts/html/vue)
+    while (i < len) {
+      if (content.slice(i, i + CLOSE_FENCE.length) === CLOSE_FENCE) {
+        i += CLOSE_FENCE.length
+        break
+      }
+      i++
+    }
+
+    const blockContent = content.slice(blockStart + fenceType.length, i - CLOSE_FENCE.length)
+    const isSfcBlock = fenceType === '```html\n' || fenceType === '```vue\n'
+    const isTsBlock = fenceType === '```ts\n' || fenceType === '```tsx\n' || fenceType === '```jsx\n' || fenceType === '```typescript\n'
+
+    let escaped = blockContent
+    if (isSfcBlock) {
+      // Escape Vue SFC tags
+      if (/<(?:script|template|style)(\s|>)/i.test(blockContent)) {
+        escaped = blockContent
+          .replace(/<script(\s|>)/gi, '&lt;script$1')
+          .replace(/<\/script>/gi, '&lt;/script&gt;')
+          .replace(/<template(\s|>)/gi, '&lt;template$1')
+          .replace(/<\/template>/gi, '&lt;/template&gt;')
+          .replace(/<style(\s|>)/gi, '&lt;style$1')
+          .replace(/<\/style>/gi, '&lt;/style&gt')
+      }
+    } else if (isTsBlock) {
+      // Escape HTML-like tokens: <Letter... with no = or / immediately after <
+      escaped = blockContent.replace(/<([a-zA-Z][a-zA-Z0-9]*)(?![=>/])/g, '&lt;$1')
+    }
+
+    parts.push(fenceType, escaped, CLOSE_FENCE)
   }
 
-  return resultParts.join('')
+  return parts.join('')
 }
 
 function processFile(filePath) {
@@ -154,8 +168,8 @@ function processFile(filePath) {
   // Escape TypeScript generics in prose text
   content = escapeTypeScriptGenerics(content)
 
-  // Escape Vue SFC tags inside html/vue code blocks
-  content = escapeVueSfcTagsInCodeBlocks(content)
+  // Escape HTML-like tokens in code blocks (ts, html, vue)
+  content = escapeCodeBlockTags(content)
 
   if (original !== content) {
     writeFileSync(filePath, content)
