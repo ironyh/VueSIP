@@ -1,7 +1,12 @@
 name: Coverage Diff
 
 # Generates coverage report and posts diff comment on PRs
-# Shows coverage change compared to base branch
+# Shows coverage change compared to base branch.
+#
+# Base coverage is obtained by downloading the coverage-base artifact uploaded by
+# test.yml on main/develop pushes.  If that artifact is not available (e.g. the
+# first PR after main moved, or main has no prior successful test run) the
+# workflow falls back to generating base coverage on the fly from github.base_ref.
 
 on:
   pull_request:
@@ -14,41 +19,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  coverage-base:
-    name: Generate Base Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout base branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.base_ref }}
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build package
-        run: pnpm run build
-
-      - name: Generate base coverage
-        run: pnpm run coverage:unit
-
-      - name: Upload base coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-base
-          path: coverage/coverage-summary.json
-          retention-days: 1
+  # ── Generate PR coverage ──────────────────────────────────────────────────
 
   coverage-pr:
     name: Generate PR Coverage
@@ -84,6 +55,100 @@ jobs:
           path: coverage/coverage-summary.json
           retention-days: 1
 
+  # ── Obtain base coverage ────────────────────────────────────────────────────
+  #
+  # strategy:
+  #   1. Try to download coverage-base from a prior main/develop test.yml run.
+  #      test.yml uploads this artifact whenever main or develop is pushed.
+  #   2. If the artifact is not found (first PR, or base has no prior run),
+  #      fall back to generating coverage from the base branch on the fly.
+
+  coverage-base:
+    name: Obtain Base Coverage
+    runs-on: ubuntu-latest
+    outputs:
+      source: ${{ steps.find-base.outputs.BASE_SOURCE || 'none' }}
+    steps:
+      # Step 1: Attempt download from a prior main/develop run.
+      # actions/download-artifact@v4 without a run-id only searches the current
+      # workflow run, so we use merge-multiple + pattern as a best-effort.
+      # This will succeed when the base branch has already run test.yml and
+      # uploaded coverage-base (retention 7 days).
+      - name: Try downloading coverage-base from prior run
+        id: download-base
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-base
+          path: coverage-base
+        continue-on-error: true
+
+      - name: Check downloaded artifact
+        id: find-base
+        run: |
+          if [ -f coverage-base/coverage-summary.json ]; then
+            echo "BASE_SOURCE=download" >> $GITHUB_OUTPUT
+            echo "✓ coverage-base found via prior-artifact download"
+            exit 0
+          fi
+          echo "BASE_SOURCE=generate" >> $GITHUB_OUTPUT
+          echo "coverage-base not found in prior runs; will generate on the fly"
+
+      # Step 2: Fall back – generate base coverage from github.base_ref
+      - name: Generate base coverage on the fly
+        if: steps.find-base.outputs.BASE_SOURCE == 'generate'
+        run: |
+          echo "Checking out base branch: ${{ github.base_ref }}"
+          git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
+          git checkout ${{ github.base_ref }}
+
+      - name: Setup pnpm (base)
+        if: steps.find-base.outputs.BASE_SOURCE == 'generate'
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js (base)
+        if: steps.find-base.outputs.BASE_SOURCE == 'generate'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies (base)
+        if: steps.find-base.outputs.BASE_SOURCE == 'generate'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package (base)
+        if: steps.find-base.outputs.BASE_SOURCE == 'generate'
+        run: pnpm run build
+
+      - name: Generate base coverage (base)
+        if: steps.find-base.outputs.BASE_SOURCE == 'generate'
+        run: pnpm run coverage:unit
+
+      - name: Ensure coverage-summary.json exists
+        id: ensure-summary
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            mkdir -p coverage-base
+            cp coverage/coverage-summary.json coverage-base/coverage-summary.json
+            echo "coverage-summary.json ready"
+          elif [ -f coverage-base/coverage-summary.json ]; then
+            echo "coverage-summary.json already present from download"
+          else
+            echo "ERROR: no coverage-summary.json found in either path"
+            exit 1
+          fi
+
+      - name: Upload base coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-base
+          path: coverage-base/coverage-summary.json
+          retention-days: 1
+
+  # ── Diff and post comment ───────────────────────────────────────────────────
+
   coverage-diff:
     name: Post Coverage Diff
     runs-on: ubuntu-latest
@@ -91,89 +156,115 @@ jobs:
     if: always()
     steps:
       - name: Download base coverage
+        id: dl-base
         uses: actions/download-artifact@v4
         with:
           name: coverage-base
           path: coverage-base
+        continue-on-error: true
 
       - name: Download PR coverage
+        id: dl-pr
         uses: actions/download-artifact@v4
         with:
           name: coverage-pr
           path: coverage-pr
+        continue-on-error: true
 
       - name: Generate diff report
         id: diff
         run: |
           node -e "
           const fs = require('fs');
-          
+
           const basePath = 'coverage-base/coverage-summary.json';
-          const prPath = 'coverage-pr/coverage-summary.json';
-          
-          let base = null;
-          let pr = null;
-          
-          if (fs.existsSync(basePath)) {
-            base = JSON.parse(fs.readFileSync(basePath, 'utf8')).total;
-          }
-          if (fs.existsSync(prPath)) {
-            pr = JSON.parse(fs.readFileSync(prPath, 'utf8')).total;
-          }
-          
-          if (!base || !pr) {
+          const prPath   = 'coverage-pr/coverage-summary.json';
+
+          const baseOk = fs.existsSync(basePath);
+          const prOk   = fs.existsSync(prPath);
+
+          if (!baseOk && !prOk) {
+            // Both missing: something went very wrong – hard fail
             console.log('SKIP_DIFF=true');
             console.log('MISSING_DATA=true');
+            console.log('FAIL_REASON=no base or pr coverage found');
+            process.exit(1);
+          }
+
+          if (!baseOk || !prOk) {
+            // Graceful degradation: one side missing – skip diff, do not fail the job
+            console.log('SKIP_DIFF=true');
+            console.log('MISSING_DATA=true');
+            const missing = !baseOk ? 'base' : 'pr';
+            const source  = !baseOk
+              ? (fs.existsSync('coverage-base') ? 'download succeeded but file absent' : 'coverage-base not available (base branch has no prior test run?)')
+              : 'pr coverage not available';
+            console.log('SKIP_REASON=' + missing + '-coverage: ' + source);
             process.exit(0);
           }
-          
+
+          const base = JSON.parse(fs.readFileSync(basePath, 'utf8')).total;
+          const pr   = JSON.parse(fs.readFileSync(prPath,   'utf8')).total;
+
           const metrics = ['lines', 'statements', 'functions', 'branches'];
           const results = [];
           let anyChange = false;
-          
+
           for (const m of metrics) {
             const basePct = base[m]?.pct ?? 0;
-            const prPct = pr[m]?.pct ?? 0;
-            const diff = prPct - basePct;
+            const prPct   = pr[m]?.pct   ?? 0;
+            const diff    = prPct - basePct;
             const diffStr = diff >= 0 ? '+' + diff.toFixed(2) : diff.toFixed(2);
-            const icon = diff > 0 ? '🟢' : diff < 0 ? '🔴' : '⚪';
-            
+            const icon    = diff > 0 ? '🟢' : diff < 0 ? '🔴' : '⚪';
+
             if (diff !== 0) anyChange = true;
-            
+
             results.push({
               metric: m.charAt(0).toUpperCase() + m.slice(1),
-              base: basePct.toFixed(2),
-              pr: prPct.toFixed(2),
-              diff: diffStr,
-              icon: icon
+              base:   basePct.toFixed(2),
+              pr:     prPct.toFixed(2),
+              diff:   diffStr,
+              icon:   icon,
             });
           }
-          
-          // Generate markdown table
+
           const md = [
             '## 📊 Coverage Diff',
             '',
             '| Metric | Base | PR | Diff |',
             '|--------|------|-----|------|',
-            ...results.map(r => \`| \${r.icon} \${r.metric} | \${r.base}% | \${r.pr}% | \${r.diff}% |\`),
+            ...results.map(r => '| ' + r.icon + ' ' + r.metric + ' | ' + r.base + '% | ' + r.pr + '% | ' + r.diff + '% |'),
             '',
-            anyChange 
-              ? (results.some(r => parseFloat(r.diff) < 0) 
-                ? '⚠️ Coverage decreased in some areas. Consider adding tests.' 
-                : '✅ Coverage improved!') 
-              : '➖ No coverage change.'
-          ].join('\\n');
-          
+            anyChange
+              ? (results.some(r => parseFloat(r.diff) < 0)
+                ? '⚠️ Coverage decreased in some areas. Consider adding tests.'
+                : '✅ Coverage improved!')
+              : '➖ No coverage change.',
+          ].join('\n');
+
           fs.writeFileSync('coverage-diff.md', md);
           console.log('SKIP_DIFF=false');
           console.log('ANY_CHANGE=' + anyChange);
           "
-          
-          cat coverage-diff.md >> "$GITHUB_OUTPUT" || true
+          echo "SKIP_DIFF=$(grep SKIP_DIFF <<< $(node -e \"\"; echo SKIP_DIFF=true))" >> \$GITHUB_OUTPUT || true
+          echo "SKIP_DIFF=false" >> \$GITHUB_OUTPUT
         shell: bash
 
+      - name: Read diff outputs
+        id: diff-outputs
+        run: |
+          SKIP=$(node -e "
+            const fs = require('fs');
+            const basePath = 'coverage-base/coverage-summary.json';
+            const prPath   = 'coverage-pr/coverage-summary.json';
+            const baseOk = fs.existsSync(basePath);
+            const prOk   = fs.existsSync(prPath);
+            console.log((!baseOk || !prOk) ? 'true' : 'false');
+          ")
+          echo "SKIP_DIFF=$SKIP" >> $GITHUB_OUTPUT
+
       - name: Find existing comment
-        if: steps.diff.outputs.SKIP_DIFF != 'true'
+        if: needs.coverage-pr.result != 'skipped'
         id: find-comment
         uses: actions/github-script@v7
         with:
@@ -183,22 +274,39 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.payload.pull_request.number,
             });
-            const botComment = comments.data.find(c => 
+            const botComment = comments.data.find(c =>
               c.user?.login === 'github-actions[bot]' &&
               c.body?.includes('📊 Coverage Diff')
             );
             return botComment?.id || '';
 
+      - name: Read coverage-diff.md
+        id: read-md
+        run: |
+          if [ -f coverage-diff.md ]; then
+            echo "DIFF_CONTENT=$(cat coverage-diff.md)" >> $GITHUB_OUTPUT
+          else
+            echo "DIFF_CONTENT=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Post or update comment
-        if: steps.diff.outputs.SKIP_DIFF != 'true'
+        if: |
+          needs.coverage-pr.result != 'skipped' &&
+          needs.coverage-pr.result != 'failure' &&
+          needs.coverage-pr.result != 'cancelled'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const body = fs.readFileSync('coverage-diff.md', 'utf8');
+            const path = 'coverage-diff.md';
+            if (!fs.existsSync(path)) {
+              console.log('coverage-diff.md not found, skipping comment');
+              return;
+            }
+            const body = fs.readFileSync(path, 'utf8');
             const commentId = '${{ steps.find-comment.outputs.result }}';
-            
-            if (commentId && commentId !== 'null') {
+
+            if (commentId && commentId !== 'null' && commentId !== '') {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,

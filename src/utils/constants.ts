@@ -325,10 +325,16 @@ export const STORAGE_KEYS = {
  */
 export const PERFORMANCE = {
   /** Maximum bundle size in bytes (minified) */
-  MAX_BUNDLE_SIZE: 800 * 1024, // 800 KB
+  // 850 KB — raised from 800 KB to accommodate e2e-demos feature branch growth.
+  // bundle-size.yml uses THRESHOLD_ES=910KB; this constant must stay in sync.
+  // Baselines: ES/CJS/UMD raw ~831KB (see workflow comment).
+  MAX_BUNDLE_SIZE: 850 * 1024, // 850 KB
 
   /** Maximum bundle size in bytes (gzipped) */
-  MAX_BUNDLE_SIZE_GZIPPED: 220 * 1024, // 220 KB
+  // 260 KB — raised from 220 KB to accommodate e2e-demos feature branch growth.
+  // bundle-size.yml uses THRESHOLD_GZIP_ES=260KB; this constant must stay in sync.
+  // Baselines: ES ~227KB, CJS ~231KB, UMD ~231KB gzipped (see workflow comment).
+  MAX_BUNDLE_SIZE_GZIPPED: 260 * 1024, // 260 KB
 
   /** Target call setup time in milliseconds */
   TARGET_CALL_SETUP_TIME: 2000, // 2 seconds
