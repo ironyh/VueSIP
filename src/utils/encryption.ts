@@ -61,11 +61,14 @@ function generateIV(length = 12): Uint8Array {
 
 /**
  * Convert ArrayBuffer to base64 string
- * @param buffer - ArrayBuffer to convert
+ * @param buffer - ArrayBuffer or Uint8Array to convert
  * @returns Base64 string
  */
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
+function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
+  const bytes =
+    buffer instanceof Uint8Array
+      ? new Uint8Array(buffer.buffer as ArrayBuffer, buffer.byteOffset, buffer.byteLength)
+      : new Uint8Array(buffer)
   let binary = ''
   const len = bytes.byteLength
 
@@ -141,10 +144,14 @@ async function deriveKey(
   )
 
   // Derive AES key
+  // Use .buffer/.byteOffset/.byteLength to create a proper ArrayBuffer view.
+  // This avoids Uint8Array<ArrayBufferLike> not assignable to BufferSource errors
+  // in stricter TypeScript/Node type environments.
+  const saltBuffer = salt.buffer as ArrayBuffer
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: new Uint8Array(saltBuffer, salt.byteOffset, salt.byteLength),
       iterations,
       hash: 'SHA-256',
     },
@@ -189,10 +196,13 @@ export async function encrypt<T = unknown>(
     const key = await deriveKey(password, salt, opts.iterations)
 
     // Encrypt data
+    // Use .buffer/.byteOffset/.byteLength to create a proper ArrayBuffer view.
+    // This avoids Uint8Array<ArrayBufferLike> not assignable to BufferSource errors.
+    const ivBuffer = iv.buffer as ArrayBuffer
     const encoder = new TextEncoder()
     const dataStr = JSON.stringify(data)
     const encrypted = await crypto.subtle.encrypt(
-      { name: opts.algorithm, iv },
+      { name: opts.algorithm, iv: new Uint8Array(ivBuffer, iv.byteOffset, iv.byteLength) },
       key,
       encoder.encode(dataStr)
     )
@@ -256,7 +266,15 @@ export async function decrypt<T = unknown>(
     const key = await deriveKey(password, salt, iterations)
 
     // Decrypt data
-    const decrypted = await crypto.subtle.decrypt({ name: encryptedData.algorithm, iv }, key, data)
+    // Use .buffer/.byteOffset/.byteLength to create proper ArrayBuffer views.
+    // This avoids Uint8Array<ArrayBufferLike> not assignable to BufferSource errors.
+    const ivBuffer = iv.buffer as ArrayBuffer
+    const dataBuffer = data.buffer as ArrayBuffer
+    const decrypted = await crypto.subtle.decrypt(
+      { name: encryptedData.algorithm, iv: new Uint8Array(ivBuffer, iv.byteOffset, iv.byteLength) },
+      key,
+      new Uint8Array(dataBuffer, data.byteOffset, data.byteLength)
+    )
 
     // Decode and parse
     const decoder = new TextDecoder()
