@@ -102,6 +102,17 @@ describe('formatPhoneNumber', () => {
     expect(result).toMatch(/^\+31 \d{1} \d{4} \d{4}$/)
   })
 
+  it('should format Finland mobile numbers (+358 40/50 prefix)', () => {
+    // Mobile: +358 40 123456, +358 50 123456
+    expect(formatPhoneNumber('+35840123456')).toBe('+358 40 123456')
+    expect(formatPhoneNumber('+35850123456')).toBe('+358 50 123456')
+  })
+
+  it('should format Finland landline numbers (+358 9 prefix)', () => {
+    // Helsinki landline: +358 9 123456
+    expect(formatPhoneNumber('+3589123456')).toBe('+358 9 123456')
+  })
+
   // Note: formatPhoneNumber has bugs with +49 (Germany), +47 (Norway), +45 (Denmark), +33 (France)
   // that produce malformed output like "+4 930" instead of "+49 30"
   // Bug filed separately

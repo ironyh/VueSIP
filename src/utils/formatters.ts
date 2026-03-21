@@ -378,10 +378,19 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
     if (num.length !== 11) return num
     return `+45 ${num.slice(3, 5)} ${num.slice(5, 7)} ${num.slice(7, 9)} ${num.slice(9)}`
   },
-  // Finland: +358 XXX XX XX XX
+  // Finland: +358 X/XX XXXXXX (1-digit area code for landline, 2-digit for mobile prefix)
+  // e.g., Helsinki: +358 9 123456, Mobile: +358 40 123456, Mobile: +358 50 123456
+  // Total E.164 length: +358 + 9 digits = 13 chars (mobile) or +358 + 7 digits = 11 chars (landline 1-digit area)
   '+358': (num) => {
-    if (num.length !== 13) return num
-    return `+358 ${num.slice(4, 7)} ${num.slice(7, 9)} ${num.slice(9, 11)} ${num.slice(11)}`
+    if (num.length < 11) return num
+    const afterCode = num.slice(4)
+    // If 8+ digits after country code (mobile: 2-digit prefix + 6 subscriber), format as mobile
+    if (afterCode.length >= 8) {
+      // 2-digit mobile prefix (40xx, 44xx, 50xx, etc.)
+      return `+358 ${afterCode.slice(0, 2)} ${afterCode.slice(2)}`
+    }
+    // 1-digit area code: +358 X XXXXXX
+    return `+358 ${afterCode.slice(0, 1)} ${afterCode.slice(1)}`
   },
   // Australia: +61 X XXXX XXXX
   '+61': (num) => {
