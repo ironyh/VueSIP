@@ -1,0 +1,37 @@
+name: PR Staleness Monitor
+
+on:
+  schedule:
+    - cron: '0 */4 * * *' # Every 4 hours
+  workflow_dispatch:
+
+jobs:
+  monitor-draft-prs:
+    runs-on: ubuntu-latest
+    if: github.repository == 'ironyh/VueSIP'
+    steps:
+      - name: Check draft PRs staleness
+        run: |
+          DRAFT_PRS=$(gh pr list --state open --draft --json number,title,createdAt,url --jq '.[] | "\(.number)|\(.title)|\(.createdAt)|\(.url)"')
+          
+          if [ -z "$DRAFT_PRS" ]; then
+            echo "No draft PRs found"
+            exit 0
+          fi
+          
+          echo "Found draft PRs:"
+          echo "$DRAFT_PRS" | while IFS='|' read -r number title created url; do
+            echo "  #$number: $title (created: $created)"
+            
+            # Calculate age in hours
+            created_ts=$(date -d "$created" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$created" +%s 2>/dev/null)
+            now_ts=$(date +%s)
+            age_hours=$(( (now_ts - created_ts) / 3600 ))
+            
+            if [ "$age_hours" -gt 48 ]; then
+              echo "  ⚠️  Draft PR #$number is $age_hours hours old — consider converting to ready or closing"
+              echo "  💡 To convert: gh api repos/ironyh/VueSIP/pulls/$number -f draft=false"
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
