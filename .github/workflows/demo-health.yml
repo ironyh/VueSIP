@@ -9,6 +9,8 @@ on:
 jobs:
   health-check:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -28,10 +30,10 @@ jobs:
             local name="$2"
             if curl -sf --max-time 15 "$url" > /dev/null 2>&1; then
               echo "✅ $name: OK"
-              ((PASSED++))
+              PASSED=$((PASSED+1))
             else
               echo "❌ $name: FAILED"
-              ((FAILED++))
+              FAILED=$((FAILED+1))
               FAILED_DEMOS="${FAILED_DEMOS}${name}, "
             fi
           }
