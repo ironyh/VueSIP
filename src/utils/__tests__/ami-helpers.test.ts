@@ -33,6 +33,10 @@ import {
   sanitizeExtension,
   validateTimeout,
   validatePriority,
+  groupBy,
+  createLookupMap,
+  deduplicateBy,
+  createAmiError,
 } from '../ami-helpers'
 
 // ============================================================================
@@ -434,5 +438,188 @@ describe('sanitizeExtension', () => {
   it('should sanitize extensions', () => {
     expect(sanitizeExtension('SIP/1001')).toBe('SIP/1001')
     expect(sanitizeExtension('  user  ')).toBe('user')
+  })
+})
+
+// ============================================================================
+// Collection Helpers (previously untested)
+// ============================================================================
+
+describe('groupBy', () => {
+  interface QueueMember {
+    name: string
+    queue: string
+    penalty: number
+  }
+
+  it('should group items by string field', () => {
+    const members: QueueMember[] = [
+      { name: 'alice', queue: 'support', penalty: 0 },
+      { name: 'bob', queue: 'support', penalty: 1 },
+      { name: 'carol', queue: 'sales', penalty: 0 },
+    ]
+
+    const result = groupBy(members, 'queue')
+
+    expect(result.get('support')).toHaveLength(2)
+    expect(result.get('sales')).toHaveLength(1)
+  })
+
+  it('should group items by number field', () => {
+    const items = [
+      { label: 'a', priority: 1 },
+      { label: 'b', priority: 1 },
+      { label: 'c', priority: 2 },
+    ]
+
+    const result = groupBy(items, 'priority')
+
+    expect(result.get('1')).toHaveLength(2)
+    expect(result.get('2')).toHaveLength(1)
+  })
+
+  it('should return empty map for empty array', () => {
+    const result = groupBy([], 'name')
+    expect(result.size).toBe(0)
+  })
+
+  it('should convert non-string field values to string keys', () => {
+    const items = [
+      { id: 10, label: 'ten' },
+      { id: 20, label: 'twenty' },
+    ]
+
+    const result = groupBy(items, 'id')
+
+    expect(result.get('10')).toHaveLength(1)
+    expect(result.get('20')).toHaveLength(1)
+  })
+})
+
+describe('createLookupMap', () => {
+  interface Queue {
+    name: string
+    strategy: string
+    members: number
+  }
+
+  it('should create a map keyed by the specified field', () => {
+    const queues: Queue[] = [
+      { name: 'support', strategy: 'ringall', members: 5 },
+      { name: 'sales', strategy: 'leastrecent', members: 3 },
+    ]
+
+    const result = createLookupMap(queues, 'name')
+
+    expect(result.get('support')).toEqual({ name: 'support', strategy: 'ringall', members: 5 })
+    expect(result.get('sales')).toEqual({ name: 'sales', strategy: 'leastrecent', members: 3 })
+  })
+
+  it('should overwrite duplicate keys with later item', () => {
+    const items = [
+      { id: 'dup', label: 'first' },
+      { id: 'dup', label: 'second' },
+    ]
+
+    const result = createLookupMap(items, 'id')
+
+    expect(result.size).toBe(1)
+    expect(result.get('dup')).toEqual({ id: 'dup', label: 'second' })
+  })
+
+  it('should return empty map for empty array', () => {
+    const result = createLookupMap([], 'name')
+    expect(result.size).toBe(0)
+  })
+
+  it('should convert numeric field values to string keys', () => {
+    const items = [{ id: 42, label: 'answer' }]
+
+    const result = createLookupMap(items, 'id')
+
+    expect(result.get('42')).toEqual({ id: 42, label: 'answer' })
+  })
+})
+
+describe('deduplicateBy', () => {
+  interface Call {
+    uniqueId: string
+    duration: number
+  }
+
+  it('should remove duplicates by field, keeping first occurrence', () => {
+    const calls: Call[] = [
+      { uniqueId: 'aa', duration: 60 },
+      { uniqueId: 'bb', duration: 30 },
+      { uniqueId: 'aa', duration: 90 }, // duplicate
+      { uniqueId: 'cc', duration: 45 },
+    ]
+
+    const result = deduplicateBy(calls, 'uniqueId')
+
+    expect(result).toHaveLength(3)
+    expect(result[0].uniqueId).toBe('aa')
+    expect(result[0].duration).toBe(60) // first occurrence kept
+    expect(result[2].uniqueId).toBe('cc')
+  })
+
+  it('should return empty array for empty input', () => {
+    expect(deduplicateBy([], 'id')).toEqual([])
+  })
+
+  it('should convert field values to strings for comparison', () => {
+    const items = [
+      { id: 1, label: 'one' },
+      { id: '1', label: 'one-string' }, // same string key "1"
+      { id: 2, label: 'two' },
+    ]
+
+    const result = deduplicateBy(items, 'id')
+
+    // "1" === "1" so second item overwrites first
+    expect(result).toHaveLength(2)
+  })
+})
+
+describe('createAmiError', () => {
+  it('should create an AMI error with operation and message', () => {
+    const result = createAmiError('addToQueue', 'Invalid queue name')
+
+    expect(result).toEqual({
+      operation: 'addToQueue',
+      message: 'Invalid queue name',
+    })
+  })
+
+  it('should include details when provided', () => {
+    const result = createAmiError('parkCall', 'Parking failed', {
+      slot: 'ParkedUp_1',
+      channel: 'SIP/1001',
+    })
+
+    expect(result).toEqual({
+      operation: 'parkCall',
+      message: 'Parking failed',
+      details: {
+        slot: 'ParkedUp_1',
+        channel: 'SIP/1001',
+      },
+    })
+  })
+
+  it('should omit details field when not provided', () => {
+    const result = createAmiError('originate', 'Timeout')
+
+    expect(result).not.toHaveProperty('details')
+  })
+
+  it('should handle undefined details gracefully', () => {
+    const result = createAmiError('originate', 'Error', undefined)
+
+    expect(result).toEqual({
+      operation: 'originate',
+      message: 'Error',
+    })
+    expect(result).not.toHaveProperty('details')
   })
 })
