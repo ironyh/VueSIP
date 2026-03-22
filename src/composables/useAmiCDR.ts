@@ -211,7 +211,10 @@ function calculateStats(records: CdrRecord[], startDate?: Date, endDate?: Date):
   const byHour: Record<number, number> = {}
   for (let i = 0; i < 24; i++) byHour[i] = 0
   filtered.forEach((r) => {
-    const h = r.startTime instanceof Date ? r.startTime.getHours() : 0
+    let h = 0
+    if (r.startTime instanceof Date) {
+      h = r.startTime.getHours()
+    }
     byHour[h]++
   })
 
@@ -219,7 +222,10 @@ function calculateStats(records: CdrRecord[], startDate?: Date, endDate?: Date):
   const byDayOfWeek: Record<number, number> = {}
   for (let i = 0; i < 7; i++) byDayOfWeek[i] = 0
   filtered.forEach((r) => {
-    const d = r.startTime instanceof Date ? r.startTime.getDay() : 0
+    let d = 0
+    if (r.startTime instanceof Date) {
+      d = r.startTime.getDay()
+    }
     byDayOfWeek[d]++
   })
 
