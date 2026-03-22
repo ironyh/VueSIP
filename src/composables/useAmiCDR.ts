@@ -211,14 +211,14 @@ function calculateStats(records: CdrRecord[], startDate?: Date, endDate?: Date):
   const byHour: Record<number, number> = {}
   for (let i = 0; i < 24; i++) byHour[i] = 0
   filtered.forEach((r) => {
-    byHour[(r.startTime?.getHours() ?? 0)]++
+    byHour[r.startTime ? r.startTime.getHours() : 0]++
   })
 
   // Count by day of week
   const byDayOfWeek: Record<number, number> = {}
   for (let i = 0; i < 7; i++) byDayOfWeek[i] = 0
   filtered.forEach((r) => {
-    byDayOfWeek[(r.startTime?.getDay() ?? 0)]++
+    byDayOfWeek[r.startTime ? r.startTime.getDay() : 0]++
   })
 
   return {
