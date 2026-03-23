@@ -14,6 +14,17 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      - name: Check Actions permissions
+        run: |
+          echo "=== Repository Actions Permissions ==="
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/permissions" | jq .
+          echo "=== Token permissions test ==="
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -X POST "https://api.github.com/repos/${{ github.repository }}/pulls" \
+            -H "Content-Type: application/json" \
+            -d '{"title":"test","body":"test","head":"test","base":"main"}' \
+            -w "\nHTTP_STATUS:%{http_code}\n" 2>&1 | tail -5 || true
       - uses: google-github-actions/release-please-action@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
