@@ -94,12 +94,18 @@ jobs:
           echo "coverage-base not found in prior runs; will generate on the fly"
 
       # Step 2: Fall back – generate base coverage from github.base_ref
+      - name: Checkout base branch
+        if: steps.find-base.outputs.BASE_SOURCE == 'generate'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+          fetch-depth: 1
+
       - name: Generate base coverage on the fly
         if: steps.find-base.outputs.BASE_SOURCE == 'generate'
         run: |
-          echo "Checking out base branch: ${{ github.base_ref }}"
-          git fetch origin ${{ github.base_ref }}:${{ github.base_ref }} --depth=1
-          git checkout ${{ github.base_ref }}
+          echo "Working on base branch: ${{ github.base_ref }}"
+          echo "Checked out successfully"
 
       - name: Setup pnpm (base)
         if: steps.find-base.outputs.BASE_SOURCE == 'generate'
@@ -246,12 +252,79 @@ jobs:
           console.log('SKIP_DIFF=false');
           console.log('ANY_CHANGE=' + anyChange);
           "
-          echo "SKIP_DIFF=$(grep SKIP_DIFF <<< $(node -e \"\"; echo SKIP_DIFF=true))" >> \$GITHUB_OUTPUT || true
-          echo "SKIP_DIFF=false" >> \$GITHUB_OUTPUT
-        shell: bash
+          OUT=$(node -e "
+          const fs = require('fs');
+
+          const basePath = 'coverage-base/coverage-summary.json';
+          const prPath   = 'coverage-pr/coverage-summary.json';
+
+          const baseOk = fs.existsSync(basePath);
+          const prOk   = fs.existsSync(prPath);
+
+          if (!baseOk && !prOk) {
+            console.log('SKIP_DIFF=true');
+            console.log('MISSING_DATA=true');
+            console.log('FAIL_REASON=no base or pr coverage found');
+            process.exit(1);
+          }
+
+          if (!baseOk || !prOk) {
+            const missing = !baseOk ? 'base' : 'pr';
+            console.log('SKIP_DIFF=true');
+            console.log('MISSING_DATA=true');
+            console.log('SKIP_REASON=' + missing + '-coverage missing');
+            process.exit(0);
+          }
+
+          const base = JSON.parse(fs.readFileSync(basePath, 'utf8')).total;
+          const pr   = JSON.parse(fs.readFileSync(prPath,   'utf8')).total;
+
+          const metrics = ['lines', 'statements', 'functions', 'branches'];
+          const results = [];
+          let anyChange = false;
+
+          for (const m of metrics) {
+            const basePct = base[m]?.pct ?? 0;
+            const prPct   = pr[m]?.pct   ?? 0;
+            const diff    = prPct - basePct;
+            const diffStr = diff >= 0 ? '+' + diff.toFixed(2) : diff.toFixed(2);
+            const icon    = diff > 0 ? '🟢' : diff < 0 ? '🔴' : '⚪';
+            if (diff !== 0) anyChange = true;
+            results.push({
+              metric: m.charAt(0).toUpperCase() + m.slice(1),
+              base:   basePct.toFixed(2),
+              pr:     prPct.toFixed(2),
+              diff:   diffStr,
+              icon:   icon,
+            });
+          }
+
+          const md = [
+            '## 📊 Coverage Diff',
+            '',
+            '| Metric | Base | PR | Diff |',
+            '|--------|------|-----|------|',
+            ...results.map(r => '| ' + r.icon + ' ' + r.metric + ' | ' + r.base + '% | ' + r.pr + '% | ' + r.diff + '% |'),
+            '',
+            anyChange
+              ? (results.some(r => parseFloat(r.diff) < 0)
+                ? '⚠️ Coverage decreased in some areas. Consider adding tests.'
+                : '✅ Coverage improved!')
+              : '➖ No coverage change.',
+          ].join('\n');
+
+          fs.writeFileSync('coverage-diff.md', md);
+          console.log('SKIP_DIFF=false');
+          console.log('ANY_CHANGE=' + anyChange);
+          " 2>&1)
+          # Extract SKIP_DIFF value from node output and set it as a workflow output
+          SKIP_VAL=$(echo "$OUT" | grep '^SKIP_DIFF=' | tail -1 | cut -d= -f2)
+          [ -n "$SKIP_VAL" ] && echo "SKIP_DIFF=$SKIP_VAL" >> $GITHUB_OUTPUT
 
       - name: Read diff outputs
         id: diff-outputs
+        # This step is now redundant – SKIP_DIFF is set in the step above.
+        # Keep it as a safety-net that reads directly from the downloaded artifacts.
         run: |
           SKIP=$(node -e "
             const fs = require('fs');
@@ -283,11 +356,10 @@ jobs:
       - name: Read coverage-diff.md
         id: read-md
         run: |
-          if [ -f coverage-diff.md ]; then
-            echo "DIFF_CONTENT=$(cat coverage-diff.md)" >> $GITHUB_OUTPUT
-          else
-            echo "DIFF_CONTENT=" >> $GITHUB_OUTPUT
+          if [ ! -f coverage-diff.md ]; then
+            echo "coverage-diff.md not found – diff was skipped or failed"
           fi
+          # File is read directly by the github-script step; no output needed here.
 
       - name: Post or update comment
         if: |
