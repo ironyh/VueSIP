@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository == 'ironyh/VueSIP'
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Check draft PRs staleness
         run: |
           DRAFT_PRS=$(gh pr list --state open --draft --json number,title,createdAt,url --jq '.[] | "\(.number)|\(.title)|\(.createdAt)|\(.url)"')

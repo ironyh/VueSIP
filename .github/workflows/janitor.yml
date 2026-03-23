@@ -12,7 +12,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: google-labs-code/jules-invoke@v1
+      - uses: google-labs-code/jules-action@v1.0.0
         with:
           # IMPORTANT: You must add JULES_API_KEY to your Repository Secrets
           jules_api_key: ${{ secrets.JULES_API_KEY }}
