@@ -215,7 +215,7 @@ function calculateStats(records: CdrRecord[], startDate?: Date, endDate?: Date):
     if (r.startTime instanceof Date) {
       h = r.startTime.getHours()
     }
-    byHour[h]++
+    byHour[h] = (byHour[h] ?? 0) + 1
   })
 
   // Count by day of week
@@ -226,7 +226,7 @@ function calculateStats(records: CdrRecord[], startDate?: Date, endDate?: Date):
     if (r.startTime instanceof Date) {
       d = r.startTime.getDay()
     }
-    byDayOfWeek[d]++
+    byDayOfWeek[d] = (byDayOfWeek[d] ?? 0) + 1
   })
 
   return {
