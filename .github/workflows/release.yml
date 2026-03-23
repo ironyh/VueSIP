@@ -6,6 +6,11 @@ on:
       - main
   workflow_dispatch:
 
+# IMPORTANT: Repository settings must allow Actions to create PRs.
+# Go to: Settings > Actions > General > Workflow permissions
+# Enable: "Allow GitHub Actions to create and approve pull requests"
+# Without this, release-please will fail with:
+#   "GitHub Actions is not permitted to create or approve pull requests"
 permissions:
   contents: write
   pull-requests: write
