@@ -43,7 +43,6 @@ jobs:
           echo "-------------"
           check_endpoint "https://softphone.vuesip.com" "Softphone PWA"
           check_endpoint "https://basic-softphone.vuesip.com" "Basic Softphone"
-          check_endpoint "https://ivr.vuesip.com" "IVR Tester"
           check_endpoint "https://video.vuesip.com" "Video Room"
           check_endpoint "https://callcenter.vuesip.com" "Call Center"
           

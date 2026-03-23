@@ -534,3 +534,12 @@ export {
   confirmTransferCall,
   confirmStartRecording,
 } from './useConfirm'
+
+// Triage suggestion composable
+export {
+  useSuggester,
+  type UseSuggesterOptions,
+  type UseSuggesterReturn,
+  type Suggestion,
+  type TriageQuestionBank,
+} from './useSuggester'

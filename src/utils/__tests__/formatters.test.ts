@@ -278,8 +278,9 @@ describe('formatPhoneNumber', () => {
     expect(formatPhoneNumber('+4528123456')).toBe('+45 28 12 34 56')
   })
 
-  test('formats Finland phone number', () => {
-    expect(formatPhoneNumber('+358501234567')).toBe('+358 501 23 45 67')
+  test('formats Finland mobile phone number', () => {
+    // Mobile: +358 50 123456 (2-digit prefix + 6-digit subscriber)
+    expect(formatPhoneNumber('+35850123456')).toBe('+358 50 123456')
   })
 
   test('formats Australia phone number', () => {

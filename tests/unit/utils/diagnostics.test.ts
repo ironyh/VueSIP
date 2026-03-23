@@ -44,6 +44,34 @@ describe('diagnostics', () => {
       expect(result.connection.reconnectAttempts).toBeUndefined()
     })
 
+    it('should report connection state and reconnect info when reconnecting', async () => {
+      // Regression test: verify reconnecting state is reported correctly
+      // Note: reconnectAttempts is sourced from sipClient.getState() which currently
+      // does not expose TransportManager's reconnectionAttempts. This test documents
+      // the current behavior where reconnectAttempts remains undefined during a
+      // reconnecting state — a known gap tracked separately for enhancement.
+      const reconnectingTime = new Date('2024-01-01T00:00:00Z')
+      const mockSipClient = {
+        getState: vi.fn().mockReturnValue({
+          connectionState: 'reconnecting',
+          registrationState: 'registered',
+          lastRegistrationTime: reconnectingTime,
+        }),
+        getConfig: vi.fn().mockReturnValue({
+          uri: 'wss://sip.example.com:7443',
+        }),
+      }
+
+      const result = await collectDiagnostics(mockSipClient as any)
+
+      expect(result.connection.state).toBe('reconnecting')
+      expect(result.connection.reconnectAttempts).toBeUndefined() // known gap — see docstring
+      expect(result.connection.lastConnected).toBe('2024-01-01T00:00:00.000Z')
+      expect(result.connection.wsUrl).toBe('wss://sip.example.com:7443')
+      // Registration state should still be available during reconnect
+      expect(result.registration.state).toBe('registered')
+    })
+
     it('should include registration diagnostics', async () => {
       const mockSipClient = {
         getState: vi.fn().mockReturnValue({

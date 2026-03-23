@@ -365,7 +365,9 @@ export function usePushNotifications(
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: vapidKey ? urlBase64ToUint8Array(vapidKey) : undefined,
+        applicationServerKey: vapidKey
+          ? (urlBase64ToUint8Array(vapidKey) as BufferSource)
+          : undefined,
       })
 
       _subscription.value = {

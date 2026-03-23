@@ -124,11 +124,11 @@ export default defineConfig({
     // COVERAGE CONFIGURATION
     // ==========================================
     coverage: {
-      // Use V8 provider for accurate coverage
-      provider: 'v8',
+      // Use Istanbul provider for coverage-summary.json compatibility
+      provider: 'istanbul',
 
       // Multiple report formats
-      reporter: ['text', 'json', 'html', 'lcov'],
+      reporter: ['text', 'json-summary', 'html', 'lcov'],
 
       // Coverage output directory
       reportsDirectory: './coverage',

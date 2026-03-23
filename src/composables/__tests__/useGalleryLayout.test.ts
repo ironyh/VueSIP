@@ -23,11 +23,10 @@ describe('useGalleryLayout - grid calculation logic', () => {
       return Math.min(cols, mc)
     }
 
-    const calculateOptimalRows = (c: number, cols: number, mr: number): number => {
+    const calculateOptimalRows = (c: number, cols: number, _mr: number): number => {
       if (c <= 0) return 1
       if (cols <= 0) return 1
-      const rows = Math.ceil(c / cols)
-      return Math.min(rows, mr)
+      return Math.ceil(c / cols)
     }
 
     const cols = calculateOptimalCols(count, maxCols)
@@ -107,6 +106,8 @@ describe('useGalleryLayout - grid calculation logic', () => {
     })
   })
 
+  // Note: maxRows parameter is kept for API compatibility but no longer caps rows.
+  // Rows scale freely with cols; cols is the sole width constraint.
   describe('calculateOptimalRows', () => {
     it('should return 1 row for 0 participants', () => {
       const result = testGridCalculation(0)
@@ -153,9 +154,34 @@ describe('useGalleryLayout - grid calculation logic', () => {
       expect(result.rows).toBe(3)
     })
 
-    it('should cap rows at maxRows', () => {
+    it('should scale rows beyond maxRows when cols is capped at maxCols', () => {
+      // Bug fix: when cols is capped at maxCols, rows must scale freely to avoid overflow
+      // 25 participants: cols=4 (capped), Math.ceil(25/4)=7 rows → capacity 28 ≥ 25
       const result = testGridCalculation(25, 4, 4)
-      expect(result.rows).toBe(4)
+      expect(result.rows).toBe(7)
+      expect(result.cols * result.rows).toBeGreaterThanOrEqual(25)
+    })
+
+    it('should handle 17 participants without overflow', () => {
+      // 17 participants: cols=4, rows=Math.ceil(17/4)=5 → capacity 20 ≥ 17
+      const result = testGridCalculation(17, 4, 4)
+      expect(result.cols).toBe(4)
+      expect(result.rows).toBe(5)
+      expect(result.cols * result.rows).toBeGreaterThanOrEqual(17)
+    })
+
+    it('should handle 20 participants without overflow', () => {
+      const result = testGridCalculation(20, 4, 4)
+      expect(result.cols).toBe(4)
+      expect(result.rows).toBe(5)
+      expect(result.cols * result.rows).toBeGreaterThanOrEqual(20)
+    })
+
+    it('should handle 24 participants without overflow', () => {
+      const result = testGridCalculation(24, 4, 4)
+      expect(result.cols).toBe(4)
+      expect(result.rows).toBe(6)
+      expect(result.cols * result.rows).toBeGreaterThanOrEqual(24)
     })
   })
 
