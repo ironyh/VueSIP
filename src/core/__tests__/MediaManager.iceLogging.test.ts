@@ -9,44 +9,20 @@ import { EventBus } from '../EventBus'
 describe('MediaManager ICE Connection State Logging', () => {
   let mediaManager: MediaManager
   let eventBus: EventBus
-  let mockPcInstance: any
 
   // Track all event emissions for inspection
   let iceConnectionStateEvents: any[] = []
   let iceReconnectionAttemptEvents: any[] = []
+
+  // Shared mock state so tests can manipulate pc properties directly
+  let mockPcState: any = null
 
   beforeEach(() => {
     vi.clearAllMocks()
     eventBus = new EventBus()
     iceConnectionStateEvents = []
     iceReconnectionAttemptEvents = []
-
-    // Create a mock peer connection that we can control
-    mockPcInstance = {
-      iceConnectionState: 'new',
-      iceGatheringState: 'new',
-      signalingState: 'stable',
-      connectionState: 'new',
-      localDescription: null,
-      remoteDescription: null,
-      oniceconnectionstatechange: null,
-      onicegatheringstatechange: null,
-      onsignalingstatechange: null,
-      onconnectionstatechange: null,
-      ontrack: null,
-      onicecandidate: null,
-      onnegotiationneeded: null,
-      addTrack: vi.fn(() => ({ track: 'track', dtmf: null })),
-      removeTrack: vi.fn(),
-      getSenders: vi.fn(() => []),
-      close: vi.fn(),
-      createOffer: vi.fn().mockResolvedValue({ type: 'offer', sdp: 'mock-sdp' }),
-      createAnswer: vi.fn().mockResolvedValue({ type: 'answer', sdp: 'mock-sdp' }),
-      setLocalDescription: vi.fn().mockResolvedValue(undefined),
-      setRemoteDescription: vi.fn().mockResolvedValue(undefined),
-      addIceCandidate: vi.fn().mockResolvedValue(undefined),
-      getStats: vi.fn().mockResolvedValue(new Map()),
-    }
+    mockPcState = null
 
     // Subscribe to events before creating MediaManager
     eventBus.on('media:ice:connection:state', (data: any) => {
@@ -56,8 +32,36 @@ describe('MediaManager ICE Connection State Logging', () => {
       iceReconnectionAttemptEvents.push(data)
     })
 
-    // Mock global RTCPeerConnection
-    const MockRTCPeerConnection = vi.fn(() => mockPcInstance)
+    // Create a fresh mock instance each time RTCPeerConnection is constructed.
+    // Uses a regular function (not arrow) so `new` works correctly.
+    const MockRTCPeerConnection = function (this: any) {
+      mockPcState = {
+        iceConnectionState: 'new',
+        iceGatheringState: 'new',
+        signalingState: 'stable',
+        connectionState: 'new',
+        localDescription: null,
+        remoteDescription: null,
+        oniceconnectionstatechange: null,
+        onicegatheringstatechange: null,
+        onsignalingstatechange: null,
+        onconnectionstatechange: null,
+        ontrack: null,
+        onicecandidate: null,
+        onnegotiationneeded: null,
+        addTrack: vi.fn(() => ({ track: 'track', dtmf: null })),
+        removeTrack: vi.fn(),
+        getSenders: vi.fn(() => []),
+        close: vi.fn(),
+        createOffer: vi.fn().mockResolvedValue({ type: 'offer', sdp: 'mock-sdp' }),
+        createAnswer: vi.fn().mockResolvedValue({ type: 'answer', sdp: 'mock-sdp' }),
+        setLocalDescription: vi.fn().mockResolvedValue(undefined),
+        setRemoteDescription: vi.fn().mockResolvedValue(undefined),
+        addIceCandidate: vi.fn().mockResolvedValue(undefined),
+        getStats: vi.fn().mockResolvedValue(new Map()),
+      }
+      return mockPcState
+    }
     ;(global as any).RTCPeerConnection = MockRTCPeerConnection
 
     mediaManager = new MediaManager({ eventBus })
@@ -72,7 +76,7 @@ describe('MediaManager ICE Connection State Logging', () => {
       mediaManager.createPeerConnection()
 
       // Trigger ice connection state change
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       expect(iceConnectionStateEvents.length).toBeGreaterThan(0)
       const correlationId = iceConnectionStateEvents[0].payload.correlationId
@@ -81,14 +85,14 @@ describe('MediaManager ICE Connection State Logging', () => {
 
     it('should generate different correlation IDs for different sessions', () => {
       mediaManager.createPeerConnection()
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
       const firstCorrelationId = iceConnectionStateEvents[0].payload.correlationId
 
       mediaManager.closePeerConnection()
       iceConnectionStateEvents = []
 
       mediaManager.createPeerConnection()
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
       const secondCorrelationId = iceConnectionStateEvents[0].payload.correlationId
 
       expect(firstCorrelationId).not.toBe(secondCorrelationId)
@@ -100,8 +104,8 @@ describe('MediaManager ICE Connection State Logging', () => {
       mediaManager.createPeerConnection()
 
       // Simulate state change: new -> checking
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       expect(iceConnectionStateEvents).toHaveLength(1)
       expect(iceConnectionStateEvents[0].payload).toMatchObject({
@@ -114,27 +118,27 @@ describe('MediaManager ICE Connection State Logging', () => {
       mediaManager.createPeerConnection()
 
       // new -> checking
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       // checking -> connected
-      mockPcInstance.iceConnectionState = 'connected'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'connected'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       expect(iceConnectionStateEvents).toHaveLength(2)
-      expect(iceConnectionStateEvents[0].payload.previousState).toBeNull()
+      expect(iceConnectionStateEvents[0].payload.previousState).toBeUndefined()
       expect(iceConnectionStateEvents[1].payload.previousState).toBe('checking')
     })
 
     it('should include transition object in payload', () => {
       mediaManager.createPeerConnection()
 
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       expect(iceConnectionStateEvents[0].payload.transition).toMatchObject({
         correlationId: expect.stringMatching(/^ice-[\w-]+$/),
-        previousState: null,
+        previousState: undefined,
         newState: 'checking',
         timestamp: expect.any(Date),
       })
@@ -146,15 +150,15 @@ describe('MediaManager ICE Connection State Logging', () => {
       mediaManager.createPeerConnection()
 
       // Simulate connection flow
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
-      mockPcInstance.iceConnectionState = 'connected'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'connected'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       // Connection failed
-      mockPcInstance.iceConnectionState = 'failed'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'failed'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       expect(iceReconnectionAttemptEvents).toHaveLength(1)
       expect(iceReconnectionAttemptEvents[0].payload).toMatchObject({
@@ -168,14 +172,14 @@ describe('MediaManager ICE Connection State Logging', () => {
     it('should emit ice:reconnection:attempt when connection disconnects', () => {
       mediaManager.createPeerConnection()
 
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
-      mockPcInstance.iceConnectionState = 'connected'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'connected'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
-      mockPcInstance.iceConnectionState = 'disconnected'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'disconnected'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       expect(iceReconnectionAttemptEvents).toHaveLength(1)
       expect(iceReconnectionAttemptEvents[0].payload.state).toBe('disconnected')
@@ -185,20 +189,20 @@ describe('MediaManager ICE Connection State Logging', () => {
       mediaManager.createPeerConnection()
 
       // First failure
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
-      mockPcInstance.iceConnectionState = 'connected'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
-      mockPcInstance.iceConnectionState = 'failed'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'connected'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'failed'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       // Recovery attempt
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       // Second failure
-      mockPcInstance.iceConnectionState = 'failed'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'failed'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       expect(iceReconnectionAttemptEvents).toHaveLength(2)
       expect(iceReconnectionAttemptEvents[0].payload.attemptNumber).toBe(1)
@@ -210,15 +214,15 @@ describe('MediaManager ICE Connection State Logging', () => {
       mediaManager.createPeerConnection()
 
       // Simulate one failed then connected
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
-      mockPcInstance.iceConnectionState = 'disconnected'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'disconnected'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
-      mockPcInstance.iceConnectionState = 'connected'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'connected'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       // The connected event should have reconnectAttempts
       const connectedEvent = iceConnectionStateEvents.find(
@@ -234,12 +238,12 @@ describe('MediaManager ICE Connection State Logging', () => {
       mediaManager.createPeerConnection()
 
       // Simulate a failure
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
-      mockPcInstance.iceConnectionState = 'connected'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
-      mockPcInstance.iceConnectionState = 'failed'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'connected'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'failed'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       expect(iceReconnectionAttemptEvents).toHaveLength(1)
 
@@ -249,10 +253,10 @@ describe('MediaManager ICE Connection State Logging', () => {
       iceConnectionStateEvents = []
 
       mediaManager.createPeerConnection()
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
-      mockPcInstance.iceConnectionState = 'connected'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'connected'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       // New session should have fresh state
       const connectedEvent = iceConnectionStateEvents.find(
@@ -267,8 +271,8 @@ describe('MediaManager ICE Connection State Logging', () => {
     it('should generate IDs in correct format: ice-{timestamp}-{random}', () => {
       mediaManager.createPeerConnection()
 
-      mockPcInstance.iceConnectionState = 'checking'
-      mockPcInstance.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
+      mockPcState.iceConnectionState = 'checking'
+      mockPcState.oniceconnectionstatechange?.(new Event('iceconnectionstatechange'))
 
       const correlationId = iceConnectionStateEvents[0].payload.correlationId
       expect(correlationId).toMatch(/^ice-[a-z0-9]+-[a-z0-9]+$/)
@@ -289,7 +293,9 @@ describe('MediaManager ICE Connection State Logging', () => {
           getSenders: vi.fn(() => []),
           close: vi.fn(),
         }
-        ;(global as any).RTCPeerConnection = vi.fn(() => testMockPc)
+        ;(global as any).RTCPeerConnection = function () {
+          return testMockPc
+        }
 
         const testMm = new MediaManager({ eventBus: testEventBus })
         testMm.createPeerConnection()
