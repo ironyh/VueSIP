@@ -140,3 +140,6 @@ hive-mind-prompt-*.txt
 
 # OpenClaw local state
 .openclaw/
+
+# OpenMOSS CLI wrapper (local operational tool)
+moss
