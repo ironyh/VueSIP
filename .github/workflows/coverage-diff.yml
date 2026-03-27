@@ -351,7 +351,12 @@ jobs:
               c.user?.login === 'github-actions[bot]' &&
               c.body?.includes('📊 Coverage Diff')
             );
-            return botComment?.id || '';
+            // Use explicit setOutput so the value is reliably passed as a string,
+            // avoiding issues with the return-value→output binding that can cause
+            // large numeric IDs to become NaN or be lost.
+            const id = botComment?.id ?? null;
+            core.setOutput('commentId', id != null ? String(id) : '');
+            console.log('Existing comment ID:', id != null ? id : 'none');
 
       - name: Read coverage-diff.md
         id: read-md
@@ -376,16 +381,20 @@ jobs:
               return;
             }
             const body = fs.readFileSync(path, 'utf8');
-            const commentId = '${{ steps.find-comment.outputs.result }}';
+            // Read the commentId output set explicitly by find-comment step
+            const rawId = '${{ steps.find-comment.outputs.commentId }}';
+            // Validate: must be a positive integer string to safely pass to the API
+            const numericId = parseInt(rawId, 10);
+            const isValidId = Number.isInteger(numericId) && numericId > 0;
 
-            if (commentId && commentId !== 'null' && commentId !== '') {
+            if (isValidId) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: parseInt(commentId),
+                comment_id: numericId,
                 body: body,
               });
-              console.log('Updated existing comment');
+              console.log('Updated existing comment, id=' + numericId);
             } else {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -393,5 +402,5 @@ jobs:
                 issue_number: context.payload.pull_request.number,
                 body: body,
               });
-              console.log('Created new comment');
+              console.log('Created new comment (rawId was: "' + rawId + '")');
             }
