@@ -774,13 +774,12 @@ export function useAmiIVR(
       return [{ success: false, channel: '', error: 'IVR not found' }]
     }
 
-    const results: BreakoutResult[] = []
     const callerIds = Array.from(ivr.callers.keys())
 
-    for (const callerId of callerIds) {
-      const result = await breakoutCaller(ivrId, callerId, destination)
-      results.push(result)
-    }
+    // Use Promise.all to execute breakoutCaller requests concurrently
+    const results = await Promise.all(
+      callerIds.map((callerId) => breakoutCaller(ivrId, callerId, destination))
+    )
 
     return results
   }
