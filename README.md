@@ -170,6 +170,147 @@ sendDTMF('5')
 await sendDTMFSequence('1234#', 200)
 ```
 
+## Common Patterns
+
+### Handling Incoming Calls
+
+Use `useSipClient` to listen for incoming calls and `useCallSession` to answer or reject them.
+
+```typescript
+import { useSipClient, useCallSession } from 'vuesip'
+
+// Listen for incoming calls
+const { incomingCall, callState } = useSipClient()
+
+// Watch for incoming calls
+watch(incomingCall, async (call) => {
+  if (!call) return
+
+  console.log('Incoming call from:', call.remoteUri)
+
+  // Auto-answer for specific callers (e.g., VIP list)
+  const vipList = ['sip:manager@company.com', 'sip:reception@company.com']
+  const isVIP = vipList.some((vip) => call.remoteUri.includes(vip))
+
+  if (isVIP) {
+    await answer()
+  }
+  // Otherwise, let the user decide — show UI accept/reject buttons
+})
+
+// Answer or reject from call controls
+const { answer, reject } = useCallSession()
+
+// In your template:
+// <button @click="answer">Accept</button>
+// <button @click="reject(486)">Decline</button>
+```
+
+### Call Transfer Workflow
+
+Use `useCallControls` for blind transfers (immediate) and attended transfers (consultation first).
+
+```typescript
+import { useCallSession, useCallControls } from 'vuesip'
+
+const { currentCall } = useCallSession()
+const {
+  blindTransfer,
+  initiateAttendedTransfer,
+  completeAttendedTransfer,
+  cancelTransfer,
+  transferState,
+} = useCallControls()
+
+// Blind transfer — immediate, no consultation
+async function transferToReception(callId: string) {
+  const result = await blindTransfer(callId, 'sip:reception@company.com')
+  if (result.success) {
+    console.log('Transfer completed')
+  } else {
+    console.error('Transfer failed:', result.error)
+  }
+}
+
+// Attended transfer — consult before connecting
+async function warmTransfer(callId: string) {
+  // Step 1: Put current call on hold and dial the transfer target
+  const consultation = await initiateAttendedTransfer(callId, 'sip:colleague@company.com')
+  console.log('Consultation call started:', consultation.callId)
+
+  // Step 2: Talk to the colleague (they see the original caller on hold)
+  // ...
+
+  // Step 3: Complete the transfer after consultation
+  const result = await completeAttendedTransfer(callId, consultation.callId)
+  if (result.success) {
+    console.log('Attended transfer completed — caller now connected to colleague')
+  }
+}
+
+// Cancel transfer if consultation doesn't work out
+async function cancelWarmTransfer() {
+  await cancelTransfer()
+  console.log('Transfer cancelled — original call still active')
+}
+```
+
+### Conference Call Setup
+
+Use `useAmiConfBridge` to create and manage Asterisk ConfBridge conferences.
+
+```typescript
+import { useAmiConfBridge } from 'vuesip'
+
+const {
+  rooms, // Ref<Map<string, ConfBridgeRoom>>
+  createRoom, // (roomName: string, options?: CreateRoomOptions) => Promise<ConfBridgeRoom>
+  joinRoom, // (roomName: string, user: ConfBridgeUser) => Promise<void>
+  leaveRoom, // (roomName: string, userId: string) => Promise<void>
+  listRooms, // () => Promise<void>
+  muteParticipant, // (roomName: string, userId: string) => Promise<void>
+  kickParticipant, // (roomName: string, userId: string) => Promise<void>
+} = useAmiConfBridge()
+
+// Create a conference room
+async function startConference() {
+  const room = await createRoom('support-conf', {
+    record: true, // Enable recording
+    recordFile: '/var/spool/asterisk/conf-recs/${YEAR}${MONTH}${DAY}-${TIMESTAMP}.wav',
+    maxUsers: 10, // Optional participant cap
+    announceUserCount: true,
+    quietMode: false,
+  })
+  console.log('Conference created:', room.name)
+  return room
+}
+
+// Join a conference
+async function joinConference(roomName: string, userId: string, displayName: string) {
+  await joinRoom(roomName, {
+    userId,
+    displayName,
+    muted: false,
+    marked: userId === 'moderator-1', // Moderator controls the room
+  })
+  console.log(`${displayName} joined ${roomName}`)
+}
+
+// Mute a disruptive participant
+async function muteParticipant(roomName: string, userId: string) {
+  await muteParticipant(roomName, userId)
+  console.log('Participant muted')
+}
+
+// List active rooms and their participants
+async function showRooms() {
+  await listRooms()
+  for (const [name, room] of rooms.value) {
+    console.log(`Room ${name}: ${room.memberCount} participants`)
+  }
+}
+```
+
 ## Interactive Playground (50+ Demos)
 
 VueSip includes an **interactive playground** with 50+ working demos covering every feature:
