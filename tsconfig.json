@@ -44,7 +44,6 @@
     "alwaysStrict": true,
 
     /* Path Mapping */
-    "ignoreDeprecations": "5.4",
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
