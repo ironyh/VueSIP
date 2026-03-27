@@ -201,10 +201,24 @@ watch(
 
       // Auto-start recording when persistence enabled and call becomes active
       if (transcriptPersistence.persistenceEnabled.value && currentCallId.value) {
-        const mixedStream = callRecording.createMixedStream(
-          phone.localStream.value,
-          phone.remoteStream.value
-        )
+        const pc = session?.sessionDescriptionHandler?.peerConnection
+        let localStream: MediaStream | null = null
+        let remoteStream: MediaStream | null = null
+        if (pc) {
+          localStream = new MediaStream()
+          pc.getSenders().forEach((sender: RTCRtpSender) => {
+            if (sender.track && sender.track.kind === 'audio') {
+              localStream!.addTrack(sender.track)
+            }
+          })
+          remoteStream = new MediaStream()
+          pc.getReceivers().forEach((receiver: RTCRtpReceiver) => {
+            if (receiver.track) {
+              remoteStream!.addTrack(receiver.track)
+            }
+          })
+        }
+        const mixedStream = callRecording.createMixedStream(localStream, remoteStream)
         if (mixedStream) {
           void callRecording.startRecording(currentCallId.value, mixedStream)
         }
