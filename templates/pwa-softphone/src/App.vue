@@ -199,28 +199,14 @@ watch(
       const session = phone.session?.value as any
       currentCallId.value = session?.id || null
 
-      // Start recording if persistence is enabled
-      // Note: We need to get the combined audio stream from the call session
-      // For now, recording is manual - user starts it in settings
-      // Auto-start recording if persistence is enabled and we have a session
-      if (callRecording.persistenceEnabled.value && session?.id) {
-        try {
-          // Get remote audio stream from the peer connection
-          const pc = session?.sessionDescriptionHandler?.peerConnection
-          if (pc) {
-            const remoteStream = new MediaStream()
-            pc.getReceivers().forEach((receiver: RTCRtpReceiver) => {
-              if (receiver.track) {
-                remoteStream.addTrack(receiver.track)
-              }
-            })
-            if (remoteStream.getTracks().length > 0) {
-              void callRecording.startRecording(session.id, remoteStream)
-              console.log('[VueSIP] Auto-started recording for call', session.id)
-            }
-          }
-        } catch (err) {
-          console.warn('[VueSIP] Failed to auto-start recording:', err)
+      // Auto-start recording when persistence enabled and call becomes active
+      if (transcriptPersistence.persistenceEnabled.value && currentCallId.value) {
+        const mixedStream = callRecording.createMixedStream(
+          phone.localStream.value,
+          phone.remoteStream.value
+        )
+        if (mixedStream) {
+          void callRecording.startRecording(currentCallId.value, mixedStream)
         }
       }
     }

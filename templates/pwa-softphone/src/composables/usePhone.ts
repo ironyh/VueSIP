@@ -986,6 +986,8 @@ export function usePhone() {
     isMuted,
     remoteUri,
     remoteDisplayName,
+    localStream,
+    remoteStream,
     duration,
     direction,
     shouldAutoAnswerIncoming,
