@@ -450,6 +450,9 @@ export function useAmiAgentLogin(
         throw new Error(`Invalid queue name(s): ${invalidQueues.join(', ')}`)
       }
 
+      // Use a Map for O(1) lookups during the loop
+      const queueMap = new Map(session.value.queues.map((q) => [q.queue, q]))
+
       for (const queue of queuesToJoin) {
         const rawPenalty =
           loginOptions.penalties?.[queue] ?? loginOptions.defaultPenalty ?? config.defaultPenalty
@@ -461,13 +464,13 @@ export function useAmiAgentLogin(
         })
 
         // Update local state
-        const existingQueue = session.value.queues.find((q) => q.queue === queue)
+        const existingQueue = queueMap.get(queue)
         if (existingQueue) {
           existingQueue.isMember = true
           existingQueue.penalty = penalty
           existingQueue.loginTime = Math.floor(Date.now() / 1000)
         } else {
-          session.value.queues.push({
+          const newQueue = {
             queue,
             interface: config.interface,
             isMember: true,
@@ -478,7 +481,9 @@ export function useAmiAgentLogin(
             lastCall: 0,
             loginTime: Math.floor(Date.now() / 1000),
             inCall: false,
-          })
+          }
+          session.value.queues.push(newQueue)
+          queueMap.set(queue, newQueue)
         }
 
         config.onQueueChange?.(queue, true)
@@ -521,11 +526,14 @@ export function useAmiAgentLogin(
         ? logoutOptions.queues
         : session.value.queues.filter((q) => q.isMember).map((q) => q.queue)
 
+      // Use a Map for O(1) lookups during the loop
+      const queueMap = new Map(session.value.queues.map((q) => [q.queue, q]))
+
       for (const queue of queuesToLeave) {
         await client.queueRemove(queue, config.interface)
 
         // Update local state
-        const queueMembership = session.value.queues.find((q) => q.queue === queue)
+        const queueMembership = queueMap.get(queue)
         if (queueMembership) {
           queueMembership.isMember = false
         }
@@ -578,11 +586,14 @@ export function useAmiAgentLogin(
         ? pauseOptions.queues
         : session.value.queues.filter((q) => q.isMember).map((q) => q.queue)
 
+      // Use a Map for O(1) lookups during the loop
+      const queueMap = new Map(session.value.queues.map((q) => [q.queue, q]))
+
       for (const queue of queuesToPause) {
         await client.queuePause(queue, config.interface, true, pauseOptions.reason)
 
         // Update local state
-        const queueMembership = session.value.queues.find((q) => q.queue === queue)
+        const queueMembership = queueMap.get(queue)
         if (queueMembership) {
           queueMembership.isPaused = true
           queueMembership.pauseReason = pauseOptions.reason
@@ -635,11 +646,14 @@ export function useAmiAgentLogin(
         ? queues
         : session.value.queues.filter((q) => q.isMember && q.isPaused).map((q) => q.queue)
 
+      // Use a Map for O(1) lookups during the loop
+      const queueMap = new Map(session.value.queues.map((q) => [q.queue, q]))
+
       for (const queue of queuesToUnpause) {
         await client.queuePause(queue, config.interface, false)
 
         // Update local state
-        const queueMembership = session.value.queues.find((q) => q.queue === queue)
+        const queueMembership = queueMap.get(queue)
         if (queueMembership) {
           queueMembership.isPaused = false
           queueMembership.pauseReason = undefined
