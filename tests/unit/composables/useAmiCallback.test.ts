@@ -6,12 +6,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { nextTick } from 'vue'
 import { useAmiCallback } from '@/composables/useAmiCallback'
 import type { AmiClient } from '@/core/AmiClient'
-import type {  } from '@/types/callback.types'
-import {
-  createMockAmiClient,
-  createAmiEvent,
-  type MockAmiClient,
-} from '../utils/mockFactories'
+import type {} from '@/types/callback.types'
+import { createMockAmiClient, createAmiEvent, type MockAmiClient } from '../utils/mockFactories'
 
 describe('useAmiCallback', () => {
   let mockClient: MockAmiClient
@@ -98,9 +94,15 @@ describe('useAmiCallback', () => {
     it('should reject invalid phone numbers', async () => {
       const { scheduleCallback } = useAmiCallback(mockClient as unknown as AmiClient)
 
-      await expect(scheduleCallback({ callerNumber: '' })).rejects.toThrow('Invalid phone number format')
-      await expect(scheduleCallback({ callerNumber: 'ab' })).rejects.toThrow('Invalid phone number format')
-      await expect(scheduleCallback({ callerNumber: '<script>' })).rejects.toThrow('Invalid phone number format')
+      await expect(scheduleCallback({ callerNumber: '' })).rejects.toThrow(
+        'Invalid phone number format'
+      )
+      await expect(scheduleCallback({ callerNumber: 'ab' })).rejects.toThrow(
+        'Invalid phone number format'
+      )
+      await expect(scheduleCallback({ callerNumber: '<script>' })).rejects.toThrow(
+        'Invalid phone number format'
+      )
     })
 
     it('should accept valid phone number formats', async () => {
@@ -115,7 +117,9 @@ describe('useAmiCallback', () => {
     })
 
     it('should sanitize HTML tags from user input fields', async () => {
-      const { scheduleCallback, callbacks: _callbacks } = useAmiCallback(mockClient as unknown as AmiClient)
+      const { scheduleCallback, callbacks: _callbacks } = useAmiCallback(
+        mockClient as unknown as AmiClient
+      )
 
       const callback = await scheduleCallback({
         callerNumber: '555-123-4567',
@@ -181,7 +185,9 @@ describe('useAmiCallback', () => {
     it('should throw if already executing', async () => {
       mockClient.originate = vi.fn().mockImplementation(() => new Promise(() => {})) // Never resolves
 
-      const { scheduleCallback, executeCallback } = useAmiCallback(mockClient as unknown as AmiClient)
+      const { scheduleCallback, executeCallback } = useAmiCallback(
+        mockClient as unknown as AmiClient
+      )
 
       const cb1 = await scheduleCallback({ callerNumber: '555-111-1111' })
       const cb2 = await scheduleCallback({ callerNumber: '555-222-2222' })
@@ -191,7 +197,9 @@ describe('useAmiCallback', () => {
       await nextTick()
 
       // Try to start second callback
-      await expect(executeCallback(cb2.id)).rejects.toThrow('Another callback is already in progress')
+      await expect(executeCallback(cb2.id)).rejects.toThrow(
+        'Another callback is already in progress'
+      )
 
       // Cleanup
       mockClient.originate.mockResolvedValue({ success: false })
@@ -236,7 +244,7 @@ describe('useAmiCallback', () => {
       await expect(executeCallback(callback.id)).rejects.toThrow('Channel unavailable')
 
       // Should be scheduled for retry
-      const updatedCallback = callbacks.value.find(cb => cb.id === callback.id)
+      const updatedCallback = callbacks.value.find((cb) => cb.id === callback.id)
       expect(updatedCallback?.status).toBe('pending')
       expect(updatedCallback?.attempts).toBe(1)
     })
@@ -261,7 +269,7 @@ describe('useAmiCallback', () => {
       // First (and only) attempt
       await expect(executeCallback(callback.id)).rejects.toThrow()
 
-      const updatedCallback = callbacks.value.find(cb => cb.id === callback.id)
+      const updatedCallback = callbacks.value.find((cb) => cb.id === callback.id)
       expect(updatedCallback?.status).toBe('failed')
       expect(onCallbackFailed).toHaveBeenCalled()
     })
@@ -331,7 +339,7 @@ describe('useAmiCallback', () => {
       const callback = await scheduleCallback({ callerNumber: '555-123-4567' })
       await cancelCallback(callback.id, 'No longer needed')
 
-      const cancelled = callbacks.value.find(cb => cb.id === callback.id)
+      const cancelled = callbacks.value.find((cb) => cb.id === callback.id)
       expect(cancelled?.status).toBe('cancelled')
       expect(cancelled?.notes).toContain('No longer needed')
       expect(onCallbackCancelled).toHaveBeenCalled()
@@ -367,7 +375,7 @@ describe('useAmiCallback', () => {
 
       await rescheduleCallback(callback.id, newTime)
 
-      const rescheduled = callbacks.value.find(cb => cb.id === callback.id)
+      const rescheduled = callbacks.value.find((cb) => cb.id === callback.id)
       expect(rescheduled?.status).toBe('scheduled')
       expect(rescheduled?.scheduledAt).toEqual(newTime)
     })
@@ -381,7 +389,9 @@ describe('useAmiCallback', () => {
       markCompleted(callback.id)
 
       const newTime = new Date(Date.now() + 60 * 60 * 1000)
-      await expect(rescheduleCallback(callback.id, newTime)).rejects.toThrow('Cannot reschedule completed callback')
+      await expect(rescheduleCallback(callback.id, newTime)).rejects.toThrow(
+        'Cannot reschedule completed callback'
+      )
     })
   })
 
@@ -391,10 +401,10 @@ describe('useAmiCallback', () => {
         mockClient as unknown as AmiClient
       )
 
-      scheduleCallback({ callerNumber: '555-123-4567', priority: 'normal' }).then(callback => {
+      scheduleCallback({ callerNumber: '555-123-4567', priority: 'normal' }).then((callback) => {
         updatePriority(callback.id, 'urgent')
 
-        const updated = callbacks.value.find(cb => cb.id === callback.id)
+        const updated = callbacks.value.find((cb) => cb.id === callback.id)
         expect(updated?.priority).toBe('urgent')
       })
     })
@@ -410,7 +420,7 @@ describe('useAmiCallback', () => {
       addNotes(callback.id, 'First note')
       addNotes(callback.id, 'Second note')
 
-      const updated = callbacks.value.find(cb => cb.id === callback.id)
+      const updated = callbacks.value.find((cb) => cb.id === callback.id)
       expect(updated?.notes).toContain('First note')
       expect(updated?.notes).toContain('Second note')
     })
@@ -418,7 +428,9 @@ describe('useAmiCallback', () => {
 
   describe('computed properties', () => {
     it('should compute pendingCallbacks correctly', async () => {
-      const { scheduleCallback, pendingCallbacks } = useAmiCallback(mockClient as unknown as AmiClient)
+      const { scheduleCallback, pendingCallbacks } = useAmiCallback(
+        mockClient as unknown as AmiClient
+      )
 
       await scheduleCallback({ callerNumber: '555-111-1111' })
       await scheduleCallback({ callerNumber: '555-222-2222' })
@@ -459,7 +471,9 @@ describe('useAmiCallback', () => {
 
   describe('auto-execute', () => {
     it('should start auto-execute mode', () => {
-      const { autoExecuteEnabled, startAutoExecute } = useAmiCallback(mockClient as unknown as AmiClient)
+      const { autoExecuteEnabled, startAutoExecute } = useAmiCallback(
+        mockClient as unknown as AmiClient
+      )
 
       expect(autoExecuteEnabled.value).toBe(false)
 
@@ -486,10 +500,13 @@ describe('useAmiCallback', () => {
         channel: 'Local/test-00000001',
       })
 
-      const { scheduleCallback, activeCallback: _activeCallback } = useAmiCallback(mockClient as unknown as AmiClient, {
-        autoExecute: true,
-        autoExecuteInterval: 1000,
-      })
+      const { scheduleCallback, activeCallback: _activeCallback } = useAmiCallback(
+        mockClient as unknown as AmiClient,
+        {
+          autoExecute: true,
+          autoExecuteInterval: 1000,
+        }
+      )
 
       await scheduleCallback({ callerNumber: '555-123-4567' })
 
@@ -503,9 +520,8 @@ describe('useAmiCallback', () => {
 
   describe('queue management', () => {
     it('should clear completed callbacks', async () => {
-      const { scheduleCallback, markCompleted, clearCompleted, callbacks, completedCallbacks } = useAmiCallback(
-        mockClient as unknown as AmiClient
-      )
+      const { scheduleCallback, markCompleted, clearCompleted, callbacks, completedCallbacks } =
+        useAmiCallback(mockClient as unknown as AmiClient)
 
       const cb1 = await scheduleCallback({ callerNumber: '555-111-1111' })
       const _cb2 = await scheduleCallback({ callerNumber: '555-222-2222' })
@@ -525,9 +541,8 @@ describe('useAmiCallback', () => {
         message: 'Failed',
       })
 
-      const { scheduleCallback, executeCallback, clearFailed, failedCallbacks, callbacks } = useAmiCallback(
-        mockClient as unknown as AmiClient
-      )
+      const { scheduleCallback, executeCallback, clearFailed, failedCallbacks, callbacks } =
+        useAmiCallback(mockClient as unknown as AmiClient)
 
       const cb = await scheduleCallback({
         callerNumber: '555-123-4567',
@@ -565,7 +580,9 @@ describe('useAmiCallback', () => {
 
   describe('getCallbacksForNumber', () => {
     it('should return callbacks matching phone number', async () => {
-      const { scheduleCallback, getCallbacksForNumber } = useAmiCallback(mockClient as unknown as AmiClient)
+      const { scheduleCallback, getCallbacksForNumber } = useAmiCallback(
+        mockClient as unknown as AmiClient
+      )
 
       await scheduleCallback({ callerNumber: '555-123-4567' })
       await scheduleCallback({ callerNumber: '555-123-9999' })
@@ -578,7 +595,11 @@ describe('useAmiCallback', () => {
 
   describe('stats', () => {
     it('should update stats on changes', async () => {
-      const { scheduleCallback, markCompleted: _markCompleted, stats } = useAmiCallback(mockClient as unknown as AmiClient)
+      const {
+        scheduleCallback,
+        markCompleted: _markCompleted,
+        stats,
+      } = useAmiCallback(mockClient as unknown as AmiClient)
 
       expect(stats.value.pending).toBe(0)
 
@@ -607,7 +628,7 @@ describe('useAmiCallback', () => {
       markCompleted(cb1.id, 'answered')
 
       // Mark cb2 as failed manually
-      const idx = callbacks.value.findIndex(cb => cb.id === cb2.id)
+      const idx = callbacks.value.findIndex((cb) => cb.id === cb2.id)
       if (idx !== -1) {
         callbacks.value[idx] = {
           ...callbacks.value[idx],
@@ -654,7 +675,7 @@ describe('useAmiCallback', () => {
       expect(activeCallback.value).toBeNull()
       expect(onCallbackCompleted).toHaveBeenCalled()
 
-      const completed = callbacks.value.find(cb => cb.id === callback.id)
+      const completed = callbacks.value.find((cb) => cb.id === callback.id)
       expect(completed?.status).toBe('completed')
       expect(completed?.disposition).toBe('answered')
     })
@@ -688,15 +709,54 @@ describe('useAmiCallback', () => {
 
       await nextTick()
 
-      const completed = callbacks.value.find(cb => cb.id === callback.id)
+      const completed = callbacks.value.find((cb) => cb.id === callback.id)
       expect(completed?.disposition).toBe('busy')
+    })
+
+    it('should schedule a retry when hangup cause is no_answer and attempts < maxAttempts', async () => {
+      mockClient.originate = vi.fn().mockResolvedValue({
+        success: true,
+        channel: 'Local/555-123-4567@from-internal-00000001',
+      })
+
+      const { scheduleCallback, executeCallback, callbacks } = useAmiCallback(
+        mockClient as unknown as AmiClient,
+        { retryDelay: 60, defaultMaxAttempts: 3 }
+      )
+
+      const callback = await scheduleCallback({
+        callerNumber: '555-123-4567',
+        maxAttempts: 3,
+      })
+
+      // First attempt
+      await executeCallback(callback.id)
+      expect(callbacks.value[0].attempts).toBe(1)
+
+      // Simulate no answer
+      mockClient._triggerEvent(
+        'hangup',
+        createAmiEvent('Hangup', {
+          Channel: 'Local/555-123-4567@from-internal-00000001',
+          Cause: '18', // No answer
+        })
+      )
+
+      await nextTick()
+
+      // Should be pending again for retry
+      expect(callbacks.value[0].status).toBe('pending')
+      expect(callbacks.value[0].attempts).toBe(1)
+      expect(callbacks.value[0].scheduledAt).toBeDefined()
     })
   })
 
   describe('callbacks', () => {
     it('should call onCallbackAdded', async () => {
       const onCallbackAdded = vi.fn()
-      const { scheduleCallback } = useAmiCallback(mockClient as unknown as AmiClient, { onCallbackAdded })
+      const { scheduleCallback } = useAmiCallback(mockClient as unknown as AmiClient, {
+        onCallbackAdded,
+      })
 
       await scheduleCallback({ callerNumber: '555-123-4567' })
 

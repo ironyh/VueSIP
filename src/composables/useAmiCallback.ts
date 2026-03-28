@@ -196,9 +196,7 @@ export function useAmiCallback(
     callbacks.value.filter((cb) => cb.status === 'completed')
   )
 
-  const failedCallbacks = computed(() =>
-    callbacks.value.filter((cb) => cb.status === 'failed')
-  )
+  const failedCallbacks = computed(() => callbacks.value.filter((cb) => cb.status === 'failed'))
 
   const isExecuting = computed(() => activeCallback.value !== null)
 
@@ -346,7 +344,7 @@ export function useAmiCallback(
         logger.debug('Callback completed', { callbackId, disposition })
       } else {
         // Check if we should retry
-        if (cb.attempts < cb.maxAttempts) {
+        if (updatedCb.attempts < updatedCb.maxAttempts) {
           // Schedule retry
           updateCallback(callbackId, {
             status: 'pending',
@@ -354,11 +352,11 @@ export function useAmiCallback(
           })
           logger.debug('Callback retry scheduled', {
             callbackId,
-            attempt: cb.attempts,
-            maxAttempts: cb.maxAttempts,
+            attempt: updatedCb.attempts,
+            maxAttempts: updatedCb.maxAttempts,
           })
         } else {
-          config.onCallbackFailed?.(updatedCb, `Max attempts (${cb.maxAttempts}) reached`)
+          config.onCallbackFailed?.(updatedCb, `Max attempts (${updatedCb.maxAttempts}) reached`)
           logger.debug('Callback failed after max attempts', { callbackId })
         }
       }
@@ -650,7 +648,9 @@ export function useAmiCallback(
    */
   const getCallbacksForNumber = (phoneNumber: string): CallbackRequest[] => {
     const normalizedNumber = phoneNumber.replace(/\D/g, '')
-    return callbacks.value.filter((cb) => cb.callerNumber.replace(/\D/g, '').includes(normalizedNumber))
+    return callbacks.value.filter((cb) =>
+      cb.callerNumber.replace(/\D/g, '').includes(normalizedNumber)
+    )
   }
 
   // ============================================================================
@@ -871,10 +871,10 @@ export function useAmiCallback(
     // This handles Local/xxx@context-00000001;1 vs Local/xxx@context-00000001
     const activeChannel = activeCallback.value.channel?.toLowerCase() || ''
     const eventChannel = channel.toLowerCase()
-    const isMatch = activeChannel && (
-      eventChannel.includes(activeChannel) ||
-      activeChannel.includes(eventChannel.replace(/;[12]$/, ''))
-    )
+    const isMatch =
+      activeChannel &&
+      (eventChannel.includes(activeChannel) ||
+        activeChannel.includes(eventChannel.replace(/;[12]$/, '')))
 
     if (isMatch) {
       const cause = parseInt(data.Cause || '0', 10)
