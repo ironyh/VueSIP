@@ -10,7 +10,6 @@ import type { UAConfiguration } from 'jssip/lib/UA'
 import { EventEmitter } from '../../utils/EventEmitter'
 import type { ISipAdapter, ICallSession, AdapterEvents, CallOptions } from '../types'
 import { AdapterNotSupportedError } from '../types'
-import { createLogger } from '../../utils/logger'
 import type { SipClientConfig } from '../../types/config.types'
 import { ConnectionState, RegistrationState } from '../../types/sip.types'
 import { JsSipCallSession } from './JsSipCallSession'
@@ -38,8 +37,6 @@ interface JsSipMessageEventData {
  *
  * Wraps JsSIP's User Agent to provide a standardized SIP adapter interface.
  */
-const log = createLogger('JsSipAdapter')
-
 export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAdapter {
   // Adapter metadata
   readonly adapterName = 'JsSIP Adapter'
@@ -244,8 +241,8 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
       throw new Error('Not connected')
     }
 
-    log.debug('Making call to:', target)
-    log.debug('Call options:', options)
+    console.log('[JsSipAdapter] Making call to:', target)
+    console.log('[JsSipAdapter] Call options:', options)
 
     const jssipOptions: Record<string, unknown> = {
       mediaConstraints: options?.mediaConstraints ?? { audio: true, video: false },
@@ -254,7 +251,7 @@ export class JsSipAdapter extends EventEmitter<AdapterEvents> implements ISipAda
     // Pass pre-acquired mediaStream if provided (takes precedence over mediaConstraints)
     if (options?.mediaStream) {
       jssipOptions.mediaStream = options.mediaStream
-      log.debug('Using pre-acquired mediaStream for call')
+      console.log('[JsSipAdapter] Using pre-acquired mediaStream for call')
     }
 
     if (options?.extraHeaders) {

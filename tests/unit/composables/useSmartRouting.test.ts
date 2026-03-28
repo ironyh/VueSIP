@@ -704,6 +704,7 @@ describe('useSmartRouting', () => {
 
     it('should continue to next rule if condition throws', async () => {
       const { registerRule, evaluateRouting } = useSmartRouting()
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       registerRule({
         name: 'Error Rule',
@@ -727,6 +728,9 @@ describe('useSmartRouting', () => {
 
       expect(decision).not.toBeNull()
       expect(decision!.action.target).toBe('fallback-queue')
+      expect(consoleSpy).toHaveBeenCalled()
+
+      consoleSpy.mockRestore()
     })
   })
 

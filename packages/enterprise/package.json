@@ -39,7 +39,7 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "peerDependencies": {

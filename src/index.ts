@@ -201,13 +201,7 @@ export { EventBus } from './core/EventBus'
 export { TransportManager } from './core/TransportManager'
 export { SipClient } from './core/SipClient'
 export { CallSession } from './core/CallSession' // Class, not the interface from types
-export {
-  MediaManager,
-  type IceConnectionState,
-  type IceGatheringState,
-  type MediaManagerOptions,
-  type DeviceTestResult,
-} from './core/MediaManager'
+export { MediaManager } from './core/MediaManager'
 export { AmiClient, createAmiClient, AmiError, AmiErrorCode } from './core/AmiClient' // AMI WebSocket client for amiws
 // Note: CallSessionOptions exported from composables, not core
 
@@ -282,9 +276,7 @@ export { RecordingPlugin, createRecordingPlugin } from './plugins'
  * abort controller utilities, and storage quota helpers.
  *
  * @see {@link validateSipUri} for SIP URI validation
- * @see {@link formatDuration} for duration formatting (HH:MM:SS)
- * @see {@link formatDurationCompact} for compact call duration (M:SS)
- * @see {@link normalizePhoneNumber} and {@link comparePhoneNumbers} for phone matching
+ * @see {@link formatDuration} for duration formatting
  * @see {@link createLogger} for logging
  * @see {@link encrypt} for data encryption
  * @see {@link logErrorWithContext} for structured error logging
@@ -292,12 +284,10 @@ export { RecordingPlugin, createRecordingPlugin } from './plugins'
  *
  * @example
  * ```typescript
- * import { validateSipUri, formatDuration, formatDurationCompact, normalizePhoneNumber, createLogger } from 'vuesip'
+ * import { validateSipUri, formatDuration, createLogger } from 'vuesip'
  *
  * const result = validateSipUri('sip:user@example.com')
- * formatDuration(125)           // "00:02:05"
- * formatDurationCompact(125)    // "2:05"
- * normalizePhoneNumber('+1 (555) 123-4567')  // "15551234567"
+ * const formatted = formatDuration(125) // "02:05"
  * const logger = createLogger('MyApp')
  * logger.info('Application started')
  * ```
@@ -336,67 +326,13 @@ export { RecordingPlugin, createRecordingPlugin } from './plugins'
  * ```
  */
 // Export utilities (excluding duplicates: getStorageQuota, getStorageUsageSummary from stores, STORAGE_KEYS from types)
-// Export constants selectively to avoid STORAGE_KEYS conflict (already exported from types)
-export {
-  VERSION,
-  USER_AGENT,
-  DEFAULT_REGISTER_EXPIRES,
-  DEFAULT_SESSION_TIMERS,
-  DEFAULT_NO_ANSWER_TIMEOUT,
-  DEFAULT_PING_INTERVAL,
-  DEFAULT_MAX_FORWARDS,
-  DEFAULT_AUDIO_CONSTRAINTS,
-  DEFAULT_VIDEO_CONSTRAINTS,
-  DEFAULT_MEDIA_CONSTRAINTS,
-  RECONNECTION_DELAYS,
-  MAX_RETRY_ATTEMPTS,
-  ICE_GATHERING_TIMEOUT,
-  DEFAULT_STUN_SERVERS,
-  DEFAULT_DTMF_DURATION,
-  DEFAULT_DTMF_INTER_TONE_GAP,
-  STATS_COLLECTION_INTERVAL,
-  AUDIO_LEVEL_INTERVAL,
-  AUDIO_CODECS,
-  VIDEO_CODECS,
-  SIP_STATUS_CODES,
-  EVENTS,
-  STORAGE_PREFIX,
-  STORAGE_VERSION,
-  PERFORMANCE,
-  VALIDATION,
-  CALL_SESSION,
-  SIP_URI_REGEX,
-  E164_PHONE_REGEX,
-  WEBSOCKET_URL_REGEX,
-  DTMF_TONES,
-} from './utils/constants'
 export * from './utils/validators'
 export * from './utils/formatters'
 export * from './utils/logger'
 export * from './utils/encryption'
 export * from './utils/errorContext'
-export * from './utils/errorHelpers'
 export * from './utils/abortController'
 export * from './utils/notifications'
-export * from './utils/diagnostics'
-export * from './utils/callDiagnostics'
-// Export testing utilities
-export * from './testing'
-// Export quality report utilities (selective to avoid naming conflict with composables)
-export {
-  calculateMOS,
-  calculateQualityScore,
-  determineQualityLevel as getQualityLevel,
-  determineQualityTrend as getQualityTrend,
-  createQualityMetrics,
-  QualityHistoryBuffer,
-  generateCallQualityReport,
-  MAX_HISTORY_SIZE,
-  QUALITY_THRESHOLDS,
-  type QualityMetrics,
-  type QualityAlertRecord,
-  type CallQualityReport,
-} from './utils/qualityReport'
 // storageQuota functions exported from stores instead
 // constants partially exported (STORAGE_KEYS from types instead)
 
@@ -430,41 +366,6 @@ export {
  * ```
  */
 export * from './storage'
-
-// ============================================================================
-// PBX Recording Adapters
-// ============================================================================
-
-/**
- * PBX recording adapters for listing and playing call recordings.
- *
- * Adapters implement the {@link PbxRecordingProvider} interface so the UI
- * can work with any supported PBX (FreePBX, etc.) without PBX-specific code.
- *
- * @see {@link createFreePbxRecordingProvider} for FreePBX (GraphQL + config.php download URL)
- * @see {@link PbxRecordingProvider} for the provider contract
- * @see {@link RecordingSummary} and {@link RecordingPlaybackInfo} for data types
- *
- * @remarks
- * **Authentication:** Playback URLs often require an authenticated context.
- * - **Same-origin:** If your app is served from the same origin as the PBX admin,
- *   the browser sends session cookies automatically; no extra config.
- * - **Cross-origin:** Use a backend proxy that fetches the recording with
- *   server-side auth and streams to the client, or use token-based auth and
- *   pass headers via the adapter config (e.g. `getAuthHeaders` for FreePBX).
- *
- * @example
- * ```typescript
- * import { createFreePbxRecordingProvider } from 'vuesip'
- *
- * const provider = createFreePbxRecordingProvider({
- *   baseUrl: 'https://pbx.example.com',
- * })
- * const { items } = await provider.listRecordings({ limit: 20 })
- * const info = await provider.getPlaybackInfo(items[0].id)
- * ```
- */
-export * from './pbx-adapters'
 
 // ============================================================================
 // Codecs (Preview)
@@ -638,7 +539,7 @@ export function createVueSip(options: VueSipOptions = {}): Plugin {
         logger.debug('User preferences initialized')
         // Apply notifications defaults
         try {
-          const n = userPreferences?.notifications
+          const n = (userPreferences as any).notifications
           if (n && typeof localStorage !== 'undefined') {
             if (typeof n.enabled === 'boolean') {
               localStorage.setItem('vuesip_notifications_enabled', n.enabled ? 'true' : 'false')

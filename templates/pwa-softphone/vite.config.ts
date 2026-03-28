@@ -67,7 +67,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-      // Use built VueSIP bundle; dist is kept up to date via root `pnpm build`
       vuesip: resolve(__dirname, '../../dist/vuesip.js'),
     },
   },
@@ -86,10 +85,5 @@ export default defineConfig({
   server: {
     port: 3002,
     host: true,
-    hmr: {
-      port: 3002,
-      host: 'localhost',
-      protocol: 'ws',
-    },
   },
 })

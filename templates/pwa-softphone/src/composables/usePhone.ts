@@ -16,11 +16,6 @@ import {
   useAudioDeviceSwitch,
   buildSipUri,
   extractSipDomain,
-  getCallDiagnostics,
-  getCauseExplanation,
-  type MultiSipAccountListItem,
-  type CallSession,
-  type CallDiagnostics,
 } from 'vuesip'
 
 export interface PhoneConfig {
@@ -50,13 +45,6 @@ export interface PhoneConfig {
     enabled: boolean
   }>
   outboundAccountId?: string | null
-}
-
-/** Minimal shape for session.data / called-identity access when resolving called line */
-interface CallSessionDataLike {
-  calledNumberDialed?: { raw?: string }
-  calledNumberTarget?: { raw?: string }
-  calledIdentity?: { dialed?: { raw?: string }; target?: { raw?: string } }
 }
 
 export function usePhone() {
@@ -108,9 +96,9 @@ export function usePhone() {
   }
 
   function cycleOutboundAccount(direction: 'prev' | 'next') {
-    const list = multiSipClient.accountList.value.map((a: MultiSipAccountListItem) => ({
-      id: a.id,
-      name: a.name,
+    const list = (multiSipClient.accountList.value as any[]).map((a) => ({
+      id: a.id as string,
+      name: a.name as string,
     }))
     if (list.length <= 1) return
 
@@ -125,7 +113,7 @@ export function usePhone() {
   const is46Elks = computed(() => currentConfig.value?.providerId === '46elks')
   const canCycleOutbound = computed(() => {
     if (connectionMode.value === 'multi') {
-      return multiSipClient.accountList.value.length > 1
+      return (multiSipClient.accountList.value as any[]).length > 1
     }
     return is46Elks.value && outboundCallerIds.value.length > 1
   })
@@ -133,9 +121,7 @@ export function usePhone() {
   const outboundPrimary = computed(() => {
     if (connectionMode.value === 'multi') {
       const id = multiSipClient.outboundAccountId.value
-      const account = multiSipClient.accountList.value.find(
-        (a: MultiSipAccountListItem) => a.id === id
-      )
+      const account = (multiSipClient.accountList.value as any[]).find((a: any) => a.id === id)
       const name = account?.name || id
       return name ? `Account: ${name}` : ''
     }
@@ -345,18 +331,17 @@ export function usePhone() {
   }
 
   const calledLine = computed(() => {
-    const s = session.value as CallSession | null
+    const s = session.value as any
     if (!s) return ''
-    const d = s.data as CallSessionDataLike | undefined
     return (
       s.calledNumberDialed?.raw ||
       s.calledNumberTarget?.raw ||
       s.calledIdentity?.dialed?.raw ||
       s.calledIdentity?.target?.raw ||
-      d?.calledNumberDialed?.raw ||
-      d?.calledNumberTarget?.raw ||
-      d?.calledIdentity?.dialed?.raw ||
-      d?.calledIdentity?.target?.raw ||
+      s.data?.calledNumberDialed?.raw ||
+      s.data?.calledNumberTarget?.raw ||
+      s.data?.calledIdentity?.dialed?.raw ||
+      s.data?.calledIdentity?.target?.raw ||
       ''
     )
   })
@@ -398,79 +383,9 @@ export function usePhone() {
     clientRef
   )
 
-  // Adapter to satisfy AudioDevicesForSwitch interface requirements
-  // useMediaDevices returns MediaDevice[] but useAudioDeviceSwitch expects AudioDevice[]
-  const audioDevicesAdapter = {
-    get currentMicrophone() {
-      const id = selectedAudioInputId.value
-      const devices = [...audioInputDevices.value] as Array<{
-        deviceId: string
-        label: string
-        kind: string
-      }>
-      if (!id || !devices) return null
-      const found = devices.find((d) => d.deviceId === id)
-      return found
-        ? {
-            deviceId: found.deviceId,
-            label: found.label,
-            kind: found.kind as 'audioinput' | 'audiooutput' | 'videoinput',
-          }
-        : null
-    },
-    get currentSpeaker() {
-      const id = selectedAudioOutputId.value
-      const devices = [...audioOutputDevices.value] as Array<{
-        deviceId: string
-        label: string
-        kind: string
-      }>
-      if (!id || !devices) return null
-      const found = devices.find((d) => d.deviceId === id)
-      return found
-        ? {
-            deviceId: found.deviceId,
-            label: found.label,
-            kind: found.kind as 'audioinput' | 'audiooutput' | 'videoinput',
-          }
-        : null
-    },
-    getMicrophoneById: (deviceId: string) => {
-      const devices = [...audioInputDevices.value] as Array<{
-        deviceId: string
-        label: string
-        kind: string
-      }>
-      const found = devices?.find((d) => d.deviceId === deviceId)
-      return found
-        ? {
-            deviceId: found.deviceId,
-            label: found.label,
-            kind: found.kind as 'audioinput' | 'audiooutput' | 'videoinput',
-          }
-        : undefined
-    },
-    getSpeakerById: (deviceId: string) => {
-      const devices = [...audioOutputDevices.value] as Array<{
-        deviceId: string
-        label: string
-        kind: string
-      }>
-      const found = devices?.find((d) => d.deviceId === deviceId)
-      return found
-        ? {
-            deviceId: found.deviceId,
-            label: found.label,
-            kind: found.kind as 'audioinput' | 'audiooutput' | 'videoinput',
-          }
-        : undefined
-    },
-  }
-
-  // Audio device switch for mid-call device changes
   const audioSwitch = useAudioDeviceSwitch(
     computed(() => callSession.session.value),
-    audioDevicesAdapter as any
+    mediaDevices as any
   )
 
   async function selectAudioInput(deviceId: string) {
@@ -874,35 +789,6 @@ export function usePhone() {
     await reject()
   }
 
-  // Last call failure diagnostic (for DiagnosticsPanel)
-  const lastCallDiagnostic = ref<CallDiagnostics | null>(null)
-
-  // Capture call diagnostics when a call ends with a failure
-  watch(
-    [callState, direction],
-    ([newState, _dir], [oldState]) => {
-      if (oldState === 'active' || oldState === 'calling' || oldState === 'ringing') {
-        if (newState === 'idle' || newState === 'terminated') {
-          // Call ended - check if it was a failure
-          const session = callSession.session.value
-          if (session) {
-            try {
-              const diag = getCallDiagnostics(session as any)
-              // Only capture if there's a meaningful cause (not normal hangup)
-              if (diag.cause && diag.cause !== 'Request Terminated' && diag.cause !== 'unknown') {
-                lastCallDiagnostic.value = diag
-                console.log('[VueSIP] Call failure diagnostic captured:', diag.cause)
-              }
-            } catch {
-              // Best-effort diagnostic capture
-            }
-          }
-        }
-      }
-    },
-    { flush: 'post' }
-  )
-
   // Speaker toggle (for mobile devices)
   function toggleSpeaker() {
     isSpeakerOn.value = !isSpeakerOn.value
@@ -931,14 +817,14 @@ export function usePhone() {
 
   const effectiveIsConnecting = computed(() => {
     if (connectionMode.value === 'multi') {
-      return multiSipClient.accountList.value.some((a: MultiSipAccountListItem) => a.isConnecting)
+      return (multiSipClient.accountList.value as any[]).some((a: any) => a.isConnecting)
     }
     return isConnecting.value
   })
 
   const effectiveSipError = computed(() => {
     if (connectionMode.value === 'multi') {
-      const first = multiSipClient.accountList.value.find((a: MultiSipAccountListItem) => a.error)
+      const first = (multiSipClient.accountList.value as any[]).find((a: any) => a.error)
       return first?.error ? new Error(first.error) : null
     }
     return sipError.value
@@ -1028,76 +914,5 @@ export function usePhone() {
     degradation,
     callWaiting,
     audioSwitch,
-
-    // Diagnostics
-    diagnostics: computed(() => {
-      const activeSessions: Array<{
-        id: string
-        direction: string
-        state: string
-        peerNumber: string
-        startTime?: string
-        duration?: number
-      }> = []
-
-      if (callSession.session.value) {
-        const s = callSession.session.value
-        activeSessions.push({
-          id: s.id ?? 'unknown',
-          direction: direction.value ?? 'unknown',
-          state: callState.value,
-          peerNumber: remoteUri.value ?? '',
-          startTime: (s as any).startTime,
-          duration: (s as any).duration ?? 0,
-        })
-      }
-
-      // Media device info from useMediaDevices
-      const micDevices = audioInputDevices.value || []
-      const selectedMic = micDevices.find((d) => d.deviceId === selectedAudioInputId.value)
-      const hasPermission = micDevices.length > 0 && micDevices.some((d) => d.label !== '')
-
-      return {
-        connection: {
-          state: effectiveIsConnected.value ? 'connected' : 'disconnected',
-          reconnectAttempts: 0,
-          lastError: (sipError.value as Error)?.message,
-        },
-        registration: {
-          state: effectiveIsRegistered.value ? 'registered' : 'unregistered',
-        },
-        media: {
-          microphone: {
-            deviceId: selectedAudioInputId.value || '',
-            label:
-              selectedMic?.label || (micDevices.length > 0 ? micDevices[0].label : 'Not available'),
-            isActive: hasPermission,
-          },
-          speaker: {
-            deviceId: selectedAudioOutputId.value || '',
-            label: 'Speaker',
-            isActive: true,
-          },
-          permissionGranted: hasPermission,
-          devicesAvailable: micDevices.map((d) => ({
-            deviceId: d.deviceId,
-            label: d.label || `Microphone ${d.deviceId.slice(0, 8)}`,
-          })),
-        },
-        calls: {
-          activeCalls: activeSessions.length,
-          calls: activeSessions,
-        },
-        lastFailure: lastCallDiagnostic.value
-          ? {
-              cause: lastCallDiagnostic.value.cause,
-              explanation: getCauseExplanation(lastCallDiagnostic.value.cause),
-              responseCode: lastCallDiagnostic.value.responseCode,
-              suggestions: lastCallDiagnostic.value.suggestions,
-              timestamp: lastCallDiagnostic.value.timestamp,
-            }
-          : null,
-      }
-    }),
   }
 }

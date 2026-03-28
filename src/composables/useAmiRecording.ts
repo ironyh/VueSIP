@@ -41,9 +41,6 @@
 import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '../core/AmiClient'
 import type { AmiMessage, AmiEventData } from '../types/ami.types'
-import { createLogger } from '../utils/logger'
-
-const logger = createLogger('composables:useAmiRecording')
 import type {
   AmiRecordingSession,
   AmiRecordingState,
@@ -59,12 +56,7 @@ import type {
 /**
  * Default recording options
  */
-const DEFAULT_OPTIONS: Required<
-  Pick<
-    UseAmiRecordingOptions,
-    'defaultFormat' | 'defaultMixMode' | 'trackDuration' | 'durationInterval'
-  >
-> = {
+const DEFAULT_OPTIONS: Required<Pick<UseAmiRecordingOptions, 'defaultFormat' | 'defaultMixMode' | 'trackDuration' | 'durationInterval'>> = {
   defaultFormat: 'wav',
   defaultMixMode: 'both',
   trackDuration: true,
@@ -134,7 +126,11 @@ function sanitizeDirectory(directory: string): string {
 /**
  * Build the full file path for recording
  */
-function buildFilePath(filename: string, format: AmiRecordingFormat, directory?: string): string {
+function buildFilePath(
+  filename: string,
+  format: AmiRecordingFormat,
+  directory?: string
+): string {
   const ext = format === 'wav49' ? 'WAV' : format
   const sanitizedDir = directory ? sanitizeDirectory(directory) : undefined
   const path = sanitizedDir ? `${sanitizedDir}/${filename}` : filename
@@ -178,32 +174,27 @@ export function useAmiRecording(
 
   // Computed
   const currentRecording = computed<AmiRecordingSession | null>(() => {
-    const activeRecordings = Array.from(recordings.value.values()).filter(
-      (r) => r.state === 'recording' || r.state === 'paused'
-    )
+    const activeRecordings = Array.from(recordings.value.values())
+      .filter(r => r.state === 'recording' || r.state === 'paused')
     return activeRecordings[0] || null
   })
 
   const isRecording = computed(() => {
     return Array.from(recordings.value.values()).some(
-      (r) => r.state === 'recording' || r.state === 'paused'
+      r => r.state === 'recording' || r.state === 'paused'
     )
   })
 
   const activeCount = computed(() => {
     return Array.from(recordings.value.values()).filter(
-      (r) => r.state === 'recording' || r.state === 'paused'
+      r => r.state === 'recording' || r.state === 'paused'
     ).length
   })
 
   /**
    * Emit recording event to listeners
    */
-  function emitEvent(
-    type: AmiRecordingEventType,
-    recording: AmiRecordingSession,
-    eventError?: string
-  ): void {
+  function emitEvent(type: AmiRecordingEventType, recording: AmiRecordingSession, eventError?: string): void {
     const event: AmiRecordingEvent = {
       type,
       recording,
@@ -211,11 +202,11 @@ export function useAmiRecording(
       timestamp: new Date(),
     }
 
-    eventListeners.value.forEach((listener) => {
+    eventListeners.value.forEach(listener => {
       try {
         listener(event)
       } catch (e) {
-        logger.error('Recording event listener error:', e)
+        console.error('Recording event listener error:', e)
       }
     })
   }
@@ -520,7 +511,9 @@ export function useAmiRecording(
       }
 
       // Calculate pause duration
-      const pauseDuration = recording.pausedAt ? Date.now() - recording.pausedAt.getTime() : 0
+      const pauseDuration = recording.pausedAt
+        ? Date.now() - recording.pausedAt.getTime()
+        : 0
 
       // Update recording state
       const updatedRecording: AmiRecordingSession = {
@@ -591,15 +584,16 @@ export function useAmiRecording(
    */
   function isChannelRecording(channel: string): boolean {
     const recording = recordings.value.get(channel)
-    return (
-      recording !== undefined && (recording.state === 'recording' || recording.state === 'paused')
-    )
+    return recording !== undefined &&
+      (recording.state === 'recording' || recording.state === 'paused')
   }
 
   /**
    * Listen for recording events
    */
-  function onRecordingEvent(callback: (event: AmiRecordingEvent) => void): () => void {
+  function onRecordingEvent(
+    callback: (event: AmiRecordingEvent) => void
+  ): () => void {
     eventListeners.value.add(callback)
     return () => {
       eventListeners.value.delete(callback)
@@ -614,7 +608,9 @@ export function useAmiRecording(
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    const todayRecordings = allRecordings.filter((r) => r.startedAt >= today)
+    const todayRecordings = allRecordings.filter(
+      r => r.startedAt >= today
+    )
 
     const byFormat: Record<AmiRecordingFormat, number> = {
       wav: 0,
@@ -628,7 +624,7 @@ export function useAmiRecording(
       siren14: 0,
     }
 
-    allRecordings.forEach((r) => {
+    allRecordings.forEach(r => {
       byFormat[r.format]++
     })
 

@@ -5,14 +5,7 @@
         <!-- Left: Combined Connection Status -->
         <div class="status-section">
           <!-- Combined SIP Status Indicator -->
-          <div
-            class="combined-status"
-            :class="combinedStatusClass"
-            :title="combinedStatusTooltip"
-            role="status"
-            aria-live="polite"
-            :aria-label="combinedStatusLabel"
-          >
+          <div class="combined-status" :class="combinedStatusClass" :title="combinedStatusTooltip">
             <StatusIcon :status="statusIconType" />
             <span class="status-label">{{ combinedStatusLabel }}</span>
           </div>
@@ -151,7 +144,7 @@ const hasActiveCall = computed(() => session.value !== null)
 
 const showAnswerButton = computed(() => state.value === 'ringing' && direction.value === 'incoming')
 
-// Combined SIP Status: red offline, orange connected but not registered, green ready for calls
+// Combined SIP Status (red/orange/green)
 const combinedStatusClass = computed(() => {
   if (!isConnected.value) return 'status-red'
   if (!isRegistered.value) return 'status-orange'
@@ -166,13 +159,13 @@ const statusIconType = computed(() => {
 
 const combinedStatusLabel = computed(() => {
   if (!isConnected.value) return 'Offline'
-  if (!isRegistered.value) return 'Connected'
+  if (!isRegistered.value) return 'Connecting'
   return 'Ready'
 })
 
 const combinedStatusTooltip = computed(() => {
   if (!isConnected.value) return 'Disconnected - Not connected to SIP server'
-  if (!isRegistered.value) return 'Connected (registering…) - Cannot receive calls yet'
+  if (!isRegistered.value) return 'Connected but not registered - Cannot receive calls yet'
   return 'Connected and registered - Ready for calls'
 })
 

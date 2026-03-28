@@ -1,7 +1,3 @@
-/// <reference lib="webworker" />
-
-declare const self: ServiceWorkerGlobalScope
-
 /**
  * Service Worker Notification Click Handler
  *
@@ -10,11 +6,12 @@ declare const self: ServiceWorkerGlobalScope
  * Service Worker notifications, and routes to the app via deep links.
  */
 
+declare const self: ServiceWorkerGlobalScope
+
 // Handle notification clicks (both regular clicks and action buttons)
-self.addEventListener('notificationclick', (event: Event) => {
-  const notifEvent = event as NotificationEvent
-  const notification = notifEvent.notification
-  const action = notifEvent.action as 'answer' | 'decline' | '' // '' = regular click
+self.addEventListener('notificationclick', (event: NotificationEvent) => {
+  const notification = event.notification
+  const action = event.action as 'answer' | 'decline' | '' // '' = regular click
   const callId = notification.data?.callId as string | undefined
 
   // Close the notification
@@ -32,7 +29,7 @@ self.addEventListener('notificationclick', (event: Event) => {
   }
 
   // Focus existing window or open new one
-  notifEvent.waitUntil(
+  event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // Try to find an existing window and focus it
       for (const client of clientList) {
@@ -50,10 +47,7 @@ self.addEventListener('notificationclick', (event: Event) => {
 })
 
 // Handle notification close (user dismissed without action)
-self.addEventListener('notificationclose', (event: Event) => {
-  const notifEvent = event as NotificationEvent
+self.addEventListener('notificationclose', (event: NotificationEvent) => {
   // Could track analytics or cleanup here
-  console.debug('[VueSIP SW] Notification closed:', notifEvent.notification.tag)
+  console.debug('[VueSIP SW] Notification closed:', event.notification.tag)
 })
-
-export {}

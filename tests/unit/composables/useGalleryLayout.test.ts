@@ -218,9 +218,7 @@ describe('useGalleryLayout', () => {
       unmount()
     })
 
-    it('should cap cols at maxCols but allow rows to scale freely for large counts', () => {
-      // Bug fix: when cols is capped at maxCols, rows must scale freely to avoid overflow.
-      // 50 participants: cols=4 (capped), rows=ceil(50/4)=13 → capacity=52 ≥ 50
+    it('should cap at maxCols and maxRows for very large participant counts', () => {
       participantCount.value = 50
 
       const { result, unmount } = withSetup(() =>
@@ -228,7 +226,7 @@ describe('useGalleryLayout', () => {
       )
 
       expect(result.gridCols.value).toBeLessThanOrEqual(4)
-      expect(result.gridCols.value * result.gridRows.value).toBeGreaterThanOrEqual(50)
+      expect(result.gridRows.value).toBeLessThanOrEqual(4)
 
       unmount()
     })
@@ -384,7 +382,9 @@ describe('useGalleryLayout', () => {
     it('should generate correct grid style string', () => {
       participantCount.value = 4
 
-      const { result, unmount } = withSetup(() => useGalleryLayout(participantCount, { gap: 8 }))
+      const { result, unmount } = withSetup(() =>
+        useGalleryLayout(participantCount, { gap: 8 })
+      )
 
       const style = result.gridStyle.value
 
@@ -398,7 +398,9 @@ describe('useGalleryLayout', () => {
     it('should update grid style when participant count changes', () => {
       participantCount.value = 2
 
-      const { result, unmount } = withSetup(() => useGalleryLayout(participantCount, { gap: 8 }))
+      const { result, unmount } = withSetup(() =>
+        useGalleryLayout(participantCount, { gap: 8 })
+      )
 
       expect(result.gridStyle.value).toContain('grid-template-columns: repeat(2, 1fr)')
 
@@ -412,7 +414,9 @@ describe('useGalleryLayout', () => {
     it('should use custom gap value', () => {
       participantCount.value = 4
 
-      const { result, unmount } = withSetup(() => useGalleryLayout(participantCount, { gap: 16 }))
+      const { result, unmount } = withSetup(() =>
+        useGalleryLayout(participantCount, { gap: 16 })
+      )
 
       expect(result.gridStyle.value).toContain('gap: 16px')
 
@@ -592,17 +596,14 @@ describe('useGalleryLayout', () => {
       unmount()
     })
 
-    it('should respect maxRows as initial target but allow overflow when cols is insufficient', () => {
-      // maxRows is a layout target, not a hard cap. When maxRows would cause overflow
-      // (cols already at maxCols), rows must scale to fit all participants.
-      // 20 participants with maxRows=3: cols=3 (not capped), rows=ceil(20/3)=7 → capacity=21
+    it('should respect maxRows option', () => {
       participantCount.value = 20
 
       const { result, unmount } = withSetup(() =>
         useGalleryLayout(participantCount, { maxRows: 3 })
       )
 
-      expect(result.gridCols.value * result.gridRows.value).toBeGreaterThanOrEqual(20)
+      expect(result.gridRows.value).toBeLessThanOrEqual(3)
 
       unmount()
     })
@@ -617,14 +618,12 @@ describe('useGalleryLayout', () => {
       unmount()
     })
 
-    it('should accommodate all participants with default maxRows', () => {
-      // 20 participants with defaults (maxCols=4, maxRows=4): cols=4, rows=ceil(20/4)=5 → capacity=20
+    it('should use default maxRows of 4', () => {
       participantCount.value = 20
 
       const { result, unmount } = withSetup(() => useGalleryLayout(participantCount))
 
-      expect(result.gridCols.value).toBeLessThanOrEqual(4)
-      expect(result.gridCols.value * result.gridRows.value).toBeGreaterThanOrEqual(20)
+      expect(result.gridRows.value).toBeLessThanOrEqual(4)
 
       unmount()
     })
@@ -646,9 +645,7 @@ describe('useGalleryLayout', () => {
       unmount()
     })
 
-    it('should handle very large participant count without overflow', () => {
-      // Bug fix: rows must scale freely when cols is capped at maxCols.
-      // 1000 participants: cols=4 (capped), rows=ceil(1000/4)=250 → capacity=1000
+    it('should handle very large participant count', () => {
       participantCount.value = 1000
 
       const { result, unmount } = withSetup(() =>
@@ -656,7 +653,7 @@ describe('useGalleryLayout', () => {
       )
 
       expect(result.gridCols.value).toBeLessThanOrEqual(4)
-      expect(result.gridCols.value * result.gridRows.value).toBeGreaterThanOrEqual(1000)
+      expect(result.gridRows.value).toBeLessThanOrEqual(4)
 
       unmount()
     })

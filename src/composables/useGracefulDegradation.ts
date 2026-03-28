@@ -12,7 +12,6 @@ import { DEGRADATION_CONSTANTS } from './constants'
 import type { UseConnectionHealthBarReturn, HealthLevel } from './useConnectionHealthBar'
 import type { UseCallSessionReturn } from './useCallSession'
 import type { UseNotificationsReturn } from './useNotifications'
-import { createMetricsEmitter, useSipMetrics } from './useSipMetrics'
 
 const logger = createLogger('useGracefulDegradation')
 
@@ -42,8 +41,6 @@ export interface GracefulDegradationOptions {
   autoRecover?: boolean
   stabilizationDelay?: number
   thresholds?: Partial<DegradationThresholds>
-  /** Callback for metrics events (degradation changes, recovery, etc.) */
-  onMetrics?: import('./useSipMetrics').MetricsCallback
 }
 
 export interface UseGracefulDegradationReturn {
@@ -93,11 +90,7 @@ export function useGracefulDegradation(
     autoRecover = true,
     stabilizationDelay = DEGRADATION_CONSTANTS.DEFAULT_STABILIZATION_DELAY,
     thresholds: userThresholds,
-    onMetrics,
   } = options
-
-  // Create metrics emitter
-  const emitMetrics = createMetricsEmitter('useGracefulDegradation')
 
   const thresholds: DegradationThresholds = {
     ...DEFAULT_THRESHOLDS,
@@ -355,13 +348,6 @@ export function useGracefulDegradation(
         if (l === 3) applyLevel3()
       }
       notifyDegradation(targetLevel)
-      // Emit degradation apply metrics
-      emitMetrics({
-        type: 'degradation.apply',
-        level: targetLevel,
-        reason,
-        activeAdaptations: [...adaptations.value],
-      })
     } else {
       for (let l = previousLevel; l > targetLevel; l--) {
         if (l === 3) revertLevel3()
@@ -369,13 +355,6 @@ export function useGracefulDegradation(
         if (l === 1) revertLevel1()
       }
       notifyRecovery(targetLevel === 0)
-      // Emit degradation recovery metrics
-      emitMetrics({
-        type: 'degradation.recover',
-        level: targetLevel,
-        full: targetLevel === 0,
-        reason,
-      })
     }
 
     currentLevel.value = targetLevel
@@ -489,13 +468,6 @@ export function useGracefulDegradation(
   // Lifecycle
   // =========================================================================
 
-  // Register user callback if provided (using the shared global system)
-  let unsubscribeUser: (() => void) | null = null
-  if (onMetrics) {
-    const { onMetrics: registerCallback } = useSipMetrics()
-    unsubscribeUser = registerCallback(onMetrics)
-  }
-
   logger.debug('Graceful degradation initialized', {
     autoDegrade,
     autoRecover,
@@ -503,7 +475,6 @@ export function useGracefulDegradation(
     hasHealthBar: !!healthBar,
     hasCallSession: !!callSession,
     hasNotifications: !!notifications,
-    hasMetrics: !!onMetrics,
   })
 
   if (getCurrentScope()) {
@@ -519,10 +490,6 @@ export function useGracefulDegradation(
       if (stopWatch) {
         stopWatch()
         stopWatch = null
-      }
-      if (unsubscribeUser) {
-        unsubscribeUser()
-        unsubscribeUser = null
       }
       logger.debug('Graceful degradation disposed')
     })

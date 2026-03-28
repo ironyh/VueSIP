@@ -452,54 +452,48 @@ export function useAmiAgentLogin(
 
       const loginResults = await Promise.allSettled(
         queuesToJoin.map(async (queue) => {
-          try {
-            const rawPenalty =
-              loginOptions.penalties?.[queue] ??
-              loginOptions.defaultPenalty ??
-              config.defaultPenalty
-            const penalty = validatePenalty(rawPenalty)
+          const rawPenalty =
+            loginOptions.penalties?.[queue] ??
+            loginOptions.defaultPenalty ??
+            config.defaultPenalty
+          const penalty = validatePenalty(rawPenalty)
 
-            await client.queueAdd(queue, config.interface, {
-              memberName: sanitizeForStorage(loginOptions.memberName || config.name),
+          await client.queueAdd(queue, config.interface, {
+            memberName: sanitizeForStorage(loginOptions.memberName || config.name),
+            penalty,
+          })
+
+          // Update local state
+          const existingQueue = session.value.queues.find((q) => q.queue === queue)
+          if (existingQueue) {
+            existingQueue.isMember = true
+            existingQueue.penalty = penalty
+            existingQueue.loginTime = Math.floor(Date.now() / 1000)
+          } else {
+            session.value.queues.push({
+              queue,
+              interface: config.interface,
+              isMember: true,
+              isPaused: false,
+              pauseReason: undefined,
               penalty,
+              callsTaken: 0,
+              lastCall: 0,
+              loginTime: Math.floor(Date.now() / 1000),
+              inCall: false,
             })
-
-            // Update local state
-            const existingQueue = session.value.queues.find((q) => q.queue === queue)
-            if (existingQueue) {
-              existingQueue.isMember = true
-              existingQueue.penalty = penalty
-              existingQueue.loginTime = Math.floor(Date.now() / 1000)
-            } else {
-              session.value.queues.push({
-                queue,
-                interface: config.interface,
-                isMember: true,
-                isPaused: false,
-                pauseReason: undefined,
-                penalty,
-                callsTaken: 0,
-                lastCall: 0,
-                loginTime: Math.floor(Date.now() / 1000),
-                inCall: false,
-              })
-            }
-
-            config.onQueueChange?.(queue, true)
-            logger.info('Logged into queue', { queue, agent: config.agentId })
-          } catch (err) {
-            logger.error(`Failed to login to queue ${queue}`, err)
-            throw err
           }
+
+          config.onQueueChange?.(queue, true)
+          logger.info('Logged into queue', { queue, agent: config.agentId })
         })
       )
 
       // Throw the first error encountered to maintain test compatibility
-      const firstLoginError = loginResults.find((r) => r.status === 'rejected') as
-        | PromiseRejectedResult
-        | undefined
-      if (firstLoginError) {
-        throw firstLoginError.reason
+      for (const result of loginResults) {
+        if (result.status === 'rejected') {
+          throw result.reason
+        }
       }
 
       // Set login time if this is first login
@@ -540,34 +534,28 @@ export function useAmiAgentLogin(
 
       const logoutResults = await Promise.allSettled(
         queuesToLeave.map(async (queue) => {
-          try {
-            await client.queueRemove(queue, config.interface)
+          await client.queueRemove(queue, config.interface)
 
-            // Update local state
-            const queueMembership = session.value.queues.find((q) => q.queue === queue)
-            if (queueMembership) {
-              queueMembership.isMember = false
-            }
-
-            config.onQueueChange?.(queue, false)
-            logger.info('Logged out of queue', {
-              queue,
-              agent: config.agentId,
-              reason: logoutOptions?.reason,
-            })
-          } catch (err) {
-            logger.error(`Failed to logout from queue ${queue}`, err)
-            throw err
+          // Update local state
+          const queueMembership = session.value.queues.find((q) => q.queue === queue)
+          if (queueMembership) {
+            queueMembership.isMember = false
           }
+
+          config.onQueueChange?.(queue, false)
+          logger.info('Logged out of queue', {
+            queue,
+            agent: config.agentId,
+            reason: logoutOptions?.reason,
+          })
         })
       )
 
       // Throw the first error encountered to maintain test compatibility
-      const firstLogoutError = logoutResults.find((r) => r.status === 'rejected') as
-        | PromiseRejectedResult
-        | undefined
-      if (firstLogoutError) {
-        throw firstLogoutError.reason
+      for (const result of logoutResults) {
+        if (result.status === 'rejected') {
+          throw result.reason
+        }
       }
 
       // Check if fully logged out
@@ -612,30 +600,24 @@ export function useAmiAgentLogin(
 
       const pauseResults = await Promise.allSettled(
         queuesToPause.map(async (queue) => {
-          try {
-            await client.queuePause(queue, config.interface, true, pauseOptions.reason)
+          await client.queuePause(queue, config.interface, true, pauseOptions.reason)
 
-            // Update local state
-            const queueMembership = session.value.queues.find((q) => q.queue === queue)
-            if (queueMembership) {
-              queueMembership.isPaused = true
-              queueMembership.pauseReason = pauseOptions.reason
-            }
-
-            logger.debug('Paused in queue', { queue, reason: pauseOptions.reason })
-          } catch (err) {
-            logger.error(`Failed to pause in queue ${queue}`, err)
-            throw err
+          // Update local state
+          const queueMembership = session.value.queues.find((q) => q.queue === queue)
+          if (queueMembership) {
+            queueMembership.isPaused = true
+            queueMembership.pauseReason = pauseOptions.reason
           }
+
+          logger.debug('Paused in queue', { queue, reason: pauseOptions.reason })
         })
       )
 
       // Throw the first error encountered to maintain test compatibility
-      const firstPauseError = pauseResults.find((r) => r.status === 'rejected') as
-        | PromiseRejectedResult
-        | undefined
-      if (firstPauseError) {
-        throw firstPauseError.reason
+      for (const result of pauseResults) {
+        if (result.status === 'rejected') {
+          throw result.reason
+        }
       }
 
       // Update global pause state
@@ -684,30 +666,24 @@ export function useAmiAgentLogin(
 
       const unpauseResults = await Promise.allSettled(
         queuesToUnpause.map(async (queue) => {
-          try {
-            await client.queuePause(queue, config.interface, false)
+          await client.queuePause(queue, config.interface, false)
 
-            // Update local state
-            const queueMembership = session.value.queues.find((q) => q.queue === queue)
-            if (queueMembership) {
-              queueMembership.isPaused = false
-              queueMembership.pauseReason = undefined
-            }
-
-            logger.debug('Unpaused in queue', { queue })
-          } catch (err) {
-            logger.error(`Failed to unpause in queue ${queue}`, err)
-            throw err
+          // Update local state
+          const queueMembership = session.value.queues.find((q) => q.queue === queue)
+          if (queueMembership) {
+            queueMembership.isPaused = false
+            queueMembership.pauseReason = undefined
           }
+
+          logger.debug('Unpaused in queue', { queue })
         })
       )
 
       // Throw the first error encountered to maintain test compatibility
-      const firstUnpauseError = unpauseResults.find((r) => r.status === 'rejected') as
-        | PromiseRejectedResult
-        | undefined
-      if (firstUnpauseError) {
-        throw firstUnpauseError.reason
+      for (const result of unpauseResults) {
+        if (result.status === 'rejected') {
+          throw result.reason
+        }
       }
 
       // Update global pause state

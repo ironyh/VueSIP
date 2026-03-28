@@ -262,7 +262,6 @@ export function createAmiService(config: AmiServiceConfig = {}): AmiServiceRetur
   const lastConnectedAt = ref<Date | null>(null)
   const lastDisconnectedAt = ref<Date | null>(null)
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-  let disconnectHandler: ((reason?: string) => void) | null = null
 
   // Core AMI composable
   const ami = useAmi()
@@ -329,23 +328,16 @@ export function createAmiService(config: AmiServiceConfig = {}): AmiServiceRetur
 
       logger.info('AmiService connected')
 
-      // Cleanup any previous disconnect handler before registering a new one
-      if (disconnectHandler) {
-        const client = ami.getClient()
-        if (client && typeof client.off === 'function')
-          client.off('disconnected', disconnectHandler)
-        disconnectHandler = null
-      }
-
       // Setup disconnect handler for auto-reconnect
       if (autoReconnect) {
-        disconnectHandler = (reason?: string) => {
-          lastDisconnectedAt.value = new Date()
-          logger.info('AmiService auto-reconnect triggered', { reason })
-          scheduleReconnect(finalConfig)
-        }
-        const client = ami.getClient()
-        if (client && typeof client.on === 'function') client.on('disconnected', disconnectHandler)
+        // Use onEvent to listen for disconnection - the cleanup is automatic via useAmi lifecycle
+        ami.onEvent((event) => {
+          // Check if event indicates disconnection
+          if ((event as unknown as { type?: string }).type === 'disconnected') {
+            lastDisconnectedAt.value = new Date()
+            scheduleReconnect(finalConfig)
+          }
+        })
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to connect'
@@ -361,13 +353,6 @@ export function createAmiService(config: AmiServiceConfig = {}): AmiServiceRetur
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
-    }
-
-    // Remove disconnect handler to prevent memory leaks and stale callbacks
-    if (disconnectHandler) {
-      const client = ami.getClient()
-      if (client && typeof client.off === 'function') client.off('disconnected', disconnectHandler)
-      disconnectHandler = null
     }
 
     ami.disconnect()

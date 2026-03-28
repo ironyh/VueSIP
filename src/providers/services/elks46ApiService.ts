@@ -50,12 +50,9 @@ interface ListNumbersResponse {
 
 /**
  * Create Basic Auth header from credentials
- * Uses encodeURIComponent to properly handle Unicode characters in credentials
  */
 function createAuthHeader(credentials: Elks46ApiCredentials): string {
-  const encoded = btoa(
-    encodeURIComponent(credentials.username) + ':' + encodeURIComponent(credentials.password)
-  )
+  const encoded = btoa(`${credentials.username}:${credentials.password}`)
   return `Basic ${encoded}`
 }
 
@@ -174,14 +171,6 @@ export interface Elks46Call {
   cost?: number
   /** Call legs for multi-party calls */
   legs?: Elks46CallLeg[]
-}
-
-/** Readonly version of Elks46CallLeg */
-export type Elks46CallLegReadonly = Readonly<Elks46CallLeg>
-
-/** Readonly version of Elks46Call (for immutable history display) */
-export type Elks46CallReadonly = Omit<Readonly<Elks46Call>, 'legs'> & {
-  readonly legs?: ReadonlyArray<Elks46CallLegReadonly>
 }
 
 /**

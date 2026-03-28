@@ -260,7 +260,7 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
   function startIncomingSimulator(): void {
     if (!config.value.generateIncomingCalls || incomingInterval) return
     const isTestEnv =
-      (typeof import.meta !== 'undefined' && (import.meta as { vitest?: object }).vitest) ||
+      (typeof import.meta !== 'undefined' && (import.meta as any).vitest) ||
       (typeof process !== 'undefined' &&
         typeof process.env !== 'undefined' &&
         (process.env.VITEST || process.env.VITEST_WORKER_ID))

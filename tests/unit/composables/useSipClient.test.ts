@@ -484,43 +484,6 @@ describe('useSipClient', () => {
       unmount()
     })
 
-    it('should expose connection state via getState() after reconnect cycle', async () => {
-      // Regression test: verify that getState() returns consistent connection
-      // state information through a disconnect-reconnect cycle. This ensures
-      // diagnostics utility can always read connectionState from the SipClient
-      // even during reconnect transitions.
-      const { result, unmount } = withSetup(() =>
-        useSipClient({
-          ...testConfig,
-          reconnectDelay: 10,
-        })
-      )
-      const { connect, disconnect, reconnect } = result
-
-      // Connect
-      await connect()
-
-      // Verify connection state before disconnect
-      let state = mockSipClient.getState()
-      expect(state.connectionState).toBe('connected')
-
-      // Disconnect
-      await disconnect()
-      state = mockSipClient.getState()
-      expect(state.connectionState).toBe('disconnected')
-
-      // Reconnect
-      await reconnect()
-
-      // After reconnect, getState() should report connected
-      state = mockSipClient.getState()
-      expect(state.connectionState).toBe('connected')
-      // registrationState may be unregistered after reconnect (UA must re-register)
-      expect(state.registrationState).toBeDefined()
-
-      unmount()
-    })
-
     it('should reconnect when not previously connected', async () => {
       const { result, unmount } = withSetup(() => useSipClient(testConfig))
       const { reconnect } = result

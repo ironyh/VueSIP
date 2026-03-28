@@ -5,10 +5,6 @@
  * Used as a base for adapters and other event-driven components.
  */
 
-import { createLogger } from './logger'
-
-const logger = createLogger('utils:EventEmitter')
-
 export type EventHandler<T = unknown> = (data: T) => void
 
 /**
@@ -105,7 +101,7 @@ export class EventEmitter<TEvents extends Record<string, unknown> = Record<strin
       try {
         handler(data)
       } catch (error) {
-        logger.error(`Error in event handler for "${eventKey}":`, error)
+        console.error(`Error in event handler for "${eventKey}":`, error)
       }
     }
   }
@@ -130,37 +126,11 @@ export class EventEmitter<TEvents extends Record<string, unknown> = Record<strin
   }
 
   /**
-   * Check if a specific handler is registered for an event
-   *
-   * @param event - Event name
-   * @param handler - Event handler to check
-   * @returns True if the handler is registered
-   */
-  hasListener<K extends keyof TEvents>(event: K, handler: EventHandler<TEvents[K]>): boolean {
-    const eventKey = event as string
-    const handlers = this.listeners.get(eventKey)
-    return handlers ? handlers.has(handler as EventHandler<unknown>) : false
-  }
-
-  /**
    * Get all event names that have listeners
    *
    * @returns Array of event names
    */
   eventNames(): string[] {
     return Array.from(this.listeners.keys())
-  }
-
-  /**
-   * Get all handlers for a specific event
-   * Useful for testing and debugging
-   *
-   * @param event - Event name
-   * @returns Array of handlers or empty array
-   */
-  getHandlers<K extends keyof TEvents>(event: K): EventHandler<TEvents[K]>[] {
-    const eventKey = event as string
-    const handlers = this.listeners.get(eventKey)
-    return handlers ? (Array.from(handlers) as EventHandler<TEvents[K]>[]) : []
   }
 }

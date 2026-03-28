@@ -244,23 +244,6 @@ Build robust applications with comprehensive error handling and recovery strateg
 
 ---
 
-### [Troubleshooting Guide](/guide/troubleshooting)
-
-Solutions for common issues encountered when building SIP/VoIP applications with VueSIP.
-
-**What you'll learn:**
-
-- WebSocket connection failures
-- Audio/video device permissions
-- SRTP/DTLS errors
-- NAT traversal issues
-- Registration failures
-- Call quality problems
-
-**Recommended for:** All developers, especially those debugging issues
-
----
-
 ### [Security](/guide/security)
 
 Implement security best practices to protect your users and their communications.
@@ -415,7 +398,6 @@ Common questions and troubleshooting tips.
 - **Share screen:** [Video Calling](/guide/video-calling#screen-sharing)
 - **Select device:** [Device Management](/guide/device-management#device-selection)
 - **Handle errors:** [Error Handling](/guide/error-handling#error-handling-patterns)
-- **Debug issues:** [Troubleshooting Guide](/guide/troubleshooting)
 - **OAuth2 login:** [OAuth2 Authentication](/guide/oauth2-authentication#quick-start)
 - **Auto-provision SIP credentials:** [OAuth2 Authentication](/guide/oauth2-authentication#credential-mapping)
 
@@ -423,7 +405,7 @@ Common questions and troubleshooting tips.
 
 ## Need Help?
 
-- **Getting stuck?** Check the [FAQ](/faq) or [Troubleshooting Guide](/guide/troubleshooting)
+- **Getting stuck?** Check the [FAQ](/faq)
 - **Found a bug?** Report it on [GitHub Issues](https://github.com/ironyh/VueSip/issues)
 - **Have questions?** Ask in [GitHub Discussions](https://github.com/ironyh/VueSip/discussions)
 - **Need API details?** See the [API Reference](/api/)

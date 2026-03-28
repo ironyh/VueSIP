@@ -133,7 +133,6 @@ jobs:
     with:
       template_dir: templates/ivr-tester
       project_name: vuesip-ivr-tester
-      custom_domain: ivr.vuesip.com
 
   deploy-videoroom:
     name: Deploy Video Room Template

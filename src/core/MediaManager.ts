@@ -22,33 +22,12 @@ import {
   DEFAULT_VIDEO_CONSTRAINTS,
   ICE_GATHERING_TIMEOUT,
   STATS_COLLECTION_INTERVAL,
-  DEFAULT_STUN_SERVERS,
 } from '@/utils/constants'
 import { createLogger } from '@/utils/logger'
 import { EventNames } from '@/types/events.types'
-import { formatUnknownError } from '@/utils/errorHelpers'
+import { formatError } from '@/utils/errorHelpers'
 
 const logger = createLogger('MediaManager')
-
-/**
- * ICE connection state transition log entry
- */
-export interface IceConnectionTransition {
-  correlationId: string
-  previousState: IceConnectionState | undefined
-  newState: IceConnectionState
-  timestamp: Date
-}
-
-/**
- * ICE reconnection attempt log entry
- */
-export interface IceReconnectionAttempt {
-  correlationId: string
-  attemptNumber: number
-  state: IceConnectionState
-  timestamp: Date
-}
 
 /**
  * MediaManager Configuration Constants
@@ -157,12 +136,6 @@ export class MediaManager {
   private iceGatheringComplete = false
   private iceGatheringTimeout?: NodeJS.Timeout
 
-  // Connection session tracking
-  private connectionSessionId?: string
-  private previousIceConnectionState?: IceConnectionState
-  private iceReconnectionAttempts: IceReconnectionAttempt[] = []
-  private _lastIceStateChangeTime?: Date
-
   // Media streams
   private localStream?: MediaStream
   private remoteStream?: MediaStream
@@ -224,14 +197,8 @@ export class MediaManager {
       this.closePeerConnection()
     }
 
-    // Generate new correlation ID for this connection session
-    this.connectionSessionId = this.generateCorrelationId()
-    this.previousIceConnectionState = undefined
-    this.iceReconnectionAttempts = []
-
     logger.info('Creating RTCPeerConnection', {
       config: this.rtcConfiguration,
-      correlationId: this.connectionSessionId,
     })
 
     this.peerConnection = new RTCPeerConnection(this.rtcConfiguration)
@@ -276,11 +243,6 @@ export class MediaManager {
     this.peerConnection = undefined
     this.iceGatheringComplete = false
     this.dtmfSender = undefined
-    // Clear connection session tracking
-    this.connectionSessionId = undefined
-    this.previousIceConnectionState = undefined
-    this.iceReconnectionAttempts = []
-    this._lastIceStateChangeTime = undefined
   }
 
   /**
@@ -317,85 +279,19 @@ export class MediaManager {
     // ICE connection state change
     pc.oniceconnectionstatechange = () => {
       const state = pc.iceConnectionState as IceConnectionState
-      const timestamp = new Date()
-      const previousState = this.previousIceConnectionState
-
-      // Build structured transition log entry
-      const transition: IceConnectionTransition = {
-        correlationId: this.connectionSessionId || 'unknown',
-        previousState,
-        newState: state,
-        timestamp,
-      }
-
-      // Enhanced log with state transition context
-      logger.info('ICE connection state changed', {
-        correlationId: this.connectionSessionId,
-        previousState: previousState ?? 'null',
-        newState: state,
-        transitionDurationMs:
-          previousState && this.connectionSessionId && this._lastIceStateChangeTime
-            ? timestamp.getTime() - this._lastIceStateChangeTime.getTime()
-            : null,
-        timestamp,
-      })
-
-      // Emit with enhanced structured payload
+      logger.info('ICE connection state changed', { state })
       this.eventBus.emitSync('media:ice:connection:state', {
         type: 'ice:connection:state',
-        timestamp,
-        payload: {
-          state,
-          previousState,
-          correlationId: this.connectionSessionId,
-          transition,
-        },
+        timestamp: new Date(),
+        payload: { state },
       })
 
-      // Track reconnection attempts for failed/disconnected states
+      // Handle connection failures
       if (state === 'failed' || state === 'disconnected') {
-        const attempt: IceReconnectionAttempt = {
-          correlationId: this.connectionSessionId || 'unknown',
-          attemptNumber: this.iceReconnectionAttempts.length + 1,
-          state,
-          timestamp,
-        }
-        this.iceReconnectionAttempts.push(attempt)
-
-        logger.info('ICE reconnection attempt recorded', {
-          correlationId: this.connectionSessionId,
-          attemptNumber: attempt.attemptNumber,
-          totalAttempts: this.iceReconnectionAttempts.length,
-          state,
-          timestamp,
-        })
-
-        this.eventBus.emitSync('media:ice:reconnection:attempt', {
-          type: 'ice:reconnection:attempt',
-          timestamp,
-          payload: {
-            correlationId: this.connectionSessionId,
-            attemptNumber: attempt.attemptNumber,
-            totalAttempts: this.iceReconnectionAttempts.length,
-            state,
-          },
-        })
-
         this.handleConnectionFailure(state)
       } else if (state === 'connected' || state === 'completed') {
-        logger.info('ICE connection established', {
-          correlationId: this.connectionSessionId,
-          previousState: previousState || 'null',
-          reconnectAttempts: this.iceReconnectionAttempts.length,
-          timestamp,
-        })
-
         this.handleConnectionSuccess()
       }
-
-      // Update previous state tracking
-      this.previousIceConnectionState = state
-      this._lastIceStateChangeTime = timestamp
     }
 
     // ICE gathering state change
@@ -729,7 +625,7 @@ export class MediaManager {
 
       return stream
     } catch (error: unknown) {
-      logger.error('Failed to get user media', formatUnknownError(error))
+      logger.error('Failed to get user media', formatError(error))
 
       // Update permissions on error
       if (
@@ -1030,7 +926,7 @@ export class MediaManager {
       logger.info('Permissions granted', this.permissions)
       return this.permissions
     } catch (error: unknown) {
-      logger.error('Permission request failed', formatUnknownError(error))
+      logger.error('Permission request failed', formatError(error))
 
       // Update permissions on error
       if (
@@ -1135,7 +1031,7 @@ export class MediaManager {
         success: true,
       }
     } catch (error: unknown) {
-      logger.error('Audio input test failed', formatUnknownError(error))
+      logger.error('Audio input test failed', formatError(error))
       return {
         deviceId,
         success: false,
@@ -1163,7 +1059,7 @@ export class MediaManager {
         success: true,
       }
     } catch (error: unknown) {
-      logger.error('Video input test failed', formatUnknownError(error))
+      logger.error('Video input test failed', formatError(error))
       return {
         deviceId,
         success: false,
@@ -1381,15 +1277,6 @@ export class MediaManager {
   // ============================================================================
 
   /**
-   * Generate a correlation ID for tracking connection sessions
-   */
-  private generateCorrelationId(): string {
-    const timestamp = Date.now().toString(36)
-    const randomPart = Math.random().toString(36).substring(2, 9)
-    return `ice-${timestamp}-${randomPart}`
-  }
-
-  /**
    * Build RTC configuration with STUN/TURN servers
    */
   private buildRTCConfiguration(config?: ExtendedRTCConfiguration): ExtendedRTCConfiguration {
@@ -1403,7 +1290,7 @@ export class MediaManager {
     } else {
       // Default STUN servers
       iceServers.push({
-        urls: [...DEFAULT_STUN_SERVERS],
+        urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'],
       })
     }
 
@@ -1651,7 +1538,7 @@ export class MediaManager {
         audioLevel,
       }
     } catch (error: unknown) {
-      logger.error('Audio input test with level failed', formatUnknownError(error))
+      logger.error('Audio input test with level failed', formatError(error))
       return {
         success: false,
         audioLevel: undefined,

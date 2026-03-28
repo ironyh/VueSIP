@@ -5,9 +5,6 @@ import type {
   LocalRecordingData,
   UseLocalRecordingReturn,
 } from '../types/local-recording.types'
-import { createLogger } from '../utils/logger'
-
-const logger = createLogger('composables:useLocalRecording')
 
 /**
  * Default options for local recording
@@ -64,7 +61,9 @@ export function useLocalRecording(options: LocalRecordingOptions = {}): UseLocal
   let currentMetadata: Record<string, unknown> | undefined
 
   // Computed properties
-  const isRecording: ComputedRef<boolean> = computed(() => state.value === RecordingState.Recording)
+  const isRecording: ComputedRef<boolean> = computed(
+    () => state.value === RecordingState.Recording
+  )
   const isPaused: ComputedRef<boolean> = computed(() => state.value === RecordingState.Paused)
 
   /**
@@ -231,7 +230,7 @@ export function useLocalRecording(options: LocalRecordingOptions = {}): UseLocal
           try {
             await persistToIndexedDB(data)
           } catch (err) {
-            logger.warn('Failed to persist recording:', err)
+            console.warn('Failed to persist recording:', err)
           }
         }
 

@@ -66,14 +66,15 @@ function calculateOptimalCols(count: number, maxCols: number): number {
  *
  * @param count - Number of participants
  * @param cols - Number of columns
- * @param _maxRows - Maximum allowed rows (deprecated, rows scale freely with cols)
+ * @param maxRows - Maximum allowed rows
  * @returns Optimal row count
  */
-function calculateOptimalRows(count: number, cols: number, _maxRows: number): number {
+function calculateOptimalRows(count: number, cols: number, maxRows: number): number {
   if (count <= 0) return 1
   if (cols <= 0) return 1
 
-  return Math.ceil(count / cols)
+  const rows = Math.ceil(count / cols)
+  return Math.min(rows, maxRows)
 }
 
 /**

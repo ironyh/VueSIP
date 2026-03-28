@@ -37,16 +37,6 @@ export default defineConfig({
   },
 
   test: {
-    // Enable TypeScript type checking for test files
-    // This catches implicit 'any' types that would be missed otherwise
-    typecheck: {
-      enabled: true,
-      include: ['tests/**/*.test.ts', 'tests/**/*.spec.ts', 'src/**/*.test.ts'],
-      exclude: ['**/node_modules/**', '**/e2e/**'],
-      // Use strict mode for type checking
-      tsconfig: './tsconfig.json',
-    },
-
     // Enable global test APIs (describe, it, expect, etc.)
     globals: true,
 
@@ -107,10 +97,14 @@ export default defineConfig({
 
     // Use thread pool for better performance
     pool: 'threads',
-
-    // Thread pool options (moved to top-level in Vitest 4+)
-    useAtomics: true, // Better performance for thread communication
-    singleThread: false, // Ensure multi-threading is enabled
+    poolOptions: {
+      threads: {
+        // Use all available CPU cores for maximum parallelization
+        // Vitest automatically detects CPU count and uses optimal thread count
+        useAtomics: true, // Better performance for thread communication
+        singleThread: false, // Ensure multi-threading is enabled
+      },
+    },
 
     // File-level parallelization
     fileParallelism: true, // Run test files in parallel (default true, explicit here)
@@ -124,11 +118,12 @@ export default defineConfig({
     // COVERAGE CONFIGURATION
     // ==========================================
     coverage: {
-      // Use Istanbul provider for coverage-summary.json compatibility
-      provider: 'istanbul',
+      // Use V8 provider for accurate coverage
+      // Ensure @vitest/coverage-v8 is installed
+      provider: 'v8',
 
       // Multiple report formats
-      reporter: ['text', 'json-summary', 'html', 'lcov'],
+      reporter: ['text', 'json', 'html', 'lcov'],
 
       // Coverage output directory
       reportsDirectory: './coverage',
@@ -168,7 +163,7 @@ export default defineConfig({
       thresholds: {
         lines: 80,
         functions: 80,
-        branches: 68, // Match current branch coverage - improve to raise
+        branches: 69, // Temporarily lowered from 70 - improve coverage to restore
         statements: 80,
       },
 

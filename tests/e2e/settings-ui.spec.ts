@@ -1,20 +1,11 @@
 /**
  * Settings UI E2E Tests
- * End-to-end tests for settings panel user interface.
- * Requires an app that exposes data-testids (e.g. TestApp.vue or examples/App.vue).
- * Skipped when run against default playground; enable via E2E_SETTINGS_APP=1 when using a test harness that mounts that app.
+ * End-to-end tests for settings panel user interface
  */
+
 import { test, expect } from '@playwright/test'
 
-const skipSettings = !process.env.E2E_SETTINGS_APP
-
 test.describe('Settings UI', () => {
-  test.beforeEach(({}, _testInfo) => {
-    test.skip(
-      skipSettings,
-      'Settings data-testids not in default playground; set E2E_SETTINGS_APP=1 when using TestApp'
-    )
-  })
   test.beforeEach(async ({ page, context }) => {
     // Grant necessary permissions
     await context.grantPermissions(['microphone', 'camera'])
@@ -24,10 +15,10 @@ test.describe('Settings UI', () => {
 
     // Open settings panel
     await page.click('[data-testid="settings-button"]')
-    await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible()
+    await page.waitForSelector('[data-testid="settings-panel"]')
   })
 
-  test.describe('Settings Panel Navigation', () => {
+  describe('Settings Panel Navigation', () => {
     test('should open settings panel', async ({ page }) => {
       await expect(page.locator('[data-testid="settings-panel"]')).toBeVisible()
     })
@@ -59,7 +50,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('SIP Settings Form', () => {
+  describe('SIP Settings Form', () => {
     test.beforeEach(async ({ page }) => {
       await page.click('[data-testid="sip-settings-tab"]')
     })
@@ -129,7 +120,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('Audio Settings Form', () => {
+  describe('Audio Settings Form', () => {
     test.beforeEach(async ({ page }) => {
       await page.click('[data-testid="audio-settings-tab"]')
     })
@@ -203,7 +194,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('Video Settings Form', () => {
+  describe('Video Settings Form', () => {
     test.beforeEach(async ({ page }) => {
       await page.click('[data-testid="video-settings-tab"]')
     })
@@ -237,7 +228,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('Network Settings Form', () => {
+  describe('Network Settings Form', () => {
     test.beforeEach(async ({ page }) => {
       await page.click('[data-testid="network-settings-tab"]')
     })
@@ -271,7 +262,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('Save and Reset Operations', () => {
+  describe('Save and Reset Operations', () => {
     test('should save settings', async ({ page }) => {
       await page.fill('[data-testid="sip-server-input"]', 'sip.newsettings.com')
       await page.click('[data-testid="save-settings-button"]')
@@ -307,7 +298,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('Export/Import Operations', () => {
+  describe('Export/Import Operations', () => {
     test('should export settings', async ({ page }) => {
       const [download] = await Promise.all([
         page.waitForEvent('download'),
@@ -347,7 +338,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('Keyboard Shortcuts', () => {
+  describe('Keyboard Shortcuts', () => {
     test('should save with Ctrl+S', async ({ page }) => {
       await page.fill('[data-testid="sip-server-input"]', 'sip.shortcut.com')
       await page.keyboard.press('Control+S')
@@ -371,7 +362,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('Accessibility', () => {
+  describe('Accessibility', () => {
     test('should be keyboard navigable', async ({ page }) => {
       await page.keyboard.press('Tab')
 
@@ -406,7 +397,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('Responsive Behavior', () => {
+  describe('Responsive Behavior', () => {
     test('should adapt to mobile viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 })
 
@@ -424,7 +415,7 @@ test.describe('Settings UI', () => {
     })
   })
 
-  test.describe('Form Validation Feedback', () => {
+  describe('Form Validation Feedback', () => {
     test('should show inline validation errors', async ({ page }) => {
       await page.fill('[data-testid="sip-port-input"]', '-1')
       await page.click('[data-testid="sip-server-input"]') // Blur

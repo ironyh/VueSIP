@@ -11,8 +11,6 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@types/qrcode": "^1.5.6",
-    "qrcode": "^1.5.4",
     "vue": "^3.4.0",
     "vuesip": "workspace:*"
   },

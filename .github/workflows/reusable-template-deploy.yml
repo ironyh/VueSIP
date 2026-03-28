@@ -16,10 +16,6 @@ on:
         default: 'dist'
         required: false
         type: string
-      custom_domain:
-        description: 'Custom domain to configure for the Pages project (optional)'
-        required: false
-        type: string
 
 jobs:
   deploy:
@@ -82,13 +78,4 @@ jobs:
             --project-name=${{ inputs.project_name }}
             --branch=main
             --commit-dirty=true
-
-      - name: Configure custom domain
-        if: inputs.custom_domain != ''
-        working-directory: ${{ inputs.template_dir }}
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          pnpm exec wrangler pages domain add ${{ inputs.custom_domain }} --project-name=${{ inputs.project_name }}
 

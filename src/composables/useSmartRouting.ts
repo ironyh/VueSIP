@@ -10,9 +10,6 @@
 
 import { ref, type Ref } from 'vue'
 import type { AmiClient } from '../core/AmiClient'
-import { createLogger } from '../utils/logger'
-
-const logger = createLogger('composables:useSmartRouting')
 
 /**
  * Rule that defines routing logic
@@ -857,7 +854,7 @@ export function useSmartRouting(
           }
         } catch (error) {
           // Log but continue to next rule
-          logger.error(`Error evaluating rule "${rule.name}":`, error)
+          console.error(`Error evaluating rule "${rule.name}":`, error)
         }
       }
 

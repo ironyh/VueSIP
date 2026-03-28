@@ -4,59 +4,11 @@
  * Formatting functions for SIP URIs, durations, phone numbers, and dates.
  * These utilities help display data in user-friendly formats.
  *
- * @packageDocumentation
  * @module utils/formatters
  */
 
 import type { SipUri } from '../types/sip.types'
 import { SIP_URI_REGEX } from './constants'
-
-/**
- * Converts a string to title case (first letter uppercase, rest lowercase)
- *
- * @param str - String to convert
- * @returns Title cased string
- *
- * @example
- * ```typescript
- * titleCase('hello') // "Hello"
- * titleCase('HELLO') // "Hello"
- * titleCase('hElLo') // "Hello"
- * ```
- */
-export function titleCase(str: string): string {
-  if (!str) return ''
-  const trimmed = str.trim()
-  if (!trimmed) return ''
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
-}
-
-/**
- * Clamps a number between min and max bounds
- *
- * @param value - Number to clamp
- * @param min - Minimum bound (inclusive)
- * @param max - Maximum bound (inclusive)
- * @returns Clamped value
- *
- * @example
- * ```typescript
- * clamp(5, 0, 10)    // 5
- * clamp(-5, 0, 10)   // 0
- * clamp(15, 0, 10)   // 10
- * clamp(5, 0, 0)     // 0
- * ```
- */
-export function clamp(value: number, min: number, max: number): number {
-  if (Number.isNaN(value)) return min
-  // Swap bounds if min > max
-  if (min > max) {
-    ;[min, max] = [max, min]
-  }
-  if (value < min) return min
-  if (value > max) return max
-  return value
-}
 
 /**
  * Formats a duration in seconds to HH:MM:SS format
@@ -119,85 +71,6 @@ export function formatDurationShort(seconds: number): string {
   }
 
   return parts.slice(0, 2).join(' ') // Show max 2 units
-}
-
-/**
- * Formats a duration in seconds to compact M:SS or H:MM:SS (for call UIs)
- *
- * @param seconds - Duration in seconds
- * @returns Compact formatted duration (e.g. "0:05", "1:30", "1:05:00")
- *
- * @example
- * ```typescript
- * formatDurationCompact(65)    // "1:05"
- * formatDurationCompact(3665) // "1:01:05"
- * formatDurationCompact(5)    // "0:05"
- * ```
- */
-export function formatDurationCompact(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) {
-    return '0:00'
-  }
-
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const secs = Math.floor(seconds % 60)
-  const pad = (num: number): string => num.toString().padStart(2, '0')
-
-  if (hours > 0) {
-    return `${hours}:${pad(minutes)}:${pad(secs)}`
-  }
-  return `${minutes}:${pad(secs)}`
-}
-
-/**
- * Formats milliseconds to a human-readable duration string
- *
- * Useful for WebRTC stats (jitter, latency, etc.) where values are in milliseconds
- *
- * @param ms - Duration in milliseconds
- * @param precision - Number of decimal places (default: 1)
- * @returns Formatted duration string
- *
- * @example
- * ```typescript
- * formatMilliseconds(50)      // "50.0ms"
- * formatMilliseconds(1500)     // "1.5s"
- * formatMilliseconds(65000)   // "1m 5.0s"
- * formatMilliseconds(3665000) // "1h 1m 5.0s"
- * ```
- */
-export function formatMilliseconds(ms: number, precision = 1): string {
-  if (!Number.isFinite(ms) || ms < 0) {
-    return '0ms'
-  }
-
-  if (ms < 1000) {
-    return `${ms.toFixed(precision)}ms`
-  }
-
-  const seconds = ms / 1000
-
-  if (seconds < 60) {
-    return `${seconds.toFixed(precision)}s`
-  }
-
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-
-  if (minutes < 60) {
-    return remainingSeconds > 0
-      ? `${minutes}m ${remainingSeconds.toFixed(precision)}s`
-      : `${minutes}m`
-  }
-
-  const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
-
-  if (remainingMinutes > 0) {
-    return `${hours}h ${remainingMinutes}m`
-  }
-  return `${hours}h`
 }
 
 /**
@@ -310,122 +183,9 @@ export function extractDisplayName(uri: string): string | null | undefined {
 }
 
 /**
- * Country phone formatting patterns
- * Maps country codes to formatting functions
- */
-const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
-  // US/Canada: +1 (XXX) XXX-XXXX
-  '+1': (num) => {
-    if (num.length !== 12) return num
-    return `+1 (${num.slice(2, 5)}) ${num.slice(5, 8)}-${num.slice(8)}`
-  },
-  // UK: +44 XX XXXX XXXX
-  '+44': (num) => {
-    if (num.length < 12) return num
-    return `+44 ${num.slice(3, 5)} ${num.slice(5, 9)} ${num.slice(9)}`
-  },
-  // Sweden: +46 XX XXX XX XX (mobile: 70X/72X/73X/74X/76X/79X) or +46 X XXX XXX XX (landline)
-  '+46': (num) => {
-    if (num.length !== 12) return num
-    // Mobile: +46 70 012 34 56
-    // Landline: +46 8 123 456 78
-    const after46 = num.slice(3) // Skip "+46" to get the number
-    if (
-      after46.startsWith('70') ||
-      after46.startsWith('72') ||
-      after46.startsWith('73') ||
-      after46.startsWith('74') ||
-      after46.startsWith('76') ||
-      after46.startsWith('79')
-    ) {
-      // Mobile: 70X/72X/73X/74X/76X/79X XXX XX XX
-      return `+46 ${after46.slice(0, 2)} ${after46.slice(2, 5)} ${after46.slice(5, 7)} ${after46.slice(7)}`
-    }
-    // Landline: 8 123 456 78
-    return `+46 ${after46.slice(0, 1)} ${after46.slice(1, 4)} ${after46.slice(4, 7)} ${after46.slice(7)}`
-  },
-  // Germany: +49 XXX XXXXXX (mobile) or +49 XX XXXX XXXX (landline)
-  '+49': (num) => {
-    // Mobile: +49 151 12345678 (13 chars = 2+11) or +49 176 1234567 (12 chars = 2+10)
-    // Landline: +49 30 12345678 (13 chars)
-    if (num.length !== 12 && num.length !== 13 && num.length !== 14) return num
-    const after49 = num.slice(3)
-    // Mobile numbers start with 15x, 16x, 17x
-    if (after49.startsWith('15') || after49.startsWith('16') || after49.startsWith('17')) {
-      // Mobile: +49 151 12345678 (format: +49 XXX XXXXXXXX)
-      return `+49 ${after49.slice(0, 3)} ${after49.slice(3)}`
-    }
-    // Landline: +49 30 12345678 (format: +49 XX XXXXXXXX)
-    return `+49 ${after49.slice(0, 2)} ${after49.slice(2)}`
-  },
-  // France: +33 X XX XX XX XX (9-digit local = E.164 11 chars: +33 + 9)
-  // French mobile: +33 6X XX XX XX XX (9-digit local starting with 6)
-  '+33': (num) => {
-    // Accept 11-char (+33 + 9 digits) or 12-char (+33 + 10 digits, e.g. mobile)
-    if (num.length !== 11 && num.length !== 12) return num
-    // 9-digit local: +33 1 23 45 67 8
-    if (num.length === 11) {
-      return `+33 ${num.slice(3, 4)} ${num.slice(4, 6)} ${num.slice(6, 8)} ${num.slice(8, 10)} ${num.slice(10)}`
-    }
-    // 10-digit local: +33 1 23 45 67 89
-    return `+33 ${num.slice(3, 4)} ${num.slice(4, 6)} ${num.slice(6, 8)} ${num.slice(8, 10)} ${num.slice(10)}`
-  },
-  // Netherlands: +31 X XXXX XXXX
-  '+31': (num) => {
-    if (num.length < 12) return num
-    return `+31 ${num.slice(3, 4)} ${num.slice(4, 8)} ${num.slice(8)}`
-  },
-  // Norway: +47 XXX XX XXX (mobile 8-digit) or +47 XX XXX XXXX (landline 8-digit)
-  // Mobile: +4791234567 (11 chars = +47 + 8) ✓
-  // Landline: +4722123456 (11 chars = +47 + 8 digits, total 10 after country code)
-  '+47': (num) => {
-    const after47 = num.slice(3)
-    // Mobile: starts with 8 or 9 (8-digit subscriber)
-    if (after47.startsWith('8') || after47.startsWith('9')) {
-      // 8-digit mobile: +47 XXX XX XXX
-      if (num.length === 11) {
-        return `+47 ${num.slice(3, 6)} ${num.slice(6, 8)} ${num.slice(8)}`
-      }
-      return num
-    }
-    // Landline: 2-digit area code + 6-digit subscriber = 8 digits after +47
-    // E.164: 11 chars total (+47 + 10 = 2+10, 10-digit local like +4722123456)
-    if (num.length === 11) {
-      return `+47 ${num.slice(3, 5)} ${num.slice(5, 8)} ${num.slice(8)}`
-    }
-    return num
-  },
-  // Denmark: +45 XX XX XX XX
-  '+45': (num) => {
-    if (num.length !== 11) return num
-    return `+45 ${num.slice(3, 5)} ${num.slice(5, 7)} ${num.slice(7, 9)} ${num.slice(9)}`
-  },
-  // Finland: +358 X/XX XXXXXX (1-digit area code for landline, 2-digit for mobile prefix)
-  // e.g., Helsinki: +358 9 123456, Mobile: +358 40 123456, Mobile: +358 50 123456
-  // Total E.164 length: +358 + 9 digits = 13 chars (mobile) or +358 + 7 digits = 11 chars (landline 1-digit area)
-  '+358': (num) => {
-    if (num.length < 11) return num
-    const afterCode = num.slice(4)
-    // If 8+ digits after country code (mobile: 2-digit prefix + 6 subscriber), format as mobile
-    if (afterCode.length >= 8) {
-      // 2-digit mobile prefix (40xx, 44xx, 50xx, etc.)
-      return `+358 ${afterCode.slice(0, 2)} ${afterCode.slice(2)}`
-    }
-    // 1-digit area code: +358 X XXXXXX
-    return `+358 ${afterCode.slice(0, 1)} ${afterCode.slice(1)}`
-  },
-  // Australia: +61 X XXXX XXXX
-  '+61': (num) => {
-    if (num.length < 12) return num
-    return `+61 ${num.slice(3, 4)} ${num.slice(4, 8)} ${num.slice(8)}`
-  },
-}
-
-/**
  * Formats a phone number for display
  *
  * Takes an E.164 phone number and formats it for display
- * Supports: US/Canada, UK, Sweden, Germany, France, Netherlands, Norway, Denmark, Finland, Australia
  *
  * @param number - E.164 phone number (+country code + number)
  * @returns Formatted phone number
@@ -434,7 +194,6 @@ const PHONE_FORMATTERS: Record<string, (num: string) => string> = {
  * ```typescript
  * formatPhoneNumber('+14155551234') // "+1 (415) 555-1234"
  * formatPhoneNumber('+442071234567') // "+44 20 7123 4567"
- * formatPhoneNumber('+46700123456') // "+46 70 012 34 56"
  * ```
  */
 export function formatPhoneNumber(number: string): string {
@@ -449,17 +208,18 @@ export function formatPhoneNumber(number: string): string {
     return number // Return as-is if not E.164 format
   }
 
-  // Try to match country-specific formatter
-  for (const [prefix, formatter] of Object.entries(PHONE_FORMATTERS)) {
-    if (cleaned.startsWith(prefix)) {
-      const formatted = formatter(cleaned)
-      if (formatted !== cleaned) {
-        return formatted
-      }
-    }
+  // Format based on country code
+  // US/Canada: +1 (XXX) XXX-XXXX
+  if (cleaned.startsWith('+1') && cleaned.length === 12) {
+    return `+1 (${cleaned.slice(2, 5)}) ${cleaned.slice(5, 8)}-${cleaned.slice(8)}`
   }
 
-  // Generic format: +XX XXX XXX XXXX (fallback)
+  // UK: +44 XX XXXX XXXX
+  if (cleaned.startsWith('+44') && cleaned.length >= 12) {
+    return `+44 ${cleaned.slice(3, 5)} ${cleaned.slice(5, 9)} ${cleaned.slice(9)}`
+  }
+
+  // Generic format: +XX XXX XXX XXXX
   if (cleaned.length > 4) {
     const countryCode = cleaned.slice(0, cleaned.length - 10)
     const rest = cleaned.slice(cleaned.length - 10)
@@ -467,42 +227,6 @@ export function formatPhoneNumber(number: string): string {
   }
 
   return cleaned
-}
-
-/**
- * Normalizes a phone number to digits only (for comparison or storage)
- *
- * @param number - Phone number to normalize
- * @returns Digits only (e.g. "15551234567")
- *
- * @example
- * ```typescript
- * normalizePhoneNumber('+1 (555) 123-4567')  // "15551234567"
- * normalizePhoneNumber('555-1234')            // "5551234"
- * ```
- */
-export function normalizePhoneNumber(number: string): string {
-  if (!number || typeof number !== 'string') {
-    return ''
-  }
-  return number.replace(/\D/g, '')
-}
-
-/**
- * Compares two phone numbers for equality (ignoring formatting)
- *
- * @param number1 - First phone number
- * @param number2 - Second phone number
- * @returns true if the numbers are equivalent
- *
- * @example
- * ```typescript
- * comparePhoneNumbers('555-1234', '5551234')          // true
- * comparePhoneNumbers('+1-555-1234', '1 (555) 1234')  // true
- * ```
- */
-export function comparePhoneNumbers(number1: string, number2: string): boolean {
-  return normalizePhoneNumber(number1) === normalizePhoneNumber(number2)
 }
 
 /**
@@ -528,21 +252,6 @@ export function formatCallTime(date: Date, now: Date = new Date()): string {
   }
 
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-
-  // Future dates: show "in X time"
-  if (seconds < 0) {
-    const absSeconds = Math.abs(seconds)
-    const minutes = Math.floor(absSeconds / 60)
-    if (minutes < 60) {
-      return `in ${minutes} minute${minutes === 1 ? '' : 's'}`
-    }
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) {
-      return `in ${hours} hour${hours === 1 ? '' : 's'}`
-    }
-    const days = Math.floor(hours / 24)
-    return `in ${days} day${days === 1 ? '' : 's'}`
-  }
 
   // Just now (< 60 seconds)
   if (seconds < 60) {
@@ -710,16 +419,6 @@ export function truncate(str: string, maxLength: number, ellipsis = '...'): stri
     return ''
   }
 
-  // Handle NaN, Infinity, and negative values
-  if (!Number.isFinite(maxLength) || maxLength < 0) {
-    return str
-  }
-
-  // If maxLength is too small to fit ellipsis, return empty string with ellipsis
-  if (maxLength <= ellipsis.length) {
-    return ellipsis.slice(0, Math.max(0, maxLength))
-  }
-
   if (str.length <= maxLength) {
     return str
   }
@@ -740,10 +439,6 @@ export function truncate(str: string, maxLength: number, ellipsis = '...'): stri
  * ```
  */
 export function formatCallStatus(status: string): string {
-  if (!status || typeof status !== 'string') {
-    return ''
-  }
-
   const statusMap: Record<string, string> = {
     completed: 'Completed',
     missed: 'Missed',
@@ -769,18 +464,12 @@ export function formatCallStatus(status: string): string {
  * ```
  */
 export function formatCallDirection(direction: string): string {
-  if (!direction || typeof direction !== 'string') {
-    return ''
-  }
-
   const directionMap: Record<string, string> = {
     incoming: 'Incoming',
     outgoing: 'Outgoing',
   }
 
-  const normalized = direction.toLowerCase()
-  // Return title case for known directions, or title case for unknown
-  return directionMap[normalized] ?? titleCase(direction)
+  return directionMap[direction.toLowerCase()] || direction
 }
 
 /**
@@ -857,133 +546,4 @@ export function extractSipDomain(sipUri: string): string | null {
 
   const parsed = parseSipUri(sipUri)
   return parsed?.host ?? null
-}
-
-/**
- * Maps SIP status codes to human-readable messages
- * Based on RFC 3261 SIP status codes
- */
-const SIP_STATUS_MESSAGES: Record<number, string> = {
-  // Provisional 1xx
-  100: 'Trying',
-  180: 'Ringing',
-  183: 'Session Progress',
-  // Success 2xx
-  200: 'OK',
-  202: 'Accepted',
-  // Redirection 3xx
-  300: 'Multiple Choices',
-  301: 'Moved Permanently',
-  302: 'Moved Temporarily',
-  // Client Error 4xx
-  400: 'Bad Request',
-  401: 'Unauthorized',
-  403: 'Forbidden',
-  404: 'Not Found',
-  405: 'Method Not Allowed',
-  408: 'Request Timeout',
-  410: 'Gone',
-  413: 'Request Entity Too Large',
-  415: 'Unsupported Media Type',
-  416: 'Unsupported URI Scheme',
-  420: 'Bad Extension',
-  421: 'Extension Required',
-  423: 'Interval Too Brief',
-  480: 'Temporarily Unavailable',
-  481: 'Call/Transaction Does Not Exist',
-  482: 'Loop Detected',
-  483: 'Too Many Hops',
-  484: 'Address Incomplete',
-  485: 'Ambiguous',
-  486: 'Busy Here',
-  487: 'Request Terminated',
-  488: 'Not Acceptable Here',
-  489: 'Bad Event',
-  491: 'Request Pending',
-  493: 'Undecipherable',
-  // Server Error 5xx
-  500: 'Server Internal Error',
-  501: 'Not Implemented',
-  502: 'Bad Gateway',
-  503: 'Service Unavailable',
-  504: 'Server Timeout',
-  505: 'Version Not Supported',
-  513: 'Message Too Large',
-  // Global Failure 6xx
-  600: 'Busy Everywhere',
-  603: 'Decline',
-  604: 'Does Not Exist Anywhere',
-  606: 'Not Acceptable',
-}
-
-/**
- * Formats a SIP status code into a human-readable message
- *
- * @param statusCode - SIP status code (e.g., 486, 408)
- * @param reasonPhrase - Optional custom reason phrase from SIP response
- * @returns Human-readable status message
- *
- * @example
- * ```typescript
- * formatSipStatusCode(486) // "Busy Here"
- * formatSipStatusCode(408) // "Request Timeout"
- * formatSipStatusCode(486, 'User is on another call') // "Busy Here: User is on another call"
- * ```
- */
-export function formatSipStatusCode(statusCode?: number, reasonPhrase?: string): string {
-  if (
-    statusCode === undefined ||
-    statusCode === null ||
-    typeof statusCode !== 'number' ||
-    Number.isNaN(statusCode)
-  ) {
-    return ''
-  }
-
-  const baseMessage = SIP_STATUS_MESSAGES[statusCode] || `Unknown Status (${statusCode})`
-
-  if (reasonPhrase) {
-    return `${baseMessage}: ${reasonPhrase}`
-  }
-
-  return baseMessage
-}
-
-/**
- * Parse query string into key-value pairs
- *
- * @param queryString - Query string (with or without leading '?')
- * @returns Map of query parameters
- *
- * @example
- * ```typescript
- * const params = parseQueryString('foo=bar&num=123')
- * params.get('foo') // 'bar'
- * params.get('num') // '123'
- * ```
- */
-export function parseQueryString(queryString: string): Map<string, string> {
-  const params = new Map<string, string>()
-
-  if (!queryString || typeof queryString !== 'string') {
-    return params
-  }
-
-  // Remove leading '?' if present
-  const cleanQuery = queryString.startsWith('?') ? queryString.slice(1) : queryString
-
-  if (!cleanQuery) {
-    return params
-  }
-
-  const pairs = cleanQuery.split('&')
-
-  for (const pair of pairs) {
-    const [key, value] = pair.split('=')
-    if (key) {
-      params.set(decodeURIComponent(key), value !== undefined ? decodeURIComponent(value) : '')
-    }
-  }
-
-  return params
 }

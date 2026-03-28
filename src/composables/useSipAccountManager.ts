@@ -12,16 +12,7 @@ import { computed, watch } from 'vue'
 import type { SipClientConfig } from '../types/config.types'
 import { useSettingsStore, type SipAccount } from '../stores/settingsStore'
 import { useMultiSipClient, type MultiSipAccountConfig } from './useMultiSipClient'
-import { createLogger } from '../utils/logger'
 
-const logger = createLogger('composables:useSipAccountManager')
-
-/**
- * Convert a SipAccount from settings store to SipClientConfig for useMultiSipClient.
- *
- * @param account - The SIP account configuration from settings store
- * @returns SipClientConfig compatible with useMultiSipClient
- */
 function toSipClientConfig(account: SipAccount): SipClientConfig {
   return {
     uri: account.serverUri,
@@ -42,16 +33,11 @@ function toSipClientConfig(account: SipAccount): SipClientConfig {
 }
 
 export function useSipAccountManager() {
-  const store = useSettingsStore()
+  const settings = useSettingsStore()
   const multi = useMultiSipClient()
 
-  // Use enabledAccounts directly - it's already a computed in the store
-  const enabledAccounts = store.enabledAccounts
-  // Cast settings ref for proper TypeScript typing (Pinia setup stores)
-  const settingsRef = store.settings as unknown as import('vue').Ref<
-    import('../stores/settingsStore').SettingsSchema
-  >
-  const activeAccountId = computed(() => settingsRef.value.activeAccountId)
+  const enabledAccounts = computed(() => settings.enabledAccounts)
+  const activeAccountId = computed(() => settings.settings.activeAccountId)
 
   // Mirror active account selection to outbound account.
   watch(
@@ -96,40 +82,24 @@ export function useSipAccountManager() {
 
       // Ensure outbound selection
       if (
-        settingsRef.value.activeAccountId &&
-        multi.accounts.value.has(settingsRef.value.activeAccountId)
+        settings.settings.activeAccountId &&
+        multi.accounts.value.has(settings.settings.activeAccountId)
       ) {
-        multi.setOutboundAccount(settingsRef.value.activeAccountId)
+        multi.setOutboundAccount(settings.settings.activeAccountId)
       }
     },
     { immediate: true, deep: true }
   )
 
-  /**
-   * Set the active SIP account.
-   *
-   * Updates both the settings store and the multi-SIP client to ensure
-   * the selected account is used for outbound calls.
-   *
-   * @param id - Account ID to set as active, or null to clear
-   */
   function setActiveAccount(id: string | null): void {
-    // Update store first - this is the source of truth
-    store.setActiveAccount(id)
-    // Then sync to multi-sip client if account exists there
-    if (id) {
-      try {
-        if (multi.accounts.value.has(id)) {
-          multi.setOutboundAccount(id)
-        }
-      } catch (err) {
-        logger.warn(`Failed to set outbound account ${id}:`, err)
-      }
+    settings.setActiveAccount(id)
+    if (id && multi.accounts.value.has(id)) {
+      multi.setOutboundAccount(id)
     }
   }
 
   return {
-    settings: store,
+    settings,
     enabledAccounts,
     activeAccountId,
     setActiveAccount,

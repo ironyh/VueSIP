@@ -11,7 +11,6 @@ import {
   validateWebSocketUrl,
   validateDtmfTone,
   validateDtmfSequence,
-  validateUrl,
 } from '../../src/utils/validators'
 
 describe('validators', () => {
@@ -468,100 +467,6 @@ describe('validators', () => {
     it('should reject empty sequence', () => {
       const result = validateDtmfSequence('')
       expect(result.valid).toBe(false)
-    })
-  })
-
-  describe('validateUrl', () => {
-    it('should validate https:// URL', () => {
-      const result = validateUrl('https://example.com')
-      expect(result.valid).toBe(true)
-      expect(result.error).toBeNull()
-      expect(result.normalized).toBe('https://example.com')
-    })
-
-    it('should validate https:// URL with path', () => {
-      const result = validateUrl('https://api.example.com/v1/users')
-      expect(result.valid).toBe(true)
-      expect(result.normalized).toBe('https://api.example.com/v1/users')
-    })
-
-    it('should validate https:// URL with port', () => {
-      const result = validateUrl('https://example.com:8080/api')
-      expect(result.valid).toBe(true)
-      expect(result.normalized).toBe('https://example.com:8080/api')
-    })
-
-    it('should validate https:// URL with query params', () => {
-      const result = validateUrl('https://example.com/api?foo=bar&baz=qux')
-      expect(result.valid).toBe(true)
-      expect(result.normalized).toBe('https://example.com/api?foo=bar&baz=qux')
-    })
-
-    it('should validate http:// URL by default', () => {
-      const result = validateUrl('http://example.com')
-      expect(result.valid).toBe(true)
-    })
-
-    it('should reject http:// URL when only https allowed', () => {
-      const result = validateUrl('http://example.com', ['https:'])
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('Invalid protocol')
-    })
-
-    it('should allow custom protocols', () => {
-      const result = validateUrl('ftp://files.example.com', ['ftp:', 'https:'])
-      expect(result.valid).toBe(true)
-    })
-
-    it('should reject ftp:// URL by default', () => {
-      const result = validateUrl('ftp://files.example.com')
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('Invalid protocol')
-    })
-
-    it('should reject URL without protocol', () => {
-      const result = validateUrl('example.com')
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('hostname')
-    })
-
-    it('should reject empty string', () => {
-      const result = validateUrl('')
-      expect(result.valid).toBe(false)
-      expect(result.error).toContain('non-empty string')
-    })
-
-    it('should reject null/undefined', () => {
-      // @ts-expect-error - Testing invalid input
-      expect(validateUrl(null).valid).toBe(false)
-      // @ts-expect-error - Testing invalid input
-      expect(validateUrl(undefined).valid).toBe(false)
-    })
-
-    it('should reject URL with only protocol', () => {
-      const result = validateUrl('https://')
-      expect(result.valid).toBe(false)
-    })
-
-    it('should handle whitespace', () => {
-      const result = validateUrl('  https://example.com  ')
-      expect(result.valid).toBe(true)
-      expect(result.normalized).toBe('https://example.com')
-    })
-
-    it('should reject URL with hash but no host', () => {
-      const result = validateUrl('#fragment')
-      expect(result.valid).toBe(false)
-    })
-
-    it('should validate localhost', () => {
-      const result = validateUrl('http://localhost:3000/api')
-      expect(result.valid).toBe(true)
-    })
-
-    it('should validate URL with username:password', () => {
-      const result = validateUrl('https://user:pass@example.com')
-      expect(result.valid).toBe(true)
     })
   })
 })

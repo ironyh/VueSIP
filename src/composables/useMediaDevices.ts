@@ -28,49 +28,6 @@ import { ErrorSeverity, logErrorWithContext, createOperationTimer } from '../uti
 const log = createLogger('useMediaDevices')
 
 /**
- * Media devices error codes
- */
-export enum MediaDevicesErrorCode {
-  /** No audio input device selected */
-  E_NO_AUDIO_INPUT_SELECTED = 'E_NO_AUDIO_INPUT_SELECTED',
-  /** No audio output device selected */
-  E_NO_AUDIO_OUTPUT_SELECTED = 'E_NO_AUDIO_OUTPUT_SELECTED',
-  /** No video input device selected */
-  E_NO_VIDEO_INPUT_SELECTED = 'E_NO_VIDEO_INPUT_SELECTED',
-  /** Permission denied by user or browser */
-  E_PERMISSION_DENIED = 'E_PERMISSION_DENIED',
-  /** Device enumeration failed */
-  E_DEVICES_NOT_ENUMERATED = 'E_DEVICES_NOT_ENUMERATED',
-  /** Audio/video test failed */
-  E_TEST_FAILED = 'E_TEST_FAILED',
-}
-
-/**
- * Media devices error with code and guidance
- */
-export class MediaDevicesError extends Error {
-  constructor(
-    public readonly code: MediaDevicesErrorCode,
-    message: string,
-    public readonly guidance?: string
-  ) {
-    super(message)
-    this.name = 'MediaDevicesError'
-  }
-}
-
-/**
- * Build a permission denied guidance message
- */
-function permissionDeniedGuidance(kind: 'microphone' | 'camera' | 'microphone/camera'): string {
-  return (
-    `To use your ${kind}, allow access when prompted by your browser. ` +
-    `If the prompt was dismissed, check browser settings: Settings → Privacy → Site permissions → ${kind.charAt(0).toUpperCase() + kind.slice(1)}s. ` +
-    `Error code: ${MediaDevicesErrorCode.E_PERMISSION_DENIED}`
-  )
-}
-
-/**
  * Module-level enumeration promise to prevent concurrent enumeration
  * and return the same promise for multiple callers
  */
@@ -484,10 +441,7 @@ export function useMediaDevices(
       log.info('Audio permission granted')
       return true
     } catch (error) {
-      const err = error instanceof DOMException ? error : new Error(String(error))
-      const message = `Audio permission denied: ${err.message || 'Unknown error'}`
-      const guidance = permissionDeniedGuidance('microphone')
-      log.error(message, { code: MediaDevicesErrorCode.E_PERMISSION_DENIED, guidance })
+      log.error('Audio permission denied:', error)
       deviceStore.setAudioPermission(PermissionStatus.Denied)
       return false
     }
@@ -513,10 +467,7 @@ export function useMediaDevices(
       log.info('Video permission granted')
       return true
     } catch (error) {
-      const err = error instanceof DOMException ? error : new Error(String(error))
-      const message = `Video permission denied: ${err.message || 'Unknown error'}`
-      const guidance = permissionDeniedGuidance('camera')
-      log.error(message, { code: MediaDevicesErrorCode.E_PERMISSION_DENIED, guidance })
+      log.error('Video permission denied:', error)
       deviceStore.setVideoPermission(PermissionStatus.Denied)
       return false
     }
@@ -551,14 +502,10 @@ export function useMediaDevices(
 
       log.info('Permissions granted')
     } catch (error) {
-      const err = error instanceof DOMException ? error : new Error(String(error))
-      const kind = audio && video ? 'microphone/camera' : audio ? 'microphone' : 'camera'
-      const message = `Permission request failed: ${err.message || 'Unknown error'}`
-      const guidance = permissionDeniedGuidance(kind)
-      log.error(message, { code: MediaDevicesErrorCode.E_PERMISSION_DENIED, guidance })
+      log.error('Permission request failed:', error)
       if (audio) deviceStore.setAudioPermission(PermissionStatus.Denied)
       if (video) deviceStore.setVideoPermission(PermissionStatus.Denied)
-      throw new MediaDevicesError(MediaDevicesErrorCode.E_PERMISSION_DENIED, message, guidance)
+      throw error
     }
   }
 
@@ -651,12 +598,7 @@ export function useMediaDevices(
     try {
       const targetDeviceId = deviceId || selectedAudioInputId.value
       if (!targetDeviceId) {
-        const message = 'No audio input device selected'
-        throw new MediaDevicesError(
-          MediaDevicesErrorCode.E_NO_AUDIO_INPUT_SELECTED,
-          message,
-          'Select an audio input device before testing. Use selectAudioInput(deviceId) first.'
-        )
+        throw new Error('No audio input device selected')
       }
 
       log.info(`Testing audio input device: ${targetDeviceId}`)
@@ -748,12 +690,7 @@ export function useMediaDevices(
     try {
       const targetDeviceId = deviceId || selectedAudioOutputId.value
       if (!targetDeviceId) {
-        const message = 'No audio output device selected'
-        throw new MediaDevicesError(
-          MediaDevicesErrorCode.E_NO_AUDIO_OUTPUT_SELECTED,
-          message,
-          'Select an audio output device before testing. Use selectAudioOutput(deviceId) first.'
-        )
+        throw new Error('No audio output device selected')
       }
 
       log.info(`Testing audio output device: ${targetDeviceId}`)

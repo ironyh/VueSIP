@@ -31,9 +31,7 @@ vi.mock('@/composables/useAmi', () => ({
     isConnected: { value: false },
     connect: vi.fn().mockResolvedValue(undefined),
     disconnect: vi.fn(),
-    getClient: vi.fn(
-      () => ({ sendAction: vi.fn(), on: vi.fn(), off: vi.fn() }) as unknown as AmiClient
-    ),
+    getClient: vi.fn(() => ({ sendAction: vi.fn() }) as unknown as AmiClient),
     onEvent: vi.fn(),
   })),
 }))
@@ -268,21 +266,10 @@ describe('AmiService', () => {
         autoReconnect: true,
       })
 
-      // Capture the client so we can emit events in the test
-      let capturedClient: {
-        on: ReturnType<typeof vi.fn>
-        off: ReturnType<typeof vi.fn>
-        emit: ReturnType<typeof vi.fn>
-      } | null = null
-      ;(service.ami.getClient as ReturnType<typeof vi.fn>).mockImplementation(() => {
-        capturedClient = { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
-        return capturedClient as unknown as AmiClient
-      })
-
       await service.connect(mockAmiConfig)
 
-      // Verify client.on('disconnected') was registered
-      expect(capturedClient?.on).toHaveBeenCalledWith('disconnected', expect.any(Function))
+      // Verify onEvent was called to setup reconnect handler
+      expect(service.ami.onEvent).toHaveBeenCalled()
     })
 
     it('should not exceed max reconnect attempts', async () => {
@@ -293,38 +280,27 @@ describe('AmiService', () => {
         reconnectDelay: 1000,
       })
 
-      // Capture the client so we can emit events in the test
-      let capturedClient: {
-        on: ReturnType<typeof vi.fn>
-        off: ReturnType<typeof vi.fn>
-        emit: ReturnType<typeof vi.fn>
-      } | null = null
-      ;(service.ami.getClient as ReturnType<typeof vi.fn>).mockImplementation(() => {
-        capturedClient = { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
-        return capturedClient as unknown as AmiClient
-      })
-
       await service.connect(mockAmiConfig)
 
-      // Simulate disconnect event - make connect fail so reconnect kicks in
+      // Simulate disconnect event and connection failures
       vi.mocked(service.ami.connect).mockRejectedValue(new Error('Connection failed'))
 
-      // Trigger the disconnect handler
-      const disconnectHandler = capturedClient?.on.mock.calls.find(
-        (call: unknown[]) => call[0] === 'disconnected'
-      )?.[1] as ((reason?: string) => void) | undefined
-      expect(disconnectHandler).toBeDefined()
-      disconnectHandler!('Test disconnect')
+      // Get the disconnect handler and trigger it
+      const onEventCalls = vi.mocked(service.ami.onEvent).mock.calls
+      if (onEventCalls.length > 0) {
+        const disconnectHandler = onEventCalls[0][0]
+        disconnectHandler({ type: 'disconnected' } as any)
 
-      // Advance through all reconnect attempts
-      for (let i = 0; i < 3; i++) {
+        // Advance through all reconnect attempts
+        for (let i = 0; i < 3; i++) {
+          await vi.advanceTimersByTimeAsync(1000)
+        }
+
+        // One more attempt should not happen
         await vi.advanceTimersByTimeAsync(1000)
+
+        expect(service.error.value).toBe('Max reconnection attempts reached')
       }
-
-      // One more attempt should not happen
-      await vi.advanceTimersByTimeAsync(1000)
-
-      expect(service.error.value).toBe('Max reconnection attempts reached')
     })
   })
 

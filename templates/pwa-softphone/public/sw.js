@@ -3,8 +3,6 @@
  * Handles push notifications and offline caching
  */
 
-/// <reference lib="webworker" />
-
 const CACHE_NAME = 'vuesip-softphone-v1'
 const STATIC_ASSETS = [
   '/',

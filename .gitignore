@@ -137,9 +137,3 @@ hive-mind-prompt-*.txt
 
 # Local agent/tooling state
 .serena/
-
-# OpenClaw local state
-.openclaw/
-
-# OpenMOSS CLI wrapper (local operational tool)
-moss

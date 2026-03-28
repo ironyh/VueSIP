@@ -236,12 +236,6 @@ export interface CallSession {
   timing: CallTimingInfo
   /** Termination cause (if terminated) */
   terminationCause?: TerminationCause
-  /** Last SIP response code (for diagnostics) */
-  lastResponseCode?: number
-  /** Last SIP reason phrase (for diagnostics) */
-  lastReasonPhrase?: string
-  /** Last error message (for diagnostics) */
-  lastErrorMessage?: string
 
   /** Called identity extraction for multi-DID / multi-line inbound */
   calledIdentity?: import('./called-identity.types').CalledIdentityExtraction

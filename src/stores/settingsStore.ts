@@ -16,7 +16,6 @@ import type {
   TurnServerConfig,
 } from '@/types/config.types'
 import { createLogger } from '@/utils/logger'
-import { DEFAULT_STUN_SERVERS } from '@/utils/constants'
 
 const log = createLogger('SettingsStore')
 
@@ -290,7 +289,7 @@ const DEFAULT_VIDEO_SETTINGS: VideoSettings = {
  * Default network settings
  */
 const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
-  stunServers: [...DEFAULT_STUN_SERVERS],
+  stunServers: ['stun:stun.l.google.com:19302'],
   turnServers: [],
   iceTransportPolicy: 'all',
   enableIPv6: true,

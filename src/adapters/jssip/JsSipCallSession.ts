@@ -16,21 +16,7 @@ import type {
   CallStatistics,
   CallSessionEvents,
 } from '../types'
-import { createLogger } from '../../utils/logger'
 import { CallDirection, CallState } from '../../types/call.types'
-
-// Type for global RTCRtpTransceiver check
-interface GlobalRTCRtpTransceiver {
-  prototype?: {
-    setCodecPreferences?: unknown
-  }
-}
-
-interface GlobalWithRTCRtpTransceiver {
-  RTCRtpTransceiver?: GlobalRTCRtpTransceiver
-}
-
-const log = createLogger('JsSipCallSession')
 
 /**
  * JsSIP Call Session Implementation
@@ -124,7 +110,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
         // Pass pre-acquired mediaStream if provided (takes precedence over mediaConstraints)
         if (options?.mediaStream) {
           jssipOptions.mediaStream = options.mediaStream
-          log.debug('Using pre-acquired mediaStream for answer')
+          console.log('[JsSipCallSession] Using pre-acquired mediaStream for answer')
         }
 
         if (options?.extraHeaders) {
@@ -421,7 +407,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     this.session.on(
       'ended',
       (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
-        log.debug('Call ended:', {
+        console.log('[JsSipCallSession] Call ended:', {
           originator: data.originator,
           cause: data.cause,
           statusCode: data.message?.status_code,
@@ -439,7 +425,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
     this.session.on(
       'failed',
       (data: { originator: string; cause: string; message?: { status_code?: number } }) => {
-        log.error('Call failed:', {
+        console.error('[JsSipCallSession] Call failed:', {
           originator: data.originator,
           cause: data.cause,
           statusCode: data.message?.status_code,
@@ -531,10 +517,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
         // If the user disables the transceiver API, we rely on SDP fallback instead.
         if (this._codecPolicy?.preferTransceiverApi === false) return
 
-        const transceivers =
-          typeof pc.getTransceivers === 'function'
-            ? (pc.getTransceivers() as RTCRtpTransceiver[])
-            : []
+        const transceivers = typeof pc.getTransceivers === 'function' ? pc.getTransceivers() : []
         if (transceivers && transceivers.length > 0) {
           const codecs = useCodecs(this._codecPolicy)
           for (const t of transceivers) {
@@ -543,7 +526,7 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
               | 'video'
               | undefined
             if (kind === 'audio' || kind === 'video') {
-              codecs.applyToTransceiver(t, kind)
+              codecs.applyToTransceiver(t as unknown as RTCRtpTransceiver, kind)
             }
           }
         }
@@ -562,8 +545,8 @@ export class JsSipCallSession extends EventEmitter<CallSessionEvents> implements
 
           const preferTransceiverApi = this._codecPolicy.preferTransceiverApi !== false
           const canSetCodecPrefs =
-            typeof (globalThis as GlobalWithRTCRtpTransceiver).RTCRtpTransceiver !== 'undefined' &&
-            typeof (globalThis as GlobalWithRTCRtpTransceiver).RTCRtpTransceiver?.prototype
+            typeof (globalThis as any).RTCRtpTransceiver !== 'undefined' &&
+            typeof ((globalThis as any).RTCRtpTransceiver?.prototype as any)
               ?.setCodecPreferences === 'function'
 
           // Use SDP fallback when transceiver API is disabled by policy, or when the environment

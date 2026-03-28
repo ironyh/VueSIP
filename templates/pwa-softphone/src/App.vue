@@ -5,60 +5,19 @@ import CallScreen from './components/CallScreen.vue'
 import IncomingCall from './components/IncomingCall.vue'
 import Settings from './components/Settings.vue'
 import SettingsMenu from './components/SettingsMenu.vue'
-import DiagnosticsPanel from './components/DiagnosticsPanel.vue'
 import CallDetailView from './components/CallDetailView.vue'
 import Contacts from './components/Contacts.vue'
-import ConnectionTestButton from './components/ConnectionTestButton.vue'
 import { usePhone } from './composables/usePhone'
 import { usePushNotifications } from './composables/usePushNotifications'
 import { usePwaInstall } from './composables/usePwaInstall'
 import { useTranscription } from 'vuesip'
-import { useMediaPermissions } from 'vuesip'
 import { useTranscriptPersistence } from './composables/useTranscriptPersistence'
 import { useCallRecording } from './composables/useCallRecording'
 import { useContacts } from './composables/useContacts'
-import { useProviderCallHistory } from './composables/useProviderCallHistory'
-import { useTranscriptSearch } from './composables/useTranscriptSearch'
 import type { Contact } from './composables/useContacts'
-
-// Simple SIP URI parser (inline to avoid import path issues)
-function parseSipUri(uri: string): { user: string; host: string; port?: number } | null {
-  const match = uri.match(/^(?:sip|sips):([^@]+)@([^:]+)(?::(\d+))?$/i)
-  if (!match) return null
-  return {
-    user: match[1],
-    host: match[2],
-    port: match[3] ? parseInt(match[3], 10) : undefined,
-  }
-}
 
 // Phone composable
 const phone = usePhone()
-
-// Computed account config for QR provisioning
-const currentAccountConfigForQr = computed(() => {
-  const config = phone.currentConfig.value
-  if (!config?.sipUri || !config?.password) {
-    return null
-  }
-
-  const parsed = parseSipUri(config.sipUri)
-  if (!parsed?.user || !parsed?.host) {
-    return null
-  }
-
-  return {
-    displayName: config.displayName || parsed.user,
-    username: parsed.user,
-    password: config.password,
-    domain: parsed.host,
-    port: parsed.port,
-  }
-})
-
-// Provider call history (Load from 46elks / Telnyx when supported)
-const providerIdRef = computed(() => phone.currentConfig.value?.providerId ?? null)
-const providerHistory = useProviderCallHistory(providerIdRef)
 
 // Push notifications
 const {
@@ -70,10 +29,6 @@ const {
 
 // PWA install
 const { canInstall, promptInstall, isInstalled } = usePwaInstall()
-
-// Media permissions - early check to reduce first-call friction
-const { isReadyForCalls, readinessMessage, checkAllPermissions, requestCallPermissions } =
-  useMediaPermissions()
 
 // UI state
 const activeTab = ref<'dialpad' | 'history' | 'settings'>('dialpad')
@@ -89,7 +44,7 @@ const callRecording = useCallRecording()
 const currentCallId = ref<string | null>(null)
 
 // Contacts
-const { incrementCallCount } = useContacts()
+const { incrementCallCount, getContactByNumber, favorites } = useContacts()
 const showContacts = ref(false)
 const contactsInitialNumber = ref('')
 
@@ -122,21 +77,50 @@ const filteredHistory = computed(() => {
 })
 
 // Async transcript search (enhancement - searches saved transcripts)
-// Using useTranscriptSearch composable for better testability
-const {
-  transcriptSearchResults,
-  isSearchingTranscripts,
-  transcriptMatchedEntries,
-  watchSearchQuery,
-} = useTranscriptSearch(
-  phone.historyEntries as any,
-  transcriptPersistence.persistenceEnabled,
-  (entryId: string) => transcriptPersistence.getTranscript(entryId),
-  { debounceMs: 300 }
-)
+const transcriptSearchResults = ref<Set<string>>(new Set())
+const isSearchingTranscripts = ref(false)
+let transcriptSearchTimeout: ReturnType<typeof setTimeout> | null = null
 
-// Watch search query for transcript search
-watchSearchQuery(historySearchQuery)
+watch(historySearchQuery, async (query) => {
+  // Clear previous timeout
+  if (transcriptSearchTimeout) {
+    clearTimeout(transcriptSearchTimeout)
+  }
+
+  if (!query.trim() || !transcriptPersistence.persistenceEnabled.value) {
+    transcriptSearchResults.value.clear()
+    isSearchingTranscripts.value = false
+    return
+  }
+
+  // Debounce transcript search (search metadata immediately, transcripts after delay)
+  transcriptSearchTimeout = setTimeout(async () => {
+    isSearchingTranscripts.value = true
+    const results = new Set<string>()
+    const queryLower = query.toLowerCase()
+
+    try {
+      // Check all history entries for matching transcripts
+      for (const entry of phone.historyEntries.value) {
+        const transcript = await transcriptPersistence.getTranscript(entry.id)
+        if (transcript) {
+          const transcriptText = transcript
+            .map((e) => e.text)
+            .join(' ')
+            .toLowerCase()
+          if (transcriptText.includes(queryLower)) {
+            results.add(entry.id)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error searching transcripts:', error)
+    } finally {
+      transcriptSearchResults.value = results
+      isSearchingTranscripts.value = false
+    }
+  }, 300)
+})
 
 // Combined filtered history (metadata + transcript matches)
 const finalFilteredHistory = computed(() => {
@@ -147,8 +131,11 @@ const finalFilteredHistory = computed(() => {
 
   // If transcript search found matches, include those even if they didn't match metadata
   if (transcriptSearchResults.value.size > 0) {
+    const transcriptMatches = phone.historyEntries.value.filter((entry) =>
+      transcriptSearchResults.value.has(entry.id)
+    )
     // Combine and deduplicate
-    const combined = [...metadataMatches, ...transcriptMatchedEntries.value]
+    const combined = [...metadataMatches, ...transcriptMatches]
     const unique = combined.filter(
       (entry, index, self) => index === self.findIndex((e) => e.id === entry.id)
     )
@@ -202,27 +189,7 @@ watch(
       // Start recording if persistence is enabled
       // Note: We need to get the combined audio stream from the call session
       // For now, recording is manual - user starts it in settings
-      // Auto-start recording if persistence is enabled and we have a session
-      if (callRecording.persistenceEnabled.value && session?.id) {
-        try {
-          // Get remote audio stream from the peer connection
-          const pc = session?.sessionDescriptionHandler?.peerConnection
-          if (pc) {
-            const remoteStream = new MediaStream()
-            pc.getReceivers().forEach((receiver: RTCRtpReceiver) => {
-              if (receiver.track) {
-                remoteStream.addTrack(receiver.track)
-              }
-            })
-            if (remoteStream.getTracks().length > 0) {
-              void callRecording.startRecording(session.id, remoteStream)
-              console.log('[VueSIP] Auto-started recording for call', session.id)
-            }
-          }
-        } catch (err) {
-          console.warn('[VueSIP] Failed to auto-start recording:', err)
-        }
-      }
+      // TODO: Auto-start recording when persistence enabled and call becomes active
     }
 
     // When call ends, save transcript and recording
@@ -314,17 +281,11 @@ function handleBackFromDetail() {
   selectedCallId.value = null
 }
 
-function handleProviderEntryClick(remote: string) {
-  activeTab.value = 'dialpad'
-  handleCall(remote)
-}
-
 async function handleConnect(config: any) {
   try {
     statusMessage.value = ''
     await phone.configure(config)
     await phone.connectPhone()
-    statusMessage.value = ''
     // Request push permission after connecting
     if (pushSupported.value && !pushPermissionGranted.value) {
       await requestPushPermission()
@@ -349,10 +310,10 @@ function openContacts(initialNumber = '') {
 }
 
 function handleContactSelect(contact: Contact) {
-  // Close contacts and place a call to the selected contact
+  // Set the dialpad number to the contact's number
+  phone.dialNumber.value = contact.number
   showContacts.value = false
   activeTab.value = 'dialpad'
-  handleCall(contact.number)
 }
 
 function handleContactCall(number: string) {
@@ -366,7 +327,7 @@ watch(
   (newState, oldState) => {
     // When call ends, increment the call count for the contact
     if (oldState === 'active' && newState === 'idle') {
-      const remoteNumber = phone.remoteUri.value?.replace(/[^\d+]/g, '')
+      const remoteNumber = phone.remoteIdentity.value?.replace(/[^\d+]/g, '')
       if (remoteNumber) {
         incrementCallCount(remoteNumber)
       }
@@ -374,29 +335,8 @@ watch(
   }
 )
 
-// Auto-load 46elks (or Telnyx) account call history when user opens History tab
-watch(
-  activeTab,
-  (tab) => {
-    if (tab !== 'history') return
-    if (!providerHistory.canLoadHistory.value) return
-    if (providerHistory.entries.value.length > 0) return
-    if (providerHistory.isLoading.value) return
-    void providerHistory.load()
-  },
-  { immediate: false }
-)
-
-// Clear stale status message when tab becomes visible (if connected)
-function handleVisibilityChange() {
-  if (document.visibilityState === 'visible' && phone.isConnected.value) {
-    statusMessage.value = ''
-  }
-}
-
 // Cleanup
 onUnmounted(async () => {
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
   if (phone.isConnected.value) {
     await phone.disconnectPhone()
   }
@@ -404,20 +344,7 @@ onUnmounted(async () => {
 
 // Handle notification deep links (Phase 3 - SW notification actions)
 // URL params: ?notifAction=answer|decline|open&callId=<id>
-onMounted(async () => {
-  // Early permission check to reduce first-call friction
-  // Check permissions silently first
-  const { audio } = await checkAllPermissions()
-
-  // If not granted, request proactively before user tries to make a call
-  if (!audio.granted && audio.status !== 'denied') {
-    console.log('[VueSIP] Requesting microphone permission early...')
-    await requestCallPermissions()
-  }
-
-  // Listen for visibility changes to clear stale status messages
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-
+onMounted(() => {
   const params = new URLSearchParams(window.location.search)
   const notifAction = params.get('notifAction')
   const callId = params.get('callId')
@@ -480,19 +407,6 @@ onMounted(async () => {
             }}
           </span>
         </div>
-        <!-- Permission status indicator -->
-        <div
-          v-if="!isReadyForCalls"
-          class="permission-indicator"
-          :class="{ denied: readinessMessage.includes('nekad') }"
-          :title="readinessMessage"
-          @click="requestCallPermissions()"
-        >
-          <span class="permission-icon">🎤</span>
-          <span class="permission-text">{{ readinessMessage }}</span>
-        </div>
-        <!-- Connection Test Button -->
-        <ConnectionTestButton />
       </div>
     </header>
 
@@ -512,7 +426,6 @@ onMounted(async () => {
           :status-line1="phone.callStatusLine1.value"
           :status-line2="phone.callStatusLine2.value"
           :called-line="phone.calledLine.value"
-          :session="phone.session?.value"
           @end-call="handleEndCall"
           @toggle-hold="phone.toggleHold"
           @toggle-mute="phone.toggleMute"
@@ -605,76 +518,7 @@ onMounted(async () => {
               </button>
             </div>
 
-            <!-- Account history (46elks / Telnyx when supported) -->
-            <div v-if="providerHistory.canLoadHistory.value" class="account-history-section">
-              <h3 class="account-history-heading">
-                {{
-                  providerHistory.entries.value.length > 0
-                    ? 'From your account'
-                    : 'Account call history'
-                }}
-              </h3>
-              <button
-                type="button"
-                class="load-account-history-btn"
-                :disabled="providerHistory.isLoading.value"
-                @click="providerHistory.load()"
-              >
-                <span
-                  v-if="providerHistory.isLoading.value"
-                  class="load-spinner"
-                  aria-hidden="true"
-                ></span>
-                {{ providerHistory.isLoading.value ? 'Loading…' : providerHistory.loadLabel.value }}
-              </button>
-              <p v-if="providerHistory.error.value" class="account-history-error" role="alert">
-                {{ providerHistory.error.value }}
-              </p>
-              <button
-                v-if="providerHistory.error.value"
-                type="button"
-                class="retry-history-btn"
-                :disabled="providerHistory.isLoading.value"
-                @click="providerHistory.load()"
-              >
-                <span
-                  v-if="providerHistory.isLoading.value"
-                  class="load-spinner"
-                  aria-hidden="true"
-                ></span>
-                {{ providerHistory.isLoading.value ? 'Loading…' : 'Retry' }}
-              </button>
-              <template v-if="providerHistory.entries.value.length > 0">
-                <ul class="history-list">
-                  <li
-                    v-for="entry in providerHistory.entries.value"
-                    :key="entry.id"
-                    class="history-item history-item-provider"
-                    @click="handleProviderEntryClick(entry.remote)"
-                  >
-                    <div class="history-icon" :class="entry.direction">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path v-if="entry.direction === 'outgoing'" d="M5 19l14-14M12 5h7v7" />
-                        <path v-else d="M19 5L5 19M5 12V5h7" />
-                      </svg>
-                    </div>
-                    <div class="history-details">
-                      <span class="history-name">{{ entry.remote }}</span>
-                      <span class="history-time">{{ entry.created }}</span>
-                    </div>
-                    <span class="history-duration">{{ formatDuration(entry.duration) }}</span>
-                  </li>
-                </ul>
-              </template>
-            </div>
-
-            <div
-              v-if="
-                phone.historyEntries.value.length === 0 &&
-                providerHistory.entries.value.length === 0
-              "
-              class="empty-state"
-            >
+            <div v-if="phone.historyEntries.value.length === 0" class="empty-state">
               <svg
                 class="icon"
                 viewBox="0 0 24 24"
@@ -685,14 +529,8 @@ onMounted(async () => {
                 <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p>No recent calls</p>
-              <p v-if="providerHistory.canLoadHistory.value" class="empty-hint">
-                {{ providerHistory.emptyHint.value }}
-              </p>
             </div>
-            <div
-              v-else-if="phone.historyEntries.value.length > 0 && finalFilteredHistory.length === 0"
-              class="empty-state"
-            >
+            <div v-else-if="finalFilteredHistory.length === 0" class="empty-state">
               <svg
                 class="icon"
                 viewBox="0 0 24 24"
@@ -752,7 +590,6 @@ onMounted(async () => {
             <SettingsMenu
               :is-connected="phone.isConnected.value"
               :accounts="phone.accounts.value"
-              :current-account-config="currentAccountConfigForQr"
               :outbound-account-id="phone.outboundAccountId.value"
               :audio-input-devices="phone.audioInputDevices.value"
               :audio-output-devices="phone.audioOutputDevices.value"
@@ -766,8 +603,6 @@ onMounted(async () => {
               :on-select-audio-output="(id) => phone.selectAudioOutput(id)"
               :on-refresh46-elks-preferences="phone.refresh46ElksOutboundPreferences"
             />
-            <!-- Diagnostics Panel - shown in settings for troubleshooting -->
-            <DiagnosticsPanel :phone-diagnostics="phone.diagnostics" />
           </div>
         </div>
 
@@ -902,37 +737,6 @@ function formatDuration(seconds: number): string {
   animation: pulse 1s infinite;
 }
 
-/* Permission indicator styles */
-.permission-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--color-warning);
-  border-radius: 20px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-left: 8px;
-}
-
-.permission-indicator:hover {
-  filter: brightness(1.1);
-}
-
-.permission-indicator.denied {
-  background: var(--color-danger);
-}
-
-.permission-icon {
-  font-size: 14px;
-}
-
-.permission-text {
-  color: #fff;
-  white-space: nowrap;
-}
-
 @keyframes pulse {
   0%,
   100% {
@@ -1008,82 +812,6 @@ function formatDuration(seconds: number): string {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.account-history-section {
-  margin-bottom: 1rem;
-}
-
-.load-account-history-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.load-account-history-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.load-spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--text-primary);
-  border-radius: 50%;
-  animation: account-history-spin 0.8s linear infinite;
-}
-
-@keyframes account-history-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.account-history-error {
-  margin: 0.5rem 0 0;
-  font-size: 0.8125rem;
-  color: #c53030;
-}
-
-.retry-history-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.retry-history-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.account-history-heading {
-  margin: 0.75rem 0 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.empty-hint {
-  margin-top: 0.5rem;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
 }
 
 .history-search {

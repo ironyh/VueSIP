@@ -1,27 +1,19 @@
-/**
- * useSipConnection - Low-level SIP connection management composable.
- *
- * Provides direct control over JsSIP User Agent connection lifecycle,
- * including registration, unregistration, and connection state tracking.
- * This is a simpler alternative to useSipClient for cases where fine-grained
- * control over the connection is needed.
- *
- * @packageDocumentation
- */
+import { ref, computed, type Ref } from 'vue'
+// TODO: Add support for both jssip and sip.js libraries
+// Current implementation uses sip.js API (UserAgent, Registerer, etc.)
+// Future: Create adapter pattern to support both jssip.UA and sip.js.UserAgent
+// @ts-expect-error - sip.js not installed yet, will support both libraries
+import { UserAgent, Registerer, RegistererState } from 'sip.js'
 
-import { ref, type Ref } from 'vue'
-import JsSIP, { type UA } from 'jssip'
-
-// Type definitions for the composable
-type SipConfig = {
+// Type aliases for sip.js compatibility (future support)
+// Will be properly typed when sip.js support is added
+type SipConfig = Record<string, unknown> & {
   username?: string
   server?: string
   password?: string
   displayName?: string
   autoRegister?: boolean
-  sockets?: unknown[]
-  uri?: string
-  [key: string]: unknown
+  sessionDescriptionHandlerFactoryOptions?: unknown
 }
 type SipError = Error & { code?: number; reason?: string; cause?: Error }
 
@@ -42,90 +34,54 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
   const isConnecting = ref(false)
   const error = ref<SipError | null>(null)
 
-  let ua: UA | null = null
+  let userAgent: UserAgent | null = null
+  let registerer: Registerer | null = null
 
-  // Store handler references for cleanup
-  type UaEventHandler = () => void
-  const handlers: {
-    connecting: UaEventHandler
-    connected: UaEventHandler
-    disconnected: UaEventHandler
-    registered: UaEventHandler
-    unregistered: UaEventHandler
-    registrationFailed: (e: { cause: Error; response?: { status_code: number } }) => void
-  } = {
-    connecting: () => {
-      isConnecting.value = true
-    },
-    connected: () => {
-      isConnected.value = true
-      isConnecting.value = false
-      if (config.autoRegister !== false) {
-        register().catch((err) => {
-          error.value = {
-            name: 'RegistrationError',
-            code: -1,
-            message: 'Failed to register with SIP server',
-            cause: err,
-          }
-        })
-      }
-    },
-    disconnected: () => {
-      isConnected.value = false
-      isRegistered.value = false
-      isConnecting.value = false
-    },
-    registered: () => {
-      isRegistered.value = true
-    },
-    unregistered: () => {
-      isRegistered.value = false
-    },
-    registrationFailed: (e) => {
-      isConnecting.value = false
-      error.value = {
-        name: 'RegistrationError',
-        code: e.response?.status_code || -1,
-        message: 'Failed to register with SIP server',
-        cause: e.cause,
-      }
-    },
-  }
-
-  const connect = async (): Promise<void> => {
+  const connect = async () => {
     try {
       isConnecting.value = true
       error.value = null
 
-      // Build SIP URI
-      const username = config.username || ''
-      const server = config.server || ''
-      const sipUri = `sip:${username}@${server}`
-
-      // Create UA configuration
-      const uaConfig: JsSIP.UAConfiguration = {
-        uri: sipUri,
-        password: config.password,
-        display_name: config.displayName || config.username,
-        sockets: config.sockets || [new JsSIP.WebSocketInterface(`wss://${server}`)],
-        register: config.autoRegister !== false,
-        session_timers: true,
+      const uri = UserAgent.makeURI(`sip:${config.username}@${config.server}`)
+      if (!uri) {
+        throw new Error('Invalid SIP URI')
       }
 
-      ua = new JsSIP.UA(uaConfig)
+      userAgent = new UserAgent({
+        uri,
+        transportOptions: {
+          server: `wss://${config.server}`,
+        },
+        authorizationUsername: config.username,
+        authorizationPassword: config.password,
+        displayName: config.displayName || config.username,
+        sessionDescriptionHandlerFactoryOptions: config.sessionDescriptionHandlerFactoryOptions || {
+          constraints: {
+            audio: true,
+            video: false,
+          },
+        },
+      })
 
-      // Set up event handlers (store references for cleanup)
-      ua.on('connecting', handlers.connecting)
-      ua.on('connected', handlers.connected)
-      ua.on('disconnected', handlers.disconnected)
-      ua.on('registered', handlers.registered)
-      ua.on('unregistered', handlers.unregistered)
-      ua.on('registrationFailed', handlers.registrationFailed)
+      userAgent.delegate = {
+        onConnect: () => {
+          isConnected.value = true
+          if (config.autoRegister !== false) {
+            register()
+          }
+        },
+        onDisconnect: () => {
+          isConnected.value = false
+          isRegistered.value = false
+        },
+      }
 
-      ua.start()
+      await userAgent.start()
+
+      if (userAgent) {
+        registerer = new Registerer(userAgent)
+      }
     } catch (err) {
-      isConnecting.value = false
       error.value = {
         name: 'ConnectionError',
         code: -1,
@@ -133,31 +89,24 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
         cause: err as Error,
       }
       throw err
+    } finally {
+      isConnecting.value = false
     }
   }
 
-  const disconnect = async (): Promise<void> => {
+  const disconnect = async () => {
     try {
-      if (ua) {
-        // Remove event handlers to prevent memory leaks
-        ua.off('connecting', handlers.connecting)
-        ua.off('connected', handlers.connected)
-        ua.off('disconnected', handlers.disconnected)
-        ua.off('registered', handlers.registered)
-        ua.off('unregistered', handlers.unregistered)
-        ua.off('registrationFailed', handlers.registrationFailed)
+      if (registerer && isRegistered.value) {
+        await unregister()
+      }
 
-        // Unregister first if registered, then stop
-        if (isRegistered.value) {
-          ua.unregister()
-        }
-        ua.stop()
-        ua = null
+      if (userAgent) {
+        await userAgent.stop()
+        userAgent = null
       }
 
       isConnected.value = false
       isRegistered.value = false
-      isConnecting.value = false
     } catch (err) {
       error.value = {
         name: 'SipError',
@@ -169,12 +118,17 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
     }
   }
 
-  const register = async (): Promise<void> => {
+  const register = async () => {
     try {
-      if (!ua) {
-        throw new Error('UA not initialized')
+      if (!registerer) {
+        throw new Error('Registerer not initialized')
       }
-      ua.register()
+
+      registerer.stateChange.addListener((state: RegistererState) => {
+        isRegistered.value = state === RegistererState.Registered
+      })
+
+      await registerer.register()
     } catch (err) {
       error.value = {
         name: 'SipError',
@@ -186,12 +140,13 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
     }
   }
 
-  const unregister = async (): Promise<void> => {
+  const unregister = async () => {
     try {
-      if (!ua) {
-        throw new Error('UA not initialized')
+      if (!registerer) {
+        throw new Error('Registerer not initialized')
       }
-      ua.unregister()
+
+      await registerer.unregister()
       isRegistered.value = false
     } catch (err) {
       error.value = {
@@ -205,10 +160,10 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
   }
 
   return {
-    isConnected,
-    isRegistered,
-    isConnecting,
-    error,
+    isConnected: computed(() => isConnected.value),
+    isRegistered: computed(() => isRegistered.value),
+    isConnecting: computed(() => isConnecting.value),
+    error: computed(() => error.value),
     connect,
     disconnect,
     register,

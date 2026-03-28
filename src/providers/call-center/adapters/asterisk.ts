@@ -7,7 +7,7 @@
  * @module providers/call-center/adapters/asterisk
  */
 
-import { AmiClient } from '@/core/AmiClient'
+import type { AmiClient } from '@/core/AmiClient'
 import type { AmiMessage, AmiEventData } from '@/types/ami.types'
 import type {
   CallCenterProvider,
@@ -310,6 +310,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
       }
 
       config = providerConfig
+      const { AmiClient: AmiClientClass } = await import('@/core/AmiClient')
 
       // Build WebSocket URL for amiws proxy from connection config
       const host = config.connection.host as string
@@ -317,7 +318,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
       const protocol = config.connection.secure ? 'wss' : 'ws'
       const url = (config.connection.url as string) || `${protocol}://${host}:${port}/ami`
 
-      amiClient = new AmiClient({ url })
+      amiClient = new AmiClientClass({ url })
 
       // Set up event listeners
       amiClient.on('event', handleAmiEvent)

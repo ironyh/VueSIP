@@ -6,7 +6,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/vuesip.svg)](https://www.npmjs.com/package/vuesip)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-VueSip provides **185+ composables** for building professional SIP interfaces with Asterisk, FreePBX, and other VoIP systems. Built with TypeScript and Vue 3, VueSip gives you the business logic while you control the UI.
+VueSip provides **60+ composables** for building professional SIP interfaces with Asterisk, FreePBX, and other VoIP systems. Built with TypeScript and Vue 3, VueSip gives you the business logic while you control the UI.
 
 ## Features
 
@@ -371,25 +371,6 @@ pnpm lint
 
 Requires WebRTC and modern JavaScript support.
 
-## Environment Detection
-
-VueSip provides browser and OS detection utilities for responsive UI implementations:
-
-```typescript
-import { isIOS, isAndroid, isMobileDevice, getBrowserName, getOS } from 'vuesip'
-
-// Device type detection
-isIOS() // Returns true on iOS Safari/WebView
-isAndroid() // Returns true on Android Chrome/WebView
-isMobileDevice() // Returns true on any mobile device
-
-// Browser detection
-getBrowserName() // Returns: 'chrome' | 'firefox' | 'safari' | 'edge' | 'opera' | 'unknown'
-
-// OS detection
-getOS() // Returns: 'windows' | 'mac' | 'linux' | 'android' | 'ios' | 'unknown'
-```
-
 ## Architecture
 
 SIP is accessed via an adapter (JsSIP implemented; SIP.js planned). VueSip follows the **headless component pattern**:
@@ -459,5 +440,3 @@ The library will expose a `useCodecs` composable that lets you:
 - Apply preferences to transceivers or transform SDP as a fallback
 
 See `docs/adr/0001-codecs-architecture.md` for the design overview.
-
-<!-- Pre-commit hooks active: lint-staged + type-check -->

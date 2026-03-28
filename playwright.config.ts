@@ -14,10 +14,9 @@ import { defineConfig, devices } from '@playwright/test'
  * - basic-call-flow.spec.ts: 16 tests (full call flow scenarios)
  * - accessibility.spec.ts: 24 tests (WCAG compliance, requires mockSipServer)
  *
- * CI TESTS (~17+ tests in chromium/firefox, WebKit skips more - mockSipServer-dependent tests excluded):
+ * CI TESTS (~17 tests in chromium/firefox, WebKit skips more - mockSipServer-dependent tests excluded):
  * - performance.spec.ts: Page Load (4), Resource Loading (3), Network (3), Benchmarks (1) = 11 tests
  * - accessibility-ci.spec.ts: 6 tests (basic WCAG compliance without mockSipServer)
- * - pbx-recordings-smoke.spec.ts: 2 tests (usePbxRecordings list → play → getPlaybackUrl with mock provider)
  * - app-functionality-ci.spec.ts: Skipped in CI (Vue components don't render in time)
  * - Note: Tests requiring mockSipServer/SIP client don't work reliably in CI
  * - WebKit has additional issues with app loading in CI (see WEBKIT_KNOWN_ISSUES.md)

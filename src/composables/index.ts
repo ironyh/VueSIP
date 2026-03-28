@@ -18,50 +18,12 @@ export {
   type UseCallSessionReturn,
   type CallSessionOptions,
 } from './useCallSession'
-export type {
-  CallSessionPiPOptions,
-  ExtendedCallSession,
-  ExtendedSipClient,
-  hasCallSessionMethod,
-} from './types'
+export type { CallSessionPiPOptions } from './types'
 export {
   useMediaDevices,
   type UseMediaDevicesReturn,
   type DeviceTestOptions,
 } from './useMediaDevices'
-export {
-  useMediaPermissions,
-  type UseMediaPermissionsReturn,
-  type PermissionCheckResult,
-} from './useMediaPermissions'
-export {
-  useConnectionTest,
-  type UseConnectionTestReturn,
-  type ConnectionCheckResult,
-  type ConnectionTestSummary,
-  type TestType,
-} from './useConnectionTest'
-export {
-  useCallQualityStats,
-  type UseCallQualityStatsReturn,
-  type CallQualityStats,
-  type QualityLevel,
-  type UseCallQualityStatsOptions,
-} from './useCallQualityStats'
-export {
-  useQualityAlerts,
-  type UseQualityAlertsReturn,
-  type QualityAlert,
-  type QualityAlertThresholds,
-  type UseQualityAlertsOptions,
-} from './useQualityAlerts'
-export {
-  useCallQualityHistory,
-  type UseCallQualityHistoryOptions,
-  type CallQualityRecord,
-  type CallQualityAggregate,
-  type QualitySnapshot,
-} from './useCallQualityHistory'
 export {
   useDTMF,
   type UseDTMFReturn,
@@ -72,11 +34,7 @@ export {
 
 // Advanced composables
 export { useCallHistory, type UseCallHistoryReturn } from './useCallHistory'
-export {
-  useMultiSipClient,
-  type MultiSipAccountListItem,
-  type MultiSipAccountConfig,
-} from './useMultiSipClient'
+export { useMultiSipClient } from './useMultiSipClient'
 export { useSipAccountManager } from './useSipAccountManager'
 export { useCallControls, type UseCallControlsReturn, type ActiveTransfer } from './useCallControls'
 export { usePresence, type UsePresenceReturn } from './usePresence'
@@ -120,25 +78,11 @@ export {
 } from './useAmiSpy'
 
 // SIP composables
-export { useSipWebRTCStats, type UseSipWebRTCStatsReturn } from './useSipWebRTCStats'
-export {
-  useSipAutoAnswer,
-  type AutoAnswerMode,
-  type IntercomMode,
-  type AutoAnswerTrigger,
-  type AutoAnswerHeaders,
-  type AutoAnswerWhitelistEntry,
-  type AutoAnswerSettings,
-  type AutoAnswerEvent,
-  type AutoAnswerStats,
-  type PendingAutoAnswer,
-  type UseSipAutoAnswerOptions,
-  type UseSipAutoAnswerReturn,
-} from './useSipAutoAnswer'
-export { useSipE911, type UseSipE911Return } from './useSipE911'
+export { useSipWebRTCStats } from './useSipWebRTCStats'
+export { useSipAutoAnswer } from './useSipAutoAnswer'
+export { useSipE911 } from './useSipE911'
 export { useSipSecondLine } from './useSipSecondLine'
-export type { UseSipSecondLineReturn } from '../types/multiline.types'
-export { useSipConnection, type UseSipConnectionReturn } from './useSipConnection'
+// useSipConnection requires sip.js library - not exported until dual-library support is added
 
 // Call quality composables
 export { useCallQualityScore } from './useCallQualityScore'
@@ -158,8 +102,6 @@ export {
   type UseCredentialExpiryReturn,
 } from './useCredentialExpiry'
 export { useSessionPersistence } from './useSessionPersistence'
-export { useSettings, type UseSettingsReturn } from './useSettings'
-export { useSettingsPersistence, type UseSettingsPersistenceReturn } from './useSettingsPersistence'
 
 export {
   useNotifications,
@@ -171,16 +113,6 @@ export {
   type NotificationOptions,
   type UseNotificationsReturn,
 } from './useNotifications'
-
-export {
-  usePushNotifications,
-  type PushPermissionStatus,
-  type ServiceWorkerRegistrationInfo,
-  type PushSubscriptionInfo,
-  type UsePushNotificationsOptions,
-  type UsePushNotificationsReturn,
-  type PushNotificationOptions,
-} from './usePushNotifications'
 
 export {
   useConnectionHealthBar,
@@ -199,26 +131,6 @@ export {
   type UseGracefulDegradationReturn,
 } from './useGracefulDegradation'
 
-// Metrics & observability
-export {
-  useSipMetrics,
-  createMetricsEmitter,
-  type MetricsEventType,
-  type MetricsEvent,
-  type MetricsCallback,
-  type UseSipMetricsOptions,
-  type UseSipMetricsReturn,
-  type BaseMetricsEvent,
-  type HealthLevelChangeEvent,
-  type HealthRecoveryEvent,
-  type DegradationApplyEvent,
-  type DegradationRecoverEvent,
-  type ConnectionReconnectingEvent,
-  type ConnectionRecoveredEvent,
-  type IceHealthChangeEvent,
-  type RegistrationStateChangeEvent,
-} from './useSipMetrics'
-
 // Audio processing composable
 export {
   useAudioProcessing,
@@ -229,23 +141,22 @@ export {
 } from './useAudioProcessing'
 
 // Additional composables
-export { useCallHold, type UseCallHoldReturn } from './useCallHold'
-export { useCallTransfer, type UseCallTransferReturn } from './useCallTransfer'
+export { useCallHold } from './useCallHold'
+export { useCallTransfer } from './useCallTransfer'
 export {
   useCallWaiting,
   type UseCallWaitingReturn,
   type WaitingCall,
   type CallWaitingOptions,
 } from './useCallWaiting'
-export { useAudioDevices, type UseAudioDevicesReturn } from './useAudioDevices'
+export { useAudioDevices } from './useAudioDevices'
 export {
   useAudioDeviceSwitch,
-  type AudioDevicesForSwitch,
   type AudioDeviceSwitchOptions,
   type UseAudioDeviceSwitchReturn,
 } from './useAudioDeviceSwitch'
 export { useMultiLine } from './useMultiLine'
-export { useDialog, type UseDialogReturn } from './useDialog'
+export { useDialog } from './useDialog'
 export { useFreePBXPresence } from './useFreePBXPresence'
 export {
   usePictureInPicture,
@@ -464,8 +375,6 @@ export type {
   Elks46CallDirection,
   Elks46CallState,
   Elks46CallLeg,
-  Elks46CallReadonly,
-  Elks46CallLegReadonly,
   FetchCallsOptions,
 } from '../providers/services/elks46ApiService'
 export type { TelnyxCredential, TelnyxConnection } from '../providers/services/telnyxApiService'
@@ -511,35 +420,3 @@ export {
   type CallSummaryResult,
   type UseCallSummaryReturn,
 } from './useCallSummary'
-
-// PBX Recordings composable
-export { usePbxRecordings, type UsePbxRecordingsReturn } from './usePbxRecordings'
-
-// WebRTC Call Recording composable
-export {
-  useCallRecording,
-  type CallRecordingMetadata,
-  type UseCallRecordingOptions,
-} from './useCallRecording'
-
-// Confirmation dialog composable
-export { useConfirm } from './useConfirm'
-export type { UseConfirmReturn, ConfirmOptions, ConfirmResult } from './useConfirm'
-export {
-  confirmEndCall,
-  confirmLeaveConference,
-  confirmDeleteRecording,
-  confirmMuteParticipant,
-  confirmRemoveParticipant,
-  confirmTransferCall,
-  confirmStartRecording,
-} from './useConfirm'
-
-// Triage suggestion composable
-export {
-  useSuggester,
-  type UseSuggesterOptions,
-  type UseSuggesterReturn,
-  type Suggestion,
-  type TriageQuestionBank,
-} from './useSuggester'

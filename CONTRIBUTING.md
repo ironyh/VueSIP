@@ -1456,52 +1456,6 @@ Update CHANGELOG.md following [Keep a Changelog](https://keepachangelog.com/):
 - Resolved issue with A causing B
 ```
 
-### Release Process
-
-VueSIP uses [release-please](https://github.com/googleapis/release-please) for automated semantic versioning and changelog generation.
-
-#### How Releases Work
-
-1. **Release Trigger**: When changes are merged to `main`, the release-please workflow runs
-2. **Version Determination**: release-please analyzes conventional commit messages to determine the next version
-3. **Release PR**: A PR is created with version bumps and changelog updates
-4. **Publish**: Merging the release PR creates a GitHub release and publishes to npm
-
-#### Commit Message Format for Releases
-
-Use conventional commits to control release versioning:
-
-- `feat:` → minor version bump (e.g., 1.0.0 → 1.1.0)
-- `fix:` → patch version bump (e.g., 1.0.0 → 1.0.1)
-- `feat!:` or `fix!:` → major version bump (e.g., 1.0.0 → 2.0.0)
-- `docs:`, `test:`, `chore:` → no version change
-
-#### Packages with Independent Versions
-
-| Package                | npm Package                      |
-| ---------------------- | -------------------------------- |
-| Root (vuesip)          | `vuesip`                         |
-| Enterprise             | `@vuesip/enterprise`             |
-| PWA Softphone Template | `@vuesip/template-pwa-softphone` |
-
-#### Running Release Please Locally (Dry Run)
-
-```bash
-npx release-please --config-file release-please-config.json --manifest-file .release-please-manifest.json --dry-run
-```
-
-#### Manual Release
-
-To trigger a release manually:
-
-1. Go to the [Release workflow](https://github.com/ironyh/VueSIP/actions/workflows/release.yml)
-2. Click "Run workflow"
-3. Select the branch (usually `main`)
-
-#### After Release PR Merged
-
-The workflow automatically creates a GitHub Release with changelog, publishes packages to npm, and tags the release in git.
-
 ## Community Guidelines
 
 ### Code of Conduct
@@ -1552,16 +1506,6 @@ The workflow automatically creates a GitHub Release with changelog, publishes pa
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [JsSIP Documentation](https://jssip.net/documentation/)
 - [WebRTC API](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API)
-
-## Beads Decision Log
-
-When closing or merging a bead (issue) without completing all child tasks, record the decision:
-
-| Bead | Decision | Reason | PR/Issue Link |
-|------|----------|--------|---------------|
-| VueSIP-xxx | closed/won't fix | Superseded by VueSIP-yyy | #123 |
-
-Add this table to the bead's notes or close reason. This helps track architectural decisions.
 
 ## License
 

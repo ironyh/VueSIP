@@ -22,7 +22,7 @@ import type { CalledIdentityExtraction } from '@/types/called-identity.types'
 // JsSIP types available in @/types/jssip.types for future type improvements
 import { createLogger } from '@/utils/logger'
 import { EventEmitter } from '@/utils/EventEmitter'
-import { CALL_SESSION, DEFAULT_STUN_SERVERS } from '@/utils/constants'
+import { CALL_SESSION } from '@/utils/constants'
 
 const logger = createLogger('CallSession')
 
@@ -122,10 +122,6 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
   // Termination
   private _terminationCause?: TerminationCause
-  // Last error details for diagnostics
-  private _lastResponseCode?: number
-  private _lastReasonPhrase?: string
-  private _lastErrorMessage?: string
 
   // Flags
   private isAnswering = false
@@ -233,18 +229,6 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     return this._terminationCause
   }
 
-  get lastResponseCode(): number | undefined {
-    return this._lastResponseCode
-  }
-
-  get lastReasonPhrase(): string | undefined {
-    return this._lastReasonPhrase
-  }
-
-  get lastErrorMessage(): string | undefined {
-    return this._lastErrorMessage
-  }
-
   get data(): Record<string, any> {
     return { ...this._data }
   }
@@ -340,17 +324,12 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
         answerOptions.mediaConstraints = options.mediaConstraints
       }
 
-      // RTC configuration - use options if provided, otherwise fall back to config from data
-      // Default to STUN servers if not provided - without STUN, only host candidates are gathered
-      // which causes WebRTC to fail for users on the public internet
-      const defaultRtcConfig: RTCConfiguration = {
-        iceServers: [{ urls: [...DEFAULT_STUN_SERVERS] }],
+      // RTC configuration
+      if (options?.rtcConfiguration) {
+        answerOptions.rtcConfiguration = options.rtcConfiguration
+        // JsSIP uses `pcConfig` as the RTCPeerConnection configuration key.
+        answerOptions.pcConfig = options.rtcConfiguration
       }
-      const rtcConfiguration =
-        options?.rtcConfiguration ?? this._data?.rtcConfiguration ?? defaultRtcConfig
-      answerOptions.rtcConfiguration = rtcConfiguration
-      // JsSIP uses `pcConfig` as the RTCPeerConnection configuration key.
-      answerOptions.pcConfig = rtcConfiguration
 
       // Extra headers
       if (options?.extraHeaders) {
@@ -981,11 +960,6 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       // Determine termination cause
       this._terminationCause = this.mapTerminationCause(e.cause)
 
-      // Store last error details for diagnostics
-      this._lastResponseCode = e.response?.status_code
-      this._lastReasonPhrase = e.response?.reason_phrase
-      this._lastErrorMessage = e.message
-
       this.updateState('failed' as CallState)
 
       this.emitCallEvent('call:failed', {
@@ -1152,7 +1126,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     })
 
     // Emit to EventBridge for E2E tests
-    if (typeof window.__emitSipEvent === 'function') {
+    if (typeof (window as any).__emitSipEvent === 'function') {
       // Map CallSession events to EventBridge event names
       let bridgeEvent: string | null = null
 
@@ -1166,8 +1140,8 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
         bridgeEvent = event // Keep these as-is
       }
 
-      if (bridgeEvent && window.__emitSipEvent) {
-        window.__emitSipEvent(bridgeEvent, {
+      if (bridgeEvent) {
+        ;(window as any).__emitSipEvent(bridgeEvent, {
           callId: this._id,
           direction: this._direction,
           remoteUri: this._remoteUri,
@@ -1184,8 +1158,8 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       throw new Error(`${fieldName} is required`)
     }
 
-    // Basic SIP URI validation: sip: or sips: followed by user@host (case-insensitive)
-    const sipUriPattern = /^sips?:[\w\-.!~*'()&=+$,;?/]+@[\w\-.]+/i
+    // Basic SIP URI validation: sip: or sips: followed by user@host
+    const sipUriPattern = /^sips?:[\w\-.!~*'()&=+$,;?/]+@[\w\-.]+/
     if (!sipUriPattern.test(uri)) {
       throw new Error(
         `Invalid SIP URI format for ${fieldName}: ${uri}. Expected format: sip:user@host or sips:user@host`

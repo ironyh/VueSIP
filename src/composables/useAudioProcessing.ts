@@ -8,9 +8,6 @@
  */
 
 import { ref, readonly, onUnmounted, type Ref, type DeepReadonly } from 'vue'
-import { createLogger } from '../utils/logger'
-
-const logger = createLogger('composables:useAudioProcessing')
 
 /**
  * Noise suppression level options
@@ -281,7 +278,7 @@ export function useAudioProcessing(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process stream'
       error.value = errorMessage
-      logger.error('Audio processing error:', err)
+      console.error('Audio processing error:', err)
       return stream
     }
   }
@@ -380,7 +377,7 @@ export function useAudioProcessing(
 
     // Apply constraints
     track.applyConstraints(constraints).catch((err) => {
-      logger.warn('Failed to apply audio constraints:', err)
+      console.warn('Failed to apply audio constraints:', err)
     })
   }
 
