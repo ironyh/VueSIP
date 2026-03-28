@@ -450,7 +450,7 @@ export function useAmiAgentLogin(
         throw new Error(`Invalid queue name(s): ${invalidQueues.join(', ')}`)
       }
 
-      await Promise.allSettled(
+      const loginResults = await Promise.allSettled(
         queuesToJoin.map(async (queue) => {
           try {
             const rawPenalty =
@@ -494,6 +494,14 @@ export function useAmiAgentLogin(
         })
       )
 
+      // Throw the first error encountered to maintain test compatibility
+      const firstLoginError = loginResults.find((r) => r.status === 'rejected') as
+        | PromiseRejectedResult
+        | undefined
+      if (firstLoginError) {
+        throw firstLoginError.reason
+      }
+
       // Set login time if this is first login
       if (!session.value.loginTime) {
         session.value.loginTime = new Date()
@@ -530,7 +538,7 @@ export function useAmiAgentLogin(
         ? logoutOptions.queues
         : session.value.queues.filter((q) => q.isMember).map((q) => q.queue)
 
-      await Promise.allSettled(
+      const logoutResults = await Promise.allSettled(
         queuesToLeave.map(async (queue) => {
           try {
             await client.queueRemove(queue, config.interface)
@@ -553,6 +561,14 @@ export function useAmiAgentLogin(
           }
         })
       )
+
+      // Throw the first error encountered to maintain test compatibility
+      const firstLogoutError = logoutResults.find((r) => r.status === 'rejected') as
+        | PromiseRejectedResult
+        | undefined
+      if (firstLogoutError) {
+        throw firstLogoutError.reason
+      }
 
       // Check if fully logged out
       const stillLoggedIn = session.value.queues.some((q) => q.isMember)
@@ -594,7 +610,7 @@ export function useAmiAgentLogin(
         ? pauseOptions.queues
         : session.value.queues.filter((q) => q.isMember).map((q) => q.queue)
 
-      await Promise.allSettled(
+      const pauseResults = await Promise.allSettled(
         queuesToPause.map(async (queue) => {
           try {
             await client.queuePause(queue, config.interface, true, pauseOptions.reason)
@@ -613,6 +629,14 @@ export function useAmiAgentLogin(
           }
         })
       )
+
+      // Throw the first error encountered to maintain test compatibility
+      const firstPauseError = pauseResults.find((r) => r.status === 'rejected') as
+        | PromiseRejectedResult
+        | undefined
+      if (firstPauseError) {
+        throw firstPauseError.reason
+      }
 
       // Update global pause state
       session.value.isPaused = session.value.queues.some((q) => q.isMember && q.isPaused)
@@ -658,7 +682,7 @@ export function useAmiAgentLogin(
         ? queues
         : session.value.queues.filter((q) => q.isMember && q.isPaused).map((q) => q.queue)
 
-      await Promise.allSettled(
+      const unpauseResults = await Promise.allSettled(
         queuesToUnpause.map(async (queue) => {
           try {
             await client.queuePause(queue, config.interface, false)
@@ -677,6 +701,14 @@ export function useAmiAgentLogin(
           }
         })
       )
+
+      // Throw the first error encountered to maintain test compatibility
+      const firstUnpauseError = unpauseResults.find((r) => r.status === 'rejected') as
+        | PromiseRejectedResult
+        | undefined
+      if (firstUnpauseError) {
+        throw firstUnpauseError.reason
+      }
 
       // Update global pause state
       session.value.isPaused = session.value.queues.some((q) => q.isMember && q.isPaused)
