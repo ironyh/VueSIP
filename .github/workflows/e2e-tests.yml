@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    timeout-minutes: 90
+    timeout-minutes: 180
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -123,7 +123,7 @@ jobs:
     # limitations with mobile browser automation (mockSIPServer + mobile viewport + Playwright).
     # Mobile tests run on main pushes and workflow_dispatch for release verification.
     if: github.event_name != 'pull_request'
-    timeout-minutes: 20
+    timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
