@@ -464,29 +464,42 @@ export function useCallHistory(): UseCallHistoryReturn {
   const getStatistics = (filter?: HistoryFilter): HistoryStatistics => {
     const entries = filter ? applyFilter(history.value, filter).entries : history.value
 
-    const totalCalls = entries.length
-    const incomingCalls = entries.filter((e) => e.direction === CallDirection.Incoming).length
-    const outgoingCalls = entries.filter((e) => e.direction === CallDirection.Outgoing).length
-    const answeredCalls = entries.filter((e) => e.wasAnswered).length
-    const missedCalls = entries.filter((e) => e.wasMissed && !e.wasAnswered).length
-    const videoCalls = entries.filter((e) => e.hasVideo).length
-
-    const totalDuration = entries.reduce((sum, e) => sum + e.duration, 0)
-    const averageDuration = totalCalls > 0 ? totalDuration / totalCalls : 0
-
-    // Calculate frequent contacts
     const contactCounts = new Map<string, { displayName?: string; count: number }>()
-    entries.forEach((entry) => {
-      const existing = contactCounts.get(entry.remoteUri)
-      if (existing) {
-        existing.count++
-      } else {
-        contactCounts.set(entry.remoteUri, {
-          displayName: entry.remoteDisplayName,
-          count: 1,
-        })
+
+    const stats = entries.reduce(
+      (acc, e) => {
+        if (e.direction === CallDirection.Incoming) acc.incomingCalls++
+        if (e.direction === CallDirection.Outgoing) acc.outgoingCalls++
+        if (e.wasAnswered) acc.answeredCalls++
+        if (e.wasMissed && !e.wasAnswered) acc.missedCalls++
+        if (e.hasVideo) acc.videoCalls++
+        acc.totalDuration += e.duration
+
+        // Calculate frequent contacts
+        const existing = contactCounts.get(e.remoteUri)
+        if (existing) {
+          existing.count++
+        } else {
+          contactCounts.set(e.remoteUri, {
+            displayName: e.remoteDisplayName,
+            count: 1,
+          })
+        }
+
+        return acc
+      },
+      {
+        incomingCalls: 0,
+        outgoingCalls: 0,
+        answeredCalls: 0,
+        missedCalls: 0,
+        videoCalls: 0,
+        totalDuration: 0,
       }
-    })
+    )
+
+    const totalCalls = entries.length
+    const averageDuration = totalCalls > 0 ? stats.totalDuration / totalCalls : 0
 
     const frequentContacts = Array.from(contactCounts.entries())
       .map(([uri, data]) => ({
@@ -499,13 +512,8 @@ export function useCallHistory(): UseCallHistoryReturn {
 
     return {
       totalCalls,
-      incomingCalls,
-      outgoingCalls,
-      answeredCalls,
-      missedCalls,
-      totalDuration,
+      ...stats,
       averageDuration,
-      videoCalls,
       frequentContacts,
     }
   }

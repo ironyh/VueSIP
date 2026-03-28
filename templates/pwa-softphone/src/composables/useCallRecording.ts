@@ -47,6 +47,7 @@ async function openDatabase(): Promise<IDBDatabase> {
 export function useCallRecording() {
   const persistenceEnabled = ref(false)
   const currentCallId = ref<string | null>(null)
+  const recordingAudioContext = ref<AudioContext | null>(null)
 
   // Local recording composable
   const recording = useLocalRecording({
@@ -65,6 +66,40 @@ export function useCallRecording() {
     localStorage.setItem('vuesip-recording-persistence', String(enabled))
   }
 
+  /**
+   * Mix local and remote streams for full recording
+   */
+  function createMixedStream(
+    localStream: MediaStream | null,
+    remoteStream: MediaStream | null
+  ): MediaStream | null {
+    if (!localStream && !remoteStream) return null
+
+    // Create audio context if it doesn't exist
+    if (!recordingAudioContext.value || recordingAudioContext.value.state === 'closed') {
+      recordingAudioContext.value = new AudioContext()
+    }
+
+    const ctx = recordingAudioContext.value
+    const destination = ctx.createMediaStreamDestination()
+
+    let hasTracks = false
+
+    if (localStream && localStream.getAudioTracks().length > 0) {
+      const source = ctx.createMediaStreamSource(localStream)
+      source.connect(destination)
+      hasTracks = true
+    }
+
+    if (remoteStream && remoteStream.getAudioTracks().length > 0) {
+      const source = ctx.createMediaStreamSource(remoteStream)
+      source.connect(destination)
+      hasTracks = true
+    }
+
+    return hasTracks ? destination.stream : null
+  }
+
   // Start recording for a call
   async function startRecording(callId: string, stream: MediaStream): Promise<void> {
     currentCallId.value = callId
@@ -78,6 +113,17 @@ export function useCallRecording() {
     if (!currentCallId.value) return null
 
     const recordingData = await recording.stop()
+
+    // Clean up AudioContext if it was used for mixing
+    if (recordingAudioContext.value) {
+      try {
+        await recordingAudioContext.value.close()
+      } catch (err) {
+        console.warn('Failed to close recording AudioContext:', err)
+      }
+      recordingAudioContext.value = null
+    }
+
     if (!recordingData) return null
 
     if (persistenceEnabled.value && recordingData) {
@@ -169,6 +215,7 @@ export function useCallRecording() {
     ...recording,
     persistenceEnabled,
     setPersistenceEnabled,
+    createMixedStream,
     startRecording,
     stopRecording,
     getRecording,

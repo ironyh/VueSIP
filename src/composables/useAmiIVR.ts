@@ -59,7 +59,10 @@ const logger = createLogger('useAmiIVR')
  */
 function sanitizeInput(input: string): string {
   if (!input || typeof input !== 'string') return ''
-  return input.replace(/[<>'";&|`$\\]/g, '').trim().slice(0, 255)
+  return input
+    .replace(/[<>'";&|`$\\]/g, '')
+    .trim()
+    .slice(0, 255)
 }
 
 /**
@@ -181,9 +184,7 @@ export function useAmiIVR(
   // Computed
   const ivrList = computed(() => Array.from(ivrs.value.values()))
 
-  const totalCallers = computed(() =>
-    ivrList.value.reduce((sum, ivr) => sum + ivr.callers.size, 0)
-  )
+  const totalCallers = computed(() => ivrList.value.reduce((sum, ivr) => sum + ivr.callers.size, 0))
 
   const allCallers = computed(() => {
     const callers: IVRCaller[] = []
@@ -320,8 +321,7 @@ export function useAmiIVR(
     }
 
     const menuCount = callerMenuCounts.get(channel) || 1
-    const totalMenus =
-      ivr.stats.avgMenuSelections * (ivr.stats.totalCallers - 1) + menuCount
+    const totalMenus = ivr.stats.avgMenuSelections * (ivr.stats.totalCallers - 1) + menuCount
     ivr.stats.avgMenuSelections = totalMenus / ivr.stats.totalCallers
 
     if (abandoned) {
@@ -761,10 +761,7 @@ export function useAmiIVR(
   /**
    * Breakout all callers from an IVR
    */
-  async function breakoutAllCallers(
-    ivrId: string,
-    destination: string
-  ): Promise<BreakoutResult[]> {
+  async function breakoutAllCallers(ivrId: string, destination: string): Promise<BreakoutResult[]> {
     if (!isValidIVRId(ivrId)) {
       return [{ success: false, channel: '', error: 'Invalid IVR ID' }]
     }
@@ -774,13 +771,12 @@ export function useAmiIVR(
       return [{ success: false, channel: '', error: 'IVR not found' }]
     }
 
-    const results: BreakoutResult[] = []
     const callerIds = Array.from(ivr.callers.keys())
 
-    for (const callerId of callerIds) {
-      const result = await breakoutCaller(ivrId, callerId, destination)
-      results.push(result)
-    }
+    // Use Promise.all to execute breakoutCaller requests concurrently
+    const results = await Promise.all(
+      callerIds.map((callerId) => breakoutCaller(ivrId, callerId, destination))
+    )
 
     return results
   }

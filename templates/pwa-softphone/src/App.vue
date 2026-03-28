@@ -186,10 +186,30 @@ watch(
       const session = phone.session?.value as any
       currentCallId.value = session?.id || null
 
-      // Start recording if persistence is enabled
-      // Note: We need to get the combined audio stream from the call session
-      // For now, recording is manual - user starts it in settings
-      // TODO: Auto-start recording when persistence enabled and call becomes active
+      // Auto-start recording when persistence enabled and call becomes active
+      if (transcriptPersistence.persistenceEnabled.value && currentCallId.value) {
+        const pc = session?.sessionDescriptionHandler?.peerConnection
+        let localStream: MediaStream | null = null
+        let remoteStream: MediaStream | null = null
+        if (pc) {
+          localStream = new MediaStream()
+          pc.getSenders().forEach((sender: RTCRtpSender) => {
+            if (sender.track && sender.track.kind === 'audio') {
+              localStream!.addTrack(sender.track)
+            }
+          })
+          remoteStream = new MediaStream()
+          pc.getReceivers().forEach((receiver: RTCRtpReceiver) => {
+            if (receiver.track) {
+              remoteStream!.addTrack(receiver.track)
+            }
+          })
+        }
+        const mixedStream = callRecording.createMixedStream(localStream, remoteStream)
+        if (mixedStream) {
+          void callRecording.startRecording(currentCallId.value, mixedStream)
+        }
+      }
     }
 
     // When call ends, save transcript and recording

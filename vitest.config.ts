@@ -37,6 +37,15 @@ export default defineConfig({
   },
 
   test: {
+    // TEMP disabled: Vitest 4.1.0 typecheck chokes on baseUrl deprecation; vue-tsc handles types separately
+    // typecheck: {
+    //   enabled: true,
+    //   include: ['tests/**/*.test.ts', 'tests/**/*.spec.ts', 'src/**/*.test.ts'],
+    //   exclude: ['**/node_modules/**', '**/e2e/**'],
+    //   // Use strict mode for type checking
+    //   tsconfig: './tsconfig.json',
+    // },
+
     // Enable global test APIs (describe, it, expect, etc.)
     globals: true,
 
