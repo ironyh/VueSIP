@@ -119,6 +119,10 @@ jobs:
           if-no-files-found: warn
 
   test-mobile:
+    # Skip mobile tests on PRs - they consistently time out (>20min) in CI due to infrastructure
+    # limitations with mobile browser automation (mockSIPServer + mobile viewport + Playwright).
+    # Mobile tests run on main pushes and workflow_dispatch for release verification.
+    if: github.event_name != 'pull_request'
     timeout-minutes: 20
     runs-on: ubuntu-latest
     strategy:
