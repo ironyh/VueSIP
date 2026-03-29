@@ -344,6 +344,7 @@ describe('TransportManager', () => {
       const connectPromise = manager.connect()
       MockWebSocket.lastInstance?.simulateOpen()
       await connectPromise
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       MockWebSocket.lastInstance!.send = vi.fn(() => {
         throw new Error('Send failed')
       })

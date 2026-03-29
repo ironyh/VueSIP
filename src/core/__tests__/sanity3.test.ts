@@ -13,6 +13,7 @@ vi.mock('jssip', () => {
 
     on = vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       if (!this._eventHandlers.has(event)) this._eventHandlers.set(event, new Set())
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this._eventHandlers.get(event)!.add(handler)
     })
     off = vi.fn((event: string, handler: (...args: unknown[]) => void) => {
@@ -21,6 +22,7 @@ vi.mock('jssip', () => {
     })
     once = vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       if (!this._onceHandlers.has(event)) this._onceHandlers.set(event, new Set())
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this._onceHandlers.get(event)!.add(handler)
     })
     constructor(config: Record<string, unknown>) {
@@ -73,8 +75,8 @@ vi.mock('jssip', () => {
   }
 
   const mock = {
-    UA: MockUA as any,
-    UserAgent: MockUA as any,
+    UA: MockUA as unknown as typeof MockUA,
+    UserAgent: MockUA as unknown as typeof MockUA,
     WebSocketInterface: vi.fn(),
     debug: { enable: vi.fn(), disable: vi.fn() },
     version: '3.10.0',

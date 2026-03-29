@@ -12,12 +12,14 @@ import {
   luhnValidate,
   detectCardType,
   type UseComplianceReturn,
+  type AuditLog,
 } from '../src/compliance'
 import type {
   ComplianceConfig,
   ConsentType,
   ConsentMethod,
   DataRetentionPolicy,
+  DataRetention,
 } from '../src/compliance'
 
 // ============================================
@@ -709,7 +711,8 @@ describe('Data Retention', () => {
 
     it('should check days remaining', () => {
       const recentDate = new Date()
-      recentDate.setDate(recentDate.getDate() - 10) // 10 days ago
+      recentDate.setDate(recentDate.getDate() - 10)
+      recentDate.setHours(0, 0, 0, 0) // normalize to midnight to avoid timezone/daylight-saving edge cases
 
       const result = compliance.dataRetention.checkRetention('recording', recentDate)
       expect(result.expired).toBe(false)
@@ -799,7 +802,7 @@ describe('GDPR', () => {
       ]
 
       // Set up audit entries with matching actor and details.userId
-      ;(compliance.auditLog as any).entries.value = [
+      ;(compliance.auditLog as AuditLog).entries.value = [
         {
           id: 'audit-1',
           timestamp: new Date(),
@@ -823,9 +826,9 @@ describe('GDPR', () => {
       expect(updatedConsent.metadata?.userId).toBe('DELETED')
 
       // Verify audit entries were anonymized
-      const updatedAudit = (compliance.auditLog as any).entries.value
+      const updatedAudit = (compliance.auditLog as AuditLog).entries.value
       expect(updatedAudit[0].actor).toBe('ANONYMIZED')
-      expect((updatedAudit[1].details as any).userId).toBe('ANONYMIZED')
+      expect((updatedAudit[1].details as Record<string, unknown>).userId).toBe('ANONYMIZED')
     })
   })
 
@@ -946,7 +949,7 @@ describe('Compliance Validation', () => {
         })
       )
       // Manually clear the auto-generated policies to trigger the edge case
-      ;(compliance.dataRetention as any).policies.value = []
+      ;(compliance.dataRetention as DataRetention).policies.value = []
 
       const result = compliance.validateCompliance()
       expect(result.violations.some((v) => v.includes('retention'))).toBe(true)
