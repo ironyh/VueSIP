@@ -3,19 +3,75 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { MediaManager } from '../MediaManager'
+import {
+  MediaManager,
+  type IceConnectionState,
+  type IceConnectionTransition,
+} from '../MediaManager'
 import { EventBus } from '../EventBus'
+
+/**
+ * ICE connection state event payload
+ */
+interface IceConnectionStateEvent {
+  type: 'ice:connection:state'
+  timestamp: Date
+  payload: {
+    state: IceConnectionState
+    previousState: IceConnectionState | undefined
+    correlationId: string | null
+    transition: IceConnectionTransition
+  }
+}
+
+/**
+ * ICE reconnection attempt event payload
+ */
+interface IceReconnectionAttemptEvent {
+  type: 'ice:reconnection:attempt'
+  timestamp: Date
+  payload: {
+    correlationId: string | null
+    attemptNumber: number
+    totalAttempts: number
+    state: IceConnectionState
+  }
+}
 
 describe('MediaManager ICE Connection State Logging', () => {
   let mediaManager: MediaManager
   let eventBus: EventBus
 
   // Track all event emissions for inspection
-  let iceConnectionStateEvents: any[] = []
-  let iceReconnectionAttemptEvents: any[] = []
+  let iceConnectionStateEvents: IceConnectionStateEvent[] = []
+  let iceReconnectionAttemptEvents: IceReconnectionAttemptEvent[] = []
 
   // Shared mock state so tests can manipulate pc properties directly
-  let mockPcState: any = null
+  let mockPcState: {
+    iceConnectionState: string
+    iceGatheringState: string
+    signalingState: string
+    connectionState: string
+    localDescription: null
+    remoteDescription: null
+    oniceconnectionstatechange: ((...args: unknown[]) => void) | null
+    onicegatheringstatechange: ((...args: unknown[]) => void) | null
+    onsignalingstatechange: ((...args: unknown[]) => void) | null
+    onconnectionstatechange: ((...args: unknown[]) => void) | null
+    ontrack: ((...args: unknown[]) => void) | null
+    onicecandidate: ((...args: unknown[]) => void) | null
+    onnegotiationneeded: ((...args: unknown[]) => void) | null
+    addTrack: ReturnType<typeof vi.fn>
+    removeTrack: ReturnType<typeof vi.fn>
+    getSenders: ReturnType<typeof vi.fn>
+    close: ReturnType<typeof vi.fn>
+    createOffer: ReturnType<typeof vi.fn>
+    createAnswer: ReturnType<typeof vi.fn>
+    setLocalDescription: ReturnType<typeof vi.fn>
+    setRemoteDescription: ReturnType<typeof vi.fn>
+    addIceCandidate: ReturnType<typeof vi.fn>
+    getStats: ReturnType<typeof vi.fn>
+  } | null = null
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -25,16 +81,16 @@ describe('MediaManager ICE Connection State Logging', () => {
     mockPcState = null
 
     // Subscribe to events before creating MediaManager
-    eventBus.on('media:ice:connection:state', (data: any) => {
+    eventBus.on('media:ice:connection:state', (data: IceConnectionStateEvent) => {
       iceConnectionStateEvents.push(data)
     })
-    eventBus.on('media:ice:reconnection:attempt', (data: any) => {
+    eventBus.on('media:ice:reconnection:attempt', (data: IceReconnectionAttemptEvent) => {
       iceReconnectionAttemptEvents.push(data)
     })
 
     // Create a fresh mock instance each time RTCPeerConnection is constructed.
     // Uses a regular function (not arrow) so `new` works correctly.
-    const MockRTCPeerConnection = function (this: any) {
+    const MockRTCPeerConnection = function (this: typeof mockPcState) {
       mockPcState = {
         iceConnectionState: 'new',
         iceGatheringState: 'new',
@@ -62,7 +118,9 @@ describe('MediaManager ICE Connection State Logging', () => {
       }
       return mockPcState
     }
-    ;(global as any).RTCPeerConnection = MockRTCPeerConnection
+    ;(
+      global as typeof globalThis & { RTCPeerConnection: typeof MockRTCPeerConnection }
+    ).RTCPeerConnection = MockRTCPeerConnection
 
     mediaManager = new MediaManager({ eventBus })
   })
@@ -226,7 +284,7 @@ describe('MediaManager ICE Connection State Logging', () => {
 
       // The connected event should have reconnectAttempts
       const connectedEvent = iceConnectionStateEvents.find(
-        (e: any) => e.payload.state === 'connected'
+        (e: IceConnectionStateEvent) => e.payload.state === 'connected'
       )
       expect(connectedEvent).toBeDefined()
       expect(connectedEvent.payload.correlationId).toBeDefined()
@@ -260,7 +318,7 @@ describe('MediaManager ICE Connection State Logging', () => {
 
       // New session should have fresh state
       const connectedEvent = iceConnectionStateEvents.find(
-        (e: any) => e.payload.state === 'connected'
+        (e: IceConnectionStateEvent) => e.payload.state === 'connected'
       )
       expect(connectedEvent).toBeDefined()
       expect(iceReconnectionAttemptEvents).toHaveLength(0)
@@ -282,18 +340,28 @@ describe('MediaManager ICE Connection State Logging', () => {
       const ids: string[] = []
 
       for (let i = 0; i < 3; i++) {
-        const events: any[] = []
+        const events: IceConnectionStateEvent[] = []
         const testEventBus = new EventBus()
-        testEventBus.on('media:ice:connection:state', (data: any) => events.push(data))
+        testEventBus.on('media:ice:connection:state', (data: IceConnectionStateEvent) =>
+          events.push(data)
+        )
 
-        const testMockPc = {
+        const testMockPc: {
+          iceConnectionState: string
+          oniceconnectionstatechange: ((...args: unknown[]) => void) | null
+          addTrack: ReturnType<typeof vi.fn>
+          getSenders: ReturnType<typeof vi.fn>
+          close: ReturnType<typeof vi.fn>
+        } = {
           iceConnectionState: 'new',
           oniceconnectionstatechange: null,
           addTrack: vi.fn(() => ({ dtmf: null })),
           getSenders: vi.fn(() => []),
           close: vi.fn(),
         }
-        ;(global as any).RTCPeerConnection = function () {
+        ;(
+          global as typeof globalThis & { RTCPeerConnection: () => typeof testMockPc }
+        ).RTCPeerConnection = function () {
           return testMockPc
         }
 

@@ -238,6 +238,7 @@ describe('useMessaging', () => {
       await sendMessage('sip:alice@domain.com', 'Second')
       await sendMessage('sip:alice@domain.com', 'Third')
 
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const conv = conversations.value.get('sip:alice@domain.com')!
       expect(conv.messages[0].content).toBe('First')
       expect(conv.messages[1].content).toBe('Second')
@@ -273,6 +274,7 @@ describe('useMessaging', () => {
         isRead: true,
       })
 
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const conv = conversations.value.get('sip:alice@domain.com')!
       expect(conv.unreadCount).toBe(1)
     })
@@ -282,6 +284,7 @@ describe('useMessaging', () => {
 
       await sendMessage('sip:alice@domain.com', 'First')
 
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const conv = conversations.value.get('sip:alice@domain.com')!
       expect(conv.lastMessageAt).toBeInstanceOf(Date)
     })
@@ -966,6 +969,7 @@ describe('useMessaging', () => {
 
       // Simulate incoming message via the SIP client handler
       const handler = mockSipClient._testHandlers.incomingMessage
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       handler!('sip:alice@domain.com', 'Hello from Alice', 'text/plain')
 
       expect(messages.value).toHaveLength(1)
@@ -978,6 +982,7 @@ describe('useMessaging', () => {
       const { messages } = useMessaging(ref(mockSipClient))
 
       const handler = mockSipClient._testHandlers.incomingMessage
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       handler!('sip:alice@domain.com', 'Test', 'text/plain')
 
       expect(messages.value[0].isRead).toBe(false)
@@ -989,6 +994,7 @@ describe('useMessaging', () => {
       onMessagingEvent((e) => receivedEvents.push(e))
 
       const handler = mockSipClient._testHandlers.incomingMessage
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       handler!('sip:alice@domain.com', 'Test', 'text/plain')
 
       expect(receivedEvents).toHaveLength(1)
@@ -1000,6 +1006,7 @@ describe('useMessaging', () => {
 
       // URI without @ is invalid per our mock
       const handler = mockSipClient._testHandlers.incomingMessage
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       handler!('invalid-uri', 'Test', 'text/plain')
 
       expect(messages.value).toHaveLength(0)
@@ -1011,6 +1018,7 @@ describe('useMessaging', () => {
       const { composingIndicators } = useMessaging(ref(mockSipClient))
 
       const handler = mockSipClient._testHandlers.composingIndicator
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       handler!('sip:alice@domain.com', true)
 
       expect(composingIndicators.value.get('sip:alice@domain.com')?.isComposing).toBe(true)
@@ -1020,6 +1028,7 @@ describe('useMessaging', () => {
       const { composingIndicators } = useMessaging(ref(mockSipClient))
 
       const handler = mockSipClient._testHandlers.composingIndicator
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       handler!('sip:alice@domain.com', true)
 
       expect(composingIndicators.value.get('sip:alice@domain.com')?.isComposing).toBe(true)
@@ -1034,6 +1043,7 @@ describe('useMessaging', () => {
       const { composingIndicators } = useMessaging(ref(mockSipClient))
 
       const handler = mockSipClient._testHandlers.composingIndicator
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       handler!('invalid', true)
 
       expect(composingIndicators.value.size).toBe(0)
