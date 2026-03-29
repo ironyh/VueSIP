@@ -13,7 +13,7 @@ const eventHandlers: Record<string, Function[]> = {}
 
 // Create mock AMI client
 const createMockClient = (): AmiClient => {
-  Object.keys(eventHandlers).forEach(key => delete eventHandlers[key])
+  Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
 
   return {
     getSipPeers: vi.fn().mockResolvedValue([]),
@@ -24,7 +24,7 @@ const createMockClient = (): AmiClient => {
     }),
     off: vi.fn((event: string, handler: Function) => {
       if (eventHandlers[event]) {
-        eventHandlers[event] = eventHandlers[event].filter(h => h !== handler)
+        eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler)
       }
     }),
   } as unknown as AmiClient
@@ -32,7 +32,7 @@ const createMockClient = (): AmiClient => {
 
 // Helper to trigger client events
 function triggerClientEvent(event: string, ...args: unknown[]) {
-  eventHandlers[event]?.forEach(handler => handler(...args))
+  eventHandlers[event]?.forEach((handler) => handler(...args))
 }
 
 // Helper to create mock peer
@@ -62,7 +62,7 @@ describe('useAmiPeers', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    Object.keys(eventHandlers).forEach(key => delete eventHandlers[key])
+    Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
     mockClient = createMockClient()
   })
 
@@ -104,14 +104,14 @@ describe('useAmiPeers', () => {
         createMockPeer('1000', { channelType: 'SIP' }),
         createMockPeer('1001', { channelType: 'SIP' }),
       ]
-      const mockPjsipPeers: PeerInfo[] = [
-        createMockPeer('2000', { channelType: 'PJSIP' }),
-      ]
+      const mockPjsipPeers: PeerInfo[] = [createMockPeer('2000', { channelType: 'PJSIP' })]
 
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockSipPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue(mockPjsipPeers)
 
-      const { refresh, peers, peerList, loading, lastRefresh } = useAmiPeers(mockClient)
+      const { refresh, peers, peerList, loading, lastRefresh } = useAmiPeers(mockClient, {
+        includeSip: true,
+      })
 
       expect(loading.value).toBe(false)
 
@@ -137,8 +137,12 @@ describe('useAmiPeers', () => {
     it('should handle refresh errors gracefully with Promise.allSettled', async () => {
       // Note: The implementation uses Promise.allSettled which captures rejections
       // without throwing, so error.value remains null but peers remain empty
-      ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'))
-      ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'))
+      ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Network error')
+      )
+      ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Network error')
+      )
 
       const { refresh, peers, loading } = useAmiPeers(mockClient)
 
@@ -160,19 +164,22 @@ describe('useAmiPeers', () => {
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
       const { refresh, peers, peerList } = useAmiPeers(mockClient, {
+        includeSip: true,
         peerFilter: (p) => !p.objectName.startsWith('trunk-'),
       })
 
       await refresh()
 
       expect(peers.value.size).toBe(2)
-      expect(peerList.value.map(p => p.objectName)).not.toContain('trunk-provider1')
+      expect(peerList.value.map((p) => p.objectName)).not.toContain('trunk-provider1')
     })
 
     it('should only fetch SIP peers when includePjsip is false', async () => {
-      ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue([createMockPeer('1000')])
+      ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue([
+        createMockPeer('1000'),
+      ])
 
-      const { refresh } = useAmiPeers(mockClient, { includePjsip: false })
+      const { refresh } = useAmiPeers(mockClient, { includeSip: true, includePjsip: false })
 
       await refresh()
 
@@ -181,7 +188,9 @@ describe('useAmiPeers', () => {
     })
 
     it('should only fetch PJSIP peers when includeSip is false', async () => {
-      ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([createMockPeer('2000', { channelType: 'PJSIP' })])
+      ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([
+        createMockPeer('2000', { channelType: 'PJSIP' }),
+      ])
 
       const { refresh } = useAmiPeers(mockClient, { includeSip: false })
 
@@ -242,7 +251,7 @@ describe('useAmiPeers', () => {
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
-      const { refresh, getPeer } = useAmiPeers(mockClient)
+      const { refresh, getPeer } = useAmiPeers(mockClient, { includeSip: true })
 
       await refresh()
 
@@ -263,7 +272,7 @@ describe('useAmiPeers', () => {
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
-      const { refresh, isOnline } = useAmiPeers(mockClient)
+      const { refresh, isOnline } = useAmiPeers(mockClient, { includeSip: true })
 
       await refresh()
 
@@ -275,7 +284,7 @@ describe('useAmiPeers', () => {
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
-      const { refresh, isOnline } = useAmiPeers(mockClient)
+      const { refresh, isOnline } = useAmiPeers(mockClient, { includeSip: true })
 
       await refresh()
 
@@ -293,7 +302,7 @@ describe('useAmiPeers', () => {
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
-      const { refresh, isOnline, getPeer } = useAmiPeers(mockClient)
+      const { refresh, isOnline, getPeer } = useAmiPeers(mockClient, { includeSip: true })
 
       await refresh()
 
@@ -307,6 +316,7 @@ describe('useAmiPeers', () => {
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
       const { refresh, isOnline } = useAmiPeers(mockClient, {
+        includeSip: true,
         onlineStatusPatterns: ['Connected', 'Available'],
       })
 
@@ -322,26 +332,22 @@ describe('useAmiPeers', () => {
         createMockPeer('1000', { channelType: 'SIP' }),
         createMockPeer('1001', { channelType: 'SIP' }),
       ]
-      const mockPjsipPeers: PeerInfo[] = [
-        createMockPeer('2000', { channelType: 'PJSIP' }),
-      ]
+      const mockPjsipPeers: PeerInfo[] = [createMockPeer('2000', { channelType: 'PJSIP' })]
 
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockSipPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue(mockPjsipPeers)
 
-      const { refresh, sipPeers } = useAmiPeers(mockClient)
+      const { refresh, sipPeers } = useAmiPeers(mockClient, { includeSip: true })
 
       await refresh()
       await nextTick()
 
       expect(sipPeers.value.length).toBe(2)
-      expect(sipPeers.value.every(p => p.channelType === 'SIP')).toBe(true)
+      expect(sipPeers.value.every((p) => p.channelType === 'SIP')).toBe(true)
     })
 
     it('should compute pjsipPeers', async () => {
-      const mockSipPeers: PeerInfo[] = [
-        createMockPeer('1000', { channelType: 'SIP' }),
-      ]
+      const mockSipPeers: PeerInfo[] = [createMockPeer('1000', { channelType: 'SIP' })]
       const mockPjsipPeers: PeerInfo[] = [
         createMockPeer('2000', { channelType: 'PJSIP' }),
         createMockPeer('2001', { channelType: 'PJSIP' }),
@@ -350,13 +356,13 @@ describe('useAmiPeers', () => {
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockSipPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue(mockPjsipPeers)
 
-      const { refresh, pjsipPeers } = useAmiPeers(mockClient)
+      const { refresh, pjsipPeers } = useAmiPeers(mockClient, { includeSip: false })
 
       await refresh()
       await nextTick()
 
       expect(pjsipPeers.value.length).toBe(2)
-      expect(pjsipPeers.value.every(p => p.channelType === 'PJSIP')).toBe(true)
+      expect(pjsipPeers.value.every((p) => p.channelType === 'PJSIP')).toBe(true)
     })
 
     it('should compute onlinePeers', async () => {
@@ -369,7 +375,7 @@ describe('useAmiPeers', () => {
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
-      const { refresh, onlinePeers } = useAmiPeers(mockClient)
+      const { refresh, onlinePeers } = useAmiPeers(mockClient, { includeSip: true })
 
       await refresh()
       await nextTick()
@@ -387,7 +393,7 @@ describe('useAmiPeers', () => {
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
-      const { refresh, offlinePeers } = useAmiPeers(mockClient)
+      const { refresh, offlinePeers } = useAmiPeers(mockClient, { includeSip: true })
 
       await refresh()
       await nextTick()
@@ -406,7 +412,7 @@ describe('useAmiPeers', () => {
       ;(mockClient.getSipPeers as ReturnType<typeof vi.fn>).mockResolvedValue(mockPeers)
       ;(mockClient.getPjsipEndpoints as ReturnType<typeof vi.fn>).mockResolvedValue([])
 
-      const { refresh, statusSummary } = useAmiPeers(mockClient)
+      const { refresh, statusSummary } = useAmiPeers(mockClient, { includeSip: true })
 
       await refresh()
       await nextTick()

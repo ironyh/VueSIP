@@ -63,7 +63,9 @@ describe('useAmiPeers', () => {
     mockAmiClient.getSipPeers = vi.fn().mockResolvedValue(mockPeers)
     mockAmiClient.getPjsipEndpoints = vi.fn().mockResolvedValue([])
 
-    const { refresh, peers, loading, error } = useAmiPeers(mockAmiClient as AmiClient)
+    const { refresh, peers, loading, error } = useAmiPeers(mockAmiClient as AmiClient, {
+      includeSip: true,
+    })
 
     await refresh()
 
@@ -92,13 +94,13 @@ describe('useAmiPeers', () => {
     mockAmiClient.getSipPeers = vi.fn().mockRejectedValue(new Error('AMI connection failed'))
     mockAmiClient.getPjsipEndpoints = vi.fn().mockRejectedValue(new Error('AMI connection failed'))
 
-    const { refresh, error } = useAmiPeers(mockAmiClient as AmiClient)
+    const { refresh, error, peers } = useAmiPeers(mockAmiClient as AmiClient, { includeSip: true })
 
     await refresh()
 
-    // With Promise.allSettled, errors are in the results, not thrown
-    // This test documents current behavior - errors are not surfaced when individual calls fail
-    expect(error.value).toBe(null)
+    // With Promise.allSettled, errors are silently handled but error.value is set when ALL sources fail
+    expect(error.value).toBeTruthy()
+    expect(peers.value.size).toBe(0)
   })
 
   it('should filter peers correctly', async () => {
@@ -110,6 +112,7 @@ describe('useAmiPeers', () => {
     mockAmiClient.getSipPeers = vi.fn().mockResolvedValue(mockPeers)
 
     const { refresh, onlinePeers, offlinePeers } = useAmiPeers(mockAmiClient as AmiClient, {
+      includeSip: true,
       peerFilter: (peer) => peer.status === 'OK',
     })
 
@@ -129,7 +132,7 @@ describe('useAmiPeers', () => {
 
     mockAmiClient.getSipPeers = vi.fn().mockResolvedValue(mockPeers)
 
-    const { refresh, statusSummary } = useAmiPeers(mockAmiClient as AmiClient)
+    const { refresh, statusSummary } = useAmiPeers(mockAmiClient as AmiClient, { includeSip: true })
 
     await refresh()
 
@@ -147,7 +150,9 @@ describe('useAmiPeers', () => {
 
     mockAmiClient.getSipPeers = vi.fn().mockResolvedValue(mockPeers)
 
-    const { refresh, sipPeers, pjsipPeers } = useAmiPeers(mockAmiClient as AmiClient)
+    const { refresh, sipPeers, pjsipPeers } = useAmiPeers(mockAmiClient as AmiClient, {
+      includeSip: true,
+    })
 
     await refresh()
 
@@ -162,7 +167,7 @@ describe('useAmiPeers', () => {
 
     mockAmiClient.getSipPeers = vi.fn().mockResolvedValue([mockPeer])
 
-    const { refresh, getPeer } = useAmiPeers(mockAmiClient as AmiClient)
+    const { refresh, getPeer } = useAmiPeers(mockAmiClient as AmiClient, { includeSip: true })
 
     await refresh()
 
@@ -179,7 +184,7 @@ describe('useAmiPeers', () => {
 
     mockAmiClient.getSipPeers = vi.fn().mockResolvedValue(mockPeers)
 
-    const { refresh, isOnline } = useAmiPeers(mockAmiClient as AmiClient)
+    const { refresh, isOnline } = useAmiPeers(mockAmiClient as AmiClient, { includeSip: true })
 
     await refresh()
 
@@ -195,6 +200,7 @@ describe('useAmiPeers', () => {
     mockAmiClient.getSipPeers = vi.fn().mockResolvedValue([mockPeer])
 
     const { refresh, getPeer } = useAmiPeers(mockAmiClient as AmiClient, {
+      includeSip: true,
       transformPeer: (peer) => ({
         ...peer,
         objectName: peer.objectName.toUpperCase(),
