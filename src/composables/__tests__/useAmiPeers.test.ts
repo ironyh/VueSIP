@@ -75,6 +75,29 @@ describe('useAmiPeers', () => {
     expect(error.value).toBe(null)
   })
 
+  it('should only fetch PJSIP when includeSip defaults to false (Asterisk 20+ compatible)', async () => {
+    const mockPjsipPeers: PeerInfo[] = [
+      createMockPeer({ objectName: 'pjsip-1', channelType: 'PJSIP', status: 'OK' }),
+    ]
+
+    // getSipPeers should NOT be called with default includeSip: false
+    mockAmiClient.getSipPeers = vi.fn().mockResolvedValue([])
+    mockAmiClient.getPjsipEndpoints = vi.fn().mockResolvedValue(mockPjsipPeers)
+
+    // No includeSip option — uses new default of false (Asterisk 20+ compatible)
+    const { refresh, peers, error } = useAmiPeers(mockAmiClient as AmiClient)
+
+    await refresh()
+
+    // SIP should NOT have been called
+    expect(mockAmiClient.getSipPeers).not.toHaveBeenCalled()
+    // PJSIP should have been called
+    expect(mockAmiClient.getPjsipEndpoints).toHaveBeenCalled()
+    // Peers should be populated from PJSIP
+    expect(peers.value.size).toBe(1)
+    expect(error.value).toBe(null)
+  })
+
   it('should load PJSIP endpoints successfully', async () => {
     const mockEndpoints: PeerInfo[] = [
       createMockPeer({ objectName: 'pjsip-endpoint-1', channelType: 'PJSIP', status: 'OK' }),
@@ -101,6 +124,28 @@ describe('useAmiPeers', () => {
     // With Promise.allSettled, errors are silently handled but error.value is set when ALL sources fail
     expect(error.value).toBeTruthy()
     expect(peers.value.size).toBe(0)
+  })
+
+  it('should tolerate SIP failure when PJSIP succeeds (partial failure)', async () => {
+    const mockPjsipPeers: PeerInfo[] = [
+      createMockPeer({ objectName: 'pjsip-peer-1', channelType: 'PJSIP', status: 'OK' }),
+      createMockPeer({ objectName: 'pjsip-peer-2', channelType: 'PJSIP', status: 'UNREACHABLE' }),
+    ]
+
+    // SIP fails (e.g., chan_sip removed on Asterisk 20+) but PJSIP succeeds
+    mockAmiClient.getSipPeers = vi
+      .fn()
+      .mockRejectedValue(new Error('SIPpeers failed: chan_sip not available'))
+    mockAmiClient.getPjsipEndpoints = vi.fn().mockResolvedValue(mockPjsipPeers)
+
+    const { refresh, error, peers } = useAmiPeers(mockAmiClient as AmiClient, { includeSip: true })
+
+    await refresh()
+
+    // Partial failure is tolerated — PJSIP peers are still available
+    expect(peers.value.size).toBe(2)
+    expect(error.value).toBe(null)
+    expect(peers.value.get('pjsip-peer-1')?.status).toBe('OK')
   })
 
   it('should filter peers correctly', async () => {
