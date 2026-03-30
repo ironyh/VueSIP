@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1](https://github.com/ironyh/VueSIP/compare/v1.2.0...v1.2.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* Asterisk 20+ compatibility — includeSip defaults false + audit docs ([#209](https://github.com/ironyh/VueSIP/issues/209)) ([ee3e4e4](https://github.com/ironyh/VueSIP/commit/ee3e4e48d8130544050519a44d58fe1fb25ba720))
+
 ## [1.2.0](https://github.com/ironyh/VueSIP/compare/v1.1.0...v1.2.0) (2026-03-28)
 
 
