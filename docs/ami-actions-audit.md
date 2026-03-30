@@ -121,4 +121,8 @@ See [`ami-event-audit.md`](./ami-event-audit.md) for full event table. Summary:
 
 ## Recommendation
 
-**No code changes required.** VueSIP is fully compatible with both Asterisk certified-22.8-cert2 and certified-20.7-cert10 at the AMI layer.
+**One code change recommended** (already implemented in this PR):
+
+- **`useAmiPeers` — default `includeSip` to `false`.** The `SIPpeers` AMI action targets `chan_sip`, which was removed in Asterisk 20+. Setting `includeSip: true` will return an error on Asterisk 20+ deployments. The new default (`false`) avoids the failure automatically; set it explicitly to `true` only when targeting Asterisk 13–18 with `chan_sip` present.
+
+All other VueSIP AMI actions and events are fully compatible — no changes needed.
