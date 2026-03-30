@@ -86,6 +86,11 @@ const DEFAULT_ONLINE_PATTERNS = ['OK', 'Registered', 'Reachable', 'Not in use']
  * Provides reactive peer/endpoint status for Vue components.
  * Supports both legacy chan_sip and modern chan_pjsip.
  *
+ * NOTE: `includeSip` defaults to `false` because chan_sip was removed in
+ * Asterisk 20+. The legacy SIPpeers action will fail on Asterisk 20+ even
+ * when the server still uses chan_sip for some endpoints — set `includeSip: true`
+ * only when targeting Asterisk 13–18 or when chan_sip is explicitly present.
+ *
  * @param client - AMI client instance (from useAmi().getClient())
  * @param options - Configuration options with sensible defaults
  *
@@ -103,7 +108,7 @@ const DEFAULT_ONLINE_PATTERNS = ['OK', 'Registered', 'Reachable', 'Not in use']
  *   isOnline,
  * } = useAmiPeers(ami.getClient()!, {
  *   useEvents: true,
- *   includeSip: true,
+ *   includeSip: false,   // chan_sip removed in Asterisk 20+
  *   includePjsip: true,
  *   peerFilter: (peer) => !peer.objectName.startsWith('trunk-'),
  *   onPeerUpdate: (peer) => console.log('Peer updated:', peer.objectName, peer.status),
@@ -129,7 +134,9 @@ export function useAmiPeers(
   const config = {
     pollInterval: options.pollInterval ?? 0,
     useEvents: options.useEvents ?? true,
-    includeSip: options.includeSip ?? true,
+    // chan_sip removed in Asterisk 20+ — SIPpeers action will error on Asterisk 20/22
+    // Set includeSip: true only when targeting Asterisk 13–18 with chan_sip present
+    includeSip: options.includeSip ?? false,
     includePjsip: options.includePjsip ?? true,
     peerFilter: options.peerFilter,
     onlineStatusPatterns: options.onlineStatusPatterns ?? DEFAULT_ONLINE_PATTERNS,
@@ -236,6 +243,8 @@ export function useAmiPeers(
 
       peers.value.clear()
 
+      let hasFailures = false
+
       for (const result of results) {
         if (result.status === 'fulfilled') {
           for (let peer of result.value) {
@@ -251,7 +260,34 @@ export function useAmiPeers(
 
             peers.value.set(peer.objectName, peer)
           }
+        } else {
+          // Handle rejected results
+          hasFailures = true
+          const err = result.reason
+          // Distinguish SIPpeers failure (expected on Asterisk 20+) from real errors
+          const isSipFailure = err instanceof Error && err.message.includes('SIPpeers')
+          if (isSipFailure) {
+            logger.warn(
+              'SIP peers fetch failed — chan_sip removed in Asterisk 20+. ' +
+                'Set includeSip: false to silence this warning.'
+            )
+          } else {
+            logger.error('Peer source failed', err)
+          }
         }
+      }
+
+      // Only set error if all sources failed (partial failure is tolerated)
+      if (hasFailures && peers.value.size === 0) {
+        const sipErr = results[0].status === 'rejected' ? results[0].reason : null
+        const pjsipErr = results[1].status === 'rejected' ? results[1].reason : null
+        const msg =
+          sipErr instanceof Error
+            ? sipErr.message
+            : pjsipErr instanceof Error
+              ? (pjsipErr as Error).message
+              : 'All peer sources failed'
+        error.value = msg
       }
 
       lastRefresh.value = new Date()
