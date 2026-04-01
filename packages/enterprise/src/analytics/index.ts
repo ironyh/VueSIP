@@ -90,6 +90,7 @@ export function useAnalytics(_config?: {
   samplingRate?: number
   realtime?: boolean
 }) {
+  // eslint-disable-next-line no-console -- Deprecation warning must reach developers
   console.warn('@vuesip/enterprise: useAnalytics is deprecated. Use useCallAnalytics instead.')
   return {
     trackEvent: async (_event: Omit<AnalyticsEvent, 'timestamp'>) => {},
