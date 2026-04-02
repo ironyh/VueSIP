@@ -1,0 +1,34 @@
+{
+  "comment": "FreePBX 16 extension configuration template for VueSIP integration testing",
+  "settings": {
+    "sipdriver": "PJSIP",
+    "use_websocket": true,
+    "websocket_port": 8089,
+    "context_internal": "from-internal",
+    "context_external": "from-trunk",
+    "dtmfmode": "rfc4733",
+    "allow_codecs": "ulaw,opus",
+    "webrtc_enabled": true
+  },
+  "extensions": [
+    { "extension": "3001", "password": "pass3001", "name": "Test Ext 3001", "sipdriver": "pjsip" },
+    { "extension": "3002", "password": "pass3002", "name": "Test Ext 3002", "sipdriver": "pjsip" },
+    { "extension": "3003", "password": "pass3003", "name": "Test Ext 3003", "sipdriver": "pjsip" }
+  ],
+  "trunks": [
+    {
+      "name": "test-sip-trunk",
+      "host": "provider.example.com",
+      "username": "trunk_user",
+      "secret": "trunk_secret",
+      "type": "friend",
+      "context": "from-trunk"
+    }
+  ],
+  "features": {
+    "call_forward": { "enabled": true, "codes": { "activate": "*72", "deactivate": "*73", "toggle": "*74" } },
+    "call_park": { "enabled": true, "parkext": "70", "parkpos": "71-75" },
+    "voicemail": { "enabled": true, "default_context": "default" },
+    "recording": { "enabled": true, "format": "wav" }
+  }
+}
