@@ -4,54 +4,166 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>VueSIP Demos</title>
+    <meta name="description" content="Explore live VueSIP demos — softphone, video, call center, IVR tester, and more." />
     <style>
       :root {
         --bg: #0f1117;
         --card: #151823;
+        --card-hover: #1a1e2e;
         --border: #222638;
         --text: #e5e7eb;
         --muted: #9ca3af;
         --primary: #4f46e5;
+        --primary-light: #6366f1;
         --green: #22c55e;
+        --amber: #f59e0b;
+        --cyan: #06b6d4;
+        --pink: #ec4899;
+        --radius: 12px;
       }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
       html, body { height: 100%; }
-      body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial; }
-      .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px; }
-      header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-      header h1 { font-size: 20px; margin: 0; }
-      .grid { display: grid; grid-template-columns: repeat( auto-fit, minmax(280px, 1fr) ); gap: 16px; }
-      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-      .card h2 { margin: 0; font-size: 16px; }
-      .desc { color: var(--muted); font-size: 14px; }
+      body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, Arial; line-height: 1.5; }
+
+      /* Layout */
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 32px; }
+      @media (max-width: 600px) { .wrap { padding: 24px 16px 24px; } }
+
+      /* Header */
+      header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 12px; }
+      header h1 { font-size: 24px; margin: 0; letter-spacing: -0.02em; }
+      @media (max-width: 600px) { header h1 { font-size: 20px; } }
+      .header-actions { display: flex; gap: 10px; align-items: center; }
+
+      /* Hero */
+      .hero { margin-bottom: 32px; }
+      .hero p { color: var(--muted); font-size: 15px; margin: 8px 0 20px; max-width: 640px; }
+      .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+      .hero-badge { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(79,70,229,0.12); color: var(--primary-light); border: 1px solid rgba(79,70,229,0.25); }
+
+      /* Search & Filter */
+      .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 24px; }
+      .search-wrap { position: relative; flex: 1; min-width: 200px; }
+      .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+      .search { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px 10px 38px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.2s; }
+      .search::placeholder { color: var(--muted); }
+      .search:focus { border-color: var(--primary); }
+      .search-kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; pointer-events: none; }
+      @media (max-width: 600px) { .search-kbd { display: none; } }
+      .filter-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+      .pill { font-size: 13px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+      .pill:hover { color: var(--text); border-color: var(--text); }
+      .pill.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+      /* Grid */
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 40px; }
+      @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+      /* Card */
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.2s, background 0.2s, transform 0.15s; cursor: default; }
+      .card:hover { border-color: rgba(79,70,229,0.4); background: var(--card-hover); }
+      .card.hidden { display: none; }
+      .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+      .card h2 { margin: 0; font-size: 16px; font-weight: 600; }
+      .card-icon { font-size: 22px; flex-shrink: 0; line-height: 1; }
+      .desc { color: var(--muted); font-size: 14px; line-height: 1.5; }
       .tags { display: flex; flex-wrap: wrap; gap: 6px; }
-      .tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); background: #0f1220; color: var(--muted); }
-      .links { display: flex; gap: 10px; margin-top: 8px; }
-      a.btn { text-decoration: none; color: white; background: var(--primary); padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+      .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); background: #0f1220; color: var(--muted); }
+      .links { display: flex; gap: 10px; margin-top: auto; padding-top: 8px; }
+      a.btn { text-decoration: none; color: white; background: var(--primary); padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; transition: background 0.15s; white-space: nowrap; }
+      a.btn:hover { background: var(--primary-light); }
       a.btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
-      footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
-      .muted { color: var(--muted); }
+      a.btn.secondary:hover { border-color: var(--text); }
+
+      /* Status dot */
+      .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; vertical-align: middle; }
+      .status-dot.offline { background: var(--muted); }
+
+      /* Ports table */
       .ports { margin: 20px 0; font-size: 14px; }
+      .ports h3 { font-size: 15px; margin-bottom: 12px; }
       .ports table { width: 100%; border-collapse: collapse; }
-      .ports th, .ports td { border-bottom: 1px solid var(--border); padding: 8px; text-align: left; }
+      .ports th, .ports td { border-bottom: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+      .ports th { color: var(--muted); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+      .ports code { font-size: 13px; background: var(--card); padding: 2px 6px; border-radius: 4px; }
+
+      /* Footer */
+      footer { margin-top: 28px; color: var(--muted); font-size: 12px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+      /* No results */
+      .no-results { display: none; text-align: center; padding: 48px 20px; color: var(--muted); }
+      .no-results.show { display: block; }
+      .no-results svg { margin-bottom: 12px; opacity: 0.4; }
+
+      /* Fade-in animation */
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      .card { animation: fadeIn 0.3s ease both; }
+      .card:nth-child(2) { animation-delay: 0.04s; }
+      .card:nth-child(3) { animation-delay: 0.08s; }
+      .card:nth-child(4) { animation-delay: 0.12s; }
+      .card:nth-child(5) { animation-delay: 0.16s; }
+
+      /* Focus-visible */
+      a.btn:focus-visible, .pill:focus-visible, .search:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        .card { animation: none; }
+        html { scroll-behavior: auto; }
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
       <header>
         <h1>VueSIP Live Demos</h1>
-        <a class="btn secondary" href="https://github.com/ironyh/VueSIP">View Source</a>
+        <div class="header-actions">
+          <a class="btn secondary" href="https://github.com/ironyh/VueSIP">View Source ↗</a>
+        </div>
       </header>
 
-      <p class="muted">Explore VueSIP demos. Each runs on its own subdomain for clean PWA scopes and simpler backend CORS.</p>
+      <div class="hero">
+        <p>Explore VueSIP's capabilities through live, interactive demos. Each runs on its own subdomain for clean PWA scopes and simpler backend CORS. <strong>Click "Open" to try any demo instantly.</strong></p>
+        <div class="hero-badges">
+          <span class="hero-badge">WebRTC</span>
+          <span class="hero-badge">SIP / PJSIP</span>
+          <span class="hero-badge">Vue 3</span>
+          <span class="hero-badge">TypeScript</span>
+          <span class="hero-badge">Open Source</span>
+        </div>
+      </div>
 
-      <div class="grid">
-        <div class="card">
-          <h2>Softphone (PWA)</h2>
-          <div class="desc">Installable PWA softphone with push notifications, offline cache, full call controls, and device selection.</div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="search" id="search" type="text" placeholder="Search demos…" aria-label="Search demos" />
+          <span class="search-kbd">/</span>
+        </div>
+        <div class="filter-pills" role="tablist" aria-label="Filter by category">
+          <button class="pill active" data-cat="all" role="tab" aria-selected="true">All</button>
+          <button class="pill" data-cat="calling" role="tab" aria-selected="false">Calling</button>
+          <button class="pill" data-cat="video" role="tab" aria-selected="false">Video</button>
+          <button class="pill" data-cat="contact-center" role="tab" aria-selected="false">Contact Center</button>
+          <button class="pill" data-cat="tools" role="tab" aria-selected="false">Tools</button>
+        </div>
+      </div>
+
+      <div class="grid" id="grid">
+        <div class="card" data-cat="calling" data-name="Softphone PWA">
+          <div class="card-header">
+            <h2><span class="status-dot"></span>Softphone (PWA)</h2>
+            <span class="card-icon">📱</span>
+          </div>
+          <div class="desc">Installable PWA softphone with push notifications, offline cache, full call controls, and device selection. Works on mobile and desktop.</div>
           <div class="tags">
             <span class="tag">PWA</span>
             <span class="tag">Push</span>
             <span class="tag">DTMF</span>
+            <span class="tag">Offline</span>
           </div>
           <div class="links">
             <a class="btn" href="https://softphone.vuesip.com">Open</a>
@@ -59,9 +171,12 @@
           </div>
         </div>
 
-        <div class="card">
-          <h2>Basic Softphone</h2>
-          <div class="desc">Reference softphone using PrimeVue UI components. Good for learning and customization.</div>
+        <div class="card" data-cat="calling" data-name="Basic Softphone">
+          <div class="card-header">
+            <h2><span class="status-dot"></span>Basic Softphone</h2>
+            <span class="card-icon">☎️</span>
+          </div>
+          <div class="desc">Reference softphone using PrimeVue UI components. Good starting point for learning the API and building custom UIs.</div>
           <div class="tags">
             <span class="tag">PrimeVue</span>
             <span class="tag">DTMF</span>
@@ -73,13 +188,17 @@
           </div>
         </div>
 
-        <div class="card">
-          <h2>IVR Tester</h2>
-          <div class="desc">Map IVR trees visually as you navigate menus. Send DTMF, capture transcripts, and export sessions.</div>
+        <div class="card" data-cat="tools" data-name="IVR Tester">
+          <div class="card-header">
+            <h2><span class="status-dot"></span>IVR Tester</h2>
+            <span class="card-icon">🌳</span>
+          </div>
+          <div class="desc">Map IVR trees visually as you navigate menus. Send DTMF tones, capture transcripts, and export sessions for QA.</div>
           <div class="tags">
             <span class="tag">IVR</span>
             <span class="tag">DTMF</span>
             <span class="tag">Transcripts</span>
+            <span class="tag">Export</span>
           </div>
           <div class="links">
             <a class="btn" href="https://ivr.vuesip.com">Open</a>
@@ -87,9 +206,12 @@
           </div>
         </div>
 
-        <div class="card">
-          <h2>Video Room</h2>
-          <div class="desc">Multi-participant grid with active speaker highlights, participant pinning, chat, and screen sharing.</div>
+        <div class="card" data-cat="video" data-name="Video Room">
+          <div class="card-header">
+            <h2><span class="status-dot"></span>Video Room</h2>
+            <span class="card-icon">🎥</span>
+          </div>
+          <div class="desc">Multi-participant grid with active speaker highlights, participant pinning, text chat, and screen sharing.</div>
           <div class="tags">
             <span class="tag">Video</span>
             <span class="tag">Screen Share</span>
@@ -101,13 +223,16 @@
           </div>
         </div>
 
-        <div class="card">
-          <h2>Call Center</h2>
-          <div class="desc">Agent dashboard, queues, and supervisor controls. Requires AMI WebSocket proxy.</div>
+        <div class="card" data-cat="contact-center" data-name="Call Center">
+          <div class="card-header">
+            <h2><span class="status-dot"></span>Call Center</h2>
+            <span class="card-icon">🎧</span>
+          </div>
+          <div class="desc">Agent dashboard with real-time queue monitoring and supervisor controls. Requires AMI WebSocket proxy backend.</div>
           <div class="tags">
             <span class="tag">Queues</span>
             <span class="tag">Supervisor</span>
-            <span class="tag">DTMF</span>
+            <span class="tag">AMI</span>
           </div>
           <div class="links">
             <a class="btn" href="https://callcenter.vuesip.com">Open</a>
@@ -116,22 +241,84 @@
         </div>
       </div>
 
+      <div class="no-results" id="no-results">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <p>No demos match your search.</p>
+      </div>
+
       <div class="ports">
         <h3>Default Local Ports</h3>
         <table>
-          <tr><th>Template</th><th>Port</th><th>URL</th></tr>
-          <tr><td>Minimal</td><td>3000</td><td>http://localhost:3000</td></tr>
-          <tr><td>Basic Softphone</td><td>3001</td><td>http://localhost:3001</td></tr>
-          <tr><td>PWA Softphone</td><td>3002</td><td>http://localhost:3002</td></tr>
-          <tr><td>Video Room</td><td>3003</td><td>http://localhost:3003</td></tr>
-          <tr><td>Call Center</td><td>3004</td><td>http://localhost:3004</td></tr>
-          <tr><td>IVR Tester</td><td>3005</td><td>http://localhost:3005</td></tr>
+          <thead>
+            <tr><th>Template</th><th>Port</th><th>URL</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Minimal</td><td>3000</td><td><code>http://localhost:3000</code></td></tr>
+            <tr><td>Basic Softphone</td><td>3001</td><td><code>http://localhost:3001</code></td></tr>
+            <tr><td>PWA Softphone</td><td>3002</td><td><code>http://localhost:3002</code></td></tr>
+            <tr><td>Video Room</td><td>3003</td><td><code>http://localhost:3003</code></td></tr>
+            <tr><td>Call Center</td><td>3004</td><td><code>http://localhost:3004</code></td></tr>
+            <tr><td>IVR Tester</td><td>3005</td><td><code>http://localhost:3005</code></td></tr>
+          </tbody>
         </table>
       </div>
 
       <footer>
-        Deploy these demos to Cloudflare Pages or your preferred host. Subdomain mapping keeps PWA scopes isolated.
+        <p>Deploy these demos to Cloudflare Pages or your preferred host. Subdomain mapping keeps PWA scopes isolated.</p>
       </footer>
     </div>
+
+    <script>
+      (() => {
+        const grid = document.getElementById('grid');
+        const cards = Array.from(grid.querySelectorAll('.card'));
+        const search = document.getElementById('search');
+        const noResults = document.getElementById('no-results');
+        const pills = document.querySelectorAll('.pill');
+        let activeCat = 'all';
+
+        function filter() {
+          const q = search.value.trim().toLowerCase();
+          let visible = 0;
+          cards.forEach(card => {
+            const name = (card.dataset.name || '').toLowerCase();
+            const cat = card.dataset.cat || '';
+            const text = card.textContent.toLowerCase();
+            const matchCat = activeCat === 'all' || cat === activeCat;
+            const matchQ = !q || name.includes(q) || text.includes(q);
+            card.classList.toggle('hidden', !(matchCat && matchQ));
+            if (matchCat && matchQ) visible++;
+          });
+          noResults.classList.toggle('show', visible === 0);
+        }
+
+        // Search input
+        search.addEventListener('input', filter);
+
+        // Category pills
+        pills.forEach(pill => {
+          pill.addEventListener('click', () => {
+            pills.forEach(p => { p.classList.remove('active'); p.setAttribute('aria-selected', 'false'); });
+            pill.classList.add('active');
+            pill.setAttribute('aria-selected', 'true');
+            activeCat = pill.dataset.cat;
+            filter();
+          });
+        });
+
+        // Keyboard shortcut: / to focus search
+        document.addEventListener('keydown', e => {
+          if (e.key === '/' && document.activeElement !== search) {
+            e.preventDefault();
+            search.focus();
+          }
+          if (e.key === 'Escape' && document.activeElement === search) {
+            search.value = '';
+            search.blur();
+            filter();
+          }
+        });
+      })();
+    </script>
   </body>
-  </html>
+</html>
