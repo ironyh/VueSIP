@@ -80,6 +80,24 @@ const statusText = computed(() => {
   return 'Ready'
 })
 
+// Error with actionable hint
+const errorHint = computed(() => {
+  if (!sipError.value) return ''
+  const msg = sipError.value.message?.toLowerCase() || ''
+  if (msg.includes('websocket') || msg.includes('connection'))
+    return 'Check your WebSocket URI and network connectivity.'
+  if (
+    msg.includes('auth') ||
+    msg.includes('register') ||
+    msg.includes('401') ||
+    msg.includes('403')
+  )
+    return 'Verify your SIP URI and password are correct.'
+  if (msg.includes('timeout'))
+    return 'The server did not respond in time. Try again or check your network.'
+  return 'Check your configuration and try again.'
+})
+
 // DTMF Keypad
 const dtmfKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#']
 
@@ -194,6 +212,10 @@ onUnmounted(async () => {
     <!-- Configuration Panel -->
     <section v-if="showConfig" class="config-panel">
       <h2>SIP Configuration</h2>
+      <p class="help-text">
+        Enter your SIP account details to connect. You'll need the WebSocket URI from your PBX, your
+        SIP credentials, and a display name.
+      </p>
       <form @submit.prevent="handleConnect">
         <div class="form-group">
           <label for="uri">WebSocket URI</label>
@@ -238,7 +260,11 @@ onUnmounted(async () => {
           {{ isConnecting ? 'Connecting...' : 'Connect' }}
         </button>
       </form>
-      <p v-if="statusMessage" class="error">{{ statusMessage }}</p>
+      <div v-if="statusMessage" class="error-container">
+        <p class="error">{{ statusMessage }}</p>
+        <button type="button" class="retry-btn" @click="handleConnect">Retry</button>
+      </div>
+      <div v-if="errorHint" class="error-hint">💡 {{ errorHint }}</div>
     </section>
 
     <!-- Call Panel -->
@@ -398,6 +424,17 @@ h1 {
   border-radius: 12px;
 }
 
+.help-text {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  background: #eff6ff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border-left: 3px solid #3b82f6;
+}
+
 h2 {
   margin: 0 0 16px;
   font-size: 18px;
@@ -488,7 +525,44 @@ button[type='submit']:hover:not(:disabled),
 .error {
   color: #dc3545;
   font-size: 14px;
+  margin: 0;
+}
+
+.error-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 12px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border-radius: 8px;
+}
+
+.error-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #6b7280;
+  background: #fefce8;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.retry-btn {
+  width: auto;
+  padding: 6px 16px;
+  font-size: 13px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.retry-btn:hover {
+  background: #c82333;
 }
 
 .call-info {
