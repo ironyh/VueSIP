@@ -166,6 +166,16 @@ describe('Asterisk Call Flow Validation', () => {
 // ============================================================================
 
 describe('Asterisk Feature Validation', () => {
+  let server: MockPBXServer
+
+  beforeEach(() => {
+    server = createMockPBX('asterisk')
+  })
+
+  afterEach(() => {
+    server.reset()
+  })
+
   it('should report available features for Asterisk 20', () => {
     expect(ASTERISK_20_CONFIG.features?.transfer).toBe(true)
     expect(ASTERISK_20_CONFIG.features?.hold).toBe(true)
@@ -354,8 +364,9 @@ describe('Asterisk Edge Case Validation', () => {
     session.state = 'error'
     expect(session.state).toBe('error')
 
-    server.registerExtension(ext)
-    expect(session.state).toBe('registered')
+    // registerExtension returns a fresh session object — re-bind variable
+    const restoredSession = server.registerExtension(ext)
+    expect(restoredSession.state).toBe('registered')
   })
 
   it('should handle SIP 408 Request Timeout', () => {
