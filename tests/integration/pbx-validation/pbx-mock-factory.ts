@@ -98,9 +98,24 @@ export const FREEPBX_16_CONFIG: PBXConfig = {
   wsUri: 'wss://freepbx16-test.local:8089/ws',
   domain: 'freepbx16-test.local',
   extensions: [
-    { number: '3001', password: 'pass3001', displayName: 'Extension 3001', context: 'from-internal' },
-    { number: '3002', password: 'pass3002', displayName: 'Extension 3002', context: 'from-internal' },
-    { number: '3003', password: 'pass3003', displayName: 'Extension 3003', context: 'from-internal' },
+    {
+      number: '3001',
+      password: 'pass3001',
+      displayName: 'Extension 3001',
+      context: 'from-internal',
+    },
+    {
+      number: '3002',
+      password: 'pass3002',
+      displayName: 'Extension 3002',
+      context: 'from-internal',
+    },
+    {
+      number: '3003',
+      password: 'pass3003',
+      displayName: 'Extension 3003',
+      context: 'from-internal',
+    },
   ],
   trunks: [
     { name: 'sip-trunk-1', host: 'provider.example.com', username: 'trunkuser', type: 'friend' },
@@ -129,8 +144,12 @@ export class MockPBXServer {
     this.config = config
   }
 
-  get type() { return this.config.type }
-  get version() { return this.config.version }
+  get type() {
+    return this.config.type
+  }
+  get version() {
+    return this.config.version
+  }
 
   /**
    * Simulate an extension registering with the PBX
@@ -212,6 +231,114 @@ export class MockPBXServer {
    */
   getActiveCalls(): MockCall[] {
     return [...this.activeCalls.values()].filter((c) => c.state !== 'ended')
+  }
+
+  /**
+   * Hold a simulated call
+   */
+  holdCall(callId: string): void {
+    const call = this.activeCalls.get(callId)
+    if (!call) throw new Error(`Call ${callId} not found`)
+    if (call.state !== 'active') throw new Error(`Call ${callId} is not active`)
+    call.state = 'held'
+    this.logEvent('call-hold', { callId })
+  }
+
+  /**
+   * Resume a held call
+   */
+  resumeCall(callId: string): void {
+    const call = this.activeCalls.get(callId)
+    if (!call) throw new Error(`Call ${callId} not found`)
+    if (call.state !== 'held') throw new Error(`Call ${callId} is not held`)
+    call.state = 'active'
+    this.logEvent('call-resume', { callId })
+  }
+
+  /**
+   * Transfer a call (blind or attended)
+   */
+  transferCall(callId: string, target: string, attended = false): void {
+    const call = this.activeCalls.get(callId)
+    if (!call) throw new Error(`Call ${callId} not found`)
+    const from = call.from
+    this.logEvent(attended ? 'attended-transfer' : 'blind-transfer', {
+      callId,
+      from,
+      to: target,
+    })
+    const fromSession = this.connectedExtensions.get(from)
+    if (fromSession) {
+      fromSession.onTransfer?.({ callId, target, attended })
+    }
+  }
+
+  /**
+   * Park a call at a slot
+   */
+  parkCall(callId: string, slot: number): void {
+    const call = this.activeCalls.get(callId)
+    if (!call) throw new Error(`Call ${callId} not found`)
+    call.state = 'held'
+    this.logEvent('call-park', { callId, slot })
+  }
+
+  /**
+   * Simulate voicemail deposit
+   */
+  depositVoicemail(extension: string, duration: number): { messageId: string } {
+    const messageId = `vm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    this.logEvent('voicemail-deposit', { extension, messageId, duration })
+    return { messageId }
+  }
+
+  /**
+   * Simulate voicemail retrieval count
+   */
+  getVoicemailCount(extension: string): number {
+    return this.eventLog.filter(
+      (e) => e.type === 'voicemail-deposit' && e.data.extension === extension
+    ).length
+  }
+
+  /**
+   * Simulate DTMF tone
+   */
+  sendDTMF(callId: string, digit: string, method: 'inband' | 'rfc2833' | 'info' = 'rfc2833'): void {
+    const call = this.activeCalls.get(callId)
+    if (!call) throw new Error(`Call ${callId} not found`)
+    this.logEvent('dtmf', { callId, digit, method })
+  }
+
+  /**
+   * Simulate a SIP error response
+   */
+  simulateSIPError(callId: string, statusCode: number, reason: string): void {
+    const call = this.activeCalls.get(callId)
+    if (call) {
+      call.state = 'ended'
+      call.endedAt = new Date()
+      call.duration = call.answeredAt
+        ? (call.endedAt.getTime() - call.answeredAt.getTime()) / 1000
+        : 0
+    }
+    this.logEvent('sip-error', { callId, statusCode, reason })
+  }
+
+  /**
+   * Simulate network reconnection
+   */
+  simulateReconnect(extension: string, delay: number): void {
+    const session = this.connectedExtensions.get(extension)
+    if (session) {
+      session.state = 'error'
+      this.logEvent('network-lost', { extension })
+      // Simulate reconnect after delay
+      setTimeout(() => {
+        session.state = 'registered'
+        this.logEvent('network-restored', { extension, delay })
+      }, delay)
+    }
   }
 
   /**
