@@ -2,7 +2,7 @@
  * Theme management composable
  * Provides theme toggling and state management with CSS variable system
  */
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 
 const THEME_STORAGE_KEY = 'vuesip-theme'
 
@@ -34,18 +34,6 @@ const applyTheme = (dark: boolean): void => {
   }
 }
 
-/**
- * Get current theme
- * @returns The current theme ('light' or 'dark')
- */
-const getCurrentTheme = (): Theme => {
-  return isDarkMode.value ? 'dark' : 'light'
-}
-
-/**
- * Set theme
- * @param theme - The theme to set ('light' or 'dark')
- */
 const setTheme = (theme: Theme): void => {
   isDarkMode.value = theme === 'dark'
 }
@@ -93,6 +81,9 @@ export function useTheme() {
     initializeTheme()
   })
 
+  // Expose theme as a computed ref for better Vue 3 reactivity
+  const theme = computed<Theme>(() => (isDarkMode.value ? 'dark' : 'light'))
+
   // Watch for theme changes and persist
   watch(isDarkMode, (newValue) => {
     applyTheme(newValue)
@@ -104,7 +95,7 @@ export function useTheme() {
 
   return {
     isDarkMode,
-    theme: getCurrentTheme,
+    theme,
     setTheme,
     toggleTheme,
   }

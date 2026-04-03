@@ -62,13 +62,13 @@ describe('useTheme', () => {
     unmount()
   })
 
-  it('should return theme function', () => {
+  it('should return theme as computed ref', () => {
     const { result, unmount } = withSetup(() => {
       const { theme } = useTheme()
       return { theme }
     })
 
-    expect(result.theme()).toBe('light')
+    expect(result.theme.value).toBe('light')
     unmount()
   })
 

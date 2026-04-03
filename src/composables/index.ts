@@ -138,7 +138,11 @@ export {
 export { useSipE911, type UseSipE911Return } from './useSipE911'
 export { useSipSecondLine } from './useSipSecondLine'
 export type { UseSipSecondLineReturn } from '../types/multiline.types'
-export { useSipConnection, type UseSipConnectionReturn } from './useSipConnection'
+export {
+  useSipConnection,
+  type UseSipConnectionReturn,
+  type SipConnectionConfig,
+} from './useSipConnection'
 
 // Call quality composables
 export { useCallQualityScore } from './useCallQualityScore'
