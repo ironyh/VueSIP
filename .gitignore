@@ -143,3 +143,4 @@ hive-mind-prompt-*.txt
 
 # OpenMOSS CLI wrapper (local operational tool)
 moss
+pbx-reports/

@@ -34,7 +34,7 @@ const applyTheme = (dark: boolean, enableTransition = true): void => {
   if (enableTransition && !isTransitioning.value) {
     isTransitioning.value = true
     document.documentElement.classList.add('theme-transitioning')
-    
+
     // Remove transition class after animation completes
     setTimeout(() => {
       isTransitioning.value = false
@@ -84,7 +84,7 @@ const savePreference = (theme: Theme): void => {
 
 const setTheme = (theme: Theme, enableTransition = true): void => {
   isDarkMode.value = theme === 'dark'
-  applyTheme(theme, enableTransition)
+  applyTheme(theme === 'dark', enableTransition)
   savePreference(theme)
 }
 
@@ -104,18 +104,16 @@ const toggleTheme = (enableTransition = true): Theme => {
  * @param options - Configuration options
  * @returns void
  */
-const initializeTheme = (options: {
-  enableTransition?: boolean
-  respectSystemPref?: boolean
-  fallbackTheme?: Theme
-} = {}): void => {
+const initializeTheme = (
+  options: {
+    enableTransition?: boolean
+    respectSystemPref?: boolean
+    fallbackTheme?: Theme
+  } = {}
+): void => {
   if (isInitialized.value) return
 
-  const {
-    enableTransition = true,
-    respectSystemPref = true,
-    fallbackTheme = 'light'
-  } = options
+  const { enableTransition = true, respectSystemPref = true, fallbackTheme = 'light' } = options
 
   // Guard against non-browser environments (SSR, workers, etc.)
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
@@ -125,7 +123,7 @@ const initializeTheme = (options: {
   }
 
   const saved = getSavedPreference()
-  
+
   if (saved) {
     // Use saved preference
     isDarkMode.value = saved === 'dark'
@@ -146,19 +144,19 @@ const initializeTheme = (options: {
  * @param callback - Callback to execute when system theme changes
  * @returns Cleanup function
  */
-const onSystemThemeChange = (callback: (isDark: boolean) => void): () => void => {
+const onSystemThemeChange = (callback: (isDark: boolean) => void): (() => void) => {
   if (typeof window === 'undefined' || !window.matchMedia) {
     return () => {}
   }
 
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  
+
   const handleChange = (event: MediaQueryListEvent) => {
     callback(event.matches)
   }
 
   mediaQuery.addEventListener('change', handleChange)
-  
+
   return () => {
     mediaQuery.removeEventListener('change', handleChange)
   }
@@ -193,10 +191,10 @@ export function useTheme() {
   // Listen for system theme changes only when no explicit preference is set
   const systemThemeListener = computed(() => {
     if (!isInitialized.value) return () => {}
-    
+
     const saved = getSavedPreference()
     if (saved !== null) return () => {} // Don't listen if user has explicit preference
-    
+
     return onSystemThemeChange((isDark) => {
       if (!isTransitioning.value) {
         isDarkMode.value = isDark
@@ -211,20 +209,20 @@ export function useTheme() {
     theme,
     isTransitioning,
     isInitialized,
-    
+
     // Actions
     setTheme,
     toggleTheme,
     initializeTheme,
-    
+
     // System preference
     getSystemPreference,
-    
+
     // Cleanup
     cleanupSystemListener,
     systemThemeListener: systemThemeListener.value,
-    
+
     // Testing utilities
-    _resetForTesting: () => _resetForTesting()
+    _resetForTesting: () => _resetForTesting(),
   }
 }

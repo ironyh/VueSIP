@@ -50,13 +50,13 @@
     </svg>
 
     <!-- Transition effect -->
-    <div class="theme-toggle-transition" />
+    <div class="theme-toggle-transition"></div>
   </button>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useTheme } from '../composables/useTheme'
+import { useTheme } from '@/composables/useTheme'
 
 interface Props {
   /**
@@ -88,7 +88,7 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'md',
   showTooltip: false,
   tooltipText: '',
-  animated: true
+  animated: true,
 })
 
 const { isDarkMode, toggleTheme } = useTheme()
@@ -100,10 +100,10 @@ const isFocused = ref(false)
 const themeToggleClasses = computed(() => [
   'theme-toggle',
   `theme-toggle--${props.size}`,
-  { 
+  {
     'theme-toggle--focused': isFocused.value,
-    'theme-toggle--animated': props.animated
-  }
+    'theme-toggle--animated': props.animated,
+  },
 ])
 
 // ARIA label for accessibility
@@ -211,7 +211,7 @@ const handleKeydown = (event: KeyboardEvent) => {
   .theme-toggle--animated .theme-toggle-transition {
     transition: none;
   }
-  
+
   .theme-toggle:hover .theme-toggle-icon {
     transform: none;
   }
