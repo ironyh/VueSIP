@@ -1,0 +1,275 @@
+name: PBX Integration Tests
+
+# Automated PBX integration test pipeline.
+# Runs PBX validation tests (Asterisk, FreePBX) on every push/PR,
+# generates structured reports, and posts failure summaries as PR comments.
+
+on:
+  push:
+    branches: [main, develop, 'claude/**']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      pbx_type:
+        description: 'PBX platform to test'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - asterisk
+          - freepbx
+  schedule:
+    # Nightly full PBX test suite at 03:00 UTC
+    - cron: '0 3 * * *'
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+env:
+  NODE_VERSION: '20.x'
+  PNPM_VERSION: 9
+
+jobs:
+  # ── Detect PBX test changes ──────────────────────────────────────────────
+
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      pbx: ${{ steps.filter.outputs.pbx }}
+      src: ${{ steps.filter.outputs.src }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            pbx:
+              - 'tests/integration/pbx-validation/**'
+              - 'tests/pbx-framework/**'
+              - 'scripts/pbx-test-runner.mjs'
+              - '.github/workflows/pbx-integration.yml'
+            src:
+              - 'src/**'
+              - 'packages/**'
+              - 'tests/**'
+
+  # ── Run PBX Tests ───────────────────────────────────────────────────────
+
+  pbx-tests:
+    name: PBX Tests (${{ matrix.platform }})
+    needs: changes
+    if: >
+      needs.changes.outputs.pbx == 'true' ||
+      needs.changes.outputs.src == 'true' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - asterisk
+          - freepbx
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm run build
+
+      - name: Run PBX integration tests
+        run: |
+          node scripts/pbx-test-runner.mjs \
+            --output-dir pbx-reports \
+            --junit
+        env:
+          VUESIP_TEST_PBX_TYPE: ${{ matrix.platform }}
+          CI: true
+
+      - name: Upload PBX test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pbx-results-${{ matrix.platform }}
+          path: |
+            pbx-reports/
+          retention-days: 30
+
+      - name: Upload JUnit results to GitHub Checks
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: PBX Tests (${{ matrix.platform }})
+          path: pbx-reports/pbx-test-results.xml
+          reporter: java-junit
+          fail-on-error: false
+
+  # ── Aggregate Reports ────────────────────────────────────────────────────
+
+  report:
+    name: PBX Test Report
+    needs: pbx-tests
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all PBX results
+        uses: actions/download-artifact@v4
+        with:
+          path: all-pbx-results
+          pattern: pbx-results-*
+
+      - name: Merge PBX test reports
+        id: merge
+        run: |
+          echo "## PBX Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          TOTAL_PASS=0
+          TOTAL_FAIL=0
+          TOTAL_SKIP=0
+
+          for dir in all-pbx-results/pbx-results-*/; do
+            PLATFORM=$(basename "$dir" | sed 's/pbx-results-//')
+            JSON_FILE="$dir/pbx-test-results.json"
+
+            if [ -f "$JSON_FILE" ]; then
+              PASS=$(jq '.passed // 0' "$JSON_FILE")
+              FAIL=$(jq '.failed // 0' "$JSON_FILE")
+              SKIP=$(jq '.skipped // 0' "$JSON_FILE")
+              TOTAL_PASS=$((TOTAL_PASS + PASS))
+              TOTAL_FAIL=$((TOTAL_FAIL + FAIL))
+              TOTAL_SKIP=$((TOTAL_SKIP + SKIP))
+
+              echo "### $PLATFORM" >> $GITHUB_STEP_SUMMARY
+              echo "- ✅ Passed: $PASS" >> $GITHUB_STEP_SUMMARY
+              echo "- ❌ Failed: $FAIL" >> $GITHUB_STEP_SUMMARY
+              echo "- ⏭️ Skipped: $SKIP" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              # Append failures if any
+              FAILED_TESTS=$(jq -r '.suites[]?.testResults[]? | select(.status == "failed") | "- ❌ \(.name): \(.error // "unknown")"' "$JSON_FILE" 2>/dev/null)
+              if [ -n "$FAILED_TESTS" ]; then
+                echo "<details><summary>Failures</summary>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "$FAILED_TESTS" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "</details>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "### $PLATFORM" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ No results found" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "**Total:** $TOTAL_PASS passed, $TOTAL_FAIL failed, $TOTAL_SKIP skipped" >> $GITHUB_STEP_SUMMARY
+
+          # Set outputs for PR comment
+          echo "total_pass=$TOTAL_PASS" >> $GITHUB_OUTPUT
+          echo "total_fail=$TOTAL_FAIL" >> $GITHUB_OUTPUT
+
+      - name: Post PR comment with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fail = parseInt('${{ steps.merge.outputs.total_fail }}' || '0');
+            const pass = parseInt('${{ steps.merge.outputs.total_pass }}' || '0');
+            const icon = fail > 0 ? '❌' : '✅';
+            const body = [
+              `## ${icon} PBX Integration Test Results`,
+              '',
+              `**Passed:** ${pass} | **Failed:** ${fail}`,
+              '',
+              fail > 0
+                ? '> ⚠️ Some PBX integration tests failed. Check the **PBX Tests** job for details.'
+                : '> All PBX integration tests passed.',
+              '',
+              `<details><summary>View artifacts</summary>`,
+              '',
+              `Download the \`pbx-results-*\` artifacts for detailed JSON/Markdown/JUnit reports.`,
+              '</details>',
+            ].join('\n');
+
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('PBX Integration Test Results')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Upload combined report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pbx-report-combined
+          path: all-pbx-results/
+          retention-days: 30
+
+  # ── Failure Notification ─────────────────────────────────────────────────
+
+  notify:
+    name: Failure Notification
+    needs: [pbx-tests]
+    if: failure() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send failure notification
+        run: |
+          echo "## PBX Integration Tests Failed! 🚨" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "PBX integration tests have failed on a non-PR event. Please investigate." >> $GITHUB_STEP_SUMMARY
