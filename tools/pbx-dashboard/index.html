@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VueSIP PBX Test Dashboard</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;padding:20px;background:#f8fafc;color:#1e293b}
+.hd{background:#fff;padding:20px;border-radius:8px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.hd h1{font-size:1.25rem;color:#4f46e5;margin:0 0 4px}
+.hd p{color:#64748b;font-size:.85rem;margin:0}
+.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;margin-bottom:20px}
+.mc{background:#fff;padding:15px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.mc h3{color:#64748b;font-size:.8rem;text-transform:uppercase;margin:0 0 8px;letter-spacing:.05em}
+.mc .v{font-size:1.8rem;font-weight:700;margin:0}
+.tw{background:#fff;border-radius:8px;overflow:auto;box-shadow:0 1px 3px rgba(0,0,0,.1);margin-bottom:20px}
+.tw h2{padding:15px 15px 8px;font-size:1rem;margin:0}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 15px;text-align:left;border-bottom:1px solid #e2e8f0;font-size:.85rem}
+th{background:#f8fafc;color:#64748b;font-weight:600;font-size:.75rem;text-transform:uppercase}
+.p{color:#10b981}.f{color:#ef4444}.w{color:#f59e0b}
+.tb{display:flex;gap:4px;margin-bottom:20px}
+.ti{padding:10px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:6px 6px 0 0;cursor:pointer;font-weight:500;font-size:.9rem}
+.ti.a{background:#4f46e5;color:#fff;border-color:#4f46e5}
+.tc{display:none}.tc.a{display:block}
+.fb{padding:10px 20px;background:#4f46e5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem;margin-bottom:15px}
+.fb:hover{opacity:.9}
+</style>
+</head>
+<body>
+<div class="hd"><h1>VueSIP PBX Test Dashboard</h1><p id="ts">No data</p></div>
+<div class="tb">
+<button class="ti a" onclick="st('ov',this)">Overview</button>
+<button class="ti" onclick="st('cm',this)">Compatibility</button>
+<button class="ti" onclick="st('fp',this)">Failure Patterns</button>
+<button class="ti" onclick="st('rr',this)">Raw Results</button>
+</div>
+
+<div id="ov" class="tc a">
+<div class="mg" id="mt"></div>
+<div class="tw"><h2>Platform Summary</h2>
+<table><thead><tr><th>Platform</th><th>Version</th><th>Tests</th><th>Pass</th><th>Fail</th><th>Score</th></tr></thead>
+<tbody id="ps"></tbody></table></div>
+</div>
+
+<div id="cm" class="tc">
+<div class="tw"><h2>Compatibility Matrix</h2>
+<table><thead><tr><th>Platform</th><th>SIP</th><th>WebSocket</th><th>XCCS</th><th>Auth</th><th>Codecs</th><th>WebRTC</th><th>Score</th></tr></thead>
+<tbody id="mx"></tbody></table></div>
+</div>
+
+<div id="fp" class="tc">
+<div class="tw"><h2>Failure Patterns</h2>
+<table><thead><tr><th>Pattern</th><th>Category</th><th>Severity</th><th>Count</th><th>Platforms</th></tr></thead>
+<tbody id="pt"></tbody></table></div>
+</div>
+
+<div id="rr" class="tc">
+<button class="fb" onclick="document.getElementById('fi').click()">Load JSON</button>
+<input type="file" id="fi" accept=".json" style="display:none">
+<div class="tw"><h2>Test Results</h2>
+<table><thead><tr><th>Time</th><th>Platform</th><th>Suite</th><th>Status</th><th>Pass</th><th>Fail</th><th>ms</th></tr></thead>
+<tbody id="rs"></tbody></table></div>
+</div>
+
+<script>
+var D={results:[
+{id:'r1',timestamp:'2026-04-03T04:00:00Z',pbxPlatform:'Asterisk',pbxVersion:'22.8',vueSipVersion:'2.1.0',testSuite:'registration',status:'passed',duration:1200,passed:12,failed:0,skipped:0,errors:[],warnings:[]},
+{id:'r2',timestamp:'2026-04-03T04:01:00Z',pbxPlatform:'Asterisk',pbxVersion:'20.11',vueSipVersion:'2.1.0',testSuite:'registration',status:'passed',duration:1150,passed:11,failed:1,skipped:0,errors:[{testType:'registration',category:'auth',message:'MD5 digest timeout',severity:'medium'}],warnings:[]},
+{id:'r3',timestamp:'2026-04-03T04:02:00Z',pbxPlatform:'FreePBX',pbxVersion:'17.0',vueSipVersion:'2.1.0',testSuite:'call-flow',status:'passed',duration:3500,passed:18,failed:0,skipped:1,errors:[],warnings:[]},
+{id:'r4',timestamp:'2026-04-03T04:03:00Z',pbxPlatform:'Kamailio',pbxVersion:'5.7',vueSipVersion:'2.1.0',testSuite:'sip-core',status:'passed',duration:2100,passed:22,failed:0,skipped:0,errors:[],warnings:[]},
+{id:'r5',timestamp:'2026-04-03T04:04:00Z',pbxPlatform:'3CX',pbxVersion:'19.0',vueSipVersion:'2.1.0',testSuite:'registration',status:'failed',duration:4500,passed:5,failed:8,skipped:2,errors:[{testType:'registration',category:'transport',message:'WSS not available',severity:'critical'},{testType:'call-flow',category:'media',message:'Codec negotiation failed',severity:'high'}],warnings:[]},
+{id:'r6',timestamp:'2026-04-02T12:00:00Z',pbxPlatform:'Grandstream',pbxVersion:'UCM6302',vueSipVersion:'2.0.9',testSuite:'registration',status:'passed',duration:1800,passed:9,failed:2,skipped:1,errors:[{testType:'registration',category:'auth',message:'SHA-256 not supported',severity:'low'}],warnings:[]},
+{id:'r7',timestamp:'2026-04-01T08:00:00Z',pbxPlatform:'Yeastar',pbxVersion:'P-Series',vueSipVersion:'2.0.8',testSuite:'sip-core',status:'passed',duration:2200,passed:14,failed:1,skipped:0,errors:[{testType:'media',category:'codecs',message:'OPUS codec missing',severity:'medium'}],warnings:[]}
+],compatibility:{
+'Asterisk 22.8':{sip:'excellent',ws:'good',xccs:'missing',auth:'full',codecs:'full',webrtc:'good',score:75},
+'FreePBX 17.0':{sip:'excellent',ws:'limited',xccs:'missing',auth:'full',codecs:'full',webrtc:'limited',score:70},
+'Kamailio 5.7':{sip:'excellent',ws:'excellent',xccs:'partial',auth:'full',codecs:'full',webrtc:'excellent',score:80},
+'3CX 19.0':{sip:'limited',ws:'restricted',xccs:'missing',auth:'limited',codecs:'good',webrtc:'restricted',score:40},
+'Grandstream':{sip:'good',ws:'limited',xccs:'missing',auth:'full',codecs:'limited',webrtc:'limited',score:60},
+'Yeastar P-Series':{sip:'good',ws:'good',xccs:'missing',auth:'full',codecs:'full',webrtc:'good',score:65}
+}};
+
+var S={results:D.results,compat:D.compatibility};
+
+function st(id,el){
+document.querySelectorAll('.ti').forEach(function(t){t.classList.remove('a')});
+document.querySelectorAll('.tc').forEach(function(t){t.classList.remove('a')});
+el.classList.add('a');
+document.getElementById(id).classList.add('a');
+}
+
+function sc(s){return s>=80?'#10b981':s>=60?'#f59e0b':'#ef4444'}
+
+function render(){
+var r=S.results;if(!r.length)return;
+var tp=0,tf=0,ts=0;
+r.forEach(function(x){tp+=x.passed;tf+=x.failed;ts+=x.skipped});
+var tt=tp+tf+ts,sr=tt?Math.round(tp/tt*100):0;
+
+document.getElementById('mt').innerHTML=
+'<div class="mc"><h3>Total Tests</h3><div class="v">'+tt+'</div></div>'+
+'<div class="mc"><h3>Success Rate</h3><div class="v" style="color:'+sc(sr)+'">'+sr+'%</div></div>'+
+'<div class="mc"><h3>Failures</h3><div class="v" style="color:#ef4444">'+tf+'</div></div>'+
+'<div class="mc"><h3>Skipped</h3><div class="v" style="color:#f59e0b">'+ts+'</div></div>';
+
+var pm={};
+r.forEach(function(x){var k=x.pbxPlatform+' '+x.pbxVersion;
+if(!pm[k])pm[k]={p:x.pbxPlatform,v:x.pbxVersion,t:0,a:0,f:0};
+pm[k].t+=x.passed+x.failed+x.skipped;pm[k].a+=x.passed;pm[k].f+=x.failed});
+document.getElementById('ps').innerHTML=Object.values(pm).map(function(p){
+var s=p.t?Math.round(p.a/p.t*100):0;
+var c=s>=80?'p':s>=60?'w':'f';
+return '<tr><td>'+p.p+'</td><td>'+p.v+'</td><td>'+p.t+'</td><td>'+p.a+'</td><td>'+p.f+'</td><td class="'+c+'"><b>'+s+'%</b></td></tr>';
+}).join('');
+
+document.getElementById('mx').innerHTML=Object.entries(S.compat||{}).map(function(e){
+var n=e[0],c=e[1];
+return '<tr><td><b>'+n+'</b></td><td>'+c.sip+'</td><td>'+c.ws+'</td><td>'+c.xccs+'</td><td>'+c.auth+'</td><td>'+c.codecs+'</td><td>'+c.webrtc+'</td><td style="color:'+sc(c.score)+'"><b>'+c.score+'%</b></td></tr>';
+}).join('');
+
+var fp={};
+r.forEach(function(x){x.errors.forEach(function(e){
+var k=e.category+':'+e.message;
+if(!fp[k])fp[k]={m:e.message,c:e.category,s:e.severity,n:0,pl:{}};
+fp[k].n++;fp[k].pl[x.pbxPlatform]=1})});
+var sp=Object.values(fp).sort(function(a,b){return b.n-a.n});
+document.getElementById('pt').innerHTML=sp.map(function(p){
+return '<tr><td>'+p.m+'</td><td>'+p.c+'</td><td>'+p.s+'</td><td>'+p.n+'</td><td>'+Object.keys(p.pl).join(', ')+'</td></tr>';
+}).join('')||'<tr><td colspan="5" style="text-align:center;color:#64748b">No patterns</td></tr>';
+
+document.getElementById('rs').innerHTML=r.map(function(x){
+return '<tr><td>'+new Date(x.timestamp).toLocaleString()+'</td><td>'+x.pbxPlatform+'</td><td>'+x.testSuite+'</td><td class="'+(x.status==='passed'?'p':'f')+'">'+x.status+'</td><td>'+x.passed+'</td><td>'+x.failed+'</td><td>'+x.duration+'</td></tr>';
+}).join('');
+
+document.getElementById('ts').textContent='Updated: '+new Date().toLocaleString();
+}
+
+render();
+
+document.getElementById('fi').addEventListener('change',function(e){
+var f=e.target.files[0];if(!f)return;
+var rd=new FileReader();
+rd.onload=function(ev){try{var d=JSON.parse(ev.target.result);
+S.results=d.results||d.testResults||[];S.compat=d.compatibility||S.compat;render()}
+catch(err){alert('Parse error: '+err.message)}};rd.readAsText(f)});
+</script>
+</body>
+</html>
