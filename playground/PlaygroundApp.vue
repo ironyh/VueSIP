@@ -37,49 +37,7 @@
                 isConnected ? (isRegistered ? 'Ready' : 'Connected') : 'Configure SIP connection'
               }}</span>
             </button>
-            <button
-              @click="toggleTheme"
-              class="theme-toggle"
-              :aria-label="`Switch to ${isDarkMode ? 'light' : 'dark'} mode`"
-              type="button"
-            >
-              <svg
-                v-if="isDarkMode"
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
-              <svg
-                v-else
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            </button>
+            <ThemeToggle size="md" />
           </div>
         </div>
       </div>
@@ -367,12 +325,14 @@ const { makeCall, answer, hangup } = useCallSession()</code></pre>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { allExamples, examplesByCategory, categoryInfo } from './examples'
 import type { ExampleCategory } from './examples'
 import CallToolbar from './components/CallToolbar.vue'
 import { playgroundSipClient } from './sipClient'
 import { useConnectionManager } from './composables/useConnectionManager'
+import { useTheme } from '../src/composables/useTheme'
+import ThemeToggle from '../src/components/ui/ThemeToggle.vue'
 
 // Connection Manager for auto-connect
 const connectionManager = useConnectionManager()
@@ -411,9 +371,10 @@ const currentExample = ref('click-to-call-widget')
 const activeTab = ref<'demo' | 'code' | 'setup'>('demo')
 const searchQuery = ref('')
 const copiedSnippets = ref<Record<number, boolean>>({})
-const isDarkMode = ref(false)
 const linkCopied = ref(false)
 const activeCategory = ref<ExampleCategory | 'all'>('all')
+
+// Theme management is handled by the ThemeToggle component directly
 
 // Category order for display
 const categoryOrder: ExampleCategory[] = ['sip', 'ami', 'utility']
@@ -586,17 +547,7 @@ const copyCode = async (code: string, index: number) => {
   }
 }
 
-const toggleTheme = () => {
-  isDarkMode.value = !isDarkMode.value
-}
 
-const applyTheme = (dark: boolean) => {
-  if (dark) {
-    document.documentElement.classList.add('dark-mode')
-  } else {
-    document.documentElement.classList.remove('dark-mode')
-  }
-}
 
 // Global credential loading for auto-connect across all demos
 const loadAndConnectCredentials = async () => {
@@ -736,14 +687,7 @@ onMounted(async () => {
   // 2. Try to auto-connect with saved credentials (global for all demos)
   await loadAndConnectCredentials()
 
-  // 3. Initialize theme
-  const stored = localStorage.getItem('vuesip-theme')
-  if (stored) {
-    isDarkMode.value = stored === 'dark'
-  } else {
-    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
-  }
-  applyTheme(isDarkMode.value)
+  // 3. Theme is automatically initialized by useTheme composable
 })
 
 // Cleanup
@@ -751,11 +695,7 @@ onUnmounted(() => {
   window.removeEventListener('hashchange', handleHashChange)
 })
 
-// Watch for theme changes
-watch(isDarkMode, (newValue) => {
-  applyTheme(newValue)
-  localStorage.setItem('vuesip-theme', newValue ? 'dark' : 'light')
-})
+// Theme changes are automatically handled by useTheme composable
 </script>
 
 <style scoped>
@@ -883,37 +823,7 @@ watch(isDarkMode, (newValue) => {
   box-shadow: 0 8px 22px rgba(16, 185, 129, 0.4);
 }
 
-.theme-toggle {
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 1.5rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 48px;
-  min-height: 48px;
-  backdrop-filter: blur(6px) saturate(120%);
-}
 
-.theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px) scale(1.05);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-}
-
-.theme-toggle:active {
-  transform: scale(0.95);
-}
-
-.theme-icon {
-  display: block;
-  line-height: 1;
-}
 
 .playground-content {
   display: grid;

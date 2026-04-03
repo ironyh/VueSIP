@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import CallTransferDemo from './components/CallTransferDemo.vue'
 import CallHoldDemo from './components/CallHoldDemo.vue'
 import DTMFDemo from './components/DTMFDemo.vue'
 import AudioDemo from './components/AudioDemo.vue'
 import MultiLineDemo from './components/MultiLineDemo.vue'
+import ThemeToggle from '../src/components/ui/ThemeToggle.vue'
 
 type FeatureTab = 'transfer' | 'hold' | 'dtmf' | 'audio' | 'multiline'
 
@@ -17,13 +18,31 @@ const features = [
   { id: 'audio' as const, name: 'Audio Devices', icon: '🎧', status: 'new' },
   { id: 'multiline' as const, name: 'Multi-Line', icon: '📱', status: 'new' },
 ]
+
+// Initialize theme when component mounts
+onMounted(() => {
+  // Initialize theme system
+  const stored = localStorage.getItem('vuesip-theme')
+  if (stored) {
+    document.documentElement.classList.toggle('dark-mode', stored === 'dark')
+  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark-mode')
+  }
+})
 </script>
 
 <template>
   <div class="playground">
     <header class="playground-header">
-      <h1>🚀 VueSIP Playground</h1>
-      <p>Interactive demos for all 5 new features - Try them out!</p>
+      <div class="header-content">
+        <div class="header-title">
+          <h1>🚀 VueSIP Playground</h1>
+          <p>Interactive demos for all 5 new features - Try them out!</p>
+        </div>
+        <div class="header-actions">
+          <ThemeToggle size="md" />
+        </div>
+      </div>
     </header>
 
     <nav class="feature-tabs">
@@ -70,5 +89,31 @@ const features = [
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.header-title {
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Ensure theme toggle is visible on both light and dark backgrounds */
+:deep(.theme-toggle) {
+  color: var(--text-primary);
+}
+
+:deep(.theme-toggle-icon) {
+  color: var(--text-primary);
 }
 </style>
