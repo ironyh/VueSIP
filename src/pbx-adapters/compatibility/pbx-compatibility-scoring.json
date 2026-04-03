@@ -1,0 +1,726 @@
+{
+  "$schema": "pbx-compatibility-scoring/v1",
+  "version": "1.0.0",
+  "description": "VueSIP PBX Platform Compatibility Scoring Framework — rates PBX platforms against VueSIP requirements with weighted feature categories",
+  "generatedAt": "2026-04-03",
+
+  "categories": {
+    "sipProtocol": {
+      "label": "SIP Protocol Compliance",
+      "weight": 0.25,
+      "criticality": "critical",
+      "description": "RFC 3261 compliance, SIP extension support (REFER, UPDATE, PRACK), call routing capabilities",
+      "features": {
+        "rfc3261Compliance": {
+          "label": "RFC 3261 SIP Compliance",
+          "weight": 0.35,
+          "criticality": "critical",
+          "description": "Full SIP/2.0 protocol compliance per RFC 3261"
+        },
+        "sipReferSupport": {
+          "label": "REFER Support",
+          "weight": 0.15,
+          "criticality": "high",
+          "description": "SIP REFER method for call transfers"
+        },
+        "sipUpdateSupport": {
+          "label": "UPDATE Support",
+          "weight": 0.1,
+          "criticality": "high",
+          "description": "SIP UPDATE method for mid-dialog modifications"
+        },
+        "sipPrackSupport": {
+          "label": "PRACK Support",
+          "weight": 0.1,
+          "criticality": "medium",
+          "description": "Provisional response reliability (RFC 3262)"
+        },
+        "advancedRouting": {
+          "label": "Advanced Call Routing",
+          "weight": 0.15,
+          "criticality": "high",
+          "description": "Dialplan manipulation, call routing, hunt groups, queues"
+        },
+        "multipleTransports": {
+          "label": "Multiple Transport Support",
+          "weight": 0.15,
+          "criticality": "high",
+          "description": "UDP, TCP, TLS, WebSocket transports"
+        }
+      }
+    },
+
+    "websocket": {
+      "label": "WebSocket Support",
+      "weight": 0.2,
+      "criticality": "critical",
+      "description": "WebSocket transport for browser-based SIP connections",
+      "features": {
+        "wsTransport": {
+          "label": "WebSocket Transport",
+          "weight": 0.3,
+          "criticality": "critical",
+          "description": "RFC 6455 WebSocket support for SIP signaling"
+        },
+        "wssSupport": {
+          "label": "Secure WebSocket (WSS)",
+          "weight": 0.25,
+          "criticality": "critical",
+          "description": "TLS-encrypted WebSocket connections"
+        },
+        "sipOverWs": {
+          "label": "SIP over WebSocket (RFC 7118)",
+          "weight": 0.25,
+          "criticality": "critical",
+          "description": "SIP subprotocol over WebSocket per RFC 7118"
+        },
+        "connectionStability": {
+          "label": "Connection Stability",
+          "weight": 0.1,
+          "criticality": "high",
+          "description": "Reliable long-lived WebSocket connections, ping/pong keepalive"
+        },
+        "concurrentConnections": {
+          "label": "Concurrent Connection Capacity",
+          "weight": 0.1,
+          "criticality": "medium",
+          "description": "Ability to handle many simultaneous WebSocket clients"
+        }
+      }
+    },
+
+    "webrtc": {
+      "label": "WebRTC Integration",
+      "weight": 0.2,
+      "criticality": "critical",
+      "description": "WebRTC media capabilities for browser-based calling",
+      "features": {
+        "iceStunTurn": {
+          "label": "ICE/STUN/TURN Support",
+          "weight": 0.25,
+          "criticality": "critical",
+          "description": "ICE framework with STUN and TURN relay for NAT traversal"
+        },
+        "dtlsSrtp": {
+          "label": "DTLS-SRTP Media Encryption",
+          "weight": 0.25,
+          "criticality": "critical",
+          "description": "DTLS key exchange with SRTP media encryption"
+        },
+        "trickleIce": {
+          "label": "Trickle ICE",
+          "weight": 0.1,
+          "criticality": "medium",
+          "description": "Incremental ICE candidate gathering for faster connection setup"
+        },
+        "opusCodec": {
+          "label": "Opus Codec Support",
+          "weight": 0.15,
+          "criticality": "high",
+          "description": "Opus codec for high-quality audio over WebRTC"
+        },
+        "mediaQuality": {
+          "label": "Media Quality & Monitoring",
+          "weight": 0.15,
+          "criticality": "medium",
+          "description": "RTCP reports, bandwidth adaptation, quality metrics"
+        },
+        "renegotiation": {
+          "label": "Session Renegotiation",
+          "weight": 0.1,
+          "criticality": "medium",
+          "description": "SDP renegotiation for hold, transfer, and codec changes"
+        }
+      }
+    },
+
+    "authentication": {
+      "label": "Authentication Methods",
+      "weight": 0.15,
+      "criticality": "high",
+      "description": "Supported SIP authentication and integration mechanisms",
+      "features": {
+        "digestAuth": {
+          "label": "Digest Authentication",
+          "weight": 0.3,
+          "criticality": "critical",
+          "description": "SIP Digest authentication (MD5, SHA-256)"
+        },
+        "ipAuth": {
+          "label": "IP-based Authentication",
+          "weight": 0.15,
+          "criticality": "medium",
+          "description": "Trusted IP/subnet authentication"
+        },
+        "tokenAuth": {
+          "label": "Token-based Authentication",
+          "weight": 0.2,
+          "criticality": "high",
+          "description": "Token or OAuth-based authentication"
+        },
+        "tlsClientCerts": {
+          "label": "TLS Client Certificates",
+          "weight": 0.15,
+          "criticality": "medium",
+          "description": "Mutual TLS authentication with client certificates"
+        },
+        "ldapIntegration": {
+          "label": "LDAP/AD Integration",
+          "weight": 0.1,
+          "criticality": "low",
+          "description": "LDAP or Active Directory user directory integration"
+        },
+        "customAuthModules": {
+          "label": "Custom Auth Modules",
+          "weight": 0.1,
+          "criticality": "low",
+          "description": "Extensible authentication module support"
+        }
+      }
+    },
+
+    "codecs": {
+      "label": "Codec Support",
+      "weight": 0.1,
+      "criticality": "high",
+      "description": "Audio codec availability and negotiation",
+      "features": {
+        "g711": {
+          "label": "G.711 (PCMU/PCMA)",
+          "weight": 0.2,
+          "criticality": "critical",
+          "description": "Basic G.711 A-law and μ-law codecs"
+        },
+        "opus": {
+          "label": "Opus",
+          "weight": 0.3,
+          "criticality": "critical",
+          "description": "Opus codec for HD audio over WebRTC"
+        },
+        "g729": {
+          "label": "G.729",
+          "weight": 0.15,
+          "criticality": "medium",
+          "description": "G.729 compressed codec for bandwidth efficiency"
+        },
+        "hdCodecs": {
+          "label": "HD Codec Suite",
+          "weight": 0.15,
+          "criticality": "medium",
+          "description": "Additional HD codecs (G.722, SILK, iLBC)"
+        },
+        "codecNegotiation": {
+          "label": "Codec Negotiation",
+          "weight": 0.2,
+          "criticality": "high",
+          "description": "SDP-based codec negotiation and priority ordering"
+        }
+      }
+    },
+
+    "managementApi": {
+      "label": "Management & Control API",
+      "weight": 0.1,
+      "criticality": "high",
+      "description": "Programmatic management interfaces for call control and monitoring",
+      "features": {
+        "amiSupport": {
+          "label": "AMI Support",
+          "weight": 0.25,
+          "criticality": "critical",
+          "description": "Asterisk Manager Interface for call control and monitoring"
+        },
+        "ariSupport": {
+          "label": "ARI Support",
+          "weight": 0.15,
+          "criticality": "medium",
+          "description": "Asterisk REST Interface for async applications"
+        },
+        "restApi": {
+          "label": "REST API",
+          "weight": 0.2,
+          "criticality": "high",
+          "description": "RESTful API for PBX management and configuration"
+        },
+        "eventStreaming": {
+          "label": "Event Streaming/Webhooks",
+          "weight": 0.15,
+          "criticality": "medium",
+          "description": "Real-time event notifications via webhooks or streaming"
+        },
+        "cdrAccess": {
+          "label": "CDR/Reporting Access",
+          "weight": 0.15,
+          "criticality": "high",
+          "description": "Call Detail Records and reporting data access"
+        },
+        "configApi": {
+          "label": "Configuration API",
+          "weight": 0.1,
+          "criticality": "medium",
+          "description": "Programmatic configuration management"
+        }
+      }
+    }
+  },
+
+  "scoring": {
+    "levels": [
+      {
+        "score": 5,
+        "label": "Excellent",
+        "description": "Full support, production-ready, well-documented"
+      },
+      { "score": 4, "label": "Good", "description": "Solid support with minor limitations" },
+      { "score": 3, "label": "Partial", "description": "Basic support, may require workarounds" },
+      { "score": 2, "label": "Limited", "description": "Significant limitations or restrictions" },
+      { "score": 1, "label": "Minimal", "description": "Barely functional, major gaps" },
+      { "score": 0, "label": "None", "description": "Not supported" }
+    ],
+    "thresholds": {
+      "excellent": {
+        "min": 85,
+        "max": 100,
+        "label": "Excellent Compatibility",
+        "color": "#22c55e"
+      },
+      "good": { "min": 70, "max": 84, "label": "Good Compatibility", "color": "#84cc16" },
+      "moderate": { "min": 55, "max": 69, "label": "Moderate Compatibility", "color": "#eab308" },
+      "limited": { "min": 40, "max": 54, "label": "Limited Compatibility", "color": "#f97316" },
+      "poor": { "min": 0, "max": 39, "label": "Poor Compatibility", "color": "#ef4444" }
+    }
+  },
+
+  "platforms": {
+    "asterisk": {
+      "name": "Asterisk",
+      "versions": ["20", "21", "22", "certified-22"],
+      "scores": {
+        "sipProtocol": {
+          "rfc3261Compliance": 5,
+          "sipReferSupport": 5,
+          "sipUpdateSupport": 5,
+          "sipPrackSupport": 4,
+          "advancedRouting": 5,
+          "multipleTransports": 5
+        },
+        "websocket": {
+          "wsTransport": 4,
+          "wssSupport": 4,
+          "sipOverWs": 4,
+          "connectionStability": 4,
+          "concurrentConnections": 4
+        },
+        "webrtc": {
+          "iceStunTurn": 4,
+          "dtlsSrtp": 4,
+          "trickleIce": 3,
+          "opusCodec": 4,
+          "mediaQuality": 4,
+          "renegotiation": 4
+        },
+        "authentication": {
+          "digestAuth": 5,
+          "ipAuth": 5,
+          "tokenAuth": 3,
+          "tlsClientCerts": 4,
+          "ldapIntegration": 3,
+          "customAuthModules": 5
+        },
+        "codecs": {
+          "g711": 5,
+          "opus": 4,
+          "g729": 5,
+          "hdCodecs": 4,
+          "codecNegotiation": 5
+        },
+        "managementApi": {
+          "amiSupport": 5,
+          "ariSupport": 5,
+          "restApi": 2,
+          "eventStreaming": 4,
+          "cdrAccess": 5,
+          "configApi": 3
+        }
+      },
+      "knownLimitations": [
+        "No XCCS/XML Call Control support — must use AMI",
+        "Complex configuration with steep learning curve",
+        "Resource intensive under high load",
+        "WebSocket requires manual module loading (res_pjsip_transport_websocket.so)"
+      ],
+      "configurationComplexity": "high",
+      "documentation": "https://docs.asterisk.org"
+    },
+
+    "freepbx": {
+      "name": "FreePBX",
+      "versions": ["16", "17"],
+      "scores": {
+        "sipProtocol": {
+          "rfc3261Compliance": 4,
+          "sipReferSupport": 4,
+          "sipUpdateSupport": 4,
+          "sipPrackSupport": 3,
+          "advancedRouting": 4,
+          "multipleTransports": 3
+        },
+        "websocket": {
+          "wsTransport": 3,
+          "wssSupport": 2,
+          "sipOverWs": 3,
+          "connectionStability": 3,
+          "concurrentConnections": 3
+        },
+        "webrtc": {
+          "iceStunTurn": 3,
+          "dtlsSrtp": 3,
+          "trickleIce": 2,
+          "opusCodec": 3,
+          "mediaQuality": 3,
+          "renegotiation": 3
+        },
+        "authentication": {
+          "digestAuth": 5,
+          "ipAuth": 4,
+          "tokenAuth": 2,
+          "tlsClientCerts": 3,
+          "ldapIntegration": 4,
+          "customAuthModules": 3
+        },
+        "codecs": {
+          "g711": 5,
+          "opus": 3,
+          "g729": 4,
+          "hdCodecs": 3,
+          "codecNegotiation": 4
+        },
+        "managementApi": {
+          "amiSupport": 5,
+          "ariSupport": 3,
+          "restApi": 3,
+          "eventStreaming": 3,
+          "cdrAccess": 5,
+          "configApi": 4
+        }
+      },
+      "knownLimitations": [
+        "WebRTC support is basic and requires manual configuration",
+        "WebSocket requires explicit setup via Asterisk modules",
+        "No XCCS support",
+        "Limited advanced SIP extension support compared to bare Asterisk",
+        "WebSocket security (WSS) setup is non-trivial"
+      ],
+      "configurationComplexity": "medium",
+      "documentation": "https://docs.freepbx.org"
+    },
+
+    "kamailio": {
+      "name": "Kamailio",
+      "versions": ["5.7", "5.8"],
+      "scores": {
+        "sipProtocol": {
+          "rfc3261Compliance": 5,
+          "sipReferSupport": 5,
+          "sipUpdateSupport": 5,
+          "sipPrackSupport": 5,
+          "advancedRouting": 5,
+          "multipleTransports": 5
+        },
+        "websocket": {
+          "wsTransport": 5,
+          "wssSupport": 5,
+          "sipOverWs": 5,
+          "connectionStability": 5,
+          "concurrentConnections": 5
+        },
+        "webrtc": {
+          "iceStunTurn": 5,
+          "dtlsSrtp": 5,
+          "trickleIce": 4,
+          "opusCodec": 5,
+          "mediaQuality": 5,
+          "renegotiation": 4
+        },
+        "authentication": {
+          "digestAuth": 5,
+          "ipAuth": 5,
+          "tokenAuth": 4,
+          "tlsClientCerts": 5,
+          "ldapIntegration": 4,
+          "customAuthModules": 5
+        },
+        "codecs": {
+          "g711": 5,
+          "opus": 5,
+          "g729": 4,
+          "hdCodecs": 5,
+          "codecNegotiation": 5
+        },
+        "managementApi": {
+          "amiSupport": 0,
+          "ariSupport": 0,
+          "restApi": 4,
+          "eventStreaming": 3,
+          "cdrAccess": 3,
+          "configApi": 3
+        }
+      },
+      "knownLimitations": [
+        "No AMI/ARI support (not Asterisk-based)",
+        "Complex configuration — requires SIP expertise",
+        "No commercial support (community only)",
+        "XCCS only partially supported via custom XML handling"
+      ],
+      "configurationComplexity": "high",
+      "documentation": "https://www.kamailio.org/docs"
+    },
+
+    "yeastar": {
+      "name": "Yeastar P-Series",
+      "versions": ["P-Series"],
+      "scores": {
+        "sipProtocol": {
+          "rfc3261Compliance": 4,
+          "sipReferSupport": 4,
+          "sipUpdateSupport": 4,
+          "sipPrackSupport": 3,
+          "advancedRouting": 4,
+          "multipleTransports": 3
+        },
+        "websocket": {
+          "wsTransport": 4,
+          "wssSupport": 4,
+          "sipOverWs": 4,
+          "connectionStability": 4,
+          "concurrentConnections": 3
+        },
+        "webrtc": {
+          "iceStunTurn": 4,
+          "dtlsSrtp": 4,
+          "trickleIce": 3,
+          "opusCodec": 4,
+          "mediaQuality": 4,
+          "renegotiation": 3
+        },
+        "authentication": {
+          "digestAuth": 5,
+          "ipAuth": 4,
+          "tokenAuth": 3,
+          "tlsClientCerts": 3,
+          "ldapIntegration": 5,
+          "customAuthModules": 3
+        },
+        "codecs": {
+          "g711": 5,
+          "opus": 4,
+          "g729": 5,
+          "hdCodecs": 4,
+          "codecNegotiation": 4
+        },
+        "managementApi": {
+          "amiSupport": 0,
+          "ariSupport": 0,
+          "restApi": 4,
+          "eventStreaming": 3,
+          "cdrAccess": 4,
+          "configApi": 4
+        }
+      },
+      "knownLimitations": [
+        "No AMI/ARI support (not Asterisk-based)",
+        "Proprietary extensions limit flexibility",
+        "No XCCS support",
+        "Commercial licensing cost"
+      ],
+      "configurationComplexity": "low",
+      "documentation": "https://help.yeastar.com"
+    },
+
+    "grandstream": {
+      "name": "Grandstream UCM",
+      "versions": ["UCM6xxx"],
+      "scores": {
+        "sipProtocol": {
+          "rfc3261Compliance": 3,
+          "sipReferSupport": 3,
+          "sipUpdateSupport": 3,
+          "sipPrackSupport": 2,
+          "advancedRouting": 3,
+          "multipleTransports": 2
+        },
+        "websocket": {
+          "wsTransport": 2,
+          "wssSupport": 2,
+          "sipOverWs": 2,
+          "connectionStability": 2,
+          "concurrentConnections": 2
+        },
+        "webrtc": {
+          "iceStunTurn": 2,
+          "dtlsSrtp": 2,
+          "trickleIce": 1,
+          "opusCodec": 2,
+          "mediaQuality": 2,
+          "renegotiation": 2
+        },
+        "authentication": {
+          "digestAuth": 4,
+          "ipAuth": 3,
+          "tokenAuth": 2,
+          "tlsClientCerts": 2,
+          "ldapIntegration": 3,
+          "customAuthModules": 2
+        },
+        "codecs": {
+          "g711": 5,
+          "opus": 2,
+          "g729": 4,
+          "hdCodecs": 2,
+          "codecNegotiation": 3
+        },
+        "managementApi": {
+          "amiSupport": 0,
+          "ariSupport": 0,
+          "restApi": 3,
+          "eventStreaming": 2,
+          "cdrAccess": 3,
+          "configApi": 3
+        }
+      },
+      "knownLimitations": [
+        "Limited WebRTC support",
+        "Proprietary features restrict customization",
+        "Limited HD codec options",
+        "Fixed WebSocket endpoints with limited configuration"
+      ],
+      "configurationComplexity": "low",
+      "documentation": "https://www.grandstream.com/support"
+    },
+
+    "3cx": {
+      "name": "3CX",
+      "versions": ["18", "19"],
+      "scores": {
+        "sipProtocol": {
+          "rfc3261Compliance": 2,
+          "sipReferSupport": 2,
+          "sipUpdateSupport": 2,
+          "sipPrackSupport": 1,
+          "advancedRouting": 2,
+          "multipleTransports": 1
+        },
+        "websocket": {
+          "wsTransport": 1,
+          "wssSupport": 1,
+          "sipOverWs": 1,
+          "connectionStability": 2,
+          "concurrentConnections": 2
+        },
+        "webrtc": {
+          "iceStunTurn": 2,
+          "dtlsSrtp": 2,
+          "trickleIce": 1,
+          "opusCodec": 3,
+          "mediaQuality": 2,
+          "renegotiation": 1
+        },
+        "authentication": {
+          "digestAuth": 2,
+          "ipAuth": 2,
+          "tokenAuth": 1,
+          "tlsClientCerts": 1,
+          "ldapIntegration": 3,
+          "customAuthModules": 1
+        },
+        "codecs": {
+          "g711": 5,
+          "opus": 3,
+          "g729": 3,
+          "hdCodecs": 2,
+          "codecNegotiation": 2
+        },
+        "managementApi": {
+          "amiSupport": 0,
+          "ariSupport": 0,
+          "restApi": 2,
+          "eventStreaming": 1,
+          "cdrAccess": 2,
+          "configApi": 2
+        }
+      },
+      "knownLimitations": [
+        "Highly proprietary — severely restricted native SIP access",
+        "No AMI/ARI support",
+        "WebSocket access is restricted",
+        "Very limited third-party integration options",
+        "No XCCS support",
+        "Considered incompatible for direct VueSIP integration"
+      ],
+      "configurationComplexity": "low",
+      "documentation": "https://www.3cx.com/docs"
+    },
+
+    "fusionpbx": {
+      "name": "FusionPBX",
+      "versions": ["4.5"],
+      "scores": {
+        "sipProtocol": {
+          "rfc3261Compliance": 3,
+          "sipReferSupport": 3,
+          "sipUpdateSupport": 3,
+          "sipPrackSupport": 2,
+          "advancedRouting": 3,
+          "multipleTransports": 3
+        },
+        "websocket": {
+          "wsTransport": 2,
+          "wssSupport": 2,
+          "sipOverWs": 2,
+          "connectionStability": 2,
+          "concurrentConnections": 2
+        },
+        "webrtc": {
+          "iceStunTurn": 2,
+          "dtlsSrtp": 2,
+          "trickleIce": 2,
+          "opusCodec": 3,
+          "mediaQuality": 2,
+          "renegotiation": 2
+        },
+        "authentication": {
+          "digestAuth": 4,
+          "ipAuth": 4,
+          "tokenAuth": 2,
+          "tlsClientCerts": 3,
+          "ldapIntegration": 3,
+          "customAuthModules": 3
+        },
+        "codecs": {
+          "g711": 5,
+          "opus": 3,
+          "g729": 3,
+          "hdCodecs": 3,
+          "codecNegotiation": 3
+        },
+        "managementApi": {
+          "amiSupport": 0,
+          "ariSupport": 0,
+          "restApi": 3,
+          "eventStreaming": 2,
+          "cdrAccess": 3,
+          "configApi": 3
+        }
+      },
+      "knownLimitations": [
+        "Limited WebRTC capabilities",
+        "Manual configuration required for WebSocket",
+        "Documentation gaps",
+        "No AMI/ARI (FreeSWITCH-based, not Asterisk)",
+        "No XCCS support"
+      ],
+      "configurationComplexity": "medium",
+      "documentation": "https://www.fusionpbx.com"
+    }
+  }
+}
