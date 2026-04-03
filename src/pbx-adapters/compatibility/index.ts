@@ -34,3 +34,31 @@ export {
   type CategoryResult,
   type CompatibilityResult,
 } from './pbx-compatibility-scorer'
+
+export {
+  createSnapshot,
+  trackResult,
+  getRegressionHistory,
+  getLatestSnapshots,
+  getPlatformReports,
+  compareVersions,
+  exportHistoryJson,
+  importHistoryJson,
+  clearHistory,
+  type RegressionSeverity,
+  type ScoreSnapshot,
+  type RegressionEntry,
+  type RegressionReport,
+  type RegressionHistory,
+} from './pbx-regression-tracker'
+
+export {
+  generateFullReport,
+  renderMarkdownReport,
+  renderJsonReport,
+  renderRegressionReport,
+  exportFullArtifact,
+  type ReportOptions,
+  type FullReport,
+  type ReportSummary,
+} from './pbx-report-generator'
