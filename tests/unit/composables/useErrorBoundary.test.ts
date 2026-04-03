@@ -143,7 +143,7 @@ describe('useErrorBoundary', () => {
         shouldRetry: (err) => err instanceof Error && err.message.includes('retryable'),
       })
 
-      handleError(new Error('non-retryable error'))
+      handleError(new Error('generic error'))
       expect(isRecoverableError.value).toBe(false)
 
       clearError()
@@ -270,7 +270,7 @@ describe('useErrorBoundary', () => {
     })
 
     it('should update existing recovery option with same label', () => {
-      const { recoveryOptions } = useErrorBoundary()
+      const { addRecoveryOption, recoveryOptions } = useErrorBoundary()
 
       addRecoveryOption({ label: 'Retry', action: () => {} })
       addRecoveryOption({ label: 'Retry', action: () => {}, primary: true })
