@@ -1,6 +1,30 @@
 #!/bin/bash
-# OpenMOSS Project-Local Wrapper
-# Tracks the project instance and uses local .moss-key
+# OpenMOSS Project-Local Wrapper (Worktree-Aware)
+# Searches for .moss-key upwards to support git worktrees and subdirectories
+
+find_key() {
+    local dir="$1"
+    while [ "$dir" != "/" ] && [ -n "$dir" ]; do
+        if [ -f "$dir/.moss-key" ]; then
+            cat "$dir/.moss-key"
+            return 0
+        fi
+        # If we hit a .git file (common in worktrees), it points to the main repo
+        if [ -f "$dir/.git" ] && grep -q "gitdir:" "$dir/.git"; then
+            local main_gitdir
+            main_gitdir=$(grep "gitdir:" "$dir/.git" | cut -d ' ' -f 2)
+            # The main repo root is usually two levels up from the .git/worktrees/X dir
+            local main_root
+            main_root=$(dirname "$(dirname "$main_gitdir")")
+            if [ -f "$main_root/.moss-key" ]; then
+                cat "$main_root/.moss-key"
+                return 0
+            fi
+        fi
+        dir="$(dirname "$dir")"
+    done
+    return 1
+}
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_NAME="$(basename "$PROJECT_ROOT" | tr '[:upper:]' '[:lower:]')"
@@ -8,16 +32,14 @@ PROJECT_NAME="$(basename "$PROJECT_ROOT" | tr '[:upper:]' '[:lower:]')"
 # Try to find the instance CLI
 INSTANCE_CLI="/home/irony/.openmoss/instances/$PROJECT_NAME/task-cli.py"
 if [ ! -f "$INSTANCE_CLI" ]; then
-    # Fallback to general instances if project name doesn't match perfectly
     INSTANCE_CLI=$(ls /home/irony/.openmoss/instances/*/task-cli.py 2>/dev/null | head -n 1)
 fi
 
-# Load key
-KEY_FILE="$PROJECT_ROOT/.moss-key"
-if [ -f "$KEY_FILE" ]; then
-    KEY="$(cat "$KEY_FILE")"
-else
-    echo "Error: .moss-key not found in $PROJECT_ROOT" >&2
+# Load key using the smart search
+KEY=$(find_key "$PWD")
+
+if [ -z "$KEY" ]; then
+    echo "Error: .moss-key not found in $PWD or any parent directory." >&2
     exit 1
 fi
 
