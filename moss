@@ -1,0 +1,29 @@
+#!/bin/bash
+# OpenMOSS Project-Local Wrapper
+# Tracks the project instance and uses local .moss-key
+
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_NAME="$(basename "$PROJECT_ROOT" | tr '[:upper:]' '[:lower:]')"
+
+# Try to find the instance CLI
+INSTANCE_CLI="/home/irony/.openmoss/instances/$PROJECT_NAME/task-cli.py"
+if [ ! -f "$INSTANCE_CLI" ]; then
+    # Fallback to general instances if project name doesn't match perfectly
+    INSTANCE_CLI=$(ls /home/irony/.openmoss/instances/*/task-cli.py 2>/dev/null | head -n 1)
+fi
+
+# Load key
+KEY_FILE="$PROJECT_ROOT/.moss-key"
+if [ -f "$KEY_FILE" ]; then
+    KEY="$(cat "$KEY_FILE")"
+else
+    echo "Error: .moss-key not found in $PROJECT_ROOT" >&2
+    exit 1
+fi
+
+if [ -f "$INSTANCE_CLI" ]; then
+    exec /home/irony/.openmoss/.venv/bin/python "$INSTANCE_CLI" --key "$KEY" "$@"
+else
+    echo "Error: OpenMOSS instance for $PROJECT_NAME not found." >&2
+    exit 1
+fi

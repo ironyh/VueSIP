@@ -142,5 +142,4 @@ hive-mind-prompt-*.txt
 .openclaw/
 
 # OpenMOSS CLI wrapper (local operational tool)
-moss
 pbx-reports/
