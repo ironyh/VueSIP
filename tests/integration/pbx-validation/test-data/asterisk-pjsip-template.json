@@ -1,0 +1,39 @@
+{
+  "comment": "Asterisk 20 pjsip.conf template for VueSIP integration testing",
+  "templates": {
+    "transport-wss": {
+      "type": "transport",
+      "protocol": "wss",
+      "bind": "0.0.0.0:8089",
+      "cert_file": "/etc/asterisk/keys/asterisk.pem",
+      "priv_key_file": "/etc/asterisk/keys/asterisk.pem",
+      "method": "tlsv1_2"
+    },
+    "extension-template": {
+      "type": "endpoint",
+      "context": "from-internal",
+      "disallow": "all",
+      "allow": "ulaw,opus",
+      "dtmf_mode": "rfc4733",
+      "media_encryption": "no",
+      "use_avpf": "no",
+      "webrtc": "yes",
+      "max_audio_streams": 1
+    },
+    "auth-template": {
+      "type": "auth",
+      "auth_type": "userpass",
+      "password": "CHANGE_ME"
+    },
+    "aor-template": {
+      "type": "aor",
+      "max_contacts": 3,
+      "remove_existing": "yes"
+    }
+  },
+  "extensions": [
+    { "id": "1001", "password": "pass1001", "display_name": "Test User 1001" },
+    { "id": "1002", "password": "pass1002", "display_name": "Test User 1002" },
+    { "id": "1003", "password": "pass1003", "display_name": "Test User 1003" }
+  ]
+}

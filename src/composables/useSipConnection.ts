@@ -9,21 +9,32 @@
  * @packageDocumentation
  */
 
-import { ref, type Ref } from 'vue'
+import { ref, onUnmounted, type Ref } from 'vue'
 import JsSIP, { type UA } from 'jssip'
 
-// Type definitions for the composable
-type SipConfig = {
+/**
+ * SIP connection configuration.
+ * All fields optional for gradual configuration.
+ */
+export interface SipConnectionConfig {
+  /** SIP username */
   username?: string
+  /** SIP server hostname or IP */
   server?: string
+  /** SIP password */
   password?: string
+  /** Display name for SIP identity */
   displayName?: string
+  /** Whether to auto-register on connect (default: true) */
   autoRegister?: boolean
-  sockets?: unknown[]
+  /** Custom WebSocket sockets */
+  sockets?: JsSIP.Socket[]
+  /** Full SIP URI (overrides username@server) */
   uri?: string
-  [key: string]: unknown
 }
-type SipError = Error & { code?: number; reason?: string; cause?: Error }
+
+/** Enhanced SIP error with optional context */
+export type SipError = Error & { code?: number; reason?: string; cause?: Error }
 
 export interface UseSipConnectionReturn {
   isConnected: Ref<boolean>
@@ -36,7 +47,7 @@ export interface UseSipConnectionReturn {
   unregister: () => Promise<void>
 }
 
-export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
+export function useSipConnection(config: SipConnectionConfig): UseSipConnectionReturn {
   const isConnected = ref(false)
   const isRegistered = ref(false)
   const isConnecting = ref(false)
@@ -214,4 +225,30 @@ export function useSipConnection(config: SipConfig): UseSipConnectionReturn {
     register,
     unregister,
   }
+
+  // Auto-cleanup: disconnect UA when the consuming component unmounts
+  onUnmounted(() => {
+    if (ua) {
+      try {
+        ua.off('connecting', handlers.connecting)
+        ua.off('connected', handlers.connected)
+        ua.off('disconnected', handlers.disconnected)
+        ua.off('registered', handlers.registered)
+        ua.off('unregistered', handlers.unregistered)
+        ua.off('registrationFailed', handlers.registrationFailed)
+
+        if (isRegistered.value) {
+          ua.unregister()
+        }
+        ua.stop()
+        ua = null
+      } catch {
+        // Best-effort cleanup during unmount
+      }
+
+      isConnected.value = false
+      isRegistered.value = false
+      isConnecting.value = false
+    }
+  })
 }

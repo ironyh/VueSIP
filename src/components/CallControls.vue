@@ -1,35 +1,68 @@
 <template>
-  <div class="call-controls">
-    <div v-if="incomingCall" class="incoming-call" data-testid="incoming-call-notification">
+  <div class="call-controls" role="region" aria-label="Call controls">
+    <div
+      v-if="incomingCall"
+      class="incoming-call"
+      data-testid="incoming-call-notification"
+      role="alert"
+    >
       <h3>Incoming Call</h3>
-      <p>{{ incomingCall.remoteDisplayName || incomingCall.remoteUri }}</p>
+      <p class="remote-party">{{ incomingCall.remoteDisplayName || incomingCall.remoteUri }}</p>
       <div class="call-actions">
-        <button class="btn btn-success" data-testid="answer-button" @click="$emit('answer')">
-          <i class="pi pi-phone"></i> Answer
+        <button
+          class="btn btn-success"
+          data-testid="answer-button"
+          aria-label="Answer call"
+          @click="$emit('answer')"
+        >
+          <i class="pi pi-phone" aria-hidden="true"></i> Answer
         </button>
-        <button class="btn btn-danger" data-testid="reject-button" @click="$emit('reject')">
-          <i class="pi pi-times"></i> Reject
+        <button
+          class="btn btn-danger"
+          data-testid="reject-button"
+          aria-label="Reject call"
+          @click="$emit('reject')"
+        >
+          <i class="pi pi-times" aria-hidden="true"></i> Reject
         </button>
       </div>
     </div>
 
     <div v-else-if="currentCall" class="active-call" data-testid="active-call">
       <h3>Active Call</h3>
-      <p>{{ currentCall.remoteDisplayName || currentCall.remoteUri }}</p>
-      <p class="call-duration" data-testid="call-status">{{ duration }}</p>
+      <p class="remote-party">{{ currentCall.remoteDisplayName || currentCall.remoteUri }}</p>
+      <p
+        class="call-duration"
+        data-testid="call-status"
+        role="timer"
+        :aria-label="`Call duration ${duration}`"
+      >
+        {{ duration }}
+      </p>
       <div class="call-actions">
-        <button class="btn btn-secondary" data-testid="mute-audio-button" @click="$emit('mute')">
-          <i class="pi pi-microphone"></i> Mute
+        <button
+          class="btn btn-secondary"
+          data-testid="mute-audio-button"
+          aria-label="Mute audio"
+          @click="$emit('mute')"
+        >
+          <i class="pi pi-microphone" aria-hidden="true"></i> Mute
         </button>
-        <button class="btn btn-danger" data-testid="hangup-button" @click="$emit('end')">
-          <i class="pi pi-phone"></i> End Call
+        <button
+          class="btn btn-danger"
+          data-testid="hangup-button"
+          aria-label="End call"
+          @click="$emit('end')"
+        >
+          <i class="pi pi-phone" aria-hidden="true"></i> End Call
         </button>
       </div>
     </div>
 
-    <div v-else-if="isCalling" class="calling">
+    <div v-else-if="isCalling" class="calling" role="status" aria-label="Calling">
       <h3>Calling...</h3>
-      <div class="spinner"></div>
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="calling-hint">Waiting for response</p>
     </div>
   </div>
 </template>
@@ -93,7 +126,7 @@ onUnmounted(() => {
 .call-controls {
   padding: 1rem;
   background: #f9fafb;
-  border-radius: 8px;
+  border-radius: 12px;
   min-height: 200px;
   display: flex;
   align-items: center;
@@ -104,6 +137,7 @@ onUnmounted(() => {
 .active-call,
 .calling {
   text-align: center;
+  width: 100%;
 }
 
 h3 {
@@ -113,32 +147,52 @@ h3 {
 
 p {
   margin: 0.25rem 0;
-  color: #666;
+  color: #6b7280;
+}
+
+.remote-party {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  word-break: break-all;
 }
 
 .call-duration {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: bold;
+  font-variant-numeric: tabular-nums;
   margin: 1rem 0;
+  color: #111827;
 }
 
 .call-actions {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: center;
   margin-top: 1rem;
+  flex-wrap: wrap;
 }
 
 .btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 1rem;
-  display: flex;
+  font-weight: 500;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
+  min-width: 120px;
+}
+
+.btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
 .btn-success {
@@ -171,11 +225,17 @@ p {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3b82f6;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #3b82f6;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
   margin: 1rem auto;
+}
+
+.calling-hint {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
 
 @keyframes spin {
@@ -184,6 +244,18 @@ p {
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* Responsive: stack buttons vertically on very small screens */
+@media (max-width: 280px) {
+  .call-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn {
+    min-width: unset;
   }
 }
 </style>

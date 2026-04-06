@@ -103,3 +103,9 @@ export * from './qualityReport'
 // Re-export SIP URI utilities
 export * from './sipUri'
 export { triageQuestionBank, getSuggestedQuestions } from './triageQuestionBank'
+
+// Re-export accessibility utilities
+export * from './accessibility'
+
+// Re-export PBX configuration validator
+export * from './pbxConfigValidator'

@@ -75,6 +75,51 @@ const emit = defineEmits<{
 }>()
 
 /**
+ * Generate ARIA label for the component
+ */
+const getAriaLabel = () => {
+  if (isOverdue.value) {
+    return `Return time overdue for ${props.displayName || props.extension}`
+  }
+  return `Return time set for ${props.displayName || props.extension} at ${formattedTime.value}`
+}
+
+/**
+ * Generate ARIA description for additional context
+ */
+const getAriaDescription = () => {
+  if (isOverdue.value) {
+    return `Overdue by ${formattedRemaining.value}`
+  }
+  return `Expected back at ${formattedTime.value}. ${props.showCountdown ? formattedRemaining.value + ' remaining.' : ''}`
+}
+
+/**
+ * Get ARIA label for icon based on away reason
+ */
+const getIconAriaLabel = () => {
+  const reasonMap: Record<string, string> = {
+    lunch: 'On lunch break',
+    coffee: 'On coffee break',
+    meeting: 'In meeting',
+    walk: 'On walk',
+    patient: 'With patient',
+    procedure: 'In procedure',
+    vacation: 'On vacation',
+    away: 'Away',
+  }
+  return reasonMap[awayIcon.value] || 'Away'
+}
+
+/**
+ * Handle keyboard click (Enter/Space)
+ */
+const handleKeyClick = (event: KeyboardEvent) => {
+  event.preventDefault()
+  handleClick()
+}
+
+/**
  * Whether return time exists and is valid
  */
 const hasReturnTime = computed(() => {
@@ -168,7 +213,13 @@ const handleClear = (event: Event) => {
     v-if="hasReturnTime"
     class="return-time-display"
     :class="[statusClass, { compact }]"
+    role="button"
+    tabindex="0"
+    :aria-label="getAriaLabel()"
+    :aria-description="getAriaDescription()"
     @click="handleClick"
+    @keydown.enter="handleKeyClick"
+    @keydown.space="handleKeyClick"
   >
     <!-- Compact View -->
     <template v-if="compact">
@@ -184,7 +235,12 @@ const handleClear = (event: Event) => {
     <!-- Full View -->
     <template v-else>
       <div class="return-time-header">
-        <span class="icon-wrapper" :data-icon="awayIcon">
+        <span
+          class="icon-wrapper"
+          :data-icon="awayIcon"
+          role="img"
+          :aria-label="getIconAriaLabel()"
+        >
           <span class="icon" aria-hidden="true"></span>
         </span>
         <div class="info">
@@ -197,6 +253,7 @@ const handleClear = (event: Event) => {
           type="button"
           aria-label="Clear return time"
           @click="handleClear"
+          :disabled="isOverdue"
         >
           &times;
         </button>
@@ -214,23 +271,26 @@ const handleClear = (event: Event) => {
           <span v-if="isOverdue" class="countdown overdue">
             Overdue by {{ formattedRemaining }}
           </span>
-          <span v-else class="countdown">
-            {{ formattedRemaining }} remaining
-          </span>
+          <span v-else class="countdown"> {{ formattedRemaining }} remaining </span>
         </div>
 
-        <div v-if="showProgress && !isOverdue" class="progress-bar">
-          <div
-            class="progress-fill"
-            :style="{ width: `${progressPercentage}%` }"
-          ></div>
+        <div
+          v-if="showProgress && !isOverdue"
+          class="progress-bar"
+          role="progressbar"
+          :aria-valuenow="progressPercentage"
+          :aria-valuemin="0"
+          :aria-valuemax="100"
+          :aria-label="`Progress: ${progressPercentage}%`"
+        >
+          <div class="progress-fill" :style="{ width: `${progressPercentage}%` }"></div>
         </div>
       </div>
     </template>
   </div>
 
   <!-- No Return Time Set -->
-  <div v-else class="return-time-empty" :class="{ compact }">
+  <div v-else class="return-time-empty" :class="{ compact }" role="status" aria-live="polite">
     <span v-if="!compact">No return time set</span>
   </div>
 </template>
@@ -274,7 +334,8 @@ const handleClear = (event: Event) => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -324,14 +385,30 @@ const handleClear = (event: Event) => {
 }
 
 /* Icon placeholders using data attribute for demonstration */
-[data-icon="lunch"]::before { content: "🍽"; }
-[data-icon="coffee"]::before { content: "☕"; }
-[data-icon="meeting"]::before { content: "👥"; }
-[data-icon="walk"]::before { content: "🚶"; }
-[data-icon="patient"]::before { content: "🏥"; }
-[data-icon="procedure"]::before { content: "⚕"; }
-[data-icon="vacation"]::before { content: "🏖"; }
-[data-icon="away"]::before { content: "🕐"; }
+[data-icon='lunch']::before {
+  content: '🍽';
+}
+[data-icon='coffee']::before {
+  content: '☕';
+}
+[data-icon='meeting']::before {
+  content: '👥';
+}
+[data-icon='walk']::before {
+  content: '🚶';
+}
+[data-icon='patient']::before {
+  content: '🏥';
+}
+[data-icon='procedure']::before {
+  content: '⚕';
+}
+[data-icon='vacation']::before {
+  content: '🏖';
+}
+[data-icon='away']::before {
+  content: '🕐';
+}
 
 .info {
   flex: 1;

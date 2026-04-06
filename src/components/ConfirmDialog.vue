@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, watch, ref } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import { useConfirm } from '../composables/useConfirm'
 import type { ConfirmOptions } from '../composables/useConfirm'
+
+// Generate unique IDs for accessibility
+const dialogId = ref('confirm-dialog-' + Date.now())
+const dialogContentId = ref('confirm-dialog-content-' + Date.now())
 
 // Component props - can be used standalone or with composable
 const props = defineProps<{
@@ -68,6 +72,28 @@ const handleHide = () => {
   emit('update:visible', false)
   cancelCurrent()
 }
+
+// Handle keyboard events
+const handleEscape = () => {
+  handleCancel()
+}
+
+const handleEnter = (event: KeyboardEvent) => {
+  event.preventDefault()
+  // Only trigger if focused on confirm button or dialog itself
+  const activeElement = document.activeElement
+  const confirmButton = document.querySelector(
+    '.confirm-dialog-footer .p-button:not(.p-button-text)'
+  )
+  if (activeElement === confirmButton || activeElement?.closest('.p-dialog')) {
+    handleConfirm()
+  }
+}
+
+const handleSpace = (event: KeyboardEvent) => {
+  event.preventDefault()
+  handleEnter(event)
+}
 </script>
 
 <template>
@@ -77,11 +103,18 @@ const handleHide = () => {
     :closable="true"
     :style="{ width: options?.width || '400px' }"
     :header="options?.title || 'Confirm Action'"
+    role="dialog"
+    :aria-modal="true"
+    :aria-labelledby="dialogId"
+    :aria-describedby="dialogContentId"
     @update:visible="handleHide"
+    @keydown.esc="handleEscape"
+    @keydown.enter="handleEnter"
+    @keydown.space="handleSpace"
   >
-    <div class="confirm-dialog-content">
+    <div :id="dialogContentId" class="confirm-dialog-content">
       <div v-if="options?.icon" class="confirm-dialog-icon">
-        <i :class="options.icon"></i>
+        <i :class="options.icon" :aria-hidden="true"></i>
       </div>
 
       <p class="confirm-dialog-message">
@@ -96,11 +129,13 @@ const handleHide = () => {
           :label="options?.cancelText || 'Cancel'"
           class="p-button-text"
           @click="handleCancel"
+          aria-label="Cancel and close dialog"
         />
         <Button
           :label="options?.confirmText || 'Confirm'"
           :class="confirmButtonClass"
           @click="handleConfirm"
+          aria-label="Confirm and proceed"
         />
       </div>
     </template>
