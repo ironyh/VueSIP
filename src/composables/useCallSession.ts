@@ -195,8 +195,8 @@ export interface UseCallSessionReturn {
  * ```
  */
 export function useCallSession(
-  sipClient: Ref<SipClient | null>,
-  mediaManager?: Ref<MediaManager | null>
+  sipClient: Ref<SipClient | null> | ComputedRef<SipClient | null>,
+  mediaManager?: Ref<MediaManager | null> | ComputedRef<MediaManager | null>
 ): UseCallSessionReturn {
   // ============================================================================
   // Reactive State

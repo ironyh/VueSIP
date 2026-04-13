@@ -1,7 +1,8 @@
 /**
  * Phone Composable - Wraps VueSip APIs for PWA softphone functionality
  */
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
+import type { SipClient } from 'vuesip'
 import {
   useSipClient,
   useMultiSipClient,
@@ -274,7 +275,7 @@ export function usePhone() {
   } = sipClient
 
   // Get client ref for call session and dial strategy
-  const clientRef = computed(() => getClient())
+  const clientRef = computed(() => getClient()) as Ref<SipClient | null>
 
   // Dial Strategy (for provider-aware outbound calling)
   const dialStrategy = useDialStrategy(clientRef)
@@ -394,7 +395,7 @@ export function usePhone() {
   })
 
   const callWaiting = useCallWaiting(
-    computed(() => callSession.session.value),
+    computed(() => callSession.session.value) as Ref<CallSession | null>,
     clientRef
   )
 
@@ -469,7 +470,7 @@ export function usePhone() {
 
   // Audio device switch for mid-call device changes
   const audioSwitch = useAudioDeviceSwitch(
-    computed(() => callSession.session.value),
+    computed(() => callSession.session.value) as Ref<CallSession | null>,
     audioDevicesAdapter as any
   )
 

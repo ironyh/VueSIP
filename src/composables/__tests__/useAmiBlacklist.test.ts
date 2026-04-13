@@ -216,7 +216,7 @@ describe('useAmiBlacklist', () => {
       vi.setSystemTime(new Date('2026-03-29T12:00:00Z'))
       await blockNumber('+15551234567', { reason: 'spam', expiresIn: 3600000 }) // 1 hour
       expect(blocklist.value[0].expiresAt).toBeInstanceOf(Date)
-      expect(blocklist.value[0].expiresAt?.getTime()).toBe(
+      expect(blocklist.value[0].expiresAt!.getTime()).toBe(
         new Date('2026-03-29T13:00:00Z').getTime()
       )
     })
@@ -429,8 +429,8 @@ describe('useAmiBlacklist', () => {
       await blockNumber('+15551234567', { reason: 'spam', action: 'hangup' })
       const entry = getBlockEntry('+15551234567')
       expect(entry).toBeDefined()
-      expect(entry?.reason).toBe('spam')
-      expect(entry?.action).toBe('hangup')
+      expect(entry!.reason).toBe('spam')
+      expect(entry!.action).toBe('hangup')
     })
 
     it('should return undefined for unblocked number', () => {
@@ -443,7 +443,7 @@ describe('useAmiBlacklist', () => {
       await blockNumber('1800*', { reason: 'telemarketer' })
       const entry = getBlockEntry('18001234567')
       expect(entry).toBeDefined()
-      expect(entry?.number).toBe('1800*')
+      expect(entry!.number).toBe('1800*')
     })
   })
 
