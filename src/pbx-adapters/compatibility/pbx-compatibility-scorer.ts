@@ -87,7 +87,7 @@ function getThreshold(score: number): ThresholdDef {
   for (const t of Object.values(thresholds)) {
     if (score >= t.min && score <= t.max) return t
   }
-  return thresholds['poor']!
+  return thresholds['poor'] as ThresholdDef
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────

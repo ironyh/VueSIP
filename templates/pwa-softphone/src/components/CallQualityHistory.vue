@@ -150,29 +150,15 @@ const trendLabel = computed(() => {
       <!-- Stats Overview -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-value">
-            {{ (aggregates as any).value?.totalCalls ?? (aggregates as any).totalCalls }}
-          </div>
+          <div class="stat-value">{{ aggregates.totalCalls }}</div>
           <div class="stat-label">Totalt antal samtal</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">
-            {{
-              (aggregates as any).value?.avgRtt?.toFixed(0) ??
-              (aggregates as any).avgRtt?.toFixed(0) ??
-              '--'
-            }}
-          </div>
+          <div class="stat-value">{{ aggregates.avgRtt?.toFixed(0) ?? '--' }}</div>
           <div class="stat-label">Genomsnittlig RTT (ms)</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">
-            {{
-              (aggregates as any).value?.avgPacketLoss?.toFixed(1) ??
-              (aggregates as any).avgPacketLoss?.toFixed(1) ??
-              '--'
-            }}%
-          </div>
+          <div class="stat-value">{{ aggregates.avgPacketLoss?.toFixed(1) ?? '--' }}%</div>
           <div class="stat-label">Genomsnittlig paketförlust</div>
         </div>
         <div class="stat-card">

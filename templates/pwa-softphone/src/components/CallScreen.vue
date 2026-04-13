@@ -32,15 +32,11 @@ const showStats = ref(false)
 const showRecording = ref(false)
 
 // Call quality stats - only when session is available
-const sessionRef = computed(() => props.session) as import('vue').Ref<
-  CallSession | null | undefined
->
+const sessionRef = computed(() => props.session)
 const { stats, qualityLevel } = useCallQualityStats(sessionRef)
 
 // Call recording - wire to remote stream
-const remoteStreamRef = computed(
-  () => props.session?.remoteStream ?? null
-) as import('vue').Ref<MediaStream | null>
+const remoteStreamRef = computed(() => props.session?.remoteStream ?? null)
 const {
   isRecording,
   isPaused,
@@ -76,7 +72,7 @@ const statusText = computed(() => {
 
 // Quality indicator color
 const qualityColor = computed(() => {
-  switch ((qualityLevel as any).value ?? qualityLevel) {
+  switch (qualityLevel.value) {
     case 'excellent':
       return '#22c55e'
     case 'good':
@@ -216,48 +212,30 @@ function handleDtmf(digit: string) {
           <span
             class="quality-indicator"
             :style="{ backgroundColor: qualityColor }"
-            :title="`Quality: ${(qualityLevel as any).value ?? qualityLevel}`"
+            :title="`Quality: ${qualityLevel}`"
           >
-            {{ ((qualityLevel as any).value ?? qualityLevel) === 'unknown' ? '?' : '' }}
+            {{ qualityLevel === 'unknown' ? '?' : '' }}
           </span>
         </div>
         <div class="stats-grid">
           <div class="stat-item">
             <span class="stat-label">RTT</span>
-            <span class="stat-value"
-              >{{ formatStat((stats as any).value?.rtt ?? (stats as any).rtt, 0) }} ms</span
-            >
+            <span class="stat-value">{{ formatStat(stats.rtt, 0) }} ms</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">Jitter</span>
-            <span class="stat-value"
-              >{{ formatStat((stats as any).value?.jitter ?? (stats as any).jitter, 1) }} ms</span
-            >
+            <span class="stat-value">{{ formatStat(stats.jitter, 1) }} ms</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">Loss</span>
-            <span class="stat-value"
-              >{{
-                formatStat(
-                  (stats as any).value?.packetLossPercent ?? (stats as any).packetLossPercent,
-                  1
-                )
-              }}%</span
-            >
+            <span class="stat-value">{{ formatStat(stats.packetLossPercent, 1) }}%</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">Bitrate</span>
-            <span class="stat-value"
-              >{{
-                formatStat((stats as any).value?.bitrateKbps ?? (stats as any).bitrateKbps, 0)
-              }}
-              kbps</span
-            >
+            <span class="stat-value">{{ formatStat(stats.bitrateKbps, 0) }} kbps</span>
           </div>
         </div>
-        <div v-if="(stats as any).value?.codec ?? (stats as any).codec" class="codec-info">
-          Codec: {{ (stats as any).value?.codec ?? (stats as any).codec }}
-        </div>
+        <div v-if="stats.codec" class="codec-info">Codec: {{ stats.codec }}</div>
         <button class="stats-close" @click="showStats = false">Hide Details</button>
       </div>
     </Transition>

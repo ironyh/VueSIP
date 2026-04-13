@@ -9,7 +9,7 @@
  * @module composables/useDialStrategy
  */
 
-import { ref, type Ref, type ComputedRef, type DeepReadonly, onUnmounted } from 'vue'
+import { ref, type Ref, type DeepReadonly, onUnmounted } from 'vue'
 import type { SipClient } from '../core/SipClient'
 import {
   type DialStrategy,
@@ -67,9 +67,7 @@ export interface UseDialStrategyReturn {
  * const result = await dial('+46700123456')
  * ```
  */
-export function useDialStrategy(
-  sipClient: Ref<SipClient | null> | ComputedRef<SipClient | null>
-): UseDialStrategyReturn {
+export function useDialStrategy(sipClient: Ref<SipClient | null>): UseDialStrategyReturn {
   const strategy = ref<DialStrategyType>('sip-invite')
   const isDialing = ref(false)
   const lastResult = ref<DialResult | null>(null)
