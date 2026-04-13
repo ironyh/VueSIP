@@ -331,7 +331,6 @@ import type { ExampleCategory } from './examples'
 import CallToolbar from './components/CallToolbar.vue'
 import { playgroundSipClient } from './sipClient'
 import { useConnectionManager } from './composables/useConnectionManager'
-import { useTheme } from '../src/composables/useTheme'
 import ThemeToggle from '../src/components/ui/ThemeToggle.vue'
 
 // Connection Manager for auto-connect
@@ -546,8 +545,6 @@ const copyCode = async (code: string, index: number) => {
     alert('Failed to copy code. Please select and copy manually.')
   }
 }
-
-
 
 // Global credential loading for auto-connect across all demos
 const loadAndConnectCredentials = async () => {
@@ -822,8 +819,6 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #047857, #059669);
   box-shadow: 0 8px 22px rgba(16, 185, 129, 0.4);
 }
-
-
 
 .playground-content {
   display: grid;
