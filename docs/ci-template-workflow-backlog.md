@@ -5,7 +5,7 @@ Snabba förbättringar som redan är gjorda (referens):
 - **`pnpm-lock.yaml` / `pnpm-workspace.yaml`** i path-filters för _Deploy Starter Templates_ och _Template Smoke (PR)_ så dependency-ändringar triggar samma jobb som `package.json`.
 - **Lokal smoke** använder katalogen **`.smoke-tmp/`** i repo-root (inte under `scripts/`) så mallars Vite-alias `../../dist` fortsätter matcha djupet som under `templates/<namn>`.
 - **`scripts/write-dist-package-json.mjs`** + `pnpm run write-dist-package` — en källa till sanning för `dist/package.json` som CI använder vid `file:../../dist` (ersätter duplicerade heredocs).
-- **`pnpm/action-setup@v3`** i `.github/workflows/test.yml` (enhetligt inom den filen med övriga steg).
+- **`pnpm/action-setup@v3`** i alla `.github/workflows/*.yml` (tidigare blandat `@v2` / `@v4` i vissa jobb).
 
 ## Nästa steg (medel insats)
 
@@ -15,8 +15,8 @@ Snabba förbättringar som redan är gjorda (referens):
 2. **Dokumentation för utvecklare**  
    I `AGENTS.md` eller här: efter dependency-ändring, kör **`pnpm install` från repo-root** så `vue`-override och workspace löses konsekvent; undvik enbart `pnpm install` under `templates/...` om det skapar en andra Vue-upplösning.
 
-3. **`pnpm/action-setup` repo-wide**  
-   Fler workflows använder fortfarande `@v2` eller `@v4` (t.ex. `security.yml`, `e2e-tests.yml`, `bundle-size.yml`, `publish.yml`, `enterprise-pack.yml`, `flaky-test-detector.yml`). Välj en målversion och migrera i batch när det passar.
+3. ~~**`pnpm/action-setup` repo-wide**~~ **(gjort)**  
+   Alla GitHub Actions-workflows använder nu **`pnpm/action-setup@v3`** (tidigare `@v2` / `@v4` i bl.a. `security.yml`, `e2e-tests.yml`, `bundle-size.yml`, `publish.yml`, `enterprise-pack.yml`, `flaky-test-detector.yml`).
 
 ## Större refaktor
 
