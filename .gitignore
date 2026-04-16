@@ -59,6 +59,7 @@ Thumbs.db
 *.temp
 .cache
 .smoke-tmp/
+.pnpm-store/
 
 # Playwright
 /test-results/

@@ -11,42 +11,12 @@ on:
       - 'scripts/write-dist-package-json.mjs'
       - '.github/workflows/templates-smoke.yml'
       - '.github/workflows/reusable-template-deploy.yml'
+      - '.github/workflows/reusable-build-vuesip-dist.yml'
 
 jobs:
   build-library:
     name: Build VueSip Library
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build library
-        run: pnpm run build
-
-      - name: Create dist package.json
-        run: node scripts/write-dist-package-json.mjs
-
-      - name: Upload library artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vuesip-dist
-          path: dist/
-          retention-days: 1
+    uses: ./.github/workflows/reusable-build-vuesip-dist.yml
 
   smoke:
     name: Build ${{ matrix.template }} template
