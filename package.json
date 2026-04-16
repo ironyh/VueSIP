@@ -125,6 +125,7 @@
     "write-dist-package": "node scripts/write-dist-package-json.mjs",
     "typecheck": "tsc --noEmit",
     "smoke:template:minimal": "node scripts/smoke-template-build.mjs templates/minimal",
+    "smoke:templates": "node scripts/smoke-template-build.mjs --all",
     "type-check": "vue-tsc --noEmit",
     "prepare": "husky"
   },

@@ -172,7 +172,7 @@ jobs:
           path: dist-playground/
 
   template-smoke:
-    name: Template Smoke (pack + build minimal)
+    name: Template Smoke (pack + build all templates)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
@@ -193,5 +193,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run smoke pack-and-build
-        run: pnpm run smoke:template:minimal
+      - name: Run smoke pack-and-build (all templates)
+        run: pnpm run smoke:templates

@@ -3,13 +3,14 @@
 Snabba förbättringar som redan är gjorda (referens):
 
 - **`pnpm-lock.yaml` / `pnpm-workspace.yaml`** i path-filters för _Deploy Starter Templates_ och _Template Smoke (PR)_ så dependency-ändringar triggar samma jobb som `package.json`.
+- **Lokal smoke** använder katalogen **`.smoke-tmp/`** i repo-root (inte under `scripts/`) så mallars Vite-alias `../../dist` fortsätter matcha djupet som under `templates/<namn>`.
 - **`scripts/write-dist-package-json.mjs`** + `pnpm run write-dist-package` — en källa till sanning för `dist/package.json` som CI använder vid `file:../../dist` (ersätter duplicerade heredocs).
 - **`pnpm/action-setup@v3`** i `.github/workflows/test.yml` (enhetligt inom den filen med övriga steg).
 
 ## Nästa steg (medel insats)
 
-1. **PR `test.yml` vs `templates-smoke.yml`**  
-   Huvud-PR-workflow kör bara `smoke:template:minimal`. Överväg att utöka path-triggers så `pnpm-lock.yaml` alltid kör `templates-smoke`, eller lägg ett rot-script som loopar alla mallar (samma lista som smoke-matrisen) för lokal parity.
+1. ~~**PR `test.yml` vs `templates-smoke.yml`**~~ **(gjort)**  
+   `pnpm run smoke:templates` (`scripts/smoke-template-build.mjs --all`) bygger alla mallar mot en packad dist; PR-jobbet `template-smoke` i `test.yml` kör detta. Path-filtrerad `templates-smoke.yml` finns kvar för snabbare feedback när bara vissa paths ändras.
 
 2. **Dokumentation för utvecklare**  
    I `AGENTS.md` eller här: efter dependency-ändring, kör **`pnpm install` från repo-root** så `vue`-override och workspace löses konsekvent; undvik enbart `pnpm install` under `templates/...` om det skapar en andra Vue-upplösning.
