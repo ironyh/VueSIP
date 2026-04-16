@@ -504,10 +504,10 @@ export function validatePbxConfig(
     }
   }
 
-  // 3. Transport validation
+  // 3. Transport validation (blocking for VueSIP)
   const transportResult = validateTransport(config, profile)
   if (!transportResult.valid) {
-    warnings.push(transportResult.message)
+    errors.push(transportResult.message)
     if (transportResult.suggestion) {
       suggestions.push(transportResult.suggestion)
     }
@@ -515,25 +515,33 @@ export function validatePbxConfig(
 
   // 4. Codec validation
   const codecResult = validateCodecs(config, profile)
+  if (!codecResult.valid) {
+    errors.push(codecResult.message)
+  }
 
   // 5. Registration validation
   const registrationResult = validateRegistration(config, profile)
+  if (!registrationResult.valid) {
+    errors.push(registrationResult.message)
+  }
 
   // 6. Session options validation
   const sessionResult = validateSessionOptions(config, profile)
+  if (!sessionResult.valid) {
+    errors.push(sessionResult.message)
+  }
 
   // 7. WebRTC validation
   const webRtcResult = validateWebRtc(config, profile)
+  if (!webRtcResult.valid) {
+    errors.push(webRtcResult.message)
+  }
 
   // 8. Apply platform quirks
   for (const quirk of profile.quirks) {
     if (quirk.severity === 'error') {
-      // Only add error-level quirks if they are relevant
-      if (quirk.field) {
-        const fieldValue = getNestedValue(config, quirk.field)
-        if (fieldValue !== undefined || quirk.id.includes('wss')) {
-          errors.push(`[${profile.displayName}] ${quirk.description}`)
-        }
+      if (shouldApplyErrorQuirk(quirk, config)) {
+        errors.push(`[${profile.displayName}] ${quirk.description}`)
       }
     } else if (quirk.severity === 'warning') {
       warnings.push(`[${profile.displayName}] ${quirk.description}`)
@@ -970,4 +978,25 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
     current = (current as Record<string, unknown>)[key]
   }
   return current
+}
+
+/** Whether an error-severity quirk applies to this config (avoid false positives). */
+function shouldApplyErrorQuirk(
+  quirk: PbxConfigurationQuirk,
+  config: Partial<SipClientConfig>
+): boolean {
+  const uri = typeof config.uri === 'string' ? config.uri : ''
+  switch (quirk.id) {
+    case 'asterisk-wss-dtls':
+    case 'freepbx-webrtc-wss':
+      return uri.startsWith('ws://')
+    case '3cx-restricted-websocket':
+      return uri.startsWith('ws://') || uri.startsWith('wss://')
+    default:
+      if (quirk.field) {
+        const fieldValue = getNestedValue(config as Record<string, unknown>, quirk.field)
+        return fieldValue !== undefined
+      }
+      return false
+  }
 }

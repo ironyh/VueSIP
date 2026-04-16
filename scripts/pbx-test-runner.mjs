@@ -25,9 +25,16 @@ import { resolve, join } from 'node:path'
 // ---------------------------------------------------------------------------
 
 const args = process.argv.slice(2)
-const outputDir = resolve(
-  args[args.indexOf('--output-dir') + 1] || './pbx-reports'
-)
+
+function parseOutputDir(argv) {
+  const idx = argv.indexOf('--output-dir')
+  if (idx === -1 || idx >= argv.length - 1) return './pbx-reports'
+  const next = argv[idx + 1]
+  if (!next || String(next).startsWith('-')) return './pbx-reports'
+  return next
+}
+
+const outputDir = resolve(parseOutputDir(args))
 const generateJunit = args.includes('--junit')
 const jsonReportPath = join(outputDir, 'pbx-test-results.json')
 const markdownReportPath = join(outputDir, 'pbx-test-report.md')

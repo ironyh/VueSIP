@@ -38,7 +38,7 @@
           <button
             v-for="(option, index) in recoveryOptions"
             :key="index"
-            @click="handleRecovery(option)"
+            @click="handleRecovery(option, index)"
             :disabled="isProcessing || option.disabled"
             class="error-feedback__recovery-button"
             :class="{
@@ -47,8 +47,11 @@
               'error-feedback__recovery-button--secondary': !option.primary,
             }"
           >
-            <span v-if="isProcessing && option.processing" class="error-feedback__loading">
-              {{ option.processing }}
+            <span
+              v-if="isProcessing && processingLabelByIndex[index]"
+              class="error-feedback__loading"
+            >
+              {{ processingLabelByIndex[index] }}
             </span>
             <span v-else>
               {{ option.label }}
@@ -181,15 +184,17 @@ const isProcessing = ref(false)
 const isSubmitting = ref(false)
 const selectedFeedback = ref<'helpful' | 'not-helpful' | null>(null)
 const feedbackText = ref('')
+/** Local loading labels per recovery button index (do not mutate prop objects). */
+const processingLabelByIndex = ref<Record<number, string>>({})
 
-const handleRecovery = async (option: RecoveryOption) => {
+const handleRecovery = async (option: RecoveryOption, index: number) => {
   if (isProcessing.value || option.disabled) return
 
   isProcessing.value = true
+  const label = option.processing ?? 'Processing...'
+  processingLabelByIndex.value = { ...processingLabelByIndex.value, [index]: label }
 
   try {
-    option.processing = 'Processing...'
-
     await option.action()
 
     emit('recovery', option)
@@ -198,9 +203,11 @@ const handleRecovery = async (option: RecoveryOption) => {
     feedbackText.value = ''
   } catch (error) {
     console.error('Recovery action failed:', error)
-    option.processing = undefined
     throw error
   } finally {
+    const next = { ...processingLabelByIndex.value }
+    delete next[index]
+    processingLabelByIndex.value = next
     isProcessing.value = false
   }
 }

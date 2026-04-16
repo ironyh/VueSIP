@@ -13,11 +13,49 @@ const isDarkMode = ref<boolean>(false)
 const isInitialized = ref<boolean>(false)
 const isTransitioning = ref<boolean>(false)
 
+/** Active `prefers-color-scheme` listener cleanup (shared across useTheme() consumers). */
+let systemThemeMediaCleanup: (() => void) | null = null
+/** Number of mounted components currently using useTheme(). */
+let useThemeSubscriberCount = 0
+
+function updateSystemThemeListener(): void {
+  if (typeof window === 'undefined') return
+  if (!isInitialized.value || useThemeSubscriberCount === 0) {
+    if (systemThemeMediaCleanup) {
+      systemThemeMediaCleanup()
+      systemThemeMediaCleanup = null
+    }
+    return
+  }
+
+  if (getSavedPreference() !== null) {
+    if (systemThemeMediaCleanup) {
+      systemThemeMediaCleanup()
+      systemThemeMediaCleanup = null
+    }
+    return
+  }
+
+  if (systemThemeMediaCleanup) return
+
+  systemThemeMediaCleanup = onSystemThemeChange((isDark) => {
+    if (!isTransitioning.value && getSavedPreference() === null) {
+      isDarkMode.value = isDark
+      applyTheme(isDark, false)
+    }
+  })
+}
+
 /**
  * Reset singleton state for testing purposes only
  * @internal
  */
 export const _resetForTesting = (): void => {
+  if (systemThemeMediaCleanup) {
+    systemThemeMediaCleanup()
+    systemThemeMediaCleanup = null
+  }
+  useThemeSubscriberCount = 0
   isDarkMode.value = false
   isInitialized.value = false
   isTransitioning.value = false
@@ -151,15 +189,22 @@ const onSystemThemeChange = (callback: (isDark: boolean) => void): (() => void) 
 
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
-  const handleChange = (event: MediaQueryListEvent) => {
-    callback(event.matches)
+  const handleChange = (): void => {
+    callback(mediaQuery.matches)
   }
 
-  mediaQuery.addEventListener('change', handleChange)
-
-  return () => {
-    mediaQuery.removeEventListener('change', handleChange)
+  if (typeof mediaQuery.addEventListener === 'function') {
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
   }
+
+  // JSDOM / legacy environments often only implement addListener/removeListener
+  if (typeof mediaQuery.addListener === 'function') {
+    mediaQuery.addListener(handleChange)
+    return () => mediaQuery.removeListener(handleChange)
+  }
+
+  return () => {}
 }
 
 /**
@@ -167,40 +212,27 @@ const onSystemThemeChange = (callback: (isDark: boolean) => void): (() => void) 
  * @returns Object containing theme state and control functions
  */
 export function useTheme() {
-  // Initialize on first use
   onMounted(() => {
     initializeTheme()
+    useThemeSubscriberCount++
+    updateSystemThemeListener()
   })
 
-  // Cleanup system listener on unmount
-  const cleanupSystemListener = onUnmounted(() => {
-    // Clean up any event listeners
+  onUnmounted(() => {
     document.documentElement.classList.remove('theme-transitioning')
+    useThemeSubscriberCount = Math.max(0, useThemeSubscriberCount - 1)
+    updateSystemThemeListener()
   })
 
   // Expose theme as a computed ref for better Vue 3 reactivity
   const theme = computed<Theme>(() => (isDarkMode.value ? 'dark' : 'light'))
 
   // Watch for theme changes and persist
-  watch(isDarkMode, (newValue) => {
+  watch(isDarkMode, () => {
     if (isInitialized.value) {
-      savePreference(newValue ? 'dark' : 'light')
+      savePreference(isDarkMode.value ? 'dark' : 'light')
+      updateSystemThemeListener()
     }
-  })
-
-  // Listen for system theme changes only when no explicit preference is set
-  const systemThemeListener = computed(() => {
-    if (!isInitialized.value) return () => {}
-
-    const saved = getSavedPreference()
-    if (saved !== null) return () => {} // Don't listen if user has explicit preference
-
-    return onSystemThemeChange((isDark) => {
-      if (!isTransitioning.value) {
-        isDarkMode.value = isDark
-        applyTheme(isDark, false) // No transition for system changes
-      }
-    })
   })
 
   return {
@@ -218,9 +250,15 @@ export function useTheme() {
     // System preference
     getSystemPreference,
 
-    // Cleanup
-    cleanupSystemListener,
-    systemThemeListener: systemThemeListener.value,
+    // Cleanup (detach OS theme listener; callers may invoke when tests need a clean slate)
+    cleanupSystemListener: () => {
+      if (systemThemeMediaCleanup) {
+        systemThemeMediaCleanup()
+        systemThemeMediaCleanup = null
+      }
+    },
+    /** Returns the active media-query listener cleanup, or a no-op if none is attached. */
+    systemThemeListener: () => systemThemeMediaCleanup ?? (() => {}),
 
     // Testing utilities
     _resetForTesting: () => _resetForTesting(),

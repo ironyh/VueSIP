@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.0](https://github.com/ironyh/VueSIP/compare/v1.2.1...v1.3.0) (2026-04-06)
 
-
 ### Features
 
-* PBX Config Validator, Dark Mode, Error Boundaries, A11y, TypeScript Strict ([#214](https://github.com/ironyh/VueSIP/issues/214)) ([22bff0b](https://github.com/ironyh/VueSIP/commit/22bff0bca0287d6bf844d598f20a179327379d42))
+- PBX Config Validator, Dark Mode, Error Boundaries, A11y, TypeScript Strict ([#214](https://github.com/ironyh/VueSIP/issues/214)) ([22bff0b](https://github.com/ironyh/VueSIP/commit/22bff0bca0287d6bf844d598f20a179327379d42))
+
+### Bug Fixes
+
+- PBX validator accuracy, OS theme listener (incl. JSDOM), SIP UA unmount cleanup, ErrorFeedback recovery state, ThemeToggle focus ring, PBX report `includeGaps`, and safer `--output-dir` in PBX test runner ([d35bf51](https://github.com/ironyh/VueSIP/commit/d35bf51))
 
 ## [1.2.1](https://github.com/ironyh/VueSIP/compare/v1.2.0...v1.2.1) (2026-03-30)
 
