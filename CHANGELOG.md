@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1](https://github.com/ironyh/VueSIP/compare/v1.3.0...v1.3.1) (2026-04-16)
+
+
+### Bug Fixes
+
+* **ci:** bulk npm advisory audit (pnpm audit 410) ([53b2f45](https://github.com/ironyh/VueSIP/commit/53b2f45cd9b0719d6a545baa4e83e36a68944d0d))
+* **ci:** clear security audit highs and playground lint ([a3886ee](https://github.com/ironyh/VueSIP/commit/a3886ee426c75250700bc2240c14d7d9a08e32ce))
+* **ci:** pnpm 11 audit after npm 410; include PBX validator in coverage ([37cf428](https://github.com/ironyh/VueSIP/commit/37cf428a3e494f623e3fcbbf45ab0699d647db9f))
+* PBX validator, theme listener, SIP cleanup, CI script ([d35bf51](https://github.com/ironyh/VueSIP/commit/d35bf51e35eb19475527940107584f5b727c603f))
+
 ## [1.3.0](https://github.com/ironyh/VueSIP/compare/v1.2.1...v1.3.0) (2026-04-06)
 
 ### Features
