@@ -38,7 +38,7 @@
  * ```
  */
 
-import { ref, type Ref, type DeepReadonly } from 'vue'
+import { ref, type Ref } from 'vue'
 import {
   fetchNumbers,
   fetchNumberDetails,
@@ -54,21 +54,21 @@ import {
 
 export interface Use46ElksApiReturn {
   /** Loading state */
-  isLoading: DeepReadonly<Ref<boolean>>
+  isLoading: Ref<boolean>
   /** Error message if any */
-  error: DeepReadonly<Ref<string | null>>
+  error: Ref<string | null>
   /** Whether authenticated with API */
-  isAuthenticated: DeepReadonly<Ref<boolean>>
+  isAuthenticated: Ref<boolean>
   /** List of phone numbers from API */
-  numbers: DeepReadonly<Ref<Elks46Number[]>>
+  numbers: Ref<Elks46Number[]>
   /** Currently selected number */
-  selectedNumber: DeepReadonly<Ref<Elks46Number | null>>
+  selectedNumber: Ref<Elks46Number | null>
   /** WebRTC secret for selected number */
-  secret: DeepReadonly<Ref<string | null>>
+  secret: Ref<string | null>
   /** Call history from 46elks */
-  callHistory: DeepReadonly<Ref<Elks46Call[]>>
+  callHistory: Ref<Elks46Call[]>
   /** Whether call history is loading */
-  isLoadingCallHistory: DeepReadonly<Ref<boolean>>
+  isLoadingCallHistory: Ref<boolean>
   /** Authenticate with 46 elks API and fetch numbers */
   authenticate: (username: string, password: string) => Promise<boolean>
   /** Select a number and fetch its WebRTC secret */
@@ -253,14 +253,14 @@ export function use46ElksApi(): Use46ElksApiReturn {
   }
 
   return {
-    isLoading: isLoading as DeepReadonly<Ref<boolean>>,
-    error: error as DeepReadonly<Ref<string | null>>,
-    isAuthenticated: isAuthenticated as DeepReadonly<Ref<boolean>>,
-    numbers: numbers as DeepReadonly<Ref<Elks46Number[]>>,
-    selectedNumber: selectedNumber as DeepReadonly<Ref<Elks46Number | null>>,
-    secret: secret as DeepReadonly<Ref<string | null>>,
-    callHistory: callHistory as DeepReadonly<Ref<Elks46Call[]>>,
-    isLoadingCallHistory: isLoadingCallHistory as DeepReadonly<Ref<boolean>>,
+    isLoading,
+    error,
+    isAuthenticated,
+    numbers,
+    selectedNumber,
+    secret,
+    callHistory,
+    isLoadingCallHistory,
     authenticate,
     selectNumber,
     getCredentials,

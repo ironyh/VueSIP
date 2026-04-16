@@ -15,6 +15,8 @@ import { createLogger } from '../utils/logger'
 
 const log = createLogger('useAudioDeviceSwitch')
 
+type ActiveCallSessionRef = Ref<CallSession | null> | ComputedRef<CallSession | null>
+
 /**
  * Audio-devices shape required by useAudioDeviceSwitch.
  * useAudioDevices() satisfies this fully. Optional members are used when present;
@@ -58,7 +60,7 @@ export interface UseAudioDeviceSwitchReturn {
 }
 
 export function useAudioDeviceSwitch(
-  callSession: Ref<CallSession | null>,
+  callSession: ActiveCallSessionRef,
   audioDevices: AudioDevicesForSwitch,
   options: AudioDeviceSwitchOptions = {}
 ): UseAudioDeviceSwitchReturn {

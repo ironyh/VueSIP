@@ -42,6 +42,11 @@ const qualityLabels: Record<QualityLevel, string> = {
   unknown: 'Okänd',
 }
 
+// Template-friendly aggregates (vue-tsc unwraps these more reliably than nested ComputedRef fields)
+const aggregateTotalCalls = computed(() => aggregates.value.totalCalls)
+const aggregateAvgRtt = computed(() => aggregates.value.avgRtt)
+const aggregateAvgPacketLoss = computed(() => aggregates.value.avgPacketLoss)
+
 // Recent calls (last 10)
 const recentCalls = computed(() => {
   return [...records.value]
@@ -150,15 +155,15 @@ const trendLabel = computed(() => {
       <!-- Stats Overview -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-value">{{ aggregates.totalCalls }}</div>
+          <div class="stat-value">{{ aggregateTotalCalls }}</div>
           <div class="stat-label">Totalt antal samtal</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ aggregates.avgRtt?.toFixed(0) ?? '--' }}</div>
+          <div class="stat-value">{{ aggregateAvgRtt?.toFixed(0) ?? '--' }}</div>
           <div class="stat-label">Genomsnittlig RTT (ms)</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">{{ aggregates.avgPacketLoss?.toFixed(1) ?? '--' }}%</div>
+          <div class="stat-value">{{ aggregateAvgPacketLoss?.toFixed(1) ?? '--' }}%</div>
           <div class="stat-label">Genomsnittlig paketförlust</div>
         </div>
         <div class="stat-card">

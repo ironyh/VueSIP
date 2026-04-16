@@ -75,6 +75,8 @@ const { canInstall, promptInstall, isInstalled } = usePwaInstall()
 const { isReadyForCalls, readinessMessage, checkAllPermissions, requestCallPermissions } =
   useMediaPermissions()
 
+const readinessMessageText = computed(() => readinessMessage.value)
+
 // UI state
 const activeTab = ref<'dialpad' | 'history' | 'settings'>('dialpad')
 const showIncomingModal = ref(false)
@@ -484,12 +486,12 @@ onMounted(async () => {
         <div
           v-if="!isReadyForCalls"
           class="permission-indicator"
-          :class="{ denied: readinessMessage.includes('nekad') }"
-          :title="readinessMessage"
+          :class="{ denied: readinessMessageText.includes('nekad') }"
+          :title="readinessMessageText"
           @click="requestCallPermissions()"
         >
           <span class="permission-icon">🎤</span>
-          <span class="permission-text">{{ readinessMessage }}</span>
+          <span class="permission-text">{{ readinessMessageText }}</span>
         </div>
         <!-- Connection Test Button -->
         <ConnectionTestButton />

@@ -6,7 +6,7 @@
  *
  * @module composables/useCallRecording
  */
-import { ref, computed, onUnmounted, type Ref } from 'vue'
+import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import { RecordingState } from '@/types/media.types'
 
 /**
@@ -33,6 +33,8 @@ export interface UseCallRecordingOptions {
   maxDurationSeconds?: number
 }
 
+type MediaStreamRef = Ref<MediaStream | null> | ComputedRef<MediaStream | null>
+
 /**
  * Call Recording composable
  *
@@ -41,7 +43,7 @@ export interface UseCallRecordingOptions {
  * @returns Recording controls and state
  */
 export function useCallRecording(
-  mediaStream: Ref<MediaStream | null>,
+  mediaStream: MediaStreamRef,
   options: UseCallRecordingOptions = {}
 ) {
   const { mimeType = 'audio/webm', maxDurationSeconds = 3600 } = options

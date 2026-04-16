@@ -393,10 +393,7 @@ export function usePhone() {
     notifications,
   })
 
-  const callWaiting = useCallWaiting(
-    computed(() => callSession.session.value),
-    clientRef
-  )
+  const callWaiting = useCallWaiting(callSession.session, clientRef)
 
   // Adapter to satisfy AudioDevicesForSwitch interface requirements
   // useMediaDevices returns MediaDevice[] but useAudioDeviceSwitch expects AudioDevice[]
@@ -468,10 +465,7 @@ export function usePhone() {
   }
 
   // Audio device switch for mid-call device changes
-  const audioSwitch = useAudioDeviceSwitch(
-    computed(() => callSession.session.value),
-    audioDevicesAdapter as any
-  )
+  const audioSwitch = useAudioDeviceSwitch(callSession.session, audioDevicesAdapter as any)
 
   async function selectAudioInput(deviceId: string) {
     baseSelectAudioInput(deviceId)

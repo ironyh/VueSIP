@@ -6,12 +6,16 @@
  *
  * @module composables/useCallQualityStats
  */
-import { ref, computed, watch, onUnmounted, type Ref } from 'vue'
+import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import type { CallSession } from '@/types/call.types'
 import type { DtmfSessionSource } from './useDTMF'
 import { createLogger } from '../utils/logger'
 
 const logger = createLogger('composables:useCallQualityStats')
+
+type CallSessionForQualityRef =
+  | Ref<CallSession | null | undefined>
+  | ComputedRef<CallSession | null | undefined>
 
 /**
  * Call quality statistics
@@ -55,11 +59,11 @@ export interface UseCallQualityStatsOptions {
  */
 export interface UseCallQualityStatsReturn {
   /** Current quality statistics */
-  stats: Readonly<Ref<CallQualityStats>>
+  stats: Ref<CallQualityStats>
   /** Overall quality level */
-  qualityLevel: Readonly<Ref<QualityLevel>>
+  qualityLevel: ComputedRef<QualityLevel>
   /** Whether stats are currently being collected */
-  isCollecting: Readonly<Ref<boolean>>
+  isCollecting: Ref<boolean>
   /** Start collecting stats */
   start: () => void
   /** Stop collecting stats */
@@ -121,7 +125,7 @@ function computeQualityLevel(rtt: number | null, packetLossPercent: number | nul
  * ```
  */
 export function useCallQualityStats(
-  sessionRef: Ref<CallSession | null | undefined>,
+  sessionRef: CallSessionForQualityRef,
   options: UseCallQualityStatsOptions = {}
 ): UseCallQualityStatsReturn {
   const { pollIntervalMs = 2000, minBitrateSamples = 2 } = options
@@ -326,9 +330,9 @@ export function useCallQualityStats(
   })
 
   return {
-    stats: computed(() => stats.value) as unknown as Readonly<Ref<CallQualityStats>>,
-    qualityLevel: computed(() => qualityLevel.value) as unknown as Readonly<Ref<QualityLevel>>,
-    isCollecting: computed(() => isCollecting.value) as unknown as Readonly<Ref<boolean>>,
+    stats,
+    qualityLevel,
+    isCollecting,
     start,
     stop,
     reset,

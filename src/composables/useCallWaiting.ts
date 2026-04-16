@@ -14,6 +14,10 @@ import { createLogger } from '../utils/logger'
 import { CALL_WAITING_CONSTANTS } from './constants'
 import { type ExtendedCallSession } from './types'
 
+/** Writable session ref (`useCallWaiting` may assign the active session). */
+type CallSessionWritableRef = Ref<CallSession | null>
+type SipClientInstanceRef = Ref<SipClient | null> | ComputedRef<SipClient | null>
+
 const log = createLogger('useCallWaiting')
 
 // ============================================================================
@@ -118,8 +122,8 @@ export interface UseCallWaitingReturn {
  * ```
  */
 export function useCallWaiting(
-  currentSession: Ref<CallSession | null>,
-  _sipClient: Ref<SipClient | null>,
+  currentSession: CallSessionWritableRef,
+  _sipClient: SipClientInstanceRef,
   options: CallWaitingOptions = {}
 ): UseCallWaitingReturn {
   // ============================================================================

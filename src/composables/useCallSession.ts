@@ -28,6 +28,9 @@ import { throwIfAborted, isAbortError } from '../utils/abortController'
 import { ErrorSeverity, logErrorWithContext, createOperationTimer } from '../utils/errorContext'
 import { usePictureInPicture } from './usePictureInPicture'
 
+/** SIP client from `ref()` or `computed(() => getClient())`. */
+type SipClientInstanceRef = Ref<SipClient | null> | ComputedRef<SipClient | null>
+
 const log = createLogger('useCallSession')
 
 /**
@@ -195,7 +198,7 @@ export interface UseCallSessionReturn {
  * ```
  */
 export function useCallSession(
-  sipClient: Ref<SipClient | null>,
+  sipClient: SipClientInstanceRef,
   mediaManager?: Ref<MediaManager | null>
 ): UseCallSessionReturn {
   // ============================================================================
