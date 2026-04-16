@@ -122,6 +122,7 @@
     "docs:all": "pnpm run docs:api && pnpm run docs:build",
     "audit:bulk": "node scripts/npm-registry-bulk-audit.mjs high",
     "check:exports": "node scripts/check-exports.mjs",
+    "write-dist-package": "node scripts/write-dist-package-json.mjs",
     "typecheck": "tsc --noEmit",
     "smoke:template:minimal": "node scripts/smoke-template-build.mjs templates/minimal",
     "type-check": "vue-tsc --noEmit",

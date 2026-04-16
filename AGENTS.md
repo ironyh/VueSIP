@@ -40,3 +40,8 @@ bd sync               # Sync with git
 - If push fails, resolve and retry until it succeeds
 
 Use 'bd' for task tracking
+
+## CI & templates (follow-ups)
+
+- **Backlog:** [docs/ci-template-workflow-backlog.md](docs/ci-template-workflow-backlog.md) — återstående förslag (smoke-parity, återanvändbara workflows, `pnpm/action-setup` repo-wide, m.m.).
+- **Dependencies:** Kör `pnpm install` från **repo-root** efter lås-/override-ändringar så alla workspace-paket (inkl. mallar) får samma Vue-upplösning som `pnpm.overrides`.
