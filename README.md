@@ -8,7 +8,7 @@
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) (setup, checks, PR expectations) and [RELEASING.md](RELEASING.md) for maintainers.
+See [CONTRIBUTING.md](CONTRIBUTING.md) (setup, checks, PR expectations), [RELEASING.md](RELEASING.md) for maintainers, [SECURITY.md](SECURITY.md) for reporting vulnerabilities, and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 VueSip provides **185+ composables** for building professional SIP interfaces with Asterisk, FreePBX, and other VoIP systems. Built with TypeScript and Vue 3, VueSip gives you the business logic while you control the UI.
 

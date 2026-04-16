@@ -1,11 +1,8 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
 contact_links:
-  - name: Documentation
-    url: https://github.com/ironyh/VueSip#readme
-    about: Check out the VueSip documentation for guides and examples
-  - name: Discussions
-    url: https://github.com/ironyh/VueSip/discussions
-    about: Ask questions and discuss VueSip with the community
-  - name: JsSIP Documentation
-    url: https://jssip.net/
-    about: Learn more about the underlying JsSIP library
+  - name: Security issue
+    url: https://github.com/ironyh/VueSIP/security/policy
+    about: Please report security vulnerabilities privately (see SECURITY.md).
+  - name: Question
+    url: https://github.com/ironyh/VueSIP/issues/new?labels=question
+    about: Open an issue with the question label if you are not sure it is a bug.

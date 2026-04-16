@@ -25,6 +25,8 @@ Thank you for your interest in contributing to VueSip! This comprehensive guide 
 - Run **`pnpm install` from the repository root** so workspace `pnpm.overrides` and the **[pnpm catalog](pnpm-workspace.yaml)** apply (starter **templates/** use `catalog:` for Vue, Vite, TypeScript, and `vue-tsc`).
 - **CI parity for templates:** `pnpm run smoke:templates` (packs the library and builds every starter template).
 - **Publishing to npm:** [RELEASING.md](RELEASING.md).
+- **Security reporting:** [SECURITY.md](SECURITY.md).
+- **Community standards:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - **Agent session rules / beads:** [AGENTS.md](AGENTS.md).
 - **Archived handoff notes:** [docs/dev/workflow-state-archive.md](docs/dev/workflow-state-archive.md).
 
