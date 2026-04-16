@@ -69,6 +69,16 @@ describe('renderMarkdownReport', () => {
     expect(md).not.toContain('RFC 3261')
   })
 
+  it('omits gap column and gap lists when includeGaps is false', () => {
+    const md = renderMarkdownReport({
+      platforms: ['asterisk'],
+      includeFeatures: true,
+      includeGaps: false,
+    })
+    expect(md).not.toContain('| Status |')
+    expect(md).not.toContain('**Gaps (')
+  })
+
   it('uses custom title', () => {
     const md = renderMarkdownReport({ title: 'Custom Report' })
     expect(md).toContain('# Custom Report')

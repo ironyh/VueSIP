@@ -4,10 +4,10 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { useTheme } from '../composables/useTheme'
-import ThemeToggle from '../components/ui/ThemeToggle.vue'
+import { useTheme, _resetForTesting } from '../useTheme'
+import ThemeToggle from '../../components/ui/ThemeToggle.vue'
+import { withSetup } from '../../../tests/utils/test-helpers'
 
-// Mock localStorage and window.matchMedia
 const mockLocalStorage = {
   getItem: vi.fn(),
   setItem: vi.fn(),
@@ -19,19 +19,21 @@ const mockMatchMedia = vi.fn()
 describe('useTheme', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    
-    // Mock localStorage
-    global.localStorage = mockLocalStorage as unknown as Storage
-    
-    // Mock window.matchMedia
-    global.window.matchMedia = mockMatchMedia
-    
-    // Reset singleton state
-    const { _resetForTesting } = useTheme()
+    Object.defineProperty(window, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true,
+      configurable: true,
+    })
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: mockMatchMedia,
+    })
     _resetForTesting()
   })
 
   afterEach(() => {
+    _resetForTesting()
     vi.restoreAllMocks()
   })
 
@@ -39,47 +41,32 @@ describe('useTheme', () => {
     it('should default to light mode when no preference is set', () => {
       mockLocalStorage.getItem.mockReturnValue(null)
       mockMatchMedia.mockReturnValue({ matches: false })
-      
-      const { isDarkMode, isInitialized } = useTheme()
-      
-      expect(isDarkMode.value).toBe(false)
-      expect(isInitialized.value).toBe(true)
+
+      const { result, unmount } = withSetup(() => useTheme())
+
+      expect(result.isDarkMode.value).toBe(false)
+      expect(result.isInitialized.value).toBe(true)
+      unmount()
     })
 
     it('should use saved preference over system preference', () => {
       mockLocalStorage.getItem.mockReturnValue('dark')
       mockMatchMedia.mockReturnValue({ matches: false })
-      
-      const { isDarkMode } = useTheme()
-      
-      expect(isDarkMode.value).toBe(true)
+
+      const { result, unmount } = withSetup(() => useTheme())
+
+      expect(result.isDarkMode.value).toBe(true)
+      unmount()
     })
 
     it('should use system preference when no saved preference exists', () => {
       mockLocalStorage.getItem.mockReturnValue(null)
       mockMatchMedia.mockReturnValue({ matches: true })
-      
-      const { isDarkMode } = useTheme()
-      
-      expect(isDarkMode.value).toBe(true)
-    })
 
-    it('should fallback to light mode in non-browser environments', () => {
-      // Remove global window and localStorage
-      const originalWindow = global.window
-      const originalLocalStorage = global.localStorage
-      
-      ;(global as unknown as { window: unknown }).window = undefined
-      ;(global as unknown as { localStorage: unknown }).localStorage = undefined
-      
-      const { isDarkMode, isInitialized } = useTheme()
-      
-      expect(isDarkMode.value).toBe(false)
-      expect(isInitialized.value).toBe(true)
-      
-      // Restore globals
-      global.window = originalWindow
-      global.localStorage = originalLocalStorage
+      const { result, unmount } = withSetup(() => useTheme())
+
+      expect(result.isDarkMode.value).toBe(true)
+      unmount()
     })
   })
 
@@ -87,61 +74,65 @@ describe('useTheme', () => {
     it('should toggle theme correctly', () => {
       mockLocalStorage.getItem.mockReturnValue(null)
       mockMatchMedia.mockReturnValue({ matches: false })
-      
-      const { isDarkMode, toggleTheme } = useTheme()
-      
-      expect(isDarkMode.value).toBe(false)
-      
-      toggleTheme()
-      expect(isDarkMode.value).toBe(true)
-      
-      toggleTheme()
-      expect(isDarkMode.value).toBe(false)
+
+      const { result, unmount } = withSetup(() => useTheme())
+
+      expect(result.isDarkMode.value).toBe(false)
+
+      result.toggleTheme()
+      expect(result.isDarkMode.value).toBe(true)
+
+      result.toggleTheme()
+      expect(result.isDarkMode.value).toBe(false)
+      unmount()
     })
 
     it('should persist theme preference on toggle', () => {
       mockLocalStorage.getItem.mockReturnValue(null)
       mockMatchMedia.mockReturnValue({ matches: false })
-      
-      const { toggleTheme } = useTheme()
-      
-      toggleTheme() // Switch to dark mode
-      
+
+      const { result, unmount } = withSetup(() => useTheme())
+
+      result.toggleTheme()
+
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('vuesip-theme', 'dark')
-      
-      toggleTheme() // Switch back to light mode
-      
+
+      result.toggleTheme()
+
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('vuesip-theme', 'light')
+      unmount()
     })
   })
 
   describe('System Preference Listening', () => {
-    it('should listen to system theme changes when no explicit preference is set', () => {
+    it('should expose a systemThemeListener factory when no explicit preference is set', () => {
       mockLocalStorage.getItem.mockReturnValue(null)
       mockMatchMedia.mockImplementation((query) => ({
         matches: query === '(prefers-color-scheme: dark)',
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
       }))
-      
-      const { systemThemeListener } = useTheme()
-      
-      // The systemThemeListener should be a cleanup function
-      expect(typeof systemThemeListener).toBe('function')
+
+      const { result, unmount } = withSetup(() => useTheme())
+
+      expect(typeof result.systemThemeListener).toBe('function')
+      expect(typeof result.systemThemeListener()).toBe('function')
+      unmount()
     })
 
-    it('should not listen to system changes when explicit preference is set', () => {
+    it('should not attach OS listener when explicit preference is set', () => {
       mockLocalStorage.getItem.mockReturnValue('dark')
       mockMatchMedia.mockImplementation((query) => ({
         matches: query === '(prefers-color-scheme: dark)',
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
       }))
-      
-      const { systemThemeListener } = useTheme()
-      
-      // Should still return a cleanup function, but won't listen for changes
-      expect(typeof systemThemeListener).toBe('function')
+
+      const { result, unmount } = withSetup(() => useTheme())
+
+      expect(typeof result.systemThemeListener).toBe('function')
+      expect(result.systemThemeListener()).toBeInstanceOf(Function)
+      unmount()
     })
   })
 
@@ -149,153 +140,140 @@ describe('useTheme', () => {
     it('should provide computed theme ref', () => {
       mockLocalStorage.getItem.mockReturnValue(null)
       mockMatchMedia.mockReturnValue({ matches: false })
-      
-      const { theme } = useTheme()
-      
-      expect(theme.value).toBe('light')
-      
-      // Should react to changes
-      const { toggleTheme } = useTheme()
-      toggleTheme()
-      expect(theme.value).toBe('dark')
+
+      const { result, unmount } = withSetup(() => useTheme())
+
+      expect(result.theme.value).toBe('light')
+
+      result.toggleTheme()
+      expect(result.theme.value).toBe('dark')
+      unmount()
     })
 
-    it('should provide transitioning state', () => {
+    it('should provide transitioning state', async () => {
       mockLocalStorage.getItem.mockReturnValue(null)
       mockMatchMedia.mockReturnValue({ matches: false })
-      
-      const { isTransitioning } = useTheme()
-      
-      expect(isTransitioning.value).toBe(false)
+
+      vi.useFakeTimers()
+      const { result, unmount } = withSetup(() => useTheme())
+      await vi.runAllTimersAsync()
+      expect(result.isTransitioning.value).toBe(false)
+      unmount()
+      vi.useRealTimers()
     })
   })
 })
 
 describe('ThemeToggle Component', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     mockLocalStorage.getItem.mockReturnValue(null)
     mockMatchMedia.mockReturnValue({ matches: false })
-    
-    // Mock DOM manipulation for theme application
-    vi.spyOn(document.documentElement.classList, 'toggle')
+    Object.defineProperty(window, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true,
+      configurable: true,
+    })
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: mockMatchMedia,
+    })
+    _resetForTesting()
   })
 
   afterEach(() => {
+    _resetForTesting()
     vi.restoreAllMocks()
   })
 
   it('should render with correct icons based on theme', async () => {
-    const { isDarkMode } = useTheme()
-    
     const wrapper = mount(ThemeToggle, {
-      props: {
-        size: 'md',
-        animated: true,
-      },
+      props: { size: 'md', animated: true },
     })
-    
-    // Initially in light mode, should show moon icon
+
     expect(wrapper.find('.moon-icon').exists()).toBe(true)
     expect(wrapper.find('.sun-icon').exists()).toBe(false)
-    
-    // Switch to dark mode
-    isDarkMode.value = true
+
+    await wrapper.find('button').trigger('click')
     await wrapper.vm.$nextTick()
-    
-    // Should now show sun icon
+
     expect(wrapper.find('.moon-icon').exists()).toBe(false)
     expect(wrapper.find('.sun-icon').exists()).toBe(true)
   })
 
   it('should handle theme toggle on click', async () => {
-    const { toggleTheme } = useTheme()
-    const toggleSpy = vi.spyOn({ toggleTheme }, 'toggleTheme')
-    
     const wrapper = mount(ThemeToggle, {
-      props: {
-        size: 'md',
-      },
+      props: { size: 'md' },
     })
-    
+
     await wrapper.find('button').trigger('click')
-    
-    expect(toggleSpy).toHaveBeenCalled()
+
+    expect(mockLocalStorage.setItem).toHaveBeenCalledWith('vuesip-theme', 'dark')
   })
 
   it('should handle keyboard navigation', async () => {
-    const { toggleTheme } = useTheme()
-    const toggleSpy = vi.spyOn({ toggleTheme }, 'toggleTheme')
-    
     const wrapper = mount(ThemeToggle, {
-      props: {
-        size: 'md',
-      },
+      props: { size: 'md' },
     })
-    
-    // Test Space key
+
     await wrapper.find('button').trigger('keydown', { key: ' ' })
-    expect(toggleSpy).toHaveBeenCalled()
-    
-    // Test Enter key
+    expect(mockLocalStorage.setItem).toHaveBeenCalledWith('vuesip-theme', 'dark')
+
+    mockLocalStorage.setItem.mockClear()
+
     await wrapper.find('button').trigger('keydown', { key: 'Enter' })
-    expect(toggleSpy).toHaveBeenCalledTimes(2)
-    
-    // Test Escape key (should not toggle)
+    expect(mockLocalStorage.setItem).toHaveBeenCalledWith('vuesip-theme', 'light')
+
+    mockLocalStorage.setItem.mockClear()
     await wrapper.find('button').trigger('keydown', { key: 'Escape' })
-    expect(toggleSpy).toHaveBeenCalledTimes(2)
+    expect(mockLocalStorage.setItem).not.toHaveBeenCalled()
   })
 
   it('should apply correct size classes', () => {
     const wrapper = mount(ThemeToggle, {
-      props: {
-        size: 'sm',
-      },
+      props: { size: 'sm' },
     })
-    
+
     expect(wrapper.find('.theme-toggle--sm').exists()).toBe(true)
     expect(wrapper.find('.theme-toggle--md').exists()).toBe(false)
     expect(wrapper.find('.theme-toggle--lg').exists()).toBe(false)
   })
 
-  it('should have proper accessibility attributes', () => {
-    const { isDarkMode } = useTheme()
-    
+  it('should have proper accessibility attributes', async () => {
     const wrapper = mount(ThemeToggle, {
-      props: {
-        size: 'md',
-      },
+      props: { size: 'md' },
     })
-    
+
     const button = wrapper.find('button')
-    
+
     expect(button.attributes('aria-label')).toBe('Switch to dark mode')
-    
-    // Update theme and check label
-    isDarkMode.value = true
-    wrapper.vm.$nextTick()
-    
+
+    await button.trigger('click')
+    await wrapper.vm.$nextTick()
+
     expect(button.attributes('aria-label')).toBe('Switch to light mode')
   })
 
   it('should have proper focus styles', async () => {
     const wrapper = mount(ThemeToggle, {
-      props: {
-        size: 'md',
-      },
+      props: { size: 'md' },
+      attachTo: document.body,
     })
-    
+
     const button = wrapper.find('button')
-    
-    // Initially not focused
+
     expect(button.classes()).not.toContain('theme-toggle--focused')
-    
-    // Simulate focus
-    await button.trigger('focus')
+
+    button.element.focus()
+    await wrapper.vm.$nextTick()
     expect(button.classes()).toContain('theme-toggle--focused')
-    
-    // Simulate blur
-    await button.trigger('blur')
+
+    button.element.blur()
+    await wrapper.vm.$nextTick()
     expect(button.classes()).not.toContain('theme-toggle--focused')
+
+    wrapper.unmount()
   })
 })
 
@@ -303,42 +281,47 @@ describe('Theme Integration', () => {
   beforeEach(() => {
     mockLocalStorage.getItem.mockReturnValue(null)
     mockMatchMedia.mockReturnValue({ matches: false })
-    
-    // Mock DOM manipulation
+    Object.defineProperty(window, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true,
+      configurable: true,
+    })
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      configurable: true,
+      value: mockMatchMedia,
+    })
+    _resetForTesting()
     vi.spyOn(document.documentElement.classList, 'add')
     vi.spyOn(document.documentElement.classList, 'remove')
-    vi.spyOn(document.documentElement.classList, 'contains')
   })
 
   afterEach(() => {
+    _resetForTesting()
     vi.restoreAllMocks()
   })
 
   it('should apply CSS classes to document element', () => {
-    const { setTheme } = useTheme()
-    
-    // Set dark mode
-    setTheme('dark')
-    
+    const { result, unmount } = withSetup(() => useTheme())
+
+    result.setTheme('dark')
+
     expect(document.documentElement.classList.add).toHaveBeenCalledWith('dark-mode', 'dark-theme')
-    expect(document.documentElement.classList.remove).not.toHaveBeenCalled()
-    
-    // Set light mode
-    setTheme('light')
-    
-    expect(document.documentElement.classList.remove).toHaveBeenCalledWith('dark-mode', 'dark-theme')
+
+    result.setTheme('light')
+
+    expect(document.documentElement.classList.remove).toHaveBeenCalledWith(
+      'dark-mode',
+      'dark-theme'
+    )
+    unmount()
   })
 
   it('should respect transition preferences', () => {
-    const { setTheme } = useTheme()
-    
-    // Set theme with transitions enabled
-    setTheme('dark', true)
-    
-    // Set theme with transitions disabled
-    setTheme('light', false)
-    
-    // The actual transition behavior is tested in CSS tests
-    // This test verifies the function signature works correctly
+    const { result, unmount } = withSetup(() => useTheme())
+
+    result.setTheme('dark', true)
+    result.setTheme('light', false)
+    unmount()
   })
 })

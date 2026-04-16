@@ -4,6 +4,8 @@
     :aria-label="ariaLabel"
     @click="handleToggle"
     @keydown="handleKeydown"
+    @focus="handleFocus"
+    @blur="handleBlur"
     type="button"
     data-testid="theme-toggle"
   >
@@ -114,6 +116,14 @@ const ariaLabel = computed(() => {
 // Event handlers
 const handleToggle = () => {
   toggleTheme()
+}
+
+const handleFocus = () => {
+  isFocused.value = true
+}
+
+const handleBlur = () => {
+  isFocused.value = false
 }
 
 const handleKeydown = (event: KeyboardEvent) => {

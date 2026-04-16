@@ -215,17 +215,6 @@ export function useSipConnection(config: SipConnectionConfig): UseSipConnectionR
     }
   }
 
-  return {
-    isConnected,
-    isRegistered,
-    isConnecting,
-    error,
-    connect,
-    disconnect,
-    register,
-    unregister,
-  }
-
   // Auto-cleanup: disconnect UA when the consuming component unmounts
   onUnmounted(() => {
     if (ua) {
@@ -251,4 +240,15 @@ export function useSipConnection(config: SipConnectionConfig): UseSipConnectionR
       isConnecting.value = false
     }
   })
+
+  return {
+    isConnected,
+    isRegistered,
+    isConnecting,
+    error,
+    connect,
+    disconnect,
+    register,
+    unregister,
+  }
 }

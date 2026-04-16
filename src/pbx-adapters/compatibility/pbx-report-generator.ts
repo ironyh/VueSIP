@@ -100,19 +100,32 @@ function scoreBar(score: number): string {
   return '█'.repeat(filled) + '░'.repeat(5 - filled)
 }
 
-function categoryToMd(cat: CategoryResult, _includeFeatures: boolean): string {
+function categoryToMd(
+  cat: CategoryResult,
+  _includeFeatures: boolean,
+  includeGaps: boolean
+): string {
   const lines: string[] = []
   lines.push(`#### ${cat.label} — ${cat.rawScore}%`)
   lines.push('')
-  lines.push(`| Feature | Score | Criticality | Status |`)
-  lines.push(`|---------|-------|-------------|--------|`)
-  for (const feat of cat.features) {
-    const bar = scoreBar(feat.score)
-    const status = feat.gap ? '⚠️ Gap' : '✅ OK'
-    lines.push(`| ${feat.label} | ${bar} ${feat.score}/5 | ${feat.criticality} | ${status} |`)
+  if (includeGaps) {
+    lines.push(`| Feature | Score | Criticality | Status |`)
+    lines.push(`|---------|-------|-------------|--------|`)
+    for (const feat of cat.features) {
+      const bar = scoreBar(feat.score)
+      const status = feat.gap ? '⚠️ Gap' : '✅ OK'
+      lines.push(`| ${feat.label} | ${bar} ${feat.score}/5 | ${feat.criticality} | ${status} |`)
+    }
+  } else {
+    lines.push(`| Feature | Score | Criticality |`)
+    lines.push(`|---------|-------|-------------|`)
+    for (const feat of cat.features) {
+      const bar = scoreBar(feat.score)
+      lines.push(`| ${feat.label} | ${bar} ${feat.score}/5 | ${feat.criticality} |`)
+    }
   }
   lines.push('')
-  if (cat.gaps.length > 0) {
+  if (includeGaps && cat.gaps.length > 0) {
     lines.push(`**Gaps (${cat.gaps.length}):** ${cat.gaps.map((g) => g.label).join(', ')}`)
     lines.push('')
   }
@@ -181,6 +194,7 @@ export function generateFullReport(options?: ReportOptions): FullReport {
 export function renderMarkdownReport(options?: ReportOptions): string {
   const report = generateFullReport(options)
   const includeFeatures = options?.includeFeatures !== false
+  const includeGaps = options?.includeGaps !== false
   const lines: string[] = []
 
   // Header
@@ -238,7 +252,7 @@ export function renderMarkdownReport(options?: ReportOptions): string {
 
     if (includeFeatures) {
       for (const cat of p.categories) {
-        lines.push(categoryToMd(cat, includeFeatures))
+        lines.push(categoryToMd(cat, includeFeatures, includeGaps))
       }
     } else {
       // Category summary only
