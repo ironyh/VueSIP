@@ -1,5 +1,5 @@
 {
-  ".": "1.3.0",
+  ".": "1.3.1",
   "packages/enterprise": "0.0.0",
   "templates/pwa-softphone": "0.0.0"
 }
