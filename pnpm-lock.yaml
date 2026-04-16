@@ -114,6 +114,9 @@ importers:
       puppeteer-core:
         specifier: ^24.40.0
         version: 24.41.0
+      semver:
+        specifier: ^7.7.2
+        version: 7.7.4
       terser:
         specifier: ^5.46.1
         version: 5.46.1

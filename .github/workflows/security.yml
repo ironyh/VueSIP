@@ -37,24 +37,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # npm registry retired legacy audit endpoints (410); pnpm <11 still calls them.
-      # Run audit via pnpm 11+ which uses the bulk advisory API (pnpm/pnpm#11265).
+      # npm registry retired legacy audit endpoints (410); `pnpm audit` fails until pnpm 11+ lockfile support.
+      # Bulk advisory API: https://api-docs.npmjs.com/#tag/Audit
       - name: Run security audit (high/critical only)
-        run: >-
-          pnpm dlx --config.minimumReleaseAge=0 pnpm@11.0.0-rc.1
-          --config.manage-package-manager-versions=false
-          audit --audit-level=high
+        run: node scripts/npm-registry-bulk-audit.mjs high
         continue-on-error: false
-
-      - name: Audit summary
-        if: always()
-        run: |
-          echo "📊 Security Audit Summary"
-          pnpm dlx --config.minimumReleaseAge=0 pnpm@11.0.0-rc.1 --config.manage-package-manager-versions=false audit --audit-level=low --json 2>/dev/null | jq -r '
-            .advisories | length as $total |
-            .advisories | map(select(.severity == "critical")) | length as $critical |
-            .advisories | map(select(.severity == "high")) | length as $high |
-            .advisories | map(select(.severity == "moderate")) | length as $moderate |
-            .advisories | map(select(.severity == "low")) | length as $low |
-            "Total vulnerabilities: \($total) | Critical: \($critical) | High: \($high) | Moderate: \($moderate) | Low: \($low)"
-          ' || echo "Audit JSON parsing failed (non-fatal)"
