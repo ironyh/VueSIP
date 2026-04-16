@@ -28,5 +28,5 @@ Snabba förbättringar som redan är gjorda (referens):
 5. ~~**`.gitignore`**~~ **(gjort)**  
    **`.pnpm-store/`** ignoreras om pnpm skapar lokal store i repo-root.
 
-6. **pnpm catalog** (valfritt, låg prioritet)  
-   Gemensam Vue-version via `pnpm-workspace.yaml` catalog kan komplettera `overrides` och göra mallars `package.json` enklare att hålla i synk.
+6. ~~**pnpm catalog**~~ **(gjort)**  
+   `pnpm-workspace.yaml` definierar **`catalog:`** för `vue`, `typescript`, `vite`, `vue-tsc`, `@vitejs/plugin-vue`; starter **templates/** använder `catalog:`. **`pnpm.overrides.vue`** finns kvar som säkerhetsnät. **examples/** kan fortfarande pinna Vite 5 separat.

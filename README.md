@@ -6,6 +6,10 @@
 [![npm downloads](https://img.shields.io/npm/dm/vuesip.svg)](https://www.npmjs.com/package/vuesip)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) (setup, checks, PR expectations) and [RELEASING.md](RELEASING.md) for maintainers.
+
 VueSip provides **185+ composables** for building professional SIP interfaces with Asterisk, FreePBX, and other VoIP systems. Built with TypeScript and Vue 3, VueSip gives you the business logic while you control the UI.
 
 ## Features

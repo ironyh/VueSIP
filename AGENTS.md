@@ -2,6 +2,8 @@
 
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
+Contributor setup and PR expectations: [CONTRIBUTING.md](CONTRIBUTING.md). npm releases: [RELEASING.md](RELEASING.md).
+
 ## Quick Reference
 
 ```bash

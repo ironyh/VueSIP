@@ -5,6 +5,14 @@ on:
     branches: [main, develop, 'claude/**']
   pull_request:
     branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'playwright.config.*'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/e2e-tests.yml'
   workflow_dispatch:
 
 jobs:

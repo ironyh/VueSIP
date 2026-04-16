@@ -1,3 +1,5 @@
+# Publishes the root package to npm when a GitHub Release is published.
+# Requires NPM_TOKEN (see RELEASING.md).
 name: Publish to npm
 
 on:

@@ -1,3 +1,11 @@
 packages:
   - 'examples/*'
   - 'templates/*'
+
+# Shared versions for library + starter templates (examples may pin Vite 5 separately).
+catalog:
+  vue: ^3.5.31
+  typescript: ~5.4.5
+  vite: ^7.3.2
+  vue-tsc: ^2.2.12
+  '@vitejs/plugin-vue': ^6.0.5
