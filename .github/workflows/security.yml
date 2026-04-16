@@ -37,15 +37,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # npm registry retired legacy audit endpoints (410); pnpm <11 still calls them.
+      # Run audit via pnpm 11+ which uses the bulk advisory API (pnpm/pnpm#11265).
       - name: Run security audit (high/critical only)
-        run: pnpm audit --audit-level=high
+        run: >-
+          pnpm dlx --config.minimumReleaseAge=0 pnpm@11.0.0-rc.1
+          --config.manage-package-manager-versions=false
+          audit --audit-level=high
         continue-on-error: false
 
       - name: Audit summary
         if: always()
         run: |
           echo "📊 Security Audit Summary"
-          pnpm audit --audit-level=low --json 2>/dev/null | jq -r '
+          pnpm dlx --config.minimumReleaseAge=0 pnpm@11.0.0-rc.1 --config.manage-package-manager-versions=false audit --audit-level=low --json 2>/dev/null | jq -r '
             .advisories | length as $total |
             .advisories | map(select(.severity == "critical")) | length as $critical |
             .advisories | map(select(.severity == "high")) | length as $high |

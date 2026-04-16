@@ -110,7 +110,7 @@
     "test:e2e:multiuser": "playwright test multi-user.spec.ts --project=chromium --workers=1",
     "test:e2e:advanced": "playwright test accessibility.spec.ts network-conditions.spec.ts performance.spec.ts multi-user.spec.ts --project=chromium --workers=1",
     "coverage": "vitest run --coverage",
-    "coverage:unit": "vitest run --coverage tests/unit",
+    "coverage:unit": "vitest run --coverage tests/unit src/utils/__tests__/pbxConfigValidator.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint-staged": "lint-staged",
