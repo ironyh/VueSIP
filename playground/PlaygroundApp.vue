@@ -715,7 +715,6 @@ onUnmounted(() => {
   color: var(--text-primary);
   padding: 0.75rem 0;
   border-bottom: 1px solid var(--border-color);
-  backdrop-filter: saturate(180%) blur(8px);
 }
 
 .playground-header .container {

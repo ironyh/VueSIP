@@ -298,15 +298,27 @@ const handleDisconnect = async () => {
 }
 
 .combined-status.status-red {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+:root.dark-mode .combined-status.status-red {
+  background: rgba(239, 68, 68, 0.18);
   color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-color: rgba(239, 68, 68, 0.45);
 }
 
 .combined-status.status-orange {
-  background: rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+:root.dark-mode .combined-status.status-orange {
+  background: rgba(245, 158, 11, 0.18);
   color: #fcd34d;
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-color: rgba(245, 158, 11, 0.45);
 }
 
 .combined-status.status-orange .status-icon {
@@ -324,9 +336,15 @@ const handleDisconnect = async () => {
 }
 
 .combined-status.status-green {
-  background: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+:root.dark-mode .combined-status.status-green {
+  background: rgba(16, 185, 129, 0.18);
   color: #6ee7b7;
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-color: rgba(16, 185, 129, 0.45);
 }
 
 .status-item {
@@ -373,12 +391,18 @@ const handleDisconnect = async () => {
 .call-state {
   font-weight: 600;
   text-transform: capitalize;
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
   font-size: 0.8125rem;
   border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+:root.dark-mode .call-state {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.45);
 }
 
 .caller-id {
