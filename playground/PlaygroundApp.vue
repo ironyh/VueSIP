@@ -1434,6 +1434,8 @@ onUnmounted(() => {
 
   .playground-sidebar {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
 }
 
