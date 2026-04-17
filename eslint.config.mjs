@@ -146,6 +146,9 @@ export default [
       '.output/**',
       'playwright-report/**',
       'test-results/**',
+      // Smoke-test temp dirs produced by scripts/smoke-template-build.mjs — generated artifacts only
+      '.smoke-tmp/**',
+      'scripts/.smoke-tmp/**',
       // VitePress generated files - cache, build output, and temp files
       'docs/.vitepress/cache/**',
       'docs/.vitepress/dist/**',
