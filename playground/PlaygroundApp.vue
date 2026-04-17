@@ -62,11 +62,21 @@
                 type="button"
                 role="tab"
                 :aria-selected="activeCategory === 'all'"
+                title="Show all demos"
               >
-                <span class="segment-label">All</span>
-                <span v-if="activeCategory === 'all'" class="segment-count">{{
-                  categoryCounts.all
-                }}</span>
+                <svg
+                  class="segment-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+                <span class="segment-label">All demos</span>
+                <span class="segment-count">{{ categoryCounts.all }}</span>
               </button>
               <button
                 v-for="cat in categoryOrder"
@@ -89,12 +99,8 @@
                 >
                   <path :d="categoryInfo[cat].icon" />
                 </svg>
-                <span v-if="activeCategory === cat" class="segment-label">{{
-                  categoryInfo[cat].label
-                }}</span>
-                <span v-if="activeCategory === cat" class="segment-count">{{
-                  categoryCounts[cat]
-                }}</span>
+                <span class="segment-label">{{ categoryInfo[cat].label }}</span>
+                <span class="segment-count">{{ categoryCounts[cat] }}</span>
               </button>
             </div>
           </div>
@@ -864,26 +870,27 @@ onUnmounted(() => {
 
 .filter-track {
   display: flex;
+  flex-direction: column;
   position: relative;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 3px;
   gap: 2px;
-  overflow: hidden;
 }
 
 .filter-segment {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  flex: 0 0 auto;
-  padding: 0.4rem 0.5rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0.45rem 0.625rem;
   background: transparent;
   border: none;
   border-radius: 7px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  text-align: left;
+  min-width: 0;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
@@ -902,7 +909,6 @@ onUnmounted(() => {
 
 .filter-segment.active {
   color: white;
-  flex: 1 1 auto;
   background: var(--primary);
   box-shadow: var(--shadow-sm);
 }
@@ -914,8 +920,11 @@ onUnmounted(() => {
 }
 
 .segment-label {
-  display: inline;
-  animation: fadeIn 0.15s ease-out;
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes fadeIn {
@@ -930,16 +939,22 @@ onUnmounted(() => {
 }
 
 .segment-count {
-  font-size: 0.55rem;
-  padding: 0.1rem 0.3rem;
-  background: rgba(0, 0, 0, 0.1);
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.1rem 0.35rem;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 999px;
-  min-width: 1rem;
+  min-width: 1.25rem;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .filter-segment.active .segment-count {
   background: rgba(255, 255, 255, 0.25);
+  color: white;
+  border-color: transparent;
 }
 
 .filter-stats .active-filter {
@@ -1473,23 +1488,14 @@ onUnmounted(() => {
     white-space: nowrap;
   }
 
-  /* Mobile filter adjustments - hide labels, show only icons + counts */
   .filter-segment {
     padding: 0.35rem 0.4rem;
-    gap: 0.2rem;
-  }
-
-  .segment-label {
-    display: none !important;
+    gap: 0.25rem;
   }
 
   .segment-icon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .segment-count {
-    font-size: 0.55rem;
+    width: 16px;
+    height: 16px;
   }
 }
 

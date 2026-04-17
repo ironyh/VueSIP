@@ -95,6 +95,22 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.5);
+
+  /* PrimeVue surface tokens inverted so demos that use var(--surface-*)
+     switch automatically in dark mode (PrimeVue aura preset doesn't flip
+     these on its own when we toggle the .dark-mode class). */
+  --surface-0: #020617;
+  --surface-50: #0f172a;
+  --surface-100: #1e293b;
+  --surface-200: #334155;
+  --surface-300: #475569;
+  --surface-400: #64748b;
+  --surface-500: #94a3b8;
+  --surface-600: #cbd5e1;
+  --surface-700: #e2e8f0;
+  --surface-800: #f1f5f9;
+  --surface-900: #f8fafc;
+  --surface-950: #ffffff;
 }
 
 /* Smooth Theme Transitions */
