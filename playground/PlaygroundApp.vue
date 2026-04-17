@@ -796,23 +796,31 @@ onUnmounted(() => {
 }
 
 .connect-cta.cta-connected {
-  border-color: rgba(245, 158, 11, 0.35);
-  color: #92400e;
-  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.12);
 }
 
 .connect-cta.cta-connected:hover {
-  background: rgba(245, 158, 11, 0.14);
+  background: rgba(245, 158, 11, 0.2);
 }
 
 .connect-cta.cta-ready {
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #047857;
-  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .connect-cta.cta-ready:hover {
-  background: rgba(16, 185, 129, 0.14);
+  background: rgba(16, 185, 129, 0.2);
+}
+
+:root.dark-mode .connect-cta.cta-connected {
+  color: #fbbf24;
+}
+
+:root.dark-mode .connect-cta.cta-ready {
+  color: #34d399;
 }
 
 .playground-content {
@@ -1483,53 +1491,5 @@ onUnmounted(() => {
   }
 }
 
-/* Decorative header blobs - do not intercept pointer events */
-.playground-header::before,
-.playground-header::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  filter: blur(40px);
-  opacity: 0.6;
-  transform: translateZ(0);
-}
-
-.playground-header::before {
-  width: 420px;
-  height: 420px;
-  top: -120px;
-  left: -120px;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.25), transparent 70%);
-  animation: floatY 12s ease-in-out infinite alternate;
-}
-
-.playground-header::after {
-  width: 360px;
-  height: 360px;
-  right: -120px;
-  bottom: -120px;
-  background: radial-gradient(closest-side, rgba(99, 102, 241, 0.45), transparent 70%);
-  animation: floatY 14s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes headerGradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes floatY {
-  0% {
-    transform: translateY(0) translateZ(0);
-  }
-  100% {
-    transform: translateY(10px) translateZ(0);
-  }
-}
+/* Decorative header blobs removed: clashed with the compact token-based header */
 </style>

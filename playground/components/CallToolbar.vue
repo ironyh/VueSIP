@@ -245,28 +245,26 @@ const handleDisconnect = async () => {
 
 <style scoped>
 .call-toolbar {
-  background: linear-gradient(120deg, #667eea 0%, #764ba2 50%, #4f46e5 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 1rem 0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.5rem 0;
   position: sticky;
-  top: 0;
-  z-index: 100;
+  top: 70px;
+  z-index: 15;
   border-radius: 0;
 }
 
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 1.5rem;
 }
 
 .toolbar-content {
   display: flex;
   align-items: center;
-  gap: 2rem;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  gap: 1rem;
+  color: var(--text-primary);
 }
 
 /* Status Section */
@@ -363,11 +361,13 @@ const handleDisconnect = async () => {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0 1rem;
-  border-left: 1px solid rgba(255, 255, 255, 0.2);
-  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  gap: 0.75rem;
+  padding: 0 0.75rem;
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
   justify-content: center;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
 }
 
 .call-state {
@@ -388,15 +388,16 @@ const handleDisconnect = async () => {
 
 .call-duration {
   font-family: monospace;
-  font-size: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
 }
 
 .no-call-text {
-  font-size: 0.9375rem;
-  opacity: 0.85;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
   font-style: italic;
   font-weight: 500;
 }
@@ -461,30 +462,31 @@ const handleDisconnect = async () => {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--border-color);
 }
 
 .btn-secondary.active {
-  background: rgba(255, 255, 255, 0.4);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
 }
 
 .btn-settings {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  margin-left: 1rem;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  margin-left: 0.5rem;
 }
 
 .btn-settings:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px);
+  background: var(--border-color);
+  color: var(--text-primary);
 }
 
 .btn-settings svg {
