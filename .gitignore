@@ -93,6 +93,21 @@ claudedocs/
 # Beads local daemon logs
 .beads/daemon-*.log.gz
 
+# Beads runtime state (sockets/PIDs/locks/sync state).
+# issues.jsonl, metadata.json and beads.db are intentionally left unignored so
+# team-shared issue data can be committed if desired.
+.beads/*.sock
+.beads/*.pid
+.beads/*.lock
+.beads/.sync.lock
+.beads/.local_version
+.beads/last-touched
+.beads/sync_base.jsonl
+
+# Sensitive / local-only files that should never be committed
+.moss-key
+.codex
+
 # Build artifacts
 dist-playground/
 docs/.vitepress/cache/
@@ -124,9 +139,11 @@ coordination/orchestration/*
 *.db
 *.db-journal
 *.db-wal
+*.db-shm
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
+*.sqlite-shm
 claude-flow
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt
