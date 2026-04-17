@@ -724,6 +724,7 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text-primary);
+  text-align: left;
 }
 
 .subtitle {
@@ -731,6 +732,7 @@ onUnmounted(() => {
   font-size: 0.8125rem;
   color: var(--text-secondary);
   line-height: 1.3;
+  text-align: left;
 }
 
 .header-content {
@@ -901,8 +903,8 @@ onUnmounted(() => {
 .filter-segment.active {
   color: white;
   flex: 1 1 auto;
-  background: linear-gradient(135deg, var(--primary), #4f46e5);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  background: var(--primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .segment-icon {
@@ -1229,7 +1231,8 @@ onUnmounted(() => {
 .example-header p {
   margin: 0 0 1rem 0;
   color: var(--text-secondary);
-  font-size: 1.125rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
 }
 
 .example-tags {
@@ -1239,15 +1242,14 @@ onUnmounted(() => {
 }
 
 .tag {
-  background:
-    linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
-    linear-gradient(90deg, rgba(99, 102, 241, 0.65), rgba(59, 130, 246, 0.65)) border-box;
-  border: 1px solid transparent;
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.25);
   color: var(--primary);
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.625rem;
   border-radius: 999px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 /* Tab Navigation */
@@ -1280,9 +1282,9 @@ onUnmounted(() => {
 
 .tab-navigation button.active {
   color: white;
-  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  background: var(--primary);
   border-color: transparent;
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Tab Content */
