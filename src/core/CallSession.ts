@@ -5,7 +5,8 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Note: JsSIP doesn't have TypeScript types, so 'any' is necessary for RTCSession integration
+// Note: JsSIP types are defined in @/types/jssip.types.ts; remaining `any` usage in WebRTC stats
+// parsing and dynamic event payloads is intentional (no stable public types available).
 
 import type { EventBus } from './EventBus'
 import type {
@@ -19,7 +20,18 @@ import type {
   CallSession as ICallSession,
 } from '@/types/call.types'
 import type { CalledIdentityExtraction } from '@/types/called-identity.types'
-// JsSIP types available in @/types/jssip.types for future type improvements
+import type {
+  JsSIPRTCSession,
+  JsSIPAnswerOptions,
+  JsSIPDTMFOptions,
+  JsSIPReferOptions,
+  JsSIPSessionProgressEvent,
+  JsSIPAcceptedEvent,
+  JsSIPHoldEvent,
+  JsSIPEndEvent,
+  JsSIPPeerConnectionEvent,
+  JsSIPSDPEvent,
+} from '@/types/jssip.types'
 import { createLogger } from '@/utils/logger'
 import { EventEmitter } from '@/utils/EventEmitter'
 import { CALL_SESSION, DEFAULT_STUN_SERVERS } from '@/utils/constants'
@@ -69,11 +81,11 @@ export interface CallSessionOptions {
   /** Remote display name */
   remoteDisplayName?: string
   /** JsSIP RTCSession instance */
-  rtcSession: any
+  rtcSession: JsSIPRTCSession
   /** Event bus for emitting events */
   eventBus: EventBus
   /** Custom data */
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 }
 
 /**
@@ -102,9 +114,9 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
   private readonly _localUri: string
   private readonly _remoteUri: string
   private readonly _remoteDisplayName?: string
-  private readonly rtcSession: any
+  private readonly rtcSession: JsSIPRTCSession
   private readonly _eventBus: EventBus
-  private readonly _data: Record<string, any>
+  private readonly _data: Record<string, unknown>
 
   // State
   private _state: CallState = 'idle' as CallState
@@ -333,7 +345,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       this.updateState('answering' as CallState)
 
       // Prepare answer options
-      const answerOptions: any = {}
+      const answerOptions: JsSIPAnswerOptions = {}
 
       // Media constraints
       if (options?.mediaConstraints) {
@@ -685,7 +697,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
         logger.debug(`Sending DTMF tone from queue: ${tone}`)
 
         // Prepare DTMF options
-        const dtmfOptions: any = {}
+        const dtmfOptions: JsSIPDTMFOptions = {}
 
         const duration = options?.duration || 100 // Default 100ms
         const interToneGap = options?.interToneGap || 70 // Default 70ms
@@ -741,7 +753,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
 
     try {
       // Use JsSIP refer method for blind transfer
-      const referOptions: any = {}
+      const referOptions: JsSIPReferOptions = {}
 
       if (extraHeaders && extraHeaders.length > 0) {
         referOptions.extraHeaders = extraHeaders
@@ -780,7 +792,7 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     try {
       // For attended transfer, we need to add Replaces header
       // The replaceCallId should reference the consultation call
-      const referOptions: any = {
+      const referOptions: JsSIPReferOptions = {
         replaces: replaceCallId, // JsSIP will construct the Replaces header
       }
 
@@ -886,12 +898,13 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     logger.debug(`rtcSession.on type: ${typeof this.rtcSession?.on}`)
 
     // Progress event (provisional responses: 100, 180, 183)
-    this.rtcSession.on('progress', (e: any) => {
+    this.rtcSession.on('progress', (e: unknown) => {
+      const p = e as JsSIPSessionProgressEvent
       logger.debug(`Call progress: ${this._id}`, e)
 
       // Handle different provisional responses
-      if (e.response) {
-        const code = e.response.status_code
+      if (p.response) {
+        const code = p.response.status_code
 
         if (code === 180) {
           // Ringing
@@ -903,25 +916,26 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       }
 
       this.emitCallEvent('call:progress', {
-        responseCode: e.response?.status_code,
-        reasonPhrase: e.response?.reason_phrase,
+        responseCode: p.response?.status_code,
+        reasonPhrase: p.response?.reason_phrase,
       })
     })
 
     // Accepted event (200 OK received)
-    this.rtcSession.on('accepted', (e: any) => {
+    this.rtcSession.on('accepted', (e: unknown) => {
+      const a = e as JsSIPAcceptedEvent
       logger.info(`Call accepted: ${this._id}`)
 
       // Record answer time
       this._timing.answerTime = new Date()
 
       this.emitCallEvent('call:accepted', {
-        responseCode: e.response?.status_code,
+        responseCode: a.response?.status_code,
       })
     })
 
     // Confirmed event (ACK sent/received)
-    this.rtcSession.on('confirmed', (_e: any) => {
+    this.rtcSession.on('confirmed', (_e: unknown) => {
       logger.debug(`CONFIRMED EVENT RECEIVED for ${this._id}`)
       logger.info(`Call confirmed: ${this._id}`)
 
@@ -933,7 +947,8 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     })
 
     // Ended event (call terminated)
-    this.rtcSession.on('ended', (e: any) => {
+    this.rtcSession.on('ended', (e: unknown) => {
+      const d = e as JsSIPEndEvent
       logger.info(`Call ended: ${this._id}`, e)
 
       // Record end time
@@ -958,13 +973,11 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       }
 
       // Determine termination cause
-      this._terminationCause = this.mapTerminationCause(e.cause)
-
-      this.updateState('terminated' as CallState)
+      this._terminationCause = this.mapTerminationCause(d.cause ?? '')
 
       this.emitCallEvent('call:ended', {
         cause: this._terminationCause,
-        originator: e.originator,
+        originator: d.originator,
       })
 
       // Clean up resources
@@ -972,27 +985,28 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     })
 
     // Failed event (call failed)
-    this.rtcSession.on('failed', (e: any) => {
+    this.rtcSession.on('failed', (e: unknown) => {
+      const d = e as JsSIPEndEvent
       logger.error(`Call failed: ${this._id}`, e)
 
       // Record end time
       this._timing.endTime = new Date()
 
       // Determine termination cause
-      this._terminationCause = this.mapTerminationCause(e.cause)
+      this._terminationCause = this.mapTerminationCause(d.cause ?? '')
 
       // Store last error details for diagnostics
-      this._lastResponseCode = e.response?.status_code
-      this._lastReasonPhrase = e.response?.reason_phrase
-      this._lastErrorMessage = e.message
+      this._lastResponseCode = d.response?.status_code
+      this._lastReasonPhrase = d.response?.reason_phrase
+      this._lastErrorMessage = d.message
 
       this.updateState('failed' as CallState)
 
       this.emitCallEvent('call:failed', {
         cause: this._terminationCause,
-        responseCode: e.response?.status_code,
-        reasonPhrase: e.response?.reason_phrase,
-        message: e.message,
+        responseCode: d.response?.status_code,
+        reasonPhrase: d.response?.reason_phrase,
+        message: d.message,
       })
 
       // Clean up resources
@@ -1000,10 +1014,11 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     })
 
     // Hold event
-    this.rtcSession.on('hold', (e: any) => {
+    this.rtcSession.on('hold', (e: unknown) => {
+      const h = e as JsSIPHoldEvent
       logger.debug(`Call hold: ${this._id}`, e)
 
-      if (e.originator === 'local') {
+      if (h.originator === 'local') {
         this._isOnHold = true
         this.updateState('held' as CallState)
         this.clearHoldTimeout() // Clear timeout
@@ -1013,15 +1028,16 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       }
 
       this.emitCallEvent('call:hold', {
-        originator: e.originator,
+        originator: h.originator,
       })
     })
 
     // Unhold event
-    this.rtcSession.on('unhold', (e: any) => {
+    this.rtcSession.on('unhold', (e: unknown) => {
+      const h = e as JsSIPHoldEvent
       logger.debug(`Call unhold: ${this._id}`, e)
 
-      if (e.originator === 'local') {
+      if (h.originator === 'local') {
         this._isOnHold = false
         this.clearHoldTimeout() // Clear timeout
         this.isHoldPending = false // Reset operation lock
@@ -1030,27 +1046,28 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       this.updateState('active' as CallState)
 
       this.emitCallEvent('call:unhold', {
-        originator: e.originator,
+        originator: h.originator,
       })
     })
 
     // Muted event
-    this.rtcSession.on('muted', (e: any) => {
-      logger.debug(`Call muted: ${this._id}`, e)
+    this.rtcSession.on('muted', (_e: unknown) => {
+      logger.debug(`Call muted: ${this._id}`)
       this._isMuted = true
     })
 
     // Unmuted event
-    this.rtcSession.on('unmuted', (e: any) => {
-      logger.debug(`Call unmuted: ${this._id}`, e)
+    this.rtcSession.on('unmuted', (_e: unknown) => {
+      logger.debug(`Call unmuted: ${this._id}`)
       this._isMuted = false
     })
 
     // PeerConnection event (for media streams)
-    this.rtcSession.on('peerconnection', (e: any) => {
+    this.rtcSession.on('peerconnection', (e: unknown) => {
+      const pc = e as JsSIPPeerConnectionEvent
       logger.debug(`PeerConnection created: ${this._id}`)
 
-      const peerConnection = e.peerconnection
+      const peerConnection = pc.peerconnection
 
       // Listen for remote stream
       peerConnection.ontrack = (event: RTCTrackEvent) => {
@@ -1114,13 +1131,14 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
     })
 
     // ICE candidate event
-    this.rtcSession.on('icecandidate', (e: any) => {
-      logger.debug(`ICE candidate: ${this._id}`, e.candidate)
+    this.rtcSession.on('icecandidate', (_e: unknown) => {
+      logger.debug(`ICE candidate: ${this._id}`)
     })
 
     // SDP event (for debugging)
-    this.rtcSession.on('sdp', (e: any) => {
-      logger.debug(`SDP ${e.type}: ${this._id}`)
+    this.rtcSession.on('sdp', (e: unknown) => {
+      const s = e as JsSIPSDPEvent
+      logger.debug(`SDP ${s.type}: ${this._id}`)
     })
   }
 
@@ -1144,8 +1162,9 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
   /**
    * Emit call event
    */
-  private emitCallEvent(event: string, data?: any): void {
-    this._eventBus.emitSync(event, {
+  private emitCallEvent(event: string, data?: Record<string, unknown>): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(this._eventBus as any).emitSync(event, {
       session: this.toInterface(),
       timestamp: new Date(),
       ...data,
@@ -1273,16 +1292,18 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
  * Create a CallSession from a JsSIP RTCSession
  */
 export function createCallSession(
-  rtcSession: any,
+  rtcSession: unknown,
   direction: CallDirection,
   localUri: string,
   eventBus: EventBus,
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 ): CallSession {
+  // Cast to JsSIPRTCSession for property access
+  const rtc = rtcSession as JsSIPRTCSession
   // Extract session information
-  const id = rtcSession.id || `call-${Date.now()}`
-  const remoteUri = rtcSession.remote_identity?.uri?.toString() || 'sip:unknown@unknown'
-  const remoteDisplayName = rtcSession.remote_identity?.display_name
+  const id = rtc.id || `call-${Date.now()}`
+  const remoteUri = rtc.remote_identity?.uri?.toString() || 'sip:unknown@unknown'
+  const remoteDisplayName = rtc.remote_identity?.display_name
 
   // Set initial state based on direction
   const initialState =
@@ -1296,13 +1317,13 @@ export function createCallSession(
     localUri,
     remoteUri,
     remoteDisplayName,
-    rtcSession,
+    rtcSession: rtc,
     eventBus,
     data,
   })
 
   // Set initial state after creation
-  ;(session as any)._state = initialState
+  ;(session as unknown as { _state: CallState })._state = initialState
 
   return session
 }
