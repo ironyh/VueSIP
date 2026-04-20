@@ -1,15 +1,34 @@
 <template>
-  <DemoShell
-    :variants="variants"
-    :prerequisites="prereqs"
-    :overview="overview"
-    default-variant="account"
-  />
+  <div class="settings-demo-host">
+    <!-- Live connection manager — this is the real thing users need to
+         actually connect to a SIP server. The DemoShell below is the UX
+         showcase. Keep them side-by-side so the "Configure SIP connection"
+         header button lands somewhere useful. -->
+    <section class="live-connection">
+      <ConnectionManagerPanel
+        :is-connected="isConnected"
+        :is-registered="isRegistered"
+        :active-connection-info="activeConnectionInfo"
+        :connection-error="connectionError"
+        :connecting="connecting"
+        @connect="handleConnectionConnect"
+        @disconnect="handleDisconnect"
+      />
+    </section>
+
+    <DemoShell
+      :variants="variants"
+      :prerequisites="prereqs"
+      :overview="overview"
+      default-variant="account"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import DemoShell, { type DemoVariant, type DemoPrerequisite } from '../../components/DemoShell.vue'
+import ConnectionManagerPanel from '../../components/ConnectionManagerPanel.vue'
 import { playgroundSipClient } from '../../sipClient'
 
 import Account from './Account.vue'
@@ -17,7 +36,47 @@ import AccountSrc from './Account.vue?raw'
 import Preferences from './Preferences.vue'
 import PreferencesSrc from './Preferences.vue?raw'
 
-const { isConnected, isRegistered } = playgroundSipClient
+const { isConnected, isRegistered, connect, disconnect } = playgroundSipClient
+
+const connecting = ref(false)
+const connectionError = ref<string | null>(null)
+
+const activeConnectionInfo = computed(() => {
+  if (!isConnected.value) return null
+  const c: any = playgroundSipClient as any
+  return {
+    uri: c.uri?.value ?? c.config?.value?.uri ?? '',
+    sipUri: c.sipUri?.value ?? c.config?.value?.sipUri ?? '',
+    displayName: c.displayName?.value ?? c.config?.value?.displayName ?? '',
+  }
+})
+
+async function handleConnectionConnect(conn: any) {
+  connecting.value = true
+  connectionError.value = null
+  try {
+    await connect({
+      uri: conn.uri,
+      sipUri: conn.sipUri,
+      password: conn.password,
+      displayName: conn.displayName,
+      authorizationUsername: conn.authorizationUsername || extractUser(conn.sipUri),
+    })
+  } catch (e: any) {
+    connectionError.value = e?.message ?? String(e)
+  } finally {
+    connecting.value = false
+  }
+}
+
+async function handleDisconnect() {
+  await disconnect()
+}
+
+function extractUser(sipUri: string): string {
+  const m = sipUri?.match(/^sip:([^@]+)@/)
+  return m ? m[1] : ''
+}
 
 const overview = `A settings screen is two things awkwardly glued: identity (who you are, what you can log in from, how to reset access) and preferences (how the app should behave for you). Mixing them produces a spiralling scroll where "delete my account" lives one toggle away from "notification sounds". Splitting them is the cheapest, highest-leverage UX move in the product.
 
@@ -123,3 +182,16 @@ const prereqs = computed<DemoPrerequisite[]>(() => [
   },
 ])
 </script>
+
+<style scoped>
+.settings-demo-host {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.live-connection {
+  display: flex;
+  flex-direction: column;
+}
+</style>

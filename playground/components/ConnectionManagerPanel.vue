@@ -256,6 +256,20 @@
           </div>
 
           <form @submit.prevent="saveConnection" class="modal-body">
+            <div class="sandbox-preset" v-if="!isEditing">
+              <div class="sandbox-preset__copy">
+                <strong>No PBX handy?</strong>
+                Use the free shared sandbox. No outbound PSTN, no privacy — dial <code>600</code> for an echo test, or <code>demo2</code>..<code>demo6</code> to call another sandbox user.
+              </div>
+              <button
+                type="button"
+                class="btn btn-sm sandbox-preset__btn"
+                @click="loadSandboxPreset"
+              >
+                Load sandbox preset
+              </button>
+            </div>
+
             <div class="form-group">
               <label for="conn-name">Connection Name *</label>
               <input
@@ -525,6 +539,27 @@ function openEditModal(connection: SavedConnection) {
 function closeModal() {
   showModal.value = false
   resetForm()
+}
+
+// Load shared sandbox credentials into the add-connection form.
+// Picks a random demo account (1..6) to reduce collisions between concurrent
+// users. Local dev hits docker compose at localhost:18089; deployed playground
+// (anything non-localhost) points at pbx-demo.vuesip.com.
+function loadSandboxPreset() {
+  const hostPort =
+    typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'localhost:18089'
+      : 'pbx-demo.vuesip.com'
+  const host = hostPort.split(':')[0]
+  const n = Math.floor(Math.random() * 6) + 1
+  form.name = `Sandbox demo${n}`
+  form.uri = `wss://${hostPort}/ws`
+  form.sipUri = `sip:demo${n}@${host}`
+  form.password = `sandbox-demo${n}`
+  form.displayName = `Demo ${n}`
+  form.savePassword = true
+  form.setAsDefault = true
+  form.audioCodec = 'opus'
 }
 
 function onEscapeKey(e: KeyboardEvent) {
@@ -1178,5 +1213,49 @@ function executeDelete() {
 /* Always show Connect button */
 .connection-item .btn-connect {
   opacity: 1;
+}
+
+.sandbox-preset {
+  margin: 0 0 1.25rem 0;
+  padding: 0.875rem 1rem;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.sandbox-preset__copy {
+  font-size: 0.8125rem;
+  color: #78350f;
+  line-height: 1.45;
+}
+
+.sandbox-preset__copy strong {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.sandbox-preset__copy code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  padding: 0 0.25rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 3px;
+}
+
+.sandbox-preset__btn {
+  flex-shrink: 0;
+  background: #b45309;
+  color: white;
+  border: 0;
+  white-space: nowrap;
+}
+
+.sandbox-preset__btn:hover {
+  background: #92400e;
 }
 </style>
