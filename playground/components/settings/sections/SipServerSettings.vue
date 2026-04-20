@@ -1,5 +1,15 @@
 <template>
   <div class="sip-server-settings">
+    <div class="sandbox-preset">
+      <div class="sandbox-preset__copy">
+        <strong>Don't have a PBX?</strong>
+        Load a free shared sandbox account. Demos only — no outbound PSTN, no privacy.
+      </div>
+      <button type="button" class="sandbox-preset__btn" @click="loadSandboxPreset">
+        Load sandbox preset
+      </button>
+    </div>
+
     <div class="settings-section">
       <h3 class="section-title">Server Connection</h3>
 
@@ -287,6 +297,26 @@ const showPassword = ref(false)
 const testingConnection = ref(false)
 const testResult = ref<{ success: boolean; message: string } | null>(null)
 
+// Pick a random demo account (1..6) so people don't all collide on demo1.
+// Production sandbox lives at pbx-demo.vuesip.com; for local dev the docker
+// compose in examples/sandbox-pbx exposes it at localhost:18089.
+function loadSandboxPreset() {
+  const host = typeof location !== 'undefined' && location.hostname === 'localhost'
+    ? 'localhost:18089'
+    : 'pbx-demo.vuesip.com'
+  const n = Math.floor(Math.random() * 6) + 1
+  localSettings.uri = `wss://${host}/ws`
+  localSettings.sipUri = `sip:demo${n}@${host.split(':')[0]}`
+  localSettings.authorizationUsername = `demo${n}`
+  localSettings.password = `sandbox-demo${n}`
+  localSettings.displayName = `Demo ${n}`
+  localSettings.realm = host.split(':')[0]
+  testResult.value = {
+    success: true,
+    message: `Loaded sandbox account demo${n}. Shared sandbox — dial 600 for an echo test.`,
+  }
+}
+
 // Validation errors
 const errors = reactive({
   uri: '',
@@ -389,6 +419,47 @@ watch(
 <style scoped>
 .sip-server-settings {
   max-width: 800px;
+}
+
+.sandbox-preset {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.sandbox-preset__copy {
+  font-size: 0.875rem;
+  color: #78350f;
+  line-height: 1.4;
+}
+
+.sandbox-preset__copy strong {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.sandbox-preset__btn {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  background: #b45309;
+  color: white;
+  border: 0;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sandbox-preset__btn:hover {
+  background: #92400e;
 }
 
 .settings-section {
