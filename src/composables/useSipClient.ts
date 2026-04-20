@@ -493,9 +493,6 @@ export function useSipClient(
   }
 
   /**
-   * Register with SIP server
-   */
-  /**
    * Update SIP client configuration
    */
   function updateConfig(config: Partial<SipClientConfig>): ValidationResult {

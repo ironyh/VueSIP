@@ -21,6 +21,16 @@ describe('DefaultSdpTransformer', () => {
     expect(mLine).toBe('m=audio 9 RTP/SAVPF 0 111 8')
   })
 
+  it('preserves original CRLF line endings after reordering', () => {
+    const t = new DefaultSdpTransformer()
+    const crlfSdp = baseSdp.replace(/\n/g, '\r\n')
+    const out = t.reorderCodecs(crlfSdp, 'audio', ['audio/PCMU', 'audio/opus'])
+
+    expect(out).toContain('\r\n')
+    expect(out.replace(/\r\n/g, '')).not.toContain('\n')
+    expect(out.split('\r\n').find((l) => l.startsWith('m=audio'))).toBe('m=audio 9 RTP/SAVPF 0 111 8')
+  })
+
   it('is idempotent when preferred order matches current order', () => {
     const t = new DefaultSdpTransformer()
     const out = t.reorderCodecs(baseSdp, 'audio', ['audio/opus', 'audio/pcmu', 'audio/pcma'])

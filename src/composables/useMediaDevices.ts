@@ -71,12 +71,6 @@ function permissionDeniedGuidance(kind: 'microphone' | 'camera' | 'microphone/ca
 }
 
 /**
- * Module-level enumeration promise to prevent concurrent enumeration
- * and return the same promise for multiple callers
- */
-let enumerationPromise: Promise<MediaDevice[]> | null = null
-
-/**
  * Device test options
  */
 export interface DeviceTestOptions {
@@ -220,6 +214,7 @@ export function useMediaDevices(
 
   const isEnumerating = ref(false)
   const lastError = ref<Error | null>(null)
+  let enumerationPromise: Promise<MediaDevice[]> | null = null
 
   // Internal AbortController for automatic cleanup on unmount
   const internalAbortController = ref(new AbortController())

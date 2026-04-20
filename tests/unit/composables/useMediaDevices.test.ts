@@ -936,6 +936,52 @@ describe('useMediaDevices - Comprehensive Tests', () => {
       expect(mockEnumerateDevices).toHaveBeenCalledTimes(1)
     })
 
+    it('should not share pending enumeration across composable instances', async () => {
+      const managerADevices: MediaDevice[] = [
+        {
+          deviceId: 'audio-in-a',
+          kind: MediaDeviceKind.AudioInput,
+          label: 'Mic A',
+          groupId: 'group-a',
+        },
+      ]
+      const managerBDevices: MediaDevice[] = [
+        {
+          deviceId: 'audio-in-b',
+          kind: MediaDeviceKind.AudioInput,
+          label: 'Mic B',
+          groupId: 'group-b',
+        },
+      ]
+      const rawDevices = [
+        { deviceId: 'audio-in-a', kind: 'audioinput', label: 'Mic A', groupId: 'group-a' },
+      ]
+
+      const managerA = {
+        enumerateDevices: vi.fn().mockResolvedValue(managerADevices),
+        testDevice: vi.fn(),
+      }
+      const managerB = {
+        enumerateDevices: vi.fn().mockResolvedValue(managerBDevices),
+        testDevice: vi.fn(),
+      }
+
+      mockEnumerateDevices.mockResolvedValue(rawDevices)
+
+      const composableA = useMediaDevices(ref(managerA), { autoEnumerate: false })
+      const composableB = useMediaDevices(ref(managerB), { autoEnumerate: false })
+
+      const [resultA, resultB] = await Promise.all([
+        composableA.enumerateDevices(),
+        composableB.enumerateDevices(),
+      ])
+
+      expect(resultA).toEqual(managerADevices)
+      expect(resultB).toEqual(managerBDevices)
+      expect(managerA.enumerateDevices).toHaveBeenCalledTimes(1)
+      expect(managerB.enumerateDevices).toHaveBeenCalledTimes(1)
+    })
+
     it('should prevent concurrent enumerateDevices calls', async () => {
       mockEnumerateDevices.mockResolvedValue([
         { deviceId: 'audio-in-1', kind: 'audioinput', label: 'Mic', groupId: 'group-1' },
