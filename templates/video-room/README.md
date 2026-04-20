@@ -2,6 +2,8 @@
 
 A multi-participant video conferencing application template built with Vue 3 and VueSIP.
 
+> **Contributing / development:** See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) in the repo root for the pnpm workspace install, the `smoke:templates` gate, and other cross-template guidance before filing a PR touching this starter.
+
 ## Features
 
 - **Dynamic Video Grid** - Responsive grid layout that adapts to participant count (1x1, 2x2, 3x3, etc.)
