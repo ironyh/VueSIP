@@ -54,4 +54,19 @@ test.describe('Playground Demo Navigation - CI', () => {
       await expect(page.locator('.error-message')).toHaveCount(0)
     }
   })
+
+  test('should preload sandbox credentials from settings demo', async ({ page }) => {
+    await page.locator('[data-testid="example-item-settings"]').click()
+    await expect(page).toHaveURL(/#settings(\/|$)/)
+    await expect(page.locator('[data-testid="connection-manager-panel"]')).toBeVisible()
+
+    await page.getByLabel('Add new connection').click()
+    await expect(page.getByText('Load sandbox preset', { exact: true })).toBeVisible()
+
+    await page.getByText('Load sandbox preset', { exact: true }).click()
+
+    await expect(page.locator('#conn-uri')).toHaveValue('wss://localhost:18089/ws')
+    await expect(page.locator('#conn-sip-uri')).toHaveValue(/^sip:demo[1-6]@localhost$/)
+    await expect(page.locator('#conn-password')).toHaveValue(/^sandbox-demo[1-6]$/)
+  })
 })

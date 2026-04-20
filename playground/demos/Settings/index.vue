@@ -1,23 +1,96 @@
 <template>
-  <DemoShell
-    :variants="variants"
-    :prerequisites="prereqs"
-    :overview="overview"
-    default-variant="account"
-  />
+  <div class="settings-demo-host">
+    <!-- Live connection manager — this is the real thing users need to
+         actually connect to a SIP server. The DemoShell below is the UX
+         showcase. Keep them side-by-side so the "Configure SIP connection"
+         header button lands somewhere useful. -->
+    <section class="live-connection">
+      <ConnectionManagerPanel
+        :is-connected="isConnected"
+        :is-registered="isRegistered"
+        :active-connection-info="activeConnectionInfo"
+        :connection-error="connectionError"
+        :connecting="connecting"
+        @connect="handleConnectionConnect"
+        @disconnect="handleDisconnect"
+      />
+    </section>
+
+    <DemoShell
+      :variants="variants"
+      :prerequisites="prereqs"
+      :overview="overview"
+      default-variant="account"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import DemoShell, { type DemoVariant, type DemoPrerequisite } from '../../components/DemoShell.vue'
+import ConnectionManagerPanel from '../../components/ConnectionManagerPanel.vue'
+import { useConnectionManager, type SavedConnection } from '../../composables/useConnectionManager'
 import { playgroundSipClient } from '../../sipClient'
+import type { SipClientConfig } from '../../../src/types/config.types'
 
 import Account from './Account.vue'
 import AccountSrc from './Account.vue?raw'
 import Preferences from './Preferences.vue'
 import PreferencesSrc from './Preferences.vue?raw'
 
-const { isConnected, isRegistered } = playgroundSipClient
+const { isConnected, isRegistered, connect, disconnect } = playgroundSipClient
+const connectionManager = useConnectionManager()
+
+const connecting = ref(false)
+const connectionError = ref<string | null>(null)
+
+const activeConnectionInfo = computed(() => {
+  if (!isConnected.value || !connectionManager.activeConnection.value) return null
+  const active = connectionManager.activeConnection.value
+  return {
+    uri: active.uri,
+    sipUri: active.sipUri,
+    displayName: active.displayName,
+  }
+})
+
+async function handleConnectionConnect(connection: SavedConnection) {
+  connecting.value = true
+  connectionError.value = null
+  try {
+    const config: Partial<SipClientConfig> = {
+      uri: connection.uri,
+      sipUri: connection.sipUri,
+      password: connection.password ?? '',
+      displayName: connection.displayName || undefined,
+      authorizationUsername: extractUser(connection.sipUri),
+      mediaConfiguration: connection.audioCodec ? { audioCodec: connection.audioCodec } : undefined,
+    }
+
+    const validation = playgroundSipClient.updateConfig(config)
+    if (!validation.valid) {
+      connectionError.value = validation.errors.join(', ')
+      return
+    }
+
+    await connect()
+    connectionManager.setActiveConnection(connection.id)
+  } catch (error) {
+    connectionError.value = error instanceof Error ? error.message : String(error)
+  } finally {
+    connecting.value = false
+  }
+}
+
+async function handleDisconnect() {
+  connectionError.value = null
+  await disconnect()
+}
+
+function extractUser(sipUri: string): string {
+  const m = sipUri?.match(/^sip:([^@]+)@/)
+  return m ? m[1] : ''
+}
 
 const overview = `A settings screen is two things awkwardly glued: identity (who you are, what you can log in from, how to reset access) and preferences (how the app should behave for you). Mixing them produces a spiralling scroll where "delete my account" lives one toggle away from "notification sounds". Splitting them is the cheapest, highest-leverage UX move in the product.
 
@@ -58,7 +131,8 @@ The danger zone is a hard-fought UI convention and it works. Red borders, confir
       'Destructive buttons carry text colour + border + text — colour is reinforcement, not the sole signal.',
       'Toast confirming secret-reset is plain text in a semantic region, not an ARIA-live anti-pattern.',
     ],
-    takeaway: 'Account settings is where users make expensive mistakes. Slow them down, reveal nothing sensitive, and let them revoke per-device.',
+    takeaway:
+      'Account settings is where users make expensive mistakes. Slow them down, reveal nothing sensitive, and let them revoke per-device.',
   },
   {
     id: 'preferences',
@@ -94,7 +168,8 @@ The sneaky hard bit is that "preferences" applies on top of admin-enforced polic
       'Checkboxes are wrapped in `<label>` with visible on/off text — the state is not colour-only.',
       'Dirty-state badge uses text ("UNSAVED" / "SAVED") plus colour.',
     ],
-    takeaway: 'Preferences are a quiet form. Group by behaviour, defer to admin policy, and always show who the notifications go to.',
+    takeaway:
+      'Preferences are a quiet form. Group by behaviour, defer to admin policy, and always show who the notifications go to.',
   },
 ]
 
@@ -123,3 +198,16 @@ const prereqs = computed<DemoPrerequisite[]>(() => [
   },
 ])
 </script>
+
+<style scoped>
+.settings-demo-host {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.live-connection {
+  display: flex;
+  flex-direction: column;
+}
+</style>

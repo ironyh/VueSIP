@@ -8,6 +8,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
+      vuesip: resolve(__dirname, 'src/index.ts'),
       '@': resolve(__dirname, 'src'),
       '@/composables': resolve(__dirname, 'src/composables'),
       '@/core': resolve(__dirname, 'src/core'),

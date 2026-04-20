@@ -1,0 +1,29 @@
+services:
+  asterisk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vuesip-sandbox-pbx
+    restart: unless-stopped
+    ports:
+      - "18088:8088"           # WS  (host 18088 → container 8088; 8088 reserved by other Asterisk on host)
+      - "18089:8089"           # WSS (host 18089 → container 8089)
+      - "15038:5038"           # AMI (host 15038 → container 5038; same reason)
+      - "10000-10200:10000-10200/udp"  # RTP
+    volumes:
+      - ./config:/etc/asterisk.d:ro
+      - ./logs:/var/log/asterisk
+      # Mount a real cert file at deploy time, e.g.:
+      #   - ./keys/sandbox.pem:/etc/asterisk/keys/sandbox.pem:ro
+      # Otherwise entrypoint generates a self-signed cert on first boot.
+    networks:
+      - sandbox
+    healthcheck:
+      test: ["CMD", "asterisk", "-rx", "core show version"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sandbox:
+    driver: bridge
