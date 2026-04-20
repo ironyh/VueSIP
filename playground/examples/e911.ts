@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import E911Demo from '../demos/E911Demo.vue'
+import E911Demo from '../demos/E911/index.vue'
 
 export const e911Example: ExampleDefinition = {
   id: 'e911',
@@ -9,6 +9,7 @@ export const e911Example: ExampleDefinition = {
   category: 'utility',
   tags: ['Emergency', 'Safety', 'Compliance'],
   component: E911Demo,
+  layout: 'inline',
   setupGuide: '<p>Configure E911 emergency call handling with automatic location transmission. Ensure compliance with emergency services requirements.</p>',
   codeSnippets: [
     {
