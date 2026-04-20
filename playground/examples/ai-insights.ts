@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import AiInsightsDemo from '../demos/AiInsightsDemo.vue'
+import AiInsightsDemo from '../demos/AiInsights/index.vue'
 
 export const aiInsightsExample: ExampleDefinition = {
   id: 'ai-insights',
@@ -9,6 +9,7 @@ export const aiInsightsExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'AI', 'Sentiment', 'Summary', 'Routing'],
   component: AiInsightsDemo,
+  layout: 'inline',
   setupGuide: `<p>This demo showcases AI-powered call analysis composables:</p>
 <ul>
   <li><strong>Sentiment Tab:</strong> Real-time emotion tracking with alerts and trend analysis</li>

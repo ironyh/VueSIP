@@ -39,7 +39,7 @@
     </div>
 
     <!-- Connected State - Main Dashboard -->
-    <div v-else class="dashboard">
+    <div v-if="isConnected" class="dashboard">
       <!-- Header -->
       <header class="dashboard-header" role="banner">
         <div class="header-content">
