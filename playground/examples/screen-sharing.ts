@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import ScreenSharingDemo from '../demos/ScreenSharingDemo.vue'
+import ScreenSharingDemo from '../demos/ScreenSharing/index.vue'
 
 export const screenSharingExample: ExampleDefinition = {
   id: 'screen-sharing',
@@ -9,6 +9,7 @@ export const screenSharingExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Video', 'Advanced', 'Screen'],
   component: ScreenSharingDemo,
+  layout: 'inline',
   setupGuide: '<p>Share your screen, application windows, or browser tabs during video calls. Requires WebRTC screen capture API support.</p>',
   codeSnippets: [
     {

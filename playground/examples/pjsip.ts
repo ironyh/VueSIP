@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import PjsipDemo from '../demos/PjsipDemo.vue'
+import PjsipDemo from '../demos/Pjsip/index.vue'
 
 export const pjsipExample: ExampleDefinition = {
   id: 'pjsip',
@@ -8,6 +8,7 @@ export const pjsipExample: ExampleDefinition = {
   description: 'Manage PJSIP endpoints and registrations via AMI',
   tags: ['PJSIP', 'AMI', 'Endpoints', 'Registration'],
   component: PjsipDemo,
+  layout: 'inline',
   setupGuide: `<p>Manage PJSIP endpoints and track registration status via AMI. Monitor endpoint health, check registration status, and qualify endpoints.</p>
 <h4>Requirements</h4>
 <ul>
