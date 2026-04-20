@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import PictureInPictureDemo from '../demos/PictureInPictureDemo.vue'
+import PictureInPictureDemo from '../demos/PictureInPicture/index.vue'
 
 export const pictureInPictureExample: ExampleDefinition = {
   id: 'picture-in-picture',
@@ -9,6 +9,7 @@ export const pictureInPictureExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Video', 'PiP', 'WebRTC', 'Composable', 'Advanced'],
   component: PictureInPictureDemo,
+  layout: 'inline',
   setupGuide: '<p>The Picture-in-Picture (PiP) composable allows you to display video content in a floating window that stays on top of other applications. This is particularly useful for video calls, allowing users to monitor the call while working in other apps. The composable handles browser support detection, reactive state management, and automatic cleanup.</p>',
   codeSnippets: [
     {

@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import SettingsDemo from '../demos/SettingsDemo.vue'
+import SettingsDemo from '../demos/Settings/index.vue'
 
 export const settingsExample: ExampleDefinition = {
   id: 'settings',
@@ -9,6 +9,7 @@ export const settingsExample: ExampleDefinition = {
   category: 'utility',
   tags: ['Configuration', 'Preferences', 'User'],
   component: SettingsDemo,
+  layout: 'inline',
   setupGuide: '<p>Manage user preferences and application settings. Configure audio devices, notifications, and display options.</p>',
   codeSnippets: [
     {

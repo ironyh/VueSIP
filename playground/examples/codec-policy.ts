@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CodecPolicyDemo from '../demos/CodecPolicyDemo.vue'
+import CodecPolicyDemo from '../demos/CodecPolicy/index.vue'
 
 export const codecPolicyExample: ExampleDefinition = {
   id: 'codec-policy',
@@ -9,6 +9,7 @@ export const codecPolicyExample: ExampleDefinition = {
   category: 'utility',
   tags: ['Codecs', 'WebRTC', 'Audio'],
   component: CodecPolicyDemo,
+  layout: 'inline',
   setupGuide:
     '<p>Displays local audio codec capabilities via RTCRtpSender.getCapabilities and lets you toggle ordering policy. In browsers without setCodecPreferences, use the SDP transformer fallback.</p>',
   codeSnippets: [

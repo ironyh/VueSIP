@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import UserManagementDemo from '../demos/UserManagementDemo.vue'
+import UserManagementDemo from '../demos/UserManagement/index.vue'
 
 export const userManagementExample: ExampleDefinition = {
   id: 'user-management',
@@ -9,6 +9,7 @@ export const userManagementExample: ExampleDefinition = {
   category: 'ami',
   tags: ['Users', 'AMI', 'Provisioning', 'Extensions', 'Admin'],
   component: UserManagementDemo,
+  layout: 'inline',
   setupGuide: '<p>This demo allows you to manage SIP users on your Asterisk/FreePBX server through AMI. You can add new extensions, update user settings, enable/disable users, and monitor registration status.</p><p><strong>Requirements:</strong></p><ul><li>AMI WebSocket proxy connected to your PBX</li><li>Admin credentials with user management permissions</li><li>PJSIP or SIP channel driver configured</li></ul>',
   codeSnippets: [
     {

@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CallSessionPiPDemo from '../demos/CallSessionPiPDemo.vue'
+import CallSessionPiPDemo from '../demos/CallSessionPiP/index.vue'
 
 export const callSessionPiPExample: ExampleDefinition = {
   id: 'call-session-pip',
@@ -9,6 +9,7 @@ export const callSessionPiPExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Video', 'PiP', 'CallSession', 'Composable', 'Auto-Exit'],
   component: CallSessionPiPDemo,
+  layout: 'inline',
   setupGuide:
     '<p>The <code>useCallSession</code> composable now includes built-in Picture-in-Picture support. This integration provides call-aware PiP functionality that automatically exits when calls end. Instead of using <code>usePictureInPicture</code> directly, you can access all PiP features through <code>useCallSession</code> for seamless call management.</p>',
   codeSnippets: [

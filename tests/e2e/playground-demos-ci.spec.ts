@@ -22,9 +22,16 @@ test.describe('Playground Demo Navigation - CI', () => {
     // These demos were migrated to PrimeVue and historically lacked E2E coverage.
     // Keep assertions minimal: route updates, demo container mounts, no generic error state.
     const demoIds = [
+      'call-session-pip',
       'click-to-call',
       'call-history',
+      'codec-policy',
       'permission-failures',
+      'picture-in-picture',
+      'pjsip',
+      'session-persistence',
+      'settings',
+      'user-management',
       'video-call',
       'call-quality',
       'conference-call',

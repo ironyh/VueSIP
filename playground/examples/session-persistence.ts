@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import SessionPersistenceDemo from '../demos/SessionPersistenceDemo.vue'
+import SessionPersistenceDemo from '../demos/SessionPersistence/index.vue'
 
 export const sessionPersistenceExample: ExampleDefinition = {
   id: 'session-persistence',
@@ -9,6 +9,7 @@ export const sessionPersistenceExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'WebRTC', 'Reliability', 'Storage'],
   component: SessionPersistenceDemo,
+  layout: 'inline',
   setupGuide:
     '<p>Persist call session state to IndexedDB for recovery after page refresh or network reconnection. Essential for maintaining call continuity during browser navigation events.</p>',
   codeSnippets: [
