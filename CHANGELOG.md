@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0](https://github.com/ironyh/VueSIP/compare/v1.3.1...v1.4.0) (2026-04-20)
+
+
+### Features
+
+* **ci:** smoke all templates on PR + smoke:templates script ([8ce4daf](https://github.com/ironyh/VueSIP/commit/8ce4daffa17fe96a8ba77763fd2d67675fcf3bd3))
+* **playground:** add demo shell variants ([e2cf692](https://github.com/ironyh/VueSIP/commit/e2cf692bb547813d7a0d074a16b682f1708f507d))
+* **playground:** migrate ai insights and e911 shells ([b6a9398](https://github.com/ironyh/VueSIP/commit/b6a9398c5754abe316fa7abc74827236cd814464))
+* **playground:** migrate remaining demo shells ([5bc24d7](https://github.com/ironyh/VueSIP/commit/5bc24d7e4e6c3fabf540a86f0ea5add86e40bc3d))
+* **sandbox:** add playground PBX sandbox ([186dd53](https://github.com/ironyh/VueSIP/commit/186dd537188a713304260d8d155330892910b6f3))
+
+
+### Bug Fixes
+
+* **call:** finalize ended session state ([527e7b6](https://github.com/ironyh/VueSIP/commit/527e7b6e75893afa226758d4bbc093951aaed4ec))
+* **docs:** restore CONTRIBUTING.md body; add catalog/smoke/RELEASING quick links ([b94ceef](https://github.com/ironyh/VueSIP/commit/b94ceef3ce26e7266050a664551bc08da263a8df))
+* **e2e:** unblock mobile sidebar clicks + raise dev network budget ([99d0085](https://github.com/ironyh/VueSIP/commit/99d0085998aabe082dc0202f1fd9e0bb111af812))
+* **lint:** ignore .smoke-tmp generated artifacts ([7aaad6f](https://github.com/ironyh/VueSIP/commit/7aaad6f664414a700366366ffc719b69b1ce448c))
+* PWA softphone vue-tsc and Vue dedupe ([ce56ca7](https://github.com/ironyh/VueSIP/commit/ce56ca7f00ba6ef76918f9b62b591e2ca6e2983a))
+
 ## [1.3.1](https://github.com/ironyh/VueSIP/compare/v1.3.0...v1.3.1) (2026-04-16)
 
 
