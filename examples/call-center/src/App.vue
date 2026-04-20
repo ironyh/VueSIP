@@ -97,6 +97,13 @@
             @answer="handleQueuedCallAnswer"
             @queue-update="handleQueueUpdate"
           />
+          <SupervisorBoard
+            :queue-rows="queueRows"
+            :agent-rows="agentRows"
+            :alert-rows="alertRows"
+            :callback-rows="callbackRows"
+            @reassign="handleSupervisorReassign"
+          />
         </aside>
 
         <main id="main-content" class="main-content" aria-label="Active call or statistics">
@@ -184,7 +191,10 @@ import WrapUpPanel from './features/agent/WrapUpPanel.vue'
 import { useAgentWorkspace } from './features/agent/useAgentWorkspace'
 import { useCallbackWorklist } from './features/agent/useCallbackWorklist'
 import { useEnvironmentSetup } from './features/setup/useEnvironmentSetup'
+import { createDemoMvpGateway } from './features/shared/demo-mvp-gateway'
 import { useWrapUpDraft } from './features/agent/useWrapUpDraft'
+import SupervisorBoard from './features/supervisor/SupervisorBoard.vue'
+import { useSupervisorBoard } from './features/supervisor/useSupervisorBoard'
 
 type AgentStatus = 'available' | 'busy' | 'away'
 
@@ -308,9 +318,11 @@ const connectionErrorMessage = computed(() => error.value?.message ?? null)
 const pendingCallbackCount = computed(() => pendingCallbacks.value.length)
 const activeCallbackId = ref<string | null>(null)
 const lastWrappedCallId = ref<string | null>(null)
+const demoCallbacksSeeded = ref(false)
 const historyAnnotations = ref<
   Record<string, { tags: string[]; metadata: Record<string, unknown> }>
 >({})
+const demoGateway = createDemoMvpGateway()
 
 const {
   selectedCallbackId,
@@ -341,51 +353,35 @@ const annotatedHistory = computed(() =>
   })
 )
 
-let queueSimulationInterval: number | null = null
+const { queueRows, agentRows, alertRows, callbackRows, reassignCallback } = useSupervisorBoard({
+  queueCalls: callQueue,
+  callbacks: pendingCallbacks,
+  agentStatus,
+  workspaceState,
+  activeCallId: callId,
+})
 
 const startQueueSimulation = () => {
-  if (queueSimulationInterval) {
-    return
+  if (selectedPreset.value === 'demo' && !demoCallbacksSeeded.value) {
+    pendingCallbacks.value.push(...demoGateway.createSeedCallbacks())
+    demoCallbacksSeeded.value = true
   }
 
-  queueSimulationInterval = window.setInterval(() => {
-    if (agentStatus.value === 'available' && Math.random() > 0.7) {
-      addCallToQueue()
-    }
-
-    // Update wait times for queued calls
-    callQueue.value.forEach((call) => {
-      call.waitTime++
-    })
-  }, 5000) // Check every 5 seconds
+  demoGateway.start({
+    isQueueOpen: () => agentStatus.value === 'available',
+    onInboundCall: (call) => {
+      callQueue.value.push(call)
+    },
+    onTick: () => {
+      callQueue.value.forEach((call) => {
+        call.waitTime++
+      })
+    },
+  })
 }
 
 const stopQueueSimulation = () => {
-  if (queueSimulationInterval) {
-    clearInterval(queueSimulationInterval)
-    queueSimulationInterval = null
-  }
-}
-
-const addCallToQueue = () => {
-  const mockCallers = [
-    { number: 'sip:customer1@domain.com', name: 'John Smith', queue: 'support' },
-    { number: 'sip:customer2@domain.com', name: 'Jane Doe', queue: 'support' },
-    { number: 'sip:customer3@domain.com', name: 'Bob Johnson', queue: 'billing' },
-    { number: 'sip:support@domain.com', name: 'Support Request', queue: 'support' },
-    { number: 'sip:sales@domain.com', name: 'Sales Inquiry', queue: 'sales' },
-  ]
-
-  const caller = mockCallers[Math.floor(Math.random() * mockCallers.length)]
-
-  callQueue.value.push({
-    id: `queue-${Date.now()}`,
-    from: caller.number,
-    displayName: caller.name,
-    waitTime: 0,
-    priority: Math.floor(Math.random() * 3) + 1,
-    queue: caller.queue,
-  })
+  demoGateway.stop()
 }
 
 const syncWorkspaceFromAgentStatus = (status: AgentStatus) => {
@@ -461,6 +457,7 @@ const handleDisconnect = async () => {
     resetWrapUpDraft()
     currentCallNotes.value = ''
     callQueue.value = []
+    demoCallbacksSeeded.value = false
     agentStatus.value = 'away'
     saveAgentStatus('away')
     showNotification('success', 'Disconnected from call center')
@@ -605,6 +602,11 @@ const handleStartCallback = async () => {
   }
 }
 
+const handleSupervisorReassign = (callbackId: string) => {
+  reassignCallback(callbackId, 'supervisor-queue')
+  showNotification('info', 'Callback reassigned to supervisor-queue')
+}
+
 const handleWrapUpComplete = () => {
   const finalizedDisposition = disposition.value
   const finalizedNotes = wrapUpNotes.value.trim()
@@ -673,6 +675,7 @@ watch(isConnected, (connected) => {
     agentStatus.value = disconnectedStatus
     saveAgentStatus(disconnectedStatus)
     callQueue.value = []
+    demoCallbacksSeeded.value = false
     clearWrapUp('offline')
   } else {
     syncWorkspaceFromAgentStatus(agentStatus.value)
