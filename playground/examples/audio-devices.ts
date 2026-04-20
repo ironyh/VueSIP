@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import AudioDevicesDemo from '../demos/AudioDevicesDemo.vue'
+import AudioDevicesDemo from '../demos/AudioDevices/index.vue'
 
 export const audioDevicesExample: ExampleDefinition = {
   id: 'audio-devices',
@@ -9,6 +9,7 @@ export const audioDevicesExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Audio', 'Devices', 'Settings'],
   component: AudioDevicesDemo,
+  layout: 'inline',
   setupGuide: '<p>Manage audio input and output devices for your SIP calls. Users can select their preferred microphone and speaker.</p>',
   codeSnippets: [
     {

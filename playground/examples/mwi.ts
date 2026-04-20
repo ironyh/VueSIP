@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import MWIDemo from '../demos/MWIDemo.vue'
+import MWIDemo from '../demos/MWI/index.vue'
 
 export const mwiExample: ExampleDefinition = {
   id: 'mwi',
@@ -7,6 +7,7 @@ export const mwiExample: ExampleDefinition = {
   title: 'Message Waiting',
   description: 'Control voicemail lamp status via AMI',
   tags: ['MWI', 'AMI', 'Voicemail', 'Indicator'],
+  layout: 'inline',
   component: MWIDemo,
   setupGuide: `<p>Control Message Waiting Indicator (MWI) status for voicemail notifications. Monitor mailbox message counts and control voicemail lamp status on phones.</p>
 <h4>Requirements</h4>

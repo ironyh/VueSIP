@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import RingGroupsDemo from '../demos/RingGroupsDemo.vue'
+import RingGroupsDemo from '../demos/RingGroups/index.vue'
 
 export const ringGroupsExample: ExampleDefinition = {
   id: 'ring-groups',
@@ -9,6 +9,7 @@ export const ringGroupsExample: ExampleDefinition = {
   category: 'ami',
   tags: ['PBX', 'Groups', 'Distribution'],
   component: RingGroupsDemo,
+  layout: 'inline',
   setupGuide: `<p>Configure ring groups for call distribution. Set up simultaneous or sequential ringing patterns for team collaboration via the unified AmiService.</p>
 <h4>Setup Steps:</h4>
 <ol>

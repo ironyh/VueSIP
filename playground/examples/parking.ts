@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import ParkingDemo from '../demos/ParkingDemo.vue'
+import ParkingDemo from '../demos/Parking/index.vue'
 
 export const parkingExample: ExampleDefinition = {
   id: 'parking',
@@ -9,6 +9,7 @@ export const parkingExample: ExampleDefinition = {
   category: 'ami',
   tags: ['Advanced', 'Call Control', 'PBX'],
   component: ParkingDemo,
+  layout: 'inline',
   setupGuide: `<p>Call parking allows you to place a call on hold in a parking lot and retrieve it from another phone. Configure your PBX parking lot settings.</p>
 <h4>Setup Steps:</h4>
 <ol>

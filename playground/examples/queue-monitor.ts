@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import QueueMonitorDemo from '../demos/QueueMonitorDemo.vue'
+import QueueMonitorDemo from '../demos/QueueMonitor/index.vue'
 
 export const queueMonitorExample: ExampleDefinition = {
   id: 'queue-monitor',
@@ -9,6 +9,7 @@ export const queueMonitorExample: ExampleDefinition = {
   category: 'ami',
   tags: ['Advanced', 'Queue', 'Call Center'],
   component: QueueMonitorDemo,
+  layout: 'inline',
   setupGuide: `<p>Monitor call queues in real-time with wait times, agent availability, and queue statistics.</p>
 <h4>Setup Steps:</h4>
 <ol>

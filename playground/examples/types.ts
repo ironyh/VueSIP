@@ -18,4 +18,10 @@ export interface ExampleDefinition {
   component: Component
   setupGuide: string
   codeSnippets: CodeSnippet[]
+  /**
+   * 'tabs' (default) renders the outer Demo/Code/Setup tab strip.
+   * 'inline' flattens everything into a single scrolling column — use for
+   * DemoShell-based demos where variants already carry source + state panels.
+   */
+  layout?: 'tabs' | 'inline'
 }

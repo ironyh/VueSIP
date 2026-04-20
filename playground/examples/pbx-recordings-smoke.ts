@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import PbxRecordingsSmokeDemo from '../demos/PbxRecordingsSmokeDemo.vue'
+import PbxRecordingsSmokeDemo from '../demos/PbxRecordingsSmoke/index.vue'
 
 export const pbxRecordingsSmokeExample: ExampleDefinition = {
   id: 'pbx-recordings-smoke',
@@ -8,6 +8,7 @@ export const pbxRecordingsSmokeExample: ExampleDefinition = {
   description: 'Integration smoke: usePbxRecordings with mock provider — list, render, play.',
   category: 'ami',
   tags: ['E2E', 'Recording', 'PBX', 'Smoke'],
+  layout: 'inline',
   component: PbxRecordingsSmokeDemo,
   setupGuide: `<p>Minimal demo for E2E smoke test: list recordings and get playback URL via usePbxRecordings with a mock provider. No real PBX required.</p>`,
   codeSnippets: [

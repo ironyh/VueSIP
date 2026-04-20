@@ -479,20 +479,13 @@ export function useCallSession(
    *
    * @param target - Target SIP URI (e.g., 'sip:bob@domain.com' or just 'bob')
    * @param options - Call options
+   * @param signal - Optional AbortSignal to cancel the operation
    * @returns Promise that resolves when call is initiated
    * @throws {Error} If another call operation is already in progress
    * @throws {Error} If SIP client is not initialized
    * @throws {Error} If target URI is empty or whitespace-only
    * @throws {Error} If target URI format is invalid
    * @throws {Error} If media acquisition fails
-   * @throws {Error} If call initiation fails
-   */
-  /**
-   * Make an outgoing call
-   *
-   * @param target - Target SIP URI
-   * @param options - Call options
-   * @param signal - Optional AbortSignal to cancel the operation
    * @throws {Error} If call initiation fails
    * @throws {DOMException} with name 'AbortError' if aborted
    *

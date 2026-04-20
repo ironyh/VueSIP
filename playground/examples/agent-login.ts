@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import AgentLoginDemo from '../demos/AgentLoginDemo.vue'
+import AgentLoginDemo from '../demos/AgentLogin/index.vue'
 
 export const agentLoginExample: ExampleDefinition = {
   id: 'agent-login',
@@ -8,6 +8,7 @@ export const agentLoginExample: ExampleDefinition = {
   description: 'Provider-agnostic call center agent management with queue operations',
   tags: ['Call Center', 'Queues', 'Agent', 'Provider-Agnostic'],
   component: AgentLoginDemo,
+  layout: 'inline',
   setupGuide: `<p>Manage call center agent sessions using provider-agnostic composables.
     Works with Asterisk AMI, FreeSWITCH (planned), and cloud providers.</p>
     <ul>

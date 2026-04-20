@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import NetworkSimulatorDemo from '../demos/NetworkSimulatorDemo.vue'
+import NetworkSimulatorDemo from '../demos/NetworkSimulator/index.vue'
 
 export const networkSimulatorExample: ExampleDefinition = {
   id: 'network-simulator',
@@ -9,6 +9,7 @@ export const networkSimulatorExample: ExampleDefinition = {
   category: 'utility',
   tags: ['Debug', 'Testing', 'Advanced'],
   component: NetworkSimulatorDemo,
+  layout: 'inline',
   setupGuide: '<p>Test your application under various network conditions. Simulate latency, packet loss, jitter, and bandwidth constraints to see how your calls perform.</p>',
   codeSnippets: [
     {

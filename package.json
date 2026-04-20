@@ -53,6 +53,7 @@
     "test": "vitest",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
+    "test:integration:real-pbx": "vitest run tests/integration/real-pbx",
     "test:performance": "vitest run tests/performance",
     "test:performance:bench": "vitest bench tests/performance/benchmarks",
     "test:performance:bench:json": "vitest bench tests/performance/benchmarks --outputJson tests/performance/.benchmark-results.json",

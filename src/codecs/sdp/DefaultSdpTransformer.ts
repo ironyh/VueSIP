@@ -16,6 +16,7 @@ export class DefaultSdpTransformer implements SdpTransformer {
     try {
       if (!sdp || typeof sdp !== 'string') return sdp
       const lines = sdp.split(/\r?\n/)
+      const lineEnding = sdp.includes('\r\n') ? '\r\n' : '\n'
 
       // Find the index of the first m=<kind> line
       let targetMediaIndex = -1
@@ -85,7 +86,7 @@ export class DefaultSdpTransformer implements SdpTransformer {
         break // Only transform the first target m= section
       }
 
-      return lines.join('\n')
+      return lines.join(lineEnding)
     } catch (_e) {
       // On any parsing error, return original SDP unchanged
       return sdp

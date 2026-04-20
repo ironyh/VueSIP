@@ -240,8 +240,8 @@
           </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="tab-navigation">
+        <!-- Tab Navigation (only for tabs layout) -->
+        <div v-if="!isInlineLayout" class="tab-navigation">
           <button :class="{ active: activeTab === 'demo' }" @click="selectTab('demo')">Demo</button>
           <button :class="{ active: activeTab === 'code' }" @click="selectTab('code')">Code</button>
           <button :class="{ active: activeTab === 'setup' }" @click="selectTab('setup')">
@@ -251,8 +251,12 @@
 
         <!-- Tab Content -->
         <div class="tab-content">
-          <!-- Live Demo Tab -->
-          <div v-show="activeTab === 'demo'" class="demo-container" data-testid="demo-container">
+          <!-- Live Demo Tab (always visible for inline layout) -->
+          <div
+            v-show="isInlineLayout || activeTab === 'demo'"
+            class="demo-container"
+            data-testid="demo-container"
+          >
             <KeepAlive>
               <component
                 v-if="activeExample?.component"
@@ -265,8 +269,44 @@
             </div>
           </div>
 
-          <!-- Code Examples Tab -->
-          <div v-show="activeTab === 'code'" class="code-container">
+          <!-- Code Examples (tab or collapsed inline section) -->
+          <details
+            v-if="isInlineLayout"
+            class="inline-section"
+            data-testid="inline-snippets"
+          >
+            <summary>
+              <span>Library snippets &amp; recipes</span>
+              <span class="inline-section__count">{{ activeExample.codeSnippets.length }}</span>
+            </summary>
+            <div class="code-container">
+              <div
+                v-for="(snippet, index) in activeExample.codeSnippets"
+                :key="index"
+                class="code-snippet"
+              >
+                <h3>{{ snippet.title }}</h3>
+                <p v-if="snippet.description" class="snippet-description">
+                  {{ snippet.description }}
+                </p>
+                <div class="code-block-wrapper">
+                  <button
+                    @click="copyCode(snippet.code, index)"
+                    class="copy-button"
+                    :class="{ copied: copiedSnippets[index] }"
+                    :aria-label="copiedSnippets[index] ? 'Copied!' : 'Copy code'"
+                    type="button"
+                  >
+                    <span class="copy-text">
+                      {{ copiedSnippets[index] ? 'Copied' : 'Copy' }}
+                    </span>
+                  </button>
+                  <pre><code>{{ snippet.code }}</code></pre>
+                </div>
+              </div>
+            </div>
+          </details>
+          <div v-else v-show="activeTab === 'code'" class="code-container">
             <div
               v-for="(snippet, index) in activeExample.codeSnippets"
               :key="index"
@@ -293,8 +333,36 @@
             </div>
           </div>
 
-          <!-- Setup Guide Tab -->
-          <div v-show="activeTab === 'setup'" class="setup-container">
+          <!-- Setup Guide (tab or collapsed inline section) -->
+          <details
+            v-if="isInlineLayout"
+            class="inline-section"
+            data-testid="inline-setup"
+          >
+            <summary><span>Getting started &amp; prerequisites</span></summary>
+            <div class="setup-content">
+              <h3>Prerequisites</h3>
+              <ul>
+                <li>Vue 3.4.0 or higher</li>
+                <li>A SIP server (Asterisk, FreeSWITCH, etc.)</li>
+                <li>WebRTC-enabled browser (Chrome 90+, Firefox 88+, Safari 14+)</li>
+              </ul>
+
+              <h3>Installation</h3>
+              <pre><code># npm
+npm install vuesip
+
+# pnpm
+pnpm add vuesip
+
+# yarn
+yarn add vuesip</code></pre>
+
+              <h3>{{ activeExample.title }} specific setup</h3>
+              <div v-html="activeExample.setupGuide"></div>
+            </div>
+          </details>
+          <div v-else v-show="activeTab === 'setup'" class="setup-container">
             <div class="setup-content">
               <h3>Prerequisites</h3>
               <ul>
@@ -451,6 +519,8 @@ const categoryCounts = computed(() => ({
 const activeExample = computed(() => {
   return examples.find((ex) => ex.id === currentExample.value) || examples[0]
 })
+
+const isInlineLayout = computed(() => activeExample.value?.layout === 'inline')
 
 const scrollToTop = () => {
   // Avoid smooth scrolling during automation (it slows tests and can create timing flake)
@@ -1307,6 +1377,58 @@ onUnmounted(() => {
 }
 
 .demo-container {
+  padding: 1rem;
+}
+
+/* Inline layout (DemoShell-style demos) */
+.inline-section {
+  margin: 0 1rem 1rem;
+  border: 1px solid var(--surface-border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--surface-0, #ffffff);
+}
+
+.inline-section > summary {
+  cursor: pointer;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-color-secondary, #6b7280);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.inline-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.inline-section > summary::before {
+  content: '▸';
+  font-size: 0.75rem;
+  transition: transform 0.15s;
+  display: inline-block;
+  margin-right: 0.4rem;
+}
+
+.inline-section[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.inline-section__count {
+  background: var(--surface-100, #f4f4f5);
+  color: var(--text-color-secondary, #6b7280);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  margin-left: auto;
+}
+
+.inline-section > .code-container,
+.inline-section > .setup-content {
+  border-top: 1px solid var(--surface-border, #e5e7eb);
   padding: 1rem;
 }
 

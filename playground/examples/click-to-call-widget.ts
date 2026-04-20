@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import ClickToCallWidgetDemo from '../demos/ClickToCallWidgetDemo.vue'
+import ClickToCallWidgetDemo from '../demos/ClickToCallWidget/index.vue'
 
 export const clickToCallWidgetExample: ExampleDefinition = {
   id: 'click-to-call-widget',
@@ -9,6 +9,7 @@ export const clickToCallWidgetExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Click-to-Call', 'Widget', 'SIP', 'WebRTC'],
   component: ClickToCallWidgetDemo,
+  layout: 'inline',
   setupGuide:
     '<p>Use <code>useClickToCall</code> for a drop-in widget that supports mock mode and real SIP/WebRTC. Configure SIP on the right to try it live.</p>',
   codeSnippets: [

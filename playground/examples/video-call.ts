@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import VideoCallDemo from '../demos/VideoCallDemo.vue'
+import VideoCallDemo from '../demos/VideoCall/index.vue'
 
 export const videoCallExample: ExampleDefinition = {
   id: 'video-call',
@@ -9,6 +9,7 @@ export const videoCallExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Video', 'WebRTC', 'Camera Preview', 'Advanced'],
   component: VideoCallDemo,
+  layout: 'inline',
   setupGuide: '<p>Enable video calling with camera support. Use the camera preview to test your camera before starting a call. View all available cameras in multi-camera mode. Grant camera and microphone permissions to use video features.</p>',
   codeSnippets: [
     {

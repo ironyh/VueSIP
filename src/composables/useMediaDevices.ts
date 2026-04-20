@@ -71,10 +71,10 @@ function permissionDeniedGuidance(kind: 'microphone' | 'camera' | 'microphone/ca
 }
 
 /**
- * Module-level enumeration promise to prevent concurrent enumeration
- * and return the same promise for multiple callers
+ * Module-level enumeration lock to prevent concurrent enumeration.
+ * The promise itself is stored per-instance to avoid cross-instance sharing.
  */
-let enumerationPromise: Promise<MediaDevice[]> | null = null
+let enumerationLock = false
 
 /**
  * Device test options
@@ -355,10 +355,10 @@ export function useMediaDevices(
     // Use internal abort signal if none provided (auto-cleanup on unmount)
     const effectiveSignal = signal ?? internalAbortController.value.signal
 
-    // Check if enumeration is already in progress
-    if (isEnumerating.value && enumerationPromise) {
-      log.debug('Device enumeration already in progress, returning pending promise')
-      return enumerationPromise
+    // Check if enumeration is already in progress (module-level lock)
+    if (isEnumerating.value || enumerationLock) {
+      log.debug('Device enumeration already in progress, skipping')
+      return allDevices.value as MediaDevice[]
     }
 
     // Note: We no longer return cached devices early - always enumerate fresh
@@ -368,11 +368,10 @@ export function useMediaDevices(
 
     // Set flag BEFORE creating promise to prevent race conditions
     isEnumerating.value = true
+    enumerationLock = true
     lastError.value = null
 
-    // Store the promise to return to concurrent callers
-    enumerationPromise = (async () => {
-      try {
+    try {
         // Check if aborted before starting
         throwIfAborted(effectiveSignal)
 
@@ -453,11 +452,8 @@ export function useMediaDevices(
         throw err
       } finally {
         isEnumerating.value = false
-        enumerationPromise = null
+        enumerationLock = false
       }
-    })()
-
-    return enumerationPromise
   }
 
   // ============================================================================

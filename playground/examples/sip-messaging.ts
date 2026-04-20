@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import SipMessagingDemo from '../demos/SipMessagingDemo.vue'
+import SipMessagingDemo from '../demos/SipMessaging/index.vue'
 
 export const sipMessagingExample: ExampleDefinition = {
   id: 'sip-messaging',
@@ -9,6 +9,7 @@ export const sipMessagingExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Messaging', 'Chat', 'Advanced'],
   component: SipMessagingDemo,
+  layout: 'inline',
   setupGuide: '<p>Send and receive instant messages over SIP using the MESSAGE method (RFC 3428). Perfect for text-based communication alongside voice calls.</p>',
   codeSnippets: [
     {

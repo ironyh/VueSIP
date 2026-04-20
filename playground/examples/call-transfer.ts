@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CallTransferDemo from '../demos/CallTransferDemo.vue'
+import CallTransferDemo from '../demos/CallTransfer/index.vue'
 
 export const callTransferExample: ExampleDefinition = {
   id: 'call-transfer',
@@ -9,6 +9,7 @@ export const callTransferExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'Transfer', 'Call Control'],
   component: CallTransferDemo,
+  layout: 'inline',
   setupGuide: '<p>Transfer active calls using blind transfer (immediate) or attended transfer (with consultation). Requires an active call to use.</p>',
   codeSnippets: [
     {

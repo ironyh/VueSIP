@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import PresenceDemo from '../demos/PresenceDemo.vue'
+import PresenceDemo from '../demos/Presence/index.vue'
 
 export const presenceExample: ExampleDefinition = {
   id: 'presence',
@@ -9,6 +9,7 @@ export const presenceExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Presence', 'Status', 'SUBSCRIBE'],
   component: PresenceDemo,
+  layout: 'inline',
   setupGuide: '<p>Demonstrate SIP presence functionality (SUBSCRIBE/NOTIFY). Track your own status and watch other users\' availability.</p>',
   codeSnippets: [
     {

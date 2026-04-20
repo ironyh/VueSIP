@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import SystemHealthDemo from '../demos/SystemHealthDemo.vue'
+import SystemHealthDemo from '../demos/SystemHealth/index.vue'
 
 export const systemHealthExample: ExampleDefinition = {
   id: 'system-health',
@@ -8,6 +8,7 @@ export const systemHealthExample: ExampleDefinition = {
   description: 'Monitor Asterisk system health and performance via AMI',
   tags: ['System', 'AMI', 'Health', 'Monitoring'],
   component: SystemHealthDemo,
+  layout: 'inline',
   setupGuide: `<p>Monitor Asterisk system health including uptime, CPU/memory usage, active calls, and module status. Manage modules and reload configurations.</p>
 <h4>Requirements</h4>
 <ul>

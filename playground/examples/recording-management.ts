@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import RecordingManagementDemo from '../demos/RecordingManagementDemo.vue'
+import RecordingManagementDemo from '../demos/RecordingManagement/index.vue'
 
 export const recordingManagementExample: ExampleDefinition = {
   id: 'recording-management',
@@ -8,6 +8,7 @@ export const recordingManagementExample: ExampleDefinition = {
   description: 'Advanced call recording controls and management',
   category: 'ami',
   tags: ['Advanced', 'Recording', 'Compliance'],
+  layout: 'inline',
   component: RecordingManagementDemo,
   setupGuide: `<p>Manage call recordings with start, stop, pause, and resume controls. Access recording metadata and download recordings via the unified AmiService.</p>
 <h4>Setup Steps:</h4>

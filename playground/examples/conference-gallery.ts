@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import ConferenceGalleryDemo from '../demos/ConferenceGalleryDemo.vue'
+import ConferenceGalleryDemo from '../demos/ConferenceGallery/index.vue'
 
 export const conferenceGalleryExample: ExampleDefinition = {
   id: 'conference-gallery',
@@ -9,6 +9,7 @@ export const conferenceGalleryExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'Video', 'Conference'],
   component: ConferenceGalleryDemo,
+  layout: 'inline',
   setupGuide: '<p>View conference participants in a responsive gallery layout with automatic active speaker detection and multiple layout modes.</p>',
   codeSnippets: [
     {

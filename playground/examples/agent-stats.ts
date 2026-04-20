@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import AgentStatsDemo from '../demos/AgentStatsDemo.vue'
+import AgentStatsDemo from '../demos/AgentStats/index.vue'
 
 export const agentStatsExample: ExampleDefinition = {
   id: 'agent-stats',
@@ -9,6 +9,7 @@ export const agentStatsExample: ExampleDefinition = {
   category: 'ami',
   tags: ['Call Center', 'Analytics', 'Performance'],
   component: AgentStatsDemo,
+  layout: 'inline',
   setupGuide: `<p>Monitor agent performance with real-time statistics. Track call counts, handle times, and availability metrics.</p>
 <h4>Setup Steps:</h4>
 <ol>

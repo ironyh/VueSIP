@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CallHistoryDemo from '../demos/CallHistoryDemo.vue'
+import CallHistoryDemo from '../demos/CallHistory/index.vue'
 
 export const callHistoryExample: ExampleDefinition = {
   id: 'call-history',
@@ -9,6 +9,7 @@ export const callHistoryExample: ExampleDefinition = {
   category: 'utility',
   tags: ['Advanced', 'History', 'Analytics'],
   component: CallHistoryDemo,
+  layout: 'inline',
   setupGuide: '<p>Call history is automatically tracked and stored in IndexedDB. View statistics, search, filter, and export your call history.</p>',
   codeSnippets: [
     {

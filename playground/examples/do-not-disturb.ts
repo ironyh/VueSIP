@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import DoNotDisturbDemo from '../demos/DoNotDisturbDemo.vue'
+import DoNotDisturbDemo from '../demos/DoNotDisturb/index.vue'
 
 export const doNotDisturbExample: ExampleDefinition = {
   id: 'do-not-disturb',
@@ -9,6 +9,7 @@ export const doNotDisturbExample: ExampleDefinition = {
   category: 'utility',
   tags: ['Feature', 'Auto-Action', 'Simple'],
   component: DoNotDisturbDemo,
+  layout: 'inline',
   setupGuide: '<p>Enable Do Not Disturb mode to automatically reject all incoming calls. Perfect for focus time or meetings.</p>',
   codeSnippets: [
     {

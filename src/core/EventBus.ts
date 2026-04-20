@@ -263,7 +263,7 @@ export class EventBus {
    */
   waitFor<K extends keyof EventMap>(event: K, timeout?: number): Promise<EventMap[K]> {
     return new Promise((resolve, reject) => {
-      let timeoutId: NodeJS.Timeout | number | undefined
+      let timeoutId: ReturnType<typeof setTimeout> | undefined
 
       let listenerId: string | undefined
 
@@ -280,7 +280,7 @@ export class EventBus {
       // Setup one-time listener
       listenerId = this.once(event, (data) => {
         if (timeoutId) {
-          clearTimeout(timeoutId as number)
+          clearTimeout(timeoutId)
         }
         resolve(data)
       })

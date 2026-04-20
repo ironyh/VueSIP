@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import SupervisorDemo from '../demos/SupervisorDemo.vue'
+import SupervisorDemo from '../demos/Supervisor/index.vue'
 
 export const supervisorExample: ExampleDefinition = {
   id: 'supervisor',
@@ -9,6 +9,7 @@ export const supervisorExample: ExampleDefinition = {
   category: 'ami',
   tags: ['Advanced', 'Supervisor', 'Call Center'],
   component: SupervisorDemo,
+  layout: 'inline',
   setupGuide: `<p>Monitor agent calls, whisper coaching, barge-in capabilities, and call statistics for call center supervisors.</p>
 <h4>Setup Steps:</h4>
 <ol>

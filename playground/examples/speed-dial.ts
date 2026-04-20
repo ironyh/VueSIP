@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import SpeedDialDemo from '../demos/SpeedDialDemo.vue'
+import SpeedDialDemo from '../demos/SpeedDial/index.vue'
 
 export const speedDialExample: ExampleDefinition = {
   id: 'speed-dial',
@@ -9,6 +9,7 @@ export const speedDialExample: ExampleDefinition = {
   category: 'utility',
   tags: ['UI', 'Contacts', 'Practical'],
   component: SpeedDialDemo,
+  layout: 'inline',
   setupGuide: '<p>Save frequently called contacts for one-click dialing. Contacts are stored in localStorage and persist across sessions.</p>',
   codeSnippets: [
     {

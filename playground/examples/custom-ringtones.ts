@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CustomRingtonesDemo from '../demos/CustomRingtonesDemo.vue'
+import CustomRingtonesDemo from '../demos/CustomRingtones/index.vue'
 
 export const customRingtonesExample: ExampleDefinition = {
   id: 'custom-ringtones',
@@ -9,6 +9,7 @@ export const customRingtonesExample: ExampleDefinition = {
   category: 'utility',
   tags: ['Audio', 'Customization', 'UI'],
   component: CustomRingtonesDemo,
+  layout: 'inline',
   setupGuide: '<p>Customize the incoming call experience with different ringtones. Select from built-in tones or use custom audio files with volume control.</p>',
   codeSnippets: [
     {

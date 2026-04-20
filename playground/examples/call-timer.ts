@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CallTimerDemo from '../demos/CallTimerDemo.vue'
+import CallTimerDemo from '../demos/CallTimer/index.vue'
 
 export const callTimerExample: ExampleDefinition = {
   id: 'call-timer',
@@ -9,6 +9,7 @@ export const callTimerExample: ExampleDefinition = {
   category: 'sip',
   tags: ['UI', 'Formatting', 'Simple'],
   component: CallTimerDemo,
+  layout: 'inline',
   setupGuide: '<p>Learn how to display call duration in different formats. Shows MM:SS, HH:MM:SS, human-readable, and compact formats.</p>',
   codeSnippets: [
     {

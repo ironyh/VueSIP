@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import MultiLineDemo from '../demos/MultiLineDemo.vue'
+import MultiLineDemo from '../demos/MultiLine/index.vue'
 
 export const multiLineExample: ExampleDefinition = {
   id: 'multi-line',
@@ -9,6 +9,7 @@ export const multiLineExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'Multi-Line', 'Professional'],
   component: MultiLineDemo,
+  layout: 'inline',
   setupGuide: '<p>Manage multiple phone lines simultaneously. Switch between calls, place calls on hold, and handle multiple conversations.</p>',
   codeSnippets: [
     {

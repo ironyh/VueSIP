@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CallRecordingDemo from '../demos/CallRecordingDemo.vue'
+import CallRecordingDemo from '../demos/CallRecording/index.vue'
 
 export const callRecordingExample: ExampleDefinition = {
   id: 'call-recording',
@@ -8,6 +8,7 @@ export const callRecordingExample: ExampleDefinition = {
   description: 'Record and playback call audio',
   category: 'sip',
   tags: ['Advanced', 'Recording', 'Media'],
+  layout: 'inline',
   component: CallRecordingDemo,
   setupGuide: '<p>Record call audio using the MediaRecorder API. Save recordings to disk or play them back later. Recordings are stored temporarily in memory.</p>',
   codeSnippets: [

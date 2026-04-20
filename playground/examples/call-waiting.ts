@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CallWaitingDemo from '../demos/CallWaitingDemo.vue'
+import CallWaitingDemo from '../demos/CallWaiting/index.vue'
 
 export const callWaitingExample: ExampleDefinition = {
   id: 'call-waiting',
@@ -9,6 +9,7 @@ export const callWaitingExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'Multi-Call', 'Practical'],
   component: CallWaitingDemo,
+  layout: 'inline',
   setupGuide: '<p>Handle multiple simultaneous calls with call waiting. Switch between active calls, hold/resume calls, and manage incoming calls while on another call.</p>',
   codeSnippets: [
     {

@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CallQualityDemo from '../demos/CallQualityDemo.vue'
+import CallQualityDemo from '../demos/CallQuality/index.vue'
 
 export const callQualityExample: ExampleDefinition = {
   id: 'call-quality',
@@ -9,6 +9,7 @@ export const callQualityExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'Monitoring', 'Debug'],
   component: CallQualityDemo,
+  layout: 'inline',
   setupGuide: '<p>View real-time call quality metrics including packet loss, jitter, RTT, and codec information. Essential for diagnosing call quality issues.</p>',
   codeSnippets: [
     {
