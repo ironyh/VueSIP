@@ -2,6 +2,8 @@
 
 A minimal starter template demonstrating core VueSip functionality with a simple, clean interface.
 
+> **Contributing / development:** See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) in the repo root for the pnpm workspace install, the `smoke:templates` gate, and other cross-template guidance before filing a PR touching this starter.
+
 ## Features
 
 - SIP connection and registration
