@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import BLFDemo from '../demos/BLFDemo.vue'
+import BLFDemo from '../demos/BLF/index.vue'
 
 export const blfExample: ExampleDefinition = {
   id: 'blf',
@@ -9,6 +9,7 @@ export const blfExample: ExampleDefinition = {
   category: 'ami',
   tags: ['Advanced', 'Presence', 'Monitoring'],
   component: BLFDemo,
+  layout: 'inline',
   setupGuide: `<p>BLF (Busy Lamp Field) allows you to monitor the status of other extensions in real-time. See idle, ringing, busy, and unavailable states via the unified AmiService.</p>
 <h4>Setup Steps:</h4>
 <ol>

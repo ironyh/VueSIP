@@ -62,11 +62,21 @@
                 type="button"
                 role="tab"
                 :aria-selected="activeCategory === 'all'"
+                title="Show all demos"
               >
-                <span class="segment-label">All</span>
-                <span v-if="activeCategory === 'all'" class="segment-count">{{
-                  categoryCounts.all
-                }}</span>
+                <svg
+                  class="segment-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+                <span class="segment-label">All demos</span>
+                <span class="segment-count">{{ categoryCounts.all }}</span>
               </button>
               <button
                 v-for="cat in categoryOrder"
@@ -89,12 +99,8 @@
                 >
                   <path :d="categoryInfo[cat].icon" />
                 </svg>
-                <span v-if="activeCategory === cat" class="segment-label">{{
-                  categoryInfo[cat].label
-                }}</span>
-                <span v-if="activeCategory === cat" class="segment-count">{{
-                  categoryCounts[cat]
-                }}</span>
+                <span class="segment-label">{{ categoryInfo[cat].label }}</span>
+                <span class="segment-count">{{ categoryCounts[cat] }}</span>
               </button>
             </div>
           </div>
@@ -234,8 +240,8 @@
           </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="tab-navigation">
+        <!-- Tab Navigation (only for tabs layout) -->
+        <div v-if="!isInlineLayout" class="tab-navigation">
           <button :class="{ active: activeTab === 'demo' }" @click="selectTab('demo')">Demo</button>
           <button :class="{ active: activeTab === 'code' }" @click="selectTab('code')">Code</button>
           <button :class="{ active: activeTab === 'setup' }" @click="selectTab('setup')">
@@ -245,8 +251,12 @@
 
         <!-- Tab Content -->
         <div class="tab-content">
-          <!-- Live Demo Tab -->
-          <div v-show="activeTab === 'demo'" class="demo-container" data-testid="demo-container">
+          <!-- Live Demo Tab (always visible for inline layout) -->
+          <div
+            v-show="isInlineLayout || activeTab === 'demo'"
+            class="demo-container"
+            data-testid="demo-container"
+          >
             <KeepAlive>
               <component
                 v-if="activeExample?.component"
@@ -259,8 +269,40 @@
             </div>
           </div>
 
-          <!-- Code Examples Tab -->
-          <div v-show="activeTab === 'code'" class="code-container">
+          <!-- Code Examples (tab or collapsed inline section) -->
+          <details v-if="isInlineLayout" class="inline-section" data-testid="inline-snippets">
+            <summary>
+              <span>Library snippets &amp; recipes</span>
+              <span class="inline-section__count">{{ activeExample.codeSnippets.length }}</span>
+            </summary>
+            <div class="code-container">
+              <div
+                v-for="(snippet, index) in activeExample.codeSnippets"
+                :key="index"
+                class="code-snippet"
+              >
+                <h3>{{ snippet.title }}</h3>
+                <p v-if="snippet.description" class="snippet-description">
+                  {{ snippet.description }}
+                </p>
+                <div class="code-block-wrapper">
+                  <button
+                    @click="copyCode(snippet.code, index)"
+                    class="copy-button"
+                    :class="{ copied: copiedSnippets[index] }"
+                    :aria-label="copiedSnippets[index] ? 'Copied!' : 'Copy code'"
+                    type="button"
+                  >
+                    <span class="copy-text">
+                      {{ copiedSnippets[index] ? 'Copied' : 'Copy' }}
+                    </span>
+                  </button>
+                  <pre><code>{{ snippet.code }}</code></pre>
+                </div>
+              </div>
+            </div>
+          </details>
+          <div v-else v-show="activeTab === 'code'" class="code-container">
             <div
               v-for="(snippet, index) in activeExample.codeSnippets"
               :key="index"
@@ -287,8 +329,32 @@
             </div>
           </div>
 
-          <!-- Setup Guide Tab -->
-          <div v-show="activeTab === 'setup'" class="setup-container">
+          <!-- Setup Guide (tab or collapsed inline section) -->
+          <details v-if="isInlineLayout" class="inline-section" data-testid="inline-setup">
+            <summary><span>Getting started &amp; prerequisites</span></summary>
+            <div class="setup-content">
+              <h3>Prerequisites</h3>
+              <ul>
+                <li>Vue 3.4.0 or higher</li>
+                <li>A SIP server (Asterisk, FreeSWITCH, etc.)</li>
+                <li>WebRTC-enabled browser (Chrome 90+, Firefox 88+, Safari 14+)</li>
+              </ul>
+
+              <h3>Installation</h3>
+              <pre><code># npm
+npm install vuesip
+
+# pnpm
+pnpm add vuesip
+
+# yarn
+yarn add vuesip</code></pre>
+
+              <h3>{{ activeExample.title }} specific setup</h3>
+              <div v-html="activeExample.setupGuide"></div>
+            </div>
+          </details>
+          <div v-else v-show="activeTab === 'setup'" class="setup-container">
             <div class="setup-content">
               <h3>Prerequisites</h3>
               <ul>
@@ -445,6 +511,8 @@ const categoryCounts = computed(() => ({
 const activeExample = computed(() => {
   return examples.find((ex) => ex.id === currentExample.value) || examples[0]
 })
+
+const isInlineLayout = computed(() => activeExample.value?.layout === 'inline')
 
 const scrollToTop = () => {
   // Avoid smooth scrolling during automation (it slows tests and can create timing flake)
@@ -709,7 +777,6 @@ onUnmounted(() => {
   color: var(--text-primary);
   padding: 0.75rem 0;
   border-bottom: 1px solid var(--border-color);
-  backdrop-filter: saturate(180%) blur(8px);
 }
 
 .playground-header .container {
@@ -724,6 +791,7 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text-primary);
+  text-align: left;
 }
 
 .subtitle {
@@ -731,6 +799,7 @@ onUnmounted(() => {
   font-size: 0.8125rem;
   color: var(--text-secondary);
   line-height: 1.3;
+  text-align: left;
 }
 
 .header-content {
@@ -796,23 +865,31 @@ onUnmounted(() => {
 }
 
 .connect-cta.cta-connected {
-  border-color: rgba(245, 158, 11, 0.35);
-  color: #92400e;
-  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.12);
 }
 
 .connect-cta.cta-connected:hover {
-  background: rgba(245, 158, 11, 0.14);
+  background: rgba(245, 158, 11, 0.2);
 }
 
 .connect-cta.cta-ready {
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #047857;
-  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: var(--success);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .connect-cta.cta-ready:hover {
-  background: rgba(16, 185, 129, 0.14);
+  background: rgba(16, 185, 129, 0.2);
+}
+
+:root.dark-mode .connect-cta.cta-connected {
+  color: #fbbf24;
+}
+
+:root.dark-mode .connect-cta.cta-ready {
+  color: #34d399;
 }
 
 .playground-content {
@@ -854,26 +931,27 @@ onUnmounted(() => {
 
 .filter-track {
   display: flex;
+  flex-direction: column;
   position: relative;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 3px;
   gap: 2px;
-  overflow: hidden;
 }
 
 .filter-segment {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  flex: 0 0 auto;
-  padding: 0.4rem 0.5rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0.45rem 0.625rem;
   background: transparent;
   border: none;
   border-radius: 7px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  text-align: left;
+  min-width: 0;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
@@ -892,9 +970,8 @@ onUnmounted(() => {
 
 .filter-segment.active {
   color: white;
-  flex: 1 1 auto;
-  background: linear-gradient(135deg, var(--primary), #4f46e5);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  background: var(--primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .segment-icon {
@@ -904,8 +981,11 @@ onUnmounted(() => {
 }
 
 .segment-label {
-  display: inline;
-  animation: fadeIn 0.15s ease-out;
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes fadeIn {
@@ -920,16 +1000,22 @@ onUnmounted(() => {
 }
 
 .segment-count {
-  font-size: 0.55rem;
-  padding: 0.1rem 0.3rem;
-  background: rgba(0, 0, 0, 0.1);
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.1rem 0.35rem;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 999px;
-  min-width: 1rem;
+  min-width: 1.25rem;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .filter-segment.active .segment-count {
   background: rgba(255, 255, 255, 0.25);
+  color: white;
+  border-color: transparent;
 }
 
 .filter-stats .active-filter {
@@ -1221,7 +1307,8 @@ onUnmounted(() => {
 .example-header p {
   margin: 0 0 1rem 0;
   color: var(--text-secondary);
-  font-size: 1.125rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
 }
 
 .example-tags {
@@ -1231,15 +1318,14 @@ onUnmounted(() => {
 }
 
 .tag {
-  background:
-    linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
-    linear-gradient(90deg, rgba(99, 102, 241, 0.65), rgba(59, 130, 246, 0.65)) border-box;
-  border: 1px solid transparent;
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.25);
   color: var(--primary);
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.625rem;
   border-radius: 999px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 /* Tab Navigation */
@@ -1272,9 +1358,9 @@ onUnmounted(() => {
 
 .tab-navigation button.active {
   color: white;
-  background: linear-gradient(135deg, var(--primary), #4f46e5);
+  background: var(--primary);
   border-color: transparent;
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Tab Content */
@@ -1283,6 +1369,58 @@ onUnmounted(() => {
 }
 
 .demo-container {
+  padding: 1rem;
+}
+
+/* Inline layout (DemoShell-style demos) */
+.inline-section {
+  margin: 0 1rem 1rem;
+  border: 1px solid var(--surface-border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--surface-0, #ffffff);
+}
+
+.inline-section > summary {
+  cursor: pointer;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-color-secondary, #6b7280);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.inline-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.inline-section > summary::before {
+  content: '▸';
+  font-size: 0.75rem;
+  transition: transform 0.15s;
+  display: inline-block;
+  margin-right: 0.4rem;
+}
+
+.inline-section[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.inline-section__count {
+  background: var(--surface-100, #f4f4f5);
+  color: var(--text-color-secondary, #6b7280);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  margin-left: auto;
+}
+
+.inline-section > .code-container,
+.inline-section > .setup-content {
+  border-top: 1px solid var(--surface-border, #e5e7eb);
   padding: 1rem;
 }
 
@@ -1434,6 +1572,8 @@ onUnmounted(() => {
 
   .playground-sidebar {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
 }
 
@@ -1461,73 +1601,16 @@ onUnmounted(() => {
     white-space: nowrap;
   }
 
-  /* Mobile filter adjustments - hide labels, show only icons + counts */
   .filter-segment {
     padding: 0.35rem 0.4rem;
-    gap: 0.2rem;
-  }
-
-  .segment-label {
-    display: none !important;
+    gap: 0.25rem;
   }
 
   .segment-icon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .segment-count {
-    font-size: 0.55rem;
+    width: 16px;
+    height: 16px;
   }
 }
 
-/* Decorative header blobs - do not intercept pointer events */
-.playground-header::before,
-.playground-header::after {
-  content: '';
-  position: absolute;
-  pointer-events: none;
-  filter: blur(40px);
-  opacity: 0.6;
-  transform: translateZ(0);
-}
-
-.playground-header::before {
-  width: 420px;
-  height: 420px;
-  top: -120px;
-  left: -120px;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.25), transparent 70%);
-  animation: floatY 12s ease-in-out infinite alternate;
-}
-
-.playground-header::after {
-  width: 360px;
-  height: 360px;
-  right: -120px;
-  bottom: -120px;
-  background: radial-gradient(closest-side, rgba(99, 102, 241, 0.45), transparent 70%);
-  animation: floatY 14s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes headerGradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes floatY {
-  0% {
-    transform: translateY(0) translateZ(0);
-  }
-  100% {
-    transform: translateY(10px) translateZ(0);
-  }
-}
+/* Decorative header blobs removed: clashed with the compact token-based header */
 </style>

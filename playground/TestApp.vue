@@ -965,20 +965,7 @@ onUnmounted(() => {
 })
 </script>
 
-<style>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: #f3f4f6;
-  color: #1f2937;
-}
-
+<style scoped>
 .container {
   max-width: 1200px;
   margin: 0 auto;

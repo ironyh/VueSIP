@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CallMutePatternsDemo from '../demos/CallMutePatternsDemo.vue'
+import CallMutePatternsDemo from '../demos/CallMutePatterns/index.vue'
 
 export const callMutePatternsExample: ExampleDefinition = {
   id: 'call-mute-patterns',
@@ -9,7 +9,9 @@ export const callMutePatternsExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'Audio', 'Patterns'],
   component: CallMutePatternsDemo,
-  setupGuide: '<p>Explore different mute patterns including push-to-talk, auto-mute on silence, and scheduled mute/unmute. Perfect for different use cases like meetings and presentations.</p>',
+  layout: 'inline',
+  setupGuide:
+    '<p>Explore different mute patterns including push-to-talk, auto-mute on silence, and scheduled mute/unmute. Perfect for different use cases like meetings and presentations.</p>',
   codeSnippets: [
     {
       title: 'Push-to-Talk Implementation',

@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import ClickToCallDemo from '../demos/ClickToCallDemo.vue'
+import ClickToCallDemo from '../demos/ClickToCall/index.vue'
 
 export const clickToCallExample: ExampleDefinition = {
   id: 'click-to-call',
@@ -9,6 +9,7 @@ export const clickToCallExample: ExampleDefinition = {
   category: 'ami',
   tags: ['AMI', 'Agent-First', 'Click-to-Call', 'CRM'],
   component: ClickToCallDemo,
+  layout: 'inline',
   setupGuide:
     '<p>Agent-first click-to-call via Asterisk AMI. Your desk phone or softphone rings first; when answered, the PBX dials the destination. Great for CRMs and call centers. For a browser-based SIP widget, see the "Click-to-Call Widget" example under SIP.</p>',
   codeSnippets: [

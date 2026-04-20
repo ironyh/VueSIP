@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import ConferenceCallDemo from '../demos/ConferenceCallDemo.vue'
+import ConferenceCallDemo from '../demos/ConferenceCall/index.vue'
 
 export const conferenceCallExample: ExampleDefinition = {
   id: 'conference-call',
@@ -9,7 +9,9 @@ export const conferenceCallExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'Multi-party', 'Complex'],
   component: ConferenceCallDemo,
-  setupGuide: '<p>Manage conference calls with multiple participants. Hold, mute, and control individual participants. Merge calls together.</p>',
+  layout: 'inline',
+  setupGuide:
+    '<p>Manage conference calls with multiple participants. Hold, mute, and control individual participants. Merge calls together.</p>',
   codeSnippets: [
     {
       title: 'Managing Multiple Calls',

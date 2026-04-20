@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import DtmfDemo from '../demos/DtmfDemo.vue'
+import DtmfDemo from '../demos/Dtmf/index.vue'
 
 export const dtmfExample: ExampleDefinition = {
   id: 'dtmf',
@@ -9,7 +9,9 @@ export const dtmfExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Audio', 'DTMF', 'Interactive'],
   component: DtmfDemo,
-  setupGuide: '<p>DTMF (Dual-Tone Multi-Frequency) allows you to send dialpad tones during an active call, useful for IVR systems and menu navigation.</p>',
+  layout: 'inline',
+  setupGuide:
+    '<p>DTMF (Dual-Tone Multi-Frequency) allows you to send dialpad tones during an active call, useful for IVR systems and menu navigation.</p>',
   codeSnippets: [
     {
       title: 'Sending DTMF Tones',

@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import TimeConditionsDemo from '../demos/TimeConditionsDemo.vue'
+import TimeConditionsDemo from '../demos/TimeConditions/index.vue'
 
 export const timeConditionsExample: ExampleDefinition = {
   id: 'time-conditions',
@@ -9,6 +9,7 @@ export const timeConditionsExample: ExampleDefinition = {
   category: 'ami',
   tags: ['PBX', 'Routing', 'Schedule'],
   component: TimeConditionsDemo,
+  layout: 'inline',
   setupGuide: `<p>Configure time-based call routing rules. Define business hours, holidays, and special schedules for automatic call handling via the unified AmiService.</p>
 <h4>Setup Steps:</h4>
 <ol>

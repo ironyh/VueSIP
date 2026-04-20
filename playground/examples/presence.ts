@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import PresenceDemo from '../demos/PresenceDemo.vue'
+import PresenceDemo from '../demos/Presence/index.vue'
 
 export const presenceExample: ExampleDefinition = {
   id: 'presence',
@@ -9,7 +9,9 @@ export const presenceExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Presence', 'Status', 'SUBSCRIBE'],
   component: PresenceDemo,
-  setupGuide: '<p>Demonstrate SIP presence functionality (SUBSCRIBE/NOTIFY). Track your own status and watch other users\' availability.</p>',
+  layout: 'inline',
+  setupGuide:
+    "<p>Demonstrate SIP presence functionality (SUBSCRIBE/NOTIFY). Track your own status and watch other users' availability.</p>",
   codeSnippets: [
     {
       title: 'Setting Own Presence',
@@ -26,7 +28,7 @@ await setStatus('busy', { note: 'In a meeting' })`,
     },
     {
       title: 'Watching User Presence',
-      description: 'Subscribe to another user\'s presence',
+      description: "Subscribe to another user's presence",
       code: `const { subscribe, watchedUsers, unsubscribe } = usePresence(sipClientRef)
 
 // Watch a user

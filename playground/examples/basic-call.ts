@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import BasicCallDemo from '../demos/BasicCallDemo.vue'
+import BasicCallDemo from '../demos/BasicCall/index.vue'
 
 export const basicCallExample: ExampleDefinition = {
   id: 'basic-call',
@@ -9,7 +9,9 @@ export const basicCallExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Beginner', 'Audio', 'Core'],
   component: BasicCallDemo,
-  setupGuide: '<p>This example demonstrates basic SIP calling functionality. Configure your SIP server details in the connection panel to get started.</p>',
+  layout: 'inline',
+  setupGuide:
+    '<p>This example demonstrates basic SIP calling functionality. Configure your SIP server details in the connection panel to get started.</p>',
   codeSnippets: [
     {
       title: 'Basic Call Setup',

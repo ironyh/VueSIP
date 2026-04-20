@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import WebRTCStatsDemo from '../demos/WebRTCStatsDemo.vue'
+import WebRTCStatsDemo from '../demos/WebRTCStats/index.vue'
 
 export const webrtcStatsExample: ExampleDefinition = {
   id: 'webrtc-stats',
@@ -9,7 +9,9 @@ export const webrtcStatsExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'Quality', 'Monitoring'],
   component: WebRTCStatsDemo,
-  setupGuide: '<p>Monitor real-time call quality using WebRTC statistics. View MOS scores, jitter, packet loss, and latency metrics.</p>',
+  layout: 'inline',
+  setupGuide:
+    '<p>Monitor real-time call quality using WebRTC statistics. View MOS scores, jitter, packet loss, and latency metrics.</p>',
   codeSnippets: [
     {
       title: 'Access Call Quality Metrics',

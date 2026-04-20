@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CallbackDemo from '../demos/CallbackDemo.vue'
+import CallbackDemo from '../demos/Callback/index.vue'
 
 export const callbackExample: ExampleDefinition = {
   id: 'callback',
@@ -9,6 +9,7 @@ export const callbackExample: ExampleDefinition = {
   category: 'ami',
   tags: ['Call Center', 'Callbacks', 'Queue'],
   component: CallbackDemo,
+  layout: 'inline',
   setupGuide: `<p>Allow callers to request callbacks instead of waiting in queue. Manage callback scheduling and execution via the unified AmiService.</p>
 <h4>Setup Steps:</h4>
 <ol>

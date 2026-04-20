@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import CDRDashboardDemo from '../demos/CDRDashboardDemo.vue'
+import CDRDashboardDemo from '../demos/CDRDashboard/index.vue'
 
 export const cdrDashboardExample: ExampleDefinition = {
   id: 'cdr-dashboard',
@@ -9,6 +9,7 @@ export const cdrDashboardExample: ExampleDefinition = {
   category: 'ami',
   tags: ['Advanced', 'Analytics', 'Reporting'],
   component: CDRDashboardDemo,
+  layout: 'inline',
   setupGuide: `<p>View and analyze Call Detail Records (CDR). Track call volumes, durations, answer rates, and identify calling patterns.</p>
 <h4>Setup Steps:</h4>
 <ol>

@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import ConnectionRecoveryDemo from '../demos/ConnectionRecoveryDemo.vue'
+import ConnectionRecoveryDemo from '../demos/ConnectionRecovery/index.vue'
 
 export const connectionRecoveryExample: ExampleDefinition = {
   id: 'connection-recovery',
@@ -9,6 +9,7 @@ export const connectionRecoveryExample: ExampleDefinition = {
   category: 'sip',
   tags: ['Advanced', 'WebRTC', 'Reliability'],
   component: ConnectionRecoveryDemo,
+  layout: 'inline',
   setupGuide:
     '<p>Monitor and recover WebRTC connections with automatic ICE restart handling. Essential for maintaining call reliability during network issues.</p>',
   codeSnippets: [

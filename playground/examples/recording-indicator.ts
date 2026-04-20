@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import RecordingIndicatorDemo from '../demos/RecordingIndicatorDemo.vue'
+import RecordingIndicatorDemo from '../demos/RecordingIndicator/index.vue'
 
 export const recordingIndicatorExample: ExampleDefinition = {
   id: 'recording-indicator',
@@ -8,6 +8,7 @@ export const recordingIndicatorExample: ExampleDefinition = {
   description: 'Visual status indicators for recording sessions',
   category: 'sip',
   tags: ['Recording', 'UI', 'Indicator'],
+  layout: 'inline',
   component: RecordingIndicatorDemo,
   setupGuide:
     '<p>Visual UI indicators for recording status including blinking animation, duration tracking, and color-coded states. Perfect for showing users when recording is active, paused, or stopped.</p>',

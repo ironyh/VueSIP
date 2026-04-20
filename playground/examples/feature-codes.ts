@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import FeatureCodesDemo from '../demos/FeatureCodesDemo.vue'
+import FeatureCodesDemo from '../demos/FeatureCodes/index.vue'
 
 export const featureCodesExample: ExampleDefinition = {
   id: 'feature-codes',
@@ -9,6 +9,7 @@ export const featureCodesExample: ExampleDefinition = {
   category: 'ami',
   tags: ['PBX', 'Features', 'Codes'],
   component: FeatureCodesDemo,
+  layout: 'inline',
   setupGuide: `<p>Execute PBX feature codes directly from the application. Manage call forwarding, DND, voicemail, and other PBX features through the unified AmiService.</p>
 <h4>Setup Steps:</h4>
 <ol>

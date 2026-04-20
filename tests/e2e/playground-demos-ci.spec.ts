@@ -24,8 +24,11 @@ test.describe('Playground Demo Navigation - CI', () => {
     const demoIds = [
       'click-to-call',
       'call-history',
+      'permission-failures',
       'video-call',
+      'call-quality',
       'conference-call',
+      'connection-recovery',
       'network-simulator',
       'screen-sharing',
       'call-waiting',

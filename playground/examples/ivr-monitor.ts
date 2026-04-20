@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import IvrMonitorDemo from '../demos/IVRMonitorDemo.vue'
+import IvrMonitorDemo from '../demos/IVRMonitor/index.vue'
 
 export const ivrMonitorExample: ExampleDefinition = {
   id: 'ivr-monitor',
@@ -9,6 +9,7 @@ export const ivrMonitorExample: ExampleDefinition = {
   category: 'ami',
   tags: ['PBX', 'IVR', 'Analytics'],
   component: IvrMonitorDemo,
+  layout: 'inline',
   setupGuide: `<p>Track how callers navigate through IVR menus. Monitor option selections and identify optimization opportunities via the unified AmiService.</p>
 <h4>Setup Steps:</h4>
 <ol>

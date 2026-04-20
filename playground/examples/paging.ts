@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import PagingDemo from '../demos/PagingDemo.vue'
+import PagingDemo from '../demos/Paging/index.vue'
 
 export const pagingExample: ExampleDefinition = {
   id: 'paging',
@@ -9,6 +9,7 @@ export const pagingExample: ExampleDefinition = {
   category: 'ami',
   tags: ['Advanced', 'Paging', 'Announcements'],
   component: PagingDemo,
+  layout: 'inline',
   setupGuide: `<p>Send paging announcements to groups of phones. Supports one-way announcements and two-way intercom functionality via the unified AmiService.</p>
 <h4>Setup Steps:</h4>
 <ol>

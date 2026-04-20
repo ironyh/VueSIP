@@ -10,6 +10,7 @@ import { doNotDisturbExample } from './do-not-disturb'
 import { callQualityExample } from './call-quality'
 import { callQualityDashboardExample } from './call-quality-dashboard'
 import { customRingtonesExample } from './custom-ringtones'
+import { permissionFailuresExample } from './permission-failures'
 import { callRecordingExample } from './call-recording'
 import { recordingIndicatorExample } from './recording-indicator'
 import { conferenceCallExample } from './conference-call'
@@ -122,6 +123,7 @@ export const utilityExamples = [
   doNotDisturbExample,
   autoAnswerExample,
   customRingtonesExample,
+  permissionFailuresExample,
   blacklistExample,
   clickToCallExample,
   e911Example,

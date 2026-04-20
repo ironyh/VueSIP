@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import ContactsDemo from '../demos/ContactsDemo.vue'
+import ContactsDemo from '../demos/Contacts/index.vue'
 
 export const contactsExample: ExampleDefinition = {
   id: 'contacts',
@@ -9,7 +9,9 @@ export const contactsExample: ExampleDefinition = {
   category: 'utility',
   tags: ['Contacts', 'Directory', 'Search'],
   component: ContactsDemo,
-  setupGuide: '<p>Manage contacts with search, favorites, and presence status. Integrates with corporate directories and CRM systems.</p>',
+  layout: 'inline',
+  setupGuide:
+    '<p>Manage contacts with search, favorites, and presence status. Integrates with corporate directories and CRM systems.</p>',
   codeSnippets: [
     {
       title: 'Load Contacts',

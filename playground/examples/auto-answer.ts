@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import AutoAnswerDemo from '../demos/AutoAnswerDemo.vue'
+import AutoAnswerDemo from '../demos/AutoAnswer/index.vue'
 
 export const autoAnswerExample: ExampleDefinition = {
   id: 'auto-answer',
@@ -9,7 +9,9 @@ export const autoAnswerExample: ExampleDefinition = {
   category: 'utility',
   tags: ['Automation', 'Calls', 'Intercom'],
   component: AutoAnswerDemo,
-  setupGuide: '<p>Configure automatic call answering for specific scenarios like intercom calls, trusted callers, or specific queues.</p>',
+  layout: 'inline',
+  setupGuide:
+    '<p>Configure automatic call answering for specific scenarios like intercom calls, trusted callers, or specific queues.</p>',
   codeSnippets: [
     {
       title: 'Configure Auto Answer',

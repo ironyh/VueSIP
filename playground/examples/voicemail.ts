@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import VoicemailDemo from '../demos/VoicemailDemo.vue'
+import VoicemailDemo from '../demos/Voicemail/index.vue'
 
 export const voicemailExample: ExampleDefinition = {
   id: 'voicemail',
@@ -8,6 +8,7 @@ export const voicemailExample: ExampleDefinition = {
   description: 'Message Waiting Indicator for voicemail notifications',
   category: 'ami',
   tags: ['Advanced', 'Messaging', 'Notifications'],
+  layout: 'inline',
   component: VoicemailDemo,
   setupGuide: `<p>Monitor voicemail status using AMI and MWI (Message Waiting Indicator). Subscribe to receive notifications when new voicemails arrive.</p>
 <h4>Setup Steps:</h4>

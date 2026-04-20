@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import BlacklistDemo from '../demos/BlacklistDemo.vue'
+import BlacklistDemo from '../demos/Blacklist/index.vue'
 
 export const blacklistExample: ExampleDefinition = {
   id: 'blacklist',
@@ -9,7 +9,9 @@ export const blacklistExample: ExampleDefinition = {
   category: 'utility',
   tags: ['Security', 'Blocking', 'Filters'],
   component: BlacklistDemo,
-  setupGuide: '<p>Manage call blocking rules to prevent unwanted calls. Add numbers to blacklist and configure blocking behavior.</p>',
+  layout: 'inline',
+  setupGuide:
+    '<p>Manage call blocking rules to prevent unwanted calls. Add numbers to blacklist and configure blocking behavior.</p>',
   codeSnippets: [
     {
       title: 'Manage Blacklist',

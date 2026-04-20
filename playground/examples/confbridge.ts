@@ -1,5 +1,5 @@
 import type { ExampleDefinition } from './types'
-import ConfBridgeDemo from '../demos/ConfBridgeDemo.vue'
+import ConfBridgeDemo from '../demos/ConfBridge/index.vue'
 
 export const confBridgeExample: ExampleDefinition = {
   id: 'confbridge',
@@ -8,6 +8,7 @@ export const confBridgeExample: ExampleDefinition = {
   description: 'Manage Asterisk ConfBridge conferences via AMI',
   tags: ['Conference', 'AMI', 'Audio', 'ConfBridge'],
   component: ConfBridgeDemo,
+  layout: 'inline',
   setupGuide: `<p>Manage Asterisk ConfBridge audio conferences via AMI. Lock/unlock rooms, record conferences, manage participants including mute, kick, and video source selection.</p>
 <h4>Requirements</h4>
 <ul>
