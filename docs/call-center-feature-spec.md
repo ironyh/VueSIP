@@ -3,152 +3,321 @@
 ## Meta
 
 - Status: Draft for product planning
+- Version: 2
 - Date: 2026-04-20
-- Scope type: Demo first, productizable later
-- Primary channels: Voice
-- Interaction modes: Inbound and outbound
+- Product shape: Demo first, productizable later
+- Primary channel: Voice
+- Primary persona for MVP: Inbound support agent
+- Primary backend for MVP: Asterisk-first
+
+## Why This Spec Exists
+
+VueSIP already has strong call-center primitives for agent presence, queue membership, metrics, SIP calling, and Asterisk monitoring. What it does not yet have is a sharply scoped product surface that turns those primitives into a believable call-center application.
+
+This spec defines that product surface before implementation planning begins.
 
 ## Locked Product Decisions
 
-This spec reflects the current product decisions:
+The following decisions are now treated as locked for planning purposes.
 
-1. The call-center offering is split into three surfaces so all user types can be supported.
-2. Both inbound and outbound flows are planned from the start.
-3. The first release is an internal/demo-friendly experience, but the design must support future commercial packaging.
-4. Supervisors monitor activity and performance, but do not join calls in the initial product shape.
-5. The work should start as a demo and evolve into a real product surface over time.
+1. The call-center offer is split into three surfaces:
+   - `Agent Workspace`
+   - `Supervisor Workspace`
+   - `Admin and Setup Surface`
+2. MVP is built around one primary persona: `inbound support agent`.
+3. MVP is `inbound-first`.
+4. MVP outbound is limited to `callback follow-up` created from inbound wrap-up.
+5. Supervisors do not join calls in MVP.
+6. Supervisors may perform non-intrusive operational actions in MVP.
+7. Demo mode and connected mode must share the same information architecture and user workflows.
+8. Demo mode and connected mode do not need identical backend behavior.
+9. MVP is Asterisk-first, even if the long-term architecture remains provider-oriented.
 
 ## Purpose
 
-VueSIP should offer a call-center application that demonstrates a realistic agent workflow, proves the underlying call-center APIs, and can evolve into a productized voice workspace without a full rewrite.
+VueSIP should provide a call-center app that demonstrates a real inbound support workflow, proves the underlying voice and queue APIs, and can be evolved into a commercial product without a rewrite.
 
-The first objective is not to build a full enterprise suite. The first objective is to make a convincing, stable voice call-center experience that supports real inbound and outbound work, shows supervisory visibility, and uses clean seams for future PBX and CRM integrations.
+The goal is not to ship a full enterprise contact-center suite. The goal is to ship a believable and coherent first product slice that can be demoed, validated internally, and then hardened.
 
 ## Product Model
 
-The application is divided into three product surfaces.
-
 ### 1. Agent Workspace
 
-The operational desktop used by agents to:
+The operational desktop for agents.
 
-- log in and become available
-- receive inbound queue calls
-- place outbound calls
-- manage active calls
-- write notes
-- complete wrap-up
-- create callbacks
-- review recent work
+It handles:
+
+- login and readiness
+- queue presence
+- inbound call handling
+- live call control
+- notes and disposition
+- callback creation
+- callback follow-up
+- recent interaction context
 
 ### 2. Supervisor Workspace
 
-The monitoring desktop used by team leads to:
+The monitoring and coordination surface for team leads.
 
-- monitor queue health
-- monitor agent availability and activity
-- inspect active call metadata and queue pressure
-- review live and session metrics
-- detect SLA risk and staffing issues
+It handles:
 
-The supervisor does not silently listen, whisper, or barge into calls in the first product shape.
+- queue load visibility
+- agent state visibility
+- active interaction visibility
+- basic alerting
+- non-audio operational actions
+
+It does not handle:
+
+- whisper
+- barge
+- live audio monitoring
 
 ### 3. Admin and Setup Surface
 
-The configuration and enablement surface used to:
+The environment and team setup surface.
 
-- configure SIP and PBX connectivity
-- define queues, pause reasons, and agent defaults
-- manage demo presets and environment switching
-- validate permissions, devices, and backend reachability
+It handles:
 
-This is intentionally lighter than full PBX administration.
+- SIP and PBX connectivity
+- demo and sandbox presets
+- queue defaults
+- pause reasons
+- capability visibility
+- device and permission validation
 
-## Goals
+It is intentionally not a full PBX administration UI.
 
-- Deliver a believable call-center demo that can be used in sales, testing, and internal validation.
-- Support a full agent loop: login, queue work, call handling, wrap-up, callback, and history.
-- Support both inbound and outbound call handling without splitting the UI into separate products.
-- Prove VueSIP's provider-agnostic call-center APIs in a real application surface.
-- Keep the architecture compatible with future Asterisk, FreeSWITCH, cloud, and CRM integrations.
+## Product Principles
 
-## Non-Goals
+- One role, one workspace
+- Inbound first, not everything first
+- Demo-first, but never demo-only architecture
+- Honest capability gating
+- Queue work and wrap-up are first-class
+- Callbacks are operational work, not sticky notes
+- Supervisor visibility without call intrusion
+- Same workflow model across demo and connected modes
 
-- Full omnichannel support in the first phase
-- Workforce management, forecasting, or scheduling
-- Predictive dialers or campaign automation
-- Supervisor whisper, barge, or live call intrusion
-- Full PBX administration inside the app
-- Heavy BI or long-horizon analytics
+## MVP Summary
 
-## Users and Roles
+The MVP is a believable inbound support flow:
 
-### Agent
+1. Agent connects and validates readiness.
+2. Agent joins queue and becomes available.
+3. Agent receives inbound queue call.
+4. Agent answers and handles the call.
+5. Agent writes notes and completes disposition in wrap-up.
+6. Agent optionally creates a callback task.
+7. Agent later works the callback from a callback list.
+8. Supervisor monitors queue and agent health without entering calls.
 
-Primary operator handling inbound and outbound customer conversations.
+Everything outside that loop is secondary.
+
+## Personas and Roles
+
+### Primary Persona: Inbound Support Agent
+
+The MVP is optimized for agents who:
+
+- handle inbound queue calls
+- need clear caller and queue context
+- log outcome and notes
+- create follow-up callbacks when needed
+
+The MVP is not optimized for:
+
+- high-volume outbound sales
+- receptionist switchboard behavior
+- blended multi-channel work
 
 ### Supervisor
 
-Observes queues and agent performance, identifies risk, and manages staffing response.
+The supervisor monitors queues and agent performance and can perform lightweight operational actions without joining calls.
 
 ### Admin or Implementer
 
-Configures environments, queues, agent defaults, and demo/product connectivity.
+The admin configures environments, presets, defaults, and capability display.
 
 ## Experience Modes
 
-The application must support two operating modes.
+The product supports two modes.
 
 ### Demo Mode
 
-- Uses seeded or simulated queue, call, and customer data
-- Supports guided scenarios for inbound and outbound flows
-- Can run without a live PBX
-- Makes capability gaps explicit in the UI
+- seeded or simulated queue traffic
+- seeded customer and callback data
+- guided inbound and callback scenarios
+- can run without a live PBX
+- clearly labels simulated data and simulated capabilities
 
 ### Connected Mode
 
-- Uses real SIP and PBX connectivity
-- Reflects real queue state, agent state, and call state
-- Preserves the same UI model as demo mode
+- real SIP and PBX state
+- real queue and agent state where supported
+- real call handling
+- real capability gating
 
-The UI should not look like a separate product in each mode. Demo mode and connected mode should share the same workflows and layout.
+### Truth Contract Between Modes
+
+Demo mode and connected mode must share:
+
+- the same screens
+- the same navigation
+- the same state labels
+- the same major workflows
+
+They do not need to share:
+
+- identical data fidelity
+- identical provider capabilities
+- identical persistence model on day one
+
+The UI must remain honest. Demo mode may simulate data, but must not pretend that unsupported live capabilities exist.
 
 ## Core User Journeys
 
 ### Journey A: Start Shift
 
-1. Agent opens the workspace.
-2. Agent validates device and network readiness.
-3. Agent signs in or connects to the configured environment.
-4. Agent joins default queues and selects an initial availability state.
-5. Workspace confirms readiness and exposes queue load.
+1. Agent opens the app.
+2. Agent selects or confirms environment.
+3. Agent validates microphone, speaker, permissions, and connection state.
+4. Agent signs in or connects.
+5. Agent joins default queue.
+6. Agent becomes available.
 
 ### Journey B: Handle Inbound Queue Call
 
-1. Agent sees queue pressure and incoming call context.
-2. Agent answers the call.
-3. Agent uses call controls and notes during the conversation.
+1. Agent sees incoming queue call with customer and queue context.
+2. Agent answers.
+3. Agent uses call controls and writes notes during the call.
 4. Agent ends or transfers the call.
-5. Workspace enters wrap-up.
-6. Agent sets outcome, notes, and callback if needed.
-7. Agent returns to available or paused.
+5. Agent enters wrap-up.
+6. Agent selects disposition and finalizes notes.
+7. Agent optionally creates a callback.
+8. Agent returns to available or paused.
 
-### Journey C: Place Outbound Call
+### Journey C: Work Callback
 
-1. Agent opens callback list, recent history, or customer card.
-2. Agent initiates a manual outbound call.
-3. Workspace shows call progress and live controls.
-4. Agent logs notes and outcome.
-5. Workspace records the interaction in history.
+1. Agent opens callback list.
+2. Agent selects assigned callback.
+3. Agent reviews customer snapshot and prior interaction.
+4. Agent starts outbound follow-up.
+5. Agent completes notes and outcome.
+6. Agent closes, reschedules, or escalates callback.
 
-### Journey D: Monitor Team Health
+### Journey D: Monitor Operations
 
-1. Supervisor opens the monitoring workspace.
-2. Supervisor sees live queue load, active calls, and agent states.
-3. Supervisor filters by queue or team.
-4. Supervisor identifies SLA risk, backlog, or staffing imbalance.
-5. Supervisor uses operational controls outside the call audio path, such as changing queue membership expectations or contacting agents outside the monitored call.
+1. Supervisor opens monitoring workspace.
+2. Supervisor reviews queue load and longest wait.
+3. Supervisor reviews agent states and wrap-up duration.
+4. Supervisor acknowledges alerts or reassigns callback work when needed.
+
+## Agent State Model
+
+The MVP uses a defined state machine.
+
+### Core States
+
+- `offline`
+- `connecting`
+- `available`
+- `ringing`
+- `busy`
+- `wrap-up`
+- `paused`
+- `reconnecting`
+
+### Required State Rules
+
+- An agent cannot be `available` until environment readiness checks pass.
+- An inbound queue offer moves the agent from `available` to `ringing`.
+- Answering moves the agent to `busy`.
+- Ending a handled call moves the agent to `wrap-up`.
+- Completing required wrap-up returns the agent to `available` or `paused`.
+- A missed or unanswered queue offer must produce a defined RONA outcome.
+- Reconnect must not silently reset the agent to `available` if state is uncertain.
+
+### RONA and Missed-Call Rules
+
+For MVP:
+
+- queue no-answer creates a visible missed interaction event
+- agent is removed from active availability until they explicitly recover state
+- supervisor can see that the agent is in a degraded or attention-needed state
+
+## Queue Model
+
+The MVP keeps queue behavior intentionally simple.
+
+### MVP Queue Rules
+
+- one primary joined queue is sufficient for MVP
+- additional queue membership may exist technically, but the MVP UX should not depend on complex multi-queue behavior
+- queue-specific pause is optional and capability-gated
+- inbound queue work always outranks callback work while the agent is available for inbound handling
+
+### Deferred Queue Complexity
+
+The MVP does not require:
+
+- advanced queue priority tuning in the UI
+- skill-based routing controls
+- complex blended routing across several active queues
+
+## Customer Context Rail
+
+The agent workspace needs a minimal context rail in MVP.
+
+### Minimum Customer Card Fields
+
+- display name or caller identity
+- number or endpoint
+- queue source
+- most recent interaction outcome
+- open callback state
+- free-text notes summary
+
+This is intentionally small, but it must exist. The product should not be telephony-only.
+
+## Callback Operating Model
+
+Callbacks are first-class operational work in the MVP.
+
+### MVP Callback Rules
+
+- callbacks are queue-owned tasks with an assignee
+- the creating agent is default assignee
+- supervisors may reassign callbacks
+- callbacks have:
+  - due time
+  - reason
+  - status
+  - owner
+  - linked interaction
+- callbacks may be:
+  - `open`
+  - `in-progress`
+  - `completed`
+  - `rescheduled`
+  - `failed`
+
+### MVP Callback Scope
+
+Included:
+
+- create callback from wrap-up
+- callback list view
+- callback follow-up call
+- callback completion or reschedule
+
+Deferred:
+
+- outbound campaigns
+- preview dialer logic
+- compliance scripting
+- queue-wide callback SLA automation beyond simple due-state visibility
 
 ## Functional Scope
 
@@ -156,297 +325,181 @@ The UI should not look like a separate product in each mode. Demo mode and conne
 
 #### A. Session and Readiness
 
-- Connect or sign in to the current environment
-- Validate microphone, speaker, permissions, and secure context
-- Show PBX/SIP connectivity state
-- Show reconnecting and degraded states clearly
-- Persist basic agent preferences locally in demo mode
+- connect or sign in to current environment
+- validate microphone, speaker, permissions, and secure context
+- show SIP and PBX connectivity state
+- show reconnecting and degraded states clearly
+- persist local user preferences in demo mode
 
-#### B. Agent Presence and Queue Membership
+#### B. Presence and Queue Membership
 
-- Login and logout from queues
-- Join and leave specific queues
-- Set availability to available, busy, break, meeting, or wrap-up
-- Pause globally or by queue if supported by the provider
-- Show pause reason and elapsed pause time
+- join queue
+- leave queue
+- set state to available or paused
+- display pause reason and elapsed paused time
+- show attention-needed state after RONA or reconnect uncertainty
 
-#### C. Inbound Queue Handling
+#### C. Inbound Call Handling
 
-- Show queued and active inbound work
-- Display caller identity and originating queue where available
-- Support answer, reject, hold, resume, mute, transfer, park, and hangup
-- Maintain live call timer and on-hold state
-- Preserve call notes during the conversation
+- inbound queue offer banner or panel
+- answer
+- reject
+- hold and resume
+- mute and unmute
+- hangup
+- transfer
+- live call timer
+- note-taking during the call
 
-#### D. Outbound Calling
+`park` is not required as a provider-agnostic MVP promise.
 
-- Manual dial pad or click-to-call
-- Outbound from callback queue, recent history, or customer card
-- Outbound notes and disposition
-- Distinguish preview/manual outbound from future campaign-style outbound
+#### D. Wrap-Up
 
-#### E. Wrap-Up and After-Call Work
+- enter wrap-up after handled inbound call
+- require disposition before returning to available
+- keep notes visible and editable during wrap-up
+- allow callback creation from wrap-up
+- display wrap-up timer or policy clearly
 
-- Enter wrap-up after each handled call
-- Require or encourage disposition selection
-- Persist notes
-- Allow callback creation with due time, owner, and reason
-- Allow returning to available or paused after wrap-up
+#### E. Callback Follow-Up
 
-#### F. Worklist and History
+- show callback list
+- filter by due state and assignee
+- open customer context and prior interaction
+- place callback follow-up call
+- complete, fail, or reschedule callback
 
-- Show recent inbound and outbound interactions
-- Filter by status, direction, queue, and agent-owned callbacks
-- Reopen a callback and start a new outbound call from it
-- Show linked notes and outcomes
+#### F. Recent History
 
-#### G. Error and Recovery UX
-
-- Distinguish SIP offline, PBX offline, media device error, and permission denial
-- Provide recovery guidance in-product
-- Preserve unsaved notes and wrap-up state during reconnect where possible
+- show recent handled interactions
+- show disposition
+- show callback linkage where present
 
 ### Supervisor Workspace
 
-#### A. Live Queue Board
+#### A. Queue Board
 
-- Show queues, waiting count, longest wait, answered count, abandoned count, and alert state
-- Highlight SLA-risk queues
-- Filter by queue group or team
+- waiting count
+- longest wait
+- active handled count
+- abandoned or missed signal where available
+- alert state
 
-#### B. Agent State Board
+#### B. Agent Board
 
-- Show agent state, current queue membership, pause reason, and session duration
-- Show which agents are on call, wrapping up, paused, or offline
-- Support simple search and filtering
+- current state
+- active call state
+- wrap-up duration
+- pause reason
+- reconnect or degraded state
 
-#### C. Live Activity View
+#### C. Operational Actions
 
-- Show active call metadata such as agent, queue, duration, and state
-- Show whether the call is inbound or outbound
-- Do not provide join, whisper, or barge actions in the initial product
+MVP supervisor actions are intentionally narrow:
 
-#### D. Session Metrics
+- acknowledge alert
+- reassign callback
+- nudge agent to recover state out-of-band
 
-- Show current handled count, missed count, average handle time, average wrap-up time, and utilization-style signals
-- Allow queue and agent drill-down
+MVP supervisor actions do not include:
 
-#### E. Operational Alerts
-
-- Queue backlog risk
-- Long wrap-up times
-- Repeated disconnects
-- Agent unavailable while assigned to critical queues
+- monitor
+- whisper
+- barge
+- editing live call audio behavior
 
 ### Admin and Setup Surface
 
 #### A. Environment Setup
 
 - SIP credentials and transport settings
-- PBX and AMI connectivity settings where applicable
-- Demo presets and sandbox presets
-- Local validation before connect
+- PBX and AMI connectivity where applicable
+- demo and sandbox presets
+- local validation before connect
 
-#### B. Team and Queue Defaults
+#### B. Team Defaults
 
-- Available queues
-- Default joined queues
-- Pause reasons
-- Break types
-- Queue labels and display metadata
+- default queue
+- pause reasons
+- break labels
+- queue display labels
 
 #### C. Capability Display
 
-- Make provider capabilities visible
-- Hide or disable features that are unsupported by the current backend
-- Keep the UI honest about demo-only vs live capabilities
+- show provider capability flags
+- disable unsupported features clearly
+- distinguish simulated behavior from live capability
 
-## Inbound and Outbound Product Shape
+## MVP Boundaries
 
-Inbound and outbound should be treated as first-class but not identical experiences.
+### Included in MVP
 
-### Inbound
+- Asterisk-first connected mode
+- demo mode with the same workflow shape
+- inbound support agent flow
+- callback-only outbound follow-up
+- minimal customer context rail
+- wrap-up with required disposition
+- callback assignment and reassignment
+- read-only plus lightweight operational supervisor workspace
+- admin/setup presets and readiness checks
 
-Inbound is the operational center of gravity in MVP:
+### Explicitly Deferred
 
-- queue state is always visible
-- queue-originated calls are clearly labeled
-- wrap-up is strongly tied to inbound handling
-- supervisor visibility focuses heavily on inbound load and SLA
+- broad manual outbound as a product pillar
+- campaign or preview dialing
+- advanced multi-queue routing UX
+- full provider parity across FreeSWITCH, cloud, and custom backends
+- full unified interaction model across queue, SIP, history, and callback layers
+- rich reconnect-safe draft persistence for all work objects
+- supervisor audio interventions
+- PBX administration
+- workforce management
+- omnichannel
 
-### Outbound
+## Data Model
 
-Outbound is included from the beginning, but starts narrower:
+### Agent Session
 
-- manual outbound
-- callback-driven outbound
-- recent-history outbound
-- customer-card outbound
-
-Future outbound expansion may include:
-
-- task lists
-- preview dialing
-- campaign pacing
-- script guidance
-
-## Feature Prioritization
-
-### MVP: Demo-Ready Product Slice
-
-- Agent sign-in and environment readiness
-- Queue login/logout and availability control
-- Inbound queue handling
-- Manual outbound calling
-- Active call controls
-- Call notes
-- Wrap-up with disposition
-- Callback creation and callback worklist
-- Recent interaction history
-- Supervisor queue board
-- Supervisor agent state board
-- Admin/setup basics
-- Demo mode and connected mode parity
-
-### Phase 2: Product Hardening
-
-- Real queue and callback persistence
-- Customer card model beyond mock data
-- Role-aware permissions
-- Better filtering and saved views
-- Export/report basics
-- Queue-level configuration polish
-- Cross-session recovery for notes and wrap-up drafts
-
-### Phase 3: Product Expansion
-
-- CRM integration panel
-- Skill-based routing UI
-- Advanced outbound workflows
-- QA review flows
-- AI summarization and tagging
-- WFM-adjacent insights
-
-## High-Level Data Model
-
-### Agent Profile
-
-- id
-- displayName
+- agent id
+- display name
 - extension
-- currentStatus
-- pauseReason
-- joinedQueues
-- currentSession
-
-### Queue
-
-- id
-- displayName
-- priorityModel
-- joinedAgents
-- waitingCount
-- longestWait
-- alertState
+- joined queue
+- current state
+- pause reason
+- session timestamps
 
 ### Interaction
 
-- id
+MVP interaction tracking is a product concept, not yet a shared domain model.
+
+For planning purposes an interaction contains:
+
 - direction
-- queueId
-- customerRef
+- queue source
+- customer reference
 - state
-- startTime
-- endTime
-- duration
+- timing
 - notes
 - disposition
-- callbackRef
+- linked callback
+
+Implementation should not assume this already exists as a single first-class code object.
 
 ### Callback Task
 
 - id
-- interactionId
-- dueAt
-- owner
-- reason
+- interaction id
+- assignee
+- queue
+- due at
 - status
+- reason
+- latest outcome
 
-### Supervisor Snapshot
+## Mapping to Current VueSIP Capabilities
 
-- queueMetrics
-- activeCalls
-- agentStates
-- alerts
-
-## Functional Acceptance Criteria
-
-### Agent Workspace
-
-- An agent can sign in, join queues, and become available without leaving the workspace.
-- An inbound call can be answered, controlled, ended, and wrapped up in one continuous flow.
-- A manual outbound call can be placed from the same workspace without switching apps.
-- Notes entered during a call survive the transition to wrap-up.
-- A callback can be created from wrap-up and later used to initiate outbound follow-up.
-
-### Supervisor Workspace
-
-- A supervisor can identify queue backlog and agent availability issues within one screen.
-- A supervisor can distinguish live inbound and outbound activity without opening the agent workspace.
-- The supervisor workspace exposes monitoring data only and does not expose join-call controls in MVP.
-
-### Admin and Setup
-
-- A setup user can configure or select an environment without editing source code.
-- Unsupported features are either disabled or clearly labeled.
-- Demo mode can be used without a live PBX.
-
-## Non-Functional Requirements
-
-### Reliability
-
-- The UI must keep agent state and call state coherent during reconnects.
-- Draft notes and wrap-up inputs should survive transient frontend refreshes where feasible.
-- Demo mode must fail soft rather than blank-screening.
-
-### Performance
-
-- Agent workspace interactions should feel immediate on commodity laptops.
-- Live queue and agent boards should update in near-real time without visibly thrashing the UI.
-- Filtering and list actions should remain responsive with realistic team sizes.
-
-### Accessibility
-
-- Full keyboard operation for the core agent loop
-- Screen-reader labels for controls and dynamic states
-- Clear focus management in incoming call and wrap-up states
-
-### Security and Privacy
-
-- Credentials must not be exposed in logs or demo output
-- PII handling should be explicit in notes and history flows
-- Demo data must be visually distinct from real customer data
-
-### Compatibility
-
-- Browser-first experience
-- Consistent behavior in demo mode and connected mode
-- Backend capability differences surfaced through feature gating, not silent failure
-
-## Product Principles
-
-- One workspace per role, not many disconnected panels
-- Demo-first, but never demo-only architecture
-- Honest capability gating
-- Queue work and wrap-up are first-class
-- Inbound and outbound share one interaction model
-- Supervisor visibility without call intrusion
-
-## Mapping to Existing VueSIP Capabilities
-
-This spec should build on existing VueSIP primitives rather than invent a separate stack.
-
-### Existing Fit
+### Strong Fit Today
 
 - `useCallCenterProvider`
 - `useAgentState`
@@ -457,49 +510,103 @@ This spec should build on existing VueSIP primitives rather than invent a separa
 - `useAmiAgentLogin`
 - `useAmiQueues`
 
-### Existing Capabilities That Should Be Deliberately Deferred or Feature-Gated
+These are enough for:
 
-- `useAmiSupervisor` supports monitor, whisper, and barge at the API level, but the product surface should only expose non-intrusive supervision in the initial release.
+- agent sign-in
+- queue membership
+- presence state
+- queue monitoring
+- core telephony controls
+- basic Asterisk-first supervisor visibility
 
-### Capability Constraints to Respect
+### Partial Fit Today
 
-The UI should map to provider capabilities such as:
+- wrap-up exists only lightly in the current call-center layer
+- callback and history need careful scoping
+- provider-agnostic story is aspirational beyond Asterisk today
 
-- queue support
-- multi-queue support
-- pause and pause-reason support
-- wrap-up support
-- real-time metrics support
-- penalty and skill-based routing support
+### Deliberately Hidden in MVP
 
-If the backend does not support a capability, the UI must degrade explicitly.
+`useAmiSupervisor` supports `monitor`, `whisper`, and `barge`, but those capabilities should be explicitly gated out of the MVP product surface.
+
+## Acceptance Criteria
+
+### Agent Workspace
+
+- An agent can connect, validate readiness, and become available from one screen.
+- An inbound queue call can be answered, controlled, completed, and wrapped up in one continuous flow.
+- Wrap-up requires a disposition before the agent returns to available.
+- A callback can be created from wrap-up and later worked from a callback list.
+- A callback follow-up call can be completed without leaving the workspace.
+
+### Supervisor Workspace
+
+- A supervisor can identify queue pressure and agent state problems from one screen.
+- A supervisor can acknowledge alerts and reassign callback work.
+- The supervisor cannot join or coach calls from the MVP UI.
+
+### Demo and Connected Modes
+
+- The same screens and core workflows exist in both modes.
+- Simulated capabilities are visually distinct from live capabilities.
+- Unsupported live features fail honestly and visibly.
+
+## Non-Functional Requirements
+
+### Reliability
+
+- agent and call state must remain coherent during reconnects
+- the UI must not silently lose notes during active call to wrap-up transition
+- demo mode must fail soft rather than blank-screening
+
+### Performance
+
+- agent actions should feel immediate on commodity laptops
+- queue and agent boards should update in near-real time without thrashing
+
+### Accessibility
+
+- full keyboard support for the core agent loop
+- proper labels for call controls and stateful actions
+- accessible focus management during incoming call and wrap-up states
+
+### Security and Privacy
+
+- credentials must not leak into logs
+- customer data shown in demo mode must be clearly synthetic
+- notes and callback flows must assume customer data sensitivity
 
 ## Market Alignment
 
-This product shape follows the broad pattern used by major call-center platforms:
+This shape follows the broad patterns used by major call-center products:
 
-- a unified agent workspace
-- a separate supervisor monitoring surface
-- queue visibility as a first-class concept
-- outbound support inside the same agent workspace
-- configuration separated from the operational desktop
+- unified agent workspace
+- separate supervisor monitoring
+- separate admin or setup layer
+- inbound-first operational focus
+- outbound embedded as a narrower workflow unless the product is dialer-led
 
-Reference examples:
+Reference patterns:
 
 - [Talkdesk Workspace](https://www.talkdesk.com/contact-center-platform/workspace/)
+- [Talkdesk Agent Workspace](https://www.talkdesk.com/cloud-contact-center/omnichannel-engagement/agent-workspace/)
 - [Salesforce Service Agent Console](https://www.salesforce.com/products/service-cloud/features/service-agent-console/)
-- [NiCE Supervisor Workspace](https://www.nice.com/resources/supervisor-workspace)
-- [Genesys Workforce Management overview](https://www.genesys.com/definitions/what-is-contact-center-workforce-management)
+- [Twilio Flex UI](https://www.twilio.com/docs/flex/admin-guide/core-concepts/flex-ui)
 - [Aircall Live Monitoring / Coaching](https://support.aircall.io/hc/en-gb/articles/22105393543965)
 - [CloudTalk Call Monitor](https://help.cloudtalk.io/en/articles/5440621-call-monitor)
-- [Five9 Features](https://www.five9.com/products/features)
 
-## Open Questions for the Next Planning Step
+## What This Spec Is Ready For
 
-These should be resolved before implementation planning starts:
+This spec is now ready for:
 
-- Which agent persona is primary in MVP: support, receptionist, or sales?
-- Should callbacks be personal only, queue-owned, or both?
-- Should outbound in MVP include scripts or just notes and disposition?
-- What minimum customer card fields are required in demo mode?
-- Should supervisors see individual interaction notes, or only operational metrics?
+- UX and information architecture planning
+- MVP implementation planning
+- component and state breakdown
+- demo scenario design
+
+This spec is not yet the place to define:
+
+- detailed backend persistence design
+- full provider abstraction strategy
+- campaign management
+- WFM or analytics roadmap
