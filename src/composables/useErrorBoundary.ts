@@ -190,9 +190,17 @@ export function useErrorBoundary(options: UseErrorBoundaryOptions = {}): UseErro
 
   const isNetworkErrorFunc = (error: unknown): boolean => {
     if (!(error instanceof Error)) return false
+    // TypeError is only a network error when from fetch() / network APIs.
+    const isNetworkTypeError =
+      error.name === 'TypeError' &&
+      (error.message.toLowerCase().includes('network') ||
+        error.message.toLowerCase().includes('fetch') ||
+        error.message.toLowerCase().includes('connection') ||
+        error.message.toLowerCase().includes('failed to fetch') ||
+        error.message.toLowerCase().includes('load failed'))
     return (
       error.name === 'NetworkError' ||
-      error.name === 'TypeError' ||
+      isNetworkTypeError ||
       error.message.toLowerCase().includes('network') ||
       error.message.toLowerCase().includes('fetch') ||
       error.message.toLowerCase().includes('connection')

@@ -130,9 +130,19 @@ export function isNetworkError(error: unknown): boolean {
     return false
   }
 
+  // TypeError is only a network error when from fetch() / network APIs.
+  // Plain TypeErrors (e.g. "undefined is not a function") must not match.
+  const isNetworkTypeError =
+    error.name === 'TypeError' &&
+    (error.message.toLowerCase().includes('network') ||
+      error.message.toLowerCase().includes('fetch') ||
+      error.message.toLowerCase().includes('connection') ||
+      error.message.toLowerCase().includes('failed to fetch') ||
+      error.message.toLowerCase().includes('load failed'))
+
   return (
     error.name === 'NetworkError' ||
-    error.name === 'TypeError' ||
+    isNetworkTypeError ||
     error.message.toLowerCase().includes('network') ||
     error.message.toLowerCase().includes('fetch') ||
     error.message.toLowerCase().includes('connection')
@@ -288,6 +298,14 @@ export function isWebRtcError(error: unknown): boolean {
     return false
   }
 
+  // TypeError is only a WebRTC error when the message indicates a
+  // getUserMedia / constraint context.  Bare TypeErrors must not match.
+  const isWebRtcTypeError =
+    error.name === 'TypeError' &&
+    (error.message.toLowerCase().includes('constraint') ||
+      error.message.toLowerCase().includes('getusermedia') ||
+      error.message.toLowerCase().includes('media device'))
+
   const webrtcErrorNames = [
     'NotReadableError',
     'AbortError', // getUserMedia aborted
@@ -296,7 +314,6 @@ export function isWebRtcError(error: unknown): boolean {
     'PermissionDeniedError',
     'NotAllowedError',
     'OverconstrainedError',
-    'TypeError', // Often used for WebRTC constraint errors
   ]
 
   const message = error.message.toLowerCase()
@@ -304,13 +321,12 @@ export function isWebRtcError(error: unknown): boolean {
 
   return (
     webrtcErrorNames.includes(name) ||
+    isWebRtcTypeError ||
     message.includes('getusermedia') ||
     message.includes('webrtc') ||
     message.includes('peerconnection') ||
     message.includes('rtcpeerconnection') ||
     message.includes('media device') ||
-    message.includes('audio') ||
-    message.includes('video') ||
     message.includes('constraint')
   )
 }
