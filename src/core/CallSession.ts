@@ -975,6 +975,9 @@ export class CallSession extends EventEmitter<CallSessionEvents> {
       // Determine termination cause
       this._terminationCause = this.mapTerminationCause(d.cause ?? '')
 
+      // Finalize state before emitting so subscribers see the terminated session snapshot.
+      this.updateState('terminated' as CallState)
+
       this.emitCallEvent('call:ended', {
         cause: this._terminationCause,
         originator: d.originator,
