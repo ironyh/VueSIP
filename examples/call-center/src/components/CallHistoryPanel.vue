@@ -113,6 +113,14 @@
                     {{ entry.remoteDisplayName || formatUri(entry.remoteUri) }}
                   </div>
                   <div class="contact-uri">{{ formatUri(entry.remoteUri) }}</div>
+                  <div v-if="getDisposition(entry) || entry.tags?.length" class="contact-tags">
+                    <span v-if="getDisposition(entry)" class="tag disposition">{{
+                      getDisposition(entry)
+                    }}</span>
+                    <span v-for="tag in entry.tags || []" :key="`${entry.id}-${tag}`" class="tag">{{
+                      tag
+                    }}</span>
+                  </div>
                 </div>
               </td>
               <td>
@@ -164,12 +172,14 @@
               </td>
               <td>
                 <button
+                  v-if="getCallbackTaskId(entry)"
                   class="btn btn-sm btn-primary"
-                  @click="$emit('call-back', entry.remoteUri)"
-                  :aria-label="`Call back ${entry.remoteDisplayName || formatUri(entry.remoteUri)}`"
+                  @click="$emit('select-callback', getCallbackTaskId(entry)!)"
+                  :aria-label="`Open callback task for ${entry.remoteDisplayName || formatUri(entry.remoteUri)}`"
                 >
-                  Call
+                  Open Callback
                 </button>
+                <span v-else class="history-muted">No callback</span>
               </td>
             </tr>
           </tbody>
@@ -209,6 +219,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { CallDirection, HistoryExportFormat, type HistoryFilter } from 'vuesip'
 
 // ============================================================================
 // Types
@@ -230,7 +241,7 @@ interface CallHistoryEntry {
   hasVideo: boolean
   terminationCause: string
   ringDuration?: number
-  tags?: string[]
+  tags?: readonly string[]
   metadata?: Record<string, unknown>
 }
 
@@ -244,9 +255,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  filter: [filter: Record<string, unknown> | null]
-  export: [options: { format: string; filename?: string; includeMetadata?: boolean }]
-  'call-back': [uri: string]
+  filter: [filter: HistoryFilter | null]
+  export: [options: { format: HistoryExportFormat; filename?: string; includeMetadata?: boolean }]
+  'select-callback': [callbackId: string]
 }>()
 
 // ============================================================================
@@ -322,10 +333,11 @@ const formatTime = (date: Date): string => {
 }
 
 const applyFilters = () => {
-  const filter: Record<string, unknown> = {}
+  const filter: HistoryFilter = {}
 
   if (filters.value.direction) {
-    filter.direction = filters.value.direction
+    filter.direction =
+      filters.value.direction === 'incoming' ? CallDirection.Incoming : CallDirection.Outgoing
   }
 
   if (filters.value.status === 'answered') {
@@ -362,10 +374,20 @@ const clearFilters = () => {
 
 const handleExport = () => {
   emit('export', {
-    format: 'csv',
+    format: HistoryExportFormat.CSV,
     filename: 'call-history',
     includeMetadata: false,
   })
+}
+
+const getCallbackTaskId = (entry: CallHistoryEntry): string | null => {
+  const callbackTaskId = entry.metadata?.callbackTaskId
+  return typeof callbackTaskId === 'string' ? callbackTaskId : null
+}
+
+const getDisposition = (entry: CallHistoryEntry): string | null => {
+  const disposition = entry.metadata?.disposition
+  return typeof disposition === 'string' ? disposition : null
 }
 </script>
 
@@ -521,6 +543,27 @@ tr.missed:hover {
   color: #6b7280;
 }
 
+.contact-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.375rem;
+}
+
+.tag {
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.6875rem;
+  text-transform: capitalize;
+}
+
+.tag.disposition {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .type-badge {
   display: inline-flex;
   align-items: center;
@@ -561,6 +604,11 @@ tr.missed:hover {
 .time-small {
   font-size: 0.75rem;
   color: #6b7280;
+}
+
+.history-muted {
+  color: #9ca3af;
+  font-size: 0.75rem;
 }
 
 .pagination {

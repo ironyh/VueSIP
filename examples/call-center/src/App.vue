@@ -1,6 +1,5 @@
 <template>
   <div class="call-center">
-    <!-- Skip Navigation Links -->
     <div class="skip-links">
       <a href="#main-content" class="skip-link">Skip to main content</a>
       <a href="#call-queue" class="skip-link">Skip to call queue</a>
@@ -8,15 +7,46 @@
       <a href="#call-history" class="skip-link">Skip to call history</a>
     </div>
 
-    <!-- Not Connected State -->
     <div v-if="!isConnected" class="login-container">
       <div class="login-card card">
         <h1>Call Center Login</h1>
-        <ConnectionPanel />
+        <ConnectionPanel
+          :is-connected="isConnected"
+          :is-registered="isRegistered"
+          :is-connecting="isConnecting"
+          :error="connectionErrorMessage"
+          @connect="handleConnect"
+          @disconnect="handleDisconnect"
+        />
+        <div class="login-hints">
+          <p><strong>Preset:</strong> {{ selectedPreset }}</p>
+          <ul class="readiness-list">
+            <li>
+              {{
+                readiness.hasSecureContext
+                  ? 'Secure context available'
+                  : 'HTTPS required for media permissions'
+              }}
+            </li>
+            <li>
+              {{
+                readiness.hasMicPermission
+                  ? 'Microphone permission granted'
+                  : 'Microphone permission will be requested on first call'
+              }}
+            </li>
+            <li>
+              {{
+                readiness.hasOutputDevice
+                  ? 'Audio output device available'
+                  : 'Audio output device not detected yet'
+              }}
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
 
-    <!-- Global ARIA Live Regions -->
     <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
       {{ statusAnnouncement }}
     </div>
@@ -24,7 +54,6 @@
       {{ errorAnnouncement }}
     </div>
 
-    <!-- Notification Toast -->
     <div
       v-if="notification"
       class="notification-toast"
@@ -38,9 +67,7 @@
       </button>
     </div>
 
-    <!-- Connected State - Main Dashboard -->
     <div v-if="isConnected" class="dashboard">
-      <!-- Header -->
       <header class="dashboard-header" role="banner">
         <div class="header-content">
           <h1>Call Center Dashboard</h1>
@@ -54,9 +81,7 @@
         </div>
       </header>
 
-      <!-- Main Content -->
       <div class="dashboard-content">
-        <!-- Left Sidebar - Call Queue & Agent Info -->
         <aside class="sidebar" aria-label="Agent status and call queue">
           <AgentDashboard
             :agent-status="agentStatus"
@@ -74,9 +99,7 @@
           />
         </aside>
 
-        <!-- Main Area - Active Call & Stats -->
         <main id="main-content" class="main-content" aria-label="Active call or statistics">
-          <!-- Active Call -->
           <ActiveCall
             v-if="isActive"
             id="active-call"
@@ -96,18 +119,41 @@
             @call-state-change="handleCallStateChange"
           />
 
-          <!-- Statistics Dashboard (when no active call) -->
+          <WrapUpPanel
+            v-else-if="workspaceState === 'wrap-up'"
+            :disposition="disposition"
+            :notes="wrapUpNotes"
+            :callback-requested="callbackRequested"
+            :can-complete="canCompleteWrapUp"
+            @update:disposition="disposition = $event"
+            @update:notes="wrapUpNotes = $event"
+            @update:callback-requested="callbackRequested = $event"
+            @complete="handleWrapUpComplete"
+            @cancel="handleWrapUpCancel"
+          />
+
           <CallStats v-else :statistics="statistics" />
         </main>
 
-        <!-- Right Panel - Call History -->
         <aside id="call-history" class="history-panel" aria-label="Call history and statistics">
+          <CustomerContextRail
+            :context="customerContext"
+            :workspace-state="workspaceState"
+            :pending-callback-count="pendingCallbackCount"
+          />
+          <CallbackWorklist
+            :callbacks="worklist"
+            :selected-callback-id="selectedCallbackId"
+            :can-start-outbound="canStartCallbackOutbound"
+            @select="selectCallback"
+            @start="handleStartCallback"
+          />
           <CallHistoryPanel
-            :history="filteredHistory"
+            :history="annotatedHistory"
             :total-count="totalCalls"
             @filter="handleHistoryFilter"
             @export="handleHistoryExport"
-            @call-back="handleCallBack"
+            @select-callback="handleHistoryCallbackSelection"
           />
         </aside>
       </div>
@@ -117,9 +163,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useSipClient } from 'vuesip'
-import { useCallSession } from 'vuesip'
-import { useCallHistory } from 'vuesip'
+import {
+  HistoryExportFormat,
+  useSipClient,
+  useCallSession,
+  useCallHistory,
+  type HistoryFilter,
+} from 'vuesip'
 import ConnectionPanel from './components/ConnectionPanel.vue'
 import AgentStatusToggle from './components/AgentStatusToggle.vue'
 import AgentDashboard from './components/AgentDashboard.vue'
@@ -128,10 +178,13 @@ import ActiveCall from './components/ActiveCall.vue'
 import CallStats from './components/CallStats.vue'
 import CallHistoryPanel from './components/CallHistoryPanel.vue'
 import SystemStatus from './components/SystemStatus.vue'
-
-// ============================================================================
-// Types
-// ============================================================================
+import CallbackWorklist from './features/agent/CallbackWorklist.vue'
+import CustomerContextRail from './features/agent/CustomerContextRail.vue'
+import WrapUpPanel from './features/agent/WrapUpPanel.vue'
+import { useAgentWorkspace } from './features/agent/useAgentWorkspace'
+import { useCallbackWorklist } from './features/agent/useCallbackWorklist'
+import { useEnvironmentSetup } from './features/setup/useEnvironmentSetup'
+import { useWrapUpDraft } from './features/agent/useWrapUpDraft'
 
 type AgentStatus = 'available' | 'busy' | 'away'
 
@@ -141,13 +194,9 @@ interface QueuedCall {
   displayName?: string
   waitTime: number
   priority?: number
+  queue: string
 }
 
-// ============================================================================
-// State Management
-// ============================================================================
-
-// Load agent status from localStorage
 const loadAgentStatus = (): AgentStatus => {
   try {
     const saved = localStorage.getItem('callcenter:agentStatus')
@@ -160,7 +209,6 @@ const loadAgentStatus = (): AgentStatus => {
   return 'away'
 }
 
-// Save agent status to localStorage
 const saveAgentStatus = (status: AgentStatus) => {
   try {
     localStorage.setItem('callcenter:agentStatus', status)
@@ -169,51 +217,44 @@ const saveAgentStatus = (status: AgentStatus) => {
   }
 }
 
-// Agent status
 const agentStatus = ref<AgentStatus>(loadAgentStatus())
 const currentCallNotes = ref('')
-
-// Call queue (simulated - in production this would come from the SIP server)
 const callQueue = ref<QueuedCall[]>([])
-
-// Error/notification state
 const notification = ref<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
-
-// ARIA Live Region Announcements
 const statusAnnouncement = ref('')
 const errorAnnouncement = ref('')
 
-// Announcement helpers
 const announceStatus = (message: string) => {
   statusAnnouncement.value = message
-  setTimeout(() => {
+  window.setTimeout(() => {
     statusAnnouncement.value = ''
   }, 1000)
 }
 
-// Show notification helper
 const showNotification = (type: 'success' | 'error' | 'info', message: string, duration = 5000) => {
   notification.value = { type, message }
-  setTimeout(() => {
+  window.setTimeout(() => {
     notification.value = null
   }, duration)
 }
 
-// ============================================================================
-// SIP Client Setup
-// ============================================================================
-
-const { isConnected, disconnect, getClient, getEventBus } = useSipClient()
-
-// ============================================================================
-// Call Session Management
-// ============================================================================
+const {
+  isConnected,
+  isRegistered,
+  isConnecting,
+  error,
+  connect,
+  disconnect,
+  updateConfig,
+  getClient,
+} = useSipClient()
 
 const sipClient = computed(() => getClient())
 
 const {
   session,
   callId,
+  state,
   remoteUri,
   remoteDisplayName,
   isActive,
@@ -227,17 +268,9 @@ const {
   sendDTMF,
 } = useCallSession(sipClient)
 
-// ============================================================================
-// Call History
-// ============================================================================
+const { filteredHistory, totalCalls, getStatistics, setFilter, exportHistory } = useCallHistory()
 
-const { filteredHistory, totalCalls, getStatistics, setFilter, exportHistory, updateCallMetadata } =
-  useCallHistory()
-
-// Statistics
 const statistics = computed(() => getStatistics())
-
-// Today's statistics (for agent dashboard)
 const todayStats = computed(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -247,19 +280,74 @@ const todayStats = computed(() => {
   })
 })
 
-// ============================================================================
-// Queue Management (Simulated)
-// ============================================================================
+const {
+  workspaceState,
+  customerContext,
+  pendingCallbacks,
+  setConnected,
+  selectQueuedCall,
+  beginWrapUp,
+  enterWrapUp,
+  clearWrapUp,
+  handleNoAnswer,
+} = useAgentWorkspace()
 
-/**
- * Simulate incoming calls to the queue
- * In a real application, this would be integrated with your SIP server's
- * queue management system (e.g., Asterisk Queue, FreeSWITCH mod_callcenter)
- */
+const { selectedPreset, readiness, syncFromForm, validateCurrentConfig, toSipConfig } =
+  useEnvironmentSetup()
+
+const {
+  disposition,
+  notes: wrapUpNotes,
+  callbackRequested,
+  canComplete: canCompleteWrapUp,
+  hydrate: hydrateWrapUpDraft,
+  reset: resetWrapUpDraft,
+} = useWrapUpDraft()
+
+const connectionErrorMessage = computed(() => error.value?.message ?? null)
+const pendingCallbackCount = computed(() => pendingCallbacks.value.length)
+const activeCallbackId = ref<string | null>(null)
+const lastWrappedCallId = ref<string | null>(null)
+const historyAnnotations = ref<
+  Record<string, { tags: string[]; metadata: Record<string, unknown> }>
+>({})
+
+const {
+  selectedCallbackId,
+  selectedCallback,
+  worklist,
+  canStartCallbackOutbound,
+  selectCallback,
+  markCallbackInProgress,
+  completeCallback,
+  reopenCallback,
+} = useCallbackWorklist(pendingCallbacks)
+
+const annotatedHistory = computed(() =>
+  filteredHistory.value.map((entry) => {
+    const annotation = historyAnnotations.value[entry.id]
+    if (!annotation) {
+      return entry
+    }
+
+    return {
+      ...entry,
+      tags: [...new Set([...(entry.tags ?? []), ...annotation.tags])],
+      metadata: {
+        ...(entry.metadata ?? {}),
+        ...annotation.metadata,
+      },
+    }
+  })
+)
+
 let queueSimulationInterval: number | null = null
 
 const startQueueSimulation = () => {
-  // Simulate random incoming calls when agent is available
+  if (queueSimulationInterval) {
+    return
+  }
+
   queueSimulationInterval = window.setInterval(() => {
     if (agentStatus.value === 'available' && Math.random() > 0.7) {
       addCallToQueue()
@@ -281,11 +369,11 @@ const stopQueueSimulation = () => {
 
 const addCallToQueue = () => {
   const mockCallers = [
-    { number: 'sip:customer1@domain.com', name: 'John Smith' },
-    { number: 'sip:customer2@domain.com', name: 'Jane Doe' },
-    { number: 'sip:customer3@domain.com', name: 'Bob Johnson' },
-    { number: 'sip:support@domain.com', name: 'Support Request' },
-    { number: 'sip:sales@domain.com', name: 'Sales Inquiry' },
+    { number: 'sip:customer1@domain.com', name: 'John Smith', queue: 'support' },
+    { number: 'sip:customer2@domain.com', name: 'Jane Doe', queue: 'support' },
+    { number: 'sip:customer3@domain.com', name: 'Bob Johnson', queue: 'billing' },
+    { number: 'sip:support@domain.com', name: 'Support Request', queue: 'support' },
+    { number: 'sip:sales@domain.com', name: 'Sales Inquiry', queue: 'sales' },
   ]
 
   const caller = mockCallers[Math.floor(Math.random() * mockCallers.length)]
@@ -296,17 +384,85 @@ const addCallToQueue = () => {
     displayName: caller.name,
     waitTime: 0,
     priority: Math.floor(Math.random() * 3) + 1,
+    queue: caller.queue,
   })
 }
 
-// ============================================================================
-// Event Handlers
-// ============================================================================
+const syncWorkspaceFromAgentStatus = (status: AgentStatus) => {
+  if (!isConnected.value) {
+    workspaceState.value = 'offline'
+    return
+  }
+
+  if (workspaceState.value === 'wrap-up') {
+    return
+  }
+
+  if (status === 'available') {
+    workspaceState.value = 'available'
+  } else if (status === 'busy') {
+    workspaceState.value = isActive.value ? 'busy' : 'paused'
+  } else {
+    workspaceState.value = 'paused'
+  }
+}
+
+const handleConnect = async (form: {
+  server: string
+  username: string
+  password: string
+  displayName: string
+}) => {
+  try {
+    syncFromForm(form)
+
+    const validation = validateCurrentConfig()
+    if (!validation.valid) {
+      const message = `Missing required fields: ${validation.errors.join(', ')}`
+      errorAnnouncement.value = message
+      showNotification('error', message)
+      return
+    }
+
+    workspaceState.value = 'connecting'
+
+    const result = updateConfig(toSipConfig())
+    if (!result.valid) {
+      const message = result.errors?.join(', ') || 'Invalid SIP configuration'
+      errorAnnouncement.value = message
+      showNotification('error', message)
+      return
+    }
+
+    await connect()
+    setConnected(true)
+    syncWorkspaceFromAgentStatus(agentStatus.value)
+
+    if (agentStatus.value === 'available') {
+      startQueueSimulation()
+    }
+
+    showNotification('success', 'Connected to call center')
+  } catch (connectError) {
+    workspaceState.value = 'offline'
+    const message =
+      connectError instanceof Error ? connectError.message : 'Failed to connect to call center'
+    errorAnnouncement.value = message
+    showNotification('error', message)
+  }
+}
 
 const handleDisconnect = async () => {
   try {
     stopQueueSimulation()
     await disconnect()
+    setConnected(false)
+    clearWrapUp('offline')
+    resetWrapUpDraft()
+    currentCallNotes.value = ''
+    callQueue.value = []
+    agentStatus.value = 'away'
+    saveAgentStatus('away')
     showNotification('success', 'Disconnected from call center')
   } catch (error) {
     console.error('Disconnect failed:', error)
@@ -334,6 +490,8 @@ const updateAgentStatus = (status: AgentStatus) => {
   } else {
     stopQueueSimulation()
   }
+
+  syncWorkspaceFromAgentStatus(status)
 }
 
 const handleQueueUpdate = (announcement: string) => {
@@ -346,13 +504,12 @@ const handleCallStateChange = (announcement: string) => {
 
 const handleQueuedCallAnswer = async (queuedCall: QueuedCall) => {
   try {
-    // Remove from queue
     callQueue.value = callQueue.value.filter((c) => c.id !== queuedCall.id)
-
-    // Set agent to busy
+    selectQueuedCall(queuedCall)
     agentStatus.value = 'busy'
+    saveAgentStatus('busy')
+    stopQueueSimulation()
 
-    // Make the call (in real app, this would answer the queued call)
     await makeCall(queuedCall.from)
     showNotification('success', `Connected to ${queuedCall.displayName || queuedCall.from}`)
   } catch (error) {
@@ -361,57 +518,40 @@ const handleQueuedCallAnswer = async (queuedCall: QueuedCall) => {
       'error',
       'Failed to answer call: ' + (error instanceof Error ? error.message : 'Unknown error')
     )
-    // Re-add to queue if failed
+    handleNoAnswer()
     callQueue.value.push(queuedCall)
+    agentStatus.value = 'available'
+    saveAgentStatus('available')
+    syncWorkspaceFromAgentStatus('available')
   }
 }
 
 const handleHangup = async () => {
   try {
-    // Save call notes if any
-    if (currentCallNotes.value && callId.value) {
-      try {
-        updateCallMetadata(callId.value, {
-          notes: currentCallNotes.value,
-          agentName: getClient()?.configuration?.display_name || 'Unknown Agent',
-        })
-      } catch (notesError) {
-        console.error('Failed to save call notes:', notesError)
-      }
-    }
-
     await hangup()
-
-    // Reset call notes
-    currentCallNotes.value = ''
-
-    // Return to available if was busy
-    if (agentStatus.value === 'busy') {
-      agentStatus.value = 'available'
-    }
   } catch (error) {
     console.error('Failed to hangup:', error)
   }
 }
 
-const handleMuteToggle = () => {
-  toggleMute()
+const handleMuteToggle = async () => {
+  await toggleMute()
 }
 
-const handleHoldToggle = () => {
-  toggleHold()
+const handleHoldToggle = async () => {
+  await toggleHold()
 }
 
-const handleSendDTMF = (digit: string) => {
-  sendDTMF(digit)
+const handleSendDTMF = async (digit: string) => {
+  await sendDTMF(digit)
 }
 
-const handleHistoryFilter = (filter: Record<string, unknown> | null) => {
+const handleHistoryFilter = (filter: HistoryFilter | null) => {
   setFilter(filter)
 }
 
 const handleHistoryExport = async (options: {
-  format: string
+  format: HistoryExportFormat
   filename?: string
   includeMetadata?: boolean
 }) => {
@@ -422,62 +562,170 @@ const handleHistoryExport = async (options: {
   }
 }
 
-const handleCallBack = async (uri: string) => {
+const handleHistoryCallbackSelection = (callbackId: string) => {
+  selectCallback(callbackId)
+  showNotification('info', 'Callback task opened in the worklist')
+}
+
+const handleStartCallback = async () => {
+  if (!selectedCallback.value) {
+    return
+  }
+
   try {
-    await makeCall(uri)
-    showNotification('info', `Calling ${uri}...`)
+    stopQueueSimulation()
+    activeCallbackId.value = selectedCallback.value.id
+    markCallbackInProgress(selectedCallback.value.id)
+    customerContext.value = {
+      ...customerContext.value,
+      displayName: selectedCallback.value.contactName || selectedCallback.value.targetUri,
+      address: selectedCallback.value.targetUri,
+      queue: selectedCallback.value.queue,
+    }
+    agentStatus.value = 'busy'
+    saveAgentStatus('busy')
+    await makeCall(selectedCallback.value.targetUri)
+    showNotification(
+      'info',
+      `Calling ${selectedCallback.value.contactName || selectedCallback.value.targetUri}...`
+    )
   } catch (error) {
-    console.error('Failed to make callback:', error)
+    console.error('Failed to start callback:', error)
     showNotification(
       'error',
       'Failed to make call: ' + (error instanceof Error ? error.message : 'Unknown error')
     )
+    if (activeCallbackId.value) {
+      reopenCallback(activeCallbackId.value)
+    }
+    activeCallbackId.value = null
+    agentStatus.value = 'available'
+    saveAgentStatus('available')
+    syncWorkspaceFromAgentStatus('available')
   }
 }
 
-// ============================================================================
-// Lifecycle
-// ============================================================================
+const handleWrapUpComplete = () => {
+  const finalizedDisposition = disposition.value
+  const finalizedNotes = wrapUpNotes.value.trim()
+  const createdCallback = enterWrapUp({
+    disposition: disposition.value,
+    notes: finalizedNotes,
+    callbackRequested: callbackRequested.value,
+  })
 
-// Watch for connection status to start/stop queue simulation
+  if (lastWrappedCallId.value) {
+    historyAnnotations.value[lastWrappedCallId.value] = {
+      tags: [finalizedDisposition, callbackRequested.value ? 'callback' : null].filter(
+        (value): value is string => Boolean(value)
+      ),
+      metadata: {
+        disposition: finalizedDisposition,
+        notes: finalizedNotes || undefined,
+        callbackTaskId: createdCallback?.id ?? activeCallbackId.value ?? undefined,
+      },
+    }
+  }
+
+  if (activeCallbackId.value) {
+    completeCallback(activeCallbackId.value)
+    activeCallbackId.value = null
+  }
+
+  const nextAgentStatus: AgentStatus = agentStatus.value === 'away' ? 'away' : 'available'
+  clearWrapUp(nextAgentStatus === 'available' ? 'available' : 'paused')
+  resetWrapUpDraft()
+  currentCallNotes.value = ''
+  agentStatus.value = nextAgentStatus
+  saveAgentStatus(nextAgentStatus)
+
+  if (nextAgentStatus === 'available') {
+    startQueueSimulation()
+  } else {
+    stopQueueSimulation()
+  }
+}
+
+const handleWrapUpCancel = () => {
+  if (activeCallbackId.value) {
+    reopenCallback(activeCallbackId.value)
+    activeCallbackId.value = null
+  }
+
+  const nextState = agentStatus.value === 'away' ? 'paused' : 'available'
+  clearWrapUp(nextState)
+  resetWrapUpDraft()
+  currentCallNotes.value = ''
+
+  if (nextState === 'available') {
+    startQueueSimulation()
+  } else {
+    stopQueueSimulation()
+  }
+}
+
 watch(isConnected, (connected) => {
+  setConnected(connected)
+
   if (!connected) {
     stopQueueSimulation()
     const disconnectedStatus: AgentStatus = 'away'
     agentStatus.value = disconnectedStatus
     saveAgentStatus(disconnectedStatus)
     callQueue.value = []
+    clearWrapUp('offline')
   } else {
-    // Setup event bus listeners when connected
-    const eventBus = getEventBus()
+    syncWorkspaceFromAgentStatus(agentStatus.value)
 
-    // Handle incoming calls
-    eventBus.on('call:incoming', (_event: any) => {
-      // Auto-answer if agent is available
-      if (agentStatus.value === 'available' && !isActive.value) {
-        // The call will be automatically handled by useCallSession
-      }
-    })
-
-    // Handle call failures
-    eventBus.on('call:failed', (_event: any) => {
-      console.error('Call failed:', _event.cause)
-      showNotification('error', `Call failed: ${_event.cause || 'Unknown error'}`)
-    })
-
-    // Handle call ended
-    eventBus.on('call:ended', () => {
-      showNotification('info', 'Call ended')
-    })
+    if (agentStatus.value === 'available') {
+      startQueueSimulation()
+    }
   }
 })
 
-// Auto-set agent to busy when in call
-watch(isActive, (active) => {
-  if (active && agentStatus.value === 'available') {
+watch(isActive, (active, wasActive) => {
+  if (active) {
     agentStatus.value = 'busy'
-  } else if (!active && agentStatus.value === 'busy') {
-    agentStatus.value = 'available'
+    saveAgentStatus('busy')
+    workspaceState.value = 'busy'
+    stopQueueSimulation()
+  } else if (
+    wasActive &&
+    isConnected.value &&
+    agentStatus.value === 'busy' &&
+    workspaceState.value !== 'wrap-up'
+  ) {
+    lastWrappedCallId.value = callId.value
+    beginWrapUp({
+      notes: currentCallNotes.value,
+      callbackRequested: false,
+    })
+    hydrateWrapUpDraft({
+      disposition: null,
+      notes: currentCallNotes.value,
+      callbackRequested: false,
+    })
+    showNotification('info', 'Call ended. Complete wrap-up before returning to queue work.')
+  } else if (!active && agentStatus.value === 'available') {
+    syncWorkspaceFromAgentStatus('available')
+  }
+})
+
+watch(error, (currentError) => {
+  if (currentError) {
+    errorAnnouncement.value = currentError.message
+  }
+})
+
+watch(state, (currentState) => {
+  if (currentState === 'terminated') {
+    announceStatus('Call ended')
+  } else if (currentState === 'active') {
+    announceStatus('Call active')
+  } else if (currentState === 'held') {
+    announceStatus('Call on hold')
+  } else if (agentStatus.value === 'busy') {
+    announceStatus(`Call state changed to ${currentState}`)
   }
 })
 </script>

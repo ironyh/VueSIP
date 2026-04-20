@@ -10,14 +10,25 @@
     <div v-if="queue.length === 0" class="empty-state">
       <p>No calls in queue</p>
       <p class="helper-text">
-        {{ agentStatus === 'available' ? 'Waiting for incoming calls...' : 'Set status to Available to receive calls' }}
+        {{
+          agentStatus === 'available'
+            ? 'Waiting for incoming calls...'
+            : 'Set status to Available to receive calls'
+        }}
       </p>
     </div>
 
     <div v-else class="queue-table-wrapper">
       <table class="queue-table">
         <caption class="sr-only">
-          Call Queue: {{ queue.length }} {{ queue.length === 1 ? 'call' : 'calls' }} waiting
+          Call Queue:
+          {{
+            queue.length
+          }}
+          {{
+            queue.length === 1 ? 'call' : 'calls'
+          }}
+          waiting
         </caption>
         <thead>
           <tr>
@@ -28,11 +39,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="call in sortedQueue"
-            :key="call.id"
-            :class="{ urgent: call.waitTime > 60 }"
-          >
+          <tr v-for="call in sortedQueue" :key="call.id" :class="{ urgent: call.waitTime > 60 }">
             <td>
               <div class="caller-info">
                 <div class="caller-name">{{ call.displayName || 'Unknown' }}</div>
@@ -84,6 +91,7 @@ interface QueuedCall {
   displayName?: string
   waitTime: number
   priority?: number
+  queue: string
 }
 
 // ============================================================================
@@ -169,21 +177,22 @@ const handleAnswerCall = (call: QueuedCall) => {
 }
 
 // Watch for queue length changes
-watch(() => props.queue.length, (newLength, oldLength) => {
-  if (newLength > oldLength) {
-    const diff = newLength - oldLength
-    const announcement = diff === 1
-      ? 'New call in queue'
-      : `${diff} new calls in queue`
-    queueAnnouncement.value = announcement
-    emit('queue-update', announcement)
+watch(
+  () => props.queue.length,
+  (newLength, oldLength) => {
+    if (newLength > oldLength) {
+      const diff = newLength - oldLength
+      const announcement = diff === 1 ? 'New call in queue' : `${diff} new calls in queue`
+      queueAnnouncement.value = announcement
+      emit('queue-update', announcement)
 
-    setTimeout(() => {
-      queueAnnouncement.value = ''
-    }, 2000)
+      setTimeout(() => {
+        queueAnnouncement.value = ''
+      }, 2000)
+    }
+    previousQueueLength.value = newLength
   }
-  previousQueueLength.value = newLength
-})
+)
 </script>
 
 <style scoped>
