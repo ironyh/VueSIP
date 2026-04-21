@@ -54,6 +54,7 @@
             :active-scenario="activeScenario"
             :reset-disabled="isActive || workspaceState === 'wrap-up'"
             @set-scenario="activeScenario = $event"
+            @run-scene="handlePresenterScene"
             @force-inbound="handlePresenterForceInbound"
             @seed-callback="handlePresenterSeedCallback"
             @reset-demo="handlePresenterReset"
@@ -64,6 +65,11 @@
             :total-calls-today="todayStats.totalCalls"
             :missed-calls="todayStats.missedCalls"
             :average-duration="todayStats.averageDuration"
+            :queue-load="callQueue.length"
+            :open-callbacks="callbackRows.length"
+            :next-action-title="nextAction.title"
+            :next-action-detail="nextAction.detail"
+            :next-action-tone="nextAction.tone"
           />
           <CallQueue
             id="call-queue"
@@ -161,11 +167,14 @@ import CallStats from './components/CallStats.vue'
 import DemoKpiBar from './components/DemoKpiBar.vue'
 import PresenterControls from './components/PresenterControls.vue'
 import CustomerContextRail from './features/agent/CustomerContextRail.vue'
+import { buildAgentNextAction } from './features/agent/nextAction'
 import WrapUpPanel from './features/agent/WrapUpPanel.vue'
 import { useAgentWorkspace } from './features/agent/useAgentWorkspace'
 import { useCallbackWorklist } from './features/agent/useCallbackWorklist'
 import { createDemoMvpGateway } from './features/shared/demo-mvp-gateway'
 import { createPresenterControls } from './features/shared/presenterControls'
+import { buildCustomerContextView } from './features/shared/workspace-mappers'
+import type { DemoContactProfile, DemoStoryScene } from './features/shared/mvp-types'
 import { useWrapUpDraft } from './features/agent/useWrapUpDraft'
 import { useSupervisorBoard } from './features/supervisor/useSupervisorBoard'
 
@@ -197,6 +206,7 @@ interface QueuedCall {
   waitTime: number
   priority?: number
   queue: string
+  profile?: DemoContactProfile
 }
 
 const loadAgentStatus = (): AgentStatus => {
@@ -315,6 +325,17 @@ const {
   completeCallback,
   reopenCallback,
 } = useCallbackWorklist(pendingCallbacks)
+
+const nextAction = computed(() =>
+  buildAgentNextAction({
+    agentStatus: agentStatus.value,
+    workspaceState: workspaceState.value,
+    queue: callQueue.value,
+    callbacks: worklist.value,
+    selectedCallback: selectedCallback.value,
+    isActive: isActive.value,
+  })
+)
 
 const annotatedHistory = computed(() =>
   filteredHistory.value.map((entry) => {
@@ -560,12 +581,15 @@ const handleStartCallback = async () => {
     stopQueueSimulation()
     activeCallbackId.value = selectedCallback.value.id
     markCallbackInProgress(selectedCallback.value.id)
-    customerContext.value = {
-      ...customerContext.value,
-      displayName: selectedCallback.value.contactName || selectedCallback.value.targetUri,
-      address: selectedCallback.value.targetUri,
+    customerContext.value = buildCustomerContextView({
+      remoteUri: selectedCallback.value.targetUri,
+      remoteDisplayName: selectedCallback.value.contactName || selectedCallback.value.targetUri,
       queue: selectedCallback.value.queue,
-    }
+      latestDisposition: customerContext.value.latestDisposition,
+      noteSummary: customerContext.value.noteSummary,
+      hasOpenCallback: true,
+      profile: selectedCallback.value.profile ?? null,
+    })
     agentStatus.value = 'busy'
     saveAgentStatus('busy')
     await makeCall(selectedCallback.value.targetUri)
@@ -603,6 +627,12 @@ const handlePresenterForceInbound = () => {
 const handlePresenterSeedCallback = () => {
   presenterControls.seedCallbackTask(activeScenario.value)
   showNotification('info', `Presenter seeded a ${activeScenario.value} callback task.`)
+}
+
+const handlePresenterScene = (sceneId: DemoStoryScene) => {
+  const scene = presenterControls.runStoryScene(sceneId)
+  activeScenario.value = scene.scenario
+  showNotification('info', `Loaded "${scene.label}" scene.`)
 }
 
 const handlePresenterReset = () => {
@@ -723,6 +753,22 @@ watch(error, (currentError) => {
   if (currentError) {
     errorAnnouncement.value = currentError.message
   }
+})
+
+watch(selectedCallback, (callback) => {
+  if (!callback || isActive.value || workspaceState.value === 'wrap-up') {
+    return
+  }
+
+  customerContext.value = buildCustomerContextView({
+    remoteUri: callback.targetUri,
+    remoteDisplayName: callback.contactName || callback.targetUri,
+    queue: callback.queue,
+    latestDisposition: customerContext.value.latestDisposition,
+    noteSummary: callback.reason,
+    hasOpenCallback: true,
+    profile: callback.profile ?? null,
+  })
 })
 
 watch(state, (currentState) => {

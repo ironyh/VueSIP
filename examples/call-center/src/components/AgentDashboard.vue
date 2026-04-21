@@ -21,7 +21,9 @@
       <div class="quick-stats">
         <div class="stat-item">
           <div class="stat-label" id="calls-today-label">Calls Today</div>
-          <div class="stat-value" aria-labelledby="calls-today-label" role="status">{{ totalCallsToday }}</div>
+          <div class="stat-value" aria-labelledby="calls-today-label" role="status">
+            {{ totalCallsToday }}
+          </div>
         </div>
         <div class="stat-item">
           <div class="stat-label" id="missed-calls-label">Missed</div>
@@ -32,9 +34,22 @@
         </div>
         <div class="stat-item">
           <div class="stat-label" id="avg-duration-label">Avg Duration</div>
-          <div class="stat-value" aria-labelledby="avg-duration-label">{{ formatDuration(averageDuration) }}</div>
+          <div class="stat-value" aria-labelledby="avg-duration-label">
+            {{ formatDuration(averageDuration) }}
+          </div>
         </div>
       </div>
+    </section>
+
+    <section class="next-action" :class="nextActionTone" aria-label="Next best action">
+      <div class="next-action-header">
+        <span class="next-action-label">Next best action</span>
+        <span class="next-action-counts"
+          >{{ queueLoad }} waiting · {{ openCallbacks }} callbacks</span
+        >
+      </div>
+      <strong data-testid="agent-next-action">{{ nextActionTitle }}</strong>
+      <p>{{ nextActionDetail }}</p>
     </section>
 
     <!-- Current Call Info -->
@@ -60,6 +75,11 @@ const props = defineProps<{
   totalCallsToday: number
   missedCalls: number
   averageDuration: number
+  queueLoad: number
+  openCallbacks: number
+  nextActionTitle: string
+  nextActionDetail: string
+  nextActionTone: 'neutral' | 'attention' | 'warning' | 'success'
 }>()
 
 // ============================================================================
@@ -202,6 +222,59 @@ const formatDuration = (seconds: number): string => {
   color: #ef4444;
 }
 
+.next-action {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+}
+
+.next-action.attention {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+  border-color: #fdba74;
+}
+
+.next-action.warning {
+  background: linear-gradient(180deg, #fef3c7 0%, #ffffff 100%);
+  border-color: #fbbf24;
+}
+
+.next-action.success {
+  background: linear-gradient(180deg, #dcfce7 0%, #ffffff 100%);
+  border-color: #86efac;
+}
+
+.next-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.next-action-label,
+.next-action-counts {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.next-action strong {
+  display: block;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+}
+
+.next-action p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.55;
+  font-size: 0.9rem;
+}
+
 .current-call-info {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
@@ -231,7 +304,8 @@ const formatDuration = (seconds: number): string => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

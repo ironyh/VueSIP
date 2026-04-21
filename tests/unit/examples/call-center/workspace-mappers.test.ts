@@ -57,6 +57,14 @@ describe('call-center workspace mappers', () => {
         latestDisposition: 'resolved',
         noteSummary: 'Password reset handled',
         hasOpenCallback: true,
+        profile: {
+          accountTier: 'VIP',
+          accountHealth: 'at-risk',
+          serviceLevel: 'Platinum SLA',
+          openCaseTitle: 'Checkout outage',
+          callbackReason: 'Return call before exec sync',
+          lastInteractionAt: '12 minutes ago',
+        },
       })
     ).toEqual({
       displayName: 'Customer Example',
@@ -65,6 +73,12 @@ describe('call-center workspace mappers', () => {
       latestDisposition: 'resolved',
       noteSummary: 'Password reset handled',
       hasOpenCallback: true,
+      accountTier: 'VIP',
+      accountHealth: 'at-risk',
+      serviceLevel: 'Platinum SLA',
+      openCaseTitle: 'Checkout outage',
+      callbackReason: 'Return call before exec sync',
+      lastInteractionAt: '12 minutes ago',
     })
   })
 })

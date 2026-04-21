@@ -37,6 +37,44 @@
         Sales
       </button>
     </div>
+    <div class="story-grid" role="group" aria-label="Presenter story scenes">
+      <button
+        class="story-card"
+        type="button"
+        data-testid="presenter-scene-peak-hour"
+        @click="$emit('run-scene', 'peak-hour')"
+      >
+        <strong>Peak Hour</strong>
+        <span>Load support queue pressure plus one overdue callback.</span>
+      </button>
+      <button
+        class="story-card"
+        type="button"
+        data-testid="presenter-scene-vip-escalation"
+        @click="$emit('run-scene', 'vip-escalation')"
+      >
+        <strong>VIP Escalation</strong>
+        <span>One high-SLA caller with an escalation-safe callback task.</span>
+      </button>
+      <button
+        class="story-card"
+        type="button"
+        data-testid="presenter-scene-billing-backlog"
+        @click="$emit('run-scene', 'billing-backlog')"
+      >
+        <strong>Billing Backlog</strong>
+        <span>Show overdue finance callbacks and a waiting billing queue.</span>
+      </button>
+      <button
+        class="story-card"
+        type="button"
+        data-testid="presenter-scene-callback-recovery"
+        @click="$emit('run-scene', 'callback-recovery')"
+      >
+        <strong>Callback Recovery</strong>
+        <span>Use the worklist as the primary story when the queue is calm.</span>
+      </button>
+    </div>
     <div class="presenter-actions">
       <button
         class="btn btn-secondary btn-sm"
@@ -75,6 +113,7 @@ defineProps<{
 
 defineEmits<{
   'set-scenario': [scenario: 'support' | 'billing' | 'sales']
+  'run-scene': [scene: 'peak-hour' | 'vip-escalation' | 'billing-backlog' | 'callback-recovery']
   'force-inbound': []
   'seed-callback': []
   'reset-demo': []
@@ -83,9 +122,9 @@ defineEmits<{
 
 <style scoped>
 .presenter-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 1rem;
   background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
   border: 1px solid #fdba74;
@@ -107,7 +146,40 @@ defineEmits<{
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  grid-column: 1 / -1;
+}
+
+.story-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid rgba(251, 146, 60, 0.38);
+  background: rgba(255, 255, 255, 0.8);
+  color: #9a3412;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.story-card:hover {
+  transform: translateY(-1px);
+}
+
+.story-card strong {
+  font-size: 0.88rem;
+}
+
+.story-card span {
+  font-size: 0.8rem;
+  line-height: 1.45;
 }
 
 .presenter-scenarios {
@@ -136,8 +208,12 @@ defineEmits<{
 
 @media (max-width: 1200px) {
   .presenter-controls {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
+  }
+
+  .story-grid {
+    width: 100%;
+    grid-template-columns: 1fr;
   }
 
   .presenter-actions {

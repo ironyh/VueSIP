@@ -28,18 +28,21 @@ test.describe('Call Center MVP smoke', () => {
     await expect(page.getByTestId('presenter-controls')).toBeVisible()
 
     await page.getByTestId('agent-status-available').click()
-    await page.getByTestId('presenter-scenario-billing').click()
-    await page.getByTestId('presenter-force-inbound').click()
-    await page.getByTestId('presenter-seed-callback').click()
+    await page.getByTestId('presenter-scene-billing-backlog').click()
     await expect(page.getByTestId('kpi-active-scenario')).toContainText('billing')
     await expect(page.getByTestId('kpi-queue-load')).toContainText('1')
-    await expect(page.getByTestId('kpi-open-callbacks')).toContainText('3')
+    await expect(page.getByTestId('kpi-open-callbacks')).toContainText('4')
+    await expect(page.getByTestId('agent-next-action')).toContainText('Answer billing queue')
+    await expect(page.getByTestId('customer-context-account-tier')).toContainText('Priority')
+    await expect(page.getByTestId('customer-context-open-case')).toContainText('tax')
 
     const queueRow = page.locator('[data-testid^="queue-row-"]').first()
     await expect(queueRow).toBeVisible({ timeout: 10000 })
     await expect(queueRow).toContainText('billing')
     await expect(page.getByTestId('callback-worklist')).toBeVisible()
-    await expect(page.locator('[data-testid^="callback-row-"]').first()).toContainText('Billing')
+    await expect(page.locator('[data-testid^="callback-row-"]').first()).toContainText(
+      'Metro Clinics'
+    )
     await expect(page.getByTestId('supervisor-board')).toBeVisible()
 
     await page.locator('[data-testid^="queue-answer-"]').first().click()

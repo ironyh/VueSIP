@@ -47,5 +47,20 @@ describe('demo-mvp-gateway', () => {
     expect(onTick).toHaveBeenCalledTimes(1)
     expect(onInboundCall).toHaveBeenCalledTimes(1)
     expect(onInboundCall.mock.calls[0][0].queue).toBeTruthy()
+    expect(onInboundCall.mock.calls[0][0].profile?.accountTier).toBeTruthy()
+  })
+
+  it('creates story scenes with queue and callback pressure', () => {
+    const baseNow = new Date('2026-04-20T12:00:00Z').getTime()
+    const gateway = createDemoMvpGateway({
+      now: () => baseNow,
+    })
+
+    const scene = gateway.createStoryScene('peak-hour')
+
+    expect(scene.scenario).toBe('support')
+    expect(scene.queueCalls).toHaveLength(2)
+    expect(scene.callbacks).toHaveLength(1)
+    expect(scene.callbacks[0].dueAt.getTime()).toBeLessThan(baseNow)
   })
 })

@@ -21,6 +21,7 @@ export function useAgentWorkspace() {
       latestDisposition: null,
       noteSummary: null,
       hasOpenCallback: false,
+      profile: null,
     })
   )
   const wrapUp = ref<WrapUpDraftValue>({
@@ -46,6 +47,7 @@ export function useAgentWorkspace() {
       latestDisposition: customerContext.value.latestDisposition,
       noteSummary: customerContext.value.noteSummary,
       hasOpenCallback: customerContext.value.hasOpenCallback,
+      profile: call.profile ?? null,
     })
     workspaceState.value = 'ringing'
     needsAttention.value = false
@@ -74,9 +76,18 @@ export function useAgentWorkspace() {
         status: 'open',
         reason: draft.notes || 'Requested callback',
         dueAt: new Date(),
+        profile: {
+          accountTier: customerContext.value.accountTier ?? undefined,
+          accountHealth: customerContext.value.accountHealth ?? undefined,
+          serviceLevel: customerContext.value.serviceLevel ?? undefined,
+          openCaseTitle: customerContext.value.openCaseTitle ?? undefined,
+          callbackReason: draft.notes || customerContext.value.callbackReason || undefined,
+          lastInteractionAt: customerContext.value.lastInteractionAt ?? undefined,
+        },
       }
       pendingCallbacks.value.push(createdCallback)
       customerContext.value.hasOpenCallback = true
+      customerContext.value.callbackReason = createdCallback.profile?.callbackReason ?? null
     }
 
     customerContext.value.latestDisposition = draft.disposition

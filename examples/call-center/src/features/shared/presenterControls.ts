@@ -1,10 +1,12 @@
 import type { Ref } from 'vue'
 
 import type { createDemoMvpGateway } from './demo-mvp-gateway'
+import { buildCustomerContextView } from './workspace-mappers'
 import type {
   AgentWorkspaceState,
   CallbackTaskView,
   CustomerContextView,
+  DemoStoryScene,
   QueuedCallView,
 } from './mvp-types'
 
@@ -40,6 +42,29 @@ export function createPresenterControls(options: PresenterControlsOptions) {
     options.customerContext.value.hasOpenCallback = true
   }
 
+  const runStoryScene = (sceneId: DemoStoryScene) => {
+    const scene = options.gateway.createStoryScene(sceneId)
+
+    options.queue.value.push(...scene.queueCalls)
+    options.callbacks.value.push(...scene.callbacks)
+    options.customerContext.value = buildCustomerContextView({
+      remoteUri: scene.callbacks[0]?.targetUri ?? scene.queueCalls[0]?.from ?? '',
+      remoteDisplayName:
+        scene.callbacks[0]?.contactName ?? scene.queueCalls[0]?.displayName ?? 'Story Preview',
+      queue: scene.scenario,
+      latestDisposition: options.customerContext.value.latestDisposition,
+      noteSummary: scene.summary,
+      hasOpenCallback: scene.callbacks.length > 0,
+      profile: scene.callbacks[0]?.profile ?? scene.queueCalls[0]?.profile ?? null,
+    })
+
+    if (scene.callbacks[0]) {
+      options.selectedCallbackId.value = scene.callbacks[0].id
+    }
+
+    return scene
+  }
+
   const resetDemoState = () => {
     options.queue.value = []
     options.callbacks.value = []
@@ -53,6 +78,12 @@ export function createPresenterControls(options: PresenterControlsOptions) {
       latestDisposition: null,
       noteSummary: null,
       hasOpenCallback: false,
+      accountTier: null,
+      accountHealth: null,
+      serviceLevel: null,
+      openCaseTitle: null,
+      callbackReason: null,
+      lastInteractionAt: null,
     }
 
     if (options.workspaceState.value === 'wrap-up') {
@@ -65,6 +96,7 @@ export function createPresenterControls(options: PresenterControlsOptions) {
   return {
     forceInboundCall,
     seedCallbackTask,
+    runStoryScene,
     resetDemoState,
   }
 }

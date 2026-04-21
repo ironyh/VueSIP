@@ -28,6 +28,12 @@ describe('presenterControls', () => {
       latestDisposition: null,
       noteSummary: null,
       hasOpenCallback: false,
+      accountTier: null,
+      accountHealth: null,
+      serviceLevel: null,
+      openCaseTitle: null,
+      callbackReason: null,
+      lastInteractionAt: null,
     })
     const workspaceState = ref<AgentWorkspaceState>('available')
 
@@ -78,6 +84,12 @@ describe('presenterControls', () => {
       latestDisposition: null,
       noteSummary: null,
       hasOpenCallback: false,
+      accountTier: null,
+      accountHealth: null,
+      serviceLevel: null,
+      openCaseTitle: null,
+      callbackReason: null,
+      lastInteractionAt: null,
     })
     const workspaceState = ref<AgentWorkspaceState>('available')
 
@@ -107,6 +119,61 @@ describe('presenterControls', () => {
     expect(callbacks.value).toHaveLength(1)
     expect(callbacks.value[0].queue).toBe('billing')
     expect(callbacks.value[0].contactName).toContain('Billing')
+  })
+
+  it('runs story scenes and primes callback context for the selected story', () => {
+    const queue = ref<QueuedCallView[]>([])
+    const callbacks = ref<CallbackTaskView[]>([])
+    const selectedCallbackId = ref<string | null>(null)
+    const currentCallNotes = ref('')
+    const historyAnnotations = ref<
+      Record<string, { tags: string[]; metadata: Record<string, unknown> }>
+    >({})
+    const activeCallbackId = ref<string | null>(null)
+    const lastWrappedCallId = ref<string | null>(null)
+    const customerContext = ref<CustomerContextView>({
+      displayName: 'Unknown Caller',
+      address: '',
+      queue: null,
+      latestDisposition: null,
+      noteSummary: null,
+      hasOpenCallback: false,
+      accountTier: null,
+      accountHealth: null,
+      serviceLevel: null,
+      openCaseTitle: null,
+      callbackReason: null,
+      lastInteractionAt: null,
+    })
+    const workspaceState = ref<AgentWorkspaceState>('available')
+
+    const controls = createPresenterControls({
+      gateway: createDemoMvpGateway({
+        random: () => 0.9,
+        now: () => new Date('2026-04-21T10:00:00Z').getTime(),
+      }),
+      queue,
+      callbacks,
+      selectedCallbackId,
+      currentCallNotes,
+      historyAnnotations,
+      activeCallbackId,
+      lastWrappedCallId,
+      customerContext,
+      workspaceState,
+      resetWrapUpDraft: vi.fn(),
+      clearWrapUp: vi.fn(),
+    })
+
+    const scene = controls.runStoryScene('billing-backlog')
+
+    expect(scene.scenario).toBe('billing')
+    expect(queue.value).toHaveLength(1)
+    expect(callbacks.value).toHaveLength(2)
+    expect(selectedCallbackId.value).toBe(callbacks.value[0].id)
+    expect(customerContext.value.queue).toBe('billing')
+    expect(customerContext.value.accountTier).toBeTruthy()
+    expect(customerContext.value.openCaseTitle).toContain('tax')
   })
 
   it('resets presenter-managed demo state', () => {
@@ -148,6 +215,12 @@ describe('presenterControls', () => {
       latestDisposition: 'callback_required',
       noteSummary: 'notes to clear',
       hasOpenCallback: true,
+      accountTier: 'Priority',
+      accountHealth: 'watch',
+      serviceLevel: 'Finance Care',
+      openCaseTitle: 'Invoice dispute',
+      callbackReason: 'Return customer call',
+      lastInteractionAt: 'Today',
     })
     const workspaceState = ref<AgentWorkspaceState>('wrap-up')
     const resetWrapUpDraft = vi.fn()
@@ -180,6 +253,8 @@ describe('presenterControls', () => {
     expect(customerContext.value.latestDisposition).toBeNull()
     expect(customerContext.value.noteSummary).toBeNull()
     expect(customerContext.value.hasOpenCallback).toBe(false)
+    expect(customerContext.value.accountTier).toBeNull()
+    expect(customerContext.value.callbackReason).toBeNull()
     expect(clearWrapUp).toHaveBeenCalledWith('available')
     expect(resetWrapUpDraft).toHaveBeenCalled()
   })

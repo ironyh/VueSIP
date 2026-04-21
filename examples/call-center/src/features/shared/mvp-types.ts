@@ -9,6 +9,23 @@ export type AgentWorkspaceState =
   | 'reconnecting'
   | 'attention'
 
+export type DemoScenario = 'support' | 'billing' | 'sales'
+
+export type DemoStoryScene =
+  | 'peak-hour'
+  | 'vip-escalation'
+  | 'billing-backlog'
+  | 'callback-recovery'
+
+export interface DemoContactProfile {
+  accountTier?: 'Standard' | 'Priority' | 'VIP'
+  accountHealth?: 'healthy' | 'watch' | 'at-risk'
+  serviceLevel?: string
+  openCaseTitle?: string
+  callbackReason?: string
+  lastInteractionAt?: string
+}
+
 export interface QueuedCallView {
   id: string
   from: string
@@ -16,6 +33,7 @@ export interface QueuedCallView {
   waitTime: number
   priority?: number
   queue: string
+  profile?: DemoContactProfile
 }
 
 export interface CustomerContextView {
@@ -25,6 +43,12 @@ export interface CustomerContextView {
   latestDisposition: string | null
   noteSummary: string | null
   hasOpenCallback: boolean
+  accountTier: DemoContactProfile['accountTier'] | null
+  accountHealth: DemoContactProfile['accountHealth'] | null
+  serviceLevel: string | null
+  openCaseTitle: string | null
+  callbackReason: string | null
+  lastInteractionAt: string | null
 }
 
 export interface WrapUpDraftValue {
@@ -42,4 +66,5 @@ export interface CallbackTaskView {
   status: 'open' | 'in-progress' | 'completed' | 'rescheduled' | 'failed'
   reason: string
   dueAt: Date
+  profile?: DemoContactProfile
 }

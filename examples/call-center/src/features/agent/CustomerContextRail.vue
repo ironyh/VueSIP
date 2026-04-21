@@ -1,9 +1,35 @@
 <template>
   <section class="customer-context card" aria-label="Customer context">
     <header class="context-header">
-      <h2>Customer Context</h2>
-      <span class="workspace-badge" :class="workspaceState">{{ workspaceLabel }}</span>
+      <div>
+        <h2>Customer Context</h2>
+        <p>Selected callback or active caller context with SLA and case pressure.</p>
+      </div>
+      <div class="badge-stack">
+        <span
+          v-if="context.accountTier"
+          class="context-pill account-tier"
+          data-testid="customer-context-account-tier"
+        >
+          {{ context.accountTier }}
+        </span>
+        <span class="workspace-badge" :class="workspaceState">{{ workspaceLabel }}</span>
+      </div>
     </header>
+
+    <div class="context-pills">
+      <span v-if="context.serviceLevel" class="context-pill">
+        {{ context.serviceLevel }}
+      </span>
+      <span
+        v-if="context.accountHealth"
+        class="context-pill"
+        :class="`health-${context.accountHealth}`"
+        data-testid="customer-context-account-health"
+      >
+        {{ healthLabel }}
+      </span>
+    </div>
 
     <dl class="context-grid">
       <div>
@@ -22,11 +48,26 @@
         <dt>Last Outcome</dt>
         <dd>{{ context.latestDisposition || 'No prior outcome' }}</dd>
       </div>
+      <div>
+        <dt>Open Case</dt>
+        <dd data-testid="customer-context-open-case">
+          {{ context.openCaseTitle || 'No active case title' }}
+        </dd>
+      </div>
+      <div>
+        <dt>Last Interaction</dt>
+        <dd>{{ context.lastInteractionAt || 'No recent touchpoint' }}</dd>
+      </div>
     </dl>
 
     <div class="context-note">
       <strong>Summary:</strong>
       <span>{{ context.noteSummary || 'No prior note summary' }}</span>
+    </div>
+
+    <div class="context-note callback-reason">
+      <strong>Callback Reason:</strong>
+      <span>{{ context.callbackReason || 'No callback prompt selected' }}</span>
     </div>
 
     <div class="callback-state">
@@ -67,6 +108,19 @@ const workspaceLabel = computed(() => {
       return 'Idle'
   }
 })
+
+const healthLabel = computed(() => {
+  switch (props.context.accountHealth) {
+    case 'healthy':
+      return 'Healthy account'
+    case 'watch':
+      return 'Watch account'
+    case 'at-risk':
+      return 'At-risk account'
+    default:
+      return ''
+  }
+})
 </script>
 
 <style scoped>
@@ -80,6 +134,7 @@ const workspaceLabel = computed(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+  gap: 1rem;
 }
 
 .context-header h2 {
@@ -87,6 +142,25 @@ const workspaceLabel = computed(() => {
   margin: 0;
 }
 
+.context-header p {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.badge-stack,
+.context-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.context-pills {
+  margin-bottom: 1rem;
+}
+
+.context-pill,
 .workspace-badge {
   border-radius: 999px;
   padding: 0.25rem 0.625rem;
@@ -121,6 +195,31 @@ const workspaceLabel = computed(() => {
   color: #c2410c;
 }
 
+.context-pill {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.context-pill.account-tier {
+  background: #ecfccb;
+  color: #3f6212;
+}
+
+.context-pill.health-healthy {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.context-pill.health-watch {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.context-pill.health-at-risk {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .context-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -146,6 +245,10 @@ const workspaceLabel = computed(() => {
   color: #374151;
 }
 
+.callback-reason {
+  margin-top: 0.75rem;
+}
+
 .callback-state {
   margin-top: 0.75rem;
   font-size: 0.875rem;
@@ -154,5 +257,12 @@ const workspaceLabel = computed(() => {
 .callback-state .open {
   color: #1d4ed8;
   font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .context-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

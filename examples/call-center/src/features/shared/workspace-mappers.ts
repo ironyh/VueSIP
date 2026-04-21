@@ -1,6 +1,11 @@
 import type { AgentStatus } from '../../../../../src/providers/call-center/types'
 import type { CallbackRequest } from '../../../../../src/types/callback.types'
-import type { AgentWorkspaceState, CallbackTaskView, CustomerContextView } from './mvp-types'
+import type {
+  AgentWorkspaceState,
+  CallbackTaskView,
+  CustomerContextView,
+  DemoContactProfile,
+} from './mvp-types'
 
 export function mapAgentStatusToWorkspaceState(
   status: AgentStatus | 'connecting' | 'reconnecting',
@@ -62,6 +67,7 @@ export function buildCustomerContextView(input: {
   latestDisposition: string | null
   noteSummary: string | null
   hasOpenCallback: boolean
+  profile?: DemoContactProfile | null
 }): CustomerContextView {
   return {
     displayName: input.remoteDisplayName || input.remoteUri,
@@ -70,5 +76,11 @@ export function buildCustomerContextView(input: {
     latestDisposition: input.latestDisposition,
     noteSummary: input.noteSummary,
     hasOpenCallback: input.hasOpenCallback,
+    accountTier: input.profile?.accountTier ?? null,
+    accountHealth: input.profile?.accountHealth ?? null,
+    serviceLevel: input.profile?.serviceLevel ?? null,
+    openCaseTitle: input.profile?.openCaseTitle ?? null,
+    callbackReason: input.profile?.callbackReason ?? null,
+    lastInteractionAt: input.profile?.lastInteractionAt ?? null,
   }
 }
