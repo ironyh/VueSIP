@@ -23,11 +23,20 @@
     <div v-if="isConnected" class="dashboard" data-testid="call-center-dashboard">
       <header class="dashboard-header" role="banner">
         <div class="header-content">
-          <h1>Call Center Dashboard</h1>
+          <div class="header-copy">
+            <p class="header-eyebrow">Agent workspace</p>
+            <h1>Call Center Dashboard</h1>
+            <p class="header-summary">
+              Inbound queue work, callback follow-up, and supervisor visibility in a single demo
+              shell.
+            </p>
+          </div>
           <div class="header-center">
             <SystemStatus />
           </div>
           <div class="header-actions">
+            <span class="header-pill">{{ selectedPreset }} preset</span>
+            <span class="header-pill neutral">{{ agentStatus }}</span>
             <AgentStatusToggle :agent-status="agentStatus" @update:status="updateAgentStatus" />
             <button class="btn btn-danger btn-sm" @click="handleDisconnect">Disconnect</button>
           </div>
@@ -754,24 +763,53 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  color: #0f172a;
 }
 
 .dashboard-header {
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 1rem 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 246, 255, 0.92)),
+    linear-gradient(135deg, #fff7ed 0%, #eff6ff 100%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  padding: 1.35rem 2rem 1.15rem;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(12px);
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.header-copy {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 36rem;
+}
+
+.header-eyebrow {
+  margin: 0;
+  color: #c2410c;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .header-content h1 {
-  font-size: 1.5rem;
-  color: #111827;
+  margin: 0;
+  font-size: clamp(1.6rem, 2.1vw, 2.3rem);
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.header-summary {
+  margin: 0;
+  color: #475569;
+  line-height: 1.55;
 }
 
 .header-center {
@@ -785,6 +823,29 @@ onUnmounted(() => {
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.header-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 237, 213, 0.85);
+  color: #9a3412;
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.header-pill.neutral {
+  background: rgba(226, 232, 240, 0.78);
+  color: #334155;
+  border-color: rgba(148, 163, 184, 0.35);
 }
 
 .dashboard-content {
@@ -794,6 +855,9 @@ onUnmounted(() => {
   padding: 1.5rem;
   flex: 1;
   overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(14, 165, 233, 0.06), transparent 28%),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.95));
 }
 
 .sidebar,
@@ -803,6 +867,12 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 1.5rem;
   overflow-y: auto;
+}
+
+.sidebar > *,
+.main-content > *,
+.history-panel > * {
+  animation: fadeUp 0.24s ease-out;
 }
 
 @media (max-width: 1400px) {
@@ -815,6 +885,15 @@ onUnmounted(() => {
   .dashboard-content {
     grid-template-columns: 1fr;
     overflow-y: auto;
+  }
+
+  .header-content {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header-actions {
+    justify-content: flex-start;
   }
 
   .sidebar,
@@ -884,6 +963,17 @@ onUnmounted(() => {
   }
   to {
     transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
     opacity: 1;
   }
 }
