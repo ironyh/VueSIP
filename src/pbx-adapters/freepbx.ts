@@ -208,7 +208,17 @@ function mapFreePbxCdrToRecordingSummary(row: FreePbxCdrRow): RecordingSummary {
  * // info.playbackUrl is the download URL (requires auth in cross-origin case)
  * ```
  */
-export function createFreePbxRecordingProvider(config: FreePbxRecordingConfig): PbxRecordingProvider {
+export function createFreePbxRecordingProvider(
+  config: FreePbxRecordingConfig
+): PbxRecordingProvider {
+  // Validate required config at construction time
+  if (!config.baseUrl || typeof config.baseUrl !== 'string') {
+    throw new Error(
+      'FreePBX recording provider requires a valid baseUrl string. ' +
+        'Example: createFreePbxRecordingProvider({ baseUrl: "https://pbx.example.com" })'
+    )
+  }
+
   const { baseUrl, fetch: customFetch = fetch, getAuthHeaders } = config
   const graphqlUrl = getGraphQLEndpoint(baseUrl)
 
@@ -237,18 +247,11 @@ export function createFreePbxRecordingProvider(config: FreePbxRecordingConfig): 
     capabilities,
 
     async listRecordings(query: PbxRecordingListQuery): Promise<PbxRecordingListResult> {
-      const limit = Math.min(
-        query.limit ?? DEFAULT_PAGE_SIZE,
-        MAX_PAGE_SIZE
-      )
+      const limit = Math.min(query.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
       const offset = query.offset ?? 0
       const orderby = query.sortBy === 'duration' ? 'duration' : 'date'
-      const startDate = query.dateFrom
-        ? query.dateFrom.toISOString().slice(0, 10)
-        : undefined
-      const endDate = query.dateTo
-        ? query.dateTo.toISOString().slice(0, 10)
-        : undefined
+      const startDate = query.dateFrom ? query.dateFrom.toISOString().slice(0, 10) : undefined
+      const endDate = query.dateTo ? query.dateTo.toISOString().slice(0, 10) : undefined
 
       const gqlQuery = `query FetchAllCdrs($first: Int, $after: Int, $orderby: String, $startDate: String, $endDate: String) {
   fetchAllCdrs(first: $first, after: $after, orderby: $orderby, startDate: $startDate, endDate: $endDate) {
