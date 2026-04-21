@@ -1,5 +1,9 @@
 <template>
-  <section class="callback-worklist card" aria-label="Callback worklist">
+  <section
+    class="callback-worklist card"
+    aria-label="Callback worklist"
+    data-testid="callback-worklist"
+  >
     <header class="worklist-header">
       <div>
         <h2>Callback Worklist</h2>
@@ -8,6 +12,7 @@
       <button
         class="btn btn-primary btn-sm"
         type="button"
+        data-testid="callback-start"
         :disabled="!canStartOutbound"
         @click="$emit('start')"
       >
@@ -25,8 +30,14 @@
         :key="callback.id"
         class="callback-row"
         :class="{ selected: callback.id === selectedCallbackId }"
+        :data-testid="`callback-row-${callback.id}`"
       >
-        <button class="callback-select" type="button" @click="$emit('select', callback.id)">
+        <button
+          class="callback-select"
+          type="button"
+          :data-testid="`callback-select-${callback.id}`"
+          @click="$emit('select', callback.id)"
+        >
           <div class="callback-main">
             <div class="callback-title">
               <strong>{{ callback.contactName || callback.targetUri }}</strong>

@@ -4,6 +4,7 @@
     <div class="status-buttons">
       <button
         class="status-btn"
+        data-testid="agent-status-available"
         :class="{ active: agentStatus === 'available' }"
         @click="$emit('update:status', 'available')"
         aria-label="Set agent status to available"
@@ -14,6 +15,7 @@
       </button>
       <button
         class="status-btn"
+        data-testid="agent-status-busy"
         :class="{ active: agentStatus === 'busy' }"
         @click="$emit('update:status', 'busy')"
         aria-label="Set agent status to busy"
@@ -24,6 +26,7 @@
       </button>
       <button
         class="status-btn"
+        data-testid="agent-status-away"
         :class="{ active: agentStatus === 'away' }"
         @click="$emit('update:status', 'away')"
         aria-label="Set agent status to away"

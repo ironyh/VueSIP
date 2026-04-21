@@ -1,5 +1,5 @@
 <template>
-  <div class="call-queue card">
+  <div class="call-queue card" data-testid="call-center-queue">
     <h2>Call Queue</h2>
 
     <!-- Queue Announcements -->
@@ -39,7 +39,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="call in sortedQueue" :key="call.id" :class="{ urgent: call.waitTime > 60 }">
+          <tr
+            v-for="call in sortedQueue"
+            :key="call.id"
+            :class="{ urgent: call.waitTime > 60 }"
+            :data-testid="`queue-row-${call.id}`"
+          >
             <td>
               <div class="caller-info">
                 <div class="caller-name">{{ call.displayName || 'Unknown' }}</div>
@@ -60,6 +65,7 @@
             <td>
               <button
                 class="btn btn-success btn-sm"
+                :data-testid="`queue-answer-${call.id}`"
                 :disabled="agentStatus !== 'available'"
                 @click="handleAnswerCall(call)"
                 :aria-label="`Answer call from ${call.displayName || 'Unknown'}, waiting ${formatWaitTime(call.waitTime)}`"

@@ -1,5 +1,5 @@
 <template>
-  <section class="wrap-up-panel card" aria-label="Wrap-up panel">
+  <section class="wrap-up-panel card" aria-label="Wrap-up panel" data-testid="call-center-wrap-up">
     <header class="wrap-up-header">
       <h2>Wrap-Up</h2>
       <p>Complete disposition before returning to queue work.</p>
@@ -9,6 +9,7 @@
       <label for="wrapup-disposition">Disposition</label>
       <select
         id="wrapup-disposition"
+        data-testid="wrap-up-disposition"
         :value="disposition || ''"
         @change="$emit('update:disposition', ($event.target as HTMLSelectElement).value || null)"
       >
@@ -23,6 +24,7 @@
       <label for="wrapup-notes">Notes</label>
       <textarea
         id="wrapup-notes"
+        data-testid="wrap-up-notes"
         :value="notes"
         rows="5"
         @input="$emit('update:notes', ($event.target as HTMLTextAreaElement).value)"
@@ -32,6 +34,7 @@
     <label class="callback-toggle">
       <input
         type="checkbox"
+        data-testid="wrap-up-callback-toggle"
         :checked="callbackRequested"
         @change="$emit('update:callbackRequested', ($event.target as HTMLInputElement).checked)"
       />
@@ -39,10 +42,18 @@
     </label>
 
     <div class="wrap-up-actions">
-      <button class="btn btn-secondary" type="button" @click="$emit('cancel')">Cancel</button>
+      <button
+        class="btn btn-secondary"
+        type="button"
+        data-testid="wrap-up-cancel"
+        @click="$emit('cancel')"
+      >
+        Cancel
+      </button>
       <button
         class="btn btn-primary"
         type="button"
+        data-testid="wrap-up-complete"
         :disabled="!canComplete"
         @click="$emit('complete')"
       >

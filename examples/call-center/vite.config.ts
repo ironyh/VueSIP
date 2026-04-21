@@ -20,7 +20,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@': fileURLToPath(new URL('../../src', import.meta.url)),
+      '@example': fileURLToPath(new URL('./src', import.meta.url)),
+      vuesip: fileURLToPath(new URL('../../src/index.ts', import.meta.url)),
     },
   },
   build: {
@@ -39,16 +41,6 @@ export default defineConfig({
             id.includes('/src/types/system')
           ) {
             return 'vuesip-ami'
-          }
-
-          if (
-            id.includes('/src/providers/call-center') ||
-            id.includes('/src/composables/useAgent') ||
-            id.includes('/src/composables/useAmiCallback') ||
-            id.includes('/src/types/agent') ||
-            id.includes('/src/types/callback')
-          ) {
-            return 'vuesip-call-center'
           }
 
           if (

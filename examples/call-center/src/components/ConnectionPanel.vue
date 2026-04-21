@@ -9,6 +9,7 @@
         <input
           id="server"
           v-model="form.server"
+          data-testid="call-center-server"
           type="text"
           placeholder="sip.example.com"
           required
@@ -27,6 +28,7 @@
         <input
           id="username"
           v-model="form.username"
+          data-testid="call-center-username"
           type="text"
           placeholder="1001"
           required
@@ -45,6 +47,7 @@
         <input
           id="password"
           v-model="form.password"
+          data-testid="call-center-password"
           type="password"
           placeholder="Enter password"
           required
@@ -63,6 +66,7 @@
         <input
           id="displayName"
           v-model="form.displayName"
+          data-testid="call-center-display-name"
           type="text"
           placeholder="Agent Smith"
           required
@@ -86,6 +90,7 @@
       <button
         type="submit"
         class="btn btn-primary"
+        data-testid="call-center-connect"
         :disabled="isConnecting"
         :aria-busy="isConnecting"
       >

@@ -1,5 +1,9 @@
 <template>
-  <section class="supervisor-board card" aria-label="Supervisor board">
+  <section
+    class="supervisor-board card"
+    aria-label="Supervisor board"
+    data-testid="supervisor-board"
+  >
     <header class="board-header">
       <div>
         <h2>Supervisor Board</h2>
@@ -11,7 +15,11 @@
       <section>
         <h3>Queues</h3>
         <ul class="simple-list">
-          <li v-for="queue in queueRows" :key="queue.queue">
+          <li
+            v-for="queue in queueRows"
+            :key="queue.queue"
+            :data-testid="`queue-summary-${queue.queue}`"
+          >
             <strong>{{ queue.queue }}</strong>
             <span>{{ queue.waitingCalls }} waiting</span>
             <span>{{ queue.longestWaitSeconds }}s longest wait</span>
@@ -23,7 +31,11 @@
       <section>
         <h3>Agents</h3>
         <ul class="simple-list">
-          <li v-for="agent in agentRows" :key="agent.agentId">
+          <li
+            v-for="agent in agentRows"
+            :key="agent.agentId"
+            :data-testid="`agent-summary-${agent.agentId}`"
+          >
             <strong>{{ agent.agentId }}</strong>
             <span>{{ agent.status }}</span>
             <span>{{ agent.workspaceState }}</span>
@@ -35,7 +47,12 @@
     <section class="alerts-section">
       <h3>Alerts</h3>
       <ul class="simple-list">
-        <li v-for="alert in alertRows" :key="alert.id" :class="`severity-${alert.severity}`">
+        <li
+          v-for="alert in alertRows"
+          :key="alert.id"
+          :class="`severity-${alert.severity}`"
+          :data-testid="`alert-row-${alert.id}`"
+        >
           <strong>{{ alert.severity }}</strong>
           <span>{{ alert.message }}</span>
         </li>
@@ -46,13 +63,18 @@
     <section class="reassign-section">
       <h3>Callback Reassignment</h3>
       <ul class="simple-list">
-        <li v-for="callback in callbackRows" :key="callback.id">
+        <li
+          v-for="callback in callbackRows"
+          :key="callback.id"
+          :data-testid="`supervisor-callback-${callback.id}`"
+        >
           <div class="callback-row">
             <span>{{ callback.contactName || callback.targetUri }}</span>
             <span>{{ callback.assignee }}</span>
             <button
               class="btn btn-secondary btn-sm"
               type="button"
+              :data-testid="`supervisor-reassign-${callback.id}`"
               @click="$emit('reassign', callback.id)"
             >
               Reassign
