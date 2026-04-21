@@ -48,7 +48,10 @@
             <td>
               <div class="caller-info">
                 <div class="caller-name">{{ call.displayName || 'Unknown' }}</div>
-                <div class="caller-number">{{ formatUri(call.from) }}</div>
+                <div class="caller-meta">
+                  <span class="caller-number">{{ formatUri(call.from) }}</span>
+                  <span class="queue-pill">{{ call.queue }}</span>
+                </div>
               </div>
             </td>
             <td>
@@ -301,6 +304,26 @@ watch(
   font-size: 0.75rem;
   color: #6b7280;
   margin-top: 0.125rem;
+}
+
+.caller-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.queue-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .wait-urgent {

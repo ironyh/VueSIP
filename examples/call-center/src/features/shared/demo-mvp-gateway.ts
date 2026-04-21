@@ -11,6 +11,8 @@ interface DemoGatewayOptions {
   now?: () => number
 }
 
+type DemoScenario = 'support' | 'billing' | 'sales'
+
 const mockInboundCallers = [
   { uri: 'sip:customer1@domain.com', name: 'John Smith', queue: 'support' },
   { uri: 'sip:customer2@domain.com', name: 'Jane Doe', queue: 'support' },
@@ -45,8 +47,11 @@ export function createDemoMvpGateway(options: DemoGatewayOptions = {}) {
 
   let intervalId: ReturnType<typeof setInterval> | null = null
 
-  function createInboundCall(): QueuedCallView {
-    const caller = mockInboundCallers[Math.floor(random() * mockInboundCallers.length)]
+  function createInboundCall(queue?: DemoScenario): QueuedCallView {
+    const candidates = queue
+      ? mockInboundCallers.filter((caller) => caller.queue === queue)
+      : mockInboundCallers
+    const caller = candidates[Math.floor(random() * candidates.length)]
 
     return {
       id: `queue-${now()}`,
@@ -69,6 +74,30 @@ export function createDemoMvpGateway(options: DemoGatewayOptions = {}) {
       reason: callback.reason,
       dueAt: new Date(now() + (index + 1) * 15 * 60 * 1000),
     }))
+  }
+
+  function createPresenterCallback(index = 1, queue: DemoScenario = 'support'): CallbackTaskView {
+    const contactByQueue: Record<DemoScenario, string> = {
+      support: 'Priority Follow-up',
+      billing: 'Billing Follow-up',
+      sales: 'Sales Follow-up',
+    }
+    const reasonByQueue: Record<DemoScenario, string> = {
+      support: 'Walk through support callback flow',
+      billing: 'Walk through billing callback flow',
+      sales: 'Walk through sales callback flow',
+    }
+
+    return {
+      id: `presenter-callback-${now()}-${index}`,
+      assignee: 'queue-shared',
+      queue,
+      targetUri: `sip:presenter${index}@domain.com`,
+      contactName: contactByQueue[queue],
+      status: 'open',
+      reason: reasonByQueue[queue],
+      dueAt: new Date(now() + 5 * 60 * 1000),
+    }
   }
 
   function start(runtime: DemoGatewayRuntime, intervalMs = 5000) {
@@ -98,6 +127,7 @@ export function createDemoMvpGateway(options: DemoGatewayOptions = {}) {
     capabilities,
     createInboundCall,
     createSeedCallbacks,
+    createPresenterCallback,
     start,
     stop,
   }

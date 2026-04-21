@@ -32,10 +32,23 @@
             <button class="btn btn-danger btn-sm" @click="handleDisconnect">Disconnect</button>
           </div>
         </div>
+        <DemoKpiBar
+          :active-scenario="activeScenario"
+          :queue-load="callQueue.length"
+          :open-callbacks="callbackRows.length"
+        />
       </header>
 
       <div class="dashboard-content">
         <aside class="sidebar" aria-label="Agent status and call queue">
+          <PresenterControls
+            :active-scenario="activeScenario"
+            :reset-disabled="isActive || workspaceState === 'wrap-up'"
+            @set-scenario="activeScenario = $event"
+            @force-inbound="handlePresenterForceInbound"
+            @seed-callback="handlePresenterSeedCallback"
+            @reset-demo="handlePresenterReset"
+          />
           <AgentDashboard
             :agent-status="agentStatus"
             :current-call-id="callId"
@@ -136,11 +149,14 @@ import AgentDashboard from './components/AgentDashboard.vue'
 import CallQueue from './components/CallQueue.vue'
 import ActiveCall from './components/ActiveCall.vue'
 import CallStats from './components/CallStats.vue'
+import DemoKpiBar from './components/DemoKpiBar.vue'
+import PresenterControls from './components/PresenterControls.vue'
 import CustomerContextRail from './features/agent/CustomerContextRail.vue'
 import WrapUpPanel from './features/agent/WrapUpPanel.vue'
 import { useAgentWorkspace } from './features/agent/useAgentWorkspace'
 import { useCallbackWorklist } from './features/agent/useCallbackWorklist'
 import { createDemoMvpGateway } from './features/shared/demo-mvp-gateway'
+import { createPresenterControls } from './features/shared/presenterControls'
 import { useWrapUpDraft } from './features/agent/useWrapUpDraft'
 import { useSupervisorBoard } from './features/supervisor/useSupervisorBoard'
 
@@ -163,6 +179,7 @@ const SupervisorBoard = defineAsyncComponent(
 )
 
 type AgentStatus = 'available' | 'busy' | 'away'
+type DemoScenario = 'support' | 'billing' | 'sales'
 
 interface QueuedCall {
   id: string
@@ -271,6 +288,7 @@ const {
 const pendingCallbackCount = computed(() => pendingCallbacks.value.length)
 const activeCallbackId = ref<string | null>(null)
 const lastWrappedCallId = ref<string | null>(null)
+const activeScenario = ref<DemoScenario>('support')
 const demoCallbacksSeeded = ref(false)
 const historyAnnotations = ref<
   Record<string, { tags: string[]; metadata: Record<string, unknown> }>
@@ -315,14 +333,25 @@ const { queueRows, agentRows, alertRows, callbackRows, reassignCallback } = useS
   activeCallId: callId,
 })
 
+const presenterControls = createPresenterControls({
+  gateway: demoGateway,
+  queue: callQueue,
+  callbacks: pendingCallbacks,
+  selectedCallbackId,
+  currentCallNotes,
+  historyAnnotations,
+  activeCallbackId,
+  lastWrappedCallId,
+  customerContext,
+  workspaceState,
+  resetWrapUpDraft,
+  clearWrapUp,
+})
+
 const startQueueSimulation = () => {
   if (props.selectedPreset === 'demo' && !demoCallbacksSeeded.value) {
     pendingCallbacks.value.push(...demoGateway.createSeedCallbacks())
     demoCallbacksSeeded.value = true
-  }
-
-  if (isTestMode && callQueue.value.length === 0) {
-    callQueue.value.push(demoGateway.createInboundCall())
   }
 
   demoGateway.start(
@@ -555,6 +584,23 @@ const handleStartCallback = async () => {
 const handleSupervisorReassign = (callbackId: string) => {
   reassignCallback(callbackId, 'supervisor-queue')
   showNotification('info', 'Callback reassigned to supervisor-queue')
+}
+
+const handlePresenterForceInbound = () => {
+  presenterControls.forceInboundCall(activeScenario.value)
+  showNotification('info', `Presenter injected a ${activeScenario.value} inbound call.`)
+}
+
+const handlePresenterSeedCallback = () => {
+  presenterControls.seedCallbackTask(activeScenario.value)
+  showNotification('info', `Presenter seeded a ${activeScenario.value} callback task.`)
+}
+
+const handlePresenterReset = () => {
+  stopQueueSimulation()
+  presenterControls.resetDemoState()
+  demoCallbacksSeeded.value = false
+  showNotification('success', 'Demo state reset.')
 }
 
 const handleWrapUpComplete = () => {

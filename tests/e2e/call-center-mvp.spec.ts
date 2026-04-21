@@ -23,12 +23,23 @@ test.describe('Call Center MVP smoke', () => {
     await page.getByTestId('call-center-connect').click()
 
     await expect(page.getByTestId('call-center-dashboard')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId('call-center-kpis')).toBeVisible()
+    await expect(page.getByTestId('kpi-active-scenario')).toContainText('support')
+    await expect(page.getByTestId('presenter-controls')).toBeVisible()
 
     await page.getByTestId('agent-status-available').click()
+    await page.getByTestId('presenter-scenario-billing').click()
+    await page.getByTestId('presenter-force-inbound').click()
+    await page.getByTestId('presenter-seed-callback').click()
+    await expect(page.getByTestId('kpi-active-scenario')).toContainText('billing')
+    await expect(page.getByTestId('kpi-queue-load')).toContainText('1')
+    await expect(page.getByTestId('kpi-open-callbacks')).toContainText('3')
 
     const queueRow = page.locator('[data-testid^="queue-row-"]').first()
     await expect(queueRow).toBeVisible({ timeout: 10000 })
+    await expect(queueRow).toContainText('billing')
     await expect(page.getByTestId('callback-worklist')).toBeVisible()
+    await expect(page.locator('[data-testid^="callback-row-"]').first()).toContainText('Billing')
     await expect(page.getByTestId('supervisor-board')).toBeVisible()
 
     await page.locator('[data-testid^="queue-answer-"]').first().click()
@@ -58,5 +69,9 @@ test.describe('Call Center MVP smoke', () => {
     await reassignButton.click()
 
     await expect(page.getByTestId('supervisor-board')).toContainText('supervisor-queue')
+
+    await page.getByTestId('presenter-reset-demo').click()
+    await expect(page.locator('[data-testid^="queue-row-"]')).toHaveCount(0)
+    await expect(page.locator('[data-testid^="callback-row-"]')).toHaveCount(0)
   })
 })
