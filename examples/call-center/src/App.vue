@@ -169,7 +169,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, defineAsyncComponent } from 'vue'
 import {
   HistoryExportFormat,
   useSipClient,
@@ -183,9 +183,6 @@ import AgentDashboard from './components/AgentDashboard.vue'
 import CallQueue from './components/CallQueue.vue'
 import ActiveCall from './components/ActiveCall.vue'
 import CallStats from './components/CallStats.vue'
-import CallHistoryPanel from './components/CallHistoryPanel.vue'
-import SystemStatus from './components/SystemStatus.vue'
-import CallbackWorklist from './features/agent/CallbackWorklist.vue'
 import CustomerContextRail from './features/agent/CustomerContextRail.vue'
 import WrapUpPanel from './features/agent/WrapUpPanel.vue'
 import { useAgentWorkspace } from './features/agent/useAgentWorkspace'
@@ -193,8 +190,14 @@ import { useCallbackWorklist } from './features/agent/useCallbackWorklist'
 import { useEnvironmentSetup } from './features/setup/useEnvironmentSetup'
 import { createDemoMvpGateway } from './features/shared/demo-mvp-gateway'
 import { useWrapUpDraft } from './features/agent/useWrapUpDraft'
-import SupervisorBoard from './features/supervisor/SupervisorBoard.vue'
 import { useSupervisorBoard } from './features/supervisor/useSupervisorBoard'
+
+const SystemStatus = defineAsyncComponent(() => import('./components/SystemStatus.vue'))
+const CallHistoryPanel = defineAsyncComponent(() => import('./components/CallHistoryPanel.vue'))
+const CallbackWorklist = defineAsyncComponent(() => import('./features/agent/CallbackWorklist.vue'))
+const SupervisorBoard = defineAsyncComponent(
+  () => import('./features/supervisor/SupervisorBoard.vue')
+)
 
 type AgentStatus = 'available' | 'busy' | 'away'
 
