@@ -9,7 +9,7 @@
  * @packageDocumentation
  */
 
-import { ref, onUnmounted, type Ref } from 'vue'
+import { ref, onScopeDispose, getCurrentScope, type Ref } from 'vue'
 import JsSIP, { type UA } from 'jssip'
 
 /**
@@ -105,21 +105,27 @@ export function useSipConnection(config: SipConnectionConfig): UseSipConnectionR
   }
 
   const connect = async (): Promise<void> => {
+    // Guard against concurrent or redundant connect calls
+    if (ua) {
+      throw new Error('Already connected or connecting. Disconnect first.')
+    }
+    if (isConnecting.value) {
+      throw new Error('Connection already in progress.')
+    }
+
     try {
       isConnecting.value = true
       error.value = null
 
-      // Build SIP URI
-      const username = config.username || ''
-      const server = config.server || ''
-      const sipUri = `sip:${username}@${server}`
+      // Build SIP URI (allow explicit config.uri override)
+      const sipUri = config.uri || `sip:${config.username || ''}@${config.server || ''}`
 
       // Create UA configuration
       const uaConfig: JsSIP.UAConfiguration = {
         uri: sipUri,
         password: config.password,
         display_name: config.displayName || config.username,
-        sockets: config.sockets || [new JsSIP.WebSocketInterface(`wss://${server}`)],
+        sockets: config.sockets || [new JsSIP.WebSocketInterface(`wss://${config.server || ''}`)],
         register: config.autoRegister !== false,
         session_timers: true,
       }
@@ -215,31 +221,34 @@ export function useSipConnection(config: SipConnectionConfig): UseSipConnectionR
     }
   }
 
-  // Auto-cleanup: disconnect UA when the consuming component unmounts
-  onUnmounted(() => {
-    if (ua) {
-      try {
-        ua.off('connecting', handlers.connecting)
-        ua.off('connected', handlers.connected)
-        ua.off('disconnected', handlers.disconnected)
-        ua.off('registered', handlers.registered)
-        ua.off('unregistered', handlers.unregistered)
-        ua.off('registrationFailed', handlers.registrationFailed)
+  // Auto-cleanup: disconnect UA when the composable's scope is disposed (e.g., component unmount)
+  // Only register cleanup if there's an active scope (avoids warnings when used outside Vue components)
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (ua) {
+        try {
+          ua.off('connecting', handlers.connecting)
+          ua.off('connected', handlers.connected)
+          ua.off('disconnected', handlers.disconnected)
+          ua.off('registered', handlers.registered)
+          ua.off('unregistered', handlers.unregistered)
+          ua.off('registrationFailed', handlers.registrationFailed)
 
-        if (isRegistered.value) {
-          ua.unregister()
+          if (isRegistered.value) {
+            ua.unregister()
+          }
+          ua.stop()
+          ua = null
+        } catch {
+          // Best-effort cleanup during scope disposal
         }
-        ua.stop()
-        ua = null
-      } catch {
-        // Best-effort cleanup during unmount
-      }
 
-      isConnected.value = false
-      isRegistered.value = false
-      isConnecting.value = false
-    }
-  })
+        isConnected.value = false
+        isRegistered.value = false
+        isConnecting.value = false
+      }
+    })
+  }
 
   return {
     isConnected,
