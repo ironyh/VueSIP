@@ -7,7 +7,7 @@
  * @module composables/usePresence
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, type Ref, type ComputedRef } from 'vue'
 import type { SipClient } from '../core/SipClient'
 import {
   PresenceState,
@@ -473,15 +473,15 @@ export function usePresence(sipClient: Ref<SipClient | null>): UsePresenceReturn
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(async () => {
+  onScopeDispose(() => {
     log.debug('Composable unmounting, unsubscribing from all presence')
 
     // Clear all refresh timers
     refreshTimers.forEach((timerId) => clearTimeout(timerId))
     refreshTimers.clear()
 
-    // Unsubscribe from all
-    await unsubscribeAll().catch((error) => {
+    // Unsubscribe from all — fire-and-forget because Vue does not await cleanup
+    unsubscribeAll().catch((error) => {
       log.error('Error during cleanup:', error)
     })
 

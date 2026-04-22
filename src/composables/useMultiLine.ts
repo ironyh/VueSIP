@@ -9,7 +9,7 @@
  * - Per-line call management
  */
 
-import { ref, computed, onMounted, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onMounted, onScopeDispose, type Ref, type ComputedRef } from 'vue'
 import {
   MultiLineManager,
   LineState,
@@ -136,8 +136,8 @@ export function useMultiLine(config?: Partial<MultiLineConfig>): UseMultiLineRet
     }, 1000)
   })
 
-  // Cleanup on unmount
-  onUnmounted(() => {
+  // Cleanup on scope dispose
+  onScopeDispose(() => {
     if (durationInterval) {
       clearInterval(durationInterval)
       durationInterval = null

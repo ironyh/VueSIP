@@ -7,7 +7,7 @@
  * @module composables/useMessaging
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, watch, onScopeDispose, type Ref, type ComputedRef } from 'vue'
 import type { SipClient } from '../core/SipClient'
 import {
   MessageStatus,
@@ -562,27 +562,37 @@ export function useMessaging(sipClient: Ref<SipClient | null>): UseMessagingRetu
   // SIP Client Integration
   // ============================================================================
 
-  // Setup message reception handler
-  if (sipClient.value) {
-    sipClient.value.onIncomingMessage((from: string, content: string, contentType?: string) => {
-      handleIncomingMessage(
-        from,
-        content,
-        (contentType as MessageContentType) || MessageContentType.Text
-      )
-    })
+  // Watch sipClient ref so handlers are registered on new clients (e.g., reconnect)
+  const unwatchSipClient = watch(
+    sipClient,
+    (client) => {
+      if (!client) {
+        log.debug('SIP client unavailable, message handlers not registered')
+        return
+      }
 
-    sipClient.value.onComposingIndicator?.((from: string, isComposing: boolean) => {
-      handleComposingIndicator(from, isComposing)
-    })
-  }
+      log.debug('Registering message handlers on SIP client')
+      client.onIncomingMessage((from: string, content: string, contentType?: string) => {
+        handleIncomingMessage(
+          from,
+          content,
+          (contentType as MessageContentType) || MessageContentType.Text
+        )
+      })
+
+      client.onComposingIndicator?.((from: string, isComposing: boolean) => {
+        handleComposingIndicator(from, isComposing)
+      })
+    },
+    { immediate: true }
+  )
 
   // ============================================================================
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    log.debug('Composable unmounting, clearing composing timeouts')
+  onScopeDispose(() => {
+    log.debug('Composable disposing, clearing composing timeouts')
 
     // Clear all composing timeouts
     composingTimeouts.forEach((timeoutId) => clearTimeout(timeoutId))
@@ -590,6 +600,9 @@ export function useMessaging(sipClient: Ref<SipClient | null>): UseMessagingRetu
 
     // Clear event listeners
     messagingEventListeners.value = []
+
+    // Stop watching sipClient ref
+    unwatchSipClient()
   })
 
   // ============================================================================
