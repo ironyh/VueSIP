@@ -1581,10 +1581,10 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(async () => {
+  onUnmounted(() => {
     log.debug('Composable unmounting')
 
-    // Stop audio monitoring
+    // Stop audio monitoring synchronously
     stopAudioLevelMonitoring()
 
     // Clear state transition timer
@@ -1593,14 +1593,14 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
       stateTransitionTimer = null
     }
 
-    // End conference if active
+    // End conference if active (fire-and-forget; Vue won't await onUnmounted)
     if (conference.value && isActive.value) {
-      await endConference().catch((error) => {
+      endConference().catch((error) => {
         log.error('Error ending conference during cleanup:', error)
       })
     }
 
-    // Clear event listeners
+    // Clear event listeners synchronously
     conferenceEventListeners.value = []
   })
 

@@ -11,10 +11,11 @@ import {
   ref,
   shallowRef,
   computed,
-  onUnmounted,
+  onScopeDispose,
   readonly,
   nextTick,
   watch,
+  getCurrentScope,
   type Ref,
   type ComputedRef,
 } from 'vue'
@@ -580,7 +581,7 @@ export function useSipClient(
    * Get the underlying SIP client instance
    */
   function getClient(): SipClient | null {
-    return sipClient.value as SipClient | null
+    return sipClient.value
   }
 
   /**
@@ -600,6 +601,11 @@ export function useSipClient(
    */
   if (autoConnect && initialConfig) {
     nextTick(() => {
+      // Guard: don't connect if scope was disposed before nextTick fired
+      if (!getCurrentScope()) {
+        logger.debug('Scope disposed before auto-connect could run')
+        return
+      }
       connect().catch((err) => {
         logger.error('Auto-connect failed', err)
         error.value = err
@@ -611,8 +617,8 @@ export function useSipClient(
    * Cleanup on unmount
    */
   if (autoCleanup) {
-    onUnmounted(() => {
-      logger.debug('Component unmounted, cleaning up')
+    onScopeDispose(() => {
+      logger.debug('Scope disposed, cleaning up')
 
       // Clean up event listeners first (critical for memory leak prevention)
       cleanupEventListeners()
