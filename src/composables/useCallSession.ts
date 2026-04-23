@@ -7,7 +7,15 @@
  * @module composables/useCallSession
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import { CallSession } from '../core/CallSession'
 import { MediaManager } from '../core/MediaManager'
 import { callStore } from '../stores/callStore'
@@ -1269,28 +1277,30 @@ export function useCallSession(
   // ============================================================================
 
   // Cleanup on component unmount
-  onUnmounted(() => {
-    log.debug('Composable unmounting, cleaning up')
-    stopDurationTracking()
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      log.debug('Composable unmounting, cleaning up')
+      stopDurationTracking()
 
-    // Clean up session event listeners
-    if (sessionEventCleanup) {
-      sessionEventCleanup()
-      sessionEventCleanup = null
-    }
+      // Clean up session event listeners
+      if (sessionEventCleanup) {
+        sessionEventCleanup()
+        sessionEventCleanup = null
+      }
 
-    // Clean up incoming call listener
-    if (incomingCallListenerCleanup) {
-      incomingCallListenerCleanup()
-      incomingCallListenerCleanup = null
-    }
+      // Clean up incoming call listener
+      if (incomingCallListenerCleanup) {
+        incomingCallListenerCleanup()
+        incomingCallListenerCleanup = null
+      }
 
-    // Abort any pending async operations
-    if (!internalAbortController.value.signal.aborted) {
-      log.info('Aborting pending operations on unmount')
-      internalAbortController.value.abort()
-    }
-  })
+      // Abort any pending async operations
+      if (!internalAbortController.value.signal.aborted) {
+        log.info('Aborting pending operations on unmount')
+        internalAbortController.value.abort()
+      }
+    })
+  }
 
   // ============================================================================
   // Incoming Call Auto-Detection

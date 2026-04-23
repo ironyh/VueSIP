@@ -1,4 +1,4 @@
-import { ref, reactive, computed, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, reactive, computed, onMounted, onScopeDispose, getCurrentScope, type Ref } from 'vue'
 import { ErrorSeverity, createErrorContext, logErrorWithContext } from '../utils/errorContext'
 import { formatUnknownError } from '../utils/errorHelpers'
 
@@ -330,12 +330,14 @@ export function useErrorBoundary(options: UseErrorBoundaryOptions = {}): UseErro
   })
 
   // Cleanup global error handlers
-  onUnmounted(() => {
-    if (enableGlobal) {
-      window.removeEventListener('error', handleGlobalError)
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (enableGlobal) {
+        window.removeEventListener('error', handleGlobalError)
+        window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+      }
+    })
+  }
 
   return {
     state,

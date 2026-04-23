@@ -7,7 +7,7 @@
  * @module composables/useAmiPaging
  */
 
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type {
   PagingMode,
@@ -662,17 +662,19 @@ export function useAmiPaging(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    stopDurationTimer()
-    eventCleanups.forEach((cleanup) => cleanup())
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopDurationTimer()
+      eventCleanups.forEach((cleanup) => cleanup())
 
-    // End any active page
-    if (activeSession.value && client) {
-      endPage().catch(() => {
-        // Ignore errors during cleanup
-      })
-    }
-  })
+      // End any active page
+      if (activeSession.value && client) {
+        endPage().catch(() => {
+          // Ignore errors during cleanup
+        })
+      }
+    })
+  }
 
   // ============================================================================
   // Return

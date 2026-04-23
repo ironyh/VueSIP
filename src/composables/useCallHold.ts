@@ -7,7 +7,15 @@
  * @module composables/useCallHold
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { CallSession } from '@/core/CallSession'
 import { HoldState, type HoldOptions, type HoldEvent, type HoldResult } from '@/types/call.types'
 import type { BaseEvent } from '@/types/events.types'
@@ -477,12 +485,14 @@ export function useCallHold(session: Ref<CallSession | null>): UseCallHoldReturn
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    log.debug('useCallHold composable unmounting')
-    cleanupEventListeners()
-    clearHoldTimeout()
-    clearHold()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      log.debug('useCallHold composable unmounting')
+      cleanupEventListeners()
+      clearHoldTimeout()
+      clearHold()
+    })
+  }
 
   // ============================================================================
   // Return Public API

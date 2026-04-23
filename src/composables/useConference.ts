@@ -7,7 +7,7 @@
  * @module composables/useConference
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, type Ref, type ComputedRef } from 'vue'
 import type { SipClient } from '../core/SipClient'
 import {
   ConferenceState,
@@ -1581,28 +1581,30 @@ export function useConference(sipClient: Ref<SipClient | null>): UseConferenceRe
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    log.debug('Composable unmounting')
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      log.debug('Composable unmounting')
 
-    // Stop audio monitoring synchronously
-    stopAudioLevelMonitoring()
+      // Stop audio monitoring synchronously
+      stopAudioLevelMonitoring()
 
-    // Clear state transition timer
-    if (stateTransitionTimer !== null) {
-      clearTimeout(stateTransitionTimer)
-      stateTransitionTimer = null
-    }
+      // Clear state transition timer
+      if (stateTransitionTimer !== null) {
+        clearTimeout(stateTransitionTimer)
+        stateTransitionTimer = null
+      }
 
-    // End conference if active (fire-and-forget; Vue won't await onUnmounted)
-    if (conference.value && isActive.value) {
-      endConference().catch((error) => {
-        log.error('Error ending conference during cleanup:', error)
-      })
-    }
+      // End conference if active (fire-and-forget; Vue won't await onUnmounted)
+      if (conference.value && isActive.value) {
+        endConference().catch((error) => {
+          log.error('Error ending conference during cleanup:', error)
+        })
+      }
 
-    // Clear event listeners synchronously
-    conferenceEventListeners.value = []
-  })
+      // Clear event listeners synchronously
+      conferenceEventListeners.value = []
+    })
+  }
 
   // ============================================================================
   // Return Public API

@@ -7,7 +7,15 @@
  * @module composables/useAmiSystem
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiAction } from '@/types/ami.types'
 import type {
@@ -627,12 +635,14 @@ export function useAmiSystem(
   )
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    stopPolling()
-    channels.value.clear()
-    modules.value.clear()
-    bridges.value.clear()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopPolling()
+      channels.value.clear()
+      modules.value.clear()
+      bridges.value.clear()
+    })
+  }
 
   return {
     // State

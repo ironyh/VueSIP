@@ -7,7 +7,16 @@
  * @module composables/useAgentState
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef, type ShallowRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+  type ShallowRef,
+} from 'vue'
 import type {
   CallCenterProvider,
   AgentState,
@@ -321,10 +330,12 @@ export function useAgentState(
   }
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    unsubscribeFromState()
-    stopSessionTimer()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      unsubscribeFromState()
+      stopSessionTimer()
+    })
+  }
 
   return {
     // State

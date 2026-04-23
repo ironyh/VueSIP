@@ -1,4 +1,4 @@
-import { ref, shallowRef, watch, onUnmounted, type Ref } from 'vue'
+import { ref, shallowRef, watch, onScopeDispose, getCurrentScope, type Ref } from 'vue'
 
 /**
  * Options for the usePictureInPicture composable
@@ -258,12 +258,14 @@ export function usePictureInPicture(
   )
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    if (cleanup) {
-      cleanup()
-      cleanup = null
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (cleanup) {
+        cleanup()
+        cleanup = null
+      }
+    })
+  }
 
   return {
     isPiPSupported,

@@ -8,7 +8,7 @@
  * @module composables/useDialog
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, type Ref, type ComputedRef } from 'vue'
 import type { SipClient } from '../core/SipClient'
 import {
   DialogState,
@@ -393,14 +393,16 @@ export function useDialog(sipClient: Ref<SipClient | null>): UseDialogReturn {
   // Cleanup
   // ============================================================================
 
-  onUnmounted(() => {
-    // Clean up event listeners
-    cleanupFunctions.forEach((cleanup) => cleanup())
-    cleanupFunctions.length = 0
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      // Clean up event listeners
+      cleanupFunctions.forEach((cleanup) => cleanup())
+      cleanupFunctions.length = 0
 
-    // Clear state
-    dialogEventListeners.value = []
-  })
+      // Clear state
+      dialogEventListeners.value = []
+    })
+  }
 
   // ============================================================================
   // Return

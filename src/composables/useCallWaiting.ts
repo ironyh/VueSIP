@@ -7,7 +7,7 @@
  * @module composables/useCallWaiting
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, type Ref, type ComputedRef } from 'vue'
 import type { CallSession } from '../types/call.types'
 import type { SipClient } from '../core/SipClient'
 import { createLogger } from '../utils/logger'
@@ -416,12 +416,14 @@ export function useCallWaiting(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    log.debug('Composable unmounting, clearing call waiting state')
-    clearAllAutoRejectTimers()
-    waitingCalls.value = []
-    heldSession.value = null
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      log.debug('Composable unmounting, clearing call waiting state')
+      clearAllAutoRejectTimers()
+      waitingCalls.value = []
+      heldSession.value = null
+    })
+  }
 
   // ============================================================================
   // Return Public API

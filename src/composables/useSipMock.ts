@@ -7,7 +7,7 @@
  * @module composables/useSipMock
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, type Ref, type ComputedRef } from 'vue'
 import { createLogger } from '../utils/logger'
 
 const log = createLogger('useSipMock')
@@ -641,16 +641,18 @@ export function useSipMock(options: UseSipMockOptions = {}): UseSipMockReturn {
    * Clean up timers and resources when composable is unmounted
    * Prevents memory leaks from orphaned intervals
    */
-  onUnmounted(() => {
-    stopDurationTimer()
-    stopIncomingSimulator()
-    stopQualitySimulator()
-    // Ensure clean disconnect state
-    if (isConnected.value) {
-      isConnected.value = false
-      isRegistered.value = false
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopDurationTimer()
+      stopIncomingSimulator()
+      stopQualitySimulator()
+      // Ensure clean disconnect state
+      if (isConnected.value) {
+        isConnected.value = false
+        isRegistered.value = false
+      }
+    })
+  }
 
   // ===========================================================================
   // Return Public API

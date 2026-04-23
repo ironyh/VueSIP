@@ -7,7 +7,15 @@
  * @module composables/useAmiMWI
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiAction, AmiMessage, AmiEventData } from '@/types/ami.types'
 import type { MWIStatus, AmiMWIEvent, UseAmiMWIOptions, UseAmiMWIReturn } from '@/types/mwi.types'
@@ -303,10 +311,12 @@ export function useAmiMWI(
     { immediate: true }
   )
 
-  onUnmounted(() => {
-    cleanupEvents()
-    mailboxes.value.clear()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      cleanupEvents()
+      mailboxes.value.clear()
+    })
+  }
 
   // ============================================================================
   // Return

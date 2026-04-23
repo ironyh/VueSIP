@@ -55,7 +55,7 @@
  * ```
  */
 
-import { ref, computed, onUnmounted, watch, type Ref } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, watch, type Ref } from 'vue'
 import type { SipClient } from '@/core/SipClient'
 import type { EventBus } from '@/core/EventBus'
 import type {
@@ -885,9 +885,11 @@ This is an automated E911 notification. Please verify the situation and provide 
   }
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    stopMonitoring()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopMonitoring()
+    })
+  }
 
   return {
     // State

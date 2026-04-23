@@ -7,7 +7,15 @@
  * @module composables/useAmiConfBridge
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiAction, AmiMessage, AmiEventData } from '@/types/ami.types'
 import type {
@@ -499,11 +507,13 @@ export function useAmiConfBridge(
     { immediate: true }
   )
 
-  onUnmounted(() => {
-    cleanupEvents()
-    rooms.value.clear()
-    users.value.clear()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      cleanupEvents()
+      rooms.value.clear()
+      users.value.clear()
+    })
+  }
 
   // ============================================================================
   // Return Interface

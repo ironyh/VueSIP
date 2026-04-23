@@ -6,7 +6,15 @@
  *
  * @module composables/useCallQualityStats
  */
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { CallSession } from '@/types/call.types'
 import type { DtmfSessionSource } from './useDTMF'
 import { createLogger } from '../utils/logger'
@@ -318,9 +326,11 @@ export function useCallQualityStats(
   /**
    * Cleanup on unmount
    */
-  onUnmounted(() => {
-    stop()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stop()
+    })
+  }
 
   /**
    * Computed quality level

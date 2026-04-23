@@ -38,7 +38,15 @@
  * ```
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { AmiClient } from '../core/AmiClient'
 import type { AmiMessage, AmiEventData } from '../types/ami.types'
 import { createLogger } from '../utils/logger'
@@ -694,15 +702,17 @@ export function useAmiRecording(
   )
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    stopDurationTracking()
-    eventListeners.value.clear()
-    // Clean up hangup handler
-    if (clientRef.value && hangupHandler) {
-      clientRef.value.off('event', hangupHandler)
-      hangupHandler = null
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopDurationTracking()
+      eventListeners.value.clear()
+      // Clean up hangup handler
+      if (clientRef.value && hangupHandler) {
+        clientRef.value.off('event', hangupHandler)
+        hangupHandler = null
+      }
+    })
+  }
 
   return {
     // State

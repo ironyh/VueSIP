@@ -7,7 +7,15 @@
  * @module composables/useCallTransfer
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { CallSession } from '@/core/CallSession'
 import {
   TransferType,
@@ -510,12 +518,14 @@ export function useCallTransfer(session: Ref<CallSession | null>): UseCallTransf
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    log.debug('useCallTransfer composable unmounting')
-    cleanupEventListeners()
-    clearTransferTimeout()
-    clearTransfer()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      log.debug('useCallTransfer composable unmounting')
+      cleanupEventListeners()
+      clearTransferTimeout()
+      clearTransfer()
+    })
+  }
 
   // ============================================================================
   // Return Public API

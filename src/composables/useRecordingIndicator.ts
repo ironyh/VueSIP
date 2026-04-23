@@ -1,4 +1,12 @@
-import { ref, computed, onUnmounted, type Ref, type ComputedRef, type CSSProperties } from 'vue'
+import {
+  ref,
+  computed,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+  type CSSProperties,
+} from 'vue'
 import type {
   RecordingIndicatorState,
   RecordingIndicatorColors,
@@ -217,7 +225,9 @@ export function useRecordingIndicator(
   }
 
   // Cleanup on component unmount
-  onUnmounted(cleanup)
+  if (getCurrentScope()) {
+    onScopeDispose(cleanup)
+  }
 
   return {
     state,

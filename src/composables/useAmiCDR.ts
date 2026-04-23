@@ -32,7 +32,15 @@
  * ```
  */
 
-import { ref, computed, onUnmounted, watch, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  onScopeDispose,
+  getCurrentScope,
+  watch,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { AmiClient } from '../core/AmiClient'
 import type { AmiMessage, AmiEventData } from '../types/ami.types'
 import type {
@@ -812,13 +820,15 @@ export function useAmiCDR(
   )
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    if (amiClientRef.value && cdrHandler) {
-      amiClientRef.value.off('event', cdrHandler)
-      cdrHandler = null
-    }
-    eventListeners.value.clear()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (amiClientRef.value && cdrHandler) {
+        amiClientRef.value.off('event', cdrHandler)
+        cdrHandler = null
+      }
+      eventListeners.value.clear()
+    })
+  }
 
   return {
     // State

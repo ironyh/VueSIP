@@ -7,13 +7,9 @@
  * @module composables/useAmiDatabase
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
-import type {
-  AmiContact,
-  ContactFieldDefinition,
-  UseAmiDatabaseOptions,
-} from '@/types/ami.types'
+import type { AmiContact, ContactFieldDefinition, UseAmiDatabaseOptions } from '@/types/ami.types'
 import { DEFAULT_CONTACT_FIELDS } from '@/types/ami.types'
 import { createLogger } from '@/utils/logger'
 
@@ -78,7 +74,9 @@ export interface UseAmiDatabaseReturn {
   dbDel: (family: string, key: string) => Promise<void>
   dbDelTree: (family: string, key?: string) => Promise<void>
   /** Import contacts from array (bulk operation) */
-  importContacts: (contactsToImport: Array<Omit<AmiContact, 'id'> & { id?: string }>) => Promise<AmiContact[]>
+  importContacts: (
+    contactsToImport: Array<Omit<AmiContact, 'id'> & { id?: string }>
+  ) => Promise<AmiContact[]>
   /** Export all contacts as array */
   exportContacts: () => AmiContact[]
   /** Register a known contact ID (for external tracking) */
@@ -310,9 +308,7 @@ export function useAmiDatabase(
     if (!contact) return null
 
     // Apply transformation
-    const finalContact = config.transformContact
-      ? config.transformContact(contact)
-      : contact
+    const finalContact = config.transformContact ? config.transformContact(contact) : contact
 
     // Update cache
     contacts.value.set(id, finalContact)
@@ -484,7 +480,7 @@ export function useAmiDatabase(
     }
 
     const imported: AmiContact[] = []
-    const errors: Array<{ contact: typeof contactsToImport[0]; error: string }> = []
+    const errors: Array<{ contact: (typeof contactsToImport)[0]; error: string }> = []
 
     for (const contactData of contactsToImport) {
       try {
@@ -543,9 +539,11 @@ export function useAmiDatabase(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    // Nothing to clean up for database composable
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      // Nothing to clean up for database composable
+    })
+  }
 
   // ============================================================================
   // Return

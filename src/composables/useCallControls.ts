@@ -7,7 +7,7 @@
  * @module composables/useCallControls
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, type Ref, type ComputedRef } from 'vue'
 import type { CallSession } from '../types/call.types'
 import type { SipClient } from '../core/SipClient'
 import {
@@ -543,12 +543,14 @@ export function useCallControls(sipClient: Ref<SipClient | null>): UseCallContro
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    log.debug('Composable unmounting, clearing transfer state')
-    activeTransfer.value = null
-    consultationCall.value = null
-    transferEventListeners.value = []
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      log.debug('Composable unmounting, clearing transfer state')
+      activeTransfer.value = null
+      consultationCall.value = null
+      transferEventListeners.value = []
+    })
+  }
 
   // ============================================================================
   // Return Public API

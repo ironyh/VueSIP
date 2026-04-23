@@ -7,7 +7,15 @@
  * @module composables/useSipWebRTCStats
  */
 
-import { ref, computed, onUnmounted, watch, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  onScopeDispose,
+  getCurrentScope,
+  watch,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { CallSession } from '@/core/CallSession'
 import type {
   CallQualityStats,
@@ -74,7 +82,9 @@ export interface UseSipWebRTCStatsReturn {
   /** Listen for quality alerts */
   onAlert: (callback: (alert: QualityAlert) => void) => () => void
   /** Listen for quality changes */
-  onQualityChange: (callback: (newQuality: ConnectionQuality, oldQuality: ConnectionQuality) => void) => () => void
+  onQualityChange: (
+    callback: (newQuality: ConnectionQuality, oldQuality: ConnectionQuality) => void
+  ) => () => void
 }
 
 /**
@@ -146,7 +156,9 @@ export function useSipWebRTCStats(
   })
 
   const alertListeners = ref<Array<(alert: QualityAlert) => void>>([])
-  const qualityChangeListeners = ref<Array<(newQuality: ConnectionQuality, oldQuality: ConnectionQuality) => void>>([])
+  const qualityChangeListeners = ref<
+    Array<(newQuality: ConnectionQuality, oldQuality: ConnectionQuality) => void>
+  >([])
 
   let pollTimer: number | null = null
   let previousQuality: ConnectionQuality = 'unknown'
@@ -197,11 +209,7 @@ export function useSipWebRTCStats(
    * Calculate MOS score from network metrics
    * Uses E-Model simplified formula
    */
-  const calculateMosScore = (
-    packetLoss: number,
-    jitterMs: number,
-    rttMs: number = 0
-  ): MosScore => {
+  const calculateMosScore = (packetLoss: number, jitterMs: number, rttMs: number = 0): MosScore => {
     // Simplified E-Model calculation
     // R = 93.2 - Is - Id - Ie
     // Where:
@@ -476,15 +484,26 @@ export function useSipWebRTCStats(
             videoInbound = inbound
           }
         } else if (report.type === 'outbound-rtp') {
-          const outbound = parseOutboundRtp(report as RTCOutboundRtpStreamStats, rtcStats, timestamp)
+          const outbound = parseOutboundRtp(
+            report as RTCOutboundRtpStreamStats,
+            rtcStats,
+            timestamp
+          )
           if ((report as RTCOutboundRtpStreamStats).kind === 'audio') {
             audioOutbound = outbound
           } else if ((report as RTCOutboundRtpStreamStats).kind === 'video' && includeVideo) {
             videoOutbound = outbound
           }
-        } else if (report.type === 'candidate-pair' && (report as RTCIceCandidatePairStats).state === 'succeeded') {
+        } else if (
+          report.type === 'candidate-pair' &&
+          (report as RTCIceCandidatePairStats).state === 'succeeded'
+        ) {
           if ((report as RTCIceCandidatePairStats).nominated || !candidatePair) {
-            candidatePair = parseCandidatePair(report as RTCIceCandidatePairStats, rtcStats, timestamp)
+            candidatePair = parseCandidatePair(
+              report as RTCIceCandidatePairStats,
+              rtcStats,
+              timestamp
+            )
           }
         }
       })
@@ -589,8 +608,11 @@ export function useSipWebRTCStats(
       bytesReceived: report.bytesReceived || 0,
       jitter: report.jitter || 0,
       jitterMs: (report.jitter || 0) * 1000,
-      roundTripTime: (report as RTCInboundRtpStreamStats & { roundTripTime?: number }).roundTripTime,
-      roundTripTimeMs: ((report as RTCInboundRtpStreamStats & { roundTripTime?: number }).roundTripTime || 0) * 1000,
+      roundTripTime: (report as RTCInboundRtpStreamStats & { roundTripTime?: number })
+        .roundTripTime,
+      roundTripTimeMs:
+        ((report as RTCInboundRtpStreamStats & { roundTripTime?: number }).roundTripTime || 0) *
+        1000,
       framesDecoded: report.framesDecoded,
       framesDropped: report.framesDropped,
       frameWidth: report.frameWidth,
@@ -628,7 +650,9 @@ export function useSipWebRTCStats(
       frameWidth: report.frameWidth,
       frameHeight: report.frameHeight,
       framesPerSecond: report.framesPerSecond,
-      qualityLimitationReason: (report as RTCOutboundRtpStreamStats & { qualityLimitationReason?: string }).qualityLimitationReason as 'none' | 'cpu' | 'bandwidth' | 'other' | undefined,
+      qualityLimitationReason: (
+        report as RTCOutboundRtpStreamStats & { qualityLimitationReason?: string }
+      ).qualityLimitationReason as 'none' | 'cpu' | 'bandwidth' | 'other' | undefined,
       bitrate,
       timestamp,
     }
@@ -696,7 +720,10 @@ export function useSipWebRTCStats(
     }
   }
 
-  const notifyQualityChange = (newQuality: ConnectionQuality, oldQuality: ConnectionQuality): void => {
+  const notifyQualityChange = (
+    newQuality: ConnectionQuality,
+    oldQuality: ConnectionQuality
+  ): void => {
     // Call option callback
     if (onQualityChangeCallback) {
       try {
@@ -828,13 +855,15 @@ export function useSipWebRTCStats(
     { immediate: true }
   )
 
-  onUnmounted(() => {
-    stop()
-    clearHistory()
-    clearAlerts()
-    alertListeners.value = []
-    qualityChangeListeners.value = []
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stop()
+      clearHistory()
+      clearAlerts()
+      alertListeners.value = []
+      qualityChangeListeners.value = []
+    })
+  }
 
   // ============================================================================
   // Return

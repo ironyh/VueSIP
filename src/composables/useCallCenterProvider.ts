@@ -11,7 +11,8 @@ import {
   ref,
   computed,
   shallowRef,
-  onUnmounted,
+  onScopeDispose,
+  getCurrentScope,
   type Ref,
   type ComputedRef,
   type ShallowRef,
@@ -153,13 +154,15 @@ export function useCallCenterProvider(
   }
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    if (isConnected.value) {
-      disconnect().catch((err) => {
-        logger.error('Cleanup disconnect failed:', err)
-      })
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (isConnected.value) {
+        disconnect().catch((err) => {
+          logger.error('Cleanup disconnect failed:', err)
+        })
+      }
+    })
+  }
 
   return {
     provider,
