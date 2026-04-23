@@ -6,7 +6,7 @@
  *
  * @module composables/useCallRecording
  */
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, getCurrentScope, onScopeDispose, type Ref, type ComputedRef } from 'vue'
 import { RecordingState } from '@/types/media.types'
 
 /**
@@ -291,18 +291,20 @@ export function useCallRecording(
   })
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    if (durationInterval) {
-      clearInterval(durationInterval)
-    }
-    if (mediaRecorder && recordingState.value !== RecordingState.Inactive) {
-      try {
-        mediaRecorder.stop()
-      } catch {
-        // Ignore errors during cleanup
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (durationInterval) {
+        clearInterval(durationInterval)
       }
-    }
-  })
+      if (mediaRecorder && recordingState.value !== RecordingState.Inactive) {
+        try {
+          mediaRecorder.stop()
+        } catch {
+          // Ignore errors during cleanup
+        }
+      }
+    })
+  }
 
   return {
     // State

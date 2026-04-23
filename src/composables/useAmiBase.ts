@@ -7,7 +7,7 @@
  * @module composables/useAmiBase
  */
 
-import { ref, computed, watch, onUnmounted, type Ref } from 'vue'
+import { ref, computed, watch, getCurrentScope, onScopeDispose, type Ref } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiClientEvents } from '@/types/ami.types'
 import type { BaseAmiOptions, BaseAmiReturn, EventCleanup } from '@/types/common'
@@ -397,12 +397,13 @@ export function useAmiBase<T>(
   )
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    log('Component unmounting, cleaning up')
-    cleanupEvents()
-    stopPolling()
-    items.value.clear()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      cleanupEvents()
+      stopPolling()
+      items.value.clear()
+    })
+  }
 
   // ============================================================================
   // Return Interface

@@ -1,4 +1,4 @@
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, getCurrentScope, onScopeDispose, type Ref, type ComputedRef } from 'vue'
 import { RecordingState } from '../types/media.types'
 import type {
   LocalRecordingOptions,
@@ -284,16 +284,20 @@ export function useLocalRecording(options: LocalRecordingOptions = {}): UseLocal
     chunks = []
   }
 
-  // Cleanup on component unmount
-  onUnmounted(() => {
-    if (state.value === RecordingState.Recording || state.value === RecordingState.Paused) {
-      stop()
-    }
-    cleanup()
-    if (recordingData.value?.url) {
-      URL.revokeObjectURL(recordingData.value.url)
-    }
-  })
+  // Cleanup on unmount
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (state.value === RecordingState.Recording || state.value === RecordingState.Paused) {
+        stop().catch(() => {
+          // Ignore errors during cleanup
+        })
+      }
+      cleanup()
+      if (recordingData.value?.url) {
+        URL.revokeObjectURL(recordingData.value.url)
+      }
+    })
+  }
 
   return {
     state,
