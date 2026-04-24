@@ -64,6 +64,7 @@ export class FreePBXPresenceBridge {
   private pollingTimer: ReturnType<typeof setInterval> | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private reconnectAttempts = 0
+  private destroyed = false
 
   // Event callbacks
   private onPresenceUpdate: ((event: FreePBXPresenceEvent) => void) | null = null
@@ -114,6 +115,11 @@ export class FreePBXPresenceBridge {
    * @param options - Subscription options
    */
   async subscribe(options: FreePBXPresenceSubscriptionOptions): Promise<void> {
+    if (this.destroyed) {
+      log.warn('Cannot subscribe: bridge has been destroyed')
+      return
+    }
+
     log.info('Subscribing to presence updates', { extensions: options.extensions })
 
     // Store callbacks
@@ -377,6 +383,8 @@ export class FreePBXPresenceBridge {
    * Poll FreePBX REST API for presence status
    */
   private async pollPresenceStatus(extensions: string[]): Promise<void> {
+    if (this.destroyed) return
+
     if (!this.config.apiToken) {
       log.warn('No API token configured for REST API polling')
       return
@@ -511,6 +519,8 @@ export class FreePBXPresenceBridge {
    * Start countdown timer for return time updates
    */
   private startReturnTimeCountdown(extension: string, returnTime: ReturnTimeSpec): void {
+    if (this.destroyed) return
+
     // Clear existing timer
     this.stopReturnTimeCountdown(extension)
 
@@ -530,6 +540,11 @@ export class FreePBXPresenceBridge {
 
     // Update return time every second
     const timer = setInterval(() => {
+      if (this.destroyed) {
+        this.stopReturnTimeCountdown(extension)
+        return
+      }
+
       const status = this.presenceStatus.get(extension)
       if (!status?.returnTime) {
         this.stopReturnTimeCountdown(extension)
@@ -606,6 +621,8 @@ export class FreePBXPresenceBridge {
    * Schedule reconnection attempt
    */
   private scheduleReconnect(extensions: string[]): void {
+    if (this.destroyed) return
+
     if (this.reconnectAttempts >= (this.config.maxReconnectAttempts || 10)) {
       log.error('Max reconnection attempts reached')
       return
@@ -806,7 +823,8 @@ export class FreePBXPresenceBridge {
   destroy(): void {
     log.debug('Destroying FreePBXPresenceBridge')
 
-    // Mark as destroyed (intentionally unused - reserved for future async operation guards)
+    // Mark as destroyed to prevent post-destroy operations
+    this.destroyed = true
 
     // Stop polling
     if (this.pollingTimer) {
