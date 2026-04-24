@@ -1127,7 +1127,8 @@ export class SipClient {
     }
 
     logger.debug(`Sending message to ${target}`)
-    this.ua.sendMessage(target, content, options)
+    // JsSIP UA.sendMessage expects SendMessageOptions; our JsSIPSendMessageOptions is intentionally broader
+    this.ua.sendMessage(target, content, options as Parameters<UA['sendMessage']>[2])
   }
 
   /**
@@ -2520,7 +2521,8 @@ export class SipClient {
       // Initiate call using JsSIP
       // Note: this.ua is verified not null in the earlier check at the start of this method
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- UA is verified non-null at method start
-      const rtcSession = this.ua!.call(target, callOptions as JsSIP.CallOptions)
+      // JsSIP UA.call expects CallOptions from jssip/lib/UA; our JsSIPCallOptions is intentionally broader
+      const rtcSession = this.ua!.call(target, callOptions as Parameters<UA['call']>[1])
       const callId = rtcSession.id || this.generateCallId()
 
       // Create CallSession instance
@@ -2748,8 +2750,8 @@ export class SipClient {
    * Convert JsSIP session to CallSession interface
    * @deprecated Not currently used, kept for potential future use
    */
-  // @ts-expect-error - Kept for potential future use
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Deprecated method kept for reference
+  // @ts-expect-error -- Deprecated method kept for reference; unused but intentionally preserved
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _sessionToCallSession(session: any): CallSession {
     const startTime = session.start_time ? new Date(session.start_time) : undefined
     const endTime = session.end_time ? new Date(session.end_time) : undefined
