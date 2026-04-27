@@ -209,6 +209,10 @@ if (typeof global.MediaStream === 'undefined') {
 }
 
 // Mock navigator.mediaDevices
+if (!global.navigator) {
+  ;(global as any).navigator = {}
+}
+
 if (!global.navigator.mediaDevices) {
   ;(global.navigator as any).mediaDevices = {
     getUserMedia: vi.fn().mockResolvedValue({
