@@ -173,6 +173,9 @@ withDefaults(defineProps<ErrorFeedbackProps>(), {
   errorDetails: () => ({}),
 })
 
+import { createLogger } from '../utils/logger'
+const logger = createLogger('ErrorFeedback')
+
 const emit = defineEmits<{
   dismiss: []
   recovery: [option: RecoveryOption]
@@ -202,7 +205,7 @@ const handleRecovery = async (option: RecoveryOption, index: number) => {
     selectedFeedback.value = null
     feedbackText.value = ''
   } catch (error) {
-    console.error('Recovery action failed:', error)
+    logger.error('Recovery action failed:', error)
     throw error
   } finally {
     const next = { ...processingLabelByIndex.value }
@@ -235,7 +238,7 @@ const submitDetailedFeedback = async () => {
     feedbackText.value = ''
     selectedFeedback.value = null
   } catch (error) {
-    console.error('Failed to submit feedback:', error)
+    logger.error('Failed to submit feedback:', error)
   } finally {
     isSubmitting.value = false
   }
