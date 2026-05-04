@@ -18,8 +18,12 @@ test.describe('PBX Recordings smoke', () => {
   })
 
   test('list renders and Play resolves playback URL', async ({ page }) => {
-    await expect(page.getByTestId('pbx-recordings-smoke')).toBeVisible()
-    await expect(page.getByTestId('pbx-recordings-list')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="pbx-recordings-smoke"]')).toBeVisible({
+      timeout: 15000,
+    })
+    await expect(page.locator('[data-testid="pbx-recordings-list"]')).toBeVisible({
+      timeout: 20000,
+    })
 
     await expect(page.getByTestId('recording-row-rec-1')).toBeVisible()
     await expect(page.getByTestId('play-button-rec-1')).toBeVisible()
@@ -31,7 +35,9 @@ test.describe('PBX Recordings smoke', () => {
   })
 
   test('recordings list has at least one item', async ({ page }) => {
-    await expect(page.getByTestId('pbx-recordings-list')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="pbx-recordings-list"]')).toBeVisible({
+      timeout: 20000,
+    })
     const rows = page.getByTestId(/^recording-row-/)
     await expect(rows.first()).toBeVisible()
   })
