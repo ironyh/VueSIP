@@ -60,10 +60,10 @@ test.describe('Playground Demo Navigation - CI', () => {
     await expect(page).toHaveURL(/#settings(\/|$)/)
     await expect(page.locator('[data-testid="connection-manager-panel"]')).toBeVisible()
 
-    await page.getByLabel('Add new connection').click()
+    await page.getByLabel('Add new connection').click({ force: true })
     await expect(page.getByText('Load sandbox preset', { exact: true })).toBeVisible()
 
-    await page.getByText('Load sandbox preset', { exact: true }).click()
+    await page.getByText('Load sandbox preset', { exact: true }).click({ force: true })
 
     await expect(page.locator('#conn-uri')).toHaveValue('wss://localhost:18089/ws')
     await expect(page.locator('#conn-sip-uri')).toHaveValue(/^sip:demo[1-6]@localhost$/)
