@@ -43,7 +43,15 @@
  * ```
  */
 
-import { ref, computed, shallowRef, type ComputedRef, type Ref } from 'vue'
+import {
+  ref,
+  computed,
+  shallowRef,
+  getCurrentScope,
+  onScopeDispose,
+  type ComputedRef,
+  type Ref,
+} from 'vue'
 import type { SipClientConfig } from '../types/config.types'
 import { CallDirection, type CallState, type CallSession } from '../types/call.types'
 import { EventBus } from '../core/EventBus'
@@ -316,6 +324,20 @@ export function useMultiSipClient() {
     hasIncomingCall: incomingCalls.value.length > 0,
     hasActiveCall: !!activeCallAccountId.value,
   }))
+
+  // Cleanup: disconnect all accounts and release shared resources on scope dispose
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      disconnectAll().catch(() => {
+        // ignore cleanup errors
+      })
+      if (sharedMediaManager.value) {
+        sharedMediaManager.value = null
+      }
+      sharedEventBus.value = null
+      mediaDevicesComposable.value = null
+    })
+  }
 
   return {
     accounts,
