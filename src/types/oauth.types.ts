@@ -352,7 +352,7 @@ export interface UseOAuth2Return {
   /** Check if tokens are expired */
   isTokenExpired: () => boolean
   /** Clear stored auth data */
-  clearAuth: () => void
+  clearAuth: () => Promise<void>
 }
 
 /**

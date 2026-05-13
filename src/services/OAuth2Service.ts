@@ -972,7 +972,7 @@ export function getOAuth2Service(config?: OAuth2ServiceConfig): OAuth2ServiceRet
  */
 export function resetOAuth2Service(): void {
   if (_oauth2ServiceInstance) {
-    _oauth2ServiceInstance.clearAuth()
+    _oauth2ServiceInstance.clearAuth().catch(() => {})
     _oauth2ServiceInstance = null
   }
 }

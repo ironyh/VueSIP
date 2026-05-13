@@ -154,7 +154,7 @@ export function useOAuth2(options: UseOAuth2Options): UseOAuth2ComposableReturn 
   // Cleanup on scope dispose
   if (getCurrentScope()) {
     onScopeDispose(() => {
-      service.clearAuth()
+      service.clearAuth().catch(() => {})
     })
   }
 
