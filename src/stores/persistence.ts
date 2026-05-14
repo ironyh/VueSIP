@@ -257,10 +257,12 @@ class StorePersistenceManager {
       key: STORAGE_KEYS.CALL_HISTORY,
       getState: () => callStore.callHistory,
       setState: (history) => {
-        // Restore call history
-        history.forEach((entry: Parameters<typeof callStore.addToHistory>[0]) => {
-          callStore.addToHistory(entry)
-        })
+        // Restore call history — iterate in reverse to maintain order.
+        // callStore.addToHistory uses unshift (prepend), so restoring
+        // oldest-first preserves the original [newest, ..., oldest] order.
+        for (let i = history.length - 1; i >= 0; i--) {
+          callStore.addToHistory(history[i] as Parameters<typeof callStore.addToHistory>[0])
+        }
       },
       watchSource: () => callStore.callHistory,
       autoLoad: this.config.autoLoad,

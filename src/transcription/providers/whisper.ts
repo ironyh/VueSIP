@@ -586,7 +586,7 @@ export class WhisperProvider implements TranscriptionProvider {
   /**
    * Clean up resources
    */
-  disposed = false
+  private disposed = false
 
   dispose(): void {
     this.isRunning = false
