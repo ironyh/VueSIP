@@ -12,7 +12,13 @@ import type { Ref, ComputedRef } from 'vue'
 /**
  * Callback status
  */
-export type CallbackStatus = 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'failed' | 'cancelled'
+export type CallbackStatus =
+  | 'pending'
+  | 'scheduled'
+  | 'in_progress'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
 
 /**
  * Callback priority levels

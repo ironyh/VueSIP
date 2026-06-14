@@ -107,7 +107,12 @@ export interface FreePBXPresenceStatus extends PresenceStatus {
  */
 export interface FreePBXPresenceEvent {
   /** Event type */
-  type: 'presence_updated' | 'return_time_updated' | 'return_time_expired' | 'status_changed' | 'error'
+  type:
+    | 'presence_updated'
+    | 'return_time_updated'
+    | 'return_time_expired'
+    | 'status_changed'
+    | 'error'
   /** Extension being monitored */
   extension: string
   /** Full SIP URI */
@@ -295,9 +300,7 @@ export function formatRemainingTime(ms: number): string {
   const remainingMinutes = minutes % 60
 
   if (hours > 0) {
-    return remainingMinutes > 0
-      ? `${hours}h ${remainingMinutes}m`
-      : `${hours}h`
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`
   }
 
   if (minutes > 0) {
@@ -315,6 +318,6 @@ export function formatReturnTime(date: Date): string {
   return date.toLocaleTimeString(undefined, {
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   })
 }

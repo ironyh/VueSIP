@@ -224,9 +224,7 @@ function parseAutoAnswerHeaders(headers: Partial<AutoAnswerHeaders>): {
  * addToWhitelist({ pattern: '+1555*', name: 'Office', enabled: true })
  * ```
  */
-export function useSipAutoAnswer(
-  options: UseSipAutoAnswerOptions = {}
-): UseSipAutoAnswerReturn {
+export function useSipAutoAnswer(options: UseSipAutoAnswerOptions = {}): UseSipAutoAnswerReturn {
   const {
     initialSettings,
     storageKey = 'vuesip_auto_answer',
@@ -300,16 +298,20 @@ export function useSipAutoAnswer(
           mode: ['disabled', 'all', 'whitelist', 'intercom'].includes(parsed.mode)
             ? parsed.mode
             : DEFAULT_SETTINGS.mode,
-          delay: typeof parsed.delay === 'number' && isValidDelay(parsed.delay, DEFAULT_SETTINGS.maxDelay)
-            ? parsed.delay
-            : DEFAULT_SETTINGS.delay,
+          delay:
+            typeof parsed.delay === 'number' &&
+            isValidDelay(parsed.delay, DEFAULT_SETTINGS.maxDelay)
+              ? parsed.delay
+              : DEFAULT_SETTINGS.delay,
           intercomMode: ['duplex', 'simplex'].includes(parsed.intercomMode)
             ? parsed.intercomMode
             : DEFAULT_SETTINGS.intercomMode,
-          playBeep: typeof parsed.playBeep === 'boolean' ? parsed.playBeep : DEFAULT_SETTINGS.playBeep,
-          showNotification: typeof parsed.showNotification === 'boolean'
-            ? parsed.showNotification
-            : DEFAULT_SETTINGS.showNotification,
+          playBeep:
+            typeof parsed.playBeep === 'boolean' ? parsed.playBeep : DEFAULT_SETTINGS.playBeep,
+          showNotification:
+            typeof parsed.showNotification === 'boolean'
+              ? parsed.showNotification
+              : DEFAULT_SETTINGS.showNotification,
           whitelist,
         }
       }
@@ -333,9 +335,13 @@ export function useSipAutoAnswer(
 
   // Watch for settings changes and persist
   if (persist) {
-    watch(settings, () => {
-      saveSettings()
-    }, { deep: true })
+    watch(
+      settings,
+      () => {
+        saveSettings()
+      },
+      { deep: true }
+    )
 
     // Load on init
     loadSettings()
@@ -617,8 +623,7 @@ export function useSipAutoAnswer(
     }
 
     // Update average delay
-    const totalDelay =
-      stats.value.averageDelay * (stats.value.totalAutoAnswered - 1) + event.delay
+    const totalDelay = stats.value.averageDelay * (stats.value.totalAutoAnswered - 1) + event.delay
     stats.value.averageDelay = totalDelay / stats.value.totalAutoAnswered
 
     stats.value.lastEvent = event

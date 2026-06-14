@@ -131,9 +131,7 @@ export interface DateRangeFilter {
  * @template T - The type being queried
  */
 export interface QueryOptions<T>
-  extends PaginationOptions,
-    FilterOptions<T>,
-    Partial<DateRangeFilter> {}
+  extends PaginationOptions, FilterOptions<T>, Partial<DateRangeFilter> {}
 
 // ============================================================================
 // Event & Callback Types

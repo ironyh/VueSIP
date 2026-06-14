@@ -59,7 +59,10 @@ const logger = createLogger('useAmiRingGroups')
  */
 function sanitizeInput(input: string): string {
   if (!input || typeof input !== 'string') return ''
-  return input.replace(/[<>'";&|`$\\]/g, '').trim().slice(0, 255)
+  return input
+    .replace(/[<>'";&|`$\\]/g, '')
+    .trim()
+    .slice(0, 255)
 }
 
 /**
@@ -269,9 +272,7 @@ export function useAmiRingGroups(
 
     // Update member status in all groups
     for (const group of ringGroups.value.values()) {
-      const member = group.members.find(
-        (m) => m.extension === exten || m.interface === hint
-      )
+      const member = group.members.find((m) => m.extension === exten || m.interface === hint)
       if (member) {
         const newStatus = mapDeviceStateToStatus(status)
         if (member.status !== newStatus) {
@@ -383,7 +384,9 @@ export function useAmiRingGroups(
         member.lastStatusChange = new Date()
 
         // Update group state
-        const ringingMembers = group.members.filter((m) => m.status === 'ringing' || m.status === 'busy')
+        const ringingMembers = group.members.filter(
+          (m) => m.status === 'ringing' || m.status === 'busy'
+        )
         if (ringingMembers.length === 0) {
           group.state = 'idle'
           if (group.stats.currentCalls > 0) {
@@ -633,10 +636,7 @@ export function useAmiRingGroups(
   /**
    * Remove a member from a ring group
    */
-  async function removeMember(
-    groupId: string,
-    extension: string
-  ): Promise<RemoveMemberResult> {
+  async function removeMember(groupId: string, extension: string): Promise<RemoveMemberResult> {
     if (!isValidGroupId(groupId)) {
       return { success: false, groupId, member: extension, error: 'Invalid group ID' }
     }
@@ -822,10 +822,7 @@ export function useAmiRingGroups(
   /**
    * Get member status
    */
-  function getMemberStatus(
-    groupId: string,
-    extension: string
-  ): RingGroupMemberStatus | null {
+  function getMemberStatus(groupId: string, extension: string): RingGroupMemberStatus | null {
     if (!isValidGroupId(groupId) || !isValidExtension(extension)) return null
 
     const group = ringGroups.value.get(groupId)

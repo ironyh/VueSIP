@@ -240,7 +240,10 @@ function generateId(): string {
  */
 function sanitizeInput(input: string): string {
   if (!input || typeof input !== 'string') return ''
-  return input.replace(/[<>'";&|`$\\]/g, '').trim().slice(0, 255)
+  return input
+    .replace(/[<>'";&|`$\\]/g, '')
+    .trim()
+    .slice(0, 255)
 }
 
 /**
@@ -415,8 +418,15 @@ export function useAmiAgentStats(
    * Update performance metrics
    */
   function updatePerformance(agentStats: AgentStats): void {
-    const { totalCalls, totalTalkTime, totalHandleTime, totalWrapTime, totalHoldTime, totalLoginTime, transferredCalls } =
-      agentStats
+    const {
+      totalCalls,
+      totalTalkTime,
+      totalHandleTime,
+      totalWrapTime,
+      totalHoldTime,
+      totalLoginTime,
+      transferredCalls,
+    } = agentStats
 
     // Calculate login hours
     const loginHours = totalLoginTime / 3600
@@ -430,10 +440,14 @@ export function useAmiAgentStats(
       fcrRate: totalCalls > 0 ? ((totalCalls - transferredCalls) / totalCalls) * 100 : 100,
       serviceLevel: calculateServiceLevel(agentStats),
       occupancy: totalLoginTime > 0 ? (totalTalkTime / totalLoginTime) * 100 : 0,
-      utilization: totalLoginTime > 0 ? ((totalTalkTime + totalWrapTime) / totalLoginTime) * 100 : 0,
+      utilization:
+        totalLoginTime > 0 ? ((totalTalkTime + totalWrapTime) / totalLoginTime) * 100 : 0,
       avgQualityScore: calculateAvgQualityScore(agentStats.recentCalls),
       transferRate: totalCalls > 0 ? (transferredCalls / totalCalls) * 100 : 0,
-      holdRate: totalCalls > 0 ? (agentStats.recentCalls.filter((c) => c.holdTime > 0).length / totalCalls) * 100 : 0,
+      holdRate:
+        totalCalls > 0
+          ? (agentStats.recentCalls.filter((c) => c.holdTime > 0).length / totalCalls) * 100
+          : 0,
     }
 
     agentStats.performanceLevel = calculatePerformanceLevel(agentStats.performance)
@@ -470,7 +484,10 @@ export function useAmiAgentStats(
       hourlyBucket.callCount++
       hourlyBucket.talkTime += call.talkTime
       hourlyBucket.avgHandleTime =
-        (hourlyBucket.avgHandleTime * (hourlyBucket.callCount - 1) + call.talkTime + call.wrapTime + call.holdTime) /
+        (hourlyBucket.avgHandleTime * (hourlyBucket.callCount - 1) +
+          call.talkTime +
+          call.wrapTime +
+          call.holdTime) /
         hourlyBucket.callCount
     }
   }
@@ -502,10 +519,14 @@ export function useAmiAgentStats(
       queueStats.callsHandled++
       queueStats.talkTime += call.talkTime
       queueStats.avgHandleTime =
-        (queueStats.avgHandleTime * (queueStats.callsHandled - 1) + call.talkTime + call.wrapTime + call.holdTime) /
+        (queueStats.avgHandleTime * (queueStats.callsHandled - 1) +
+          call.talkTime +
+          call.wrapTime +
+          call.holdTime) /
         queueStats.callsHandled
       queueStats.avgWaitTime =
-        (queueStats.avgWaitTime * (queueStats.callsHandled - 1) + call.waitTime) / queueStats.callsHandled
+        (queueStats.avgWaitTime * (queueStats.callsHandled - 1) + call.waitTime) /
+        queueStats.callsHandled
     } else if (call.disposition === 'missed') {
       queueStats.callsMissed++
     }
@@ -530,7 +551,8 @@ export function useAmiAgentStats(
       if (level) {
         // Check if alert already exists
         const existingAlert = alerts.value.find(
-          (a) => a.agentId === agentStats.agentId && a.metric === threshold.metric && !a.acknowledged
+          (a) =>
+            a.agentId === agentStats.agentId && a.metric === threshold.metric && !a.acknowledged
         )
 
         if (!existingAlert) {
@@ -539,7 +561,8 @@ export function useAmiAgentStats(
             agentId: agentStats.agentId,
             metric: threshold.metric,
             currentValue: value,
-            thresholdValue: level === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold,
+            thresholdValue:
+              level === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold,
             level,
             message: `${threshold.metric} is ${threshold.higherIsBetter ? 'below' : 'above'} ${level} threshold: ${value.toFixed(1)}`,
             timestamp: new Date(),
@@ -1008,17 +1031,26 @@ export function useAmiAgentStats(
     if (allStats.length === 0) return null
 
     const teamAverage: AgentPerformanceMetrics = {
-      callsPerHour: allStats.reduce((sum, s) => sum + s.performance.callsPerHour, 0) / allStats.length,
-      avgHandleTime: allStats.reduce((sum, s) => sum + s.performance.avgHandleTime, 0) / allStats.length,
-      avgTalkTime: allStats.reduce((sum, s) => sum + s.performance.avgTalkTime, 0) / allStats.length,
-      avgWrapTime: allStats.reduce((sum, s) => sum + s.performance.avgWrapTime, 0) / allStats.length,
-      avgHoldTime: allStats.reduce((sum, s) => sum + s.performance.avgHoldTime, 0) / allStats.length,
+      callsPerHour:
+        allStats.reduce((sum, s) => sum + s.performance.callsPerHour, 0) / allStats.length,
+      avgHandleTime:
+        allStats.reduce((sum, s) => sum + s.performance.avgHandleTime, 0) / allStats.length,
+      avgTalkTime:
+        allStats.reduce((sum, s) => sum + s.performance.avgTalkTime, 0) / allStats.length,
+      avgWrapTime:
+        allStats.reduce((sum, s) => sum + s.performance.avgWrapTime, 0) / allStats.length,
+      avgHoldTime:
+        allStats.reduce((sum, s) => sum + s.performance.avgHoldTime, 0) / allStats.length,
       fcrRate: allStats.reduce((sum, s) => sum + s.performance.fcrRate, 0) / allStats.length,
-      serviceLevel: allStats.reduce((sum, s) => sum + s.performance.serviceLevel, 0) / allStats.length,
+      serviceLevel:
+        allStats.reduce((sum, s) => sum + s.performance.serviceLevel, 0) / allStats.length,
       occupancy: allStats.reduce((sum, s) => sum + s.performance.occupancy, 0) / allStats.length,
-      utilization: allStats.reduce((sum, s) => sum + s.performance.utilization, 0) / allStats.length,
-      avgQualityScore: allStats.reduce((sum, s) => sum + s.performance.avgQualityScore, 0) / allStats.length,
-      transferRate: allStats.reduce((sum, s) => sum + s.performance.transferRate, 0) / allStats.length,
+      utilization:
+        allStats.reduce((sum, s) => sum + s.performance.utilization, 0) / allStats.length,
+      avgQualityScore:
+        allStats.reduce((sum, s) => sum + s.performance.avgQualityScore, 0) / allStats.length,
+      transferRate:
+        allStats.reduce((sum, s) => sum + s.performance.transferRate, 0) / allStats.length,
       holdRate: allStats.reduce((sum, s) => sum + s.performance.holdRate, 0) / allStats.length,
     }
 
@@ -1033,19 +1065,24 @@ export function useAmiAgentStats(
     const strengths: string[] = []
     const improvementAreas: string[] = []
 
-    if (agentStats.performance.serviceLevel > teamAverage.serviceLevel) strengths.push('Service Level')
-    else if (agentStats.performance.serviceLevel < teamAverage.serviceLevel * 0.9) improvementAreas.push('Service Level')
+    if (agentStats.performance.serviceLevel > teamAverage.serviceLevel)
+      strengths.push('Service Level')
+    else if (agentStats.performance.serviceLevel < teamAverage.serviceLevel * 0.9)
+      improvementAreas.push('Service Level')
 
-    if (agentStats.performance.avgHandleTime < teamAverage.avgHandleTime) strengths.push('Handle Time')
+    if (agentStats.performance.avgHandleTime < teamAverage.avgHandleTime)
+      strengths.push('Handle Time')
     else if (agentStats.performance.avgHandleTime > teamAverage.avgHandleTime * 1.1)
       improvementAreas.push('Handle Time')
 
-    if (agentStats.performance.callsPerHour > teamAverage.callsPerHour) strengths.push('Calls Per Hour')
+    if (agentStats.performance.callsPerHour > teamAverage.callsPerHour)
+      strengths.push('Calls Per Hour')
     else if (agentStats.performance.callsPerHour < teamAverage.callsPerHour * 0.9)
       improvementAreas.push('Calls Per Hour')
 
     if (agentStats.performance.occupancy > teamAverage.occupancy) strengths.push('Occupancy')
-    else if (agentStats.performance.occupancy < teamAverage.occupancy * 0.9) improvementAreas.push('Occupancy')
+    else if (agentStats.performance.occupancy < teamAverage.occupancy * 0.9)
+      improvementAreas.push('Occupancy')
 
     return {
       agent: agentStats,
@@ -1209,7 +1246,14 @@ export function useAmiAgentStats(
     if (targetId) {
       const existing = allAgentStats.value.get(targetId)
       if (existing) {
-        const newStats = createEmptyStats(existing.agentId, existing.interface, existing.name, currentPeriod, start, end)
+        const newStats = createEmptyStats(
+          existing.agentId,
+          existing.interface,
+          existing.name,
+          currentPeriod,
+          start,
+          end
+        )
         allAgentStats.value.set(targetId, newStats)
         if (stats.value?.agentId === targetId) {
           stats.value = newStats
@@ -1217,7 +1261,14 @@ export function useAmiAgentStats(
       }
     } else {
       for (const [id, existing] of allAgentStats.value.entries()) {
-        const newStats = createEmptyStats(existing.agentId, existing.interface, existing.name, currentPeriod, start, end)
+        const newStats = createEmptyStats(
+          existing.agentId,
+          existing.interface,
+          existing.name,
+          currentPeriod,
+          start,
+          end
+        )
         allAgentStats.value.set(id, newStats)
       }
       stats.value = agentId ? allAgentStats.value.get(agentId) || null : null

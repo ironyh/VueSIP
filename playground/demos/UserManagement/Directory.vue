@@ -32,7 +32,7 @@
         <span class="umd__ext">ext {{ u.ext }}</span>
         <span class="umd__role" :class="`umd__role--${u.role}`">{{ u.role }}</span>
         <span class="umd__status" :class="`umd__status--${u.status}`">
-          <span class="umd__dot" />
+          <span class="umd__dot" ></span>
           {{ statusLabel(u.status) }}
         </span>
       </li>

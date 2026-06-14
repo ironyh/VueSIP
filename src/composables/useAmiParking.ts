@@ -382,15 +382,17 @@ export function useAmiParking(
 
       client.on('event', handler)
 
-      client.sendAction({
-        Action: 'Parkinglots',
-        ActionID: actionId,
-      }).catch((err) => {
-        clearTimeout(timeout)
-        client.off('event', handler)
-        isLoading.value = false
-        reject(err)
-      })
+      client
+        .sendAction({
+          Action: 'Parkinglots',
+          ActionID: actionId,
+        })
+        .catch((err) => {
+          clearTimeout(timeout)
+          client.off('event', handler)
+          isLoading.value = false
+          reject(err)
+        })
     })
   }
 

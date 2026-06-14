@@ -273,11 +273,7 @@ export interface UseAmiRingGroupsOptions {
   onStatsUpdate?: (groupId: string, stats: RingGroupStats) => void
 
   /** Callback when member status changes */
-  onMemberStatusChange?: (
-    groupId: string,
-    member: string,
-    status: RingGroupMemberStatus
-  ) => void
+  onMemberStatusChange?: (groupId: string, member: string, status: RingGroupMemberStatus) => void
 
   /** Callback on error */
   onError?: (error: string) => void
@@ -382,17 +378,10 @@ export interface UseAmiRingGroupsReturn {
   disableMember: (groupId: string, extension: string) => Promise<boolean>
 
   /** Update member priority */
-  setMemberPriority: (
-    groupId: string,
-    extension: string,
-    priority: number
-  ) => Promise<boolean>
+  setMemberPriority: (groupId: string, extension: string, priority: number) => Promise<boolean>
 
   /** Update ring group strategy */
-  setStrategy: (
-    groupId: string,
-    strategy: RingStrategy
-  ) => Promise<UpdateStrategyResult>
+  setStrategy: (groupId: string, strategy: RingStrategy) => Promise<UpdateStrategyResult>
 
   /** Update ring timeout */
   setRingTimeout: (groupId: string, timeout: number) => Promise<boolean>
@@ -404,10 +393,7 @@ export interface UseAmiRingGroupsReturn {
   disableGroup: (groupId: string) => Promise<boolean>
 
   /** Get member status */
-  getMemberStatus: (
-    groupId: string,
-    extension: string
-  ) => RingGroupMemberStatus | null
+  getMemberStatus: (groupId: string, extension: string) => RingGroupMemberStatus | null
 
   /** Get ring group statistics */
   getStats: (groupId: string) => RingGroupStats | null

@@ -8,13 +8,13 @@
  */
 export interface AudioDevice {
   /** Unique device identifier */
-  deviceId: string;
+  deviceId: string
   /** Human-readable device label */
-  label: string;
+  label: string
   /** Device kind (audioinput, audiooutput, videoinput) */
-  kind: MediaDeviceKind;
+  kind: MediaDeviceKind
   /** Group identifier for related devices */
-  groupId?: string;
+  groupId?: string
 }
 
 /**
@@ -22,21 +22,21 @@ export interface AudioDevice {
  */
 export interface AudioConstraints {
   /** Enable echo cancellation */
-  echoCancellation?: boolean;
+  echoCancellation?: boolean
   /** Enable noise suppression */
-  noiseSuppression?: boolean;
+  noiseSuppression?: boolean
   /** Enable automatic gain control */
-  autoGainControl?: boolean;
+  autoGainControl?: boolean
   /** Sample rate in Hz */
-  sampleRate?: number;
+  sampleRate?: number
   /** Sample size in bits */
-  sampleSize?: number;
+  sampleSize?: number
   /** Number of audio channels */
-  channelCount?: number;
+  channelCount?: number
   /** Audio latency hint */
-  latency?: number | 'interactive' | 'balanced' | 'playback';
+  latency?: number | 'interactive' | 'balanced' | 'playback'
   /** Specific device ID to use */
-  deviceId?: string | { exact: string } | { ideal: string };
+  deviceId?: string | { exact: string } | { ideal: string }
 }
 
 /**
@@ -44,9 +44,9 @@ export interface AudioConstraints {
  */
 export enum AudioQualityLevel {
   EXCELLENT = 'excellent', // MOS >= 4.3
-  GOOD = 'good',          // MOS >= 4.0
-  FAIR = 'fair',          // MOS >= 3.6
-  POOR = 'poor'           // MOS < 3.6
+  GOOD = 'good', // MOS >= 4.0
+  FAIR = 'fair', // MOS >= 3.6
+  POOR = 'poor', // MOS < 3.6
 }
 
 /**
@@ -54,21 +54,21 @@ export enum AudioQualityLevel {
  */
 export interface AudioMetrics {
   /** Mean Opinion Score (1-5) */
-  mos: number;
+  mos: number
   /** Packet loss percentage (0-100) */
-  packetLoss: number;
+  packetLoss: number
   /** Network jitter in milliseconds */
-  jitter: number;
+  jitter: number
   /** Audio bitrate in kbps */
-  bitrate: number;
+  bitrate: number
   /** Current quality level */
-  quality: AudioQualityLevel;
+  quality: AudioQualityLevel
   /** Round-trip time in milliseconds */
-  rtt?: number;
+  rtt?: number
   /** Audio codec being used */
-  codec?: string;
+  codec?: string
   /** Timestamp of metrics collection */
-  timestamp: number;
+  timestamp: number
 }
 
 /**
@@ -76,17 +76,17 @@ export interface AudioMetrics {
  */
 export interface VolumeControl {
   /** Input (microphone) volume level (0-100) */
-  input: number;
+  input: number
   /** Output (speaker) volume level (0-100) */
-  output: number;
+  output: number
   /** Input gain in decibels */
-  inputGain?: number;
+  inputGain?: number
   /** Output gain in decibels */
-  outputGain?: number;
+  outputGain?: number
   /** Enable volume normalization */
-  normalization: boolean;
+  normalization: boolean
   /** Mute state */
-  muted: boolean;
+  muted: boolean
 }
 
 /**
@@ -94,15 +94,15 @@ export interface VolumeControl {
  */
 export interface AudioProcessingOptions {
   /** Enable noise suppression */
-  noiseSuppression: boolean;
+  noiseSuppression: boolean
   /** Enable echo cancellation */
-  echoCancellation: boolean;
+  echoCancellation: boolean
   /** Enable automatic gain control */
-  autoGainControl: boolean;
+  autoGainControl: boolean
   /** Enable voice activity detection */
-  voiceActivityDetection?: boolean;
+  voiceActivityDetection?: boolean
   /** Noise suppression level (0-1) */
-  noiseSuppressionLevel?: number;
+  noiseSuppressionLevel?: number
 }
 
 /**
@@ -110,13 +110,13 @@ export interface AudioProcessingOptions {
  */
 export interface AudioStreamConfig {
   /** Audio constraints */
-  constraints: AudioConstraints;
+  constraints: AudioConstraints
   /** Processing options */
-  processing: AudioProcessingOptions;
+  processing: AudioProcessingOptions
   /** Volume control */
-  volume: VolumeControl;
+  volume: VolumeControl
   /** Preferred device ID */
-  deviceId?: string;
+  deviceId?: string
 }
 
 /**
@@ -124,11 +124,11 @@ export interface AudioStreamConfig {
  */
 export interface AudioDeviceChangeEvent {
   /** Event type */
-  type: 'added' | 'removed' | 'changed';
+  type: 'added' | 'removed' | 'changed'
   /** Affected device */
-  device: AudioDevice;
+  device: AudioDevice
   /** Timestamp of change */
-  timestamp: number;
+  timestamp: number
 }
 
 /**
@@ -136,19 +136,19 @@ export interface AudioDeviceChangeEvent {
  */
 export interface AudioLevel {
   /** Current audio level (0-100) */
-  level: number;
+  level: number
   /** Peak level in recent window (0-100) */
-  peak: number;
+  peak: number
   /** Average level in recent window (0-100) */
-  average: number;
+  average: number
   /** Whether audio is clipping */
-  clipping: boolean;
+  clipping: boolean
 }
 
 /**
  * Permission states for audio/video access
  */
-export type AudioPermissionState = 'granted' | 'denied' | 'prompt';
+export type AudioPermissionState = 'granted' | 'denied' | 'prompt'
 
 /**
  * Audio device error types
@@ -159,7 +159,7 @@ export enum AudioDeviceError {
   DEVICE_IN_USE = 'device_in_use',
   CONSTRAINT_NOT_SATISFIED = 'constraint_not_satisfied',
   STREAM_ERROR = 'stream_error',
-  UNKNOWN_ERROR = 'unknown_error'
+  UNKNOWN_ERROR = 'unknown_error',
 }
 
 /**
@@ -167,13 +167,13 @@ export enum AudioDeviceError {
  */
 export interface AudioManagerConfig {
   /** Default audio constraints */
-  defaultConstraints?: Partial<AudioConstraints>;
+  defaultConstraints?: Partial<AudioConstraints>
   /** Default processing options */
-  defaultProcessing?: Partial<AudioProcessingOptions>;
+  defaultProcessing?: Partial<AudioProcessingOptions>
   /** Default volume levels */
-  defaultVolume?: Partial<VolumeControl>;
+  defaultVolume?: Partial<VolumeControl>
   /** Enable automatic device switching */
-  autoSwitchDevices?: boolean;
+  autoSwitchDevices?: boolean
   /** Metrics collection interval in ms */
-  metricsInterval?: number;
+  metricsInterval?: number
 }

@@ -180,9 +180,7 @@ export function useAmiFeatureCodes(
 
   const isDndEnabled = computed(() => dndStatus.value === 'enabled')
 
-  const hasActiveCallForward = computed(() =>
-    callForwardStatus.value.some((cf) => cf.enabled)
-  )
+  const hasActiveCallForward = computed(() => callForwardStatus.value.some((cf) => cf.enabled))
 
   const callForwardDestination = computed(() => {
     const activeCf = callForwardStatus.value.find((cf) => cf.enabled && cf.destination)
@@ -605,10 +603,7 @@ export function useAmiFeatureCodes(
     error.value = null
 
     try {
-      await Promise.all([
-        refreshDndStatus(),
-        refreshCallForwardStatus(),
-      ])
+      await Promise.all([refreshDndStatus(), refreshCallForwardStatus()])
       logger.debug('Feature status refreshed', { extension: extension.value })
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to refresh status'
@@ -745,7 +740,7 @@ export function useAmiFeatureCodes(
       category: 'pickup',
       activateCode: config.featureCodes.directedPickup,
       requiresDestination: true,
-      description: 'Pick up a specific extension\'s ringing call',
+      description: "Pick up a specific extension's ringing call",
       available: true,
     },
     {

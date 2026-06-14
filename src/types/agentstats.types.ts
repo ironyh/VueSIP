@@ -17,7 +17,12 @@ export type AgentStatsPeriod = 'today' | 'week' | 'month' | 'custom'
 /**
  * Agent performance level based on KPIs
  */
-export type AgentPerformanceLevel = 'excellent' | 'good' | 'average' | 'needs_improvement' | 'critical'
+export type AgentPerformanceLevel =
+  | 'excellent'
+  | 'good'
+  | 'average'
+  | 'needs_improvement'
+  | 'critical'
 
 /**
  * Call direction for agent statistics

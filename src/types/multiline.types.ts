@@ -9,7 +9,13 @@
  */
 
 import type { Ref, ComputedRef } from 'vue'
-import type { CallState, CallDirection, TerminationCause, CallTimingInfo, CallStatistics } from './call.types'
+import type {
+  CallState,
+  CallDirection,
+  TerminationCause,
+  CallTimingInfo,
+  CallStatistics,
+} from './call.types'
 
 /**
  * Line status representing current state

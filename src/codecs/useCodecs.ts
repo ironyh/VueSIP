@@ -67,7 +67,8 @@ export function useCodecs(initialPolicy?: CodecPolicy, transformer?: SdpTransfor
   function applyToTransceiver(transceiver: RTCRtpTransceiver, kind: MediaKind) {
     const caps = getCapabilities(kind)
     const ordered = sortByPolicy(kind, caps, policy.value)
-    const setPrefs = (transceiver as RTCRtpTransceiver & { setCodecPreferences?: Function }).setCodecPreferences
+    const setPrefs = (transceiver as RTCRtpTransceiver & { setCodecPreferences?: Function })
+      .setCodecPreferences
     if (typeof setPrefs === 'function') {
       setPrefs.call(transceiver, ordered)
     }

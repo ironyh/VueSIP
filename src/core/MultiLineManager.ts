@@ -21,7 +21,7 @@ export enum LineState {
   /** Call transfer in progress on this line */
   TRANSFERRING = 'transferring',
   /** Call is parked on this line */
-  PARKED = 'parked'
+  PARKED = 'parked',
 }
 
 /**
@@ -184,7 +184,7 @@ export enum LineEventType {
   CONFERENCE_PARTICIPANT_REMOVED = 'conference:participant-removed',
   CONFERENCE_ENDED = 'conference:ended',
   CALL_PARKED = 'call:parked',
-  CALL_RETRIEVED = 'call:retrieved'
+  CALL_RETRIEVED = 'call:retrieved',
 }
 
 /**
@@ -201,7 +201,7 @@ export enum MultiLineErrorCode {
   PARK_SLOT_NOT_FOUND = 'PARK_SLOT_NOT_FOUND',
   PARK_SLOT_OCCUPIED = 'PARK_SLOT_OCCUPIED',
   INVALID_CONFERENCE_OPERATION = 'INVALID_CONFERENCE_OPERATION',
-  MAX_LINES_REACHED = 'MAX_LINES_REACHED'
+  MAX_LINES_REACHED = 'MAX_LINES_REACHED',
 }
 
 /**
@@ -227,7 +227,7 @@ const DEFAULT_CONFIG: MultiLineConfig = {
   ringPolicy: 'sequential',
   defaultLine: 1,
   conferenceEnabled: true,
-  parkingEnabled: true
+  parkingEnabled: true,
 }
 
 /**
@@ -269,7 +269,7 @@ export class MultiLineManager {
         remoteParty: null,
         duration: 0,
         startTime: null,
-        isConference: false
+        isConference: false,
       })
     }
   }
@@ -339,17 +339,16 @@ export class MultiLineManager {
       return false
     }
 
-    return line.state === LineState.IDLE ||
-           (criteria?.allowHeld === true && line.state === LineState.HELD)
+    return (
+      line.state === LineState.IDLE ||
+      (criteria?.allowHeld === true && line.state === LineState.HELD)
+    )
   }
 
   /**
    * Assign a call to a specific line or auto-select
    */
-  async assignCallToLine(
-    callSession: CallSession,
-    lineId?: number
-  ): Promise<number> {
+  async assignCallToLine(callSession: CallSession, lineId?: number): Promise<number> {
     let targetLine: Line | undefined
 
     if (lineId) {
@@ -361,11 +360,9 @@ export class MultiLineManager {
         )
       }
       if (targetLine.state !== LineState.IDLE) {
-        throw new MultiLineError(
-          MultiLineErrorCode.LINE_BUSY,
-          `Line ${lineId} is not available`,
-          { lineState: targetLine.state }
-        )
+        throw new MultiLineError(MultiLineErrorCode.LINE_BUSY, `Line ${lineId} is not available`, {
+          lineState: targetLine.state,
+        })
       }
     } else {
       targetLine = this.getAvailableLine({ requireIdle: true })
@@ -379,13 +376,14 @@ export class MultiLineManager {
 
     // Assign call to line
     // Extract remote party from the call session's remoteUri
-    const remoteParty = typeof callSession.remoteUri === 'string'
-      ? callSession.remoteUri
-      : callSession.remoteUri?.user || callSession.remoteDisplayName || 'Unknown'
+    const remoteParty =
+      typeof callSession.remoteUri === 'string'
+        ? callSession.remoteUri
+        : callSession.remoteUri?.user || callSession.remoteDisplayName || 'Unknown'
 
     this.updateLineState(targetLine.id, LineState.RINGING, {
       callSession,
-      remoteParty
+      remoteParty,
     })
 
     this.callCounter++
@@ -393,7 +391,7 @@ export class MultiLineManager {
     this.eventBus.emit(LineEventType.LINE_ASSIGNED, {
       type: LineEventType.LINE_ASSIGNED,
       timestamp: new Date(),
-      payload: { lineId: targetLine.id, callSession }
+      payload: { lineId: targetLine.id, callSession },
     })
 
     return targetLine.id
@@ -405,10 +403,7 @@ export class MultiLineManager {
   async switchToLine(lineId: number): Promise<void> {
     const line = this.lines.get(lineId)
     if (!line) {
-      throw new MultiLineError(
-        MultiLineErrorCode.LINE_NOT_FOUND,
-        `Line ${lineId} not found`
-      )
+      throw new MultiLineError(MultiLineErrorCode.LINE_NOT_FOUND, `Line ${lineId} not found`)
     }
 
     const previousLine = this.activeLine
@@ -431,7 +426,7 @@ export class MultiLineManager {
     this.eventBus.emit(LineEventType.LINE_SWITCHED, {
       type: LineEventType.LINE_SWITCHED,
       timestamp: new Date(),
-      payload: { previousLine, newLine: lineId }
+      payload: { previousLine, newLine: lineId },
     })
   }
 
@@ -441,10 +436,7 @@ export class MultiLineManager {
   async holdLine(lineId: number): Promise<void> {
     const line = this.lines.get(lineId)
     if (!line) {
-      throw new MultiLineError(
-        MultiLineErrorCode.LINE_NOT_FOUND,
-        `Line ${lineId} not found`
-      )
+      throw new MultiLineError(MultiLineErrorCode.LINE_NOT_FOUND, `Line ${lineId} not found`)
     }
 
     if (line.state !== LineState.ACTIVE) {
@@ -476,10 +468,7 @@ export class MultiLineManager {
   async resumeLine(lineId: number): Promise<void> {
     const line = this.lines.get(lineId)
     if (!line) {
-      throw new MultiLineError(
-        MultiLineErrorCode.LINE_NOT_FOUND,
-        `Line ${lineId} not found`
-      )
+      throw new MultiLineError(MultiLineErrorCode.LINE_NOT_FOUND, `Line ${lineId} not found`)
     }
 
     if (line.state !== LineState.HELD) {
@@ -518,17 +507,11 @@ export class MultiLineManager {
 
     const line = this.lines.get(lineId)
     if (!line) {
-      throw new MultiLineError(
-        MultiLineErrorCode.LINE_NOT_FOUND,
-        `Line ${lineId} not found`
-      )
+      throw new MultiLineError(MultiLineErrorCode.LINE_NOT_FOUND, `Line ${lineId} not found`)
     }
 
     if (!line.callSession || !line.remoteParty) {
-      throw new MultiLineError(
-        MultiLineErrorCode.LINE_NOT_IDLE,
-        `No active call on line ${lineId}`
-      )
+      throw new MultiLineError(MultiLineErrorCode.LINE_NOT_IDLE, `No active call on line ${lineId}`)
     }
 
     // Generate park slot ID
@@ -540,7 +523,7 @@ export class MultiLineManager {
       lineId,
       remoteParty: line.remoteParty,
       parkedAt: new Date(),
-      retrievalCode
+      retrievalCode,
     }
 
     this.parkSlots.set(parkSlotId, parkSlot)
@@ -554,7 +537,7 @@ export class MultiLineManager {
     this.eventBus.emit(LineEventType.CALL_PARKED, {
       type: LineEventType.CALL_PARKED,
       timestamp: new Date(),
-      payload: { lineId, parkSlot: parkSlotId, retrievalCode }
+      payload: { lineId, parkSlot: parkSlotId, retrievalCode },
     })
 
     return parkSlotId
@@ -591,7 +574,7 @@ export class MultiLineManager {
     this.eventBus.emit(LineEventType.CALL_RETRIEVED, {
       type: LineEventType.CALL_RETRIEVED,
       timestamp: new Date(),
-      payload: { lineId: slot.lineId, parkSlot }
+      payload: { lineId: slot.lineId, parkSlot },
     })
 
     return slot.lineId
@@ -633,7 +616,7 @@ export class MultiLineManager {
       active: true,
       bridged: true,
       startTime: new Date(),
-      participantCount: lineIds.length
+      participantCount: lineIds.length,
     }
 
     this.conferences.set(conferenceId, conference)
@@ -652,7 +635,7 @@ export class MultiLineManager {
       conferenceId,
       type: 'created',
       participants: lineIds,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
     this.eventBus.emit(LineEventType.CONFERENCE_CREATED, event)
@@ -678,7 +661,7 @@ export class MultiLineManager {
       conference = this.conferences.get(conferenceId)
     } else {
       // Find first active conference
-      conference = Array.from(this.conferences.values()).find(c => c.active)
+      conference = Array.from(this.conferences.values()).find((c) => c.active)
     }
 
     if (!conference) {
@@ -702,7 +685,7 @@ export class MultiLineManager {
       type: 'participant-added',
       lineId,
       participants: conference.lines,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
     this.eventBus.emit(LineEventType.CONFERENCE_PARTICIPANT_ADDED, event)
@@ -722,7 +705,7 @@ export class MultiLineManager {
       return
     }
 
-    conference.lines = conference.lines.filter(id => id !== lineId)
+    conference.lines = conference.lines.filter((id) => id !== lineId)
     conference.participantCount--
     line.isConference = false
     delete line.conferenceId
@@ -732,7 +715,7 @@ export class MultiLineManager {
       type: 'participant-removed',
       lineId,
       participants: conference.lines,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
     this.eventBus.emit(LineEventType.CONFERENCE_PARTICIPANT_REMOVED, event)
@@ -768,7 +751,7 @@ export class MultiLineManager {
       conferenceId,
       type: 'ended',
       participants: conference.lines,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
     this.eventBus.emit(LineEventType.CONFERENCE_ENDED, event)
@@ -786,7 +769,7 @@ export class MultiLineManager {
    * Get all active conferences
    */
   getActiveConferences(): ConferenceState[] {
-    return Array.from(this.conferences.values()).filter(c => c.active)
+    return Array.from(this.conferences.values()).filter((c) => c.active)
   }
 
   /**
@@ -814,13 +797,13 @@ export class MultiLineManager {
       callSession: null,
       remoteParty: null,
       duration: 0,
-      startTime: null
+      startTime: null,
     })
 
     this.eventBus.emit(LineEventType.LINE_RELEASED, {
       type: LineEventType.LINE_RELEASED,
       timestamp: new Date(),
-      payload: { lineId }
+      payload: { lineId },
     })
   }
 
@@ -834,11 +817,7 @@ export class MultiLineManager {
   /**
    * Update line state with optional data
    */
-  private updateLineState(
-    lineId: number,
-    newState: LineState,
-    data?: Partial<Line>
-  ): void {
+  private updateLineState(lineId: number, newState: LineState, data?: Partial<Line>): void {
     const line = this.lines.get(lineId)
     if (!line) {
       return
@@ -867,13 +846,13 @@ export class MultiLineManager {
       previousState,
       newState,
       callSession: line.callSession || undefined,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
     this.eventBus.emit(LineEventType.LINE_STATE_CHANGED, {
       type: LineEventType.LINE_STATE_CHANGED,
       timestamp: new Date(),
-      payload: event
+      payload: event,
     })
   }
 
@@ -884,12 +863,12 @@ export class MultiLineManager {
     const lines = Array.from(this.lines.values())
     return {
       totalLines: this.config.maxLines,
-      activeLines: lines.filter(l => l.state === LineState.ACTIVE).length,
-      heldLines: lines.filter(l => l.state === LineState.HELD).length,
-      idleLines: lines.filter(l => l.state === LineState.IDLE).length,
+      activeLines: lines.filter((l) => l.state === LineState.ACTIVE).length,
+      heldLines: lines.filter((l) => l.state === LineState.HELD).length,
+      idleLines: lines.filter((l) => l.state === LineState.IDLE).length,
       activeConferences: this.getActiveConferences().length,
       parkedCalls: this.parkSlots.size,
-      totalCallsHandled: this.callCounter
+      totalCallsHandled: this.callCounter,
     }
   }
 

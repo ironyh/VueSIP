@@ -11,18 +11,18 @@
     <div class="sha__stage" :class="{ 'sha__stage--live': state === 'sharing' }">
       <div class="sha__viewport" :aria-label="`Screen share of ${source.label}`">
         <div class="sha__chrome">
-          <span class="sha__chrome-dot sha__chrome-dot--r" />
-          <span class="sha__chrome-dot sha__chrome-dot--y" />
-          <span class="sha__chrome-dot sha__chrome-dot--g" />
+          <span class="sha__chrome-dot sha__chrome-dot--r" ></span>
+          <span class="sha__chrome-dot sha__chrome-dot--y" ></span>
+          <span class="sha__chrome-dot sha__chrome-dot--g" ></span>
           <span class="sha__chrome-url">{{ source.url }}</span>
         </div>
         <div class="sha__content">
-          <div class="sha__block sha__block--wide" />
-          <div class="sha__block" />
-          <div class="sha__block sha__block--mid" />
-          <div class="sha__block sha__block--narrow" />
-          <div class="sha__block sha__block--wide" />
-          <div class="sha__cursor" :style="{ left: cursorX + '%', top: cursorY + '%' }" />
+          <div class="sha__block sha__block--wide" ></div>
+          <div class="sha__block" ></div>
+          <div class="sha__block sha__block--mid" ></div>
+          <div class="sha__block sha__block--narrow" ></div>
+          <div class="sha__block sha__block--wide" ></div>
+          <div class="sha__cursor" :style="{ left: cursorX + '%', top: cursorY + '%' }" ></div>
         </div>
         <span v-if="state !== 'sharing'" class="sha__overlay">Paused</span>
       </div>

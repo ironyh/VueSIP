@@ -248,7 +248,10 @@ export function useSipSecondLine(
   /**
    * Update line state
    */
-  function updateLineState(lineNumber: LineNumber, updates: Partial<Omit<LineState, 'lineNumber'>>): void {
+  function updateLineState(
+    lineNumber: LineNumber,
+    updates: Partial<Omit<LineState, 'lineNumber'>>
+  ): void {
     const idx = getLineIndex(lineNumber)
     const currentLine = lines.value[idx]
     if (idx >= 0 && idx < lines.value.length && currentLine) {
@@ -261,7 +264,10 @@ export function useSipSecondLine(
         callState: updates.callState !== undefined ? updates.callState : currentLine.callState,
         direction: updates.direction !== undefined ? updates.direction : currentLine.direction,
         remoteUri: updates.remoteUri !== undefined ? updates.remoteUri : currentLine.remoteUri,
-        remoteDisplayName: updates.remoteDisplayName !== undefined ? updates.remoteDisplayName : currentLine.remoteDisplayName,
+        remoteDisplayName:
+          updates.remoteDisplayName !== undefined
+            ? updates.remoteDisplayName
+            : currentLine.remoteDisplayName,
         isOnHold: updates.isOnHold ?? currentLine.isOnHold,
         isMuted: updates.isMuted ?? currentLine.isMuted,
         hasVideo: updates.hasVideo ?? currentLine.hasVideo,
@@ -385,7 +391,11 @@ export function useSipSecondLine(
     options.onLineStateChange?.(event)
   }
 
-  function emitIncomingCall(lineNumber: LineNumber, remoteUri: string, remoteDisplayName?: string): void {
+  function emitIncomingCall(
+    lineNumber: LineNumber,
+    remoteUri: string,
+    remoteDisplayName?: string
+  ): void {
     const currentState = lines.value[getLineIndex(lineNumber)]
     if (!currentState) return
 
@@ -528,11 +538,7 @@ export function useSipSecondLine(
     })
 
     // Emit incoming call event
-    emitIncomingCall(
-      availableLine,
-      session.remoteUri?.toString() ?? '',
-      session.remoteDisplayName
-    )
+    emitIncomingCall(availableLine, session.remoteUri?.toString() ?? '', session.remoteDisplayName)
 
     // Setup listeners
     setupCallSessionListeners(session, availableLine)
@@ -680,7 +686,10 @@ export function useSipSecondLine(
     }
   }
 
-  const answerCall = async (lineNumber: LineNumber, options: LineAnswerOptions = {}): Promise<void> => {
+  const answerCall = async (
+    lineNumber: LineNumber,
+    options: LineAnswerOptions = {}
+  ): Promise<void> => {
     if (!sipClient.value) {
       error.value = 'SIP client not connected'
       throw new Error(error.value)
@@ -786,7 +795,9 @@ export function useSipSecondLine(
     try {
       const session = callStore.getCall(callId)
       if (session) {
-        const sessionWithReject = session as unknown as { reject?: (code?: number) => Promise<void> }
+        const sessionWithReject = session as unknown as {
+          reject?: (code?: number) => Promise<void>
+        }
         if (typeof sessionWithReject.reject === 'function') {
           await sessionWithReject.reject(statusCode)
         }
@@ -1144,7 +1155,9 @@ export function useSipSecondLine(
   const mergeLines = async (_options: LineConferenceOptions): Promise<void> => {
     // Note: Conference/merge requires PBX support
     // This would typically use a conference bridge feature
-    throw new Error('Line merge/conference not implemented - requires PBX conference bridge support')
+    throw new Error(
+      'Line merge/conference not implemented - requires PBX conference bridge support'
+    )
   }
 
   const parkCall = async (lineNumber: LineNumber, _parkingLot?: string): Promise<string> => {

@@ -91,47 +91,69 @@ export class SipJsCallSession extends EventEmitter<CallSessionEvents> implements
   // ========== Call Control Methods ==========
 
   async answer(_options?: AnswerOptions): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async reject(_statusCode?: number): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async terminate(): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async hold(): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async unhold(): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async mute(): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async unmute(): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async sendDTMF(_tone: string, _options?: DTMFOptions): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async transfer(_target: string): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async attendedTransfer(_target: ICallSession): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async renegotiate(_options?: RenegotiateOptions): Promise<void> {
-    throw new Error('SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.')
+    throw new Error(
+      'SIP.js adapter not fully implemented. Install sip.js and implement SipJsCallSession.'
+    )
   }
 
   async getStats(): Promise<CallStatistics> {

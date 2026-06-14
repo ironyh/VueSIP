@@ -19,7 +19,7 @@
             'spr__step--on':   indexOf(step.key) === currentIndex,
           }"
         >
-          <span class="spr__step-dot" />
+          <span class="spr__step-dot" ></span>
           <div class="spr__step-body">
             <span class="spr__step-label">{{ step.label }}</span>
             <span class="spr__step-desc">{{ step.desc }}</span>

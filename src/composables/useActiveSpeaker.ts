@@ -141,7 +141,7 @@ export function useActiveSpeaker(
    */
   const activeSpeaker: ComputedRef<Participant | null> = computed(() => {
     const speakers = activeSpeakers.value
-    return speakers.length > 0 ? speakers[0] ?? null : null
+    return speakers.length > 0 ? (speakers[0] ?? null) : null
   })
 
   /**
@@ -227,7 +227,7 @@ export function useActiveSpeaker(
     // Set new debounce timer
     debounceTimer = setTimeout(() => {
       const previousSpeaker = debouncedSpeakerId.value
-        ? participants.value.find((p) => p.id === debouncedSpeakerId.value) ?? null
+        ? (participants.value.find((p) => p.id === debouncedSpeakerId.value) ?? null)
         : null
 
       // End previous speaker's history entry

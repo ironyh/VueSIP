@@ -72,7 +72,11 @@ export interface UseAmiQueuesReturn {
   /** Unpause a queue member */
   unpauseMember: (queue: string, iface: string) => Promise<void>
   /** Add member to queue */
-  addMember: (queue: string, iface: string, options?: { memberName?: string; penalty?: number }) => Promise<void>
+  addMember: (
+    queue: string,
+    iface: string,
+    options?: { memberName?: string; penalty?: number }
+  ) => Promise<void>
   /** Remove member from queue */
   removeMember: (queue: string, iface: string) => Promise<void>
   /** Set member penalty */
@@ -166,9 +170,7 @@ export function useAmiQueues(
     return list
   })
 
-  const totalCallers = computed(() =>
-    queueList.value.reduce((sum, q) => sum + q.calls, 0)
-  )
+  const totalCallers = computed(() => queueList.value.reduce((sum, q) => sum + q.calls, 0))
 
   const totalAvailable = computed(() =>
     queueList.value.reduce((sum, q) => {
@@ -306,11 +308,7 @@ export function useAmiQueues(
   /**
    * Pause a queue member
    */
-  const pauseMember = async (
-    queue: string,
-    iface: string,
-    reason?: string
-  ): Promise<void> => {
+  const pauseMember = async (queue: string, iface: string, reason?: string): Promise<void> => {
     if (!client) {
       throw new Error('AMI client not connected')
     }
@@ -389,11 +387,7 @@ export function useAmiQueues(
   /**
    * Set member penalty
    */
-  const setPenalty = async (
-    queue: string,
-    iface: string,
-    penalty: number
-  ): Promise<void> => {
+  const setPenalty = async (queue: string, iface: string, penalty: number): Promise<void> => {
     if (!client) {
       throw new Error('AMI client not connected')
     }
@@ -431,9 +425,7 @@ export function useAmiQueues(
     const queueInfo = queues.value.get(data.Queue)
     if (!queueInfo) return
 
-    const memberIndex = queueInfo.members.findIndex(
-      (m) => m.interface === data.Interface
-    )
+    const memberIndex = queueInfo.members.findIndex((m) => m.interface === data.Interface)
 
     let member: QueueMember = {
       queue: data.Queue,
@@ -448,7 +440,8 @@ export function useAmiQueues(
       loginTime: parseInt(data.LoginTime || '0', 10),
       inCall: data.InCall === '1',
       status: parseInt(data.Status || '0', 10) as QueueMemberStatus,
-      statusLabel: config.statusLabels[parseInt(data.Status || '0', 10) as QueueMemberStatus] || 'Unknown',
+      statusLabel:
+        config.statusLabels[parseInt(data.Status || '0', 10) as QueueMemberStatus] || 'Unknown',
       paused: data.Paused === '1',
       pausedReason: data.PausedReason || '',
       wrapupTime: parseInt(data.WrapupTime || '0', 10),

@@ -27,7 +27,16 @@ export enum AmiRecordingState {
 /**
  * AMI Recording format options
  */
-export type AmiRecordingFormat = 'wav' | 'wav49' | 'gsm' | 'ulaw' | 'alaw' | 'sln' | 'g722' | 'siren7' | 'siren14'
+export type AmiRecordingFormat =
+  | 'wav'
+  | 'wav49'
+  | 'gsm'
+  | 'ulaw'
+  | 'alaw'
+  | 'sln'
+  | 'g722'
+  | 'siren7'
+  | 'siren14'
 
 /**
  * AMI Recording mix mode - which audio streams to record

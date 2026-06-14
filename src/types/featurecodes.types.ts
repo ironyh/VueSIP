@@ -32,10 +32,10 @@ export type DndStatus = 'enabled' | 'disabled' | 'unknown'
  * Call forward types
  */
 export type CallForwardType =
-  | 'unconditional'  // Always forward (CF)
-  | 'busy'           // Forward on busy (CFB)
-  | 'noanswer'       // Forward on no answer (CFNA)
-  | 'unavailable'    // Forward when unavailable
+  | 'unconditional' // Always forward (CF)
+  | 'busy' // Forward on busy (CFB)
+  | 'noanswer' // Forward on no answer (CFNA)
+  | 'unavailable' // Forward when unavailable
 
 /**
  * Call forward status
@@ -295,7 +295,10 @@ export interface UseAmiFeatureCodesReturn {
   disableCallForwardBusy: () => Promise<FeatureExecutionResult>
 
   /** Enable call forward on no answer */
-  enableCallForwardNoAnswer: (destination: string, ringTimeout?: number) => Promise<FeatureExecutionResult>
+  enableCallForwardNoAnswer: (
+    destination: string,
+    ringTimeout?: number
+  ) => Promise<FeatureExecutionResult>
 
   /** Disable call forward on no answer */
   disableCallForwardNoAnswer: () => Promise<FeatureExecutionResult>

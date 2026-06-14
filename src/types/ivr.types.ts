@@ -380,11 +380,7 @@ export interface UseAmiIVRReturn {
   getCaller: (ivrId: string, callerId: string) => IVRCaller | null
 
   /** Breakout a caller from IVR to a destination */
-  breakoutCaller: (
-    ivrId: string,
-    callerId: string,
-    destination: string
-  ) => Promise<BreakoutResult>
+  breakoutCaller: (ivrId: string, callerId: string, destination: string) => Promise<BreakoutResult>
 
   /** Breakout all callers from an IVR */
   breakoutAllCallers: (ivrId: string, destination: string) => Promise<BreakoutResult[]>

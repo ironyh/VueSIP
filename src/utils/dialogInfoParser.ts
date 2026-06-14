@@ -90,7 +90,8 @@ export function parseDialogInfo(xml: string): DialogInfoDocument | null {
 
     // Get root element - handle namespaced and non-namespaced
     const root =
-      doc.querySelector('dialog-info') || doc.getElementsByTagNameNS('urn:ietf:params:xml:ns:dialog-info', 'dialog-info')[0]
+      doc.querySelector('dialog-info') ||
+      doc.getElementsByTagNameNS('urn:ietf:params:xml:ns:dialog-info', 'dialog-info')[0]
 
     if (!root) {
       logger.error('No dialog-info root element found')
@@ -284,7 +285,10 @@ export function parseDialogInfoToStatus(xml: string, fallbackUri?: string): Dial
  * @param b - Second status
  * @returns True if states are equal
  */
-export function areDialogStatesEqual(a: DialogStatus | undefined, b: DialogStatus | undefined): boolean {
+export function areDialogStatesEqual(
+  a: DialogStatus | undefined,
+  b: DialogStatus | undefined
+): boolean {
   if (!a || !b) return false
   return a.state === b.state && a.direction === b.direction && a.remoteIdentity === b.remoteIdentity
 }

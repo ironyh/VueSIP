@@ -15,12 +15,7 @@
  */
 
 import { EventEmitter } from '../../utils/EventEmitter'
-import type {
-  ISipAdapter,
-  ICallSession,
-  AdapterEvents,
-  CallOptions,
-} from '../types'
+import type { ISipAdapter, ICallSession, AdapterEvents, CallOptions } from '../types'
 import type { SipClientConfig } from '../../types/config.types'
 import { ConnectionState, RegistrationState } from '../../types/sip.types'
 
@@ -85,10 +80,10 @@ export class SipJsAdapter extends EventEmitter<AdapterEvents> implements ISipAda
 
     throw new Error(
       'SIP.js adapter not fully implemented. ' +
-      'To use SIP.js:\n' +
-      '1. Install: npm install sip.js\n' +
-      '2. Implement SipJsAdapter.connect() using SIP.js UserAgent.start()\n' +
-      'See https://sipjs.com/api/ for documentation.'
+        'To use SIP.js:\n' +
+        '1. Install: npm install sip.js\n' +
+        '2. Implement SipJsAdapter.connect() using SIP.js UserAgent.start()\n' +
+        'See https://sipjs.com/api/ for documentation.'
     )
   }
 

@@ -11,11 +11,11 @@
     <div class="csd__stage" aria-label="Dock preview">
       <div class="csd__app">
         <div class="csd__app-head">
-          <span class="csd__app-dot" /><span class="csd__app-dot" /><span class="csd__app-dot" />
+          <span class="csd__app-dot" ></span><span class="csd__app-dot" ></span><span class="csd__app-dot" ></span>
           <span class="csd__app-url">switchboard.example.com / tickets</span>
         </div>
         <div class="csd__app-body">
-          <div class="csd__line" v-for="n in 5" :key="n" :style="{ width: (40 + n * 10) + '%' }" />
+          <div class="csd__line" v-for="n in 5" :key="n" :style="{ width: (40 + n * 10) + '%' }" ></div>
         </div>
         <div class="csd__dock" :class="`csd__dock--${selected}`">
           <span class="csd__dock-initials">PP</span>
@@ -37,7 +37,7 @@
             :aria-checked="p.id === selected"
             @click="selected = p.id"
           >
-            <span class="csd__pos-frame" :class="`csd__pos-frame--${p.id}`"><span /></span>
+            <span class="csd__pos-frame" :class="`csd__pos-frame--${p.id}`"><span ></span></span>
             <span class="csd__pos-label">{{ p.label }}</span>
           </button>
         </li>

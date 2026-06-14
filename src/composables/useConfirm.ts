@@ -76,7 +76,11 @@ export interface UseConfirmReturn {
   /**
    * Open confirmation dialog with callback-style handler
    */
-  confirmAsync: (options: ConfirmOptions, onConfirm: () => Promise<void>, onCancel?: () => void) => Promise<void>
+  confirmAsync: (
+    options: ConfirmOptions,
+    onConfirm: () => Promise<void>,
+    onCancel?: () => void
+  ) => Promise<void>
   /**
    * Close the confirmation dialog
    */

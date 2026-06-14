@@ -50,7 +50,7 @@
               :aria-checked="prefs.corner === c.id"
               :aria-label="c.label"
               @click="prefs.corner = c.id"
-            />
+            ></button>
           </div>
           <span class="pis__hint">Chromium's `documentPictureInPicture.requestWindow` accepts `width`/`height`; corner is restored on next entry.</span>
         </dd>

@@ -249,9 +249,7 @@ export function useConnectionHealthBar(
     // Emit level change
     if (previousLevel !== null && previousLevel !== newLevel) {
       const isRecovery =
-        (previousLevel === 'poor' ||
-          previousLevel === 'critical' ||
-          previousLevel === 'offline') &&
+        (previousLevel === 'poor' || previousLevel === 'critical' || previousLevel === 'offline') &&
         (newLevel === 'good' || newLevel === 'excellent')
 
       if (isRecovery) {

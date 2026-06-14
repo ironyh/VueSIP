@@ -224,7 +224,10 @@ export interface UseAmiBlacklistReturn {
   /** Unblock a phone number */
   unblockNumber: (number: string) => Promise<UnblockResult>
   /** Update block entry */
-  updateBlock: (number: string, updates: Partial<Omit<BlockEntry, 'number'>>) => Promise<BlockResult>
+  updateBlock: (
+    number: string,
+    updates: Partial<Omit<BlockEntry, 'number'>>
+  ) => Promise<BlockResult>
   /** Enable a disabled block */
   enableBlock: (number: string) => Promise<BlockResult>
   /** Disable a block without removing */
@@ -239,7 +242,11 @@ export interface UseAmiBlacklistReturn {
       action?: BlockAction
       description?: string
     }
-  ) => Promise<{ success: number; failed: number; errors: Array<{ number: string; error: string }> }>
+  ) => Promise<{
+    success: number
+    failed: number
+    errors: Array<{ number: string; error: string }>
+  }>
   /** Unblock multiple numbers */
   unblockNumbers: (numbers: string[]) => Promise<{ success: number; failed: number }>
   /** Clear all blocks */

@@ -9,10 +9,7 @@
 
 import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
-import type {
-  UseAmiSupervisorOptions,
-  OriginateResult,
-} from '@/types/ami.types'
+import type { UseAmiSupervisorOptions, OriginateResult } from '@/types/ami.types'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('useAmiSupervisor')

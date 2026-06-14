@@ -213,13 +213,7 @@ export const DEFAULT_QUEUE_MEMBER_STATUS_LABELS: Record<number, string> = {
 /**
  * Default pause reasons (configurable)
  */
-export const DEFAULT_PAUSE_REASONS = [
-  'Break',
-  'Lunch',
-  'Meeting',
-  'Training',
-  'Other',
-]
+export const DEFAULT_PAUSE_REASONS = ['Break', 'Lunch', 'Meeting', 'Training', 'Other']
 
 /**
  * Queue information from QueueParams event

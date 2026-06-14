@@ -171,12 +171,7 @@ export interface PbxRecordingProvider {
 /**
  * Stable error codes for playback URL failures (UI can show specific messages).
  */
-export type PbxPlaybackErrorCode =
-  | 'unauthorized'
-  | 'expired'
-  | 'not_found'
-  | 'network'
-  | 'unknown'
+export type PbxPlaybackErrorCode = 'unauthorized' | 'expired' | 'not_found' | 'network' | 'unknown'
 
 /**
  * Normalized playback error for a single recording (stable state for UI).

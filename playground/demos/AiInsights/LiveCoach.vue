@@ -13,12 +13,12 @@
     <section class="aic__stage">
       <div class="aic__meter" role="img" :aria-label="`Sentiment ${sentiment.toFixed(2)}`">
         <div class="aic__meter-track">
-          <span class="aic__meter-zero" aria-hidden="true" />
+          <span class="aic__meter-zero" aria-hidden="true" ></span>
           <span
             class="aic__meter-needle"
             :style="{ left: needleLeft }"
             :class="`aic__meter-needle--${sentTone}`"
-          />
+          ></span>
         </div>
         <div class="aic__meter-scale" aria-hidden="true">
           <span>−1</span><span>−0.5</span><span>0</span><span>+0.5</span><span>+1</span>
@@ -33,7 +33,7 @@
               class="aic__emotion-fill"
               :class="e.label === dominant ? 'aic__emotion-fill--on' : ''"
               :style="{ width: `${e.value * 100}%` }"
-            />
+            ></span>
           </span>
           <span class="aic__emotion-pct">{{ Math.round(e.value * 100) }}%</span>
         </div>

@@ -8,7 +8,7 @@
 /**
  * DTMF transmission method
  */
-export type DTMFMethod = 'rfc2833' | 'sipinfo' | 'inband';
+export type DTMFMethod = 'rfc2833' | 'sipinfo' | 'inband'
 
 /**
  * Valid DTMF tone characters
@@ -16,7 +16,23 @@ export type DTMFMethod = 'rfc2833' | 'sipinfo' | 'inband';
  * - Special: * (star), # (pound/hash)
  * - Extended: A-D (rarely used)
  */
-export type DTMFTone = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '*' | '#' | 'A' | 'B' | 'C' | 'D';
+export type DTMFTone =
+  | '0'
+  | '1'
+  | '2'
+  | '3'
+  | '4'
+  | '5'
+  | '6'
+  | '7'
+  | '8'
+  | '9'
+  | '*'
+  | '#'
+  | 'A'
+  | 'B'
+  | 'C'
+  | 'D'
 
 /**
  * DTMF options for tone transmission
@@ -26,27 +42,27 @@ export interface DTMFOptions {
    * Method to use for DTMF transmission
    * @default 'rfc2833'
    */
-  method?: DTMFMethod;
+  method?: DTMFMethod
 
   /**
    * Duration of each tone in milliseconds
    * RFC 2833: typically 100-250ms
    * @default 160
    */
-  duration?: number;
+  duration?: number
 
   /**
    * Gap between tones in milliseconds
    * RFC 2833: typically 50-70ms
    * @default 70
    */
-  interToneGap?: number;
+  interToneGap?: number
 
   /**
    * Enable local audio feedback for sent tones
    * @default false
    */
-  audioFeedback?: boolean;
+  audioFeedback?: boolean
 }
 
 /**
@@ -56,27 +72,27 @@ export interface DTMFSendResult {
   /**
    * Whether the operation was successful
    */
-  success: boolean;
+  success: boolean
 
   /**
    * Method used for transmission
    */
-  method: DTMFMethod;
+  method: DTMFMethod
 
   /**
    * Tones that were sent
    */
-  tones: string;
+  tones: string
 
   /**
    * Error message if unsuccessful
    */
-  error?: string;
+  error?: string
 
   /**
    * Timestamp when tones were sent
    */
-  timestamp: Date;
+  timestamp: Date
 }
 
 /**
@@ -86,27 +102,27 @@ export interface DTMFEvent {
   /**
    * Type of event
    */
-  type: 'start' | 'tone' | 'end' | 'error';
+  type: 'start' | 'tone' | 'end' | 'error'
 
   /**
    * Current tone being sent (for 'tone' events)
    */
-  tone?: DTMFTone;
+  tone?: DTMFTone
 
   /**
    * Method being used
    */
-  method?: DTMFMethod;
+  method?: DTMFMethod
 
   /**
    * Error message (for 'error' events)
    */
-  error?: string;
+  error?: string
 
   /**
    * Event timestamp
    */
-  timestamp: Date;
+  timestamp: Date
 }
 
 /**
@@ -116,27 +132,27 @@ export interface DTMFCapabilities {
   /**
    * Supported DTMF methods
    */
-  supportedMethods: DTMFMethod[];
+  supportedMethods: DTMFMethod[]
 
   /**
    * Whether RFC 2833 is negotiated in SDP
    */
-  rfc2833Enabled: boolean;
+  rfc2833Enabled: boolean
 
   /**
    * Whether SIP INFO is supported
    */
-  sipInfoEnabled: boolean;
+  sipInfoEnabled: boolean
 
   /**
    * Whether inband audio is available
    */
-  inbandEnabled: boolean;
+  inbandEnabled: boolean
 
   /**
    * Preferred method based on negotiation
    */
-  preferredMethod: DTMFMethod;
+  preferredMethod: DTMFMethod
 }
 
 /**
@@ -146,22 +162,22 @@ export interface DTMFQueueItem {
   /**
    * Tone to send
    */
-  tone: DTMFTone;
+  tone: DTMFTone
 
   /**
    * Options for this tone
    */
-  options: Required<DTMFOptions>;
+  options: Required<DTMFOptions>
 
   /**
    * Promise resolver for completion
    */
-  resolve: (result: DTMFSendResult) => void;
+  resolve: (result: DTMFSendResult) => void
 
   /**
    * Promise rejector for errors
    */
-  reject: (error: Error) => void;
+  reject: (error: Error) => void
 }
 
 /**
@@ -171,27 +187,27 @@ export interface DTMFState {
   /**
    * Whether DTMF is currently being sent
    */
-  isSending: boolean;
+  isSending: boolean
 
   /**
    * Current tone being sent
    */
-  currentTone: DTMFTone | null;
+  currentTone: DTMFTone | null
 
   /**
    * Number of tones in queue
    */
-  queueLength: number;
+  queueLength: number
 
   /**
    * Last send result
    */
-  lastResult: DTMFSendResult | null;
+  lastResult: DTMFSendResult | null
 
   /**
    * Current capabilities
    */
-  capabilities: DTMFCapabilities | null;
+  capabilities: DTMFCapabilities | null
 }
 
 /**
@@ -210,11 +226,11 @@ export const RFC2833_EVENT_CODES: Record<DTMFTone, number> = {
   '9': 9,
   '*': 10,
   '#': 11,
-  'A': 12,
-  'B': 13,
-  'C': 14,
-  'D': 15,
-};
+  A: 12,
+  B: 13,
+  C: 14,
+  D: 15,
+}
 
 /**
  * DTMF configuration constants
@@ -259,13 +275,13 @@ export const DTMF_CONSTANTS = {
    * SIP INFO content type for DTMF relay
    */
   SIPINFO_CONTENT_TYPE: 'application/dtmf-relay',
-} as const;
+} as const
 
 /**
  * Type guard to check if a character is a valid DTMF tone
  */
 export function isDTMFTone(char: string): char is DTMFTone {
-  return /^[0-9*#A-D]$/.test(char);
+  return /^[0-9*#A-D]$/.test(char)
 }
 
 /**
@@ -274,7 +290,7 @@ export function isDTMFTone(char: string): char is DTMFTone {
  * @returns true if all characters are valid DTMF tones
  */
 export function validateDTMFTones(tones: string): boolean {
-  return tones.length > 0 && tones.split('').every(isDTMFTone);
+  return tones.length > 0 && tones.split('').every(isDTMFTone)
 }
 
 /**
@@ -284,12 +300,12 @@ export function validateDTMFTones(tones: string): boolean {
  * @throws Error if any character is invalid
  */
 export function parseDTMFTones(tones: string): DTMFTone[] {
-  const chars = tones.toUpperCase().split('');
-  const invalidChars = chars.filter(char => !isDTMFTone(char));
+  const chars = tones.toUpperCase().split('')
+  const invalidChars = chars.filter((char) => !isDTMFTone(char))
 
   if (invalidChars.length > 0) {
-    throw new Error(`Invalid DTMF characters: ${invalidChars.join(', ')}`);
+    throw new Error(`Invalid DTMF characters: ${invalidChars.join(', ')}`)
   }
 
-  return chars as DTMFTone[];
+  return chars as DTMFTone[]
 }

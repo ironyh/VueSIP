@@ -11,9 +11,9 @@
     <section class="e9a__stage">
       <div class="e9a__dispatch">
         <div class="e9a__pulse" aria-hidden="true">
-          <span class="e9a__pulse-core" />
-          <span class="e9a__pulse-wave" />
-          <span class="e9a__pulse-wave e9a__pulse-wave--2" />
+          <span class="e9a__pulse-core" ></span>
+          <span class="e9a__pulse-wave" ></span>
+          <span class="e9a__pulse-wave e9a__pulse-wave--2" ></span>
         </div>
         <div class="e9a__dispatch-body">
           <strong>Connected to SFFD Dispatcher</strong>

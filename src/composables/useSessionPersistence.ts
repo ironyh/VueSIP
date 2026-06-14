@@ -323,9 +323,7 @@ export function useSessionPersistence(
 
         request.onerror = () => {
           logger.error('Failed to clear session', { error: request.error })
-          reject(
-            new Error(`Failed to clear session: ${request.error?.message || 'Unknown error'}`)
-          )
+          reject(new Error(`Failed to clear session: ${request.error?.message || 'Unknown error'}`))
         }
       })
     } catch (err) {

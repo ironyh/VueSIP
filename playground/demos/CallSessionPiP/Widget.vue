@@ -17,7 +17,7 @@
         </div>
         <span class="csw__timer">{{ formatMMSS(secs) }}</span>
         <div class="csw__vu" aria-hidden="true">
-          <span v-for="(b, i) in bars" :key="i" class="csw__vu-bar" :style="{ height: b + '%' }" />
+          <span v-for="(b, i) in bars" :key="i" class="csw__vu-bar" :style="{ height: b + '%' }" ></span>
         </div>
         <div class="csw__actions">
           <button

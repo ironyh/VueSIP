@@ -240,7 +240,11 @@ export interface UseSipAutoAnswerReturn {
 
   // Call Handling
   /** Check if call should be auto-answered */
-  shouldAutoAnswer: (callId: string, caller: string, headers?: Partial<AutoAnswerHeaders>) => {
+  shouldAutoAnswer: (
+    callId: string,
+    caller: string,
+    headers?: Partial<AutoAnswerHeaders>
+  ) => {
     shouldAnswer: boolean
     trigger?: AutoAnswerTrigger
     delay: number

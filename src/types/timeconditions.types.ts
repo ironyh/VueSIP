@@ -10,7 +10,14 @@
 /**
  * Days of the week
  */
-export type DayOfWeek = 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday'
+export type DayOfWeek =
+  | 'sunday'
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
 
 /**
  * Time condition state
@@ -209,7 +216,11 @@ export interface UseAmiTimeConditionsReturn {
 
   // Override Methods
   /** Set override mode for a condition */
-  setOverride: (conditionId: string, mode: OverrideMode, expiresIn?: number) => Promise<OverrideResult>
+  setOverride: (
+    conditionId: string,
+    mode: OverrideMode,
+    expiresIn?: number
+  ) => Promise<OverrideResult>
   /** Clear override for a condition */
   clearOverride: (conditionId: string) => Promise<OverrideResult>
   /** Toggle between force_open and force_closed */
@@ -221,7 +232,11 @@ export interface UseAmiTimeConditionsReturn {
   /** Remove a holiday */
   removeHoliday: (conditionId: string, holidayId: string) => Promise<HolidayResult>
   /** Update a holiday */
-  updateHoliday: (conditionId: string, holidayId: string, updates: Partial<Holiday>) => Promise<HolidayResult>
+  updateHoliday: (
+    conditionId: string,
+    holidayId: string,
+    updates: Partial<Holiday>
+  ) => Promise<HolidayResult>
   /** Get holidays for a condition */
   getHolidays: (conditionId: string) => Holiday[]
   /** Get upcoming holidays */
@@ -229,7 +244,11 @@ export interface UseAmiTimeConditionsReturn {
 
   // Schedule Methods
   /** Update schedule for a day */
-  updateDaySchedule: (conditionId: string, day: DayOfWeek, schedule: Partial<DailySchedule>) => Promise<ScheduleResult>
+  updateDaySchedule: (
+    conditionId: string,
+    day: DayOfWeek,
+    schedule: Partial<DailySchedule>
+  ) => Promise<ScheduleResult>
   /** Set full weekly schedule */
   setWeeklySchedule: (conditionId: string, schedule: DailySchedule[]) => Promise<ScheduleResult>
   /** Get schedule for a day */
@@ -237,17 +256,24 @@ export interface UseAmiTimeConditionsReturn {
 
   // Condition Management
   /** Create a new time condition */
-  createCondition: (condition: Omit<TimeCondition, 'id'>) => Promise<{ success: boolean; condition?: TimeCondition; message?: string }>
+  createCondition: (
+    condition: Omit<TimeCondition, 'id'>
+  ) => Promise<{ success: boolean; condition?: TimeCondition; message?: string }>
   /** Delete a time condition */
   deleteCondition: (conditionId: string) => Promise<{ success: boolean; message?: string }>
   /** Update a time condition */
-  updateCondition: (conditionId: string, updates: Partial<TimeCondition>) => Promise<{ success: boolean; message?: string }>
+  updateCondition: (
+    conditionId: string,
+    updates: Partial<TimeCondition>
+  ) => Promise<{ success: boolean; message?: string }>
 
   // Utility Methods
   /** Refresh all conditions from storage */
   refresh: () => Promise<void>
   /** Get next state change for a condition */
-  getNextChange: (conditionId: string) => { state: TimeConditionState; at: Date; reason: string } | undefined
+  getNextChange: (
+    conditionId: string
+  ) => { state: TimeConditionState; at: Date; reason: string } | undefined
   /** Check status at a specific time */
   checkStatusAt: (conditionId: string, date: Date) => TimeConditionStatus | undefined
 }
