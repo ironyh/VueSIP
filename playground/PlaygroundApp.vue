@@ -970,7 +970,6 @@ onUnmounted(() => {
 
 .filter-segment.active {
   color: white;
-  flex: 1 1 auto;
   background: var(--primary);
   box-shadow: var(--shadow-sm);
 }
