@@ -7,7 +7,16 @@
  * @module composables/useClickToCall
  */
 
-import { ref, shallowRef, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  shallowRef,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import { useSipMock } from './useSipMock'
 import { useSipClient } from './useSipClient'
 import { useCallSession } from './useCallSession'
@@ -784,10 +793,12 @@ export function useClickToCall(options: ClickToCallOptions = {}): UseClickToCall
   // Cleanup
   // ===========================================================================
 
-  onUnmounted(() => {
-    stopDurationTimer()
-    log.debug('Click-to-call composable unmounted')
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopDurationTimer()
+      log.debug('Click-to-call composable unmounted')
+    })
+  }
 
   // ===========================================================================
   // Return Public API

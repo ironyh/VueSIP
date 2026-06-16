@@ -7,7 +7,7 @@
  * @module composables/useFreePBXPresence
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, type Ref, type ComputedRef } from 'vue'
 import { FreePBXPresenceBridge } from '@/core/FreePBXPresenceBridge'
 import {
   FreePBXPresenceCode,
@@ -484,9 +484,11 @@ export function useFreePBXPresence(
   }
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    destroy()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      destroy()
+    })
+  }
 
   // ============================================================================
   // Return Public API

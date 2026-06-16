@@ -7,7 +7,16 @@
  * @module composables/useAgentQueue
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef, type ShallowRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  getCurrentScope,
+  onScopeDispose,
+  type Ref,
+  type ComputedRef,
+  type ShallowRef,
+} from 'vue'
 import type {
   CallCenterProvider,
   AgentState,
@@ -234,9 +243,11 @@ export function useAgentQueue(
   }
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    unsubscribeFromState()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      unsubscribeFromState()
+    })
+  }
 
   return {
     // State

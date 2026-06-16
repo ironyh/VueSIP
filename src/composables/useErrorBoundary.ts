@@ -1,4 +1,4 @@
-import { ref, reactive, computed, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, reactive, computed, onMounted, onScopeDispose, getCurrentScope, type Ref } from 'vue'
 import { ErrorSeverity, createErrorContext, logErrorWithContext } from '../utils/errorContext'
 import { formatUnknownError } from '../utils/errorHelpers'
 
@@ -190,9 +190,17 @@ export function useErrorBoundary(options: UseErrorBoundaryOptions = {}): UseErro
 
   const isNetworkErrorFunc = (error: unknown): boolean => {
     if (!(error instanceof Error)) return false
+    // TypeError is only a network error when from fetch() / network APIs.
+    const isNetworkTypeError =
+      error.name === 'TypeError' &&
+      (error.message.toLowerCase().includes('network') ||
+        error.message.toLowerCase().includes('fetch') ||
+        error.message.toLowerCase().includes('connection') ||
+        error.message.toLowerCase().includes('failed to fetch') ||
+        error.message.toLowerCase().includes('load failed'))
     return (
       error.name === 'NetworkError' ||
-      error.name === 'TypeError' ||
+      isNetworkTypeError ||
       error.message.toLowerCase().includes('network') ||
       error.message.toLowerCase().includes('fetch') ||
       error.message.toLowerCase().includes('connection')
@@ -322,12 +330,14 @@ export function useErrorBoundary(options: UseErrorBoundaryOptions = {}): UseErro
   })
 
   // Cleanup global error handlers
-  onUnmounted(() => {
-    if (enableGlobal) {
-      window.removeEventListener('error', handleGlobalError)
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (enableGlobal) {
+        window.removeEventListener('error', handleGlobalError)
+        window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+      }
+    })
+  }
 
   return {
     state,

@@ -7,7 +7,15 @@
  * @module composables/useAmiPjsip
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiAction, AmiMessage, AmiEventData } from '@/types/ami.types'
 import type {
@@ -646,14 +654,16 @@ export function useAmiPjsip(
     { immediate: true }
   )
 
-  onUnmounted(() => {
-    cleanupEvents()
-    endpoints.value.clear()
-    contacts.value.clear()
-    aors.value.clear()
-    transports.value.clear()
-    registrations.value.clear()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      cleanupEvents()
+      endpoints.value.clear()
+      contacts.value.clear()
+      aors.value.clear()
+      transports.value.clear()
+      registrations.value.clear()
+    })
+  }
 
   // ============================================================================
   // Return Interface

@@ -139,7 +139,7 @@
  * ```
  */
 
-import { ref, getCurrentInstance, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 export interface NavItem {
   id: string
@@ -150,7 +150,7 @@ export interface NavItem {
 
 export type NavMode = 'tabs' | 'drawer'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     /** Array of navigation items */
     items: NavItem[]
@@ -200,7 +200,7 @@ watch(modelValue, () => {
 })
 
 const handleKeydown = (event: KeyboardEvent, currentIndex: number) => {
-  const currentItems = (getCurrentInstance()?.props.items as NavItem[]) ?? []
+  const currentItems = props.items
   let nextIndex: number | null = null
 
   switch (event.key) {
@@ -235,7 +235,7 @@ const handleKeydown = (event: KeyboardEvent, currentIndex: number) => {
 }
 
 const handleDrawerKeydown = (event: KeyboardEvent, currentIndex: number) => {
-  const currentItems = (getCurrentInstance()?.props.items as NavItem[]) ?? []
+  const currentItems = props.items
   let nextIndex: number | null = null
 
   switch (event.key) {

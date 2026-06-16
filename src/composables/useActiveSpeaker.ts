@@ -8,7 +8,15 @@
  * @module composables/useActiveSpeaker
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  getCurrentScope,
+  onScopeDispose,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { Participant } from '../types/conference.types'
 import type {
   ActiveSpeakerOptions,
@@ -141,7 +149,7 @@ export function useActiveSpeaker(
    */
   const activeSpeaker: ComputedRef<Participant | null> = computed(() => {
     const speakers = activeSpeakers.value
-    return speakers.length > 0 ? speakers[0] ?? null : null
+    return speakers.length > 0 ? (speakers[0] ?? null) : null
   })
 
   /**
@@ -227,7 +235,7 @@ export function useActiveSpeaker(
     // Set new debounce timer
     debounceTimer = setTimeout(() => {
       const previousSpeaker = debouncedSpeakerId.value
-        ? participants.value.find((p) => p.id === debouncedSpeakerId.value) ?? null
+        ? (participants.value.find((p) => p.id === debouncedSpeakerId.value) ?? null)
         : null
 
       // End previous speaker's history entry
@@ -300,13 +308,15 @@ export function useActiveSpeaker(
   // Cleanup
   // ============================================================================
 
-  onUnmounted(() => {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer)
-      debounceTimer = null
-    }
-    log.debug('Active speaker composable unmounted')
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer)
+        debounceTimer = null
+      }
+      log.debug('Active speaker composable unmounted')
+    })
+  }
 
   // ============================================================================
   // Return Public API

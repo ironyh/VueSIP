@@ -7,7 +7,15 @@
  * @module composables/useAmiVoicemail
  */
 
-import { ref, computed, onUnmounted, watch, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  onScopeDispose,
+  getCurrentScope,
+  watch,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiMessage, AmiEventData } from '@/types/ami.types'
 import type {
@@ -303,10 +311,7 @@ export function useAmiVoicemail(
   /**
    * Get mailbox info (from VoicemailUsersList)
    */
-  const getMailboxInfo = async (
-    mailbox: string,
-    context?: string
-  ): Promise<MailboxInfo | null> => {
+  const getMailboxInfo = async (mailbox: string, context?: string): Promise<MailboxInfo | null> => {
     const users = await getVoicemailUsers(context)
     return users.find((u) => u.mailbox === mailbox) || null
   }
@@ -377,15 +382,17 @@ export function useAmiVoicemail(
 
       client.on('event', handler)
 
-      client.sendAction({
-        Action: 'VoicemailUsersList',
-        ActionID: actionId,
-      }).catch((err) => {
-        clearTimeout(timeout)
-        client.off('event', handler)
-        isLoading.value = false
-        reject(err)
-      })
+      client
+        .sendAction({
+          Action: 'VoicemailUsersList',
+          ActionID: actionId,
+        })
+        .catch((err) => {
+          clearTimeout(timeout)
+          client.off('event', handler)
+          isLoading.value = false
+          reject(err)
+        })
     })
   }
 
@@ -486,14 +493,16 @@ export function useAmiVoicemail(
     { immediate: true }
   )
 
-  onUnmounted(() => {
-    stopPolling()
-    if (eventUnsubscribe) {
-      eventUnsubscribe()
-    }
-    clearMonitoring()
-    mwiListeners.value = []
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopPolling()
+      if (eventUnsubscribe) {
+        eventUnsubscribe()
+      }
+      clearMonitoring()
+      mwiListeners.value = []
+    })
+  }
 
   // ============================================================================
   // Return

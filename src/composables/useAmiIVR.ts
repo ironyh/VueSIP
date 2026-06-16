@@ -35,7 +35,7 @@
  * ```
  */
 
-import { ref, computed, onUnmounted, watch, type Ref } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, watch, type Ref } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type {
   IVR,
@@ -59,7 +59,10 @@ const logger = createLogger('useAmiIVR')
  */
 function sanitizeInput(input: string): string {
   if (!input || typeof input !== 'string') return ''
-  return input.replace(/[<>'";&|`$\\]/g, '').trim().slice(0, 255)
+  return input
+    .replace(/[<>'";&|`$\\]/g, '')
+    .trim()
+    .slice(0, 255)
 }
 
 /**
@@ -181,9 +184,7 @@ export function useAmiIVR(
   // Computed
   const ivrList = computed(() => Array.from(ivrs.value.values()))
 
-  const totalCallers = computed(() =>
-    ivrList.value.reduce((sum, ivr) => sum + ivr.callers.size, 0)
-  )
+  const totalCallers = computed(() => ivrList.value.reduce((sum, ivr) => sum + ivr.callers.size, 0))
 
   const allCallers = computed(() => {
     const callers: IVRCaller[] = []
@@ -320,8 +321,7 @@ export function useAmiIVR(
     }
 
     const menuCount = callerMenuCounts.get(channel) || 1
-    const totalMenus =
-      ivr.stats.avgMenuSelections * (ivr.stats.totalCallers - 1) + menuCount
+    const totalMenus = ivr.stats.avgMenuSelections * (ivr.stats.totalCallers - 1) + menuCount
     ivr.stats.avgMenuSelections = totalMenus / ivr.stats.totalCallers
 
     if (abandoned) {
@@ -761,10 +761,7 @@ export function useAmiIVR(
   /**
    * Breakout all callers from an IVR
    */
-  async function breakoutAllCallers(
-    ivrId: string,
-    destination: string
-  ): Promise<BreakoutResult[]> {
+  async function breakoutAllCallers(ivrId: string, destination: string): Promise<BreakoutResult[]> {
     if (!isValidIVRId(ivrId)) {
       return [{ success: false, channel: '', error: 'Invalid IVR ID' }]
     }
@@ -899,9 +896,11 @@ export function useAmiIVR(
   }
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    stopMonitoring()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopMonitoring()
+    })
+  }
 
   return {
     // State

@@ -45,7 +45,7 @@ interface RegistrationStoreState {
   retryCount: number
   /** Last registration error message */
   lastError: string | null
-  /** Auto-refresh timer ID */
+  /** @deprecated Removed — auto-refresh is handled by useSipRegistration composable */
   autoRefreshTimerId: number | null
   /** Time trigger for computed property updates (internal, for testing) */
   _timeTrigger: number
@@ -62,7 +62,7 @@ const state = reactive<RegistrationStoreState>({
   expiryTime: null,
   retryCount: 0,
   lastError: null,
-  autoRefreshTimerId: null,
+  autoRefreshTimerId: null, // deprecated — unused, kept for type compat
   _timeTrigger: 0,
 })
 
@@ -248,8 +248,7 @@ export const registrationStore = {
 
     log.info(`Registered ${uri} (expires in ${expirySeconds}s)`)
 
-    // Setup auto-refresh timer (refresh at 90% of expiry time)
-    this.setupAutoRefresh()
+    // Note: auto-refresh is handled by useSipRegistration composable, not the store
   },
 
   /**
@@ -264,9 +263,6 @@ export const registrationStore = {
     state.expiryTime = null
 
     log.error(`Registration failed: ${error} (retry count: ${state.retryCount})`)
-
-    // Clear auto-refresh timer
-    this.clearAutoRefresh()
   },
 
   /**
@@ -276,9 +272,6 @@ export const registrationStore = {
     state.state = RegistrationState.Unregistering
     state.lastError = null
     log.debug('Unregistration started')
-
-    // Clear auto-refresh timer
-    this.clearAutoRefresh()
   },
 
   /**
@@ -290,79 +283,29 @@ export const registrationStore = {
     state.expiryTime = null
     state.lastError = null
     log.info('Unregistered')
-
-    // Clear auto-refresh timer
-    this.clearAutoRefresh()
   },
 
   // ============================================================================
-  // Auto-Refresh Logic
+  // Auto-Refresh Logic (removed — handled by useSipRegistration composable)
   // ============================================================================
 
+  // The store previously had its own auto-refresh timer that called triggerRefresh(),
+  // which was a no-op (just logged). The composable useSipRegistration has its own
+  // working auto-refresh timer that directly calls refresh(). The store's timer was
+  // dead code that allocated a setTimeout on every setRegistered() call for no benefit.
+
   /**
-   * Setup auto-refresh timer
-   *
-   * Schedules a refresh at 90% of the expiry time to ensure registration
-   * doesn't expire. This follows best practices for SIP registration refresh.
+   * @deprecated No-op. Auto-refresh is handled by useSipRegistration composable.
    */
   setupAutoRefresh(): void {
-    // Clear any existing timer
-    this.clearAutoRefresh()
-
-    if (!state.expiryTime || state.expires <= 0) {
-      log.debug('Cannot setup auto-refresh: no expiry time set')
-      return
-    }
-
-    // Calculate refresh time (90% of expiry time)
-    const refreshPercentage = 0.9
-    const refreshDelay = state.expires * refreshPercentage * 1000
-
-    log.debug(
-      `Setting up auto-refresh in ${Math.floor(refreshDelay / 1000)}s (90% of ${state.expires}s)`
-    )
-
-    state.autoRefreshTimerId = window.setTimeout(() => {
-      log.info('Auto-refresh timer triggered')
-      this.triggerRefresh()
-    }, refreshDelay)
+    // No-op — auto-refresh handled by useSipRegistration composable
   },
 
   /**
-   * Clear auto-refresh timer
+   * @deprecated No-op. Auto-refresh is handled by useSipRegistration composable.
    */
   clearAutoRefresh(): void {
-    if (state.autoRefreshTimerId !== null) {
-      clearTimeout(state.autoRefreshTimerId)
-      state.autoRefreshTimerId = null
-      log.debug('Cleared auto-refresh timer')
-    }
-  },
-
-  /**
-   * Trigger refresh callback
-   *
-   * This is a placeholder that should be called when auto-refresh is needed.
-   * The actual SIP client should listen for this and perform the refresh.
-   *
-   * @internal
-   */
-  triggerRefresh(): void {
-    log.info('Registration refresh needed')
-    // This will be handled by the SipClient or composable
-    // They should listen for state changes or implement a callback mechanism
-  },
-
-  /**
-   * Manually trigger a refresh
-   *
-   * Forces an immediate registration refresh. This can be called by the
-   * SipClient or composable when needed.
-   */
-  manualRefresh(): void {
-    log.info('Manual registration refresh requested')
-    this.clearAutoRefresh()
-    // The caller should perform the actual refresh after calling this
+    // No-op — timer is managed by useSipRegistration composable
   },
 
   // ============================================================================
@@ -410,7 +353,6 @@ export const registrationStore = {
    * Reset the store to initial state
    */
   reset(): void {
-    this.clearAutoRefresh()
     state.state = RegistrationState.Unregistered
     state.registeredUri = null
     state.expires = DEFAULT_REGISTER_EXPIRES
@@ -443,7 +385,7 @@ export const registrationStore = {
       expires: state.expires,
       secondsUntilExpiry: computed_values.secondsUntilExpiry.value,
       retryCount: state.retryCount,
-      hasAutoRefreshTimer: state.autoRefreshTimerId !== null,
+      // autoRefreshTimer removed — handled by composable
       lastError: state.lastError,
     }
   },

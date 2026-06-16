@@ -7,7 +7,7 @@
  * @module composables/useAmiTimeConditions
  */
 
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type {
   DayOfWeek,
@@ -45,8 +45,15 @@ export type {
   UseAmiTimeConditionsReturn,
 }
 
-
-const DAY_NAMES: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+const DAY_NAMES: DayOfWeek[] = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+]
 
 /**
  * Validate time format (HH:MM)
@@ -134,9 +141,7 @@ function createDefaultSchedule(): DailySchedule[] {
   return DAY_NAMES.map((day) => ({
     day,
     enabled: day !== 'saturday' && day !== 'sunday',
-    ranges: day !== 'saturday' && day !== 'sunday'
-      ? [{ start: '09:00', end: '17:00' }]
-      : [],
+    ranges: day !== 'saturday' && day !== 'sunday' ? [{ start: '09:00', end: '17:00' }] : [],
   }))
 }
 
@@ -186,14 +191,16 @@ function deserializeCondition(id: string, data: string): TimeCondition | null {
         enabled: ds.e,
         ranges: ds.r || [],
       })),
-      holidays: (parsed.h || []).map((h: { id: string; n: string; dt: string; r: boolean; ds?: string; de?: string }) => ({
-        id: h.id,
-        name: h.n,
-        date: h.dt,
-        recurring: h.r,
-        destination: h.ds,
-        description: h.de,
-      })),
+      holidays: (parsed.h || []).map(
+        (h: { id: string; n: string; dt: string; r: boolean; ds?: string; de?: string }) => ({
+          id: h.id,
+          name: h.n,
+          date: h.dt,
+          recurring: h.r,
+          destination: h.ds,
+          description: h.de,
+        })
+      ),
       overrideMode: parsed.om || 'none',
       overrideExpires: parsed.oe ? new Date(parsed.oe) : undefined,
       timezone: parsed.tz,
@@ -291,7 +298,11 @@ export function useAmiTimeConditions(
   const closedConditions = computed(() =>
     conditions.value.filter((c) => {
       const status = statuses.value.get(c.id)
-      return status?.state === 'closed' || status?.state === 'override_closed' || status?.state === 'holiday'
+      return (
+        status?.state === 'closed' ||
+        status?.state === 'override_closed' ||
+        status?.state === 'holiday'
+      )
     })
   )
 
@@ -306,7 +317,10 @@ export function useAmiTimeConditions(
   /**
    * Calculate status for a condition at a specific time
    */
-  const calculateStatus = (condition: TimeCondition, at: Date = new Date()): TimeConditionStatus => {
+  const calculateStatus = (
+    condition: TimeCondition,
+    at: Date = new Date()
+  ): TimeConditionStatus => {
     const dayName = DAY_NAMES[at.getDay()]
     const daySchedule = condition.schedule.find((s) => s.day === dayName)
 
@@ -362,9 +376,10 @@ export function useAmiTimeConditions(
         statusText = 'Override: Forced Open'
         break
       case 'override_closed':
-        statusText = effectiveOverride === 'temporary'
-          ? `Override: Closed until ${condition.overrideExpires?.toLocaleTimeString()}`
-          : 'Override: Forced Closed'
+        statusText =
+          effectiveOverride === 'temporary'
+            ? `Override: Closed until ${condition.overrideExpires?.toLocaleTimeString()}`
+            : 'Override: Forced Closed'
         break
     }
 
@@ -629,9 +644,8 @@ export function useAmiTimeConditions(
 
     // If currently open (including override_open), force closed
     // If currently closed (including override_closed, holiday), force open
-    const newMode: OverrideMode = status.state === 'open' || status.state === 'override_open'
-      ? 'force_closed'
-      : 'force_open'
+    const newMode: OverrideMode =
+      status.state === 'open' || status.state === 'override_open' ? 'force_closed' : 'force_open'
 
     return setOverride(conditionId, newMode)
   }
@@ -740,7 +754,10 @@ export function useAmiTimeConditions(
       logger.debug('Holiday removed', { conditionId, holidayId })
       return { success: true, holiday }
     } catch (err) {
-      return { success: false, message: err instanceof Error ? err.message : 'Failed to remove holiday' }
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to remove holiday',
+      }
     } finally {
       isLoading.value = false
     }
@@ -777,7 +794,9 @@ export function useAmiTimeConditions(
       ...existingHoliday,
       ...updates,
       name: updates.name ? sanitizeInput(updates.name) : existingHoliday.name,
-      description: updates.description ? sanitizeInput(updates.description) : existingHoliday.description,
+      description: updates.description
+        ? sanitizeInput(updates.description)
+        : existingHoliday.description,
     }
 
     const updatedHolidays = [...condition.holidays]
@@ -802,7 +821,10 @@ export function useAmiTimeConditions(
 
       return { success: true, holiday: updatedHoliday }
     } catch (err) {
-      return { success: false, message: err instanceof Error ? err.message : 'Failed to update holiday' }
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to update holiday',
+      }
     } finally {
       isLoading.value = false
     }
@@ -893,7 +915,11 @@ export function useAmiTimeConditions(
       logger.debug('Schedule updated', { conditionId, day })
       return { success: true, conditionId }
     } catch (err) {
-      return { success: false, conditionId, message: err instanceof Error ? err.message : 'Failed to update schedule' }
+      return {
+        success: false,
+        conditionId,
+        message: err instanceof Error ? err.message : 'Failed to update schedule',
+      }
     } finally {
       isLoading.value = false
     }
@@ -940,7 +966,11 @@ export function useAmiTimeConditions(
 
       return { success: true, conditionId }
     } catch (err) {
-      return { success: false, conditionId, message: err instanceof Error ? err.message : 'Failed to set schedule' }
+      return {
+        success: false,
+        conditionId,
+        message: err instanceof Error ? err.message : 'Failed to set schedule',
+      }
     } finally {
       isLoading.value = false
     }
@@ -988,13 +1018,18 @@ export function useAmiTimeConditions(
       logger.debug('Condition created', { id })
       return { success: true, condition: newCondition }
     } catch (err) {
-      return { success: false, message: err instanceof Error ? err.message : 'Failed to create condition' }
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to create condition',
+      }
     } finally {
       isLoading.value = false
     }
   }
 
-  const deleteCondition = async (conditionId: string): Promise<{ success: boolean; message?: string }> => {
+  const deleteCondition = async (
+    conditionId: string
+  ): Promise<{ success: boolean; message?: string }> => {
     if (!client) {
       return { success: false, message: 'AMI client not connected' }
     }
@@ -1017,7 +1052,10 @@ export function useAmiTimeConditions(
       logger.debug('Condition deleted', { conditionId })
       return { success: true }
     } catch (err) {
-      return { success: false, message: err instanceof Error ? err.message : 'Failed to delete condition' }
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to delete condition',
+      }
     } finally {
       isLoading.value = false
     }
@@ -1058,7 +1096,10 @@ export function useAmiTimeConditions(
 
       return { success: true }
     } catch (err) {
-      return { success: false, message: err instanceof Error ? err.message : 'Failed to update condition' }
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to update condition',
+      }
     } finally {
       isLoading.value = false
     }
@@ -1112,7 +1153,9 @@ export function useAmiTimeConditions(
     }
   }
 
-  const getNextChange = (conditionId: string): { state: TimeConditionState; at: Date; reason: string } | undefined => {
+  const getNextChange = (
+    conditionId: string
+  ): { state: TimeConditionState; at: Date; reason: string } | undefined => {
     return statuses.value.get(conditionId)?.nextChange
   }
 
@@ -1141,12 +1184,14 @@ export function useAmiTimeConditions(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    if (refreshTimer) {
-      clearInterval(refreshTimer)
-      refreshTimer = null
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (refreshTimer) {
+        clearInterval(refreshTimer)
+        refreshTimer = null
+      }
+    })
+  }
 
   // ============================================================================
   // Return

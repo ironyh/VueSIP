@@ -6,7 +6,7 @@
  *
  * @module composables/useCallQualityRecorder
  */
-import { watch, type Ref, type DeepReadonly } from 'vue'
+import { watch, onScopeDispose, getCurrentScope, type Ref, type DeepReadonly } from 'vue'
 import type { CallQualityStats } from './useCallQualityStats'
 import type { QualityScoreInput, CallQualityScore } from '@/types/call-quality.types'
 import { useCallQualityScore } from './useCallQualityScore'
@@ -154,37 +154,56 @@ export function useCallQualityRecorder(
     resetScore()
   }
 
+  // Track watcher stop handles for cleanup
+  const stopHandles: (() => void)[] = []
+
   /**
    * Watch call state changes to auto-start/stop recording
    */
-  watch(
-    () => isCallActive.value,
-    (active) => {
-      if (active) {
-        start()
-      } else {
-        stop()
-      }
-    },
-    { immediate: true }
+  stopHandles.push(
+    watch(
+      () => isCallActive.value,
+      (active) => {
+        if (active) {
+          start()
+        } else {
+          stop()
+        }
+      },
+      { immediate: true }
+    )
   )
 
   /**
    * Cleanup on stats changes (new call)
    */
-  watch(
-    () => statsRef.value.lastUpdated,
-    (newTimestamp, oldTimestamp) => {
-      // If timestamp jumped significantly, we might have a new call
-      if (oldTimestamp && newTimestamp) {
-        const timeDiff = newTimestamp.getTime() - oldTimestamp.getTime()
-        // If gap > 5 seconds, likely a new call - reset history
-        if (timeDiff > 5000) {
-          resetScore()
+  stopHandles.push(
+    watch(
+      () => statsRef.value.lastUpdated,
+      (newTimestamp, oldTimestamp) => {
+        // If timestamp jumped significantly, we might have a new call
+        if (oldTimestamp && newTimestamp) {
+          const timeDiff = newTimestamp.getTime() - oldTimestamp.getTime()
+          // If gap > 5 seconds, likely a new call - reset history
+          if (timeDiff > 5000) {
+            resetScore()
+          }
         }
       }
-    }
+    )
   )
+
+  // ============================================================================
+  // Lifecycle Cleanup
+  // ============================================================================
+
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stop()
+      stopHandles.forEach((stop) => stop())
+      stopHandles.length = 0
+    })
+  }
 
   return {
     currentScore: readonly(score) as DeepReadonly<Ref<CallQualityScore | null>>,

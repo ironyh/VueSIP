@@ -7,7 +7,15 @@
  * @module composables/useAgentMetrics
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef, type ShallowRef } from 'vue'
+import {
+  ref,
+  computed,
+  getCurrentScope,
+  onScopeDispose,
+  type Ref,
+  type ComputedRef,
+  type ShallowRef,
+} from 'vue'
 import type { CallCenterProvider, AgentMetrics } from '@/providers/call-center/types'
 import { createLogger } from '@/utils/logger'
 
@@ -187,9 +195,11 @@ export function useAgentMetrics(
   }
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    stopAutoRefresh()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopAutoRefresh()
+    })
+  }
 
   return {
     // State

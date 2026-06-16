@@ -6,6 +6,7 @@
   "description": "Enterprise call center application example using VueSip",
   "scripts": {
     "dev": "vite",
+    "analyze": "ANALYZE=true vite build",
     "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
     "@vue/tsconfig": "^0.5.0",
+    "rollup-plugin-visualizer": "^6.0.3",
     "typescript": "~5.4.0",
     "vite": "^5.4.21",
     "vue-tsc": "^2.0.0"

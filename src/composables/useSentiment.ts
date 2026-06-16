@@ -7,7 +7,15 @@
  * @module composables/useSentiment
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 
 /**
  * Options for configuring sentiment analysis
@@ -766,11 +774,13 @@ export function useSentiment(
   // Cleanup
   // ============================================================================
 
-  onUnmounted(() => {
-    stopWatch()
-    escalationCallbacks.length = 0
-    sentimentChangeCallbacks.length = 0
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopWatch()
+      escalationCallbacks.length = 0
+      sentimentChangeCallbacks.length = 0
+    })
+  }
 
   // ============================================================================
   // Return Interface

@@ -7,7 +7,15 @@
  * @module composables/useAmiParking
  */
 
-import { ref, computed, onUnmounted, watch, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  onScopeDispose,
+  getCurrentScope,
+  watch,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiMessage, AmiEventData, AmiAction } from '@/types/ami.types'
 import type {
@@ -382,15 +390,17 @@ export function useAmiParking(
 
       client.on('event', handler)
 
-      client.sendAction({
-        Action: 'Parkinglots',
-        ActionID: actionId,
-      }).catch((err) => {
-        clearTimeout(timeout)
-        client.off('event', handler)
-        isLoading.value = false
-        reject(err)
-      })
+      client
+        .sendAction({
+          Action: 'Parkinglots',
+          ActionID: actionId,
+        })
+        .catch((err) => {
+          clearTimeout(timeout)
+          client.off('event', handler)
+          isLoading.value = false
+          reject(err)
+        })
     })
   }
 
@@ -580,14 +590,16 @@ export function useAmiParking(
     { immediate: true }
   )
 
-  onUnmounted(() => {
-    stopPolling()
-    if (eventUnsubscribe) {
-      eventUnsubscribe()
-    }
-    parkingLots.value.clear()
-    parkingEventListeners.value = []
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopPolling()
+      if (eventUnsubscribe) {
+        eventUnsubscribe()
+      }
+      parkingLots.value.clear()
+      parkingEventListeners.value = []
+    })
+  }
 
   // ============================================================================
   // Return

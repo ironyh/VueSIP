@@ -49,7 +49,7 @@ const ASTERISK_CAPABILITIES: CallCenterCapabilities = {
  * Map Asterisk queue member status to AgentStatus
  * Used when processing QueueMemberStatus events
  */
-function mapAsteriskStatus(amiStatus: string, paused: boolean): AgentStatus {
+export function mapAsteriskStatus(amiStatus: string, paused: boolean): AgentStatus {
   if (paused) return 'break'
   switch (amiStatus) {
     case '1':
@@ -66,9 +66,6 @@ function mapAsteriskStatus(amiStatus: string, paused: boolean): AgentStatus {
       return 'offline'
   }
 }
-
-// Export for testing - suppress unused warning
-void mapAsteriskStatus
 
 /**
  * Create Asterisk AMI adapter instance
@@ -159,9 +156,15 @@ export function createAsteriskAdapter(): CallCenterProvider {
     }
   }
 
+  /** Check if an AMI event pertains to this agent */
+  function isAgentEvent(eventData: AmiEventData): boolean {
+    if (!config) return false
+    return eventData.Interface?.includes(config.agent.extension) ?? false
+  }
+
   function handleQueueMemberAdded(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (eventData.Interface !== config.agent.extension) return
+    if (!isAgentEvent(eventData)) return
 
     const queueName = eventData.Queue as string
     const existingQueue = currentState.queues.find((q) => q.name === queueName)
@@ -189,7 +192,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
 
   function handleQueueMemberRemoved(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (eventData.Interface !== config.agent.extension) return
+    if (!isAgentEvent(eventData)) return
 
     const queueName = eventData.Queue as string
     const newState: AgentState = {
@@ -202,7 +205,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
 
   function handleQueueMemberPause(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (eventData.Interface !== config.agent.extension) return
+    if (!isAgentEvent(eventData)) return
 
     const queueName = eventData.Queue as string
     const isPaused = eventData.Paused === '1'
@@ -227,7 +230,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
   function handleAgentCalled(eventData: AmiEventData) {
     if (!currentState || !config) return
     // Check if this agent is being called
-    if (!eventData.Interface?.includes(config.agent.extension)) return
+    if (!isAgentEvent(eventData)) return
 
     const queueName = eventData.Queue as string
     emitQueueEvent('call-received', queueName, {
@@ -238,7 +241,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
 
   function handleAgentConnect(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (!eventData.Interface?.includes(config.agent.extension)) return
+    if (!isAgentEvent(eventData)) return
 
     const newState: AgentState = {
       ...currentState,
@@ -258,7 +261,7 @@ export function createAsteriskAdapter(): CallCenterProvider {
 
   function handleAgentComplete(eventData: AmiEventData) {
     if (!currentState || !config) return
-    if (!eventData.Interface?.includes(config.agent.extension)) return
+    if (!isAgentEvent(eventData)) return
 
     const talkTime = parseInt(eventData.TalkTime as string, 10) || 0
 

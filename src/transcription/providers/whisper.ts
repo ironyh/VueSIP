@@ -291,6 +291,7 @@ export class WhisperProvider implements TranscriptionProvider {
 
         // Timeout for initial connection
         setTimeout(() => {
+          if (this.disposed) return
           if (this.connectionState === 'connecting') {
             this.ws?.close()
             reject(new Error(`Connection timeout to ${this.serverUrl}`))
@@ -338,13 +339,16 @@ export class WhisperProvider implements TranscriptionProvider {
     })
 
     setTimeout(async () => {
+      if (this.disposed) return
       try {
         await this.connect()
         if (this.isRunning) {
           this.startAudioProcessing()
         }
       } catch {
-        this.attemptReconnect()
+        if (!this.disposed) {
+          this.attemptReconnect()
+        }
       }
     }, delay)
   }
@@ -582,8 +586,12 @@ export class WhisperProvider implements TranscriptionProvider {
   /**
    * Clean up resources
    */
+  private disposed = false
+
   dispose(): void {
     this.isRunning = false
+    this.disposed = true
+    this.autoReconnect = false
 
     if (this.bufferInterval) {
       clearInterval(this.bufferInterval)

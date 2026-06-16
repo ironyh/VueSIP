@@ -7,7 +7,7 @@
  * @module composables/useAmiPeers
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type {
   PeerInfo,
@@ -487,13 +487,15 @@ export function useAmiPeers(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    if (pollTimer) {
-      clearInterval(pollTimer)
-      pollTimer = null
-    }
-    eventCleanups.forEach((cleanup) => cleanup())
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (pollTimer) {
+        clearInterval(pollTimer)
+        pollTimer = null
+      }
+      eventCleanups.forEach((cleanup) => cleanup())
+    })
+  }
 
   // ============================================================================
   // Return

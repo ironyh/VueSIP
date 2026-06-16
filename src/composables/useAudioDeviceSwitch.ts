@@ -7,7 +7,15 @@
  * @module composables/useAudioDeviceSwitch
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import type { CallSession } from '../core/CallSession'
 import type { AudioDevice } from '../types/audio.types'
 import { DEVICE_SWITCH_CONSTANTS } from './constants'
@@ -307,12 +315,14 @@ export function useAudioDeviceSwitch(
     }
   )
 
-  onUnmounted(() => {
-    if (deviceRemovedCleanup) {
-      deviceRemovedCleanup()
-      deviceRemovedCleanup = null
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (deviceRemovedCleanup) {
+        deviceRemovedCleanup()
+        deviceRemovedCleanup = null
+      }
+    })
+  }
 
   return {
     isSwitching,

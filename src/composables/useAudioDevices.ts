@@ -3,7 +3,7 @@
  * Provides reactive device lists, selection, and stream management
  */
 
-import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, onMounted, onScopeDispose, getCurrentScope, type Ref } from 'vue'
 import { AudioManager } from '@/core/AudioManager'
 import type {
   AudioDevice,
@@ -400,9 +400,11 @@ export function useAudioDevices(): UseAudioDevicesReturn {
   })
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    cleanup()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      cleanup()
+    })
+  }
 
   return {
     // Device lists

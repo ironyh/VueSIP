@@ -7,12 +7,9 @@
  * @module composables/useAmiSupervisor
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
-import type {
-  UseAmiSupervisorOptions,
-  OriginateResult,
-} from '@/types/ami.types'
+import type { UseAmiSupervisorOptions, OriginateResult } from '@/types/ami.types'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('useAmiSupervisor')
@@ -380,13 +377,11 @@ export function useAmiSupervisor(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(async () => {
-    // End all sessions when component unmounts
-    try {
-      await endAllSessions()
-    } catch (err) {
+  onScopeDispose(() => {
+    // End all sessions when scope disposes — fire-and-forget because Vue does not await cleanup
+    endAllSessions().catch((err) => {
       logger.warn('Failed to cleanup supervision sessions', err)
-    }
+    })
   })
 
   // ============================================================================

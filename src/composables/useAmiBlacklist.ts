@@ -7,7 +7,7 @@
  * @module composables/useAmiBlacklist
  */
 
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type {
   BlockReason,
@@ -230,9 +230,8 @@ export function useAmiBlacklist(
   // ============================================================================
 
   // Validate extension if provided to prevent path traversal
-  const validatedExtension = options.extension && isValidExtension(options.extension)
-    ? options.extension
-    : undefined
+  const validatedExtension =
+    options.extension && isValidExtension(options.extension) ? options.extension : undefined
 
   if (options.extension && !validatedExtension) {
     logger.warn('Invalid extension format provided, ignoring', { extension: options.extension })
@@ -415,12 +414,19 @@ export function useAmiBlacklist(
     }
 
     const normalized = normalizeNumber(number)
-    const sanitizedDesc = blockOptions?.description ? sanitizeInput(blockOptions.description) : undefined
+    const sanitizedDesc = blockOptions?.description
+      ? sanitizeInput(blockOptions.description)
+      : undefined
 
     // Check if already blocked
     const existing = blocklist.value.find((e) => e.number === normalized)
     if (existing && existing.status === 'active') {
-      return { success: false, number: normalized, message: 'Number already blocked', entry: existing }
+      return {
+        success: false,
+        number: normalized,
+        message: 'Number already blocked',
+        entry: existing,
+      }
     }
 
     // Create entry
@@ -582,8 +588,16 @@ export function useAmiBlacklist(
       action?: BlockAction
       description?: string
     }
-  ): Promise<{ success: number; failed: number; errors: Array<{ number: string; error: string }> }> => {
-    const results = { success: 0, failed: 0, errors: [] as Array<{ number: string; error: string }> }
+  ): Promise<{
+    success: number
+    failed: number
+    errors: Array<{ number: string; error: string }>
+  }> => {
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as Array<{ number: string; error: string }>,
+    }
 
     for (const num of numbers) {
       const result = await blockNumber(num, bulkOptions)
@@ -795,7 +809,15 @@ export function useAmiBlacklist(
         return JSON.stringify(entries, null, 2)
 
       case 'csv': {
-        const headers = ['number', 'reason', 'action', 'description', 'blockedAt', 'status', 'blockedCount']
+        const headers = [
+          'number',
+          'reason',
+          'action',
+          'description',
+          'blockedAt',
+          'status',
+          'blockedCount',
+        ]
         const rows = entries.map((e) => [
           e.number,
           e.reason,
@@ -816,7 +838,10 @@ export function useAmiBlacklist(
     }
   }
 
-  const importList = async (data: string, format: BlacklistFormat = 'json'): Promise<ImportResult> => {
+  const importList = async (
+    data: string,
+    format: BlacklistFormat = 'json'
+  ): Promise<ImportResult> => {
     const result: ImportResult = {
       success: false,
       imported: 0,
@@ -826,7 +851,12 @@ export function useAmiBlacklist(
     }
 
     try {
-      let numbers: Array<{ number: string; reason?: BlockReason; action?: BlockAction; description?: string }>
+      let numbers: Array<{
+        number: string
+        reason?: BlockReason
+        action?: BlockAction
+        description?: string
+      }>
 
       switch (format) {
         case 'json':
@@ -908,11 +938,12 @@ export function useAmiBlacklist(
       number: normalized,
       spamScore: entry ? (entry.reason === 'spam' || entry.reason === 'robocall' ? 90 : 50) : 0,
       isBlocked: isBlocked(normalized),
-      category: entry?.reason === 'spam' || entry?.reason === 'robocall' || entry?.reason === 'telemarketer'
-        ? entry.reason as 'spam' | 'telemarketer' | 'robocall'
-        : entry
-        ? 'unknown'
-        : 'legitimate',
+      category:
+        entry?.reason === 'spam' || entry?.reason === 'robocall' || entry?.reason === 'telemarketer'
+          ? (entry.reason as 'spam' | 'telemarketer' | 'robocall')
+          : entry
+            ? 'unknown'
+            : 'legitimate',
       reportCount: entry?.blockedCount ?? 0,
     }
 
@@ -1001,12 +1032,14 @@ export function useAmiBlacklist(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    if (eventUnsubscribe) {
-      eventUnsubscribe()
-      eventUnsubscribe = null
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (eventUnsubscribe) {
+        eventUnsubscribe()
+        eventUnsubscribe = null
+      }
+    })
+  }
 
   // ============================================================================
   // Return

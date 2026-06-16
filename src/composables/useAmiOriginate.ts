@@ -7,7 +7,7 @@
  * @module composables/useAmiOriginate
  */
 
-import { ref, watch, onUnmounted, type Ref } from 'vue'
+import { ref, watch, onScopeDispose, getCurrentScope, type Ref } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiAction, AmiMessage, AmiEventData } from '@/types/ami.types'
 import type {
@@ -569,10 +569,12 @@ export function useAmiOriginate(
     { immediate: true }
   )
 
-  onUnmounted(() => {
-    cleanupEvents()
-    reset()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      cleanupEvents()
+      reset()
+    })
+  }
 
   // ============================================================================
   // Return Interface

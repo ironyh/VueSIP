@@ -37,6 +37,9 @@
 import { ref, onErrorCaptured } from 'vue'
 import { ErrorSeverity, createErrorContext, formatError } from '../utils/errorContext'
 import { formatUnknownError } from '../utils/errorHelpers'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger('ErrorBoundary')
 
 export interface ErrorBoundaryProps {
   /** Custom error title */
@@ -114,8 +117,8 @@ onErrorCaptured((err, instance, info) => {
   // Log the error with context
   const formattedError = formatError(`Error captured in ${props.component}`, err, context)
 
-  // TODO: Integrate with global error logger
-  console.error('ErrorBoundary caught error:', formattedError)
+  // Log the error with context via the shared logger system
+  logger.error('Caught error:', formattedError)
 
   // Emit error event
   emit('error', err, errorInfo.value)

@@ -7,7 +7,7 @@
  * @module composables/useAmiCallback
  */
 
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type {
   CallbackStatus,
@@ -946,18 +946,20 @@ export function useAmiCallback(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    stopCallbackTimer()
-    stopAutoExecute()
-    eventCleanups.forEach((cleanup) => cleanup())
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopCallbackTimer()
+      stopAutoExecute()
+      eventCleanups.forEach((cleanup) => cleanup())
 
-    // Cancel active callback
-    if (activeCallback.value && client) {
-      cancelCallback(activeCallback.value.id, 'Component unmounted').catch(() => {
-        // Ignore errors during cleanup
-      })
-    }
-  })
+      // Cancel active callback
+      if (activeCallback.value && client) {
+        cancelCallback(activeCallback.value.id, 'Component unmounted').catch(() => {
+          // Ignore errors during cleanup
+        })
+      }
+    })
+  }
 
   // ============================================================================
   // Return

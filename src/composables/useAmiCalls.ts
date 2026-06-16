@@ -7,7 +7,7 @@
  * @module composables/useAmiCalls
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope, type Ref, type ComputedRef } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type {
   ChannelInfo,
@@ -62,7 +62,11 @@ export interface UseAmiCallsReturn {
   /** Refresh channel list */
   refresh: () => Promise<void>
   /** Make a click-to-call (agent-first) */
-  clickToCall: (agentChannel: string, destination: string, options?: ClickToCallOptions) => Promise<OriginateResult>
+  clickToCall: (
+    agentChannel: string,
+    destination: string,
+    options?: ClickToCallOptions
+  ) => Promise<OriginateResult>
   /** Originate a call (raw) */
   originate: (options: OriginateOptions) => Promise<OriginateResult>
   /** Hangup a call */
@@ -171,14 +175,10 @@ export function useAmiCalls(
   const callCount = computed(() => calls.value.size)
 
   const ringingCalls = computed(() =>
-    callList.value.filter(
-      (c) => c.state === ChannelState.Ringing || c.state === ChannelState.Ring
-    )
+    callList.value.filter((c) => c.state === ChannelState.Ringing || c.state === ChannelState.Ring)
   )
 
-  const connectedCalls = computed(() =>
-    callList.value.filter((c) => c.state === ChannelState.Up)
-  )
+  const connectedCalls = computed(() => callList.value.filter((c) => c.state === ChannelState.Up))
 
   const dialingCalls = computed(() =>
     callList.value.filter(
@@ -186,9 +186,7 @@ export function useAmiCalls(
     )
   )
 
-  const totalDuration = computed(() =>
-    callList.value.reduce((sum, c) => sum + c.duration, 0)
-  )
+  const totalDuration = computed(() => callList.value.reduce((sum, c) => sum + c.duration, 0))
 
   // ============================================================================
   // Methods
@@ -365,19 +363,13 @@ export function useAmiCalls(
     const call = calls.value.get(channelOrUniqueId)
     const channelName = call?.channel ?? channelOrUniqueId
 
-    await client.redirectChannel(
-      channelName,
-      context ?? config.defaultContext,
-      destination,
-      1
-    )
+    await client.redirectChannel(channelName, context ?? config.defaultContext, destination, 1)
   }
 
   /**
    * Get state label
    */
-  const getStateLabel = (state: ChannelState): string =>
-    config.stateLabels[state] || 'Unknown'
+  const getStateLabel = (state: ChannelState): string => config.stateLabels[state] || 'Unknown'
 
   // ============================================================================
   // Event Handlers
@@ -503,13 +495,15 @@ export function useAmiCalls(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    if (pollTimer) {
-      clearInterval(pollTimer)
-      pollTimer = null
-    }
-    eventCleanups.forEach((cleanup) => cleanup())
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (pollTimer) {
+        clearInterval(pollTimer)
+        pollTimer = null
+      }
+      eventCleanups.forEach((cleanup) => cleanup())
+    })
+  }
 
   // ============================================================================
   // Return

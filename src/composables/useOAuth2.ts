@@ -53,7 +53,15 @@
  * ```
  */
 
-import { ref, computed, onMounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  onMounted,
+  getCurrentScope,
+  onScopeDispose,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import {
   createOAuth2Service,
   generatePKCE,
@@ -142,6 +150,13 @@ export function useOAuth2(options: UseOAuth2Options): UseOAuth2ComposableReturn 
       isInitialized.value = true
     }
   })
+
+  // Cleanup on scope dispose
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      service.clearAuth().catch(() => {})
+    })
+  }
 
   return {
     // Service state (reactive refs from service)

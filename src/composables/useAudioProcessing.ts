@@ -7,7 +7,7 @@
  * @module composables/useAudioProcessing
  */
 
-import { ref, readonly, onUnmounted, type Ref, type DeepReadonly } from 'vue'
+import { ref, readonly, onScopeDispose, getCurrentScope, type Ref, type DeepReadonly } from 'vue'
 import { createLogger } from '../utils/logger'
 
 const logger = createLogger('composables:useAudioProcessing')
@@ -639,9 +639,11 @@ export function useAudioProcessing(
   }
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    stopProcessing()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopProcessing()
+    })
+  }
 
   return {
     // State

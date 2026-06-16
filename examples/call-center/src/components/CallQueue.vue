@@ -1,5 +1,5 @@
 <template>
-  <div class="call-queue card">
+  <div class="call-queue card" data-testid="call-center-queue">
     <h2>Call Queue</h2>
 
     <!-- Queue Announcements -->
@@ -10,14 +10,25 @@
     <div v-if="queue.length === 0" class="empty-state">
       <p>No calls in queue</p>
       <p class="helper-text">
-        {{ agentStatus === 'available' ? 'Waiting for incoming calls...' : 'Set status to Available to receive calls' }}
+        {{
+          agentStatus === 'available'
+            ? 'Waiting for incoming calls...'
+            : 'Set status to Available to receive calls'
+        }}
       </p>
     </div>
 
     <div v-else class="queue-table-wrapper">
       <table class="queue-table">
         <caption class="sr-only">
-          Call Queue: {{ queue.length }} {{ queue.length === 1 ? 'call' : 'calls' }} waiting
+          Call Queue:
+          {{
+            queue.length
+          }}
+          {{
+            queue.length === 1 ? 'call' : 'calls'
+          }}
+          waiting
         </caption>
         <thead>
           <tr>
@@ -32,11 +43,15 @@
             v-for="call in sortedQueue"
             :key="call.id"
             :class="{ urgent: call.waitTime > 60 }"
+            :data-testid="`queue-row-${call.id}`"
           >
             <td>
               <div class="caller-info">
                 <div class="caller-name">{{ call.displayName || 'Unknown' }}</div>
-                <div class="caller-number">{{ formatUri(call.from) }}</div>
+                <div class="caller-meta">
+                  <span class="caller-number">{{ formatUri(call.from) }}</span>
+                  <span class="queue-pill">{{ call.queue }}</span>
+                </div>
               </div>
             </td>
             <td>
@@ -53,6 +68,7 @@
             <td>
               <button
                 class="btn btn-success btn-sm"
+                :data-testid="`queue-answer-${call.id}`"
                 :disabled="agentStatus !== 'available'"
                 @click="handleAnswerCall(call)"
                 :aria-label="`Answer call from ${call.displayName || 'Unknown'}, waiting ${formatWaitTime(call.waitTime)}`"
@@ -84,6 +100,7 @@ interface QueuedCall {
   displayName?: string
   waitTime: number
   priority?: number
+  queue: string
 }
 
 // ============================================================================
@@ -169,21 +186,22 @@ const handleAnswerCall = (call: QueuedCall) => {
 }
 
 // Watch for queue length changes
-watch(() => props.queue.length, (newLength, oldLength) => {
-  if (newLength > oldLength) {
-    const diff = newLength - oldLength
-    const announcement = diff === 1
-      ? 'New call in queue'
-      : `${diff} new calls in queue`
-    queueAnnouncement.value = announcement
-    emit('queue-update', announcement)
+watch(
+  () => props.queue.length,
+  (newLength, oldLength) => {
+    if (newLength > oldLength) {
+      const diff = newLength - oldLength
+      const announcement = diff === 1 ? 'New call in queue' : `${diff} new calls in queue`
+      queueAnnouncement.value = announcement
+      emit('queue-update', announcement)
 
-    setTimeout(() => {
-      queueAnnouncement.value = ''
-    }, 2000)
+      setTimeout(() => {
+        queueAnnouncement.value = ''
+      }, 2000)
+    }
+    previousQueueLength.value = newLength
   }
-  previousQueueLength.value = newLength
-})
+)
 </script>
 
 <style scoped>
@@ -286,6 +304,26 @@ watch(() => props.queue.length, (newLength, oldLength) => {
   font-size: 0.75rem;
   color: #6b7280;
   margin-top: 0.125rem;
+}
+
+.caller-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.queue-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .wait-urgent {

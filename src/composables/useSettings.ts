@@ -7,7 +7,15 @@
  * @module composables/useSettings
  */
 
-import { computed, watch, onMounted, onUnmounted, type ComputedRef, type Ref } from 'vue'
+import {
+  computed,
+  watch,
+  onMounted,
+  onScopeDispose,
+  getCurrentScope,
+  type ComputedRef,
+  type Ref,
+} from 'vue'
 import { storeToRefs } from 'pinia'
 import {
   useSettingsStore,
@@ -426,20 +434,22 @@ export function useSettings(): UseSettingsReturn {
     }
   })
 
-  onUnmounted(() => {
-    log.info('Settings composable unmounted')
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      log.info('Settings composable unmounted')
 
-    // Stop auto-save watcher
-    if (saveWatcher) {
-      saveWatcher()
-      saveWatcher = null
-    }
+      // Stop auto-save watcher
+      if (saveWatcher) {
+        saveWatcher()
+        saveWatcher = null
+      }
 
-    // Save dirty settings on unmount
-    if (isDirty.value) {
-      save()
-    }
-  })
+      // Save dirty settings on unmount
+      if (isDirty.value) {
+        save()
+      }
+    })
+  }
 
   // ==========================================================================
   // Return

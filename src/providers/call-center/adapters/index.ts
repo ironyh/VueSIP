@@ -4,7 +4,7 @@
  * @module providers/call-center/adapters
  */
 
-export { createAsteriskAdapter } from './asterisk'
+export { createAsteriskAdapter, mapAsteriskStatus } from './asterisk'
 
 // Future adapters:
 // export { createFreeSwitchAdapter } from './freeswitch'

@@ -750,8 +750,10 @@ export function createOAuth2Service(config: OAuth2ServiceConfig): OAuth2ServiceR
     if (isRefreshing.value) {
       // Wait for existing refresh to complete
       return new Promise((resolve, reject) => {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined
         const unwatch = watch(isRefreshing, (refreshing) => {
           if (!refreshing) {
+            if (timeoutId) clearTimeout(timeoutId)
             unwatch()
             if (tokens.value) {
               resolve(tokens.value)
@@ -760,6 +762,14 @@ export function createOAuth2Service(config: OAuth2ServiceConfig): OAuth2ServiceR
             }
           }
         })
+        // Safety: stop watching after 30s to prevent leaked watchers
+        timeoutId = setTimeout(() => {
+          unwatch()
+          reject({
+            error: 'refresh_timeout',
+            error_description: 'Timed out waiting for token refresh',
+          })
+        }, 30_000)
       })
     }
 
@@ -962,7 +972,7 @@ export function getOAuth2Service(config?: OAuth2ServiceConfig): OAuth2ServiceRet
  */
 export function resetOAuth2Service(): void {
   if (_oauth2ServiceInstance) {
-    _oauth2ServiceInstance.clearAuth()
+    _oauth2ServiceInstance.clearAuth().catch(() => {})
     _oauth2ServiceInstance = null
   }
 }

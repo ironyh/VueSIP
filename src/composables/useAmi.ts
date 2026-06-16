@@ -7,7 +7,7 @@
  * @module composables/useAmi
  */
 
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, getCurrentScope, onScopeDispose, type Ref, type ComputedRef } from 'vue'
 import { AmiClient, createAmiClient } from '@/core/AmiClient'
 import type {
   AmiConfig,
@@ -102,15 +102,9 @@ export function useAmi(): UseAmiReturn {
   const connectionState = ref<AmiConnectionState>(AmiConnectionState.Disconnected)
   const error = ref<string | null>(null)
   const presenceStates = ref<Map<string, AmiPresenceState>>(new Map())
-  const discoveredStates = ref<Set<string>>(new Set([
-    'available',
-    'away',
-    'dnd',
-    'busy',
-    'unavailable',
-    'xa',
-    'chat',
-  ]))
+  const discoveredStates = ref<Set<string>>(
+    new Set(['available', 'away', 'dnd', 'busy', 'unavailable', 'xa', 'chat'])
+  )
 
   const eventListeners = ref<Array<(event: AmiMessage<AmiEventData>) => void>>([])
   const presenceListeners = ref<Array<(extension: string, state: AmiPresenceState) => void>>([])
@@ -342,11 +336,14 @@ export function useAmi(): UseAmiReturn {
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    disconnect()
-    eventListeners.value = []
-    presenceListeners.value = []
-  })
+  // Cleanup on unmount
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      disconnect()
+      eventListeners.value = []
+      presenceListeners.value = []
+    })
+  }
 
   // ============================================================================
   // Return

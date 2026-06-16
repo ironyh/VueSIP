@@ -7,7 +7,7 @@
  * @module composables/useAmiSpy
  */
 
-import { ref, watch, onUnmounted, type Ref } from 'vue'
+import { ref, watch, onScopeDispose, getCurrentScope, type Ref } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiAction, AmiMessage, AmiEventData } from '@/types/ami.types'
 import { createLogger } from '@/utils/logger'
@@ -740,19 +740,21 @@ export function useAmiSpy(
     { immediate: true }
   )
 
-  onUnmounted(() => {
-    cleanupEvents()
-    // Stop all active sessions
-    for (const sessionId of activeSessions.value.keys()) {
-      stopSession(sessionId).catch(() => {
-        // Ignore errors during cleanup
-      })
-    }
-    activeSessions.value.clear()
-    currentSession.value = null
-    currentMode.value = null
-    isSpying.value = false
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      cleanupEvents()
+      // Stop all active sessions
+      for (const sessionId of activeSessions.value.keys()) {
+        stopSession(sessionId).catch(() => {
+          // Ignore errors during cleanup
+        })
+      }
+      activeSessions.value.clear()
+      currentSession.value = null
+      currentMode.value = null
+      isSpying.value = false
+    })
+  }
 
   // ============================================================================
   // Return Interface

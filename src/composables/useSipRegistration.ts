@@ -7,7 +7,15 @@
  * @module composables/useSipRegistration
  */
 
-import { ref, computed, watch, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import {
+  ref,
+  computed,
+  watch,
+  onScopeDispose,
+  getCurrentScope,
+  type Ref,
+  type ComputedRef,
+} from 'vue'
 import { registrationStore } from '../stores/registrationStore'
 import { RegistrationState } from '../types/sip.types'
 import { createLogger } from '../utils/logger'
@@ -335,14 +343,14 @@ export function useSipRegistration(
             `(attempt ${retryCount.value + 1}/${maxRetries})`
         )
 
-        // Critical fix: Track timeout and check if still mounted before retrying
+        // Critical fix: Track timeout and check scope is still active before retrying
         retryTimeoutId = window.setTimeout(() => {
           retryTimeoutId = null
-          // Only retry if component is still mounted (sipClient ref exists)
-          if (sipClient.value) {
+          // Only retry if scope is still active (component still mounted)
+          if (getCurrentScope()) {
             register().catch((err) => log.error('Retry failed:', err))
           } else {
-            log.debug('Component unmounted, skipping retry')
+            log.debug('Scope disposed, skipping retry')
           }
         }, retryDelay)
       } else {
@@ -446,9 +454,9 @@ export function useSipRegistration(
   // Lifecycle
   // ============================================================================
 
-  // Cleanup on component unmount
-  onUnmounted(() => {
-    log.debug('Composable unmounting, clearing timers and store watch')
+  // Cleanup on scope dispose
+  onScopeDispose(() => {
+    log.debug('Composable disposing, clearing timers and store watch')
     clearAutoRefresh()
 
     // Critical fix: Clear retry timeout to prevent orphaned promises

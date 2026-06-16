@@ -495,24 +495,9 @@ export function createErrorMessage(error: unknown, context?: string): string {
   return context ? `${context}: ${message}` : message
 }
 
-/**
- * Check if error is a network error
- *
- * @param error - Error object
- * @returns Whether error is network-related
- */
-export function isNetworkError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false
-
-  const message = error.message.toLowerCase()
-  return (
-    message.includes('network') ||
-    message.includes('connection') ||
-    message.includes('timeout') ||
-    message.includes('refused') ||
-    message.includes('unreachable')
-  )
-}
+// Re-export isNetworkError from errorHelpers (canonical implementation with
+// TypeError+message pattern matching, NetworkError name check, etc.)
+export { isNetworkError } from './errorHelpers'
 
 /**
  * Check if error is a timeout error

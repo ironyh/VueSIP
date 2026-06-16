@@ -8,7 +8,7 @@
  * @module composables/useAmiAgentLogin
  */
 
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onScopeDispose, getCurrentScope } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiMessage } from '@/types/ami.types'
 import type {
@@ -1051,19 +1051,21 @@ export function useAmiAgentLogin(
   // Lifecycle
   // ============================================================================
 
-  onUnmounted(() => {
-    stopSessionTimer()
-    if (shiftTimer) {
-      clearInterval(shiftTimer)
-      shiftTimer = null
-    }
-    if (timedPauseTimer) {
-      clearTimeout(timedPauseTimer)
-      timedPauseTimer = null
-    }
-    eventCleanups.forEach((cleanup) => cleanup())
-    saveSession()
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      stopSessionTimer()
+      if (shiftTimer) {
+        clearInterval(shiftTimer)
+        shiftTimer = null
+      }
+      if (timedPauseTimer) {
+        clearTimeout(timedPauseTimer)
+        timedPauseTimer = null
+      }
+      eventCleanups.forEach((cleanup) => cleanup())
+      saveSession()
+    })
+  }
 
   // ============================================================================
   // Return

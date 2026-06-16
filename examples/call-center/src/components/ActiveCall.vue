@@ -1,5 +1,5 @@
 <template>
-  <div class="active-call card">
+  <div class="active-call card" data-testid="call-center-active-call">
     <h2>Active Call</h2>
 
     <!-- Call State Announcements -->
@@ -96,7 +96,12 @@
         <span>{{ isOnHold ? 'Resume' : 'Hold' }}</span>
       </button>
 
-      <button class="control-btn hangup-btn" @click="$emit('hangup')" aria-label="End call">
+      <button
+        class="control-btn hangup-btn"
+        data-testid="call-center-hangup"
+        @click="$emit('hangup')"
+        aria-label="End call"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="20"

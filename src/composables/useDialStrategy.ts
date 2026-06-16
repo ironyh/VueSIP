@@ -9,7 +9,14 @@
  * @module composables/useDialStrategy
  */
 
-import { ref, type Ref, type ComputedRef, type DeepReadonly, onUnmounted } from 'vue'
+import {
+  ref,
+  type Ref,
+  type ComputedRef,
+  type DeepReadonly,
+  getCurrentScope,
+  onScopeDispose,
+} from 'vue'
 import type { SipClient } from '../core/SipClient'
 import {
   type DialStrategy,
@@ -368,12 +375,14 @@ export function useDialStrategy(sipClient: SipClientInstanceRef): UseDialStrateg
   }
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    // Reset state but don't interrupt active dialing
-    if (!isDialing.value) {
-      reset()
-    }
-  })
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      // Reset state but don't interrupt active dialing
+      if (!isDialing.value) {
+        reset()
+      }
+    })
+  }
 
   return {
     strategy: strategy as DeepReadonly<Ref<DialStrategyType>>,

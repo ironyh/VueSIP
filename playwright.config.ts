@@ -232,12 +232,22 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'pnpm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000, // 2 minutes for CI environments
-    stdout: process.env.CI ? 'pipe' : 'ignore',
-    stderr: process.env.CI ? 'pipe' : 'ignore',
-  },
+  webServer: [
+    {
+      command: 'pnpm run dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000, // 2 minutes for CI environments
+      stdout: process.env.CI ? 'pipe' : 'ignore',
+      stderr: process.env.CI ? 'pipe' : 'ignore',
+    },
+    {
+      command: 'pnpm --dir examples/call-center dev --host 127.0.0.1 --port 5174',
+      url: 'http://localhost:5174',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+      stdout: process.env.CI ? 'pipe' : 'ignore',
+      stderr: process.env.CI ? 'pipe' : 'ignore',
+    },
+  ],
 })

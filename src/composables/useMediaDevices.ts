@@ -12,7 +12,8 @@ import {
   computed,
   watch,
   onMounted,
-  onUnmounted,
+  onScopeDispose,
+  getCurrentScope,
   nextTick,
   type Ref,
   type ComputedRef,
@@ -894,16 +895,18 @@ export function useMediaDevices(
   })
 
   // Cleanup on unmount
-  onUnmounted(() => {
-    log.debug('Composable unmounting, cleaning up')
-    stopDeviceChangeMonitoring()
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      log.debug('Composable unmounting, cleaning up')
+      stopDeviceChangeMonitoring()
 
-    // Abort any pending async operations
-    if (!internalAbortController.value.signal.aborted) {
-      log.info('Aborting pending operations on unmount')
-      internalAbortController.value.abort()
-    }
-  })
+      // Abort any pending async operations
+      if (!internalAbortController.value.signal.aborted) {
+        log.info('Aborting pending operations on unmount')
+        internalAbortController.value.abort()
+      }
+    })
+  }
 
   // ============================================================================
   // Return Public API
