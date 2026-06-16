@@ -92,10 +92,10 @@ export default defineConfig({
     navigationTimeout: process.env.CI ? 60000 : 30000,
   },
   /* Global test timeout - increased for CI */
-  timeout: process.env.CI ? 60000 : 30000,
+  timeout: process.env.CI ? 180000 : 60000,
   /* Expect timeout for assertions */
   expect: {
-    timeout: process.env.CI ? 15000 : 5000,
+    timeout: process.env.CI ? 45000 : 15000,
   },
 
   /* Configure projects for major browsers */

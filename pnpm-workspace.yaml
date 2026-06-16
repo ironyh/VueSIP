@@ -4,7 +4,7 @@ packages:
 
 # Shared versions for library + starter templates (examples may pin Vite 5 separately).
 catalog:
-  vue: ^3.5.31
+  vue: ^3.5.33
   typescript: ~5.4.5
   vite: ^7.3.2
   vue-tsc: ^2.2.12

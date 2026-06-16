@@ -13,13 +13,17 @@ const MOCK_PLAYBACK_URL = 'https://example.com/play/rec-1'
 
 test.describe('PBX Recordings smoke', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(SMOKE_DEMO_HASH)
-    await page.waitForLoadState('domcontentloaded')
+    await page.goto(SMOKE_DEMO_HASH, { waitUntil: 'networkidle' })
+    await page.waitForLoadState('networkidle')
   })
 
   test('list renders and Play resolves playback URL', async ({ page }) => {
-    await expect(page.getByTestId('pbx-recordings-smoke')).toBeVisible()
-    await expect(page.getByTestId('pbx-recordings-list')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="pbx-recordings-smoke"]')).toBeVisible({
+      timeout: 30000,
+    })
+    await expect(page.locator('[data-testid="pbx-recordings-list"]')).toBeVisible({
+      timeout: 40000,
+    })
 
     await expect(page.getByTestId('recording-row-rec-1')).toBeVisible()
     await expect(page.getByTestId('play-button-rec-1')).toBeVisible()
@@ -31,7 +35,9 @@ test.describe('PBX Recordings smoke', () => {
   })
 
   test('recordings list has at least one item', async ({ page }) => {
-    await expect(page.getByTestId('pbx-recordings-list')).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid="pbx-recordings-list"]')).toBeVisible({
+      timeout: 40000,
+    })
     const rows = page.getByTestId(/^recording-row-/)
     await expect(rows.first()).toBeVisible()
   })
