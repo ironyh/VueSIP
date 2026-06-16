@@ -77,6 +77,25 @@
         <span id="displayName-hint" class="sr-only">Enter your agent display name</span>
       </div>
 
+      <div class="form-group">
+        <label for="amiUrl">
+          AMI WebSocket URL
+          <span class="optional-indicator">(optional)</span>
+        </label>
+        <input
+          id="amiUrl"
+          v-model="form.amiUrl"
+          data-testid="call-center-ami-url"
+          type="text"
+          placeholder="ws://pbx.example.com:8080 (leave empty = demo mode)"
+          aria-describedby="amiUrl-hint"
+        />
+        <span id="amiUrl-hint" class="form-hint">
+          Provide an amiws proxy URL to use live Asterisk queue, agent login, and callbacks. Leave
+          empty to run in simulated demo mode.
+        </span>
+      </div>
+
       <div
         v-if="error"
         class="error-message"
@@ -134,6 +153,7 @@ const emit = defineEmits<{
       username: string
       password: string
       displayName: string
+      amiUrl: string
     },
   ]
   disconnect: []
@@ -144,6 +164,7 @@ const form = reactive({
   username: '',
   password: '',
   displayName: '',
+  amiUrl: '',
 })
 
 const handleConnect = () => {
@@ -152,6 +173,7 @@ const handleConnect = () => {
     username: form.username,
     password: form.password,
     displayName: form.displayName,
+    amiUrl: form.amiUrl,
   })
 }
 </script>
@@ -190,6 +212,21 @@ const handleConnect = () => {
   color: #ef4444;
   margin-left: 0.25rem;
   font-weight: 600;
+}
+
+.optional-indicator {
+  color: #6b7280;
+  margin-left: 0.25rem;
+  font-weight: 400;
+  font-size: 0.8em;
+}
+
+.form-hint {
+  display: block;
+  color: #6b7280;
+  font-size: 0.8125rem;
+  margin-top: 0.375rem;
+  line-height: 1.4;
 }
 
 .error-message {

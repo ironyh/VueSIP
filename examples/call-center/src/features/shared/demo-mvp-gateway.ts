@@ -3,14 +3,10 @@ import type {
   DemoContactProfile,
   DemoScenario,
   DemoStoryScene,
+  MvpGatewayCapabilities,
+  MvpGatewayRuntime,
   QueuedCallView,
 } from './mvp-types'
-
-interface DemoGatewayRuntime {
-  isQueueOpen: () => boolean
-  onInboundCall: (call: QueuedCallView) => void
-  onTick: () => void
-}
 
 interface DemoGatewayOptions {
   random?: () => number
@@ -124,9 +120,10 @@ const seededCallbacks: Array<
 export function createDemoMvpGateway(options: DemoGatewayOptions = {}) {
   const random = options.random ?? Math.random
   const now = options.now ?? Date.now
-  const capabilities = {
+  const capabilities: MvpGatewayCapabilities = {
     manualOutbound: false,
     supervisorAudioIntervention: false,
+    liveQueue: false,
   }
 
   let intervalId: ReturnType<typeof setInterval> | null = null
@@ -435,7 +432,7 @@ export function createDemoMvpGateway(options: DemoGatewayOptions = {}) {
     }
   }
 
-  function start(runtime: DemoGatewayRuntime, intervalMs = 5000) {
+  function start(runtime: MvpGatewayRuntime, intervalMs = 5000) {
     if (intervalId) {
       return
     }

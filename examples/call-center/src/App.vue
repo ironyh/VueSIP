@@ -116,6 +116,7 @@
       v-show="isConnected"
       :selected-preset="runtimeRequest.selectedPreset"
       :sip-config="runtimeRequest.sipConfig"
+      :ami-config="runtimeRequest.amiConfig"
       @connected="handleRuntimeConnected"
       @connection-error="handleRuntimeConnectionError"
       @disconnected="handleRuntimeDisconnected"
@@ -126,23 +127,29 @@
 <script setup lang="ts">
 import { ref, defineAsyncComponent } from 'vue'
 import type { SipClientConfig } from 'vuesip'
+import type { AmiConfig } from '../../src/types/ami.types'
 import ConnectionPanel from './components/ConnectionPanel.vue'
 import { useEnvironmentSetup } from './features/setup/useEnvironmentSetup'
 const CallCenterRuntime = defineAsyncComponent(() => import('./CallCenterRuntime.vue'))
 
-const { selectedPreset, readiness, syncFromForm, validateCurrentConfig, toSipConfig } =
+const { selectedPreset, readiness, syncFromForm, validateCurrentConfig, toSipConfig, toAmiConfig } =
   useEnvironmentSetup()
 
 const isConnected = ref(false)
 const isConnecting = ref(false)
 const connectionErrorMessage = ref<string | null>(null)
-const runtimeRequest = ref<{ selectedPreset: string; sipConfig: SipClientConfig } | null>(null)
+const runtimeRequest = ref<{
+  selectedPreset: string
+  sipConfig: SipClientConfig
+  amiConfig: AmiConfig | null
+} | null>(null)
 
 const handleConnect = (form: {
   server: string
   username: string
   password: string
   displayName: string
+  amiUrl: string
 }) => {
   syncFromForm(form)
 
@@ -158,6 +165,7 @@ const handleConnect = (form: {
   runtimeRequest.value = {
     selectedPreset: selectedPreset.value,
     sipConfig: toSipConfig(),
+    amiConfig: toAmiConfig(),
   }
 }
 
