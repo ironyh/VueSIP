@@ -2,6 +2,8 @@
 
 A production-ready Progressive Web App (PWA) softphone template built with Vue 3 and VueSIP. This template provides a mobile-first, installable softphone that can receive push notifications for incoming calls.
 
+> **Contributing / development:** See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) in the repo root for the pnpm workspace install, the `smoke:templates` gate, and other cross-template guidance before filing a PR touching this starter.
+
 ## Features
 
 - **PWA Support**: Installable on mobile and desktop devices

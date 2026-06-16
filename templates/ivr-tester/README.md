@@ -2,6 +2,8 @@
 
 Interactive Voice Response (IVR) testing tool built with VueSIP. Test and map IVR phone systems by making real calls and navigating menus with DTMF tones.
 
+> **Contributing / development:** See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) in the repo root for the pnpm workspace install, the `smoke:templates` gate, and other cross-template guidance before filing a PR touching this starter.
+
 ## Features
 
 - **IVR Tree Visualization**: Build a visual tree as you navigate IVR menus

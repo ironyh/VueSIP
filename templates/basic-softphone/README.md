@@ -2,6 +2,8 @@
 
 A production-ready softphone template with PrimeVue UI components, featuring a complete dialpad, call controls, call history, and audio device settings.
 
+> **Contributing / development:** See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) in the repo root for the pnpm workspace install, the `smoke:templates` gate, and other cross-template guidance before filing a PR touching this starter.
+
 ## Features
 
 - Professional UI with PrimeVue components
