@@ -23,81 +23,119 @@ describe('usePatientAssignments', () => {
     store.clear()
   })
 
-  it('seeds a demo directory on first load', () => {
-    const { directory, oasNurses } = usePatientAssignments()
+  it('seeds a demo directory with roles on first load', () => {
+    const { directory, allRoles } = usePatientAssignments()
 
+    expect(directory.value.roles.length).toBeGreaterThan(0)
+    expect(allRoles.value.some((r) => r.id === 'sjukskoterska')).toBe(true)
     expect(directory.value.teams.length).toBeGreaterThan(0)
     expect(directory.value.nurses.length).toBeGreaterThan(0)
     expect(directory.value.assignments.length).toBeGreaterThan(0)
-    expect(oasNurses.value.length).toBeGreaterThan(0)
   })
 
-  it('identifies patients with no designated OAS', () => {
-    const { unassigned } = usePatientAssignments()
+  it('identifies patients missing coverage for any default role', () => {
+    const { directory, unassigned } = usePatientAssignments()
 
-    // The seed includes at least one patient with primaryNurseId: null.
+    // The seed includes a patient with no responsibilities at all (p2).
     expect(unassigned.value.length).toBeGreaterThanOrEqual(1)
-    expect(unassigned.value.every((a) => a.primaryNurseId === null)).toBe(true)
+    // "Unassigned" = missing at least one default role, not necessarily empty.
+    expect(
+      unassigned.value.every(
+        (a) =>
+          !directory.value.roles.filter((r) => r.isDefault).every((r) => a.responsibilities[r.id])
+      )
+    ).toBe(true)
   })
 
-  it('assigns a nurse to a patient (the "ta ansvar" action)', () => {
-    const { directory, oasNurses, assignNurse, getAssigneeFor } = usePatientAssignments()
-    const unassignedPatient = directory.value.assignments.find((a) => !a.primaryNurseId)!
-    const nurse = oasNurses.value[0]
+  it('assigns a person to a role for a patient (the "ta ansvar" action)', () => {
+    const { directory, peopleForRole, assignRole, getAssigneeFor } = usePatientAssignments()
+    const patient = directory.value.assignments.find((a) => !a.responsibilities['sjukgymnast'])!
+    const nurse = peopleForRole('sjukgymnast')[0]
 
-    assignNurse(unassignedPatient.patientId, nurse.id)
+    assignRole(patient.patientId, 'sjukgymnast', nurse.id)
 
-    const assignee = getAssigneeFor(unassignedPatient.patientId)
-    expect(assignee?.id).toBe(nurse.id)
+    expect(getAssigneeFor(patient.patientId, 'sjukgymnast')?.id).toBe(nurse.id)
   })
 
-  it('reassigns a patient to a different nurse', () => {
-    const { directory, oasNurses, assignNurse, getAssigneeFor } = usePatientAssignments()
+  it('reassigns a role to a different person', () => {
+    const { directory, peopleForRole, assignRole, getAssigneeFor } = usePatientAssignments()
     const patient = directory.value.assignments[0]
-    const newNurse = oasNurses.value[1]
+    const nurses = peopleForRole('sjukskoterska')
+    const newNurse = nurses[nurses.length - 1]
 
-    assignNurse(patient.patientId, newNurse.id)
+    assignRole(patient.patientId, 'sjukskoterska', newNurse.id)
 
-    expect(getAssigneeFor(patient.patientId)?.id).toBe(newNurse.id)
+    expect(getAssigneeFor(patient.patientId, 'sjukskoterska')?.id).toBe(newNurse.id)
   })
 
-  it('clears an assignment back to unassigned', () => {
-    const { directory, assignNurse, unassign, getAssigneeFor } = usePatientAssignments()
-    const patient = directory.value.assignments.find((a) => !a.primaryNurseId)!
+  it('clears a single role back to unassigned without touching other roles', () => {
+    const { directory, peopleForRole, assignRole, unassignRole, getAssigneeFor } =
+      usePatientAssignments()
+    const patient = directory.value.assignments.find((a) => !a.responsibilities['underskoterska'])!
+    const nurse = peopleForRole('underskoterska')[0]
 
-    assignNurse(patient.patientId, directory.value.nurses[0].id)
-    expect(getAssigneeFor(patient.patientId)).not.toBeNull()
+    assignRole(patient.patientId, 'underskoterska', nurse.id)
+    expect(getAssigneeFor(patient.patientId, 'underskoterska')).not.toBeNull()
 
-    unassign(patient.patientId)
-    expect(getAssigneeFor(patient.patientId)).toBeNull()
+    unassignRole(patient.patientId, 'underskoterska')
+    expect(getAssigneeFor(patient.patientId, 'underskoterska')).toBeNull()
   })
 
-  it('records the lastAssignedAt timestamp on assignment', () => {
-    const { directory, oasNurses, assignNurse } = usePatientAssignments()
-    const patient = directory.value.assignments.find((a) => !a.primaryNurseId)!
+  it('records a per-role assignedAt timestamp on assignment', () => {
+    const { directory, peopleForRole, assignRole } = usePatientAssignments()
+    const patient = directory.value.assignments.find((a) => !a.responsibilities['lakare'])!
     const before = Date.now()
+    const nurse = peopleForRole('lakare')[0]
 
-    assignNurse(patient.patientId, oasNurses.value[0].id)
+    assignRole(patient.patientId, 'lakare', nurse.id)
 
     const updated = directory.value.assignments.find((a) => a.patientId === patient.patientId)!
-    expect(updated.lastAssignedAt).not.toBeNull()
-    expect(new Date(updated.lastAssignedAt!).getTime()).toBeGreaterThanOrEqual(before)
+    expect(updated.assignedAt['lakare']).toBeDefined()
+    expect(new Date(updated.assignedAt['lakare']).getTime()).toBeGreaterThanOrEqual(before)
   })
 
   it('persists to localStorage on change', async () => {
-    const { directory, oasNurses, assignNurse } = usePatientAssignments()
+    const { directory, peopleForRole, assignRole } = usePatientAssignments()
     const patient = directory.value.assignments[0]
+    const nurse = peopleForRole('sjukskoterska')[0]
 
-    assignNurse(patient.patientId, oasNurses.value[0].id)
+    assignRole(patient.patientId, 'sjukskoterska', nurse.id)
     await nextTick()
 
     const raw = store.get('callcenter:admin-directory')
     expect(raw).toBeDefined()
     const parsed = JSON.parse(raw!)
     expect(parsed.assignments).toBeDefined()
+    expect(parsed.version).toBe(2)
   })
 
-  it('adds a new patient', () => {
+  it('re-seeds when persisted data has an outdated version', () => {
+    // Simulate stale v1-style localStorage (the old primaryNurseId shape).
+    store.set(
+      'callcenter:admin-directory',
+      JSON.stringify({ version: 1, roles: [], teams: [], nurses: [], assignments: [] })
+    )
+
+    const { directory } = usePatientAssignments()
+    // The version guard should discard the stale blob and reseed.
+    expect(directory.value.version).toBe(2)
+    expect(directory.value.roles.length).toBeGreaterThan(0)
+  })
+
+  it('adds a custom role that admins can extend the default set with', () => {
+    const { directory, addRole, allRoles } = usePatientAssignments()
+    const before = directory.value.roles.length
+
+    addRole('Logoped')
+
+    expect(directory.value.roles.length).toBe(before + 1)
+    const added = allRoles.value.find((r) => r.label === 'Logoped')
+    expect(added).toBeDefined()
+    expect(added!.isDefault).toBe(false)
+    expect(added!.id).toBe('logoped')
+  })
+
+  it('adds a new patient with empty responsibilities', () => {
     const { directory, addPatient, unassigned } = usePatientAssignments()
     const before = directory.value.assignments.length
 
@@ -106,7 +144,7 @@ describe('usePatientAssignments', () => {
     expect(directory.value.assignments.length).toBe(before + 1)
     const newPatient = directory.value.assignments.find((a) => a.patientId === 'p-new')
     expect(newPatient).toBeDefined()
-    expect(newPatient!.primaryNurseId).toBeNull()
+    expect(Object.keys(newPatient!.responsibilities)).toHaveLength(0)
     expect(unassigned.value.some((a) => a.patientId === 'p-new')).toBe(true)
   })
 

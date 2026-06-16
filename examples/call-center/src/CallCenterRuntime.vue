@@ -151,7 +151,8 @@
             :workspace-state="workspaceState"
             :pending-callback-count="pendingCallbackCount"
             :patient-id="currentPatientId"
-            :agent-nurse-id="currentAgentNurseId"
+            :agent-person-id="currentAgentPersonId"
+            :agent-role-ids="currentAgentRoleIds"
             @claim-responsibility="handleClaimResponsibility"
           />
           <CallbackWorklist
@@ -331,18 +332,30 @@ const currentPatientId = computed<string | null>(() => {
 })
 
 /**
- * The signed-in agent as an OAS-eligible nurse. Demo: the first OAS nurse is
+ * The signed-in agent as a person in the directory. Demo: the first person is
  * treated as the logged-in agent. A real deployment would map the SIP extension
- * to a nurse id from the directory.
+ * to a person id from the directory.
  */
-const currentAgentNurseId = computed<string | null>(
-  () => patientAssignments.oasNurses.value[0]?.id ?? null
+const currentAgentPersonId = computed<string | null>(
+  () => patientAssignments.directory.value.nurses[0]?.id ?? null
 )
 
-function handleClaimResponsibility(patientId: string) {
-  if (!currentAgentNurseId.value) return
-  patientAssignments.assignNurse(patientId, currentAgentNurseId.value)
-  showNotification('success', 'Du är nu ansvarig OAS för patienten')
+/** Roles the signed-in agent can hold (drives which "Jag tar ansvar" buttons show). */
+const currentAgentRoleIds = computed<string[]>(() => {
+  const person = currentAgentPersonId.value
+    ? patientAssignments.personById.value.get(currentAgentPersonId.value)
+    : null
+  return person?.roleIds ?? []
+})
+
+function handleClaimResponsibility(patientId: string, roleId: string) {
+  if (!currentAgentPersonId.value) return
+  patientAssignments.assignRole(patientId, roleId, currentAgentPersonId.value)
+  showNotification('success', `Du är nu ansvarig (${roleLabel(roleId)}) för patienten`)
+}
+
+function roleLabel(roleId: string): string {
+  return patientAssignments.roleById.value.get(roleId)?.label ?? roleId
 }
 
 const statistics = computed(() => getStatistics())

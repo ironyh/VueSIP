@@ -81,24 +81,32 @@
     </div>
 
     <div v-if="patientId" class="responsibility-block" data-testid="oas-responsibility">
-      <div class="responsibility-info">
-        <span class="responsibility-label">Ansvarig OAS</span>
-        <span v-if="assignee" class="responsibility-nurse">
-          {{ assignee.name }}
-          <span class="responsibility-ext">(ext {{ assignee.extension }})</span>
-        </span>
-        <span v-else class="responsibility-missing">Ingen OAS utsedd</span>
-      </div>
-      <button
-        v-if="agentNurseId"
-        type="button"
-        class="btn btn-claim"
-        :class="{ 'is-mine': isMine }"
-        :disabled="isMine"
-        @click="$emit('claim-responsibility', patientId)"
-      >
-        {{ isMine ? 'Du är ansvarig' : 'Jag tar ansvar' }}
-      </button>
+      <p class="responsibility-heading">Ansvariga per roll</p>
+      <ul class="responsibility-list">
+        <li v-for="role in relevantRoles" :key="role.id" class="responsibility-row">
+          <div class="responsibility-info">
+            <span class="responsibility-label">{{ role.label }}</span>
+            <span v-if="assigneeFor(role.id)" class="responsibility-nurse">
+              {{ assigneeFor(role.id)?.name }}
+              <span class="responsibility-ext">(ext {{ assigneeFor(role.id)?.extension }})</span>
+            </span>
+            <span v-else class="responsibility-missing">ingen utsedd</span>
+          </div>
+          <button
+            v-if="canClaim(role.id)"
+            type="button"
+            class="btn btn-claim"
+            :class="{ 'is-mine': isMineFor(role.id) }"
+            :disabled="isMineFor(role.id)"
+            @click="$emit('claim-responsibility', patientId, role.id)"
+          >
+            {{ isMineFor(role.id) ? 'Du är ansvarig' : 'Jag tar ansvar' }}
+          </button>
+        </li>
+        <li v-if="relevantRoles.length === 0" class="responsibility-empty">
+          Ingen roll att tilldela för denna patient.
+        </li>
+      </ul>
     </div>
   </section>
 </template>
@@ -114,23 +122,38 @@ const props = defineProps<{
   pendingCallbackCount: number
   /** Patient id derived from the current caller, if any. */
   patientId: string | null
-  /** The signed-in agent's nurse id (if the agent is an OAS-eligible nurse). */
-  agentNurseId: string | null
+  /** The signed-in agent's person id (if eligible). */
+  agentPersonId: string | null
+  /** Role ids the signed-in agent can hold. */
+  agentRoleIds: string[]
 }>()
 
 defineEmits<{
-  'claim-responsibility': [patientId: string]
+  'claim-responsibility': [patientId: string, roleId: string]
 }>()
 
-const { getAssigneeFor, assignmentByPatient } = usePatientAssignments()
+const { allRoles, getAssigneeFor, assignmentByPatient } = usePatientAssignments()
 
-const assignee = computed(() => (props.patientId ? getAssigneeFor(props.patientId) : null))
+/**
+ * Roles worth showing for this caller: every default role. In a real deployment
+ * the inbound number/queue would pre-narrow this to the relevant role, but the
+ * demo shows the full responsibility chain for transparency.
+ */
+const relevantRoles = computed(() => allRoles.value.filter((r) => r.isDefault))
 
-const isMine = computed(() => {
-  if (!props.patientId || !props.agentNurseId) return false
+function assigneeFor(roleId: string) {
+  return props.patientId ? getAssigneeFor(props.patientId, roleId) : null
+}
+
+function canClaim(roleId: string): boolean {
+  return props.agentRoleIds.includes(roleId)
+}
+
+function isMineFor(roleId: string): boolean {
+  if (!props.patientId || !props.agentPersonId) return false
   const assignment = assignmentByPatient.value.get(props.patientId)
-  return assignment?.primaryNurseId === props.agentNurseId
-})
+  return assignment?.responsibilities[roleId] === props.agentPersonId
+}
 
 const workspaceLabel = computed(() => {
   switch (props.workspaceState) {
@@ -303,11 +326,38 @@ const healthLabel = computed(() => {
   margin-top: 0.875rem;
   border-top: 1px solid #e5e7eb;
   padding-top: 0.75rem;
+}
+
+.responsibility-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.responsibility-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.responsibility-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.responsibility-empty {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .responsibility-info {

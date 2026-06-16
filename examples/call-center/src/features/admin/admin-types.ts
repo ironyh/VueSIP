@@ -1,55 +1,73 @@
 /**
  * Domain model for the call-center admin surface.
  *
- * Domain: healthcare/elderly-care. Each patient has a designated
- * "omvårdnadsansvarig sjuksköterska" (OAS — primary nurse) who belongs to a
- * team. The core flow: when a call/case arrives, the responsible OAS can
- * claim responsibility with a single button press, and the assignment logic
- * must be immediately legible to the administrator.
+ * Domain: healthcare/elderly-care. Each patient has a designated responsible
+ * person PER professional role (sjuksköterska, sjukgymnast, undersköterska,
+ * läkare, kurator, chef…). The core flow: when a call/case arrives for a given
+ * role, the responsible person for that role can claim responsibility with a
+ * single button press, and the assignment logic must be immediately legible to
+ * the administrator.
  *
  * @module features/admin/admin-types
  */
 
+/** Persisted schema version — bump when the shape changes to invalidate stale localStorage. */
+export const ADMIN_DIRECTORY_VERSION = 2
+
 /**
- * A team of nurses (e.g. a ward or shift team).
+ * A professional role. A fixed default set ships with the app; admins can
+ * extend it with custom roles (isDefault: false).
+ */
+export interface Role {
+  id: string
+  label: string
+  /** True for the shipped default roles; false for admin-added roles. */
+  isDefault: boolean
+  /** Future: inbound queue/number routing calls for this role. */
+  inboundQueue?: string
+}
+
+/**
+ * A team of people (e.g. a ward or shift team).
  */
 export interface Team {
   id: string
   name: string
-  /** Nurse ids that belong to this team. */
+  /** Person ids that belong to this team. */
   memberNurseIds: string[]
 }
 
 /**
- * A nurse. `isOas` flags whether this nurse is eligible to hold primary
- * (omvårdnadsansvarig) responsibility for patients.
+ * A person. `roleIds` lists the professional roles this person can hold
+ * (a person may hold several roles, e.g. both undersköterska and sjukgymnast).
  */
 export interface Nurse {
   id: string
   name: string
   teamId: string
-  /** SIP extension used to reach this nurse (for callbacks/routing). */
+  /** SIP extension used to reach this person (for callbacks/routing). */
   extension: string
-  /** Eligible to be a primary (OAS) nurse. */
-  isOas: boolean
+  /** Role ids this person is eligible to hold responsibility for. */
+  roleIds: string[]
 }
 
 /**
  * The responsibility assignment for one patient.
  *
- * The `primaryNurseId` is the OAS — the single nurse accountable for this
- * patient. `fallbackQueue` is the queue used when the OAS is unreachable.
+ * `responsibilities` maps roleId → personId: the single person accountable for
+ * that role for this patient. A missing entry means no one is assigned for
+ * that role. `assignedAt` tracks per-role last-change timestamps.
  */
 export interface PatientAssignment {
   patientId: string
   patientName: string
-  /** The designated OAS (omvårdnadsansvarig sjuksköterska). */
-  primaryNurseId: string | null
   teamId: string
-  /** Queue name used when the OAS cannot be reached. */
+  /** Queue name used when the responsible person cannot be reached. */
   fallbackQueue: string
-  /** ISO timestamp of the last assignment change (for "recently reassigned" UI). */
-  lastAssignedAt: string | null
+  /** roleId → personId (the responsible person for that role). */
+  responsibilities: Record<string, string>
+  /** roleId → ISO timestamp of the last assignment change for that role. */
+  assignedAt: Record<string, string>
 }
 
 /**
@@ -57,6 +75,8 @@ export interface PatientAssignment {
  * (Connected mode could source teams/nurses from PBX directory; left for later.)
  */
 export interface AdminDirectory {
+  version: number
+  roles: Role[]
   teams: Team[]
   nurses: Nurse[]
   assignments: PatientAssignment[]
