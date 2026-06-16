@@ -2,6 +2,8 @@
 
 A production-ready call center agent interface with PrimeVue UI, featuring agent dashboard, queue statistics, call controls, and supervisor capabilities.
 
+> **Contributing / development:** See [`CONTRIBUTING.md`](../../CONTRIBUTING.md) in the repo root for the pnpm workspace install, the `smoke:templates` gate, and other cross-template guidance before filing a PR touching this starter.
+
 ## Features
 
 - Agent login/logout/pause with queue management
