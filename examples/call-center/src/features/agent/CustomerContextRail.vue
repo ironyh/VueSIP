@@ -79,18 +79,58 @@
         }}
       </span>
     </div>
+
+    <div v-if="patientId" class="responsibility-block" data-testid="oas-responsibility">
+      <div class="responsibility-info">
+        <span class="responsibility-label">Ansvarig OAS</span>
+        <span v-if="assignee" class="responsibility-nurse">
+          {{ assignee.name }}
+          <span class="responsibility-ext">(ext {{ assignee.extension }})</span>
+        </span>
+        <span v-else class="responsibility-missing">Ingen OAS utsedd</span>
+      </div>
+      <button
+        v-if="agentNurseId"
+        type="button"
+        class="btn btn-claim"
+        :class="{ 'is-mine': isMine }"
+        :disabled="isMine"
+        @click="$emit('claim-responsibility', patientId)"
+      >
+        {{ isMine ? 'Du är ansvarig' : 'Jag tar ansvar' }}
+      </button>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { AgentWorkspaceState, CustomerContextView } from '../shared/mvp-types'
+import { usePatientAssignments } from '../admin/usePatientAssignments'
 
 const props = defineProps<{
   context: CustomerContextView
   workspaceState: AgentWorkspaceState
   pendingCallbackCount: number
+  /** Patient id derived from the current caller, if any. */
+  patientId: string | null
+  /** The signed-in agent's nurse id (if the agent is an OAS-eligible nurse). */
+  agentNurseId: string | null
 }>()
+
+defineEmits<{
+  'claim-responsibility': [patientId: string]
+}>()
+
+const { getAssigneeFor, assignmentByPatient } = usePatientAssignments()
+
+const assignee = computed(() => (props.patientId ? getAssigneeFor(props.patientId) : null))
+
+const isMine = computed(() => {
+  if (!props.patientId || !props.agentNurseId) return false
+  const assignment = assignmentByPatient.value.get(props.patientId)
+  return assignment?.primaryNurseId === props.agentNurseId
+})
 
 const workspaceLabel = computed(() => {
   switch (props.workspaceState) {
@@ -257,6 +297,79 @@ const healthLabel = computed(() => {
 .callback-state .open {
   color: #1d4ed8;
   font-weight: 600;
+}
+
+.responsibility-block {
+  margin-top: 0.875rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.responsibility-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.responsibility-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.responsibility-nurse {
+  color: #166534;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.responsibility-ext {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.responsibility-missing {
+  color: #b91c1c;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.btn-claim {
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #6366f1;
+  color: #ffffff;
+  transition: background-color 0.15s ease;
+}
+
+.btn-claim:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.btn-claim:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+.btn-claim.is-mine {
+  background: #dcfce7;
+  color: #166534;
+  cursor: default;
+}
+
+.btn-claim:disabled {
+  opacity: 1;
 }
 
 @media (max-width: 640px) {
