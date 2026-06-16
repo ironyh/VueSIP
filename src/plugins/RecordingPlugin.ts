@@ -481,14 +481,16 @@ export class RecordingPlugin implements Plugin<RecordingPluginConfig> {
   async uninstall(_context: PluginContext): Promise<void> {
     logger.info('Uninstalling recording plugin')
 
-    // Stop all active recordings
-    for (const [callId] of this.activeRecordings) {
-      try {
-        await this.stopRecording(callId)
-      } catch (error) {
-        logger.error(`Failed to stop recording for call ${callId}`, error)
-      }
-    }
+    // Stop all active recordings concurrently (independent operations)
+    await Promise.allSettled(
+      Array.from(this.activeRecordings.keys()).map(async (callId) => {
+        try {
+          await this.stopRecording(callId)
+        } catch (error) {
+          logger.error(`Failed to stop recording for call ${callId}`, error)
+        }
+      })
+    )
 
     // Clear all recording blobs from memory
     for (const [recordingId] of this.recordings) {
