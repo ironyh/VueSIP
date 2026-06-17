@@ -1,11 +1,14 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { SipClientConfig } from '../../../../../src/types/config.types'
+import type { AmiConfig } from '../../../../../src/types/ami.types'
 
 export interface EnvironmentSetupForm {
   server: string
   username: string
   password: string
   displayName: string
+  /** Optional AMI WebSocket URL (amiws proxy). Empty = demo mode. */
+  amiUrl: string
 }
 
 export function useEnvironmentSetup() {
@@ -15,12 +18,18 @@ export function useEnvironmentSetup() {
     username: '',
     password: '',
     displayName: '',
+    amiUrl: '',
   })
   const readiness = ref({
     hasMicPermission: false,
     hasOutputDevice: false,
     hasSecureContext: typeof window === 'undefined' ? true : window.isSecureContext,
   })
+
+  /** Derived mode: connected when an AMI URL is provided, otherwise demo. */
+  const mode = computed<'demo' | 'connected'>(() =>
+    form.value.amiUrl.trim() ? 'connected' : 'demo'
+  )
 
   function applyPreset(preset: 'demo' | 'sandbox' | 'custom') {
     selectedPreset.value = preset
@@ -37,6 +46,7 @@ export function useEnvironmentSetup() {
     form.value.username = values.username ?? form.value.username
     form.value.password = values.password ?? form.value.password
     form.value.displayName = values.displayName ?? form.value.displayName
+    form.value.amiUrl = values.amiUrl ?? form.value.amiUrl
   }
 
   function validateCurrentConfig(): { valid: boolean; errors: string[] } {
@@ -65,13 +75,27 @@ export function useEnvironmentSetup() {
     }
   }
 
+  /** Builds an AMI config when amiUrl is set, otherwise null (demo mode). */
+  function toAmiConfig(): AmiConfig | null {
+    const url = form.value.amiUrl.trim()
+    if (!url) return null
+    return {
+      url,
+      autoReconnect: true,
+      reconnectDelay: 3000,
+      maxReconnectAttempts: 5,
+    }
+  }
+
   return {
     selectedPreset,
     form: form.value,
     readiness,
+    mode,
     applyPreset,
     syncFromForm,
     validateCurrentConfig,
     toSipConfig,
+    toAmiConfig,
   }
 }

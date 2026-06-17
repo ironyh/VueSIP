@@ -32,11 +32,31 @@
             </p>
           </div>
           <div class="header-center">
-            <SystemStatus />
+            <SystemStatus :mode="isConnectedMode ? 'connected' : 'demo'" />
           </div>
           <div class="header-actions">
+            <div class="view-switcher" role="tablist" aria-label="Workspace view">
+              <button
+                role="tab"
+                :aria-selected="activeView === 'agent'"
+                :class="['view-tab', { active: activeView === 'agent' }]"
+                @click="activeView = 'agent'"
+              >
+                Agent
+              </button>
+              <button
+                role="tab"
+                :aria-selected="activeView === 'admin'"
+                :class="['view-tab', { active: activeView === 'admin' }]"
+                @click="activeView = 'admin'"
+              >
+                Admin
+              </button>
+            </div>
             <span class="header-pill">{{ selectedPreset }} preset</span>
-            <span class="header-pill neutral">{{ agentStatus }}</span>
+            <span class="header-pill" :class="{ neutral: !isConnectedMode }">
+              {{ isConnectedMode ? 'Connected (AMI)' : 'Demo' }}
+            </span>
             <AgentStatusToggle :agent-status="agentStatus" @update:status="updateAgentStatus" />
             <button class="btn btn-danger btn-sm" @click="handleDisconnect">Disconnect</button>
           </div>
@@ -48,7 +68,9 @@
         />
       </header>
 
-      <div class="dashboard-content">
+      <AdminPanel v-if="activeView === 'admin'" />
+
+      <div v-else class="dashboard-content">
         <aside class="sidebar" aria-label="Agent status and call queue">
           <PresenterControls
             :active-scenario="activeScenario"
@@ -128,6 +150,11 @@
             :context="customerContext"
             :workspace-state="workspaceState"
             :pending-callback-count="pendingCallbackCount"
+            :patient-id="currentPatientId"
+            :agent-person-id="currentAgentPersonId"
+            :agent-role-ids="currentAgentRoleIds"
+            :active-role-id="activeRoleId"
+            @claim-responsibility="handleClaimResponsibility"
           />
           <CallbackWorklist
             :callbacks="worklist"
@@ -159,6 +186,7 @@ import {
   type HistoryFilter,
   type SipClientConfig,
 } from 'vuesip'
+import type { AmiConfig } from '../../src/types/ami.types'
 import AgentStatusToggle from './components/AgentStatusToggle.vue'
 import AgentDashboard from './components/AgentDashboard.vue'
 import CallQueue from './components/CallQueue.vue'
@@ -177,10 +205,20 @@ import { buildCustomerContextView } from './features/shared/workspace-mappers'
 import type { DemoContactProfile, DemoStoryScene } from './features/shared/mvp-types'
 import { useWrapUpDraft } from './features/agent/useWrapUpDraft'
 import { useSupervisorBoard } from './features/supervisor/useSupervisorBoard'
+import { useAmi } from 'vuesip'
+import { useAmiQueues } from 'vuesip'
+import { createConnectedGateway } from './features/shared/connected-gateway'
+import type { MvpGateway, QueuedCallView } from './features/shared/mvp-types'
+import AdminPanel from './features/admin/AdminPanel.vue'
+import { usePatientAssignments } from './features/admin/usePatientAssignments'
+
+type WorkspaceView = 'agent' | 'admin'
+const activeView = ref<WorkspaceView>('agent')
 
 const props = defineProps<{
   selectedPreset: string
   sipConfig: SipClientConfig
+  amiConfig: AmiConfig | null
 }>()
 
 const emit = defineEmits<{
@@ -273,6 +311,61 @@ const {
 
 const { filteredHistory, totalCalls, getStatistics, setFilter, exportHistory } = useCallHistory()
 
+// --- Patient/OAS responsibility wiring ------------------------------------
+// The agent can claim OAS responsibility for the current caller with one click.
+const patientAssignments = usePatientAssignments()
+
+/**
+ * Derive the patient id for the current interaction. Demo mapping: the inbound
+ * call's `from` URI or queue id maps to a known patient. In a real deployment
+ * this would come from a CRM lookup keyed on callerId.
+ */
+const currentPatientId = computed<string | null>(() => {
+  const call = currentQueueCall.value
+  if (!call) return null
+  // Match against known patient ids, falling back to a synthetic id from the URI.
+  const known = patientAssignments.directory.value.assignments.find(
+    (a) =>
+      a.patientName.toLowerCase().includes((call.displayName ?? '').toLowerCase()) &&
+      call.displayName
+  )
+  return known?.patientId ?? null
+})
+
+/**
+ * The professional role the current call concerns — derived from the inbound
+ * line/queue. Drives which role the "Jag tar ansvar" button targets and which
+ * role is highlighted in the customer context rail.
+ */
+const activeRoleId = computed<string | null>(() => currentQueueCall.value?.roleId ?? null)
+
+/**
+ * The signed-in agent as a person in the directory. Demo: the first person is
+ * treated as the logged-in agent. A real deployment would map the SIP extension
+ * to a person id from the directory.
+ */
+const currentAgentPersonId = computed<string | null>(
+  () => patientAssignments.directory.value.nurses[0]?.id ?? null
+)
+
+/** Roles the signed-in agent can hold (drives which "Jag tar ansvar" buttons show). */
+const currentAgentRoleIds = computed<string[]>(() => {
+  const person = currentAgentPersonId.value
+    ? patientAssignments.personById.value.get(currentAgentPersonId.value)
+    : null
+  return person?.roleIds ?? []
+})
+
+function handleClaimResponsibility(patientId: string, roleId: string) {
+  if (!currentAgentPersonId.value) return
+  patientAssignments.assignRole(patientId, roleId, currentAgentPersonId.value)
+  showNotification('success', `Du är nu ansvarig (${roleLabel(roleId)}) för patienten`)
+}
+
+function roleLabel(roleId: string): string {
+  return patientAssignments.roleById.value.get(roleId)?.label ?? roleId
+}
+
 const statistics = computed(() => getStatistics())
 const todayStats = computed(() => {
   const today = new Date()
@@ -314,6 +407,22 @@ const historyAnnotations = ref<
 >({})
 const demoGateway = createDemoMvpGateway()
 const isTestMode = typeof window !== 'undefined' && window.location.search.includes('test=true')
+
+// --- Connected mode (AMI) wiring -----------------------------------------
+// Composables are always instantiated in setup scope (Vue requirement); the AMI
+// connection itself is only established when an amiConfig prop is present.
+const ami = useAmi()
+const amiQueues = useAmiQueues(ami.getClient(), { useEvents: true })
+const isConnectedMode = computed(() => props.amiConfig !== null)
+
+// In connected mode the queue feed is driven by live AMI events; in demo mode
+// it is driven by the simulated demo gateway. Both implement MvpGateway.
+const gateway: MvpGateway = isConnectedMode.value
+  ? createConnectedGateway({
+      connectionState: ami.connectionState,
+      queues: amiQueues.queues,
+    })
+  : demoGateway
 
 const {
   selectedCallbackId,
@@ -379,29 +488,71 @@ const presenterControls = createPresenterControls({
 })
 
 const startQueueSimulation = () => {
-  if (props.selectedPreset === 'demo' && !demoCallbacksSeeded.value) {
+  // Seed demo callbacks only in demo mode (connected mode would source these from AMI/AstDB).
+  if (!isConnectedMode.value && !demoCallbacksSeeded.value) {
     pendingCallbacks.value.push(...demoGateway.createSeedCallbacks())
     demoCallbacksSeeded.value = true
   }
 
-  demoGateway.start(
+  gateway.start(
     {
       isQueueOpen: () => agentStatus.value === 'available',
       onInboundCall: (call) => {
-        callQueue.value.push(call)
+        // Connected mode pushes live AMI callers (replace, not append, to avoid dupes);
+        // demo mode appends simulated callers.
+        if (isConnectedMode.value) {
+          const exists = callQueue.value.some((c) => c.id === call.id)
+          if (!exists) {
+            callQueue.value.push(call)
+          }
+        } else {
+          callQueue.value.push(call)
+        }
       },
       onTick: () => {
-        callQueue.value.forEach((call) => {
-          call.waitTime++
-        })
+        if (isConnectedMode.value) {
+          // In connected mode the live queue map is the source of truth: reconcile
+          // the visible callQueue with the current AMI entries (adds new, drops gone).
+          const live = flattenQueueEntriesFromRef()
+          const liveIds = new Set(live.map((c) => c.id))
+          callQueue.value = callQueue.value.filter((c) => liveIds.has(c.id))
+          // Update wait times from the live feed.
+          const byId = new Map(live.map((c) => [c.id, c]))
+          callQueue.value.forEach((c) => {
+            const fresh = byId.get(c.id)
+            if (fresh) c.waitTime = fresh.waitTime
+          })
+        } else {
+          callQueue.value.forEach((call) => {
+            call.waitTime++
+          })
+        }
       },
     },
     isTestMode ? 60000 : 5000
   )
 }
 
+const flattenQueueEntriesFromRef = () => {
+  const queues = amiQueues.queues.value
+  const all: QueuedCallView[] = []
+  for (const queue of queues.values()) {
+    for (const entry of queue.entries) {
+      all.push({
+        id: entry.uniqueId || entry.channel,
+        from: entry.callerIdNum || entry.channel,
+        displayName: entry.callerIdName || undefined,
+        waitTime: Math.round(entry.wait),
+        priority: entry.priority,
+        queue: entry.queue,
+      })
+    }
+  }
+  return all
+}
+
 const stopQueueSimulation = () => {
-  demoGateway.stop()
+  gateway.stop()
 }
 
 const syncWorkspaceFromAgentStatus = (status: AgentStatus) => {
@@ -436,6 +587,13 @@ const initializeConnection = async () => {
     }
 
     await connect()
+
+    // Establish the AMI connection when connected mode is configured. The AMI
+    // feed drives queue entries; the SIP connection drives the actual audio.
+    if (props.amiConfig) {
+      await ami.connect(props.amiConfig)
+    }
+
     setConnected(true)
     syncWorkspaceFromAgentStatus(agentStatus.value)
 
@@ -444,7 +602,10 @@ const initializeConnection = async () => {
     }
 
     emit('connected')
-    showNotification('success', 'Connected to call center')
+    showNotification(
+      'success',
+      isConnectedMode.value ? 'Connected to call center (Asterisk AMI)' : 'Connected to call center'
+    )
   } catch (connectError) {
     workspaceState.value = 'offline'
     const message =
@@ -459,6 +620,9 @@ const initializeConnection = async () => {
 const handleDisconnect = async () => {
   try {
     stopQueueSimulation()
+    if (ami.isConnected.value) {
+      await ami.disconnect()
+    }
     await disconnect()
     setConnected(false)
     clearWrapUp('offline')
@@ -1022,5 +1186,42 @@ onUnmounted(() => {
     transform: translateY(0);
     opacity: 1;
   }
+}
+
+.view-switcher {
+  display: inline-flex;
+  background: var(--surface-hover, rgba(148, 163, 184, 0.15));
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.view-tab {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  padding: 0.375rem 0.875rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.view-tab:hover {
+  color: var(--text-primary, #0f172a);
+}
+
+.view-tab.active {
+  background: var(--surface-card, #ffffff);
+  color: var(--primary-color, #6366f1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.view-tab:focus-visible {
+  outline: 2px solid var(--primary-color, #6366f1);
+  outline-offset: 2px;
 }
 </style>

@@ -1,5 +1,10 @@
 <template>
   <div class="system-status" :class="{ connected: isAmiConnected }">
+    <!-- Mode badge: honest capability gating -->
+    <span class="mode-badge" :class="mode" :title="modeTitle" data-testid="system-status-mode">
+      {{ mode === 'connected' ? 'Connected' : 'Demo' }}
+    </span>
+
     <!-- System Health Indicator -->
     <div class="health-section">
       <span class="health-indicator" :class="healthClass" :title="healthTitle" aria-hidden="true"
@@ -9,7 +14,7 @@
       <span class="health-label">{{ healthLabel }}</span>
     </div>
 
-    <!-- Quick Metrics -->
+    <!-- Quick Metrics (only meaningful in connected mode) -->
     <div v-if="isAmiConnected" class="metrics">
       <div class="metric" :title="`${activeCalls} active call${activeCalls !== 1 ? 's' : ''}`">
         <span class="metric-icon" aria-hidden="true">📞</span>
@@ -37,6 +42,14 @@
 import { computed, ref, watch, onUnmounted, type Ref } from 'vue'
 import { useAmi, useAmiSystem } from 'vuesip'
 
+const props = withDefaults(
+  defineProps<{
+    /** Current operating mode — drives honest capability display. */
+    mode?: 'demo' | 'connected'
+  }>(),
+  { mode: 'demo' }
+)
+
 // ============================================================================
 // AMI Integration
 // ============================================================================
@@ -58,6 +71,12 @@ let refreshInterval: number | null = null
 // ============================================================================
 // Computed Properties
 // ============================================================================
+
+const modeTitle = computed(() =>
+  props.mode === 'connected'
+    ? 'Connected to a live Asterisk PBX via AMI. Queue entries and metrics are real.'
+    : 'Demo mode — queue traffic, callbacks, and metrics are simulated. Provide an AMI URL at sign-in for live data.'
+)
 
 const healthClass = computed(() => {
   if (!isAmiConnected.value) return 'disconnected'
@@ -208,6 +227,29 @@ onUnmounted(() => {
 .system-status.connected {
   background: #f0fdf4;
   border-color: #bbf7d0;
+}
+
+.mode-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.mode-badge.demo {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+.mode-badge.connected {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
 }
 
 /* Health Section */

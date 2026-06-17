@@ -3,14 +3,10 @@ import type {
   DemoContactProfile,
   DemoScenario,
   DemoStoryScene,
+  MvpGatewayCapabilities,
+  MvpGatewayRuntime,
   QueuedCallView,
 } from './mvp-types'
-
-interface DemoGatewayRuntime {
-  isQueueOpen: () => boolean
-  onInboundCall: (call: QueuedCallView) => void
-  onTick: () => void
-}
 
 interface DemoGatewayOptions {
   random?: () => number
@@ -20,7 +16,10 @@ interface DemoGatewayOptions {
 interface DemoCallerTemplate {
   uri: string
   name: string
-  queue: DemoScenario
+  /** Queue name. For healthcare demo this equals the professional-role line. */
+  queue: string
+  /** Professional role this call concerns (matches a Role.id). */
+  roleId: string
   profile: DemoContactProfile
 }
 
@@ -35,55 +34,59 @@ interface DemoStorySceneView {
 
 const mockInboundCallers: DemoCallerTemplate[] = [
   {
-    uri: 'sip:customer1@domain.com',
-    name: 'John Smith',
-    queue: 'support',
+    uri: 'sip:erik@patient.se',
+    name: 'Erik Eriksson',
+    queue: 'sjukskoterska-linjen',
+    roleId: 'sjukskoterska',
     profile: {
       accountTier: 'Standard',
-      accountHealth: 'healthy',
-      serviceLevel: 'Core SLA',
-      openCaseTitle: 'Password reset follow-up',
-      callbackReason: 'Confirm login after yesterday reset',
-      lastInteractionAt: 'Yesterday, 16:20',
+      accountHealth: 'watch',
+      serviceLevel: 'Mottagning',
+      openCaseTitle: 'Blodtryckskontroll — uppföljning',
+      callbackReason: 'Patient vill gå igenom nya värden',
+      lastInteractionAt: 'Igår, 14:20',
     },
   },
   {
-    uri: 'sip:customer2@domain.com',
-    name: 'Jane Doe',
-    queue: 'support',
+    uri: 'sip:sara@patient.se',
+    name: 'Sara Svensson',
+    queue: 'sjukgymnast-linjen',
+    roleId: 'sjukgymnast',
+    profile: {
+      accountTier: 'Priority',
+      accountHealth: 'healthy',
+      serviceLevel: 'Rehab',
+      openCaseTitle: 'Knapprövning — andra besöket',
+      callbackReason: 'Boka nästa gång med instruktioner',
+      lastInteractionAt: '27 minuter sedan',
+    },
+  },
+  {
+    uri: 'sip:per@patient.se',
+    name: 'Per Persson',
+    queue: 'lakare-linjen',
+    roleId: 'lakare',
     profile: {
       accountTier: 'VIP',
       accountHealth: 'at-risk',
-      serviceLevel: 'Platinum SLA',
-      openCaseTitle: 'Checkout outage escalation',
-      callbackReason: 'Escalation owner promised a same-day update',
-      lastInteractionAt: '12 minutes ago',
+      serviceLevel: 'Specialistmottagning',
+      openCaseTitle: 'Provsvar — remissbedömning',
+      callbackReason: 'Patient ringer angående provsvar',
+      lastInteractionAt: '12 minuter sedan',
     },
   },
   {
-    uri: 'sip:customer3@domain.com',
-    name: 'Northwind Health',
-    queue: 'billing',
+    uri: 'sip: maja@patient.se',
+    name: 'Maja Lind',
+    queue: 'underskoterska-linjen',
+    roleId: 'underskoterska',
     profile: {
-      accountTier: 'Priority',
-      accountHealth: 'watch',
-      serviceLevel: 'Finance Care',
-      openCaseTitle: 'Invoice dispute on March renewal',
-      callbackReason: 'Customer is waiting for credit confirmation',
-      lastInteractionAt: '27 minutes ago',
-    },
-  },
-  {
-    uri: 'sip:sales@domain.com',
-    name: 'Mercury Retail Group',
-    queue: 'sales',
-    profile: {
-      accountTier: 'Priority',
+      accountTier: 'Standard',
       accountHealth: 'healthy',
-      serviceLevel: 'Pipeline Assist',
-      openCaseTitle: 'Outbound upgrade follow-up',
-      callbackReason: 'Review proposal before end-of-quarter',
-      lastInteractionAt: 'This morning',
+      serviceLevel: 'Hemtjänst',
+      openCaseTitle: 'Hembesök — planering',
+      callbackReason: 'Avstämningsbesök hemma',
+      lastInteractionAt: 'I morse',
     },
   },
 ]
@@ -124,14 +127,15 @@ const seededCallbacks: Array<
 export function createDemoMvpGateway(options: DemoGatewayOptions = {}) {
   const random = options.random ?? Math.random
   const now = options.now ?? Date.now
-  const capabilities = {
+  const capabilities: MvpGatewayCapabilities = {
     manualOutbound: false,
     supervisorAudioIntervention: false,
+    liveQueue: false,
   }
 
   let intervalId: ReturnType<typeof setInterval> | null = null
 
-  function createInboundCall(queue?: DemoScenario): QueuedCallView {
+  function createInboundCall(queue?: string): QueuedCallView {
     const candidates = queue
       ? mockInboundCallers.filter((caller) => caller.queue === queue)
       : mockInboundCallers
@@ -144,6 +148,7 @@ export function createDemoMvpGateway(options: DemoGatewayOptions = {}) {
       waitTime: 0,
       priority: Math.floor(random() * 3) + 1,
       queue: caller.queue,
+      roleId: caller.roleId,
       profile: caller.profile,
     }
   }
@@ -435,7 +440,7 @@ export function createDemoMvpGateway(options: DemoGatewayOptions = {}) {
     }
   }
 
-  function start(runtime: DemoGatewayRuntime, intervalMs = 5000) {
+  function start(runtime: MvpGatewayRuntime, intervalMs = 5000) {
     if (intervalId) {
       return
     }
