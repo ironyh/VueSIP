@@ -50,7 +50,10 @@
             <th scope="col" class="col-patient">Patient</th>
             <th scope="col" class="col-team">Team</th>
             <th v-for="role in visibleRoles" :key="role.id" scope="col" class="col-role">
-              {{ role.label }}
+              <span class="role-col-label">{{ role.label }}</span>
+              <span v-if="role.inboundQueue" class="role-col-queue"
+                >📞 {{ role.inboundQueue }}</span
+              >
             </th>
           </tr>
         </thead>
@@ -294,6 +297,19 @@ function cellClass(assignment: PatientAssignment, roleId: string): string {
 .col-role {
   min-width: 9rem;
   text-align: center !important;
+}
+
+.role-col-label {
+  display: block;
+  font-weight: 600;
+}
+
+.role-col-queue {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: var(--text-secondary, #94a3b8);
+  margin-top: 0.125rem;
 }
 
 .matrix-table tbody th,

@@ -81,11 +81,22 @@
     </div>
 
     <div v-if="patientId" class="responsibility-block" data-testid="oas-responsibility">
+      <p v-if="activeRoleLabel" class="active-role-banner">
+        Samtalet gäller: <strong>{{ activeRoleLabel }}</strong>
+      </p>
       <p class="responsibility-heading">Ansvariga per roll</p>
       <ul class="responsibility-list">
-        <li v-for="role in relevantRoles" :key="role.id" class="responsibility-row">
+        <li
+          v-for="role in relevantRoles"
+          :key="role.id"
+          class="responsibility-row"
+          :class="{ 'role-active': role.id === activeRoleId }"
+        >
           <div class="responsibility-info">
-            <span class="responsibility-label">{{ role.label }}</span>
+            <span class="responsibility-label">
+              {{ role.label }}
+              <span v-if="role.id === activeRoleId" class="role-active-tag">denna linje</span>
+            </span>
             <span v-if="assigneeFor(role.id)" class="responsibility-nurse">
               {{ assigneeFor(role.id)?.name }}
               <span class="responsibility-ext">(ext {{ assigneeFor(role.id)?.extension }})</span>
@@ -126,20 +137,32 @@ const props = defineProps<{
   agentPersonId: string | null
   /** Role ids the signed-in agent can hold. */
   agentRoleIds: string[]
+  /** The role the current call concerns (from the inbound line). Highlighted. */
+  activeRoleId: string | null
 }>()
 
 defineEmits<{
   'claim-responsibility': [patientId: string, roleId: string]
 }>()
 
-const { allRoles, getAssigneeFor, assignmentByPatient } = usePatientAssignments()
+const { allRoles, roleById, getAssigneeFor, assignmentByPatient } = usePatientAssignments()
 
 /**
- * Roles worth showing for this caller: every default role. In a real deployment
- * the inbound number/queue would pre-narrow this to the relevant role, but the
- * demo shows the full responsibility chain for transparency.
+ * Roles worth showing: every default role, with the active role (the one the
+ * call concerns) sorted first and flagged so the UI can highlight it.
  */
-const relevantRoles = computed(() => allRoles.value.filter((r) => r.isDefault))
+const relevantRoles = computed(() => {
+  const roles = allRoles.value.filter((r) => r.isDefault)
+  return roles.sort((a, b) => {
+    if (a.id === props.activeRoleId) return -1
+    if (b.id === props.activeRoleId) return 1
+    return 0
+  })
+})
+
+const activeRoleLabel = computed(
+  () => (props.activeRoleId ? roleById.value.get(props.activeRoleId)?.label : null) ?? null
+)
 
 function assigneeFor(roleId: string) {
   return props.patientId ? getAssigneeFor(props.patientId, roleId) : null
@@ -335,6 +358,41 @@ const healthLabel = computed(() => {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #6b7280;
+}
+
+.active-role-banner {
+  margin: 0 0 0.625rem;
+  padding: 0.5rem 0.625rem;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #3730a3;
+}
+
+.active-role-banner strong {
+  color: #4338ca;
+}
+
+.responsibility-row.role-active {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 6px;
+  padding: 0.375rem 0.5rem;
+  margin: -0.125rem -0.25rem;
+}
+
+.role-active-tag {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #6d28d9;
+  color: #ffffff;
+  padding: 0.0625rem 0.3125rem;
+  border-radius: 4px;
+  margin-left: 0.375rem;
+  vertical-align: middle;
 }
 
 .responsibility-list {

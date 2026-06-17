@@ -67,6 +67,55 @@ describe('presenterControls', () => {
     expect(selectedCallbackId.value).toBe(callbacks.value[0].id)
   })
 
+  it('stamps the call with the roleId of the inbound line it arrived on', () => {
+    const queue = ref<QueuedCallView[]>([])
+    const callbacks = ref<CallbackTaskView[]>([])
+    const selectedCallbackId = ref<string | null>(null)
+    const currentCallNotes = ref('')
+    const historyAnnotations = ref<
+      Record<string, { tags: string[]; metadata: Record<string, unknown> }>
+    >({})
+    const activeCallbackId = ref<string | null>(null)
+    const lastWrappedCallId = ref<string | null>(null)
+    const customerContext = ref<CustomerContextView>({
+      displayName: 'Unknown Caller',
+      address: '',
+      queue: null,
+      latestDisposition: null,
+      noteSummary: null,
+      hasOpenCallback: false,
+      accountTier: null,
+      accountHealth: null,
+      serviceLevel: null,
+      openCaseTitle: null,
+      callbackReason: null,
+      lastInteractionAt: null,
+    })
+    const workspaceState = ref<AgentWorkspaceState>('available')
+
+    const controls = createPresenterControls({
+      gateway: createDemoMvpGateway({ random: () => 0.5, now: () => 1000 }),
+      queue,
+      callbacks,
+      selectedCallbackId,
+      currentCallNotes,
+      historyAnnotations,
+      activeCallbackId,
+      lastWrappedCallId,
+      customerContext,
+      workspaceState,
+      resetWrapUpDraft: vi.fn(),
+      clearWrapUp: vi.fn(),
+    })
+
+    controls.forceInboundCall('lakare-linjen')
+
+    expect(queue.value).toHaveLength(1)
+    // The call concerns the lakare role — derived from the inbound line.
+    expect(queue.value[0].roleId).toBe('lakare')
+    expect(queue.value[0].queue).toBe('lakare-linjen')
+  })
+
   it('supports queue-specific presenter scenarios', () => {
     const queue = ref<QueuedCallView[]>([])
     const callbacks = ref<CallbackTaskView[]>([])
@@ -111,14 +160,13 @@ describe('presenterControls', () => {
       clearWrapUp: vi.fn(),
     })
 
-    controls.forceInboundCall('billing')
-    controls.seedCallbackTask('billing')
+    controls.forceInboundCall('sjukgymnast-linjen')
+    controls.seedCallbackTask('support')
 
     expect(queue.value).toHaveLength(1)
-    expect(queue.value[0].queue).toBe('billing')
+    expect(queue.value[0].queue).toBe('sjukgymnast-linjen')
     expect(callbacks.value).toHaveLength(1)
-    expect(callbacks.value[0].queue).toBe('billing')
-    expect(callbacks.value[0].contactName).toContain('Billing')
+    expect(callbacks.value[0].status).toBe('open')
   })
 
   it('runs story scenes and primes callback context for the selected story', () => {

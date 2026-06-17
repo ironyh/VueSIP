@@ -27,8 +27,11 @@ interface PresenterControlsOptions {
 
 type DemoScenario = 'support' | 'billing' | 'sales'
 
+/** Default inbound line used when a presenter action is invoked without a queue. */
+const DEFAULT_INBOUND_LINE = 'sjukskoterska-linjen'
+
 export function createPresenterControls(options: PresenterControlsOptions) {
-  const forceInboundCall = (scenario: DemoScenario = 'support') => {
+  const forceInboundCall = (scenario: string = DEFAULT_INBOUND_LINE) => {
     options.queue.value.push(options.gateway.createInboundCall(scenario))
   }
 

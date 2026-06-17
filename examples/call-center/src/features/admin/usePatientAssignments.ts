@@ -24,14 +24,29 @@ const STORAGE_KEY = 'callcenter:admin-directory'
 
 /** The fixed default role set shipped with the app. */
 const DEFAULT_ROLES: Role[] = [
-  { id: 'sjukskoterska', label: 'Sjuksköterska', isDefault: true },
-  { id: 'underskoterska', label: 'Undersköterska', isDefault: true },
-  { id: 'sjukgymnast', label: 'Sjukgymnast', isDefault: true },
-  { id: 'arbetsterapeut', label: 'Arbetsterapeut', isDefault: true },
-  { id: 'lakare', label: 'Läkare', isDefault: true },
-  { id: 'kurator', label: 'Kurator', isDefault: true },
-  { id: 'dietist', label: 'Dietist', isDefault: true },
-  { id: 'chef', label: 'Chef', isDefault: true },
+  {
+    id: 'sjukskoterska',
+    label: 'Sjuksköterska',
+    isDefault: true,
+    inboundQueue: 'sjukskoterska-linjen',
+  },
+  {
+    id: 'underskoterska',
+    label: 'Undersköterska',
+    isDefault: true,
+    inboundQueue: 'underskoterska-linjen',
+  },
+  { id: 'sjukgymnast', label: 'Sjukgymnast', isDefault: true, inboundQueue: 'sjukgymnast-linjen' },
+  {
+    id: 'arbetsterapeut',
+    label: 'Arbetsterapeut',
+    isDefault: true,
+    inboundQueue: 'arbetsterapeut-linjen',
+  },
+  { id: 'lakare', label: 'Läkare', isDefault: true, inboundQueue: 'lakare-linjen' },
+  { id: 'kurator', label: 'Kurator', isDefault: true, inboundQueue: 'kurator-linjen' },
+  { id: 'dietist', label: 'Dietist', isDefault: true, inboundQueue: 'dietist-linjen' },
+  { id: 'chef', label: 'Chef', isDefault: true, inboundQueue: 'chef-linjen' },
 ]
 
 /** Seed directory so the matrix is legible on first open (clearly synthetic). */

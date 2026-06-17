@@ -33,6 +33,12 @@ export interface QueuedCallView {
   waitTime: number
   priority?: number
   queue: string
+  /**
+   * The professional role this call concerns (derived from the inbound line/
+   * queue). When set, the agent workspace highlights that role and the
+   * "Jag tar ansvar" button targets it.
+   */
+  roleId?: string
   profile?: DemoContactProfile
 }
 

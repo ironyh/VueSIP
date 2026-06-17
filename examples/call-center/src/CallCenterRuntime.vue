@@ -153,6 +153,7 @@
             :patient-id="currentPatientId"
             :agent-person-id="currentAgentPersonId"
             :agent-role-ids="currentAgentRoleIds"
+            :active-role-id="activeRoleId"
             @claim-responsibility="handleClaimResponsibility"
           />
           <CallbackWorklist
@@ -330,6 +331,13 @@ const currentPatientId = computed<string | null>(() => {
   )
   return known?.patientId ?? null
 })
+
+/**
+ * The professional role the current call concerns — derived from the inbound
+ * line/queue. Drives which role the "Jag tar ansvar" button targets and which
+ * role is highlighted in the customer context rail.
+ */
+const activeRoleId = computed<string | null>(() => currentQueueCall.value?.roleId ?? null)
 
 /**
  * The signed-in agent as a person in the directory. Demo: the first person is
