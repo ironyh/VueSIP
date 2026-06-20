@@ -75,19 +75,28 @@ if (enabled) {
       })
     })
 
-    test('SystemStatus shows the Connected badge', async () => {
+    test('SystemStatus shows the Connected badge', async ({ page }) => {
       await expect(page.locator('.mode-badge')).toHaveText('Connected')
       await expect(page.locator('.mode-badge.connected')).toBeVisible()
     })
 
-    test('agent workspace renders without errors after connect', async () => {
+    test('agent workspace renders without errors after connect', async ({ page }) => {
       // The dashboard content block is present once connected.
       await expect(page.locator('.dashboard-content')).toBeVisible()
-      // No page-error overlay should be visible.
-      await expect(page.locator('.error-overlay, [role="alert"]')).toHaveCount(0)
+      // No error overlay should be visible. (Toast notifications use role="alert"
+      // for accessibility even on success, so we only flag actual error text.)
+      const alerts = page.locator('.error-overlay, [role="alert"]')
+      const count = await alerts.count()
+      for (let i = 0; i < count; i++) {
+        const text = (await alerts.nth(i).textContent()) ?? ''
+        // A success toast ("Connected to call center...") is fine; failure words are not.
+        expect(text.toLowerCase()).not.toMatch(/connection failed|failed to|error:/)
+      }
     })
 
-    test('admin responsibility matrix renders role columns with inbound lines', async () => {
+    test('admin responsibility matrix renders role columns with inbound lines', async ({
+      page,
+    }) => {
       await page.locator('button.view-tab:has-text("Admin")').first().click()
       await expect(page.locator('.assignment-matrix')).toBeVisible({ timeout: 5000 })
 
@@ -113,7 +122,7 @@ if (enabled) {
       expect(inboundLines.some((l) => l.includes('lakare-linjen'))).toBe(true)
     })
 
-    test('admin matrix shows seeded patients and coverage stats', async () => {
+    test('admin matrix shows seeded patients and coverage stats', async ({ page }) => {
       await page.locator('button.view-tab:has-text("Admin")').first().click()
       await expect(page.locator('.matrix-table tbody tr').first()).toBeVisible()
       // Footer coverage count is present and parses as "N / M".
