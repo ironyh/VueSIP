@@ -62,10 +62,37 @@ export function useEnvironmentSetup() {
     }
   }
 
+  /**
+   * Normalize the server field into a clean WSS URL. Accepts a bare host
+   * (sip.telenurse.se), a host:port, or a full wss:// URL.
+   */
+  function toWssUri(server: string): string {
+    const trimmed = server.trim()
+    if (trimmed.startsWith('ws://') || trimmed.startsWith('wss://')) {
+      return trimmed
+    }
+    return `wss://${trimmed}`
+  }
+
+  /**
+   * Extract a bare SIP domain (host[:port], no scheme/path) from the server
+   * field. Accepts a full WSS URL (wss://sip.telenurse.se/ws → sip.telenurse.se)
+   * or a bare host.
+   */
+  function toSipDomain(server: string): string {
+    let s = server.trim().replace(/^[a-z]+:\/\//i, '')
+    // drop any path
+    const slash = s.indexOf('/')
+    if (slash !== -1) s = s.slice(0, slash)
+    return s
+  }
+
   function toSipConfig(): SipClientConfig {
+    const wssUri = toWssUri(form.value.server)
+    const domain = toSipDomain(form.value.server)
     return {
-      uri: `wss://${form.value.server}`,
-      sipUri: `sip:${form.value.username}@${form.value.server}`,
+      uri: wssUri,
+      sipUri: `sip:${form.value.username}@${domain}`,
       password: form.value.password,
       displayName: form.value.displayName || form.value.username,
       registrationOptions: {
