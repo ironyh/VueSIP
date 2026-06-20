@@ -316,28 +316,29 @@ const { filteredHistory, totalCalls, getStatistics, setFilter, exportHistory } =
 const patientAssignments = usePatientAssignments()
 
 /**
- * Derive the patient id for the current interaction. Demo mapping: the inbound
- * call's `from` URI or queue id maps to a known patient. In a real deployment
- * this would come from a CRM lookup keyed on callerId.
+ * Derive the patient id for the current interaction from the active call's
+ * remote party. Matches the remote display name against known patient names.
  */
 const currentPatientId = computed<string | null>(() => {
-  const call = currentQueueCall.value
-  if (!call) return null
-  // Match against known patient ids, falling back to a synthetic id from the URI.
-  const known = patientAssignments.directory.value.assignments.find(
-    (a) =>
-      a.patientName.toLowerCase().includes((call.displayName ?? '').toLowerCase()) &&
-      call.displayName
+  if (!remoteDisplayName.value) return null
+  const known = patientAssignments.directory.value.assignments.find((a) =>
+    a.patientName.toLowerCase().includes(remoteDisplayName.value!.toLowerCase())
   )
   return known?.patientId ?? null
 })
 
 /**
  * The professional role the current call concerns — derived from the inbound
- * line/queue. Drives which role the "Jag tar ansvar" button targets and which
- * role is highlighted in the customer context rail.
+ * line/queue of the matching queue entry (if the active call came from a queue)
+ * or the remote party. Drives which role the "Jag tar ansvar" button targets
+ * and which role is highlighted in the customer context rail.
  */
-const activeRoleId = computed<string | null>(() => currentQueueCall.value?.roleId ?? null)
+const activeRoleId = computed<string | null>(() => {
+  const matchingQueued = callQueue.value.find(
+    (c) => c.from === remoteUri.value || c.displayName === remoteDisplayName.value
+  )
+  return matchingQueued?.roleId ?? null
+})
 
 /**
  * The signed-in agent as a person in the directory. Demo: the first person is
