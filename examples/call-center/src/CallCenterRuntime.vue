@@ -207,7 +207,10 @@ import { useWrapUpDraft } from './features/agent/useWrapUpDraft'
 import { useSupervisorBoard } from './features/supervisor/useSupervisorBoard'
 import { useAmi } from 'vuesip'
 import { useAmiQueues } from 'vuesip'
+import { useAmiAgentLogin } from 'vuesip'
+import { useAmiCallback } from 'vuesip'
 import { createConnectedGateway } from './features/shared/connected-gateway'
+import { mapCallbackRequestToView } from './features/shared/callback-mappers'
 import type { MvpGateway, QueuedCallView } from './features/shared/mvp-types'
 import AdminPanel from './features/admin/AdminPanel.vue'
 import { usePatientAssignments } from './features/admin/usePatientAssignments'
@@ -425,6 +428,48 @@ const gateway: MvpGateway = isConnectedMode.value
     })
   : demoGateway
 
+// --- AMI agent-login + callback (connected mode) -------------------------
+// NOTE: ami.getClient() is a snapshot (AmiClient | null), not a Ref. At setup
+// time it is null (AMI connects later in initializeConnection). Both composables
+// tolerate null clients and re-check at call time; we (re)load/refresh after
+// ami.connect() resolves. Event listeners bind once with the snapshot, so for
+// robust event sync we also rely on the connected-gateway's queue ref + a
+// manual refresh on connect.
+const sipExtension = (() => {
+  const m = props.sipConfig.sipUri?.match(/sip:([^@]+)@/)
+  return m ? m[1] : ''
+})()
+
+const amiAgentLogin = useAmiAgentLogin(ami.getClient(), {
+  agentId: props.sipConfig.sipUri || sipExtension || 'agent',
+  interface: sipExtension ? `PJSIP/${sipExtension}` : 'PJSIP/agent',
+  defaultQueues: ['8001', '8002', '8003'],
+  persistState: false,
+})
+
+const amiCallback = useAmiCallback(ami.getClient(), {
+  storage: { persistEnabled: true },
+  defaultContext: 'from-internal',
+})
+
+// In connected mode the callback worklist is fed by AMI (AstDB-backed); in demo
+// mode it is the local pendingCallbacks ref. useCallbackWorklist takes a
+// Ref<CallbackTaskView[]>, so we feed it an adapter ref that mirrors the chosen
+// source.
+const callbackWorklistSource = computed<CallbackTaskView[]>(() =>
+  isConnectedMode.value
+    ? amiCallback.callbacks.value.map(mapCallbackRequestToView)
+    : pendingCallbacks.value
+)
+const callbackWorklistRef = ref<CallbackTaskView[]>([])
+watch(
+  callbackWorklistSource,
+  (v) => {
+    callbackWorklistRef.value = v
+  },
+  { immediate: true, deep: true }
+)
+
 const {
   selectedCallbackId,
   selectedCallback,
@@ -434,7 +479,7 @@ const {
   markCallbackInProgress,
   completeCallback,
   reopenCallback,
-} = useCallbackWorklist(pendingCallbacks)
+} = useCallbackWorklist(callbackWorklistRef)
 
 const nextAction = computed(() =>
   buildAgentNextAction({
@@ -593,6 +638,21 @@ const initializeConnection = async () => {
     // feed drives queue entries; the SIP connection drives the actual audio.
     if (props.amiConfig) {
       await ami.connect(props.amiConfig)
+      // Load shared callbacks from AstDB now that the AMI client is connected.
+      // (Composables captured a null client at setup; loadFromStorage re-checks.)
+      try {
+        await amiCallback.loadFromStorage()
+      } catch (loadErr) {
+        console.error('Failed to load callbacks from AstDB:', loadErr)
+      }
+      // If the agent is already 'available', log them into the queues on PBX.
+      if (agentStatus.value === 'available') {
+        try {
+          await amiAgentLogin.login({ queues: ['8001', '8002', '8003'] })
+        } catch (loginErr) {
+          console.error('Agent login failed:', loginErr)
+        }
+      }
     }
 
     setConnected(true)
@@ -622,6 +682,12 @@ const handleDisconnect = async () => {
   try {
     stopQueueSimulation()
     if (ami.isConnected.value) {
+      // Log the agent out of PBX queues before tearing down the AMI connection.
+      try {
+        await amiAgentLogin.logout({ reason: 'Agent disconnected' })
+      } catch (logoutErr) {
+        console.error('Agent logout failed:', logoutErr)
+      }
       await ami.disconnect()
     }
     await disconnect()
@@ -643,6 +709,40 @@ const handleDisconnect = async () => {
     )
   }
 }
+
+/**
+ * Translate agent-status changes to real AMI QueueAdd/QueuePause/QueueRemove in
+ * connected mode. This keeps the demo handlers (updateAgentStatus and the 9
+ * sites that set agentStatus) untouched and demo mode byte-identical, while the
+ * PBX queue membership stays consistent when connected to a live Asterisk.
+ */
+watch(
+  agentStatus,
+  async (status, oldStatus) => {
+    if (!isConnectedMode.value || !ami.isConnected.value) return
+    if (status === oldStatus) return
+    try {
+      if (status === 'available' && oldStatus === 'busy') {
+        // Resume taking calls after a busy spell.
+        await amiAgentLogin.unpause()
+      } else if (status === 'available' && oldStatus === 'away') {
+        // Coming back online → log into queues (also handled explicitly on connect).
+        await amiAgentLogin.login({ queues: ['8001', '8002', '8003'] })
+      } else if (status === 'busy' && oldStatus === 'available') {
+        // Paused while on a call / wrapping up.
+        await amiAgentLogin.pause({ reason: 'On call / busy' })
+      } else if (status === 'away') {
+        // Going offline → leave all queues.
+        await amiAgentLogin.logout({ reason: 'Agent went away' })
+      }
+    } catch (syncErr) {
+      const message = syncErr instanceof Error ? syncErr.message : String(syncErr)
+      console.error('Agent status → AMI sync failed:', syncErr)
+      showNotification('error', `Agent sync failed: ${message}`)
+    }
+  },
+  { flush: 'post' }
+)
 
 const updateAgentStatus = (status: AgentStatus) => {
   const oldStatus = agentStatus.value
@@ -745,7 +845,12 @@ const handleStartCallback = async () => {
   try {
     stopQueueSimulation()
     activeCallbackId.value = selectedCallback.value.id
-    markCallbackInProgress(selectedCallback.value.id)
+    if (isConnectedMode.value) {
+      // Track in-progress on the AMI side too.
+      markCallbackInProgress(selectedCallback.value.id)
+    } else {
+      markCallbackInProgress(selectedCallback.value.id)
+    }
     customerContext.value = buildCustomerContextView({
       remoteUri: selectedCallback.value.targetUri,
       remoteDisplayName: selectedCallback.value.contactName || selectedCallback.value.targetUri,
@@ -757,11 +862,22 @@ const handleStartCallback = async () => {
     })
     agentStatus.value = 'busy'
     saveAgentStatus('busy')
-    await makeCall(selectedCallback.value.targetUri)
-    showNotification(
-      'info',
-      `Calling ${selectedCallback.value.contactName || selectedCallback.value.targetUri}...`
-    )
+
+    if (isConnectedMode.value) {
+      // AMI Originate: the PBX dials the customer and bridges to this agent.
+      // The agent receives the call as inbound (answers via softphone when it rings).
+      await amiCallback.executeCallback(selectedCallback.value.id)
+      showNotification(
+        'info',
+        `PBX ringer upp ${selectedCallback.value.contactName || selectedCallback.value.targetUri}...`
+      )
+    } else {
+      await makeCall(selectedCallback.value.targetUri)
+      showNotification(
+        'info',
+        `Calling ${selectedCallback.value.contactName || selectedCallback.value.targetUri}...`
+      )
+    }
   } catch (callbackError) {
     console.error('Failed to start callback:', callbackError)
     showNotification(
@@ -807,18 +923,40 @@ const handlePresenterReset = () => {
   showNotification('success', 'Demo state reset.')
 }
 
-const handleWrapUpComplete = () => {
+const handleWrapUpComplete = async () => {
   const finalizedDisposition = disposition.value
   const finalizedNotes = wrapUpNotes.value.trim()
-  const createdCallback = enterWrapUp({
-    disposition: disposition.value,
-    notes: finalizedNotes,
-    callbackRequested: callbackRequested.value,
-  })
+  const wantsCallback = callbackRequested.value
+
+  // In connected mode, schedule the callback via AMI (AstDB-backed). In demo
+  // mode, enterWrapUp pushes into the local pendingCallbacks ref as before.
+  let createdCallback: { id: string } | undefined
+  if (isConnectedMode.value && wantsCallback) {
+    try {
+      const callback = await amiCallback.scheduleCallback({
+        callerNumber: extractCallbackNumber(customerContext.value.address),
+        callerName: customerContext.value.displayName || undefined,
+        reason: customerContext.value.callbackReason || finalizedDisposition,
+        targetQueue: activeRoleId.value ? `${activeRoleId.value}-linjen` : '8001',
+        priority: 'normal',
+      })
+      createdCallback = { id: callback.id }
+    } catch (schedErr) {
+      const message = schedErr instanceof Error ? schedErr.message : String(schedErr)
+      console.error('scheduleCallback failed:', schedErr)
+      showNotification('error', `Failed to schedule callback: ${message}`)
+    }
+  } else {
+    createdCallback = enterWrapUp({
+      disposition: disposition.value,
+      notes: finalizedNotes,
+      callbackRequested: wantsCallback,
+    })
+  }
 
   if (lastWrappedCallId.value) {
     historyAnnotations.value[lastWrappedCallId.value] = {
-      tags: [finalizedDisposition, callbackRequested.value ? 'callback' : null].filter(
+      tags: [finalizedDisposition, wantsCallback ? 'callback' : null].filter(
         (value): value is string => Boolean(value)
       ),
       metadata: {
@@ -830,7 +968,16 @@ const handleWrapUpComplete = () => {
   }
 
   if (activeCallbackId.value) {
-    completeCallback(activeCallbackId.value)
+    if (isConnectedMode.value) {
+      // Mark the AMI callback completed; persist to AstDB.
+      try {
+        amiCallback.markCompleted(activeCallbackId.value, 'answered')
+      } catch {
+        /* non-fatal */
+      }
+    } else {
+      completeCallback(activeCallbackId.value)
+    }
     activeCallbackId.value = null
   }
 
@@ -846,6 +993,12 @@ const handleWrapUpComplete = () => {
   } else {
     stopQueueSimulation()
   }
+}
+
+/** Extract a callable phone number from a SIP URI / address string. */
+function extractCallbackNumber(address: string): string {
+  const m = address.match(/sip:([^@]+)@/) || address.match(/(\+?\d[\d\s\-()]{2,})/)
+  return (m ? m[1] : address).replace(/[^\d+]/g, '').slice(0, 32) || 'unknown'
 }
 
 const handleWrapUpCancel = () => {
