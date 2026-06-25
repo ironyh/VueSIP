@@ -110,6 +110,14 @@
         </aside>
 
         <main id="main-content" class="main-content" aria-label="Active call or statistics">
+          <IncomingCallBanner
+            v-if="isRinging"
+            :remote-display-name="remoteDisplayName"
+            :remote-uri="remoteUri"
+            :queue-call="incomingQueueCall"
+            @accept="handleAnswerIncoming"
+            @reject="handleRejectIncoming"
+          />
           <ActiveCall
             v-if="isActive"
             id="active-call"
@@ -191,6 +199,7 @@ import AgentStatusToggle from './components/AgentStatusToggle.vue'
 import AgentDashboard from './components/AgentDashboard.vue'
 import CallQueue from './components/CallQueue.vue'
 import ActiveCall from './components/ActiveCall.vue'
+import IncomingCallBanner from './components/IncomingCallBanner.vue'
 import CallStats from './components/CallStats.vue'
 import DemoKpiBar from './components/DemoKpiBar.vue'
 import PresenterControls from './components/PresenterControls.vue'
@@ -301,11 +310,14 @@ const {
   state,
   remoteUri,
   remoteDisplayName,
+  direction,
   isActive,
   duration,
   isMuted,
   isOnHold,
   makeCall,
+  answer,
+  reject,
   hangup,
   toggleMute,
   toggleHold,
@@ -341,6 +353,25 @@ const activeRoleId = computed<string | null>(() => {
     (c) => c.from === remoteUri.value || c.displayName === remoteDisplayName.value
   )
   return matchingQueued?.roleId ?? null
+})
+
+/**
+ * Is an inbound call currently ringing on this endpoint? (Asterisk delivers a
+ * queue caller as a SIP INVITE; `useCallSession` flags it direction='incoming'.)
+ */
+const isRinging = computed(() => direction.value === 'incoming' && state.value === 'ringing')
+
+/**
+ * The queue entry (if any) that the currently-ringing inbound call corresponds
+ * to. Correlated by caller number, since SIP remoteUri and AMI callerIdNum both
+ * carry the caller's number (possibly in different formats — extractNumber
+ * normalizes). Null for non-queue calls or demo mode (no inbound SIP there).
+ */
+const incomingQueueCall = computed<QueuedCallView | null>(() => {
+  if (!isRinging.value) return null
+  const num = extractNumber(remoteUri.value)
+  if (!num) return null
+  return callQueue.value.find((c) => extractNumber(c.from) === num) ?? null
 })
 
 /**
@@ -772,6 +803,13 @@ const handleCallStateChange = (announcement: string) => {
 }
 
 const handleQueuedCallAnswer = async (queuedCall: QueuedCall) => {
+  // In connected mode the PBX delivers the queue caller to this endpoint as an
+  // inbound SIP INVITE — the agent must accept the ringing banner (Answer),
+  // not originate a new outbound call. Directing the user is the right action.
+  if (isConnectedMode.value) {
+    showNotification('info', 'Vänta på inkommande samtal från kön — klicka Svara när det ringer.')
+    return
+  }
   try {
     callQueue.value = callQueue.value.filter((c) => c.id !== queuedCall.id)
     selectQueuedCall(queuedCall)
@@ -793,6 +831,40 @@ const handleQueuedCallAnswer = async (queuedCall: QueuedCall) => {
     agentStatus.value = 'available'
     saveAgentStatus('available')
     syncWorkspaceFromAgentStatus('available')
+  }
+}
+
+/**
+ * Answer a ringing inbound call (delivered by the PBX from a queue). This is
+ * the correct "answer" path in connected mode — it accepts the existing SIP
+ * dialog rather than originating a new outbound call.
+ */
+const handleAnswerIncoming = async () => {
+  try {
+    // Correlate to the queue entry so wrap-up / responsibility get the right context.
+    if (incomingQueueCall.value) {
+      callQueue.value = callQueue.value.filter((c) => c.id !== incomingQueueCall.value!.id)
+      selectQueuedCall(incomingQueueCall.value)
+    }
+    agentStatus.value = 'busy'
+    saveAgentStatus('busy')
+    await answer()
+    showNotification('success', `Besvarat: ${remoteDisplayName.value || remoteUri.value}`)
+  } catch (answerError) {
+    console.error('Failed to answer incoming call:', answerError)
+    showNotification(
+      'error',
+      'Kunde inte besvara: ' + (answerError instanceof Error ? answerError.message : 'Okänt fel')
+    )
+  }
+}
+
+const handleRejectIncoming = async () => {
+  try {
+    await reject()
+    showNotification('info', 'Samtal avvisat')
+  } catch (rejectError) {
+    console.error('Failed to reject incoming call:', rejectError)
   }
 }
 
