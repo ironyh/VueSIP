@@ -131,18 +131,29 @@ export function useAmi(): UseAmiReturn {
     error.value = null
     connectionState.value = AmiConnectionState.Connecting
 
+    // Persist config + reset reconnect bookkeeping for auto-reconnect.
+    lastConfig = config
+    reconnectAttempts = 0
+    explicitDisconnect = false
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+
     try {
       client.value = createAmiClient(config)
 
       // Setup event handlers
       client.value.on('connected', () => {
         connectionState.value = AmiConnectionState.Connected
+        reconnectAttempts = 0
         logger.info('AMI connected')
       })
 
       client.value.on('disconnected', (reason) => {
         connectionState.value = AmiConnectionState.Disconnected
         logger.info('AMI disconnected', { reason })
+        scheduleReconnectIfNeeded()
       })
 
       client.value.on('error', (err) => {
@@ -168,14 +179,99 @@ export function useAmi(): UseAmiReturn {
     } catch (err) {
       connectionState.value = AmiConnectionState.Failed
       error.value = err instanceof Error ? err.message : 'Failed to connect to AMI'
+      // On a failed initial connect, still try to reconnect (WSS proxies can be
+      // briefly unavailable — see telenurse flakiness).
+      scheduleReconnectIfNeeded()
       throw err
     }
+  }
+
+  /**
+   * Auto-reconnect bookkeeping. Triggered on unexpected disconnect or a failed
+   * initial connect, honoring AmiConfig.autoReconnect/reconnectDelay/
+   * maxReconnectAttempts.
+   */
+  let lastConfig: AmiConfig | null = null
+  let reconnectAttempts = 0
+  let explicitDisconnect = false
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+  function scheduleReconnectIfNeeded(): void {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+    if (explicitDisconnect || !lastConfig) return
+    const autoReconnect = lastConfig.autoReconnect !== false // default true
+    if (!autoReconnect) return
+    const max = lastConfig.maxReconnectAttempts ?? 5
+    if (max > 0 && reconnectAttempts >= max) {
+      logger.warn('AMI reconnect: max attempts reached, giving up', {
+        attempts: reconnectAttempts,
+      })
+      return
+    }
+    const delay = lastConfig.reconnectDelay ?? 3000
+    reconnectAttempts += 1
+    logger.info('AMI reconnect scheduled', {
+      attempt: reconnectAttempts,
+      delayMs: delay,
+      max,
+    })
+    connectionState.value = AmiConnectionState.Reconnecting
+    reconnectTimer = setTimeout(async () => {
+      reconnectTimer = null
+      // Don't throw here — silent retry, surface via connectionState/error.
+      try {
+        if (client.value) {
+          client.value.disconnect()
+          client.value = null
+        }
+        connectionState.value = AmiConnectionState.Connecting
+        client.value = createAmiClient(lastConfig!)
+        client.value.on('connected', () => {
+          connectionState.value = AmiConnectionState.Connected
+          reconnectAttempts = 0
+          logger.info('AMI reconnected')
+        })
+        client.value.on('disconnected', (reason) => {
+          connectionState.value = AmiConnectionState.Disconnected
+          logger.info('AMI disconnected', { reason })
+          scheduleReconnectIfNeeded()
+        })
+        client.value.on('error', (err) => {
+          error.value = err.message
+          logger.error('AMI error', err)
+        })
+        client.value.on('event', (event) => {
+          eventListeners.value.forEach((listener) => {
+            try {
+              listener(event)
+            } catch (err) {
+              logger.error('Error in event listener', err)
+            }
+          })
+        })
+        client.value.on('presenceChange', (event) => {
+          handlePresenceChange(event)
+        })
+        await client.value.connect()
+      } catch (err) {
+        logger.error('AMI reconnect attempt failed', err)
+        scheduleReconnectIfNeeded()
+      }
+    }, delay)
   }
 
   /**
    * Disconnect from AMI
    */
   const disconnect = (): void => {
+    explicitDisconnect = true
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
     if (client.value) {
       client.value.disconnect()
       client.value = null
