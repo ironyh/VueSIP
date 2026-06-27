@@ -158,6 +158,10 @@ export function useSipClient(
     reconnectDelay?: number
     /** Connection timeout in milliseconds (default: 30000) */
     connectionTimeout?: number
+    /** Auto-reconnect on registration failure/unexpected disconnect (default: true) */
+    autoReconnect?: boolean
+    /** Max reconnection attempts (default: 5, 0 = infinite) */
+    maxReconnectionAttempts?: number
   }
 ): UseSipClientReturn {
   // ============================================================================
@@ -169,8 +173,52 @@ export function useSipClient(
     autoConnect = false,
     autoCleanup = true,
     reconnectDelay = 1000,
+    autoReconnect = true,
+    maxReconnectionAttempts = 5,
     connectionTimeout = 30000,
   } = options ?? {}
+
+  // --- Auto-reconnect bookkeeping (mirrors useAmi) ---
+  // Distinguishes an intended disconnect (logout/unmount) from a transient drop
+  // so we only reconnect on the latter. Honors autoReconnect/maxReconnectionAttempts.
+  let explicitDisconnect = false
+  let reconnectAttempts = 0
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+  /**
+   * Schedule an auto-reconnect after an unexpected registration failure or
+   * disconnect, honoring the autoReconnect/maxReconnectionAttempts options.
+   */
+  function scheduleSipReconnect(): void {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+    if (explicitDisconnect || !autoReconnect) return
+    if (maxReconnectionAttempts > 0 && reconnectAttempts >= maxReconnectionAttempts) {
+      logger.warn('SIP reconnect: max attempts reached, giving up', {
+        attempts: reconnectAttempts,
+      })
+      return
+    }
+    reconnectAttempts += 1
+    logger.info('SIP reconnect scheduled', {
+      attempt: reconnectAttempts,
+      delayMs: reconnectDelay,
+      max: maxReconnectionAttempts,
+    })
+    reconnectTimer = setTimeout(async () => {
+      reconnectTimer = null
+      try {
+        await reconnect()
+        reconnectAttempts = 0
+      } catch (err) {
+        logger.error('SIP reconnect attempt failed', err)
+        // reconnect() already sets error; reschedule for another attempt.
+        scheduleSipReconnect()
+      }
+    }, reconnectDelay)
+  }
 
   const bridge = getEventBridge()
   // Priority: 1) passed eventBus, 2) E2E EventBridge (getEventBridge()), 3) new instance
@@ -315,6 +363,10 @@ export function useSipClient(
       id: eventBus.on(SipEventNames.Unregistered, () => {
         logger.info('SIP unregistered')
         registrationStore.setUnregistered()
+        // An unexpected unregistration (not from our own disconnect) should
+        // trigger an auto-reconnect so a transient network/WSS hiccup doesn't
+        // leave the agent stranded.
+        scheduleSipReconnect()
       }),
     })
 
@@ -326,6 +378,9 @@ export function useSipClient(
         const errorMsg = payload?.cause ?? 'Registration failed'
         registrationStore.setRegistrationFailed(errorMsg)
         error.value = new Error(errorMsg)
+        // Auto-reconnect on registration failure (WSS proxy 502/503, transient
+        // network issue). Without this the agent is permanently unregistered.
+        scheduleSipReconnect()
       }),
     })
 
@@ -392,6 +447,15 @@ export function useSipClient(
   async function connect(): Promise<void> {
     try {
       error.value = null
+      // A fresh connect (manual or auto-reconnect) clears the intentional-
+      // disconnect flag and resets the attempt counter so future drops
+      // auto-reconnect again.
+      explicitDisconnect = false
+      reconnectAttempts = 0
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
+      }
 
       // Validate configuration
       const config = configStore.sipConfig
@@ -451,6 +515,13 @@ export function useSipClient(
    */
   async function disconnect(): Promise<void> {
     try {
+      // Mark as intentional so the registration/unregistered listeners don't
+      // schedule an auto-reconnect after a user-initiated logout.
+      explicitDisconnect = true
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
+      }
       if (!sipClient.value) {
         logger.warn('No SIP client to disconnect')
         return
