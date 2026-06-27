@@ -210,11 +210,20 @@ export function useSipClient(
     reconnectTimer = setTimeout(async () => {
       reconnectTimer = null
       try {
-        await reconnect()
-        reconnectAttempts = 0
+        // Call connect() directly (not reconnect()) — reconnect() has its own
+        // internal reconnectDelay sleep, which would double the gap. We already
+        // waited reconnectDelay in this timer. disconnect() first to clear the
+        // old client/listeners, then connect() to establish fresh.
+        if (sipClient.value) {
+          await disconnect()
+          // disconnect() sets explicitDisconnect = true; flip it back since
+          // this is an auto-reconnect, not an intentional teardown.
+          explicitDisconnect = false
+        }
+        await connect()
       } catch (err) {
         logger.error('SIP reconnect attempt failed', err)
-        // reconnect() already sets error; reschedule for another attempt.
+        // connect() already sets error; reschedule for another attempt.
         scheduleSipReconnect()
       }
     }, reconnectDelay)
@@ -350,6 +359,9 @@ export function useSipClient(
         if (payload?.uri) {
           registrationStore.setRegistered(payload.uri, payload.expires)
         }
+        // Successful registration resets the auto-reconnect attempt counter.
+        // (Not in connect() — see comment there.)
+        reconnectAttempts = 0
 
         const emitE2E = getE2EEmit()
         if (emitE2E) {
@@ -363,10 +375,20 @@ export function useSipClient(
       id: eventBus.on(SipEventNames.Unregistered, () => {
         logger.info('SIP unregistered')
         registrationStore.setUnregistered()
-        // An unexpected unregistration (not from our own disconnect) should
+        // An unexpected unregistration (not from our own disconnect, and not
+        // from an explicit unregister() call via useSipRegistration) should
         // trigger an auto-reconnect so a transient network/WSS hiccup doesn't
-        // leave the agent stranded.
-        scheduleSipReconnect()
+        // leave the agent stranded. We distinguish the intentional cases:
+        //  - explicitDisconnect: set by our disconnect(); a full teardown.
+        //  - registrationStore.state === Unregistering: set by
+        //    useSipRegistration.unregister() before this event fires; an
+        //    intentional de-registration (e.g. account switch). Reconnecting
+        //    here would fight the caller's intent and could loop.
+        const isIntentionalUnregister =
+          explicitDisconnect || registrationStore.state === RegistrationState.Unregistering
+        if (!isIntentionalUnregister) {
+          scheduleSipReconnect()
+        }
       }),
     })
 
@@ -448,10 +470,12 @@ export function useSipClient(
     try {
       error.value = null
       // A fresh connect (manual or auto-reconnect) clears the intentional-
-      // disconnect flag and resets the attempt counter so future drops
-      // auto-reconnect again.
+      // disconnect flag and any pending timer so future drops auto-reconnect.
+      // NOTE: reconnectAttempts is reset only on successful registration (in
+      // the Registered listener), NOT here — otherwise the auto-reconnect path
+      // (reconnect → connect) would zero the counter on every attempt and
+      // maxReconnectionAttempts would never be enforced.
       explicitDisconnect = false
-      reconnectAttempts = 0
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)
         reconnectTimer = null
