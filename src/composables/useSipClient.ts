@@ -158,6 +158,10 @@ export function useSipClient(
     reconnectDelay?: number
     /** Connection timeout in milliseconds (default: 30000) */
     connectionTimeout?: number
+    /** Auto-reconnect on registration failure/unexpected disconnect (default: true) */
+    autoReconnect?: boolean
+    /** Max reconnection attempts (default: 5, 0 = infinite) */
+    maxReconnectionAttempts?: number
   }
 ): UseSipClientReturn {
   // ============================================================================
@@ -169,8 +173,61 @@ export function useSipClient(
     autoConnect = false,
     autoCleanup = true,
     reconnectDelay = 1000,
+    autoReconnect = true,
+    maxReconnectionAttempts = 5,
     connectionTimeout = 30000,
   } = options ?? {}
+
+  // --- Auto-reconnect bookkeeping (mirrors useAmi) ---
+  // Distinguishes an intended disconnect (logout/unmount) from a transient drop
+  // so we only reconnect on the latter. Honors autoReconnect/maxReconnectionAttempts.
+  let explicitDisconnect = false
+  let reconnectAttempts = 0
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+  /**
+   * Schedule an auto-reconnect after an unexpected registration failure or
+   * disconnect, honoring the autoReconnect/maxReconnectionAttempts options.
+   */
+  function scheduleSipReconnect(): void {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+    if (explicitDisconnect || !autoReconnect) return
+    if (maxReconnectionAttempts > 0 && reconnectAttempts >= maxReconnectionAttempts) {
+      logger.warn('SIP reconnect: max attempts reached, giving up', {
+        attempts: reconnectAttempts,
+      })
+      return
+    }
+    reconnectAttempts += 1
+    logger.info('SIP reconnect scheduled', {
+      attempt: reconnectAttempts,
+      delayMs: reconnectDelay,
+      max: maxReconnectionAttempts,
+    })
+    reconnectTimer = setTimeout(async () => {
+      reconnectTimer = null
+      try {
+        // Call connect() directly (not reconnect()) — reconnect() has its own
+        // internal reconnectDelay sleep, which would double the gap. We already
+        // waited reconnectDelay in this timer. disconnect() first to clear the
+        // old client/listeners, then connect() to establish fresh.
+        if (sipClient.value) {
+          await disconnect()
+          // disconnect() sets explicitDisconnect = true; flip it back since
+          // this is an auto-reconnect, not an intentional teardown.
+          explicitDisconnect = false
+        }
+        await connect()
+      } catch (err) {
+        logger.error('SIP reconnect attempt failed', err)
+        // connect() already sets error; reschedule for another attempt.
+        scheduleSipReconnect()
+      }
+    }, reconnectDelay)
+  }
 
   const bridge = getEventBridge()
   // Priority: 1) passed eventBus, 2) E2E EventBridge (getEventBridge()), 3) new instance
@@ -302,6 +359,9 @@ export function useSipClient(
         if (payload?.uri) {
           registrationStore.setRegistered(payload.uri, payload.expires)
         }
+        // Successful registration resets the auto-reconnect attempt counter.
+        // (Not in connect() — see comment there.)
+        reconnectAttempts = 0
 
         const emitE2E = getE2EEmit()
         if (emitE2E) {
@@ -315,6 +375,20 @@ export function useSipClient(
       id: eventBus.on(SipEventNames.Unregistered, () => {
         logger.info('SIP unregistered')
         registrationStore.setUnregistered()
+        // An unexpected unregistration (not from our own disconnect, and not
+        // from an explicit unregister() call via useSipRegistration) should
+        // trigger an auto-reconnect so a transient network/WSS hiccup doesn't
+        // leave the agent stranded. We distinguish the intentional cases:
+        //  - explicitDisconnect: set by our disconnect(); a full teardown.
+        //  - registrationStore.state === Unregistering: set by
+        //    useSipRegistration.unregister() before this event fires; an
+        //    intentional de-registration (e.g. account switch). Reconnecting
+        //    here would fight the caller's intent and could loop.
+        const isIntentionalUnregister =
+          explicitDisconnect || registrationStore.state === RegistrationState.Unregistering
+        if (!isIntentionalUnregister) {
+          scheduleSipReconnect()
+        }
       }),
     })
 
@@ -326,6 +400,9 @@ export function useSipClient(
         const errorMsg = payload?.cause ?? 'Registration failed'
         registrationStore.setRegistrationFailed(errorMsg)
         error.value = new Error(errorMsg)
+        // Auto-reconnect on registration failure (WSS proxy 502/503, transient
+        // network issue). Without this the agent is permanently unregistered.
+        scheduleSipReconnect()
       }),
     })
 
@@ -392,6 +469,17 @@ export function useSipClient(
   async function connect(): Promise<void> {
     try {
       error.value = null
+      // A fresh connect (manual or auto-reconnect) clears the intentional-
+      // disconnect flag and any pending timer so future drops auto-reconnect.
+      // NOTE: reconnectAttempts is reset only on successful registration (in
+      // the Registered listener), NOT here — otherwise the auto-reconnect path
+      // (reconnect → connect) would zero the counter on every attempt and
+      // maxReconnectionAttempts would never be enforced.
+      explicitDisconnect = false
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
+      }
 
       // Validate configuration
       const config = configStore.sipConfig
@@ -451,6 +539,13 @@ export function useSipClient(
    */
   async function disconnect(): Promise<void> {
     try {
+      // Mark as intentional so the registration/unregistered listeners don't
+      // schedule an auto-reconnect after a user-initiated logout.
+      explicitDisconnect = true
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
+      }
       if (!sipClient.value) {
         logger.warn('No SIP client to disconnect')
         return
