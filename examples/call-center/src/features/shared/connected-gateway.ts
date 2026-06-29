@@ -15,12 +15,44 @@
 
 import { watchEffect, type Ref } from 'vue'
 import type { AmiConnectionState, QueueEntry, QueueInfo } from '../../../../../src/types/ami.types'
+import type { AmiClient } from '../../../../../src/core/AmiClient'
 import type {
   MvpGateway,
   MvpGatewayCapabilities,
   MvpGatewayRuntime,
   QueuedCallView,
 } from './mvp-types'
+
+/**
+ * Information about a pending or in-progress queue delivery (when Asterisk
+ * rings a member for a queued caller). Built from AMI AgentCalled events.
+ */
+export interface DeliveryInfo {
+  /** Queue name the caller is in (e.g. "8001"). */
+  queue: string
+  /** The caller's number. */
+  callerIdNum: string
+  /** The caller's display name, if any. */
+  callerIdName?: string
+  /** The AMI Uniqueid of the caller's channel (matches QueueEntry.uniqueId). */
+  uniqueId?: string
+  /** The member interface being rung (e.g. "PJSIP/1001"). */
+  destChannel: string
+  /** When the delivery event was received (epoch ms). */
+  timestamp: number
+}
+
+/**
+ * Connected gateway with delivery-correlation support. Extends MvpGateway with
+ * lookup methods the runtime uses to correlate an incoming SIP dialog to a
+ * queue entry deterministically (instead of fuzzy caller-number matching).
+ */
+export interface ConnectedGateway extends MvpGateway {
+  /** Look up the most recent delivery for a member interface (e.g. PJSIP/1001). */
+  getDeliveryForChannel(channel: string): DeliveryInfo | null
+  /** Look up the most recent delivery by the caller's number. */
+  getDeliveryForCallerNumber(num: string): DeliveryInfo | null
+}
 
 /**
  * Map a live Asterisk `QueueEntry` to the workspace's `QueuedCallView`.
@@ -57,6 +89,8 @@ export interface ConnectedGatewayHandles {
   connectionState: Ref<AmiConnectionState>
   /** Live queue map (from `useAmiQueues().queues`). */
   queues: Ref<Map<string, QueueInfo>>
+  /** The AMI client (from `useAmi().getClient()`) — used to listen for delivery events. */
+  client: AmiClient | null
   /** Subscribe to AMI caller-join events (from `useAmiQueues().onCallerJoin` if present). */
   onCallerJoin?: (cb: (entry: QueueEntry, queue: string) => void) => () => void
   /** Subscribe to AMI caller-leave events. */
@@ -77,12 +111,63 @@ const CONNECTED_CAPABILITIES: MvpGatewayCapabilities = {
  * rather than ticking on a timer, the `intervalMs` argument is accepted but
  * ignored — `onTick` fires whenever the queue map changes.
  */
-export function createConnectedGateway(handles: ConnectedGatewayHandles): MvpGateway {
+export function createConnectedGateway(handles: ConnectedGatewayHandles): ConnectedGateway {
   let runtime: MvpGatewayRuntime | null = null
   let unsubscribeJoin: (() => void) | null = null
   let unsubscribeLeave: (() => void) | null = null
   let watchStop: (() => void) | null = null
   let lastSeenIds = new Set<string>()
+
+  /**
+   * Pending deliveries keyed by member interface (e.g. "PJSIP/1001"). Populated
+   * from AMI AgentCalled events. Used to correlate an incoming SIP dialog to a
+   * specific queue entry deterministically.
+   */
+  const deliveryByChannel = new Map<string, DeliveryInfo>()
+  /** Reverse lookup by caller number (fallback when channel isn't known yet). */
+  const deliveryByCallerNum = new Map<string, DeliveryInfo>()
+
+  /**
+   * AMI 'event' listener for delivery events. AgentCalled fires when the queue
+   * rings a member; DialBegin fires when the dial actually starts. Both carry
+   * enough fields to correlate. We also clear a delivery on BridgeLeave/hangup.
+   */
+  const onAmiEvent = (msg: Record<string, string | undefined>) => {
+    const evt = msg.Event
+    if (evt === 'AgentCalled') {
+      const info: DeliveryInfo = {
+        queue: msg.Queue ?? '',
+        callerIdNum: msg.CallerIDNum ?? '',
+        callerIdName: msg.CallerIDName,
+        uniqueId: msg.Uniqueid ?? msg.UniqueID,
+        destChannel: msg.DestChannel ?? msg.AgentCalled ?? '',
+        timestamp: Date.now(),
+      }
+      if (info.destChannel) {
+        deliveryByChannel.set(info.destChannel, info)
+      }
+      if (info.callerIdNum) {
+        deliveryByCallerNum.set(info.callerIdNum, info)
+      }
+    } else if (evt === 'DialBegin' && msg.DestChannel) {
+      // DialBegin also carries the destination; if AgentCalled was missed, use it.
+      if (!deliveryByChannel.has(msg.DestChannel) && msg.CallerIDNum) {
+        const info: DeliveryInfo = {
+          queue: '',
+          callerIdNum: msg.CallerIDNum,
+          callerIdName: msg.CallerIDName,
+          destChannel: msg.DestChannel,
+          timestamp: Date.now(),
+        }
+        deliveryByChannel.set(msg.DestChannel, info)
+      }
+    } else if (evt === 'Hangup' || evt === 'BridgeLeave') {
+      const ch = msg.Channel
+      if (ch) deliveryByChannel.delete(ch)
+      const num = msg.CallerIDNum
+      if (num) deliveryByCallerNum.delete(num)
+    }
+  }
 
   function notifyTick() {
     if (!runtime) return
@@ -115,6 +200,11 @@ export function createConnectedGateway(handles: ConnectedGatewayHandles): MvpGat
       handleQueuesChange(handles.queues.value)
     })
 
+    // Listen for delivery events to build the correlation map.
+    if (handles.client) {
+      handles.client.on('event', onAmiEvent)
+    }
+
     // If the AMI composable exposes granular caller-join subscriptions, use them
     // for crisper onInboundCall timing (in addition to the map watch above).
     if (handles.onCallerJoin) {
@@ -139,6 +229,9 @@ export function createConnectedGateway(handles: ConnectedGatewayHandles): MvpGat
       watchStop()
       watchStop = null
     }
+    if (handles.client) {
+      handles.client.off('event', onAmiEvent)
+    }
     if (unsubscribeJoin) {
       unsubscribeJoin()
       unsubscribeJoin = null
@@ -149,11 +242,23 @@ export function createConnectedGateway(handles: ConnectedGatewayHandles): MvpGat
     }
     runtime = null
     lastSeenIds = new Set()
+    deliveryByChannel.clear()
+    deliveryByCallerNum.clear()
+  }
+
+  function getDeliveryForChannel(channel: string): DeliveryInfo | null {
+    return deliveryByChannel.get(channel) ?? null
+  }
+
+  function getDeliveryForCallerNumber(num: string): DeliveryInfo | null {
+    return deliveryByCallerNum.get(num) ?? null
   }
 
   return {
     capabilities: CONNECTED_CAPABILITIES,
     start,
     stop,
+    getDeliveryForChannel,
+    getDeliveryForCallerNumber,
   }
 }

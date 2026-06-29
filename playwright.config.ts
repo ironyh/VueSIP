@@ -242,8 +242,11 @@ export default defineConfig({
       stderr: process.env.CI ? 'pipe' : 'ignore',
     },
     {
-      command: 'pnpm --dir examples/call-center dev --host 127.0.0.1 --port 5174',
-      url: 'http://localhost:5174',
+      // Port is configurable via CALL_CENTER_PORT so the suite can run when the
+      // default 5174 is occupied (e.g. by another dev app). Test files read
+      // CALL_CENTER_URL for the base URL accordingly.
+      command: `pnpm --dir examples/call-center dev --host 127.0.0.1 --port ${process.env.CALL_CENTER_PORT || '5174'}`,
+      url: `http://localhost:${process.env.CALL_CENTER_PORT || '5174'}`,
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
       stdout: process.env.CI ? 'pipe' : 'ignore',

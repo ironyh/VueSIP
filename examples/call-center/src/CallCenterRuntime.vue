@@ -369,6 +369,37 @@ const isRinging = computed(() => direction.value === 'incoming' && state.value =
  */
 const incomingQueueCall = computed<QueuedCallView | null>(() => {
   if (!isRinging.value) return null
+
+  // Deterministic correlation: in connected mode the gateway tracks AMI
+  // AgentCalled events, so we can look up the delivery by the agent's channel
+  // (PJSIP/<ext>) or the caller's number. This replaces the fragile fuzzy
+  // caller-number match below and is how real queue delivery is correlated.
+  if (isConnectedMode.value && sipExtension) {
+    const cg = gateway as import('./features/shared/connected-gateway').ConnectedGateway
+    if ('getDeliveryForChannel' in cg) {
+      // Try the agent's member interface first (most precise), then the caller number.
+      const byChannel = cg.getDeliveryForChannel(`PJSIP/${sipExtension}`)
+      const delivery = byChannel ?? cg.getDeliveryForCallerNumber(extractNumber(remoteUri.value))
+      if (delivery?.uniqueId) {
+        const entry = callQueue.value.find((c) => c.id === delivery.uniqueId)
+        if (entry) return entry
+      }
+      // Delivery seen but entry not in callQueue (race) — synthesize a minimal view.
+      if (delivery) {
+        return {
+          id: delivery.uniqueId ?? delivery.callerIdNum,
+          from: delivery.callerIdNum,
+          displayName: delivery.callerIdName,
+          waitTime: 0,
+          queue: delivery.queue,
+          roleId: undefined,
+        }
+      }
+    }
+  }
+
+  // Fallback: fuzzy caller-number match (demo mode, or if AMI delivery tracking
+  // has no entry yet). This is the original heuristic and stays for demo parity.
   const num = extractNumber(remoteUri.value)
   if (!num) return null
   return callQueue.value.find((c) => extractNumber(c.from) === num) ?? null
@@ -452,10 +483,14 @@ const isConnectedMode = computed(() => props.amiConfig !== null)
 
 // In connected mode the queue feed is driven by live AMI events; in demo mode
 // it is driven by the simulated demo gateway. Both implement MvpGateway.
+// In connected mode the gateway is a ConnectedGateway (extra delivery-lookup
+// methods); in demo mode it's the plain demo gateway. We type it as MvpGateway
+// and cast to ConnectedGateway where the lookup methods are used.
 const gateway: MvpGateway = isConnectedMode.value
   ? createConnectedGateway({
       connectionState: ami.connectionState,
       queues: amiQueues.queues,
+      client: ami.getClient(),
     })
   : demoGateway
 
