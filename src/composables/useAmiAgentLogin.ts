@@ -458,10 +458,37 @@ export function useAmiAgentLogin(
           loginOptions.penalties?.[queue] ?? loginOptions.defaultPenalty ?? config.defaultPenalty
         const penalty = validatePenalty(rawPenalty)
 
-        await client.queueAdd(queue, config.interface, {
-          memberName: sanitizeForStorage(loginOptions.memberName || config.name),
-          penalty,
-        })
+        try {
+          await client.queueAdd(queue, config.interface, {
+            memberName: sanitizeForStorage(loginOptions.memberName || config.name),
+            penalty,
+          })
+        } catch (addErr) {
+          // "Already there" means the interface is already a member of the queue —
+          // the desired post-condition is satisfied, so treat it as success. This
+          // makes login idempotent across reconnects/re-registrations. Any other
+          // failure (invalid queue, permission error) must still abort the login.
+          const msg = addErr instanceof Error ? addErr.message : String(addErr)
+          if (!/already there/i.test(msg)) throw addErr
+          logger.info('Already a member of queue, treating as logged in', { queue })
+        }
+
+        // Ensure the member can actually receive calls. Static queue members
+        // (defined in queues*.conf) may be left Paused from a prior session, and
+        // QueueAdd does not clear that — only QueuePause does. "Login" semantically
+        // means "ready to take calls", so explicitly unpause on every login. A
+        // member that isn't paused responds with "not in queue" / "not paused",
+        // which we tolerate.
+        try {
+          await client.queuePause(queue, config.interface, false)
+        } catch (pauseErr) {
+          // Not fatal: some Asterisk versions reject unpausing an already-unpaused
+          // member. The member is logged in regardless.
+          logger.debug('Unpause during login tolerated', {
+            queue,
+            err: pauseErr instanceof Error ? pauseErr.message : String(pauseErr),
+          })
+        }
 
         // Update local state
         const existingQueue = queueMap.get(queue)
