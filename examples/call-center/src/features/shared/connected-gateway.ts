@@ -89,8 +89,14 @@ export interface ConnectedGatewayHandles {
   connectionState: Ref<AmiConnectionState>
   /** Live queue map (from `useAmiQueues().queues`). */
   queues: Ref<Map<string, QueueInfo>>
-  /** The AMI client (from `useAmi().getClient()`) — used to listen for delivery events. */
-  client: AmiClient | null
+  /**
+   * Getter for the current AMI client (from `useAmi().getClient()`). We take a
+   * getter, not a snapshot, because getClient() returns null at setup time and
+   * only becomes non-null after ami.connect() resolves in initializeConnection.
+   * The gateway binds/unbinds the event listener in start()/stop() using the
+   * value this getter returns at call time.
+   */
+  getClient: () => AmiClient | null
   /** Subscribe to AMI caller-join events (from `useAmiQueues().onCallerJoin` if present). */
   onCallerJoin?: (cb: (entry: QueueEntry, queue: string) => void) => () => void
   /** Subscribe to AMI caller-leave events. */
@@ -200,9 +206,12 @@ export function createConnectedGateway(handles: ConnectedGatewayHandles): Connec
       handleQueuesChange(handles.queues.value)
     })
 
-    // Listen for delivery events to build the correlation map.
-    if (handles.client) {
-      handles.client.on('event', onAmiEvent)
+    // Listen for delivery events to build the correlation map. We call getClient()
+    // at start() time (which runs after ami.connect() in initializeConnection),
+    // not at setup time — getClient() returns null at setup.
+    const client = handles.getClient()
+    if (client) {
+      client.on('event', onAmiEvent)
     }
 
     // If the AMI composable exposes granular caller-join subscriptions, use them
@@ -229,8 +238,9 @@ export function createConnectedGateway(handles: ConnectedGatewayHandles): Connec
       watchStop()
       watchStop = null
     }
-    if (handles.client) {
-      handles.client.off('event', onAmiEvent)
+    const client = handles.getClient()
+    if (client) {
+      client.off('event', onAmiEvent)
     }
     if (unsubscribeJoin) {
       unsubscribeJoin()

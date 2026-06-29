@@ -185,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { ref, shallowRef, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import {
   HistoryExportFormat,
   useSipClient,
@@ -362,6 +362,17 @@ const activeRoleId = computed<string | null>(() => {
 const isRinging = computed(() => direction.value === 'incoming' && state.value === 'ringing')
 
 /**
+ * Pull the caller number out of a SIP URI or bare address. Handles
+ * `sip:5550001@asterisk`, `5550001`, and quoted-display forms, returning a
+ * digits-only string used to match AMI CallerIDNum against the SIP remoteUri.
+ */
+function extractNumber(value: string | null | undefined): string {
+  if (!value) return ''
+  const m = value.match(/sip:([^@]+)@/) || value.match(/(\+?\d[\d\s\-()]{2,})/)
+  return (m ? m[1] : value).replace(/[^\d+]/g, '').slice(0, 32)
+}
+
+/**
  * The queue entry (if any) that the currently-ringing inbound call corresponds
  * to. Correlated by caller number, since SIP remoteUri and AMI callerIdNum both
  * carry the caller's number (possibly in different formats — extractNumber
@@ -490,41 +501,68 @@ const gateway: MvpGateway = isConnectedMode.value
   ? createConnectedGateway({
       connectionState: ami.connectionState,
       queues: amiQueues.queues,
-      client: ami.getClient(),
+      getClient: () => ami.getClient(),
     })
   : demoGateway
 
 // --- AMI agent-login + callback (connected mode) -------------------------
 // NOTE: ami.getClient() is a snapshot (AmiClient | null), not a Ref. At setup
-// time it is null (AMI connects later in initializeConnection). Both composables
-// tolerate null clients and re-check at call time; we (re)load/refresh after
-// ami.connect() resolves. Event listeners bind once with the snapshot, so for
-// robust event sync we also rely on the connected-gateway's queue ref + a
-// manual refresh on connect.
+// time it is null (AMI connects later in initializeConnection). The composables
+// bind event listeners at construction, so they MUST be (re)created once the
+// real client exists. We hold them in shallowRefs and (re)instantiate via a
+// watcher on ami.isConnected, which fires after ami.connect() resolves.
 const sipExtension = (() => {
   const m = props.sipConfig.sipUri?.match(/sip:([^@]+)@/)
   return m ? m[1] : ''
 })()
 
-const amiAgentLogin = useAmiAgentLogin(ami.getClient(), {
-  agentId: props.sipConfig.sipUri || sipExtension || 'agent',
-  interface: sipExtension ? `PJSIP/${sipExtension}` : 'PJSIP/agent',
-  defaultQueues: ['8001', '8002', '8003'],
-  persistState: false,
-})
+const amiAgentLogin = shallowRef<ReturnType<typeof useAmiAgentLogin> | null>(null)
+const amiCallback = shallowRef<ReturnType<typeof useAmiCallback> | null>(null)
 
-const amiCallback = useAmiCallback(ami.getClient(), {
-  storage: { persistEnabled: true },
-  defaultContext: 'from-internal',
-})
+/** (Re)create the AMI composables with the now-connected client. */
+function bindAmiComposables() {
+  const client = ami.getClient()
+  if (!client) return
+  if (amiAgentLogin.value) return // already bound to a live client
+  amiAgentLogin.value = useAmiAgentLogin(client, {
+    agentId: props.sipConfig.sipUri || sipExtension || 'agent',
+    interface: sipExtension ? `PJSIP/${sipExtension}` : 'PJSIP/agent',
+    defaultQueues: ['8001', '8002', '8003'],
+    persistState: false,
+  })
+  amiCallback.value = useAmiCallback(client, {
+    storage: { persistEnabled: true },
+    defaultContext: 'from-internal',
+  })
+}
+
+// Re-bind when AMI transitions to connected (covers initial connect + reconnects).
+watch(
+  () => ami.isConnected.value,
+  (connected) => {
+    if (connected && isConnectedMode.value) {
+      bindAmiComposables()
+      // Load shared callbacks + auto-login if agent is available.
+      amiCallback.value
+        ?.loadFromStorage()
+        .catch((e: unknown) => console.error('Failed to load callbacks from AstDB:', e))
+      if (agentStatus.value === 'available') {
+        amiAgentLogin.value
+          ?.login({ queues: ['8001', '8002', '8003'] })
+          .catch((e: unknown) => console.error('Agent login failed:', e))
+      }
+    }
+  },
+  { immediate: true }
+)
 
 // In connected mode the callback worklist is fed by AMI (AstDB-backed); in demo
 // mode it is the local pendingCallbacks ref. useCallbackWorklist takes a
 // Ref<CallbackTaskView[]>, so we feed it an adapter ref that mirrors the chosen
 // source.
 const callbackWorklistSource = computed<CallbackTaskView[]>(() =>
-  isConnectedMode.value
-    ? amiCallback.callbacks.value.map(mapCallbackRequestToView)
+  isConnectedMode.value && amiCallback.value
+    ? amiCallback.value.callbacks.value.map(mapCallbackRequestToView)
     : pendingCallbacks.value
 )
 const callbackWorklistRef = ref<CallbackTaskView[]>([])
@@ -704,21 +742,8 @@ const initializeConnection = async () => {
     // feed drives queue entries; the SIP connection drives the actual audio.
     if (props.amiConfig) {
       await ami.connect(props.amiConfig)
-      // Load shared callbacks from AstDB now that the AMI client is connected.
-      // (Composables captured a null client at setup; loadFromStorage re-checks.)
-      try {
-        await amiCallback.loadFromStorage()
-      } catch (loadErr) {
-        console.error('Failed to load callbacks from AstDB:', loadErr)
-      }
-      // If the agent is already 'available', log them into the queues on PBX.
-      if (agentStatus.value === 'available') {
-        try {
-          await amiAgentLogin.login({ queues: ['8001', '8002', '8003'] })
-        } catch (loginErr) {
-          console.error('Agent login failed:', loginErr)
-        }
-      }
+      // AMI composables are lazily bound via the isConnected watcher
+      // (loadFromStorage + auto-login happen there once the client exists).
     }
 
     setConnected(true)
@@ -750,7 +775,7 @@ const handleDisconnect = async () => {
     if (ami.isConnected.value) {
       // Log the agent out of PBX queues before tearing down the AMI connection.
       try {
-        await amiAgentLogin.logout({ reason: 'Agent disconnected' })
+        await amiAgentLogin.value?.logout({ reason: 'Agent disconnected' })
       } catch (logoutErr) {
         console.error('Agent logout failed:', logoutErr)
       }
@@ -790,16 +815,16 @@ watch(
     try {
       if (status === 'available' && oldStatus === 'busy') {
         // Resume taking calls after a busy spell.
-        await amiAgentLogin.unpause()
+        await amiAgentLogin.value?.unpause()
       } else if (status === 'available' && oldStatus === 'away') {
         // Coming back online → log into queues (also handled explicitly on connect).
-        await amiAgentLogin.login({ queues: ['8001', '8002', '8003'] })
+        await amiAgentLogin.value?.login({ queues: ['8001', '8002', '8003'] })
       } else if (status === 'busy' && oldStatus === 'available') {
         // Paused while on a call / wrapping up.
-        await amiAgentLogin.pause({ reason: 'On call / busy' })
+        await amiAgentLogin.value?.pause({ reason: 'On call / busy' })
       } else if (status === 'away') {
         // Going offline → leave all queues.
-        await amiAgentLogin.logout({ reason: 'Agent went away' })
+        await amiAgentLogin.value?.logout({ reason: 'Agent went away' })
       }
     } catch (syncErr) {
       const message = syncErr instanceof Error ? syncErr.message : String(syncErr)
@@ -973,7 +998,7 @@ const handleStartCallback = async () => {
     if (isConnectedMode.value) {
       // AMI Originate: the PBX dials the customer and bridges to this agent.
       // The agent receives the call as inbound (answers via softphone when it rings).
-      await amiCallback.executeCallback(selectedCallback.value.id)
+      await amiCallback.value?.executeCallback(selectedCallback.value.id)
       showNotification(
         'info',
         `PBX ringer upp ${selectedCallback.value.contactName || selectedCallback.value.targetUri}...`
@@ -1040,7 +1065,7 @@ const handleWrapUpComplete = async () => {
   let createdCallback: { id: string } | undefined
   if (isConnectedMode.value && wantsCallback) {
     try {
-      const callback = await amiCallback.scheduleCallback({
+      const callback = await amiCallback.value?.scheduleCallback({
         callerNumber: extractCallbackNumber(customerContext.value.address),
         callerName: customerContext.value.displayName || undefined,
         reason: customerContext.value.callbackReason || finalizedDisposition,
@@ -1078,7 +1103,7 @@ const handleWrapUpComplete = async () => {
     if (isConnectedMode.value) {
       // Mark the AMI callback completed; persist to AstDB.
       try {
-        amiCallback.markCompleted(activeCallbackId.value, 'answered')
+        amiCallback.value?.markCompleted(activeCallbackId.value, 'answered')
       } catch {
         /* non-fatal */
       }
