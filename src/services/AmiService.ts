@@ -442,7 +442,7 @@ export function createAmiService(config: AmiServiceConfig = {}): AmiServiceRetur
   const useAgentLoginFactory = (options?: UseAmiAgentLoginOptions): UseAmiAgentLoginReturn => {
     if (!composables.agentLogin) {
       composables.agentLogin = useAmiAgentLogin(
-        ami.getClient(),
+        clientRef as Ref<AmiClient | null>,
         options || ({} as UseAmiAgentLoginOptions)
       )
     }
@@ -474,7 +474,7 @@ export function createAmiService(config: AmiServiceConfig = {}): AmiServiceRetur
    */
   const useCallbackFactory = (options?: UseAmiCallbackOptions): UseAmiCallbackReturn => {
     if (!composables.callback) {
-      composables.callback = useAmiCallback(ami.getClient(), options)
+      composables.callback = useAmiCallback(clientRef as Ref<AmiClient | null>, options)
     }
     return composables.callback
   }
