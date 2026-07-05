@@ -489,11 +489,14 @@ export function useAmiAgentLogin(
         // means "ready to take calls", so explicitly unpause on every login. A
         // member that isn't paused responds with "not in queue" / "not paused",
         // which we tolerate.
+        let unpauseSucceeded = true
         try {
           await client.queuePause(queue, config.interface, false)
         } catch (pauseErr) {
           // Not fatal: some Asterisk versions reject unpausing an already-unpaused
-          // member. The member is logged in regardless.
+          // member. The member is logged in regardless. Track the outcome so the
+          // local pause-state below mirrors the PBX, not a wishful assumption.
+          unpauseSucceeded = false
           logger.debug('Unpause during login tolerated', {
             queue,
             err: pauseErr instanceof Error ? pauseErr.message : String(pauseErr),
@@ -506,13 +509,14 @@ export function useAmiAgentLogin(
           existingQueue.isMember = true
           existingQueue.penalty = penalty
           existingQueue.loginTime = Math.floor(Date.now() / 1000)
-          // Mirror the unpause we just performed on the PBX (queuePause(false)
-          // above). Leaving the local isPaused stale would desync from the PBX:
-          // the QueueMemberPause event *can* reconcile this, but it arrives
-          // asynchronously while this update is synchronous — set it now so
-          // local state is deterministically consistent with the action taken.
-          existingQueue.isPaused = false
-          existingQueue.pauseReason = undefined
+          // Mirror the unpause outcome. Only clear local pause state when the PBX
+          // unpause actually succeeded; otherwise we'd claim "available" while the
+          // PBX still has the member paused. The QueueMemberPause event reconciles
+          // this asynchronously if it arrives later.
+          if (unpauseSucceeded) {
+            existingQueue.isPaused = false
+            existingQueue.pauseReason = undefined
+          }
         } else {
           const newQueue = {
             queue,
