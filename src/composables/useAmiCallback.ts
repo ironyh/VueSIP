@@ -7,7 +7,8 @@
  * @module composables/useAmiCallback
  */
 
-import { ref, computed, onScopeDispose, getCurrentScope } from 'vue'
+import { ref, computed, watch, onScopeDispose, getCurrentScope } from 'vue'
+import type { Ref } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type {
   CallbackStatus,
@@ -82,11 +83,19 @@ const PRIORITY_WEIGHT: Record<CallbackPriority, number> = {
  * Provides reactive callback queue management for Vue components.
  * Supports scheduling, execution, and persistence via AstDB.
  *
- * @param client - AMI client instance (from useAmi().getClient())
+ * The composable takes a reactive `amiClientRef` (a `Ref<AmiClient | null>`)
+ * rather than a snapshot client. It watches the ref and (re)binds its event
+ * listeners whenever the underlying client changes — which happens on every
+ * AMI reconnect, since `useAmi` constructs a new `AmiClient` instance. Passing
+ * a snapshot instead would orphan the listeners after the first reconnect.
+ *
+ * @param amiClientRef - Reactive ref to the AMI client, typically
+ *   `computed(() => ami.getClient())` or `shallowRef(ami.getClient())`.
  * @param options - Configuration options
  *
  * @example
  * ```typescript
+ * import { computed } from 'vue'
  * const ami = useAmi()
  * await ami.connect({ url: 'ws://pbx.example.com:8080' })
  *
@@ -96,7 +105,7 @@ const PRIORITY_WEIGHT: Record<CallbackPriority, number> = {
  *   scheduleCallback,
  *   executeCallback,
  *   executeNext,
- * } = useAmiCallback(ami.getClient()!, {
+ * } = useAmiCallback(computed(() => ami.getClient()), {
  *   defaultQueue: 'sales',
  *   defaultMaxAttempts: 3,
  *   autoExecute: true,
@@ -116,7 +125,7 @@ const PRIORITY_WEIGHT: Record<CallbackPriority, number> = {
  * ```
  */
 export function useAmiCallback(
-  client: AmiClient | null,
+  amiClientRef: Ref<AmiClient | null>,
   options: UseAmiCallbackOptions = {}
 ): UseAmiCallbackReturn {
   // ============================================================================
@@ -404,7 +413,7 @@ export function useAmiCallback(
     })
 
     // Persist if enabled
-    if (config.storage.persistEnabled && client) {
+    if (config.storage.persistEnabled && amiClientRef.value) {
       try {
         await saveCallbackToDb(callback)
       } catch (err) {
@@ -422,6 +431,7 @@ export function useAmiCallback(
     callbackId: string,
     execOptions: ExecuteCallbackOptions = {}
   ): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       throw new Error('AMI client not connected')
     }
@@ -546,6 +556,7 @@ export function useAmiCallback(
     }
 
     // If in progress, try to hang up
+    const client = amiClientRef.value
     if (callback.status === 'in_progress' && callback.channel && client) {
       try {
         await client.hangupChannel(callback.channel)
@@ -717,6 +728,7 @@ export function useAmiCallback(
    * Save a callback to AstDB
    */
   const saveCallbackToDb = async (callback: CallbackRequest): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) return
 
     const value = JSON.stringify({
@@ -739,6 +751,7 @@ export function useAmiCallback(
    * Load callbacks from AstDB
    */
   const loadFromStorage = async (): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       throw new Error('AMI client not connected')
     }
@@ -809,6 +822,7 @@ export function useAmiCallback(
    * Save all callbacks to AstDB
    */
   const saveToStorage = async (): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       throw new Error('AMI client not connected')
     }
@@ -834,6 +848,7 @@ export function useAmiCallback(
    * Clear all stored callbacks
    */
   const clearStorage = async (): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       throw new Error('AMI client not connected')
     }
@@ -911,12 +926,15 @@ export function useAmiCallback(
   }
 
   // ============================================================================
-  // Setup Event Listeners
+  // Setup Event Listeners — reactive (re)binding to the AMI client
   // ============================================================================
+  //
+  // `useAmi` constructs a NEW AmiClient on every reconnect, so a snapshot taken
+  // at construction would orphan the listeners after the first drop. We watch
+  // amiClientRef instead: teardown the old client's listeners, then bind to the
+  // new one. This mirrors the pattern used by useAmiMWI / useAmiAgentLogin.
 
-  const setupEventListeners = (): void => {
-    if (!client) return
-
+  const setupEventListeners = (client: AmiClient): void => {
     const hangupHandler = (event: AmiMessage<AmiHangupEvent>) => handleHangup(event)
     const stateHandler = (event: AmiMessage<AmiNewStateEvent>) => handleNewState(event)
 
@@ -929,13 +947,23 @@ export function useAmiCallback(
     })
   }
 
-  // ============================================================================
-  // Initialize
-  // ============================================================================
-
-  if (client) {
-    setupEventListeners()
+  const cleanupEventListeners = (): void => {
+    eventCleanups.forEach((cleanup) => cleanup())
+    eventCleanups.length = 0
   }
+
+  watch(
+    amiClientRef,
+    (newClient, oldClient) => {
+      if (oldClient) {
+        cleanupEventListeners()
+      }
+      if (newClient) {
+        setupEventListeners(newClient)
+      }
+    },
+    { immediate: true }
+  )
 
   // Start auto-execute if configured
   if (config.autoExecute) {
@@ -950,10 +978,10 @@ export function useAmiCallback(
     onScopeDispose(() => {
       stopCallbackTimer()
       stopAutoExecute()
-      eventCleanups.forEach((cleanup) => cleanup())
+      cleanupEventListeners()
 
       // Cancel active callback
-      if (activeCallback.value && client) {
+      if (activeCallback.value && amiClientRef.value) {
         cancelCallback(activeCallback.value.id, 'Component unmounted').catch(() => {
           // Ignore errors during cleanup
         })

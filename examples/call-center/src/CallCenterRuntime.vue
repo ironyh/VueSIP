@@ -506,11 +506,13 @@ const gateway: MvpGateway = isConnectedMode.value
   : demoGateway
 
 // --- AMI agent-login + callback (connected mode) -------------------------
-// NOTE: ami.getClient() is a snapshot (AmiClient | null), not a Ref. At setup
-// time it is null (AMI connects later in initializeConnection). The composables
-// bind event listeners at construction, so they MUST be (re)created once the
-// real client exists. We hold them in shallowRefs and (re)instantiate via a
-// watcher on ami.isConnected, which fires after ami.connect() resolves.
+// The composables take a reactive client ref (amiClientRef: Ref<AmiClient|null>)
+// and (re)bind their event listeners internally whenever the client changes —
+// which happens on every AMI reconnect, since useAmi builds a new AmiClient.
+// We pass a computed getter so the composables always see the live client,
+// never a stale snapshot. The composables are created lazily on first connect
+// (only in connected mode); they are NOT recreated on reconnect — their own
+// internal watch handles re-binding listeners to the new client instance.
 const sipExtension = (() => {
   const m = props.sipConfig.sipUri?.match(/sip:([^@]+)@/)
   return m ? m[1] : ''
@@ -519,24 +521,25 @@ const sipExtension = (() => {
 const amiAgentLogin = shallowRef<ReturnType<typeof useAmiAgentLogin> | null>(null)
 const amiCallback = shallowRef<ReturnType<typeof useAmiCallback> | null>(null)
 
-/** (Re)create the AMI composables with the now-connected client. */
+/** Create the AMI composables once, bound to the (ever-current) client ref. */
 function bindAmiComposables() {
-  const client = ami.getClient()
-  if (!client) return
-  if (amiAgentLogin.value) return // already bound to a live client
-  amiAgentLogin.value = useAmiAgentLogin(client, {
+  if (amiAgentLogin.value) return // already created
+  // computed() gives the composables a ref that always reads the live client.
+  const amiClientRef = computed(() => ami.getClient())
+  amiAgentLogin.value = useAmiAgentLogin(amiClientRef, {
     agentId: props.sipConfig.sipUri || sipExtension || 'agent',
     interface: sipExtension ? `PJSIP/${sipExtension}` : 'PJSIP/agent',
     defaultQueues: ['8001', '8002', '8003'],
     persistState: false,
   })
-  amiCallback.value = useAmiCallback(client, {
+  amiCallback.value = useAmiCallback(amiClientRef, {
     storage: { persistEnabled: true },
     defaultContext: 'from-internal',
   })
 }
 
-// Re-bind when AMI transitions to connected (covers initial connect + reconnects).
+// Create the composables on first connect (and re-run side effects on every
+// reconnect: reload shared callbacks, re-login if the agent was available).
 watch(
   () => ami.isConnected.value,
   (connected) => {

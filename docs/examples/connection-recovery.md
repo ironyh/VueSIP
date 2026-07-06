@@ -63,6 +63,46 @@ const { recoveryState, isRecovering, attemptCount, lastError, manualReconnect, c
 | `recovering`   | Attempting reconnect |
 | `failed`       | Recovery failed      |
 
+## AMI Composables and Reconnect
+
+`useConnectionRecovery` above covers the SIP/WebRTC layer. The AMI layer has its
+own reconnect logic: `useAmi` reconnects the AMI WebSocket on drop, and on every
+reconnect it constructs a **new** `AmiClient` instance.
+
+AMI composables (`useAmiAgentLogin`, `useAmiCallback`, `useAmiMWI`,
+`useAmiConfBridge`, `useAmiPjsip`, `useAmiSystem`, …) take a reactive
+`amiClientRef: Ref<AmiClient | null>` rather than a snapshot client. They watch
+that ref and **(re)bind their event listeners** whenever the underlying client
+changes — so after an AMI reconnect, listeners move to the new client
+automatically. No manual re-binding is needed.
+
+```ts
+import { computed } from 'vue'
+import { useAmi, useAmiAgentLogin } from 'vuesip'
+
+const ami = useAmi()
+await ami.connect({
+  /* ... */
+})
+
+// Pass a ref/getter, NOT ami.getClient() (a snapshot that goes stale on reconnect).
+const { login, logout } = useAmiAgentLogin(
+  computed(() => ami.getClient()),
+  {
+    agentId: '1001',
+    interface: 'PJSIP/1001',
+    defaultQueues: ['sales'],
+  }
+)
+```
+
+::: warning
+Passing `ami.getClient()` (a snapshot) instead of `computed(() => ami.getClient())`
+will leave the composable bound to the original client after the first AMI
+reconnect — its listeners stop firing and its actions throw "Not connected".
+Always pass a ref/getter.
+:::
+
 ## Related
 
 - [Call Quality](/examples/call-quality)

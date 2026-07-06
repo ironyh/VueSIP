@@ -8,7 +8,8 @@
  * @module composables/useAmiAgentLogin
  */
 
-import { ref, computed, onScopeDispose, getCurrentScope } from 'vue'
+import { ref, computed, watch, onScopeDispose, getCurrentScope } from 'vue'
+import type { Ref } from 'vue'
 import type { AmiClient } from '@/core/AmiClient'
 import type { AmiMessage } from '@/types/ami.types'
 import type {
@@ -191,11 +192,19 @@ function formatDuration(seconds: number): string {
  * Provides reactive agent session management functionality for Vue components.
  * Supports queue login/logout, pause management, and shift tracking.
  *
- * @param client - AMI client instance (from useAmi().getClient())
+ * The composable takes a reactive `amiClientRef` (a `Ref<AmiClient | null>`)
+ * rather than a snapshot client. It watches the ref and (re)binds its event
+ * listeners whenever the underlying client changes — which happens on every
+ * AMI reconnect, since `useAmi` constructs a new `AmiClient` instance. Passing
+ * a snapshot instead would orphan the listeners after the first reconnect.
+ *
+ * @param amiClientRef - Reactive ref to the AMI client, typically
+ *   `computed(() => ami.getClient())` or `shallowRef(ami.getClient())`.
  * @param options - Configuration options
  *
  * @example
  * ```typescript
+ * import { computed } from 'vue'
  * const ami = useAmi()
  * await ami.connect({ url: 'ws://pbx.example.com:8080' })
  *
@@ -206,7 +215,7 @@ function formatDuration(seconds: number): string {
  *   logout,
  *   pause,
  *   unpause,
- * } = useAmiAgentLogin(ami.getClient()!, {
+ * } = useAmiAgentLogin(computed(() => ami.getClient()), {
  *   agentId: 'agent1001',
  *   interface: 'PJSIP/1001',
  *   name: 'John Doe',
@@ -226,7 +235,7 @@ function formatDuration(seconds: number): string {
  * ```
  */
 export function useAmiAgentLogin(
-  client: AmiClient | null,
+  amiClientRef: Ref<AmiClient | null>,
   options: UseAmiAgentLoginOptions
 ): UseAmiAgentLoginReturn {
   // ============================================================================
@@ -428,6 +437,7 @@ export function useAmiAgentLogin(
    * Login to queues
    */
   const login = async (loginOptions: AgentLoginOptions): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       error.value = 'AMI client not connected'
       throw new Error(error.value)
@@ -479,11 +489,14 @@ export function useAmiAgentLogin(
         // means "ready to take calls", so explicitly unpause on every login. A
         // member that isn't paused responds with "not in queue" / "not paused",
         // which we tolerate.
+        let unpauseSucceeded = true
         try {
           await client.queuePause(queue, config.interface, false)
         } catch (pauseErr) {
           // Not fatal: some Asterisk versions reject unpausing an already-unpaused
-          // member. The member is logged in regardless.
+          // member. The member is logged in regardless. Track the outcome so the
+          // local pause-state below mirrors the PBX, not a wishful assumption.
+          unpauseSucceeded = false
           logger.debug('Unpause during login tolerated', {
             queue,
             err: pauseErr instanceof Error ? pauseErr.message : String(pauseErr),
@@ -496,6 +509,14 @@ export function useAmiAgentLogin(
           existingQueue.isMember = true
           existingQueue.penalty = penalty
           existingQueue.loginTime = Math.floor(Date.now() / 1000)
+          // Mirror the unpause outcome. Only clear local pause state when the PBX
+          // unpause actually succeeded; otherwise we'd claim "available" while the
+          // PBX still has the member paused. The QueueMemberPause event reconciles
+          // this asynchronously if it arrives later.
+          if (unpauseSucceeded) {
+            existingQueue.isPaused = false
+            existingQueue.pauseReason = undefined
+          }
         } else {
           const newQueue = {
             queue,
@@ -540,6 +561,7 @@ export function useAmiAgentLogin(
    * Logout from queues
    */
   const logout = async (logoutOptions?: AgentLogoutOptions): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       error.value = 'AMI client not connected'
       throw new Error(error.value)
@@ -600,6 +622,7 @@ export function useAmiAgentLogin(
    * Pause in queues
    */
   const pause = async (pauseOptions: AgentPauseOptions): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       error.value = 'AMI client not connected'
       throw new Error(error.value)
@@ -660,6 +683,7 @@ export function useAmiAgentLogin(
    * Unpause in queues
    */
   const unpause = async (queues?: string[]): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       error.value = 'AMI client not connected'
       throw new Error(error.value)
@@ -726,6 +750,7 @@ export function useAmiAgentLogin(
    * Set penalty for a queue
    */
   const setPenalty = async (queue: string, penalty: number): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       error.value = 'AMI client not connected'
       throw new Error(error.value)
@@ -757,6 +782,7 @@ export function useAmiAgentLogin(
    * Refresh session state from AMI
    */
   const refresh = async (): Promise<void> => {
+    const client = amiClientRef.value
     if (!client) {
       error.value = 'AMI client not connected'
       return
@@ -1031,9 +1057,7 @@ export function useAmiAgentLogin(
   // Setup Event Listeners
   // ============================================================================
 
-  const setupEventListeners = (): void => {
-    if (!client) return
-
+  const setupEventListeners = (client: AmiClient): void => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     type EventHandler = (event: AmiMessage<any>) => void
 
@@ -1050,21 +1074,46 @@ export function useAmiAgentLogin(
     })
   }
 
-  // ============================================================================
-  // Initialize
-  // ============================================================================
-
-  if (client) {
-    setupEventListeners()
-
-    // Restore persisted session
-    const persisted = loadSession()
-    if (persisted?.queues?.length) {
-      logger.info('Restoring persisted session', { queues: persisted.queues })
-      // Auto-refresh to sync with actual queue state
-      refresh().catch((err) => logger.error('Failed to restore session', err))
-    }
+  const cleanupEventListeners = (): void => {
+    eventCleanups.forEach((cleanup) => cleanup())
+    eventCleanups.length = 0
   }
+
+  // ============================================================================
+  // Initialize — reactive (re)binding to the AMI client
+  // ============================================================================
+  //
+  // `useAmi` constructs a NEW AmiClient on every reconnect, so a snapshot taken
+  // at construction would orphan the listeners after the first drop. We watch
+  // amiClientRef instead: teardown the old client's listeners, then bind to the
+  // new one. Session is restored once, the first time a client appears. This
+  // mirrors the pattern used by useAmiMWI / useAmiConfBridge / useAmiPjsip.
+
+  let sessionRestored = false
+  watch(
+    amiClientRef,
+    (newClient, oldClient) => {
+      if (oldClient) {
+        cleanupEventListeners()
+      }
+      if (newClient) {
+        setupEventListeners(newClient)
+
+        // Restore persisted session once (not on every reconnect — the session
+        // is in-memory after the first restore and refresh() re-syncs it).
+        if (!sessionRestored) {
+          sessionRestored = true
+          const persisted = loadSession()
+          if (persisted?.queues?.length) {
+            logger.info('Restoring persisted session', { queues: persisted.queues })
+            // Auto-refresh to sync with actual queue state
+            refresh().catch((err) => logger.error('Failed to restore session', err))
+          }
+        }
+      }
+    },
+    { immediate: true }
+  )
 
   // Start shift monitoring
   if (config.shift) {
