@@ -56,11 +56,12 @@ describe('useTheme', () => {
       expect(typeof isDarkMode.value).toBe('boolean')
     })
 
-    it('should return theme as a function', () => {
+    it('should return theme as a computed ref', () => {
       const { theme } = useTheme()
 
       expect(theme).toBeDefined()
-      expect(typeof theme).toBe('function')
+      expect(typeof theme).toBe('object')
+      expect(typeof theme.value).toBe('string')
     })
 
     it('should return setTheme as a function', () => {
@@ -124,7 +125,7 @@ describe('useTheme', () => {
 
       setTheme('dark')
 
-      expect(theme()).toBe('dark')
+      expect(theme.value).toBe('dark')
     })
 
     it('should return "light" when isDarkMode is false', () => {
@@ -132,7 +133,7 @@ describe('useTheme', () => {
 
       setTheme('light')
 
-      expect(theme()).toBe('light')
+      expect(theme.value).toBe('light')
     })
   })
 })

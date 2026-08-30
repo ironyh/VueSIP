@@ -1,3 +1,4 @@
+const connected = 'connected'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('jssip', () => {
@@ -104,6 +105,7 @@ describe('SipClient with mock', () => {
         uri: 'wss://192.168.1.100/ws',
         sipUri: 'sip:test@192.168.1.100',
         password: 'test',
+        registrationOptions: { autoRegister: false },
         wsOptions: {
           connectionTimeout: 10000,
           maxReconnectionAttempts: 5,
@@ -125,6 +127,6 @@ describe('SipClient with mock', () => {
       MockUA.lastInstance.simulateConnect()
     }
     await startPromise
-    expect(client.connectionState).toBe(0)
+    expect(client.connectionState).toBe(connected)
   })
 })

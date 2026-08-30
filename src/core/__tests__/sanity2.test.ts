@@ -1,3 +1,5 @@
+const connected = 'connected'
+const disconnected = 'disconnected'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Override setup.ts mock with our own that has simulation methods
@@ -121,6 +123,7 @@ describe('mock with vi.mock factory', () => {
         uri: 'wss://192.168.1.100/ws',
         sipUri: 'sip:test@192.168.1.100',
         password: 'test',
+        registrationOptions: { autoRegister: false },
         wsOptions: {
           connectionTimeout: 10000,
           maxReconnectionAttempts: 5,
@@ -136,10 +139,10 @@ describe('mock with vi.mock factory', () => {
     MockUA.lastInstance?.simulateConnect()
     await startPromise
 
-    expect(client.connectionState).toBe(0 /* Connected */)
+    expect(client.connectionState).toBe(connected)
 
     MockUA.lastInstance?.simulateDisconnect(new Error('test'))
-    expect(client.connectionState).toBe(1 /* Disconnected */)
+    expect(client.connectionState).toBe(disconnected)
     expect(disconnectedHandler).toHaveBeenCalled()
   })
 })

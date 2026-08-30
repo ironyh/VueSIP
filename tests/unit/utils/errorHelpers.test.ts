@@ -276,8 +276,17 @@ describe('errorHelpers', () => {
       expect(isNetworkError(error)).toBe(true)
     })
 
-    it('should return true for TypeError', () => {
+    it('should return false for plain TypeError (non-network)', () => {
+      // Deliberate behavior: TypeError alone is ambiguous ("undefined is not
+      // a function" is not a network problem). Only fetch-flavored TypeErrors
+      // (name TypeError + network-ish message) count as network errors.
       const error = new TypeError('Type error')
+
+      expect(isNetworkError(error)).toBe(false)
+    })
+
+    it('should return true for TypeError with failed-to-fetch message', () => {
+      const error = new TypeError('Failed to fetch')
 
       expect(isNetworkError(error)).toBe(true)
     })

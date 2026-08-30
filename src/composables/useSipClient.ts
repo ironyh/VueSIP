@@ -695,9 +695,19 @@ export function useSipClient(
    * Deferred to nextTick to ensure component lifecycle is complete
    */
   if (autoConnect && initialConfig) {
+    // Track disposal synchronously during setup. Checking getCurrentScope()
+    // inside the nextTick callback does not work: the active scope only exists
+    // while setup() runs, so by the time nextTick fires it is always null and
+    // auto-connect would silently never run.
+    let scopeDisposed = false
+    if (getCurrentScope()) {
+      onScopeDispose(() => {
+        scopeDisposed = true
+      })
+    }
     nextTick(() => {
       // Guard: don't connect if scope was disposed before nextTick fired
-      if (!getCurrentScope()) {
+      if (scopeDisposed) {
         logger.debug('Scope disposed before auto-connect could run')
         return
       }

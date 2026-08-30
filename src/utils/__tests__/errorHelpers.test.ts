@@ -157,8 +157,14 @@ describe('errorHelpers', () => {
       expect(isNetworkError(error)).toBe(true)
     })
 
-    it('should return true for TypeError', () => {
+    it('should return false for plain TypeError (non-network)', () => {
+      // Deliberate behavior: only fetch-flavored TypeErrors are network errors.
       const error = new TypeError('Type error')
+      expect(isNetworkError(error)).toBe(false)
+    })
+
+    it('should return true for TypeError with failed-to-fetch message', () => {
+      const error = new TypeError('Failed to fetch')
       expect(isNetworkError(error)).toBe(true)
     })
 
@@ -458,8 +464,10 @@ describe('errorHelpers', () => {
       expect(isWebRtcError(error)).toBe(true)
     })
 
-    it('should return true when message includes "audio" or "video"', () => {
-      const error = new Error('Failed to access audio device')
+    it('should return true when message includes "media device"', () => {
+      // Deliberate narrowing: bare "audio"/"video" substrings are too broad to
+      // indicate WebRTC; the matcher requires media-device/getUserMedia context.
+      const error = new Error('Failed to access media device')
       expect(isWebRtcError(error)).toBe(true)
     })
 

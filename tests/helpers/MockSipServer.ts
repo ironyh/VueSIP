@@ -133,9 +133,7 @@ export class MockSipServer {
 
     const match = uri.match(/^sip:([^@]+)@(.+)$/)
     if (!match) {
-      throw new Error(
-        `Invalid SIP URI format: "${uri}". Expected format: "sip:user@domain.com"`
-      )
+      throw new Error(`Invalid SIP URI format: "${uri}". Expected format: "sip:user@domain.com"`)
     }
 
     return {
@@ -235,14 +233,16 @@ export class MockSipServer {
     session.isInProgress.mockReturnValue(true)
     this.createTimeout(() => {
       const handlers = session._handlers['progress'] || []
-      handlers.forEach((handler) => handler({
-        originator: 'remote',
-        response: {
-          status_code: 180,
-          reason_phrase: 'Ringing',
-          getHeader: vi.fn(),
-        },
-      }))
+      handlers.forEach((handler) =>
+        handler({
+          originator: 'remote',
+          response: {
+            status_code: 180,
+            reason_phrase: 'Ringing',
+            getHeader: vi.fn(),
+          },
+        })
+      )
     }, this.config.networkLatency)
   }
 
@@ -256,14 +256,16 @@ export class MockSipServer {
 
     this.createTimeout(() => {
       const handlers = session._handlers['accepted'] || []
-      handlers.forEach((handler) => handler({
-        originator: 'remote',
-        response: {
-          status_code: 200,
-          reason_phrase: 'OK',
-          getHeader: vi.fn(),
-        },
-      }))
+      handlers.forEach((handler) =>
+        handler({
+          originator: 'remote',
+          response: {
+            status_code: 200,
+            reason_phrase: 'OK',
+            getHeader: vi.fn(),
+          },
+        })
+      )
     }, this.config.networkLatency)
   }
 
@@ -284,7 +286,11 @@ export class MockSipServer {
    * @param originator - Who initiated the termination ('local' or 'remote')
    * @param cause - Reason for termination (default: 'Bye')
    */
-  simulateCallEnded(session: MockRTCSession, originator: 'local' | 'remote' = 'remote', cause = 'Bye'): void {
+  simulateCallEnded(
+    session: MockRTCSession,
+    originator: 'local' | 'remote' = 'remote',
+    cause = 'Bye'
+  ): void {
     session.isEnded.mockReturnValue(true)
     session.isEstablished.mockReturnValue(false)
 
@@ -361,19 +367,23 @@ export class MockSipServer {
     this.createTimeout(() => {
       const expiresValue = expires || this.config.registrationExpires
       const handlers = this.mockUA._onceHandlers['registered'] || []
-      handlers.forEach((handler) => handler({
-        response: {
-          getHeader: () => String(expiresValue)
-        }
-      }))
+      handlers.forEach((handler) =>
+        handler({
+          response: {
+            getHeader: () => String(expiresValue),
+          },
+        })
+      )
       this.mockUA._onceHandlers['registered'] = []
 
       const onHandlers = this.mockUA._handlers['registered'] || []
-      onHandlers.forEach((handler) => handler({
-        response: {
-          getHeader: () => String(expiresValue)
-        }
-      }))
+      onHandlers.forEach((handler) =>
+        handler({
+          response: {
+            getHeader: () => String(expiresValue),
+          },
+        })
+      )
     }, this.config.networkLatency)
   }
 
@@ -429,8 +439,12 @@ export class MockSipServer {
     this.clearTimeouts()
     this.mockUA.isConnected.mockReturnValue(false)
     this.mockUA.isRegistered.mockReturnValue(false)
-    this.mockUA._handlers = {}
-    this.mockUA._onceHandlers = {}
+    // Clear in place — do NOT replace the objects. The UA mock's on()/off()
+    // closures capture the original handlers objects from construction, so
+    // replacing them would desynchronize registration (writes go to the old
+    // object) from event dispatch (reads this.mockUA._handlers).
+    Object.keys(this.mockUA._handlers).forEach((k) => delete this.mockUA._handlers[k])
+    Object.keys(this.mockUA._onceHandlers).forEach((k) => delete this.mockUA._onceHandlers[k])
   }
 
   /**
@@ -485,11 +499,19 @@ export class MockSipServer {
         onceHandlers[event].push(handler)
 
         // Auto-trigger based on config
-        if (event === 'connected' && this.config.autoRegister && !this.config.simulateConnectionFailure) {
+        if (
+          event === 'connected' &&
+          this.config.autoRegister &&
+          !this.config.simulateConnectionFailure
+        ) {
           this.simulateConnect()
         }
 
-        if (event === 'registered' && this.config.autoRegister && !this.config.simulateRegistrationFailure) {
+        if (
+          event === 'registered' &&
+          this.config.autoRegister &&
+          !this.config.simulateRegistrationFailure
+        ) {
           this.simulateRegistered()
         }
       }),

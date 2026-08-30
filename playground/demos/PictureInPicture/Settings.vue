@@ -16,7 +16,9 @@
             <input type="checkbox" v-model="prefs.autoEnter" />
             <span>{{ prefs.autoEnter ? 'Enabled' : 'Disabled' }}</span>
           </label>
-          <span class="pis__hint">Calls `requestPictureInPicture()` when `visibilitychange` fires hidden.</span>
+          <span class="pis__hint"
+            >Calls `requestPictureInPicture()` when `visibilitychange` fires hidden.</span
+          >
         </dd>
       </div>
       <div class="pis__field">
@@ -32,7 +34,9 @@
               :class="{ 'pis__chip--on': prefs.size === s.id }"
               :aria-checked="prefs.size === s.id"
               @click="prefs.size = s.id"
-            >{{ s.label }}</button>
+            >
+              {{ s.label }}
+            </button>
           </div>
         </dd>
       </div>
@@ -50,9 +54,12 @@
               :aria-checked="prefs.corner === c.id"
               :aria-label="c.label"
               @click="prefs.corner = c.id"
-            />
+            ></button>
           </div>
-          <span class="pis__hint">Chromium's `documentPictureInPicture.requestWindow` accepts `width`/`height`; corner is restored on next entry.</span>
+          <span class="pis__hint"
+            >Chromium's `documentPictureInPicture.requestWindow` accepts `width`/`height`; corner is
+            restored on next entry.</span
+          >
         </dd>
       </div>
       <div class="pis__field">
@@ -77,15 +84,18 @@
             <option value="overlay">Floating overlay (custom)</option>
             <option value="none">Inline only</option>
           </select>
-          <span class="pis__hint">Safari on iOS only exposes video PiP — document PiP is Chromium desktop.</span>
+          <span class="pis__hint"
+            >Safari on iOS only exposes video PiP — document PiP is Chromium desktop.</span
+          >
         </dd>
       </div>
     </dl>
 
     <footer class="pis__foot">
       <span>
-        Document PiP (<code>documentPictureInPicture.requestWindow</code>) lets you render a Vue app inside the floating window —
-        that is how call controls survive tabbing away. Fall back to `video.requestPictureInPicture()` on browsers without it.
+        Document PiP (<code>documentPictureInPicture.requestWindow</code>) lets you render a Vue app
+        inside the floating window — that is how call controls survive tabbing away. Fall back to
+        `video.requestPictureInPicture()` on browsers without it.
       </span>
     </footer>
   </div>
@@ -106,10 +116,10 @@ const corners = [
   { id: 'br', label: 'Bottom right' },
 ]
 const controls = [
-  { id: 'mute',     label: 'Mute',              desc: 'Exposes mic toggle in the floating window.' },
-  { id: 'hangup',   label: 'Hang up',           desc: 'Red X button to end the call from PiP.' },
-  { id: 'dtmf',     label: 'DTMF keypad',       desc: 'Pop-out numeric keypad for IVR navigation.' },
-  { id: 'video',    label: 'Camera toggle',     desc: 'Stop/start local camera without exiting PiP.' },
+  { id: 'mute', label: 'Mute', desc: 'Exposes mic toggle in the floating window.' },
+  { id: 'hangup', label: 'Hang up', desc: 'Red X button to end the call from PiP.' },
+  { id: 'dtmf', label: 'DTMF keypad', desc: 'Pop-out numeric keypad for IVR navigation.' },
+  { id: 'video', label: 'Camera toggle', desc: 'Stop/start local camera without exiting PiP.' },
   { id: 'transfer', label: 'Transfer shortcut', desc: 'Open the inline transfer panel on demand.' },
 ]
 
@@ -117,7 +127,10 @@ const prefs = reactive({
   autoEnter: true,
   size: 'md',
   corner: 'br',
-  controls: { mute: true, hangup: true, dtmf: false, video: true, transfer: false } as Record<string, boolean>,
+  controls: { mute: true, hangup: true, dtmf: false, video: true, transfer: false } as Record<
+    string,
+    boolean
+  >,
   iosFallback: 'native',
 })
 
@@ -135,98 +148,205 @@ const capsSummary = computed(() => 'video PiP · document PiP · auto-enter')
   --mono: var(--demo-mono, 'JetBrains Mono', ui-monospace, monospace);
   --sans: var(--demo-sans, 'IBM Plex Sans', system-ui, sans-serif);
 
-  display: flex; flex-direction: column; gap: 0.85rem;
-  color: var(--ink); font-family: var(--sans);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  color: var(--ink);
+  font-family: var(--sans);
 }
 
-.pis__head { display: flex; justify-content: space-between; align-items: flex-end; gap: 0.5rem; flex-wrap: wrap; }
-.pis__eyebrow {
-  font-family: var(--mono); font-size: 0.64rem; font-weight: 700;
-  letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+.pis__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
-.pis__title { margin: 0.1rem 0 0; font-size: 1rem; font-weight: 600; letter-spacing: 0.04em; }
-.pis__caps { font-family: var(--mono); font-size: 0.68rem; color: var(--accent); letter-spacing: 0.05em; }
+.pis__eyebrow {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pis__title {
+  margin: 0.1rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.pis__caps {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
 
 .pis__fields {
-  display: grid; gap: 0.55rem;
+  display: grid;
+  gap: 0.55rem;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   margin: 0;
 }
 .pis__field {
-  background: var(--paper); border: 1px solid var(--rule); border-radius: 2px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
   padding: 0.55rem 0.75rem;
-  display: flex; flex-direction: column; gap: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 .pis__field dt {
-  font-family: var(--mono); font-size: 0.64rem; font-weight: 700;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
-.pis__field dd { margin: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.pis__field dd {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
 
-.pis__hint { font-family: var(--mono); font-size: 0.66rem; color: var(--muted); }
+.pis__hint {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--muted);
+}
 .pis__hint code {
-  background: var(--paper-deep); border: 1px solid var(--rule); border-radius: 2px;
-  padding: 0 0.3rem; color: var(--accent);
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0 0.3rem;
+  color: var(--accent);
 }
 
 .pis__switch {
-  display: inline-flex; align-items: center; gap: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.3rem 0.55rem;
-  background: var(--paper-deep); border: 1px solid var(--rule); border-radius: 2px;
-  font-family: var(--mono); font-size: 0.7rem; color: var(--muted); cursor: pointer;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  cursor: pointer;
   width: fit-content;
 }
-.pis__switch:has(input:checked) { background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: var(--accent); color: var(--accent); }
-
-.pis__chips { display: flex; gap: 0.25rem; flex-wrap: wrap; }
-.pis__chip {
-  background: var(--paper-deep); border: 1px solid var(--rule); border-radius: 2px;
-  padding: 0.35rem 0.6rem;
-  font-family: var(--mono); font-size: 0.7rem; font-weight: 700;
-  letter-spacing: 0.08em; color: var(--muted); cursor: pointer;
+.pis__switch:has(input:checked) {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
 }
-.pis__chip--on { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+
+.pis__chips {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+.pis__chip {
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.35rem 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pis__chip--on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper);
+}
 
 .pis__corners {
-  display: grid; grid-template-columns: repeat(2, 2.2rem);
+  display: grid;
+  grid-template-columns: repeat(2, 2.2rem);
   gap: 0.25rem;
   padding: 0.4rem;
-  background: var(--paper-deep); border: 1px solid var(--rule); border-radius: 2px;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
   width: fit-content;
 }
 .pis__corner {
-  width: 2.2rem; height: 1.4rem;
-  background: var(--paper); border: 1px solid var(--rule); border-radius: 2px;
+  width: 2.2rem;
+  height: 1.4rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
   cursor: pointer;
 }
-.pis__corner--on { background: var(--accent); border-color: var(--accent); }
+.pis__corner--on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
 
-.pis__ctrls { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.pis__ctrls {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
 .pis__row {
-  display: grid; grid-template-columns: 1.1rem 6rem 1fr; gap: 0.35rem;
+  display: grid;
+  grid-template-columns: 1.1rem 6rem 1fr;
+  gap: 0.35rem;
   padding: 0.3rem 0;
   border-bottom: 1px dashed var(--rule);
   align-items: baseline;
   cursor: pointer;
 }
-.pis__row:last-child { border-bottom: 0; }
-.pis__ctrl-label { font-size: 0.84rem; font-weight: 600; }
-.pis__ctrl-desc { font-family: var(--mono); font-size: 0.66rem; color: var(--muted); }
+.pis__row:last-child {
+  border-bottom: 0;
+}
+.pis__ctrl-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.pis__ctrl-desc {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--muted);
+}
 
 .pis__input {
-  background: var(--paper-deep); border: 1px solid var(--rule); border-radius: 2px;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
   padding: 0.35rem 0.5rem;
-  font-family: var(--mono); font-size: 0.78rem; color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink);
   max-width: 16rem;
 }
 
 .pis__foot {
   padding: 0.55rem 0.75rem;
-  background: var(--paper-deep); border: 1px solid var(--rule); border-radius: 2px;
-  font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
 }
 .pis__foot code {
-  background: var(--paper); border: 1px solid var(--rule); border-radius: 2px;
-  padding: 0 0.3rem; color: var(--accent);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0 0.3rem;
+  color: var(--accent);
 }
 </style>

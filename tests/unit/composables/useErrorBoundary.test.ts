@@ -369,10 +369,12 @@ describe('useErrorBoundary', () => {
       expect(isNetworkError.value).toBe(true)
     })
 
-    it('should classify TypeError as network error', () => {
+    it('should classify fetch-flavored TypeError as network error', () => {
+      // Deliberate behavior: plain TypeErrors are ambiguous; only network-ish
+      // TypeError messages (e.g. "Failed to fetch") classify as network errors.
       const { handleError, isNetworkError } = useErrorBoundary()
 
-      const err = new TypeError('type error')
+      const err = new TypeError('Failed to fetch')
       handleError(err)
 
       expect(isNetworkError.value).toBe(true)
