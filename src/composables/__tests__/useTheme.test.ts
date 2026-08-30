@@ -35,7 +35,7 @@ describe('useTheme', () => {
       const { isDarkMode, theme } = useTheme()
 
       expect(isDarkMode.value).toBe(false)
-      expect(theme()).toBe('light')
+      expect(theme.value).toBe('light')
     })
 
     it('should toggle theme from light to dark', async () => {
@@ -67,7 +67,7 @@ describe('useTheme', () => {
       toggleTheme()
 
       expect(isDarkMode.value).toBe(true)
-      expect(theme()).toBe('dark')
+      expect(theme.value).toBe('dark')
     })
 
     it('should toggle theme from dark to light', async () => {
@@ -100,7 +100,7 @@ describe('useTheme', () => {
       toggleTheme()
 
       expect(isDarkMode.value).toBe(false)
-      expect(theme()).toBe('light')
+      expect(theme.value).toBe('light')
     })
 
     it('should set specific theme', async () => {
@@ -128,12 +128,12 @@ describe('useTheme', () => {
       setTheme('dark')
 
       expect(isDarkMode.value).toBe(true)
-      expect(theme()).toBe('dark')
+      expect(theme.value).toBe('dark')
 
       setTheme('light')
 
       expect(isDarkMode.value).toBe(false)
-      expect(theme()).toBe('light')
+      expect(theme.value).toBe('light')
     })
 
     it('should initialize from localStorage', async () => {

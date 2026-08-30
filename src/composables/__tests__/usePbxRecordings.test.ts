@@ -42,7 +42,9 @@ describe('usePbxRecordings', () => {
     recordingId: 'rec-1',
     playbackUrl: 'https://pbx.example.com/recordings/rec-1.mp3',
     format: 'audio/mpeg',
-    expiresAt: new Date('2026-03-31T23:59:59Z'),
+    // Far-future expiry so the fixture never trips the composable's
+    // "Playback URL has expired" check as real time moves past it.
+    expiresAt: new Date('2099-12-31T23:59:59Z'),
     requiresAuth: false,
   }
 
