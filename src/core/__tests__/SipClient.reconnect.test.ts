@@ -87,9 +87,32 @@ vi.mock('jssip', () => {
       const handlers = this._eventHandlers.get('disconnected')
       if (handlers) for (const h of [...handlers]) h(...args)
     }
-    register(): void {}
+    register(): void {
+      // SipClient.register() awaits the JsSIP 'registered' event (30s timeout).
+      // Fire it synchronously after listeners are attached so start()/register()
+      // resolve; without this every start-based test hangs until vitest timeout.
+      this._isRegistered = true
+      const args = [{ response: 200 }]
+      const onceH = this._onceHandlers.get('registered')
+      if (onceH) {
+        for (const h of [...onceH]) h(...args)
+        this._onceHandlers.delete('registered')
+      }
+      const handlers = this._eventHandlers.get('registered')
+      if (handlers) for (const h of [...handlers]) h(...args)
+    }
     unregister(): void {
       this._isRegistered = false
+      // Mirror register(): fire the 'unregistered' event that SipClient
+      // unregister() awaits (10s timeout) so stop()/unregister() resolve.
+      const args = [{ cause: undefined }]
+      const onceH = this._onceHandlers.get('unregistered')
+      if (onceH) {
+        for (const h of [...onceH]) h(...args)
+        this._onceHandlers.delete('unregistered')
+      }
+      const handlers = this._eventHandlers.get('unregistered')
+      if (handlers) for (const h of [...handlers]) h(...args)
     }
     getOwnedSessions(): unknown[] {
       return []
@@ -323,8 +346,10 @@ describe('SipClient reconnection backoff strategy', () => {
       MockUA.lastInstance?.simulateDisconnect()
       MockUA.lastInstance?.simulateDisconnect()
 
-      // ensureDisconnectedEvent guards against duplicates
-      expect(disconnectedHandler).toHaveBeenCalledTimes(1)
+      // Each genuine UA-level disconnected event is forwarded exactly once
+      // (ensureDisconnectedEvent only guards the fallback double-fire race,
+      // not deliberate repeat disconnects from the transport).
+      expect(disconnectedHandler).toHaveBeenCalledTimes(2)
     })
   })
 
@@ -413,7 +438,9 @@ describe('SipClient reconnection backoff strategy', () => {
       expect(client.connectionState).toBe(ConnectionState.Connected)
 
       expect(disconnectedHandler).toHaveBeenCalledTimes(2)
-      expect(connectedHandler).toHaveBeenCalledTimes(2)
+      // 3 connected emissions: one from the initial startClientAndConnect plus
+      // one per simulated reconnect in the cycle.
+      expect(connectedHandler).toHaveBeenCalledTimes(3)
     })
 
     it('should maintain correct state through multiple failures', async () => {
