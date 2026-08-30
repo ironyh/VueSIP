@@ -10,6 +10,12 @@ on:
     - cron: '30 2 * * *' # 02:30 UTC = 04:30 CEST, PBX idle
   workflow_dispatch:
 
+# The specs share one PBX/endpoint — parallel runs would race registrations
+# and queue membership, so serialize instead.
+concurrency:
+  group: pbx-e2e
+  cancel-in-progress: false
+
 jobs:
   e2e-pbx:
     runs-on: ubuntu-latest
