@@ -166,69 +166,24 @@ describe('registrationStore', () => {
     })
   })
 
-  describe('Auto-Refresh', () => {
-    it('should setup auto-refresh timer when registered', () => {
-      const now = new Date()
-      vi.setSystemTime(now)
-
+  describe('Auto-Refresh (removed feature)', () => {
+    // Registration auto-refresh was deliberately removed from the store
+    // (refresh/expiry handling now lives in useSipRegistration). These tests
+    // document the removal so it isn't accidentally reintroduced here.
+    it('should not expose auto-refresh timer state in statistics', () => {
       registrationStore.setRegistered('sip:alice@example.com', 100)
 
-      // Timer should be set up for 90% of expiry (90 seconds)
-      const stats = registrationStore.getStatistics()
-      expect(stats.hasAutoRefreshTimer).toBe(true)
+      const stats = registrationStore.getStatistics() as Record<string, unknown>
+      expect(stats.hasAutoRefreshTimer).toBeUndefined()
     })
 
-    it('should trigger refresh at 90% of expiry time', () => {
-      const now = new Date()
-      vi.setSystemTime(now)
-
-      const triggerSpy = vi.spyOn(registrationStore, 'triggerRefresh')
-
-      registrationStore.setRegistered('sip:alice@example.com', 100)
-
-      // Advance to 90 seconds (90% of 100 seconds)
-      vi.advanceTimersByTime(90 * 1000)
-
-      expect(triggerSpy).toHaveBeenCalled()
-    })
-
-    it('should clear auto-refresh timer when unregistering', () => {
-      registrationStore.setRegistered('sip:alice@example.com', 600)
-      registrationStore.setUnregistering()
-
-      const stats = registrationStore.getStatistics()
-      expect(stats.hasAutoRefreshTimer).toBe(false)
-    })
-
-    it('should clear auto-refresh timer when registration fails', () => {
-      registrationStore.setRegistered('sip:alice@example.com', 600)
-      registrationStore.setRegistrationFailed('Network error')
-
-      const stats = registrationStore.getStatistics()
-      expect(stats.hasAutoRefreshTimer).toBe(false)
-    })
-
-    it('should allow manual refresh', () => {
-      registrationStore.setRegistered('sip:alice@example.com', 600)
-
-      // Manual refresh should clear timer
-      registrationStore.manualRefresh()
-
-      const stats = registrationStore.getStatistics()
-      expect(stats.hasAutoRefreshTimer).toBe(false)
-    })
-
-    it('should replace existing timer when setting up new one', () => {
-      registrationStore.setRegistered('sip:alice@example.com', 100)
-
-      const stats1 = registrationStore.getStatistics()
-      expect(stats1.hasAutoRefreshTimer).toBe(true)
-
-      // Register again (should replace timer)
-      registrationStore.setRegistered('sip:alice@example.com', 200)
-
-      const stats2 = registrationStore.getStatistics()
-      expect(stats2.hasAutoRefreshTimer).toBe(true)
+    it('should not expose a manualRefresh method', () => {
+      expect(
+        (registrationStore as unknown as Record<string, unknown>).manualRefresh
+      ).toBeUndefined()
+      expect(
+        (registrationStore as unknown as Record<string, unknown>).triggerRefresh
+      ).toBeUndefined()
     })
   })
 
@@ -296,9 +251,6 @@ describe('registrationStore', () => {
       expect(registrationStore.retryCount).toBe(0)
       expect(registrationStore.lastError).toBeNull()
       expect(registrationStore.expiryTime).toBeNull()
-
-      const stats = registrationStore.getStatistics()
-      expect(stats.hasAutoRefreshTimer).toBe(false)
     })
   })
 
@@ -313,7 +265,6 @@ describe('registrationStore', () => {
       expect(stats.isRegistered).toBe(true)
       expect(stats.expires).toBe(600)
       expect(stats.retryCount).toBe(0)
-      expect(stats.hasAutoRefreshTimer).toBe(true)
     })
 
     it('should show error in statistics when registration fails', () => {

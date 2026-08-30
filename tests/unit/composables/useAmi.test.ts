@@ -6,7 +6,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { nextTick } from 'vue'
 import { useAmi } from '@/composables/useAmi'
 import { AmiConnectionState, AmiMessageType } from '@/types/ami.types'
-import type { AmiConfig, AmiMessage, AmiEventData, AmiPresenceStateChangeEvent } from '@/types/ami.types'
+import type {
+  AmiConfig,
+  AmiMessage,
+  AmiEventData,
+  AmiPresenceStateChangeEvent,
+} from '@/types/ami.types'
 
 // Mock AmiClient
 const mockAmiClient = {
@@ -26,7 +31,7 @@ const eventHandlers: Record<string, Function[]> = {}
 vi.mock('@/core/AmiClient', () => ({
   createAmiClient: vi.fn(() => {
     // Reset handlers on new client creation
-    Object.keys(eventHandlers).forEach(key => delete eventHandlers[key])
+    Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
 
     return {
       ...mockAmiClient,
@@ -36,7 +41,7 @@ vi.mock('@/core/AmiClient', () => ({
       }),
       off: vi.fn((event: string, handler: Function) => {
         if (eventHandlers[event]) {
-          eventHandlers[event] = eventHandlers[event].filter(h => h !== handler)
+          eventHandlers[event] = eventHandlers[event].filter((h) => h !== handler)
         }
       }),
     }
@@ -46,7 +51,7 @@ vi.mock('@/core/AmiClient', () => ({
 
 // Helper to trigger client events
 function triggerClientEvent(event: string, ...args: any[]) {
-  eventHandlers[event]?.forEach(handler => handler(...args))
+  eventHandlers[event]?.forEach((handler) => handler(...args))
 }
 
 describe('useAmi', () => {
@@ -54,7 +59,7 @@ describe('useAmi', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    Object.keys(eventHandlers).forEach(key => delete eventHandlers[key])
+    Object.keys(eventHandlers).forEach((key) => delete eventHandlers[key])
 
     config = {
       url: 'ws://localhost:8080',
@@ -138,7 +143,11 @@ describe('useAmi', () => {
 
       mockAmiClient.connect.mockRejectedValue(new Error('Connection failed'))
 
-      await expect(connect(config)).rejects.toThrow('Connection failed')
+      // autoReconnect: false keeps the terminal Failed state; with reconnect
+      // enabled (the default) the state moves on to Reconnecting instead.
+      await expect(connect({ ...config, autoReconnect: false })).rejects.toThrow(
+        'Connection failed'
+      )
 
       expect(connectionState.value).toBe(AmiConnectionState.Failed)
       expect(error.value).toBe('Connection failed')
@@ -247,11 +256,9 @@ describe('useAmi', () => {
 
       await setPresenceState('1000', 'away', 'In a meeting')
 
-      expect(mockAmiClient.setPresenceState).toHaveBeenCalledWith(
-        '1000',
-        'away',
-        { message: 'In a meeting' }
-      )
+      expect(mockAmiClient.setPresenceState).toHaveBeenCalledWith('1000', 'away', {
+        message: 'In a meeting',
+      })
 
       // Should update local cache
       const cached = presenceStates.value.get('1000')
@@ -418,7 +425,9 @@ describe('useAmi', () => {
     it('should update state on disconnected event', async () => {
       const { connect, connectionState } = useAmi()
 
-      const connectPromise = connect(config)
+      // autoReconnect: false so the disconnected event lands in Disconnected;
+      // with the default (enabled) it transitions to Reconnecting instead.
+      const connectPromise = connect({ ...config, autoReconnect: false })
       triggerClientEvent('connected')
       await connectPromise
 

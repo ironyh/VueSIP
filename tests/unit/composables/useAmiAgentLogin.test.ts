@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { nextTick } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useAmiAgentLogin } from '@/composables/useAmiAgentLogin'
 import type { AmiClient } from '@/core/AmiClient'
 import {
@@ -12,6 +12,15 @@ import {
   createAmiSuccessResponse,
   type MockAmiClient,
 } from '../utils/mockFactories'
+
+/**
+ * Wrap a mock client in a ref, matching the `amiClientRef: Ref<AmiClient | null>`
+ * signature useAmiAgentLogin expects (PR #242). The composable's internal watch
+ * runs `immediate`, so listeners bind synchronously on construction.
+ */
+function refClient(client: unknown): ReturnType<typeof ref> {
+  return ref(client as AmiClient | null)
+}
 
 describe('useAmiAgentLogin', () => {
   let mockClient: MockAmiClient
@@ -59,53 +68,47 @@ describe('useAmiAgentLogin', () => {
 
   describe('initial state', () => {
     it('should have logged_out status initially', () => {
-      const { status } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { status } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
       expect(status.value).toBe('logged_out')
     })
 
     it('should not be logged in initially', () => {
-      const { isLoggedIn } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { isLoggedIn } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
       expect(isLoggedIn.value).toBe(false)
     })
 
     it('should not be paused initially', () => {
-      const { isPaused } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { isPaused } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
       expect(isPaused.value).toBe(false)
     })
 
     it('should not be on call initially', () => {
-      const { isOnCall } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { isOnCall } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
       expect(isOnCall.value).toBe(false)
     })
 
     it('should have empty queues initially', () => {
-      const { loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { loggedInQueues } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
       expect(loggedInQueues.value).toHaveLength(0)
     })
 
     it('should have zero session duration initially', () => {
-      const { sessionDurationFormatted } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { sessionDurationFormatted } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
       expect(sessionDurationFormatted.value).toBe('00:00:00')
     })
 
     it('should not be loading initially', () => {
-      const { isLoading } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { isLoading } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
       expect(isLoading.value).toBe(false)
     })
 
     it('should have no error initially', () => {
-      const { error } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { error } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
       expect(error.value).toBeNull()
     })
 
     it('should initialize session with correct agent info', () => {
-      const { session } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { session } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
       expect(session.value.agentId).toBe('agent1001')
       expect(session.value.interface).toBe('PJSIP/1001')
       expect(session.value.name).toBe('Test Agent')
@@ -114,14 +117,14 @@ describe('useAmiAgentLogin', () => {
 
   describe('login', () => {
     it('should throw if client is null', async () => {
-      const { login } = useAmiAgentLogin(null, defaultOptions)
+      const { login } = useAmiAgentLogin(refClient(null), defaultOptions)
 
       await expect(login({ queues: ['sales'] })).rejects.toThrow('AMI client not connected')
     })
 
     it('should login to specified queues', async () => {
       const { login, loggedInQueues, isLoggedIn } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -138,10 +141,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should login to default queues if none specified', async () => {
-      const { login, loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, loggedInQueues } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: [] })
 
@@ -150,7 +150,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should throw if no queues specified and no default queues', async () => {
-      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { login } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         defaultQueues: [],
       })
@@ -159,7 +159,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should use custom penalties', async () => {
-      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { login } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({
         queues: ['sales', 'support'],
@@ -177,10 +177,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should set login time on first login', async () => {
-      const { login, session } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, session } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       expect(session.value.loginTime).toBeNull()
 
@@ -190,7 +187,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should update status to logged_in after login', async () => {
-      const { login, status } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { login, status } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       expect(status.value).toBe('logged_out')
 
@@ -201,7 +198,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should call onStatusChange callback', async () => {
       const onStatusChange = vi.fn()
-      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { login } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         onStatusChange,
       })
@@ -213,7 +210,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should call onQueueChange callback', async () => {
       const onQueueChange = vi.fn()
-      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { login } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         onQueueChange,
       })
@@ -226,14 +223,14 @@ describe('useAmiAgentLogin', () => {
 
   describe('logout', () => {
     it('should throw if client is null', async () => {
-      const { logout } = useAmiAgentLogin(null, defaultOptions)
+      const { logout } = useAmiAgentLogin(refClient(null), defaultOptions)
 
       await expect(logout()).rejects.toThrow('AMI client not connected')
     })
 
     it('should logout from all queues', async () => {
       const { login, logout, loggedInQueues, isLoggedIn } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -249,7 +246,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should logout from specific queues', async () => {
       const { login, logout, loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -262,10 +259,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should reset login time when fully logged out', async () => {
-      const { login, logout, session } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, logout, session } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
       expect(session.value.loginTime).not.toBeNull()
@@ -276,10 +270,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should update status to logged_out', async () => {
-      const { login, logout, status } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, logout, status } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
       await logout()
@@ -289,7 +280,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should call onQueueChange callback', async () => {
       const onQueueChange = vi.fn()
-      const { login, logout } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { login, logout } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         onQueueChange,
       })
@@ -305,18 +296,21 @@ describe('useAmiAgentLogin', () => {
 
   describe('pause', () => {
     it('should throw if client is null', async () => {
-      const { pause } = useAmiAgentLogin(null, defaultOptions)
+      const { pause } = useAmiAgentLogin(refClient(null), defaultOptions)
 
       await expect(pause({ reason: 'Break' })).rejects.toThrow('AMI client not connected')
     })
 
     it('should pause in all logged in queues', async () => {
       const { login, pause, isPaused, session } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
       await login({ queues: ['sales', 'support'] })
+      // login() auto-unpauses each queue (QueuePause false); clear that history
+      // so the counts below reflect only the pause() calls under test.
+      mockClient.queuePause.mockClear()
       await pause({ reason: 'Lunch' })
 
       expect(mockClient.queuePause).toHaveBeenCalledTimes(2)
@@ -326,12 +320,11 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should pause in specific queues', async () => {
-      const { login, pause, session } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, pause, session } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales', 'support'] })
+      // login() auto-unpauses each queue; clear history so counts reflect pause().
+      mockClient.queuePause.mockClear()
       await pause({ queues: ['sales'], reason: 'Break' })
 
       expect(mockClient.queuePause).toHaveBeenCalledTimes(1)
@@ -341,10 +334,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should update status to paused', async () => {
-      const { login, pause, status } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, pause, status } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
       await pause({ reason: 'Break' })
@@ -353,10 +343,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should handle timed pause', async () => {
-      const { login, pause, isPaused } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, pause, isPaused } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
       await pause({ reason: 'Break', duration: 5 }) // 5 seconds
@@ -373,14 +360,14 @@ describe('useAmiAgentLogin', () => {
 
   describe('unpause', () => {
     it('should throw if client is null', async () => {
-      const { unpause } = useAmiAgentLogin(null, defaultOptions)
+      const { unpause } = useAmiAgentLogin(refClient(null), defaultOptions)
 
       await expect(unpause()).rejects.toThrow('AMI client not connected')
     })
 
     it('should unpause in all paused queues', async () => {
       const { login, pause, unpause, isPaused, session } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -398,10 +385,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should unpause specific queues', async () => {
-      const { login, pause, unpause } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, pause, unpause } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales', 'support'] })
       await pause({ reason: 'Break' })
@@ -416,7 +400,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should update status to logged_in after unpause', async () => {
       const { login, pause, unpause, status } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -433,7 +417,7 @@ describe('useAmiAgentLogin', () => {
   describe('toggleQueue', () => {
     it('should login to queue when not logged in', async () => {
       const { toggleQueue, loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -445,7 +429,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should logout from queue when logged in', async () => {
       const { login, toggleQueue, loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -457,7 +441,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should use custom penalty when logging in', async () => {
-      const { toggleQueue } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { toggleQueue } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await toggleQueue('sales', 5)
 
@@ -473,16 +457,13 @@ describe('useAmiAgentLogin', () => {
 
   describe('setPenalty', () => {
     it('should throw if client is null', async () => {
-      const { setPenalty } = useAmiAgentLogin(null, defaultOptions)
+      const { setPenalty } = useAmiAgentLogin(refClient(null), defaultOptions)
 
       await expect(setPenalty('sales', 5)).rejects.toThrow('AMI client not connected')
     })
 
     it('should update penalty for queue', async () => {
-      const { login, setPenalty, session } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, setPenalty, session } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
       await setPenalty('sales', 10)
@@ -513,7 +494,7 @@ describe('useAmiAgentLogin', () => {
       ])
 
       const { refresh, session, loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -528,7 +509,7 @@ describe('useAmiAgentLogin', () => {
       mockClient.getQueueStatus = vi.fn().mockResolvedValue([])
 
       const { refresh, loggedInQueues, error } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -541,30 +522,21 @@ describe('useAmiAgentLogin', () => {
 
   describe('helper methods', () => {
     it('should return available queues', () => {
-      const { getAvailableQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { getAvailableQueues } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       const queues = getAvailableQueues()
       expect(queues).toEqual(['sales', 'support', 'billing'])
     })
 
     it('should return pause reasons', () => {
-      const { getPauseReasons } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { getPauseReasons } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       const reasons = getPauseReasons()
       expect(reasons).toEqual(['Break', 'Lunch', 'Meeting'])
     })
 
     it('should check if logged into specific queue', async () => {
-      const { login, isLoggedIntoQueue } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, isLoggedIntoQueue } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       expect(isLoggedIntoQueue('sales')).toBe(false)
 
@@ -575,10 +547,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should get queue membership details', async () => {
-      const { login, getQueueMembership } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, getQueueMembership } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       expect(getQueueMembership('sales')).toBeNull()
 
@@ -594,7 +563,7 @@ describe('useAmiAgentLogin', () => {
   describe('session management', () => {
     it('should start session timer', async () => {
       const { login, session, sessionDurationFormatted } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -609,10 +578,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should stop session timer on full logout', async () => {
-      const { login, logout, session } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, logout, session } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
       vi.advanceTimersByTime(5000)
@@ -629,7 +595,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should end session completely', async () => {
       const { login, endSession, session, isLoggedIn } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 
@@ -645,7 +611,7 @@ describe('useAmiAgentLogin', () => {
   describe('event handling', () => {
     it('should handle QueueMemberAdded event', async () => {
       const onQueueChange = vi.fn()
-      const { loggedInQueues } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { loggedInQueues } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         onQueueChange,
       })
@@ -670,7 +636,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should handle QueueMemberRemoved event', async () => {
       const onQueueChange = vi.fn()
-      const { login, loggedInQueues } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { login, loggedInQueues } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         onQueueChange,
       })
@@ -694,10 +660,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should handle QueueMemberPause event', async () => {
-      const { login, session, isPaused } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, session, isPaused } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
 
@@ -718,10 +681,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should ignore events for other interfaces', async () => {
-      const { loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { loggedInQueues } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       // Simulate event for different interface
       mockClient._triggerEvent(
@@ -740,7 +700,7 @@ describe('useAmiAgentLogin', () => {
 
   describe('shift management', () => {
     it('should initialize with shift configuration', () => {
-      const { session, isOnShift } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { session, isOnShift } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         shift: {
           startHour: 0,
@@ -759,7 +719,7 @@ describe('useAmiAgentLogin', () => {
     it('treats end minute as inclusive (prevents 23:59 boundary flake)', () => {
       vi.setSystemTime(new Date(2026, 0, 21, 23, 59, 30))
 
-      const { isOnShift } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { isOnShift } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         shift: {
           startHour: 0,
@@ -777,7 +737,7 @@ describe('useAmiAgentLogin', () => {
       // Wed Jan 21 2026
       vi.setSystemTime(new Date(2026, 0, 21, 23, 30, 0))
 
-      const { session, isOnShift } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { session, isOnShift } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         shift: {
           startHour: 23,
@@ -797,19 +757,16 @@ describe('useAmiAgentLogin', () => {
       // Thu Jan 22 2026
       vi.setSystemTime(new Date(2026, 0, 22, 0, 30, 0))
 
-      const { isOnShift: isOnShiftAfterMidnight } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        {
-          ...defaultOptions,
-          shift: {
-            startHour: 23,
-            startMinute: 0,
-            endHour: 1,
-            endMinute: 0,
-            daysOfWeek: [3, 4],
-          },
-        }
-      )
+      const { isOnShift: isOnShiftAfterMidnight } = useAmiAgentLogin(refClient(mockClient), {
+        ...defaultOptions,
+        shift: {
+          startHour: 23,
+          startMinute: 0,
+          endHour: 1,
+          endMinute: 0,
+          daysOfWeek: [3, 4],
+        },
+      })
 
       expect(isOnShiftAfterMidnight.value).toBe(true)
     })
@@ -818,7 +775,7 @@ describe('useAmiAgentLogin', () => {
       const now = new Date()
       const notToday = (now.getDay() + 1) % 7 // Tomorrow's day index
 
-      const { isOnShift } = useAmiAgentLogin(mockClient as unknown as AmiClient, {
+      const { isOnShift } = useAmiAgentLogin(refClient(mockClient), {
         ...defaultOptions,
         shift: {
           startHour: 0,
@@ -837,10 +794,7 @@ describe('useAmiAgentLogin', () => {
     it('should set error on login failure', async () => {
       mockClient.queueAdd = vi.fn().mockRejectedValue(new Error('Queue not found'))
 
-      const { login, error, isLoading } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, error, isLoading } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await expect(login({ queues: ['nonexistent'] })).rejects.toThrow('Queue not found')
 
@@ -851,10 +805,7 @@ describe('useAmiAgentLogin', () => {
     it('should set error on logout failure', async () => {
       mockClient.queueRemove = vi.fn().mockRejectedValue(new Error('Not a member'))
 
-      const { login, logout, error } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, logout, error } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
 
@@ -866,10 +817,7 @@ describe('useAmiAgentLogin', () => {
     it('should set error on pause failure', async () => {
       mockClient.queuePause = vi.fn().mockRejectedValue(new Error('Pause failed'))
 
-      const { login, pause, error } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, pause, error } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
 
@@ -882,7 +830,7 @@ describe('useAmiAgentLogin', () => {
   describe('input validation', () => {
     it('should throw on invalid agentId', () => {
       expect(() =>
-        useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        useAmiAgentLogin(refClient(mockClient), {
           ...defaultOptions,
           agentId: '',
         })
@@ -891,7 +839,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should throw on invalid interface', () => {
       expect(() =>
-        useAmiAgentLogin(mockClient as unknown as AmiClient, {
+        useAmiAgentLogin(refClient(mockClient), {
           ...defaultOptions,
           interface: 'invalid<script>',
         })
@@ -899,22 +847,19 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should reject invalid queue names on login', async () => {
-      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { login } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await expect(login({ queues: ['sales<script>'] })).rejects.toThrow('Invalid queue name')
     })
 
     it('should reject queue names with special characters', async () => {
-      const { login } = useAmiAgentLogin(mockClient as unknown as AmiClient, defaultOptions)
+      const { login } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await expect(login({ queues: ['valid', 'in valid'] })).rejects.toThrow('Invalid queue name')
     })
 
     it('should clamp penalty values', async () => {
-      const { login, session } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, session } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'], penalties: { sales: 9999 } })
 
@@ -923,10 +868,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should clamp negative penalty values to 0', async () => {
-      const { login, session } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, session } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'], penalties: { sales: -5 } })
 
@@ -934,10 +876,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should reject invalid queue name in setPenalty', async () => {
-      const { login, setPenalty } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, setPenalty } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
 
@@ -945,10 +884,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should ignore events with malformed data', async () => {
-      const { loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { loggedInQueues } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       // Simulate event with missing required fields
       mockClient._triggerEvent('queueMemberAdded', {
@@ -964,10 +900,7 @@ describe('useAmiAgentLogin', () => {
     })
 
     it('should ignore events with invalid queue names', async () => {
-      const { loggedInQueues } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { loggedInQueues } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       // Simulate event with invalid queue name
       mockClient._triggerEvent('queueMemberAdded', {
@@ -990,10 +923,7 @@ describe('useAmiAgentLogin', () => {
 
   describe('computed properties', () => {
     it('should update status to on_call when in call', async () => {
-      const { login, session, status } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
-        defaultOptions
-      )
+      const { login, session, status } = useAmiAgentLogin(refClient(mockClient), defaultOptions)
 
       await login({ queues: ['sales'] })
       expect(status.value).toBe('logged_in')
@@ -1008,7 +938,7 @@ describe('useAmiAgentLogin', () => {
 
     it('should format session duration correctly', async () => {
       const { login, sessionDurationFormatted } = useAmiAgentLogin(
-        mockClient as unknown as AmiClient,
+        refClient(mockClient),
         defaultOptions
       )
 

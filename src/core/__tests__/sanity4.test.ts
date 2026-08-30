@@ -1,3 +1,4 @@
+const connected = 'connected'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('jssip', () => {
@@ -109,6 +110,7 @@ describe('SipClient mock test', () => {
         uri: 'wss://192.168.1.100/ws',
         sipUri: 'sip:test@192.168.1.100',
         password: 'test',
+        registrationOptions: { autoRegister: false },
         wsOptions: { connectionTimeout: 5000, maxReconnectionAttempts: 5, reconnectionDelay: 2000 },
       },
       eventBus
@@ -146,6 +148,6 @@ describe('SipClient mock test', () => {
     const result = await Promise.race([startPromise, timeoutPromise])
     console.log('Result:', result)
 
-    expect(client.connectionState).toBe(0) // Connected
+    expect(client.connectionState).toBe(connected) // Connected
   }, 10000)
 })

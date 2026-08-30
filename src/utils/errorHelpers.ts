@@ -145,7 +145,8 @@ export function isNetworkError(error: unknown): boolean {
     isNetworkTypeError ||
     error.message.toLowerCase().includes('network') ||
     error.message.toLowerCase().includes('fetch') ||
-    error.message.toLowerCase().includes('connection')
+    error.message.toLowerCase().includes('connection') ||
+    error.message.toLowerCase().includes('unreachable')
   )
 }
 
