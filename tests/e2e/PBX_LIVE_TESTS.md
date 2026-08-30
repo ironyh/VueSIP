@@ -106,6 +106,30 @@ default config spawn its own webServer on the occupied 5173/5174 ports.
   gathered candidates (wrap `RTCPeerConnection` in the page and log
   `icecandidate` events).
 
+- **Runner hosts can't reach the PBX** — FreePBX firewall drops TCP from
+  non-trusted networks (ICMP passes, TCP doesn't). The Gitea runner network
+  `192.168.64.0/24` is in the trusted zone
+  (`fwconsole firewall add trusted 192.168.64.0/24` + restart); add any new
+  runner network the same way.
+
+## Nightly CI run
+
+`.gitea/workflows/pbx-nightly.yml` runs both specs on a schedule
+(02:30 UTC daily) and on manual dispatch, against the **internal** PBX
+addresses (`ws://192.168.65.129:8088` / `:3000`) so the public WSS proxy and
+hairpin NAT are out of the loop. It needs three Gitea repo secrets:
+
+- `VUESIP_TEST_AMI_SECRET`
+- `VUESIP_TEST_SIP_PASSWORD`
+- `VUESIP_TEST_AUDIO_SIP_PASSWORD`
+
+Trigger manually from the repo's Actions page or:
+
+```bash
+gh api -X POST repos/ironyh/VueSIP/actions/workflows/pbx-nightly.yml/dispatches \
+  -f ref=main   # (GitHub CLI against the Gitea endpoint if configured)
+```
+
 - **WSS proxy 502/503** — HAProxy health-check/backend issue, not an app bug.
   See the homelab-infra "WSS proxy stability fix" section; retry after the
   backend recovers.

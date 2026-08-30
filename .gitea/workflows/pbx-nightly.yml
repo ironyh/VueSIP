@@ -1,0 +1,80 @@
+name: PBX E2E (nightly)
+
+# Real-PBX end-to-end specs against the live homelab FreePBX/Asterisk.
+# Scheduled nightly + manual dispatch — deliberately NOT per-push: the PBX is
+# a shared live system and its WSS proxy occasionally flakes, which must not
+# fail ordinary pushes (that is what ci.yml covers with mocks).
+
+on:
+  schedule:
+    - cron: '30 2 * * *' # 02:30 UTC = 04:30 CEST, PBX idle
+  workflow_dispatch:
+
+jobs:
+  e2e-pbx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Internal PBX addresses: the runner container is on the same LAN as the
+      # PBX, so skip the public WSS proxy/hairpin entirely.
+      VUESIP_TEST_WS_URL: ws://192.168.65.129:8088
+      VUESIP_TEST_SIP_DOMAIN: pbx.telenurse.se
+      VUESIP_TEST_SIP_USER: 1001
+      VUESIP_TEST_SIP_PASSWORD: ${{ secrets.VUESIP_TEST_SIP_PASSWORD }}
+      VUESIP_TEST_AMI_WS_URL: ws://192.168.65.129:3000
+      VUESIP_TEST_AMI_HOST: 192.168.65.129
+      VUESIP_TEST_AMI_PORT: '5038'
+      VUESIP_TEST_AMI_USER: DM1RjhF3tlrA
+      VUESIP_TEST_AMI_SECRET: ${{ secrets.VUESIP_TEST_AMI_SECRET }}
+      VUESIP_TEST_AUDIO_SIP_USER: nurse_1001
+      VUESIP_TEST_AUDIO_SIP_PASSWORD: ${{ secrets.VUESIP_TEST_AUDIO_SIP_PASSWORD }}
+      CALL_CENTER_PORT: '5175'
+      CALL_CENTER_URL: http://localhost:5175/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm (9.14.2 per package.json)
+        run: corepack enable && corepack prepare pnpm@9.14.2 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start call-center dev server
+        run: |
+          cd examples/call-center
+          node ../../node_modules/vite/bin/vite.js --port 5175 --strictPort &
+          cd ../..
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://localhost:5175/; then
+              echo "dev server up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "dev server failed to start"
+          exit 1
+
+      - name: Run real-PBX e2e specs (Nivå 3/4 + Nivå 5)
+        run: |
+          node node_modules/@playwright/test/cli.js test \
+            --config=tests/e2e/pbx.local.config.ts \
+            tests/e2e/call-center-inbound-pbx.spec.ts \
+            tests/e2e/call-center-inbound-pbx-audio.spec.ts \
+            --retries=2
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: pbx-e2e-results
+          path: test-results/
+          retention-days: 7
