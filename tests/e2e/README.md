@@ -2,6 +2,11 @@
 
 Comprehensive guide for running, writing, and troubleshooting end-to-end tests for VueSip.
 
+> **Running against the live homelab PBX?** See [PBX_LIVE_TESTS.md](./PBX_LIVE_TESTS.md)
+> for the Nivå 3/4/5 real-PBX specs (`call-center-inbound-pbx*.spec.ts`), their
+> `VUESIP_TEST_*` environment variables, and the homelab dependencies
+> (WebRTC endpoint, LAN TURN server, AMI permissions).
+
 ## Table of Contents
 
 - [Quick Start](#quick-start)
