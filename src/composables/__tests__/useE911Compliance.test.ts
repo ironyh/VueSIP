@@ -198,8 +198,11 @@ describe('useE911Compliance', () => {
       const complianceLogging = ref(true)
       const { addLog, clearOldLogs, complianceLogs } = useE911Compliance(complianceLogging)
 
-      // Add logs at different times would require more complex mocking
-      // This tests the basic functionality
+      // Mock the clock BEFORE adding the log so the log's timestamp is
+      // deterministic (2026-01-01), independent of the real date. Adding the
+      // log first would stamp it with the real "now", which drifts past the
+      // cutoff over time and breaks the test.
+      vi.setSystemTime(new Date('2026-01-01'))
       addLog('call_1', 'Old call')
 
       vi.setSystemTime(new Date('2027-01-01'))
