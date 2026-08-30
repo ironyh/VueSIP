@@ -46,6 +46,15 @@ test.use({
 test.describe('Call-center inbound with real WebRTC media (Nivå 5)', () => {
   test('queue caller rings, agent answers, media bridges and holds, hangup', async ({ page }) => {
     test.setTimeout(180000)
+    // Bridge browser console/page errors to stdout so the CI log carries the
+    // app's own connection diagnostics when a nightly run fails.
+    page.on('console', (m) => {
+      const t = m.text()
+      if (/error|fail|denied|timeout|refused|SIP|ICE|unregistered/i.test(t)) {
+        process.stdout.write(`[browser.${m.type()}] ${t.slice(0, 300)}\n`)
+      }
+    })
+    page.on('pageerror', (e) => process.stdout.write(`[pageerror] ${e.message}\n`))
     // Register on the WebRTC-enabled endpoint (nurse_1001: dtls/avpf/ice) —
     // the plain-PJSIP endpoint used by the signalling spec cannot negotiate
     // real WebRTC media. The app's AMI login adds it to the queues as a

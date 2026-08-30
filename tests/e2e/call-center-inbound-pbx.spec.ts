@@ -214,6 +214,14 @@ test.describe('Call-center inbound (real PBX, Nivå 3)', () => {
     mockMediaDevices,
   }) => {
     test.setTimeout(90000)
+    // Bridge browser console/page errors to stdout for CI diagnostics.
+    page.on('console', (m) => {
+      const t = m.text()
+      if (/error|fail|denied|timeout|refused|SIP|unregistered/i.test(t)) {
+        process.stdout.write(`[browser.${m.type()}] ${t.slice(0, 300)}\n`)
+      }
+    })
+    page.on('pageerror', (e) => process.stdout.write(`[pageerror] ${e.message}\n`))
     // Install media mocks BEFORE page.goto(): both use addInitScript which runs
     // before the page loads, so JSSIP captures the patched RTCPeerConnection /
     // getUserMedia when it constructs its media stack during the incoming call.
