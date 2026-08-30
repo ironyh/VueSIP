@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm (9.14.2 per package.json)
+        run: corepack enable && corepack prepare pnpm@9.14.2 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      # Stable subset: these directories are verified to run AND exit cleanly.
+      # The remaining suite (tests/integration, tests/performance, playground)
+      # is opt-in / long-running and some e2e specs require the live PBX.
+      - name: Unit tests (stable subset)
+        run: node node_modules/vitest/vitest.mjs run src/composables src/utils src/core tests/unit tests/pbx-framework
