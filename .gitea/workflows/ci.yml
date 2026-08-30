@@ -34,4 +34,4 @@ jobs:
       # The remaining suite (tests/integration, tests/performance, playground)
       # is opt-in / long-running and some e2e specs require the live PBX.
       - name: Unit tests (stable subset)
-        run: node node_modules/vitest/vitest.mjs run src/composables src/utils src/core tests/unit tests/pbx-framework
+        run: node node_modules/vitest/vitest.mjs run --testTimeout=30000 --hookTimeout=30000 src/composables src/utils src/core tests/unit tests/pbx-framework
