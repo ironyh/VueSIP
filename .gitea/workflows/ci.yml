@@ -31,7 +31,12 @@ jobs:
         run: pnpm lint
 
       # Stable subset: these directories are verified to run AND exit cleanly.
-      # The remaining suite (tests/integration, tests/performance, playground)
-      # is opt-in / long-running and some e2e specs require the live PBX.
-      - name: Unit tests (stable subset)
+      - name: Unit tests (lib + unit)
         run: node node_modules/vitest/vitest.mjs run --testTimeout=30000 --hookTimeout=30000 src/composables src/utils src/core tests/unit tests/pbx-framework
+
+      # Remaining unit coverage. Run as a SEPARATE process: combining all suites
+      # into one vitest invocation (~441 files) intermittently hangs the process
+      # after all tests pass (leaked handles under full parallelism); each of
+      # these groups - and the two groups combined - exit cleanly.
+      - name: Unit tests (integration + performance + composables)
+        run: node node_modules/vitest/vitest.mjs run --testTimeout=30000 --hookTimeout=30000 tests/composables tests/integration tests/performance
