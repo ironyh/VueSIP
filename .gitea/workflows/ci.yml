@@ -38,5 +38,11 @@ jobs:
       # into one vitest invocation (~441 files) intermittently hangs the process
       # after all tests pass (leaked handles under full parallelism); each of
       # these groups - and the two groups combined - exit cleanly.
+      #
+      # Build first: bundle-size.test.ts asserts build artifacts exist when
+      # CI=true (deliberate — it verifies dist/ size budgets).
+      - name: Build library
+        run: pnpm build
+
       - name: Unit tests (integration + performance + composables)
         run: node node_modules/vitest/vitest.mjs run --testTimeout=30000 --hookTimeout=30000 tests/composables tests/integration tests/performance
