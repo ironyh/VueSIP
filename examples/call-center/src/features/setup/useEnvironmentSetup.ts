@@ -90,6 +90,14 @@ export function useEnvironmentSetup() {
   function toSipConfig(): SipClientConfig {
     const wssUri = toWssUri(form.value.server)
     const domain = toSipDomain(form.value.server)
+    // Test hook: e2e specs can inject ICE servers (e.g. a LAN TURN for real
+    // media runs where browser candidates are mDNS/NAT-hidden from the PBX)
+    // by setting window.__VUESIP_RTC_CONFIGURATION before connecting.
+    const rtcConfig =
+      typeof window !== 'undefined'
+        ? (window as { __VUESIP_RTC_CONFIGURATION?: SipClientConfig['rtcConfiguration'] })
+            .__VUESIP_RTC_CONFIGURATION
+        : undefined
     return {
       uri: wssUri,
       sipUri: `sip:${form.value.username}@${domain}`,
@@ -99,6 +107,7 @@ export function useEnvironmentSetup() {
         autoRegister: true,
         expires: 600,
       },
+      ...(rtcConfig ? { rtcConfiguration: rtcConfig } : {}),
     }
   }
 
