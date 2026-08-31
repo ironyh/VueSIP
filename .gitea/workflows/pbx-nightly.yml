@@ -23,7 +23,7 @@ jobs:
     env:
       # Internal PBX addresses: the runner container is on the same LAN as the
       # PBX, so skip the public WSS proxy/hairpin entirely.
-      VUESIP_TEST_WS_URL: ws://192.168.65.129:8088
+      VUESIP_TEST_WS_URL: ws://192.168.65.129:8088/ws
       VUESIP_TEST_SIP_DOMAIN: pbx.telenurse.se
       VUESIP_TEST_SIP_USER: 1001
       VUESIP_TEST_SIP_PASSWORD: ${{ secrets.VUESIP_TEST_SIP_PASSWORD }}

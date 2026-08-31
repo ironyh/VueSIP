@@ -794,6 +794,22 @@ export class AmiClient {
     }
   }
 
+  /**
+   * Blind transfer a bridged channel to a dialplan destination.
+   */
+  async blindTransferChannel(channel: string, context: string, exten: string): Promise<void> {
+    const response = await this.sendAction({
+      Action: 'BlindTransfer',
+      Channel: channel,
+      Context: context,
+      Exten: exten,
+    })
+
+    if (response.data.Response !== 'Success') {
+      throw new Error(response.data.Message || 'Failed to blind transfer channel')
+    }
+  }
+
   // ============================================================================
   // Peer Methods
   // ============================================================================

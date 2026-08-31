@@ -75,6 +75,24 @@
               >
                 Answer
               </button>
+              <div class="redirect-cell">
+                <input
+                  class="redirect-input"
+                  :data-testid="`queue-redirect-input-${call.id}`"
+                  v-model="redirectTargets[call.id]"
+                  type="text"
+                  inputmode="tel"
+                  placeholder="ext/queue"
+                />
+                <button
+                  class="redirect-btn"
+                  :data-testid="`queue-redirect-${call.id}`"
+                  :disabled="!(redirectTargets[call.id] || '').trim()"
+                  @click="handleRedirect(call)"
+                >
+                  →
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -115,7 +133,17 @@ const props = defineProps<{
 const emit = defineEmits<{
   answer: [call: QueuedCall]
   'queue-update': [announcement: string]
+  redirect: [callId: string, target: string]
 }>()
+
+const redirectTargets = ref<Record<string, string>>({})
+
+function handleRedirect(call: { id: string }): void {
+  const target = (redirectTargets.value[call.id] || '').trim()
+  if (!target) return
+  emit('redirect', call.id, target)
+  redirectTargets.value[call.id] = ''
+}
 
 // ============================================================================
 // State
@@ -363,5 +391,30 @@ watch(
   font-size: 0.875rem;
   color: #6b7280;
   font-weight: 500;
+}
+
+.redirect-cell {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.redirect-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.redirect-btn {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 </style>

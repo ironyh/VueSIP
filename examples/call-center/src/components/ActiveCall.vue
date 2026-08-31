@@ -144,6 +144,31 @@
       </div>
     </div>
 
+    <!-- Call Transfer (connected mode only) -->
+    <div v-if="transferEnabled" class="transfer-section" data-testid="call-center-transfer">
+      <label for="transfer-target" class="transfer-label">Transfer to extension or queue</label>
+      <div class="transfer-row">
+        <input
+          id="transfer-target"
+          v-model="transferTargetInput"
+          class="transfer-input"
+          type="text"
+          inputmode="tel"
+          placeholder="e.g. 8002"
+          :disabled="transferBusy"
+          @keydown.enter="requestTransfer"
+        />
+        <button
+          class="transfer-btn"
+          data-testid="call-center-transfer-button"
+          :disabled="transferBusy || !transferTargetInput.trim()"
+          @click="requestTransfer"
+        >
+          {{ transferBusy ? 'Transferring…' : 'Transfer' }}
+        </button>
+      </div>
+    </div>
+
     <!-- Call Notes -->
     <div class="call-notes">
       <label for="notes">Call Notes</label>
@@ -175,6 +200,8 @@ const props = defineProps<{
   isMuted: boolean
   isOnHold: boolean
   callNotes: string
+  transferEnabled?: boolean
+  transferBusy?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -184,7 +211,16 @@ const emit = defineEmits<{
   'send-dtmf': [digit: string]
   'update:notes': [notes: string]
   'call-state-change': [announcement: string]
+  'transfer-request': [target: string]
 }>()
+
+const transferTargetInput = ref('')
+
+function requestTransfer(): void {
+  const target = transferTargetInput.value.trim()
+  if (!target || props.transferBusy) return
+  emit('transfer-request', target)
+}
 
 // ============================================================================
 // State
@@ -478,5 +514,41 @@ watch(
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.transfer-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.transfer-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.transfer-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.transfer-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.transfer-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: #ffffff;
+  font-weight: 500;
+  cursor: pointer;
 }
 </style>

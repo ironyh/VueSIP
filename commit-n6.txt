@@ -1,0 +1,35 @@
+feat(e2e): Nivå 6 - queue redirect via AMI Redirect on tracked caller channel
+
+Adds blind transfer (Nivå 5.5, connected mode ActiveCall) and queue redirect
+(Nivå 6, CallQueue row) against the live PBX.
+
+Gateway (connected-gateway.ts):
+- Tracks caller channels per caller number from QueueCallerJoin events
+  (getCallerChannel), and the agent's bridged channel from BridgeEnter
+  (getLatestAgentChannel).
+- QueueCallerJoin is the most reliable source: Asterisk sends separate
+  BridgeEnter events per channel, often without Channel2, so using
+  BridgeEnter for tracking loses the caller channel.
+
+AmiClient.ts:
+- Adds blindTransferChannel() — canonical blind transfer via
+  Action: BlindTransfer (drops the agent leg, sends the caller to the
+  target). Not used by the runtime (see below) but available for the
+  library consumers.
+
+Runtime (CallCenterRuntime.vue):
+- handleTransferRequest: AMI Redirect on the caller's bridged channel
+  (Nivå 5.5). Not tested here — covered by the Nivå 5 audio spec.
+- handleRedirectQueuedCall: AMI Redirect on a WAITING caller's channel
+  (Nivå 6). Deterministic — no SIP call answered, no WebRTC involved.
+
+CallQueue.vue: per-row redirect input + button (emits redirect event).
+ActiveCall.vue: transfer section (input + button, connected mode only).
+
+Test infrastructure:
+- tests/e2e/pbx.local.config.ts: local config for real-PBX specs.
+- PBX_LIVE_TESTS.md: documents the Nivå 3/4/5/6 specs + troubleshooting.
+
+Homelab prerequisites (see homelab-infra FREEPBX-CALLCENTER-QUEUES.md):
+- WebRTC endpoint (nurse_1001), LAN TURN (coturn on CT127), AMI originate
+  permission, FreePBX firewall trusted networks for runner CTs.

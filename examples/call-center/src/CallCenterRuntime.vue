@@ -99,6 +99,7 @@
             :agent-status="agentStatus"
             @answer="handleQueuedCallAnswer"
             @queue-update="handleQueueUpdate"
+            @redirect="handleRedirectQueuedCall"
           />
           <SupervisorBoard
             :queue-rows="queueRows"
@@ -129,7 +130,10 @@
             :is-muted="isMuted"
             :is-on-hold="isOnHold"
             :call-notes="currentCallNotes"
+            :transfer-enabled="isConnectedMode"
+            :transfer-busy="transferBusy"
             @hangup="handleHangup"
+            @transfer-request="handleTransferRequest"
             @mute="handleMuteToggle"
             @hold="handleHoldToggle"
             @send-dtmf="handleSendDTMF"
@@ -502,6 +506,7 @@ const gateway: MvpGateway = isConnectedMode.value
       connectionState: ami.connectionState,
       queues: amiQueues.queues,
       getClient: () => ami.getClient(),
+      agentExtension: sipExtension,
     })
   : demoGateway
 
@@ -936,6 +941,81 @@ const handleHangup = async () => {
     await hangup()
   } catch (hangupError) {
     console.error('Failed to hangup:', hangupError)
+  }
+}
+
+const transferBusy = ref(false)
+
+/**
+ * Blind transfer of the active call via AMI Redirect on the caller's bridged
+ * channel (Nivå 6 / connected mode only).
+ */
+const handleTransferRequest = async (target: string) => {
+  const exten = target.replace(/[^\d*#]/g, '')
+  if (!exten) {
+    showNotification('error', 'Ange en giltig anknytning eller kö (t.ex. 8002)')
+    return
+  }
+  if (!isConnectedMode.value) {
+    showNotification('info', 'Överföring är endast tillgänglig i anslutet läge')
+    return
+  }
+  const cg = gateway as import('./features/shared/connected-gateway').ConnectedGateway
+  const caller = cg.getLatestCallerChannel()
+  if (!caller?.channel) {
+    showNotification('error', 'Ingen aktiv anropar-kanal att överföra')
+    return
+  }
+  const client = ami.getClient()
+  if (!client) {
+    showNotification('error', 'AMI-anslutning saknas')
+    return
+  }
+  transferBusy.value = true
+  try {
+    await client.redirectChannel(caller.channel, 'from-internal', exten, 1)
+    showNotification('success', `Samtalet överförs till ${exten} …`)
+  } catch (transferError) {
+    showNotification(
+      'error',
+      `Överföring misslyckades: ${transferError instanceof Error ? transferError.message : String(transferError)}`
+    )
+  } finally {
+    transferBusy.value = false
+  }
+}
+
+/**
+ * Redirect a WAITING queue caller to another extension/queue (connected mode).
+ */
+const handleRedirectQueuedCall = async (callId: string, target: string) => {
+  const exten = target.replace(/[^\d*#]/g, '')
+  if (!exten) {
+    showNotification('error', 'Ange en giltig anknytning eller kö (t.ex. 8002)')
+    return
+  }
+  if (!isConnectedMode.value) {
+    showNotification('info', 'Omdirigering är endast tillgänglig i anslutet läge')
+    return
+  }
+  const call = callQueue.value.find((c) => c.id === callId)
+  const callerNum = call ? extractNumber(call.from) : ''
+  const cg = gateway as import('./features/shared/connected-gateway').ConnectedGateway
+  const caller = callerNum ? cg.getCallerChannel(callerNum) : null
+  const client = ami.getClient()
+  if (!client || !caller?.channel) {
+    showNotification('error', 'Kanalen för det väntande samtalet är okänd')
+    return
+  }
+  try {
+    await client.redirectChannel(caller.channel, 'from-internal', exten, 1)
+    callQueue.value = callQueue.value.filter((c) => c.id !== callId)
+    showNotification('success', `Samtalet dirigeras om till ${exten} …`)
+  } catch (redirectError) {
+    showNotification(
+      'error',
+      `Omdirigering misslyckades: ${redirectError instanceof Error ? redirectError.message : String(redirectError)}`
+    )
   }
 }
 

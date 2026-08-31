@@ -52,6 +52,9 @@ export interface ConnectedGateway extends MvpGateway {
   getDeliveryForChannel(channel: string): DeliveryInfo | null
   /** Look up the most recent delivery by the caller's number. */
   getDeliveryForCallerNumber(num: string): DeliveryInfo | null
+  getLatestCallerChannel(): { channel: string; callerIdNum: string } | null
+  getLatestAgentChannel(): string | null
+  getCallerChannel(callerNum: string): { channel: string; callerIdNum: string } | null
 }
 
 /**
@@ -101,6 +104,8 @@ export interface ConnectedGatewayHandles {
   onCallerJoin?: (cb: (entry: QueueEntry, queue: string) => void) => () => void
   /** Subscribe to AMI caller-leave events. */
   onCallerLeave?: (cb: (entry: QueueEntry, queue: string) => void) => () => void
+  /** The agent's own SIP extension (e.g. "1001") — identifies the agent's channel in BridgeEnter events. */
+  agentExtension?: string
 }
 
 const CONNECTED_CAPABILITIES: MvpGatewayCapabilities = {
@@ -123,6 +128,10 @@ export function createConnectedGateway(handles: ConnectedGatewayHandles): Connec
   let unsubscribeLeave: (() => void) | null = null
   let watchStop: (() => void) | null = null
   let lastSeenIds = new Set<string>()
+  const agentPrefix = handles.agentExtension ? `PJSIP/${handles.agentExtension}-` : null
+  let latestCallerChannel: { channel: string; callerIdNum: string } | null = null
+  let latestAgentChannel: string | null = null
+  const callerChannels = new Map<string, { channel: string; callerIdNum: string }>()
 
   /**
    * Pending deliveries keyed by member interface (e.g. "PJSIP/1001"). Populated
@@ -167,11 +176,33 @@ export function createConnectedGateway(handles: ConnectedGatewayHandles): Connec
         }
         deliveryByChannel.set(msg.DestChannel, info)
       }
+    } else if (evt === 'QueueCallerJoin') {
+      // Track the caller's channel from the queue join itself — the most
+      // reliable source (Asterisk sends separate BridgeEnter events per
+      // channel, often without Channel2, so the caller channel would
+      // otherwise be lost). Store the RAW joined channel: for a waiting
+      // (unanswered) caller the queue-side half (;2) is the one AMI Redirect
+      // moves reliably.
+      if (msg.Channel && (!agentPrefix || !msg.Channel.startsWith(agentPrefix))) {
+        latestCallerChannel = { channel: msg.Channel, callerIdNum: msg.CallerIDNum ?? '' }
+        const num = msg.CallerIDNum ?? ''
+        if (num) {
+          callerChannels.set(num, { channel: msg.Channel, callerIdNum: num })
+        }
+      }
+    } else if (evt === 'BridgeEnter') {
+      // Track the agent's own channel while bridged.
+      if (agentPrefix) {
+        if (msg.Channel?.startsWith(agentPrefix)) latestAgentChannel = msg.Channel
+        else if (msg.Channel2?.startsWith(agentPrefix)) latestAgentChannel = msg.Channel2
+      }
     } else if (evt === 'Hangup' || evt === 'BridgeLeave') {
       const ch = msg.Channel
       if (ch) deliveryByChannel.delete(ch)
       const num = msg.CallerIDNum
       if (num) deliveryByCallerNum.delete(num)
+      const tracked = callerChannels.get(num)
+      if (tracked?.channel === ch) callerChannels.delete(num)
     }
   }
 
@@ -264,11 +295,26 @@ export function createConnectedGateway(handles: ConnectedGatewayHandles): Connec
     return deliveryByCallerNum.get(num) ?? null
   }
 
+  function getLatestCallerChannel(): { channel: string; callerIdNum: string } | null {
+    return latestCallerChannel
+  }
+
+  function getLatestAgentChannel(): string | null {
+    return latestAgentChannel
+  }
+
+  function getCallerChannel(callerNum: string): { channel: string; callerIdNum: string } | null {
+    return callerChannels.get(callerNum) ?? null
+  }
+
   return {
     capabilities: CONNECTED_CAPABILITIES,
     start,
     stop,
     getDeliveryForChannel,
     getDeliveryForCallerNumber,
+    getLatestCallerChannel,
+    getLatestAgentChannel,
+    getCallerChannel,
   }
 }
