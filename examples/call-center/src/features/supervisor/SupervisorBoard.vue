@@ -39,6 +39,24 @@
             <strong>{{ agent.agentId }}</strong>
             <span>{{ agent.status }}</span>
             <span>{{ agent.workspaceState }}</span>
+            <span v-if="agent.activeCallId" class="spy-controls">
+              <button
+                class="spy-btn"
+                :data-testid="`supervisor-listen-${agent.agentId}`"
+                @click="$emit('spy', agent.agentId, 'listen')"
+                aria-label="Listen to agent call"
+              >
+                Listen
+              </button>
+              <button
+                class="spy-btn spy-barge"
+                :data-testid="`supervisor-barge-${agent.agentId}`"
+                @click="$emit('spy', agent.agentId, 'barge')"
+                aria-label="Barge in on agent call"
+              >
+                Barge
+              </button>
+            </span>
           </li>
         </ul>
       </section>
@@ -104,6 +122,7 @@ defineProps<{
 
 defineEmits<{
   reassign: [callbackId: string]
+  spy: [agentId: string, mode: 'listen' | 'barge']
 }>()
 </script>
 
@@ -180,5 +199,37 @@ defineEmits<{
   .board-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.spy-controls {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.spy-btn {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+  background: transparent;
+  color: #3b82f6;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.spy-btn:hover {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.spy-barge {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.spy-barge:hover {
+  background: #ef4444;
+  color: #ffffff;
 }
 </style>

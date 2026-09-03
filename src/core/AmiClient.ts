@@ -810,6 +810,33 @@ export class AmiClient {
     }
   }
 
+  /**
+   * Originate a supervisor spy session on a bridged call.
+   *
+   * Calls the supervisor's endpoint and connects it to a ChanSpy session on
+   * the target channel. Mode 'listen' is silent; 'barge' whispers to both
+   * parties.
+   */
+  async originateSpy(
+    supervisorChannel: string,
+    targetChannel: string,
+    mode: 'listen' | 'barge' = 'listen'
+  ): Promise<void> {
+    const spyData = mode === 'barge' ? `${targetChannel},B` : `${targetChannel},q`
+    const response = await this.sendAction({
+      Action: 'Originate',
+      Channel: supervisorChannel,
+      Application: 'ChanSpy',
+      Data: spyData,
+      CallerID: `"Supervisor ${mode}" <${mode === 'barge' ? '99' : '98'}>`,
+      Async: 'true',
+    })
+
+    if (response.data.Response !== 'Success') {
+      throw new Error(response.data.Message || 'Failed to originate spy session')
+    }
+  }
+
   // ============================================================================
   // Peer Methods
   // ============================================================================

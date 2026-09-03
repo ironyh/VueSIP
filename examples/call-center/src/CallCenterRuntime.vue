@@ -107,6 +107,7 @@
             :alert-rows="alertRows"
             :callback-rows="callbackRows"
             @reassign="handleSupervisorReassign"
+            @spy="handleSupervisorSpy"
           />
         </aside>
 
@@ -988,6 +989,38 @@ const handleTransferRequest = async (target: string) => {
 /**
  * Redirect a WAITING queue caller to another extension/queue (connected mode).
  */
+/**
+ * Supervisor spy (Nivå 7): originate a ChanSpy session targeting the agent's
+ * bridged channel. Mode 'listen' is silent; 'barge' whispers to both parties.
+ * The supervisor must have a registered endpoint for Asterisk to call.
+ */
+const handleSupervisorSpy = async (agentId: string, mode: 'listen' | 'barge') => {
+  if (!isConnectedMode.value) {
+    showNotification('info', 'Lyssning är endast tillgänglig i anslutet läge')
+    return
+  }
+  const client = ami.getClient()
+  if (!client) {
+    showNotification('error', 'AMI-anslutning saknas')
+    return
+  }
+  const cg = gateway as import('./features/shared/connected-gateway').ConnectedGateway
+  const agentChannel = cg.getLatestAgentChannel()
+  if (!agentChannel) {
+    showNotification('error', 'Agenten har inget aktivt bridgat samtal')
+    return
+  }
+  try {
+    await client.originateSpy('PJSIP/nurse_1002', agentChannel, mode)
+    showNotification('success', `Supervisor ${mode} startad på ${agentId}`)
+  } catch (spyError) {
+    showNotification(
+      'error',
+      `Spy misslyckades: ${spyError instanceof Error ? spyError.message : String(spyError)}`
+    )
+  }
+}
+
 const handleRedirectQueuedCall = async (callId: string, target: string) => {
   const exten = target.replace(/[^\d*#]/g, '')
   if (!exten) {
