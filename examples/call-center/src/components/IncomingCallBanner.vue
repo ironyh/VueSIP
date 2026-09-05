@@ -14,6 +14,7 @@
     <div class="banner-actions">
       <button
         type="button"
+        ref="acceptBtn"
         class="btn btn-accept"
         data-testid="call-center-incoming-accept"
         @click="$emit('accept')"
@@ -33,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import type { QueuedCallView } from '../features/shared/mvp-types'
 
 const props = defineProps<{
@@ -47,6 +48,12 @@ defineEmits<{
   accept: []
   reject: []
 }>()
+
+const acceptBtn = ref<HTMLButtonElement | null>(null)
+
+onMounted(() => {
+  acceptBtn.value?.focus()
+})
 
 const callerLabel = computed(() => props.remoteDisplayName || props.remoteUri || 'Okänd anropare')
 

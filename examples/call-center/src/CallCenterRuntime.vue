@@ -942,6 +942,7 @@ const handleHangup = async () => {
     await hangup()
   } catch (hangupError) {
     console.error('Failed to hangup:', hangupError)
+    showNotification('error', 'Failed to end call')
   }
 }
 
@@ -1053,15 +1054,27 @@ const handleRedirectQueuedCall = async (callId: string, target: string) => {
 }
 
 const handleMuteToggle = async () => {
-  await toggleMute()
+  try {
+    await toggleMute()
+  } catch {
+    showNotification('error', 'Failed to toggle mute')
+  }
 }
 
 const handleHoldToggle = async () => {
-  await toggleHold()
+  try {
+    await toggleHold()
+  } catch {
+    showNotification('error', 'Failed to toggle hold')
+  }
 }
 
 const handleSendDTMF = async (digit: string) => {
-  await sendDTMF(digit)
+  try {
+    await sendDTMF(digit)
+  } catch {
+    showNotification('error', `Failed to send DTMF ${digit}`)
+  }
 }
 
 const handleHistoryFilter = (filter: HistoryFilter | null) => {

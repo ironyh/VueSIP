@@ -69,7 +69,7 @@
               <button
                 class="btn btn-success btn-sm"
                 :data-testid="`queue-answer-${call.id}`"
-                :disabled="agentStatus !== 'available'"
+                :disabled="agentStatus !== 'available' || answeringCallId === call.id"
                 @click="handleAnswerCall(call)"
                 :aria-label="`Answer call from ${call.displayName || 'Unknown'}, waiting ${formatWaitTime(call.waitTime)}`"
               >
@@ -83,14 +83,18 @@
                   type="text"
                   inputmode="tel"
                   placeholder="ext/queue"
+                  :disabled="redirectingCallId === call.id"
+                  @keydown.enter="handleRedirect(call)"
+                  :aria-label="`Redirect target for call from ${call.displayName || 'Unknown'}`"
                 />
                 <button
                   class="redirect-btn"
                   :data-testid="`queue-redirect-${call.id}`"
-                  :disabled="!(redirectTargets[call.id] || '').trim()"
+                  :disabled="redirectingCallId === call.id || !redirectTargets[call.id]?.trim()"
                   @click="handleRedirect(call)"
+                  :aria-label="`Redirect call from ${call.displayName || 'Unknown'} to ${redirectTargets[call.id] || 'target'}`"
                 >
-                  →
+                  {{ redirectingCallId === call.id ? '…' : '→' }}
                 </button>
               </div>
             </td>
@@ -128,6 +132,7 @@ interface QueuedCall {
 const props = defineProps<{
   queue: QueuedCall[]
   agentStatus: 'available' | 'busy' | 'away'
+  answeringCallId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -137,13 +142,36 @@ const emit = defineEmits<{
 }>()
 
 const redirectTargets = ref<Record<string, string>>({})
+/** Tracks which call is currently being redirected — prevents double-submit. */
+const redirectingCallId = ref<string | null>(null)
+
+/**
+ * Validate a redirect target: only digits, *, and # allowed (SIP extension
+ * or queue number). Returns the cleaned value or null if invalid.
+ */
+function validateTarget(raw: string): string | null {
+  const cleaned = raw.replace(/[^\d*#]/g, '')
+  return cleaned.length >= 2 ? cleaned : null
+}
 
 function handleRedirect(call: { id: string }): void {
-  const target = (redirectTargets.value[call.id] || '').trim()
-  if (!target) return
+  if (redirectingCallId.value) return
+  const target = validateTarget(redirectTargets.value[call.id] || '')
+  if (!target) {
+    redirectTargets.value[call.id] = ''
+    return
+  }
+  redirectingCallId.value = call.id
   emit('redirect', call.id, target)
   redirectTargets.value[call.id] = ''
 }
+
+/** Called by the parent when the redirect completes (success or failure). */
+function clearRedirectState(): void {
+  redirectingCallId.value = null
+}
+
+defineExpose({ clearRedirectState })
 
 // ============================================================================
 // State
