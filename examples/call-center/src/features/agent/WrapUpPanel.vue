@@ -54,7 +54,7 @@
         class="btn btn-primary"
         type="button"
         data-testid="wrap-up-complete"
-        :disabled="!canComplete"
+        :disabled="!canComplete || submitting"
         @click="$emit('complete')"
       >
         Complete Wrap-Up
@@ -68,6 +68,7 @@ defineProps<{
   disposition: string | null
   notes: string
   callbackRequested: boolean
+  submitting?: boolean
   canComplete: boolean
 }>()
 
